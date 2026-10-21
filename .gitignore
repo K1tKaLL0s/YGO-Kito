@@ -1,0 +1,40 @@
+# Account and secret material
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+.git-credentials
+credentials*
+secrets/
+.aws/
+.ssh/
+.codex/
+.agents/
+
+# Models, datasets and generated artifacts
+models/
+weights/
+datasets/
+checkpoints/
+cache/
+.cache/
+runs/
+outputs/
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.gguf
+*.onnx
+*.tflite
+*.bin
+*.parquet
+*.arrow
+
+# Local environments
+.venv/
+venv/
+__pycache__/
+*.py[cod]

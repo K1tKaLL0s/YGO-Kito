@@ -1,0 +1,97 @@
+{
+  "format_version": 1,
+  "archived_on": "2026-10-21",
+  "source": "ChatGPT Library original files; content retained unchanged",
+  "original_file_count": 11,
+  "original_total_bytes": 6598111,
+  "original_files": [
+    {
+      "path": "docs/current/游戏王AI项目设计定稿.docx",
+      "bytes": 46669,
+      "sha256": "58d5e4d1e37993e5e90f3e935c4c20ae179cd19f9f5e6da7f743ab3271bf74df",
+      "library_file_id": "libfile_59d5ef33cd8881918e389f83948d06ec",
+      "file_id": "file_00000000e77082308b865af32e92f866",
+      "library_version": 0
+    },
+    {
+      "path": "docs/learning/游戏王AI项目亲手实作手册.docx",
+      "bytes": 47278,
+      "sha256": "faa23237491b578389ae41ea8ee764b1cfad284a226d1c22fdf6dc666cac6927",
+      "library_file_id": "libfile_d2f7791767508191a314ae2b90e8c322",
+      "file_id": "file_000000009f988230a22c498972d91c80",
+      "library_version": 0
+    },
+    {
+      "path": "docs/learning/游戏王AI亲手练习包.zip",
+      "bytes": 4415,
+      "sha256": "4e2390210a8d019793a63407f6fba8447d5fc1943380ed32b700147c0a9f2937",
+      "library_file_id": "libfile_d7ec62727c2481919f97fef7fe9ab57b",
+      "file_id": "file_00000000ea748230a8296ccd9cf7bcb6",
+      "library_version": 0
+    },
+    {
+      "path": "docs/reference/游戏王AI_技术选型调研_2026-10-18.docx",
+      "bytes": 53826,
+      "sha256": "da05079224ec7de4ca7a5446f72650099b9a752a6086f2a5a20eae4c216c3452",
+      "library_file_id": "libfile_5848bfb0373c819191efcbb8eae26009",
+      "file_id": "file_00000000f12081f59546e02d90274458",
+      "library_version": 0
+    },
+    {
+      "path": "docs/reference/游戏王AI_技术选型调研_2026-10-18.pdf",
+      "bytes": 667814,
+      "sha256": "b09323268e9eae04bbeab0783f133274383bad1e2498f1533e1a30daba762a9d",
+      "library_file_id": "libfile_4b2b9f2ab9a88191b7bfeee84048b189",
+      "file_id": "file_00000000666481fd8d246d994802d8db",
+      "library_version": 0
+    },
+    {
+      "path": "docs/archive/YGO模型设计草案_小幅修订版(1).docx",
+      "bytes": 34426,
+      "sha256": "89a0f271b58e22d9a33fe38be1622b881100a613577ef57372f5971c8ae291ad",
+      "library_file_id": "libfile_c4a5b5a2e9548191b684ecab6fa4227d",
+      "file_id": "file_00000000765c81fdadaa2c8ae7416110",
+      "library_version": 0
+    },
+    {
+      "path": "docs/archive/YGO模型设计草案_小幅修订版.docx",
+      "bytes": 34384,
+      "sha256": "2a16571b5ecc764575b4fa7c1881d3a478ec3fff283272b72c599bda28fba775",
+      "library_file_id": "libfile_1a83dea9ef808191a807bf18d811d9dd",
+      "file_id": "file_000000004ebc8243b1ecf4aab3865f01",
+      "library_version": 0
+    },
+    {
+      "path": "docs/archive/YGO模型设计草案.docx",
+      "bytes": 43526,
+      "sha256": "7673521dfabef77e49b411a089f3f949eabac1ba445ee423286b31870f5cc42f",
+      "library_file_id": "libfile_05c8f8cac7b0819180cc5363ee0e5225",
+      "file_id": "file_00000000ff5881f5b306056f3a03816e",
+      "library_version": 0
+    },
+    {
+      "path": "docs/reference/游戏王AI_现有技术与混合部署调研.pdf",
+      "bytes": 1910963,
+      "sha256": "af81f108ed6a535ec7f81a9c11237cf27c11b6cb14d5002d74d38b8347f88ee9",
+      "library_file_id": "libfile_f989f24ff4948191a6816dc64df32d86",
+      "file_id": "file_000000002f98823099dabffb222cf465",
+      "library_version": 0
+    },
+    {
+      "path": "docs/archive/标签驱动游戏王AI_设计草案.pdf",
+      "bytes": 1879234,
+      "sha256": "9a33dcdfcdd6f09e4acd2ca2437f3f1846b7e75e09a4ce0f1b208527ddc32d7e",
+      "library_file_id": "libfile_eeab72255bcc8191a17ea26f6b4452b7",
+      "file_id": "file_00000000987c823096af30e55c6aa084",
+      "library_version": 0
+    },
+    {
+      "path": "docs/reference/游戏王对战AI_项目核验与自建路线_2026-10-18.pdf",
+      "bytes": 1875576,
+      "sha256": "f56c5834e9bec11097b7ef549bd309fa6369a0f608aec66ca20c09d2df1b925b",
+      "library_file_id": "libfile_0335cba10dc8819193fc0888cf87126a",
+      "file_id": "file_00000000dd7c81fda93b2418c8526910",
+      "library_version": 0
+    }
+  ]
+}
