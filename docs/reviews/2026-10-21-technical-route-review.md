@@ -21,3 +21,7 @@ LoRA 优先用于离线意图结构化、基于已验证结果的复盘解释；
 DeepInfer 主要优化推理吞吐与延迟，当前公开范围以 V4.1-Flash、SM100/Ascend 950 和离线推理为主；本项目现阶段不建议迁入。未见官方 LoRA 支持声明，不能据此承诺可用。文档所述“64 卡 prefill + 64 卡 decode”是最小高效部署配置，不应误写为最低离线运行要求。[DeepInfer 项目](https://github.com/deepseek-ai/DeepInfer)、[部署问答](https://github.com/deepseek-ai/DeepInfer/blob/main/doc/inference_deployment_qa.md)。
 
 本次仅归档原件和复核记录，未进行原型开发、模型下载、训练或性能测试。
+
+## 已确认的客户端阶段边界
+
+基础架构阶段使用真实规则核心，无须接入现有客户端。第二阶段云端训练开始前，须通过电脑端 YGOPro／萌卡的动作、连锁和回放一致性验证；批量训练可无界面运行。正式移动端 APP 开发时再接入 YGOMobile。EDOPro 仅为比较参考，当前不作为目标；core/scripts/protocol 须按萌卡实际分支验证，尚未锁定 commit。模型路线仍待讨论，上述小策略价值网络、搜索及 LLM 辅助不是用户已确认选型。
