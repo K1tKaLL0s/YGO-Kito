@@ -6,6 +6,8 @@
 
 本次收录 11 份原件，未改动原文。另附一份独立的 [2026-10-21 技术路线复核](docs/reviews/2026-10-21-technical-route-review.md)，其中意见均为本轮建议，未通过原型验证。
 
+另附 [分阶段开发与 100 小时训练计划](docs/plans/2026-10-21-development-and-training-budget.md)：云端 Codex 编写代码、腾讯云训练、单卡累计最多约 100 小时。计划为建议草案，具体选型与客户端兼容范围仍待讨论，不是启动开发、租用资源或训练的授权。
+
 ## 现行文档
 
 - [游戏王AI项目设计定稿.docx](docs/current/%E6%B8%B8%E6%88%8F%E7%8E%8BAI%E9%A1%B9%E7%9B%AE%E8%AE%BE%E8%AE%A1%E5%AE%9A%E7%A8%BF.docx)
