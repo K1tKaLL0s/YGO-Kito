@@ -77,9 +77,13 @@ def _invalid_constant(_: str) -> None:
     raise ContractError("non-finite JSON numbers are not supported")
 
 
-def read_json(path: Path) -> Any:
+def parse_json(source: str) -> Any:
     return json.loads(
-        path.read_text(encoding="utf-8"),
+        source,
         object_pairs_hook=_unique_object,
         parse_constant=_invalid_constant,
     )
+
+
+def read_json(path: Path) -> Any:
+    return parse_json(path.read_text(encoding="utf-8"))

@@ -27,11 +27,13 @@ class RuleEngine(Protocol):
 def engine_status() -> dict:
     return {
         "backend": "unconfigured", "implemented": False, "ready": False,
-        "reason": "full-duel backend unavailable; native-smoke separately supports one real normal summon",
+        "reason": "general backend unconfigured; explicit normal/effect main-deck tools are available separately",
         "native_smoke": {"implemented": True, "requires_prepared_resources": True, "full_duel_supported": False},
         "native_normal_duel": {"implemented": True, "scope": "explicit-normal-monster-pool", "general_effect_duels_supported": False},
+        "native_effect_duel": {"implemented": True, "scope": "explicit-effect-main-decks", "general_card_pool_supported": False},
+        "external_tools": {"local_json_api_implemented": True, "provider_connected": False, "training_backend_configured": False},
     }
 
 
 def open_engine() -> RuleEngine:
-    raise EngineUnavailable("full-duel YGOPro/萌卡 backend is not integrated; native-smoke is limited to one real summon")
+    raise EngineUnavailable("general YGOPro/萌卡 backend unconfigured; use explicit native tools for supported profiles")

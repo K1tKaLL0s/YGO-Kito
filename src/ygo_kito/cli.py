@@ -64,6 +64,22 @@ def parser():
     effect_duel_replay = sub.add_parser("native-effect-duel-replay")
     effect_duel_replay.add_argument("input", type=Path)
     effect_duel_replay.add_argument("--root", type=Path, default=Path(".cache"))
+    for name in ("agent-serve", "agent-call"):
+        agent = sub.add_parser(name, help="host-scoped local JSON tools; no provider or training launch")
+        if name == "agent-call":
+            agent.add_argument("input", type=Path)
+        agent.add_argument("--role", choices=("monitor", "trainer", "manager", "opponent"), default="monitor")
+        agent.add_argument("--state-root", type=Path, default=Path(".cache/agent"))
+        agent.add_argument("--root", type=Path, default=Path(".cache"))
+        agent.add_argument("--seat", type=int, choices=(0, 1), default=1)
+        agent.add_argument("--profile", type=Path)
+        agent.add_argument("--seed", type=int, default=7)
+        agent.add_argument("--decision-timeout", type=float, default=30)
+        agent.add_argument("--opponent-id")
+        agent.add_argument("--own-deck-id")
+        agent.add_argument("--controller-source", choices=("unverified_external", "local_contract_fixture"), default="unverified_external")
+        agent.add_argument("--provider", default="unverified")
+        agent.add_argument("--model", default="unverified")
     return result
 
 
@@ -106,6 +122,20 @@ def main(argv=None) -> int:
                 raise EngineUnavailable("no runnable engine backend")
             case "native-smoke":
                 output = run_native_smoke(args.root, args.seed)
+            case "agent-serve" | "agent-call":
+                from .agent_bridge import AgentBridge, serve_bridge
+                bridge = AgentBridge(Path(__file__).resolve().parents[2], args.state_root, args.root,
+                    role=args.role, seat=args.seat, profile=read_json(args.profile) if args.profile is not None else None,
+                    seed=args.seed, decision_timeout=args.decision_timeout, opponent_id=args.opponent_id,
+                    own_deck_id=args.own_deck_id, controller_source=args.controller_source, provider=args.provider, model=args.model)
+                if args.command == "agent-serve":
+                    return serve_bridge(bridge, sys.stdin, sys.stdout)
+                try:
+                    output = bridge.dispatch(read_json(args.input))
+                finally:
+                    bridge.close()
+                print(canonical_json(output))
+                return 0 if output["ok"] else 2
             case "native-effect-duel" | "native-effect-duel-replay":
                 from .effect_duel import run_effect_duel
                 if args.command == "native-effect-duel":

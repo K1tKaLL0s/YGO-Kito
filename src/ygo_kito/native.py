@@ -154,21 +154,9 @@ class NativeNormalEngine:
             function.argtypes, function.restype = args, result
 
     def validate_deck(self, deck):
+        from .deck_profile import validate_main_deck
         limits = banlist_limits(self.sources / "client/lflist.conf")
-        if self.general_actions and not 40 <= len(deck) <= 60:
-            raise ContractError("native main deck must contain 40 to 60 cards")
-        if not self.general_actions and len(deck) != 40:
-            raise ContractError("native smoke requires a 40-card main deck")
-        aliases = Counter()
-        for code, count in Counter(deck).items():
-            row = self._rows.get(code)
-            if not row or code not in self._allowed_pool or not row["ot"] & 1 or count > limits.get(row["alias"] or code, 3):
-                raise ContractError("deck violates explicit smoke pool or locked banlist")
-            if self.general_actions and row["type"] & (0x40 | 0x2000 | 0x800000 | 0x4000000):
-                raise ContractError("extra-deck card cannot be placed in main deck")
-            aliases[row["alias"] or code] += count
-        if any(count > limits.get(code, 3) for code, count in aliases.items()):
-            raise ContractError("deck aliases exceed combined copy limit")
+        validate_main_deck(deck, self._rows, limits, allowed=self._allowed_pool, strict_40=not self.general_actions)
 
     def _install_callbacks(self):
         def script_reader(name, length):
