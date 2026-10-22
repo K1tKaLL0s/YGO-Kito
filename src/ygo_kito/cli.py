@@ -47,6 +47,14 @@ def parser():
     effects_replay = sub.add_parser("native-effect-replay")
     effects_replay.add_argument("input", type=Path)
     effects_replay.add_argument("--root", type=Path, default=Path(".cache"))
+    search = sub.add_parser("native-search", help="selected real deck-search/trigger/count-limit cases")
+    search.add_argument("--root", type=Path, default=Path(".cache"))
+    search.add_argument("--route", choices=("field-twice", "deck-grave"), default="field-twice")
+    search.add_argument("--seed", type=int)
+    search.add_argument("--trace", type=Path)
+    search_replay = sub.add_parser("native-search-replay")
+    search_replay.add_argument("input", type=Path)
+    search_replay.add_argument("--root", type=Path, default=Path(".cache"))
     return result
 
 
@@ -89,21 +97,25 @@ def main(argv=None) -> int:
                 raise EngineUnavailable("no runnable engine backend")
             case "native-smoke":
                 output = run_native_smoke(args.root, args.seed)
-            case "native-duel" | "native-replay" | "native-effects" | "native-effect-replay":
+            case "native-duel" | "native-replay" | "native-effects" | "native-effect-replay" | "native-search" | "native-search-replay":
                 from .normal_duel import run_normal_duel
                 from .effect_cases import run_effect_case
-                if args.command in ("native-duel", "native-effects"):
+                from .search_cases import run_search_case
+                if args.command in ("native-duel", "native-effects", "native-search"):
                     if args.trace is not None and args.trace.exists():
                         raise ContractError("trace already exists; choose a new path")
-                    output, trace = (run_normal_duel(args.root, seed=args.seed) if args.command == "native-duel"
-                                     else run_effect_case(args.root, route=args.route, seed=args.seed))
+                    runner = {"native-duel": run_normal_duel, "native-effects": run_effect_case, "native-search": run_search_case}[args.command]
+                    kwargs = {"seed": args.seed}
+                    if args.command != "native-duel":
+                        kwargs["route"] = args.route
+                    output, trace = runner(args.root, **kwargs)
                     if args.trace is not None:
                         args.trace.parent.mkdir(parents=True, exist_ok=True)
                         with args.trace.open("x", encoding="utf-8") as handle:
                             handle.write(canonical_json(trace) + "\n")
                 else:
-                    output, _ = (run_normal_duel(args.root, replay=read_json(args.input)) if args.command == "native-replay"
-                                 else run_effect_case(args.root, replay=read_json(args.input)))
+                    runner = {"native-replay": run_normal_duel, "native-effect-replay": run_effect_case, "native-search-replay": run_search_case}[args.command]
+                    output, _ = runner(args.root, replay=read_json(args.input))
         print(canonical_json(output))
         return 0
     except EngineUnavailable as error:

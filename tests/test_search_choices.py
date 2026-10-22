@@ -7,9 +7,17 @@ from tests.fixtures import request
 from ygo_kito.contracts import DecisionRequest
 from ygo_kito.native import NativeError, decode_deck_choices
 from ygo_kito.validation import ContractError
+from ygo_kito.search_cases import run_search_case
+from pathlib import Path
 
 
 class SearchChoicesTests(unittest.TestCase):
+    def test_malformed_replay_version_fails_before_resource_loading(self):
+        replay = {"schema_version": True, "kind": "search-trigger-replay-not-policy-input", "route": "field-twice",
+                  "seed": 9154, "versions": {}, "decks": [], "responses": [], "events": [], "result": {}}
+        with self.assertRaises(ContractError):
+            run_search_case(Path('/tmp/nonexistent-ygo-search-test'), replay=replay)
+
     def test_legal_search_choices_are_scoped_to_chooser_and_no_deck_positions(self):
         payload = request()
         payload["search_choices"] = [{"ref": "search-0", "card_id": 123, "owner": 0}]

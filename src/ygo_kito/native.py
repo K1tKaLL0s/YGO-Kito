@@ -72,7 +72,7 @@ def banlist_limits(path: Path, section="2026.10") -> dict[int, int]:
 class NativeNormalEngine:
     def __init__(self, root: Path, *, seed=7, scenario="normal", legacy_request_ids=False):
         integer(seed, "seed", 0, 2**32 - 8)
-        if scenario not in ("normal", "effects-counter"):
+        if scenario not in ("normal", "effects-counter", "search-trigger", "search-condition"):
             raise ContractError("unsupported scoped native scenario")
         if legacy_request_ids and scenario != "normal":
             raise ContractError("legacy requests are reserved for old normal replay")
@@ -86,6 +86,8 @@ class NativeNormalEngine:
         self.window, self.turn, self.turn_player, self.phase = 0, 0, 0, "draw"
         self.messages, self.callback_errors, self.loaded_scripts = [], [], set()
         self.events, self.outcome, self.life_points = [], None, [8000, 8000]
+        self._revealed_hand = [{}, {}]
+        self._confirmation_pause = False
         self._buffers, self._responses = {}, {}
         if not _ACTIVE.acquire(blocking=False):
             raise EngineUnavailable("only one native smoke engine per process is supported")
@@ -105,6 +107,12 @@ class NativeNormalEngine:
             if scenario == "effects-counter":
                 self._allowed_pool.update((43898403, 77414722, 5318639))
                 self.player_decks = (self.deck[:38] + (77414722, 5318639), self.deck[:39] + (43898403,))
+            elif scenario == "search-trigger":
+                self._allowed_pool.update((26202165, 53129443, 83764718))
+                self.player_decks = (self.deck[:36] + (26202165, 53129443, 53129443, 83764718), self.deck)
+            elif scenario == "search-condition":
+                self._allowed_pool.update((26202165, 81439173))
+                self.player_decks = (self.deck[:38] + (26202165, 81439173), self.deck)
             for deck in self.player_decks:
                 self.validate_deck(deck)
             self._install_callbacks()
@@ -125,7 +133,7 @@ class NativeNormalEngine:
             hashes = self.receipt["resources"]
             self.context = RunContext("native-smoke", Versions(self.lock["sources"]["core"]["commit"],
                 hashes["scripts"], hashes["cards"], hashes["client_protocol"],
-                self.lock["card_pool"]["id"] if scenario == "normal" else "native-effects-counter-v1", "2026.10:" + hashes["banlist"]), None)
+                self.lock["card_pool"]["id"] if scenario == "normal" else f"native-{scenario}-v1", "2026.10:" + hashes["banlist"]), None)
             self.lib.start_duel(self.handle, 5 << 16)  # Master Rule 2020, no TEST/SIMPLE_AI mode.
         except BaseException:
             self.close()
@@ -210,6 +218,8 @@ class NativeNormalEngine:
             raise NativeError(self.callback_errors[0])
 
     def _query(self, player, location, sequence, flags):
+        if location == 1:
+            raise NativeError("deck contents/order must not be queried for policy projection")
         buffer = (C.c_uint8 * 1024)()
         length = self.lib.query_card(self.handle, player, location, sequence, flags, buffer, 0)
         if length <= 4:
@@ -231,6 +241,9 @@ class NativeNormalEngine:
         for sequence in range(self._count(observer, 2)):
             code, _ = self._query(observer, 2, sequence, 1)
             cards.append(CardView(f"p{observer}.hand.{sequence}", observer, observer, "hand", "observer", code))
+        opponent = 1 - observer
+        for sequence, code in sorted(self._revealed_hand[opponent].items()):
+            cards.append(CardView(f"p{opponent}.hand.{sequence}", opponent, opponent, "hand", "public", code))
         for player in (0, 1):
             for location, zone, count in ((4, "monster", 7), (8, "spell_trap", 8), (16, "graveyard", self._count(player, 16))):
                 for sequence in range(count):
@@ -395,20 +408,25 @@ class NativeNormalEngine:
                     reader.take(1)
                 elif kind in (33, 90):
                     event["player"], event["count"] = reader.u8(), reader.u8()
+                    self._revealed_hand[event["player"]].clear()
                     reader.take(event["count"] * 4)  # Discard identities, including opponent draws.
                 elif kind == 50:
                     code = reader.u32()
                     previous, current = reader.take(4), reader.take(4)
                     reason = reader.u32()
+                    if previous[1] == 2:
+                        self._revealed_hand[previous[0]].clear()
+                    if current[1] == 2:
+                        self._revealed_hand[current[0]].clear()
                     event.update(from_zone=previous[1], to_zone=current[1], player=current[0])
                     if self.scenario != "normal":
                         event["reason"] = reason
                         if current[1] == 16 or (current[1] in (4, 8) and current[3] & 5):
                             event["public_card"] = code
-                elif kind == 60:
+                elif kind in (60, 62):
                     event["public_summoning_card"] = reader.u32()
                     event["player"] = reader.take(4)[0]
-                elif kind == 61:
+                elif kind in (61, 63):
                     pass
                 elif kind == 5:
                     self.outcome = {"winner": reader.u8(), "reason_code": reader.u8()}
@@ -448,9 +466,24 @@ class NativeNormalEngine:
                     pass
                 elif kind == 83 and self.scenario != "normal":
                     event["targets"] = [list(reader.take(4)[:3]) for _ in range(reader.u8())]
+                elif kind == 31 and self.scenario != "normal":
+                    self._confirmation_pause = True
+                    event["viewer"] = reader.u8()
+                    reader.u8()  # skip_panel, as fixed core/libduel.cpp emits it.
+                    revealed = []
+                    for _ in range(reader.u8()):
+                        code, owner, zone, sequence = reader.u32(), reader.u8(), reader.u8(), reader.u8()
+                        if code == 0 or owner not in (0, 1) or zone != 2:
+                            raise NativeError("confirmation outside scoped hand reveal")
+                        self._revealed_hand[owner][sequence] = code
+                        revealed.append(code)
+                    event["public_cards"] = revealed
                 else:
                     raise NativeError(f"unsupported native message {kind}; full duel not implemented")
             if result & 0x30000000:
+                if result & 0x10000000 and not result & 0x20000000 and self._confirmation_pause:
+                    self._confirmation_pause = False
+                    continue  # Fixed core PROCESSOR_WAIT removes itself; confirmation has no response.
                 raise NativeError("native engine ended/waited without a supported prompt")
         raise NativeError("native message budget exhausted")
 
@@ -503,9 +536,9 @@ NativeSmokeEngine = NativeNormalEngine  # M2a compatibility alias.
 
 def public_event_projection(events):
     """Whitelist public facts; discard private prompts/counts and their global indices."""
-    names = {5: "result", 40: "phase", 41: "phase", 50: "move", 60: "summon", 70: "activate"}
-    return [{"event": names[e["kind"]], "card_ids": [e.get("public_card", e.get("public_summoning_card"))]
-             if e.get("public_card", e.get("public_summoning_card")) else []}
+    names = {5: "result", 31: "reveal", 40: "phase", 41: "phase", 50: "move", 60: "summon", 62: "summon", 70: "activate"}
+    return [{"event": names[e["kind"]], "card_ids": e.get("public_cards", [e.get("public_card", e.get("public_summoning_card"))]
+             if e.get("public_card", e.get("public_summoning_card")) else [])}
             for e in events if e["kind"] in names]
 
 
