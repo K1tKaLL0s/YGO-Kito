@@ -25,7 +25,7 @@ class RealFourModelAlternatingTests(unittest.TestCase):
         cls.proof = run_group_acceptance(ROOT / ".cache", cls.root, "real-group-cycles",
                                          read_json(ROOT / "configs/group-runner-v1.json"))
         cls.state = cls.root / "experiments/real-group-cycles/host"
-        cls.run = cls.state / "runs/group-interrupted"
+        cls.run_dir = cls.state / "runs/group-interrupted"
 
     @classmethod
     def tearDownClass(cls):
@@ -90,7 +90,7 @@ class RealFourModelAlternatingTests(unittest.TestCase):
         self.assertEqual([d["seed_audit_only"] for d in train], [1725, 1726])
         self.assertTrue(all(v["duel"]["purpose"] == "validation" and v["duel"]["seed_audit_only"] == 1001724 for v in p["evaluations"]))
         for mark in p["data_marks"]:
-            artifact = read_artifact(self.run, mark["artifact"])
+            artifact = read_artifact(self.run_dir, mark["artifact"])
             self.assertEqual(artifact["partition"], mark["partition"])
             self.assertTrue(mark["artifact"]["path"].startswith("data/" + mark["partition"] + "/"))
             for step in artifact["steps"]:
@@ -116,13 +116,15 @@ class RealFourModelAlternatingTests(unittest.TestCase):
         self.assertFalse(p["cloud_billing_stopped"])
 
     def test_checkpoint_contains_all_models_optimizers_adapters_stage_rng_and_data_markers(self):
-        state = torch.load(self.run / "checkpoints/local-step-13.weights", weights_only=True)
+        state = torch.load(self.run_dir / "checkpoints/local-step-13.weights", weights_only=True)
         self.assertEqual(set(state["adapters"]), set(self.proof["role_adapters"]))
         self.assertEqual(state["cursor"]["committed_stages"], 13)
         self.assertEqual(len(state["consumed"]), 13)
         self.assertEqual(len(state["data_marks"]), 5)
         self.assertIn("torch", state["global_rng"])
         self.assertIn("python", state["global_rng"])
+        self.assertIn("usage_outbox", state["budget_snapshot"])
+        self.assertEqual(state["budget_snapshot"]["wall_limit_seconds"], 180.)
         for adapter in state["adapters"].values():
             self.assertEqual(adapter["updates"], 2)
             self.assertTrue(adapter["optimizer"]["state"])
@@ -182,7 +184,7 @@ class RealFourModelAlternatingTests(unittest.TestCase):
                 verified_trainer(state, row)
 
     def test_untrained_build_component_requires_explicit_initial_load_opt_in(self):
-        state = torch.load(self.run / "checkpoints/local-step-0.weights", weights_only=True)
+        state = torch.load(self.run_dir / "checkpoints/local-step-0.weights", weights_only=True)
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "initial-build.weights"
             with path.open("wb") as output:
@@ -193,6 +195,18 @@ class RealFourModelAlternatingTests(unittest.TestCase):
             initial = load_build(path, assets, state["components"]["build"]["binding"], allow_initial=True)
             self.assertEqual(initial.batch_cursor, 0)
             self.assertEqual(initial.updates, {"build_goal": 0, "build_optimizer": 0})
+
+    def test_model_checkpoint_cannot_roll_back_spent_budget_or_drop_usage_events(self):
+        with tempfile.TemporaryDirectory() as temp:
+            state = Path(temp) / "budget-rollback"
+            shutil.copytree(self.state, state)
+            backend = LocalCpuBackend(state, ROOT / ".cache")
+            row = backend.details("group-interrupted")
+            row["active_seconds"] = 0.
+            row["segment_started"] = None
+            row["usage_outbox"] = []
+            with self.assertRaisesRegex(ContractError, "budget|accounting"):
+                verified_trainer(state, row)
 
 
 if __name__ == "__main__":

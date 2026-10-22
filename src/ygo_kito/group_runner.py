@@ -116,6 +116,42 @@ def without_timing(value):
     return value
 
 
+def budget_snapshot(state_root, row):
+    from .local_training import _connect, get_row, elapsed
+    db = _connect(state_root, read_only=True)
+    initialized = False
+    if db is not None:
+        with closing(db):
+            if db.execute("SELECT 1 FROM runs WHERE id=?", (row["run_id"],)).fetchone():
+                row = get_row(db, row["run_id"])
+                initialized = True
+    return {"source": "local-control-snapshot-not-billing", "accounting_initialized": initialized,
+            "wall_limit_seconds": row["wall_limit_seconds"], "settled_active_seconds": row["active_seconds"],
+            "observed_active_seconds": elapsed(row), "completed_worker_cpu_seconds": row["completed_worker_cpu_seconds"],
+            "unmeasured_worker_segments": row["metrics"]["unmeasured_worker_segments"],
+            "plan_sha256": digest(row["budget_plan"]), "usage_outbox": copy.deepcopy(row["usage_outbox"])}
+
+
+def validate_budget(saved, row):
+    from .local_training import elapsed
+    from .training_plan import number
+    fields(saved, {"source", "accounting_initialized", "wall_limit_seconds", "settled_active_seconds", "observed_active_seconds",
+                   "completed_worker_cpu_seconds", "unmeasured_worker_segments", "plan_sha256", "usage_outbox"})
+    for key in ("settled_active_seconds", "observed_active_seconds", "completed_worker_cpu_seconds"):
+        number(saved[key], "checkpoint " + key)
+    if (saved["source"] != "local-control-snapshot-not-billing" or type(saved["accounting_initialized"]) is not bool
+            or saved["wall_limit_seconds"] != row["wall_limit_seconds"] or saved["plan_sha256"] != digest(row["budget_plan"])
+            or saved["settled_active_seconds"] > row["active_seconds"] + 1e-6
+            or saved["observed_active_seconds"] > elapsed(row) + 1e-6
+            or saved["completed_worker_cpu_seconds"] > row["completed_worker_cpu_seconds"] + 1e-6
+            or saved["unmeasured_worker_segments"] > row["metrics"]["unmeasured_worker_segments"]):
+        raise ContractError("checkpoint budget/accounting would roll back actual usage")
+    actual = {entry["payload"]["event_id"]: entry["payload"] for entry in row["usage_outbox"]}
+    for entry in saved["usage_outbox"]:
+        if actual.get(entry["payload"]["event_id"]) != entry["payload"]:
+            raise ContractError("checkpoint usage outbox differs from authoritative accounting")
+
+
 class GroupState:
     def __init__(self, state_root, row, assets):
         import torch
@@ -272,6 +308,7 @@ class GroupState:
                      "candidate_id": self.candidate_id, "forecast_id": self.forecast_id, "last_feedback": self.last_feedback,
                      "ledger_bytes": ledger_bytes, "ledger_sha256": hashlib.sha256(ledger_bytes).hexdigest(),
                      "ledger_state_sha256": self.host.state_digest(), "policy_rng": self.policy_rng.get_state(),
+                     "budget_snapshot": budget_snapshot(self.state_root, self.row),
                      "global_rng": {"torch": torch.get_rng_state(), "python": random.getstate()}}
             with path.open("xb") as output:
                 torch.save(state, output)
@@ -290,10 +327,11 @@ class GroupState:
         from .training_runner import read_artifact, validate_shard, opponent_binding
         state = torch.load(path, weights_only=True, map_location="cpu")
         fields(state, {"schema_version", "boundary", "binding", "components", "adapters", "cursor", "consumed", "events", "data", "data_marks", "evaluations",
-                       "deck", "candidate_id", "forecast_id", "last_feedback", "ledger_bytes", "ledger_sha256", "ledger_state_sha256", "policy_rng", "global_rng"})
+                       "deck", "candidate_id", "forecast_id", "last_feedback", "ledger_bytes", "ledger_sha256", "ledger_state_sha256", "policy_rng", "global_rng", "budget_snapshot"})
         if (state["schema_version"] != 1 or state["boundary"] != "complete-workflow-stage" or state["binding"] != row["binding"]
                 or binding_for(assets.root, row) != row["binding"] or hashlib.sha256(state["ledger_bytes"]).hexdigest() != state["ledger_sha256"]):
             raise ContractError("group checkpoint boundary/version/ledger differs")
+        validate_budget(state["budget_snapshot"], row)  # Never restore/replace newer accounting from model state.
         obj = cls.__new__(cls)
         obj.assets, obj.row, obj.state_root = assets, row, Path(state_root)
         obj.task, obj.data = BuildTask.from_dict(row["task"]), state["data"]

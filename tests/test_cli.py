@@ -54,6 +54,17 @@ class CliTests(unittest.TestCase):
             self.assertEqual(json.loads(result.stderr)["error"]["code"], "INVALID_INPUT")
             self.assertFalse((self.root / "managed").exists())
 
+    def test_four_model_runner_missing_engine_does_not_claim_training(self):
+        repo = Path(__file__).resolve().parents[1]
+        state = self.root / "missing-group-state"
+        result = self.run_cli("group-runner-acceptance", "--root", str(self.root / "missing-native"),
+                              "--state-root", str(state), "--run-id", "missing-group",
+                              "--recipe", str(repo / "configs/group-runner-v1.json"))
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(json.loads(result.stderr)["error"]["code"], "CPU_TRAINING_UNAVAILABLE")
+        self.assertFalse((state / "experiments/missing-group/host/runs").exists())
+
     def test_explicit_cpu_training_with_missing_resources_fails_without_a_fake_run(self):
         repo = Path(__file__).resolve().parents[1]
         state = self.root / "training-state"
