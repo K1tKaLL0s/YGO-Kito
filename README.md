@@ -1,6 +1,6 @@
 # YGO-Kito
 
-游戏王 AI 项目的私密设计、资料与开发规划仓库。
+游戏王 AI 项目的私密设计、资料与 CPU 基础开发仓库。
 
 ## 当前开发入口
 
@@ -13,7 +13,17 @@
 - 第一阶段真实规则核心，第二阶段训练前验证 PC YGOPro／萌卡兼容。**手机端及 YGOMobile 暂移出本期范围**；云端训练与 PC 推理/微调的硬件压力仍必须记录。
 - 构筑预测与实战反馈：百场内明显落后预警、千场内明显落后强制重构；具体统计阈值实施前冻结。
 
-当前为设计整合，不表示代码已开发、训练已开始、性能已达标或离线本机已同步。具体版本、模型大小、超参数、兼容性和资源指标须实测。
+当前已完成首个 CPU 工程里程碑：结构化卡片/来源/标签、SQLite 索引、观察与候选动作契约、配置和 CLI，29 项自动测试通过。**真实规则核心尚未接入，不能运行真实对局；模型与训练尚未开始。** 具体版本、模型大小、超参数、兼容性和资源指标须实测；本云端开发不表示离线本机已同步。
+
+运行与验收见 [CPU 骨架说明](docs/development/cpu-foundation.md)、[阶段任务清单](docs/plans/2026-10-22-phase-1-cpu-checklist.md)及[云端启动实证](docs/reports/2026-10-22-cloud-bootstrap.md)。本云端可执行：
+
+```bash
+cd /workspace/YGO-Kito
+PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
+PYTHONPATH=src .venv/bin/python -m ygo_kito --config configs/cpu.toml status
+```
+
+`duel-run` 当前以 `ENGINE_NOT_IMPLEMENTED` 失败；接口测试与合成夹具不算真实规则链路。原学习包保持不变，学生 TODO 与亲手新增测试仍由用户完成。
 
 [2026-10-21 旧阶段计划](docs/plans/2026-10-21-development-and-training-budget.md) 与 [旧技术复核](docs/reviews/2026-10-21-technical-route-review.md) 保留决策历史，不再作为最新选型入口。尤其旧文的 LoRA 可选、移动端后续排期、预算未分配和架构待讨论表述，不覆盖统一说明。
 
@@ -43,8 +53,8 @@
 ## 归档说明
 
 - [原件清单与 SHA-256](archive-manifest.json) 记录 11 份原件的来源 ID、字节数和哈希。
-- 练习包保持 ZIP 原样，已静态检查其中 6 个教学文件；本次未解包到项目目录，未执行脚本或测试。
-- 本次未开始开发、训练或下载模型；未收录密钥、账户配置、模型权重、大型数据或无关私人资料。未核实的 ygo_work_handoff.zip 未收录。
+- 练习包保持 ZIP 原样，原归档时已静态检查其中 6 个教学文件；本次工程测试独立于学生练习，不解包覆盖或代填学生 TODO。
+- 原件归档时未开始开发；现已新增上述 CPU 骨架，仍未启动训练或下载模型。未收录密钥、账户配置、模型权重、大型数据或无关私人资料。未核实的 ygo_work_handoff.zip 未收录。
 - 原件均保留在原来源；两个小幅修订版的字节和哈希不同，分别归档。
 - PDF 中原有的 C2PA Content Credentials 来源元数据保留在文件内。
 

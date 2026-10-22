@@ -41,4 +41,3 @@ def load_config(path: Path | None = None) -> Config:
     if not database.is_absolute():
         database = path.resolve().parent / database
     return Config(database.resolve(), runtime["device"], engine["backend"], d["schema_version"])
-

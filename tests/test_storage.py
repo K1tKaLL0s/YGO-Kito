@@ -144,4 +144,3 @@ class StorageTests(unittest.TestCase):
                 with self.assertRaises(ContractError):
                     store.import_dataset(payload)
                 self.assertIsNone(store.get_card(1))
-

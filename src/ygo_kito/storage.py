@@ -120,4 +120,3 @@ class Store:
     def get_run(self, run_id: str) -> RunContext | None:
         row = self.connection.execute("SELECT payload FROM runs WHERE run_id = ?", (run_id,)).fetchone()
         return RunContext.from_dict(json.loads(row[0])) if row else None
-

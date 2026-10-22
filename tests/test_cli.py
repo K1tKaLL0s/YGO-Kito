@@ -99,4 +99,3 @@ class CliTests(unittest.TestCase):
                 self.config.write_text(content, encoding="utf-8")
                 with self.assertRaises(ContractError):
                     load_config(self.config)
-

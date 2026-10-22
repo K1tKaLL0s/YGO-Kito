@@ -83,4 +83,3 @@ def read_json(path: Path) -> Any:
         object_pairs_hook=_unique_object,
         parse_constant=_invalid_constant,
     )
-

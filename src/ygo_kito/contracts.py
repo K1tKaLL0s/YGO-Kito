@@ -252,4 +252,3 @@ def validate_selection(request: DecisionRequest, selection: ActionSelection) -> 
         if selection.action_id == action.action_id:
             return action
     raise ContractError("action_id is not in the engine-provided candidates")
-

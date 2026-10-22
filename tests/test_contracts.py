@@ -117,4 +117,3 @@ class DecisionContractTests(unittest.TestCase):
         self.assertFalse(engine_status()["ready"])
         with self.assertRaises(EngineUnavailable):
             open_engine()
-

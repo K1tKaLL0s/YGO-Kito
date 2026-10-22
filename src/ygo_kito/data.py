@@ -85,4 +85,3 @@ class Annotation:
 
     def to_dict(self):
         return asdict(self)
-

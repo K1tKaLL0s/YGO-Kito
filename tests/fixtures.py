@@ -50,4 +50,3 @@ def request():
 
 def selection():
     return {"run_id": "test-run", "duel_id": "test-duel", "decision_id": "test-window-1", "action_id": "choice-1"}
-

@@ -33,4 +33,3 @@ def engine_status() -> dict:
 
 def open_engine() -> RuleEngine:
     raise EngineUnavailable("real YGOPro/萌卡 rule engine is not integrated; no duel was started")
-
