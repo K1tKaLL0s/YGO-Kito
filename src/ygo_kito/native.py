@@ -1,13 +1,15 @@
-"""Pinned YGOPro core smoke adapter. Unsupported messages fail closed.
+"""Pinned YGOPro normal-monster adapter. Unsupported messages fail closed.
 
-This implements one normal summon, not full duels/effects/replays or a PC client.
+Complete games are restricted to the explicit normal pool; no general effects or PC client.
 Native response bytes and all-information engine messages stay inside the adapter.
 """
 
 import ctypes as C
 from collections import Counter
+from itertools import combinations
 import json
 from pathlib import Path
+import random
 import sqlite3
 import struct
 import threading
@@ -67,7 +69,7 @@ def banlist_limits(path: Path, section="2026.10") -> dict[int, int]:
     return limits
 
 
-class NativeSmokeEngine:
+class NativeNormalEngine:
     def __init__(self, root: Path, *, seed=7):
         integer(seed, "seed", 0, 2**32 - 8)
         self.root = root.resolve()
@@ -77,6 +79,7 @@ class NativeSmokeEngine:
         self.closed, self.handle, self.pending = False, None, None
         self.window, self.turn, self.turn_player, self.phase = 0, 0, 0, "draw"
         self.messages, self.callback_errors, self.loaded_scripts = [], [], set()
+        self.events, self.outcome, self.life_points = [], None, [8000, 8000]
         self._buffers, self._responses = {}, {}
         if not _ACTIVE.acquire(blocking=False):
             raise EngineUnavailable("only one native smoke engine per process is supported")
@@ -100,7 +103,11 @@ class NativeSmokeEngine:
             self._check_callbacks()
             for player in (0, 1):
                 self.lib.set_player_info(self.handle, player, 8000, 5, 1)
-                for code in self.deck:
+                # The host supplies initial deck order; start_duel does not shuffle it.
+                # Keep this deal RNG private and separate from the core's effect RNG.
+                order = list(self.deck)
+                random.Random(seed * 2 + player).shuffle(order)
+                for code in order:
                     self.lib.new_card(self.handle, code, player, player, 1, 0, 8)
             self._check_callbacks()
             hashes = self.receipt["resources"]
@@ -213,21 +220,35 @@ class NativeSmokeEngine:
             code, _ = self._query(observer, 2, sequence, 1)
             cards.append(CardView(f"p{observer}.hand.{sequence}", observer, observer, "hand", "observer", code))
         for player in (0, 1):
-            for sequence in range(7):
-                position = self._query(player, 4, sequence, 2)
-                if position is None:
-                    continue
-                visible = player == observer or position[1] & 5
-                code = self._query(player, 4, sequence, 1)[0] if visible else None
-                cards.append(CardView(f"p{player}.monster.{sequence}", player, player, "monster",
-                                      "public" if position[1] & 5 else "observer" if visible else "hidden", code))
-        return Observation(observer, self.turn_player, self.turn, self.phase, (8000, 8000),
+            for location, zone, count in ((4, "monster", 7), (16, "graveyard", self._count(player, 16))):
+                for sequence in range(count):
+                    position = self._query(player, location, sequence, 2)
+                    if position is None:
+                        continue
+                    public = location == 16 or bool(position[1] & 5)
+                    visible = player == observer or public
+                    code = self._query(player, location, sequence, 1)[0] if visible else None
+                    cards.append(CardView(f"p{player}.{zone}.{sequence}", player, player, zone,
+                                          "public" if public else "observer" if visible else "hidden", code))
+        return Observation(observer, self.turn_player, self.turn, self.phase, tuple(self.life_points),
                            tuple(self._count(p, 2) for p in (0, 1)), tuple(self._count(p, 1) for p in (0, 1)), tuple(cards))
 
     def _prompt(self, kind, reader):
         player = reader.u8()
         options = []
-        if kind == 11:
+        if kind == 10:
+            if reader.u8():
+                raise NativeError("battle activation outside normal-monster scope")
+            for index in range(reader.u8()):
+                reader.u32()
+                owner, location, sequence, _direct = reader.u8(), reader.u8(), reader.u8(), reader.u8()
+                if location != 4:
+                    raise NativeError("attack candidate outside monster zone")
+                options.append(("attack", (f"p{owner}.monster.{sequence}",), None, (index << 16) | 1))
+            for value in (2, 3):
+                if reader.u8():
+                    options.append(("pass", (), value, value))
+        elif kind == 11:
             for mode, action_kind in enumerate(("summon", "special_summon", "position", "set", "set", "activate")):
                 for index in range(reader.u8()):
                     reader.u32()  # Card identity is queried via the player's legal view instead.
@@ -241,6 +262,26 @@ class NativeSmokeEngine:
             for value in (6, 7, 8):
                 if reader.u8():
                     options.append(("pass" if value < 8 else "select", (), value, value))
+        elif kind == 13:
+            reader.u32()  # Public yes/no description, e.g. direct attack/replay.
+            options = [("yes", (), None, 1), ("no", (), None, 0)]
+        elif kind == 15:
+            cancelable, minimum, maximum, count = reader.u8(), reader.u8(), reader.u8(), reader.u8()
+            refs = []
+            for _ in range(count):
+                reader.u32()
+                owner, location, sequence, _subsequence = reader.u8(), reader.u8(), reader.u8(), reader.u8()
+                zone = {2: "hand", 4: "monster", 16: "graveyard"}.get(location)
+                if zone is None or (location == 2 and owner != player):
+                    raise NativeError("selection outside normal-monster visible zones")
+                refs.append(f"p{owner}.{zone}.{sequence}")
+            if count > 10:
+                raise NativeError("selection exceeds bounded combination scope")
+            for size in range(minimum, maximum + 1):
+                for indices in combinations(range(count), size):
+                    options.append(("select", tuple(refs[i] for i in indices), size, bytes((size, *indices))))
+            if cancelable:
+                options.append(("pass", (), None, -1))
         elif kind == 16:
             count, _special = reader.u8(), reader.u8()
             reader.take(8)  # Both public timing hints.
@@ -265,11 +306,14 @@ class NativeSmokeEngine:
         self._responses = {f"choice-{index}": response for index, (*_, response) in enumerate(options)}
         actions = tuple(LegalAction(f"choice-{i}", action_kind, refs, value) for i, (action_kind, refs, value, _) in enumerate(options))
         self.pending = DecisionRequest(self.context, "native-smoke-duel", f"window-{self.window}", self._observation(player), actions)
+        self.pending_kind = kind
         return self.pending
 
     def next_decision(self):
         if self.closed:
             raise NativeError("native engine is closed")
+        if self.outcome is not None:
+            return None
         if self.pending is not None:
             return self.pending
         for _ in range(256):
@@ -283,10 +327,13 @@ class NativeSmokeEngine:
             while reader.offset < len(reader.data):
                 kind = reader.u8()
                 self.messages.append(kind)  # Message IDs only, never raw hidden-state payloads.
+                event = {"kind": kind}
+                self.events.append(event)
                 if kind == 1:
                     raise NativeError("real engine rejected response (MSG_RETRY)")
-                if kind in (11, 16, 18, 19):
+                if kind in (10, 11, 13, 15, 16, 18, 19):
                     request = self._prompt(kind, reader)
+                    event.update(player=request.observation.observer, choices=len(request.actions))
                     if reader.offset != len(reader.data):
                         raise NativeError("unexpected bytes after native prompt")
                     return request
@@ -295,22 +342,54 @@ class NativeSmokeEngine:
                 elif kind == 40:
                     self.turn_player = reader.u8()
                     self.turn += 1
+                    event.update(player=self.turn_player, turn=self.turn)
                 elif kind == 41:
                     phase = reader.u16()
                     phases = {1: "draw", 2: "standby", 4: "main1", 8: "battle", 16: "battle", 32: "battle", 64: "battle", 128: "battle", 0x100: "main2", 0x200: "end"}
                     if phase not in phases:
                         raise NativeError("unknown native phase")
                     self.phase = phases[phase]
+                    event["phase"] = self.phase
                 elif kind in (32,):
                     reader.take(1)
                 elif kind in (33, 90):
-                    reader.u8()
-                    reader.take(reader.u8() * 4)  # Discard all identities, including opponent draws.
+                    event["player"], event["count"] = reader.u8(), reader.u8()
+                    reader.take(event["count"] * 4)  # Discard identities, including opponent draws.
                 elif kind == 50:
-                    reader.take(16)
+                    reader.u32()  # Never persist move identities from hidden zones.
+                    previous, current = reader.take(4), reader.take(4)
+                    reader.u32()
+                    event.update(from_zone=previous[1], to_zone=current[1], player=current[0])
                 elif kind == 60:
-                    reader.take(8)
+                    event["public_summoning_card"] = reader.u32()
+                    event["player"] = reader.take(4)[0]
                 elif kind == 61:
+                    pass
+                elif kind == 5:
+                    self.outcome = {"winner": reader.u8(), "reason_code": reader.u8()}
+                    event.update(self.outcome)
+                    if reader.offset != len(reader.data):
+                        raise NativeError("unexpected bytes after terminal result")
+                    return None
+                elif kind in (91, 92, 94, 100):
+                    player, amount = reader.u8(), reader.u32()
+                    if player not in (0, 1):
+                        raise NativeError("invalid LP event player")
+                    self.life_points[player] = (amount if kind == 94 else self.life_points[player] + amount if kind == 92 else max(0, self.life_points[player] - amount))
+                    event.update(player=player, amount=amount, lp=self.life_points[player])
+                elif kind in (53, 160):
+                    reader.take(9)
+                elif kind == 54:
+                    reader.take(8)
+                elif kind == 110:
+                    attacker, defender = reader.take(4), reader.take(4)
+                    event.update(attacker_player=attacker[0], attacker_zone=attacker[1], attacker_slot=attacker[2],
+                                 defender_player=defender[0], defender_zone=defender[1], defender_slot=defender[2])
+                elif kind == 111:
+                    data = reader.take(26)
+                    event.update(attacker_player=data[0], defender_player=data[13],
+                                 attacker_atk=struct.unpack_from("<i", data, 4)[0], defender_atk=struct.unpack_from("<i", data, 17)[0])
+                elif kind in (112, 113, 114):
                     pass
                 else:
                     raise NativeError(f"unsupported native message {kind}; full duel not implemented")
@@ -319,7 +398,7 @@ class NativeSmokeEngine:
         raise NativeError("native message budget exhausted")
 
     def submit(self, selection):
-        if self.closed or self.pending is None:
+        if self.closed or self.outcome is not None or self.pending is None:
             raise ContractError("no active native decision window")
         action = validate_selection(self.pending, selection)
         response = self._responses[action.action_id]
@@ -346,6 +425,9 @@ class NativeSmokeEngine:
 
     def __exit__(self, *_):
         self.close()
+
+
+NativeSmokeEngine = NativeNormalEngine  # M2a compatibility alias.
 
 
 def run_native_smoke(root: Path, seed=7) -> dict:

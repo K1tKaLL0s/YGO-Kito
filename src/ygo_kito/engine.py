@@ -29,6 +29,7 @@ def engine_status() -> dict:
         "backend": "unconfigured", "implemented": False, "ready": False,
         "reason": "full-duel backend unavailable; native-smoke separately supports one real normal summon",
         "native_smoke": {"implemented": True, "requires_prepared_resources": True, "full_duel_supported": False},
+        "native_normal_duel": {"implemented": True, "scope": "explicit-normal-monster-pool", "general_effect_duels_supported": False},
     }
 
 

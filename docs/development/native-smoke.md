@@ -1,5 +1,7 @@
 # M2a：真实规则核心的最小召唤闭环
 
+后续 [M2b](normal-duel.md) 已扩展到限定通常怪兽卡池的完整对局和本项目 JSON 响应重放。本文保留 M2a 范围；一般效果与 PC 门槛仍未通过。
+
 此入口确实加载本云端从上游源码构建的 YGOPro core，并调用 `create_duel_v2/process/get_message/set_responsei/set_responseb/query_card`。它只支持固定通常怪兽测试范围，**不是完整决斗、效果链路或 PC 客户端兼容验收**。完整对局入口 `duel-run` 仍拒绝执行。
 
 来源由 [native-sources.lock.json](../../configs/native-sources.lock.json) 固定。客户端 `mycard/ygopro` 的 `ocgcore` 和 `script` Git 子模块分别指向锁中的核心与脚本提交；构建脚本会检查这两个关系及协议 `0x1362`。核心同一提交从 Fluorohydride 上游取得；Lua 从 Lua 团队官方开发仓库的 5.4.8 提交构建。没有运行下载的引擎、premake 或其他第三方可执行文件。

@@ -32,6 +32,13 @@ def parser():
     native = sub.add_parser("native-smoke", help="one real normal summon; requires explicitly prepared native sources")
     native.add_argument("--root", type=Path, default=Path(".cache"))
     native.add_argument("--seed", type=int, default=7)
+    duel = sub.add_parser("native-duel", help="complete a duel in the explicit normal-monster pool")
+    duel.add_argument("--root", type=Path, default=Path(".cache"))
+    duel.add_argument("--seed", type=int, default=7)
+    duel.add_argument("--trace", type=Path)
+    replay = sub.add_parser("native-replay", help="replay saved native responses and compare all events")
+    replay.add_argument("input", type=Path)
+    replay.add_argument("--root", type=Path, default=Path(".cache"))
     return result
 
 
@@ -74,10 +81,22 @@ def main(argv=None) -> int:
                 raise EngineUnavailable("no runnable engine backend")
             case "native-smoke":
                 output = run_native_smoke(args.root, args.seed)
+            case "native-duel" | "native-replay":
+                from .normal_duel import run_normal_duel
+                if args.command == "native-duel":
+                    if args.trace is not None and args.trace.exists():
+                        raise ContractError("trace already exists; choose a new path")
+                    output, trace = run_normal_duel(args.root, seed=args.seed)
+                    if args.trace is not None:
+                        args.trace.parent.mkdir(parents=True, exist_ok=True)
+                        with args.trace.open("x", encoding="utf-8") as handle:
+                            handle.write(canonical_json(trace) + "\n")
+                else:
+                    output, _ = run_normal_duel(args.root, replay=read_json(args.input))
         print(canonical_json(output))
         return 0
     except EngineUnavailable as error:
-        code = "NATIVE_RESOURCES_UNAVAILABLE" if args.command == "native-smoke" else "ENGINE_NOT_IMPLEMENTED"
+        code = "NATIVE_RESOURCES_UNAVAILABLE" if args.command.startswith("native-") else "ENGINE_NOT_IMPLEMENTED"
         message = str(error)
     except NativeError as error:
         code = "NATIVE_ENGINE_ERROR"
