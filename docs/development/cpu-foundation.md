@@ -1,5 +1,7 @@
 # CPU 基础骨架（M1）
 
+本文记录 M1 交付。后续已新增[真实通常召唤入口 M2a](native-smoke.md)；本文关于未接入的描述指 M1 当时及仍未完成的完整对局入口，不覆盖 M2a 的限定成功。
+
 本实现由 Codex 辅助生成，用于工程基础，不计作用户亲手完成 Python 课程。遵循[统一说明 1.1](../plans/2026-10-22-unified-development-spec.md)与[阶段清单](../plans/2026-10-22-phase-1-cpu-checklist.md)。
 
 ## 运行

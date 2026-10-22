@@ -13,7 +13,7 @@
 - 第一阶段真实规则核心，第二阶段训练前验证 PC YGOPro／萌卡兼容。**手机端及 YGOMobile 暂移出本期范围**；云端训练与 PC 推理/微调的硬件压力仍必须记录。
 - 构筑预测与实战反馈：百场内明显落后预警、千场内明显落后强制重构；具体统计阈值实施前冻结。
 
-当前已完成首个 CPU 工程里程碑：结构化卡片/来源/标签、SQLite 索引、观察与候选动作契约、配置和 CLI，29 项自动测试通过。**真实规则核心尚未接入，不能运行真实对局；模型与训练尚未开始。** 具体版本、模型大小、超参数、兼容性和资源指标须实测；本云端开发不表示离线本机已同步。
+当前已完成 CPU 工程骨架及首个真实原生规则小里程碑：结构化数据/来源/标签、SQLite、观察/动作契约、配置与 CLI，并从固定上游源码构建 core，跑通一次真实通常召唤（手牌 5→4、怪兽区 0→1）。31 项单元测试与 4 项真实引擎集成测试通过。**完整对局、效果/回放及 PC 兼容门槛尚未通过；模型与训练尚未开始。** 具体版本、模型大小、超参数、兼容性和资源指标须实测；本云端开发不表示离线本机已同步。
 
 运行与验收见 [CPU 骨架说明](docs/development/cpu-foundation.md)、[阶段任务清单](docs/plans/2026-10-22-phase-1-cpu-checklist.md)及[云端启动实证](docs/reports/2026-10-22-cloud-bootstrap.md)。本云端可执行：
 
@@ -23,7 +23,7 @@ PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 PYTHONPATH=src .venv/bin/python -m ygo_kito --config configs/cpu.toml status
 ```
 
-`duel-run` 当前以 `ENGINE_NOT_IMPLEMENTED` 失败；接口测试与合成夹具不算真实规则链路。原学习包保持不变，学生 TODO 与亲手新增测试仍由用户完成。
+`duel-run` 当前以 `ENGINE_NOT_IMPLEMENTED` 失败；[native-smoke](docs/development/native-smoke.md) 需显式准备原生资源，只覆盖一次真实召唤。纯接口测试与合成夹具不计入真实引擎证据。原学习包保持不变，学生 TODO 与亲手新增测试仍由用户完成。
 
 [2026-10-21 旧阶段计划](docs/plans/2026-10-21-development-and-training-budget.md) 与 [旧技术复核](docs/reviews/2026-10-21-technical-route-review.md) 保留决策历史，不再作为最新选型入口。尤其旧文的 LoRA 可选、移动端后续排期、预算未分配和架构待讨论表述，不覆盖统一说明。
 

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "purpose": "CPU native smoke only; not a historical curriculum or PC acceptance lock",
+  "sources": {
+    "client": {"url": "https://github.com/mycard/ygopro.git", "commit": "0d76e26b30c5ddb0273ee746459506c5719fddb6", "license": "GPL-2.0 text in LICENSE", "sparse": ["gframe"]},
+    "core": {"url": "https://github.com/Fluorohydride/ygopro-core.git", "commit": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30", "license": "MIT"},
+    "scripts": {"url": "https://github.com/mycard/ygopro-scripts.git", "commit": "b83db1cc3f512d3bec2faafb9ecf199143332be1", "license": "GPL-2.0 text in LICENSE"},
+    "database": {"url": "https://github.com/mycard/ygopro-database.git", "commit": "217ae165c1886af2fc36b823fc08f9fc3ec13185", "license": "not specified; card text/material rights not established", "sparse": ["locales/zh-CN"]},
+    "lua": {"url": "https://github.com/lua/lua.git", "commit": "6e22fedb74cf0c9b6656e9fce8b7331db847c605", "license": "MIT in lua.h", "version": "5.4.8"}
+  },
+  "protocol": {"client_version_hex": "0x1362", "duel_rule": 5, "core_api": "ocgapi.h at locked core", "scope": "idle/place/position prompts and normal-monster smoke events only"},
+  "banlist": {"source": "client/lflist.conf", "section": "2026.10", "authority": "community snapshot; official comparison still pending"},
+  "card_pool": {"id": "native-smoke-explicit-normal-40", "kind": "custom explicit allowlist", "release_cutoff": null, "curriculum_data": false}
+}

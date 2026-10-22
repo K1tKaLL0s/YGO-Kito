@@ -50,12 +50,13 @@ class ModelVersion:
 class RunContext:
     run_id: str
     versions: Versions
-    seed: int
+    seed: int | None
     models: tuple[ModelVersion, ...] = ()
 
     def __post_init__(self):
         text(self.run_id, "run_id")
-        integer(self.seed, "seed")
+        if self.seed is not None:
+            integer(self.seed, "seed")
         if not isinstance(self.versions, Versions):
             raise ContractError("versions must be Versions")
         if any(not isinstance(model, ModelVersion) for model in self.models):

@@ -27,9 +27,10 @@ class RuleEngine(Protocol):
 def engine_status() -> dict:
     return {
         "backend": "unconfigured", "implemented": False, "ready": False,
-        "reason": "core/scripts/cards.cdb/protocol/banlist/card pool are not locked or integrated",
+        "reason": "full-duel backend unavailable; native-smoke separately supports one real normal summon",
+        "native_smoke": {"implemented": True, "requires_prepared_resources": True, "full_duel_supported": False},
     }
 
 
 def open_engine() -> RuleEngine:
-    raise EngineUnavailable("real YGOPro/萌卡 rule engine is not integrated; no duel was started")
+    raise EngineUnavailable("full-duel YGOPro/萌卡 backend is not integrated; native-smoke is limited to one real summon")

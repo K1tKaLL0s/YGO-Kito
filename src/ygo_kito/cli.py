@@ -12,6 +12,7 @@ from . import __version__
 from .config import load_config
 from .contracts import ActionSelection, DecisionRequest, validate_selection
 from .engine import EngineUnavailable, engine_status, open_engine
+from .native import NativeError, run_native_smoke
 from .storage import Store
 from .validation import ContractError, canonical_json, integer, read_json
 
@@ -28,6 +29,9 @@ def parser():
     action = sub.add_parser("action-check")
     action.add_argument("request", type=Path)
     action.add_argument("selection", type=Path)
+    native = sub.add_parser("native-smoke", help="one real normal summon; requires explicitly prepared native sources")
+    native.add_argument("--root", type=Path, default=Path(".cache"))
+    native.add_argument("--seed", type=int, default=7)
     return result
 
 
@@ -68,10 +72,15 @@ def main(argv=None) -> int:
             case "duel-run":
                 open_engine()  # Always raises until a real compatible adapter is implemented.
                 raise EngineUnavailable("no runnable engine backend")
+            case "native-smoke":
+                output = run_native_smoke(args.root, args.seed)
         print(canonical_json(output))
         return 0
     except EngineUnavailable as error:
-        code = "ENGINE_NOT_IMPLEMENTED"
+        code = "NATIVE_RESOURCES_UNAVAILABLE" if args.command == "native-smoke" else "ENGINE_NOT_IMPLEMENTED"
+        message = str(error)
+    except NativeError as error:
+        code = "NATIVE_ENGINE_ERROR"
         message = str(error)
     except (ContractError, json.JSONDecodeError, tomllib.TOMLDecodeError, UnicodeError) as error:
         code = "INVALID_INPUT"
