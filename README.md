@@ -17,7 +17,9 @@
 
 当前已有CPU骨架、固定上游源码构建的core、限定真实终局/重放，以及四个独立网络原型：决斗Transformer265,378参数，构筑目标/优化Transformer各17,665参数，统筹MLP648参数。已串通真实构筑托付→版本绑定预测→冻结策略验证→结果回收及组恢复；规则控制最终行为，统筹学习原型只用明示合成监督提供建议。
 
-最新[M3d实际证据与交接](docs/reports/2026-10-23-lora-handoff-m3d.md)增加四角色LoRA：冻结基模、各两次实际适配更新，保存加载/兼容拒绝/输出回滚及真实组恢复通过；无凭据CPU预检与实例小时台账可运行。**102项单元＋68项集成通过，无跳过。** 仅有界工程原型，预测/统计配置未校准；25/125是合成样例首次触发，未缩小或替代正式百场/千场设计。**完整模型/迁移/竞技能力、一般卡池、标准客户端回放、1A/1B和PC门槛未通过，正式训练ready=false，无付费训练。** 工程参数不冒充最终冻结，云端开发不表示离线本机已同步。
+最新[本轮整体验收与交付表](docs/reports/2026-10-23-engineering-delivery.md)用单条命令串通真实引擎、四模型最小更新、实际LoRA、JSON本地训练控制/故障恢复、隐私/版本/预算与交接输入；**105单元＋75集成通过，无跳过**。已补齐实际CPU后端，显式启用后可启动、暂停并退出、保存、新进程恢复，当前仅固定两步决斗配方。**本轮支持链通过，完整阶段1仍未交付；通用协议/数据/一般构筑/长训练运行器等自主工程、能力训练与外部依赖在表中分开。** full_phase_1_delivered及formal_training_ready仍false，无付费训练；工程参数不冒充最终冻结，云端开发不表示离线本机已同步。
+
+预测/统计配置仍待校准；25/125是完整工程配置在合成样例上的首次触发，没有缩小百/千场设计。LoRA工程正确性不证明迁移能力，PC门槛和标准回放未通过。
 
 运行与验收见 [CPU 骨架说明](docs/development/cpu-foundation.md)、[阶段任务清单](docs/plans/2026-10-22-phase-1-cpu-checklist.md)及[云端启动实证](docs/reports/2026-10-22-cloud-bootstrap.md)。本云端可执行：
 
@@ -43,11 +45,13 @@ PYTHONPATH=src .venv/bin/python -m ygo_kito --config configs/cpu.toml status
 
 [LoRA管理与腾讯云受限交接](docs/development/lora-and-cloud-handoff.md)提供 `lora-group-cpu`、`training-preflight`、`budget-call`，实际适配器/基模版本绑定、真实恢复和既定100h规划入口；CPU健康通过不放行正式门槛。CodeBuddy/DeepSeek真实联调、计费/停机核验和PC验证待验，不启动腾讯云或扩PC应用。
 
+[一条命令与本地训练控制](docs/development/local-training-control.md)提供 `engineering-acceptance` 和显式 `--local-cpu-control`。示范会有意终止自己管理的采样进程并验证恢复；每个worker有内核墙钟期限，本地停止始终不证明腾讯云计费停止。
+
 [2026-10-21 旧阶段计划](docs/plans/2026-10-21-development-and-training-budget.md) 与 [旧技术复核](docs/reviews/2026-10-21-technical-route-review.md) 保留决策历史，不再作为最新选型入口。尤其旧文的 LoRA 可选、移动端后续排期、预算未分配和架构待讨论表述，不覆盖统一说明。
 
 [M2f通用协议与完整效果对局](docs/reports/2026-10-23-general-protocol-m2f.md)新增效果描述、落点、选项/解放接口及4条40张工程效果牌组真实终局；[协议矩阵](docs/development/native-protocol-matrix.md)明确真实覆盖和拒绝范围。用户3＋8套卡组尚未接收，不阻塞工程样例验证。当前额度停止阈值为20%，替代旧5%。
 
-[外部 agent 接口与 CodeBuddy 接入指南](docs/development/external-agent-interface.md)提供分权本地JSON CLI、训练监控/受控操作契约、卡组导入/环境绑定/对手池配置和真实核心单席位动作。真实CPU训练状态已可由只读工具查看；**CodeBuddy/DeepSeek及training.control后端未连接**。用户3＋8套卡组待接收，工程样例不替代它们。接管包只准备不执行；后续主动盘点机器人和三个历史环境覆盖，再建议补充主题。
+[外部 agent 接口与 CodeBuddy 接入指南](docs/development/external-agent-interface.md)提供分权本地JSON CLI、实际显式CPU控制、卡组/环境/对手池和真实核心单席位动作。**CodeBuddy/DeepSeek和云/通用训练后端尚未联调；当前本地CPU后端默认关闭，须宿主启用。** 用户3＋8套待接收，样例不替代；后续主动盘点实际机器人和三期历史覆盖，再建议补充主题。
 
 ## 现行文档
 

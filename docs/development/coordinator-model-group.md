@@ -82,4 +82,4 @@ win/loss/draw/timeout/crash/invalid_action全部进入总体分母，分类保�
 
 监控不加载神经网络/原生对局，不调用LLM。外部对手仍只允许[单席位动作接口](external-agent-interface.md)，不能拿统筹台账、双方牌表、种子或审计记录作为策略输入。统筹/构筑上下文有本方牌表及任务信息，不能直接透传给对手。
 
-`training.control`默认仍无后端；本命令不是外部agent的训练启动权。CodeBuddy/DeepSeek、SDK额度和真实外部端到端未验，没有配置凭据。[M3d](lora-and-cloud-handoff.md)已提供实际LoRA管理切片、无凭据CPU预检/预算入口和腾讯云受限接管说明；真实联调、正式迁移和既定阶段缺口仍待验，不扩本轮为PC应用。原学习ZIP/TODO保留，剩余20%保存停止，不使用重置卡。
+`training.control`默认关闭，宿主显式启用的[本地CPU后端](local-training-control.md)已实际支持固定两步决斗配方；本组命令仍未成为可任意暂停/长运行的全模型后端。CodeBuddy/DeepSeek、SDK额度和真实外部端到端未验，没有配置凭据。[整体验收表](../reports/2026-10-23-engineering-delivery.md)区分本轮已验支持链与自主必需工程、能力和外部缺口，不放行正式ready或扩PC应用。学习ZIP/TODO保留，剩余20%保存停止，不使用重置卡。

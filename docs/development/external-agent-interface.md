@@ -1,6 +1,6 @@
 # 外部 agent 接口、CodeBuddy 接管与对手配置
 
-本地工程入口已实现：版本化JSON Lines、固定角色、训练监控/受控操作契约、卡组/对手注册及真实核心单席位动作。**这不是MCP服务器；未连接CodeBuddy/DeepSeek、未启动付费训练。** 现有明确CPU命令已有四模型/LoRA实际更新及恢复，training.control默认后端仍未接入。基础模型组不依赖外部LLM；接口初始证据见[M2g](../reports/2026-10-23-external-agent-m2g.md)，当前[LoRA/腾讯云受限交接](lora-and-cloud-handoff.md)保留实际联调缺项。
+本地工程入口已有版本化JSON Lines、固定角色、真实CPU训练控制、卡组/对手注册及真实核心单席位动作。**这不是MCP服务器；未连接CodeBuddy/DeepSeek、未启动付费训练。** 默认训练后端关闭，可信宿主显式--local-cpu-control可启用固定两步决斗CPU配方，真实启动/暂停退出/保存/重启与故障恢复已验；通用长训练/云后端仍缺。当前入口见[整体验收](../reports/2026-10-23-engineering-delivery.md)与[本地控制说明](local-training-control.md)，不以本地通过代表provider或正式阶段通过。
 
 ## 启动与工具权限
 
@@ -21,7 +21,7 @@ cd /workspace/YGO-Kito
 | 启动时固定角色 | 可用工具 |
 | --- | --- |
 | monitor（默认） | capabilities、runs.list/read/metrics、checkpoints.read、opponents.summary |
-| trainer | monitor工具＋training.control |
+| trainer | monitor工具＋training.prepare、training.recover、training.control；执行须宿主显式CPU后端 |
 | manager | monitor工具＋environment.runtime/register、deck.import/read、opponent.register、coding.prepare_handoff |
 | opponent | capabilities、cards.lookup（公开静态卡库）、duel.open/next/status/submit_action/close |
 
@@ -55,7 +55,9 @@ cd /workspace/YGO-Kito
 
 这只是格式示例，不创建真实训练。runs.list在所选state root尚未发布时为空；契约测试样本明确使用source=local_contract_fixture。M3a/M3b实际CPU训练发布source=trainer、角色版本、参数更新计数和真实小型checkpoint，已通过此只读接口回读。构筑checkpoint的step为成对批次游标，运行metrics.steps为两个角色实际规范更新总数，恢复对照另列物理调用次数。检查点读取仅接受该运行登记的ID，核对元数据/字节数/SHA-256，拒绝路径越界，不反序列化权重。
 
-`training.control {run_id,operation,expected_revision}`只允许start/pause/resume/stop/save_checkpoint。默认没有后端，返回TRAINING_BACKEND_NOT_CONFIGURED，未执行操作。M3a/b/c的明确CPU训练/组流程命令没有自动成为此控制后端，不能通过外部agent启动/暂停该训练。未来可信宿主显式注入TrainingBackend：必须原子校验expected_revision并给出applied/revision，不能接受任意shell命令。请求ID持久幂等、同运行版本仅保留一次操作；异常/中断留下uncertain，禁止自动重试，先回读状态查明实际结果。外部真实控制、完整1B恢复和目标环境仍待验证。
+`training.control {run_id,operation,expected_revision}`只允许start/pause/resume/stop/save_checkpoint。默认无后端，返回TRAINING_BACKEND_NOT_CONFIGURED且未执行；显式--local-cpu-control仅能管理本项目固定CPU配方，不把已有任意CLI命令变成可执行参数。training.prepare只收run_id，实际创建初始权重/版本绑定；training.recover需run_id/expected_revision，核验已退出失败任务的完整检查点再置paused。JSON启动、边界暂停退出、保存/新进程恢复及SIGKILL后连续性已有真实证据，见[指南](local-training-control.md)。
+
+控制原子校验expected_revision，持久请求幂等、同运行版本仅一次操作；uncertain先查状态/检查点，不能自动重试。kernel期限及PID身份检查只保护受管本地worker，本地stop返回cloud_billing_stopped=false。managed任务以SQLite为权威，monitor的runs.read/metrics/checkpoints.read返回实际数据；status.json不是其最新状态。通用四模型长训练、云计费/停机与目标SDK/权限/外部provider仍待验证。
 
 [M3c统筹与组流程](coordinator-model-group.md)另提供固定角色的coordinator-call，用于可信宿主的构筑托付/固定预测/任务租用/结果回收与只读历史；不属于opponent工具。四模型checkpoint及真实trainer指标沿用本页monitor接口回读，原生验证只执行当前支持的BO1工程范围。对手agent仍只能看本席位合法DTO，不得取得统筹任务中的双方牌表/种子/内部审计；宿主角色配置须与OS/进程权限隔离一起落实，不能将CLI的--role参数本身当系统沙箱。
 
