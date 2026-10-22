@@ -378,8 +378,9 @@ class LocalCpuBackend:
                         db.execute("BEGIN IMMEDIATE")
                         row = get_row(db, run_id)
                         row["active_seconds"], row["segment_started"] = elapsed(row), None
-                        row["state"], row["phase"] = row["desired"], "exited"
-                        row["reason"] = operation + "_forced_to_last_committed_checkpoint"
+                        row["state"], row["phase"] = ("failed" if "recipe" in row and operation == "pause" else row["desired"]), "exited"
+                        row["reason"] = ("pause_forced_recovery_required" if "recipe" in row and operation == "pause"
+                                         else operation + "_forced_to_last_committed_checkpoint")
                         row["revision"] += 1
                         put_row(db, row)
                     break
