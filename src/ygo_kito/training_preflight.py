@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 
 from .build_contracts import digest
+from .engine import EngineUnavailable
 from .training_plan import validate_plan
 from .validation import ContractError
 
@@ -41,7 +42,7 @@ def cpu_preflight(root, plan):
         assets = BuildAssets(root)
         checks["locked_native_assets"] = {"passed": True, "source_commits": assets.receipt["source_commits"],
                                          "resources": assets.receipt["resources"], "native_duel_executed": False}
-    except (ContractError, NativeError, OSError):
+    except (ContractError, EngineUnavailable, NativeError, OSError, sqlite3.Error):
         checks["locked_native_assets"] = {"passed": False, "reason": "locked native assets unavailable or incompatible"}
     repository = Path(__file__).resolve().parents[2]
     commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repository, capture_output=True, text=True, check=False)

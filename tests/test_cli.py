@@ -127,6 +127,17 @@ class CliTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2, result.stderr)
         self.assertFalse(ledger.exists())
 
+    def test_preflight_missing_assets_reports_health_failure_without_creating_resources(self):
+        repo = Path(__file__).resolve().parents[1]
+        missing = self.root / "unprepared-native"
+        result = self.run_cli("training-preflight", "--root", str(missing), "--plan", str(repo / "configs/training-plan-v1.json"))
+        self.assertEqual(result.returncode, 2, result.stderr)
+        status = json.loads(result.stdout)
+        self.assertFalse(status["ok"])
+        self.assertFalse(status["checks"]["locked_native_assets"]["passed"])
+        self.assertFalse(status["formal_training"]["ready"])
+        self.assertFalse(missing.exists())
+
     def test_budget_cli_is_marked_synthetic_rejects_launch_and_does_not_import_torch(self):
         repo = Path(__file__).resolve().parents[1]
         ledger = self.root / "contract-budget.sqlite3"
