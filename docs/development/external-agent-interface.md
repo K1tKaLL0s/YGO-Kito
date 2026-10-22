@@ -1,6 +1,6 @@
 # 外部 agent 接口、CodeBuddy 接管与对手配置
 
-本地工程入口已实现：版本化 JSON Lines、固定角色、训练监控/受控操作契约、卡组/对手注册，以及连接真实核心的单席位观察与动作。**这不是 MCP 服务器；没有连接 CodeBuddy/DeepSeek、没有启动真实训练。** 基础模型组和规则运行不依赖外部 LLM。测试/证据见 [M2g报告](../reports/2026-10-23-external-agent-m2g.md)。
+本地工程入口已实现：版本化JSON Lines、固定角色、训练监控/受控操作契约、卡组/对手注册及真实核心单席位动作。**这不是MCP服务器；未连接CodeBuddy/DeepSeek、未启动付费训练。** 现有明确CPU命令已有四模型/LoRA实际更新及恢复，training.control默认后端仍未接入。基础模型组不依赖外部LLM；接口初始证据见[M2g](../reports/2026-10-23-external-agent-m2g.md)，当前[LoRA/腾讯云受限交接](lora-and-cloud-handoff.md)保留实际联调缺项。
 
 ## 启动与工具权限
 

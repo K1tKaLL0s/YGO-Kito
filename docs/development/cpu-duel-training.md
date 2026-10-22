@@ -66,4 +66,4 @@ checkpoint 含配置、全公开卡库词表与哈希、参数、优化器、调
 
 记录的 elapsed/process CPU 从初始模型和优化器建立后开始，包含 checkpoint 和实际恢复对照；`samples_per_second` 是两个规范 rollout 的样本数除以整个证明用时，包含恢复开销，不是纯训练吞吐。RSS 为整个进程生命周期峰值，包含 Torch/优化器；网络前向时延不代替 PC 端到端时延。记录没有新开付费实例和外部 API 调用，平台云端开发 CPU 费用不可见，不能宣称无限免费。没有 GPU 时不编造 GPU 读数。
 
-本入口的原始结果见[M3a](../reports/2026-10-23-duel-cpu-m3a.md)。后续[M3b](cpu-building.md)已增加构筑目标/优化最小原型及规则交替，仍未完成完整模型组或学习统筹。决斗命令的`models_in_this_run`只报告本次执行角色，不再用旧原型时期的全局“其他模型未实现”字段。搜索、LoRA、三期数据、BO3、PC兼容和资源门槛继续保留，学生原ZIP/TODO不改写。
+本入口原始结果见[M3a](../reports/2026-10-23-duel-cpu-m3a.md)。后续[M3b](cpu-building.md)增加构筑原型，[M3c](coordinator-model-group.md)已有学习统筹建议/规则闭环，[M3d](lora-and-cloud-handoff.md)已有实际四角色LoRA更新与组恢复；均不等于完整模型能力。决斗命令的`models_in_this_run`只报告本次执行角色。搜索、正式LoRA迁移、三期数据、BO3、PC兼容和完整资源门槛继续保留，学生原ZIP/TODO不改写。

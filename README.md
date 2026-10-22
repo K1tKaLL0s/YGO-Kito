@@ -15,7 +15,9 @@
 - 第一阶段真实规则核心，第二阶段训练前验证 PC YGOPro／萌卡兼容。**手机端及 YGOMobile 暂移出本期范围**；云端训练与 PC 推理/微调的硬件压力仍必须记录。
 - 构筑预测与实战反馈：百场内明显落后预警、千场内明显落后强制重构；具体统计阈值实施前冻结。
 
-当前已有CPU工程骨架、固定上游源码构建的core、限定真实终局/重放，以及四个独立网络原型：决斗Transformer265,378参数，构筑目标/优化Transformer各17,665参数，轻量统筹MLP648参数。均有实际CPU更新与恢复证据；构筑四步交替由真实核心验证条件目标，已串通托付→版本绑定预测→冻结策略真实验证→结果回收及组恢复。**87项单元＋61项集成通过，无跳过。** [当前交接与数值证据](docs/reports/2026-10-23-coordinator-m3c.md)明确范围：**统筹规则优先，学习原型只用明示合成监督提供建议，预测未校准；百场/千场工程反馈用单独合成记录验边界，不冒充千场实战。完整模型能力、一般卡池、标准客户端回放、1A/1B及PC门槛未通过，无竞技或合理构筑能力结论、无付费训练。** 工程参数不冒充最终冻结，本云端开发不表示离线本机已同步。
+当前已有CPU骨架、固定上游源码构建的core、限定真实终局/重放，以及四个独立网络原型：决斗Transformer265,378参数，构筑目标/优化Transformer各17,665参数，统筹MLP648参数。已串通真实构筑托付→版本绑定预测→冻结策略验证→结果回收及组恢复；规则控制最终行为，统筹学习原型只用明示合成监督提供建议。
+
+最新[M3d实际证据与交接](docs/reports/2026-10-23-lora-handoff-m3d.md)增加四角色LoRA：冻结基模、各两次实际适配更新，保存加载/兼容拒绝/输出回滚及真实组恢复通过；无凭据CPU预检与实例小时台账可运行。**102项单元＋68项集成通过，无跳过。** 仅有界工程原型，预测/统计配置未校准；25/125是合成样例首次触发，未缩小或替代正式百场/千场设计。**完整模型/迁移/竞技能力、一般卡池、标准客户端回放、1A/1B和PC门槛未通过，正式训练ready=false，无付费训练。** 工程参数不冒充最终冻结，云端开发不表示离线本机已同步。
 
 运行与验收见 [CPU 骨架说明](docs/development/cpu-foundation.md)、[阶段任务清单](docs/plans/2026-10-22-phase-1-cpu-checklist.md)及[云端启动实证](docs/reports/2026-10-22-cloud-bootstrap.md)。本云端可执行：
 
@@ -37,7 +39,9 @@ PYTHONPATH=src .venv/bin/python -m ygo_kito --config configs/cpu.toml status
 
 [构筑目标/优化CPU说明](docs/development/cpu-building.md)提供 `build-train-cpu`、`build-check`、主/额外/副卡DTO及目标→优化→目标→优化接口。目标模型使用真实条件路线/明确硬失败监督，优化模型仅以明示的弱代理比较作训练；当前17张工程pool不取代未来交叉检索，非空额外卡表合法不代表额外路线已接入。JSON输出已实际导入现有注册器，用户3＋8套仍待接收。
 
-[统筹与四模型闭环说明](docs/development/coordinator-model-group.md)提供 `model-group-cpu`、分权 `coordinator-call`、固定预测/谱系/单在途任务、预设百场/千场反馈及完整组checkpoint。独立CPU命令实际7次更新、1局验证且恢复重跑一致；合成统计与真实结果分账。下一批为LoRA管理及腾讯云受限交接，当前不启动腾讯云或扩PC应用。
+[统筹与四模型闭环说明](docs/development/coordinator-model-group.md)提供 `model-group-cpu`、分权 `coordinator-call`、固定预测/谱系/单在途任务、预设百场/千场反馈及完整组checkpoint；合成统计与真实结果分账。
+
+[LoRA管理与腾讯云受限交接](docs/development/lora-and-cloud-handoff.md)提供 `lora-group-cpu`、`training-preflight`、`budget-call`，实际适配器/基模版本绑定、真实恢复和既定100h规划入口；CPU健康通过不放行正式门槛。CodeBuddy/DeepSeek真实联调、计费/停机核验和PC验证待验，不启动腾讯云或扩PC应用。
 
 [2026-10-21 旧阶段计划](docs/plans/2026-10-21-development-and-training-budget.md) 与 [旧技术复核](docs/reviews/2026-10-21-technical-route-review.md) 保留决策历史，不再作为最新选型入口。尤其旧文的 LoRA 可选、移动端后续排期、预算未分配和架构待讨论表述，不覆盖统一说明。
 

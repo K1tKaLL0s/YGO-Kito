@@ -1,0 +1,842 @@
+{
+  "timestamp_utc": "2026-10-22T21:30:02.291073+00:00",
+  "code_commit": "6629676eb0e6d1091b1d8dd2686a754a93f19259",
+  "unit_tests": {
+    "command": [
+      ".venv/bin/python",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests",
+      "-v"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 9.35130039499927,
+    "test_count": 102,
+    "skipped": false,
+    "timestamp_utc": "2026-10-22T21:24:56.512874+00:00"
+  },
+  "integration_tests": {
+    "command": [
+      ".venv/bin/python",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "integration_tests",
+      "-v"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 114.12157217500135,
+    "test_count": 68,
+    "skipped": false,
+    "timestamp_utc": "2026-10-22T21:26:41.278381+00:00"
+  },
+  "checks": [
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "lora-group-cpu",
+        "--root",
+        ".cache",
+        "--state-root",
+        ".cache/m3d-lora-proof-final",
+        "--run-id",
+        "m3d-lora-20261023-final",
+        "--task",
+        "configs/build-engineering-v1.json",
+        "--lora-config",
+        "configs/lora-engineering-v1.json",
+        "--feedback-policy",
+        "configs/coordinator-feedback-engineering.json"
+      ],
+      "exit_code": 0,
+      "wall_seconds_including_startup": 30.90866556200126,
+      "stderr": "",
+      "stdout_sha256": "d2162455c629bbc72b3547dbf90b7fa038536c955c65e9636624530a88987f0b",
+      "stdout_file": "2026-10-23-m3d-lora-proof.json",
+      "formatted_stdout_file_sha256": "982d3c39e2746807be64e764f6930601a9a4cbb77ddca165f27971118bc6ef31"
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "training-preflight",
+        "--root",
+        ".cache",
+        "--plan",
+        "configs/training-plan-v1.json"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "wall_seconds": 1.8824896890000673,
+      "stdout": {
+        "checks": {
+          "locked_native_assets": {
+            "native_duel_executed": false,
+            "passed": true,
+            "resources": {
+              "banlist": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+              "card_data_abi": "754c750eb26e81eba44de3253c056a89de364f942ec5cd63ecd9d9791acff45e",
+              "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+              "client_config": "07f92954941343d33f38eae3986997cc620d595301e67adb9e473bfa3c254d0c",
+              "client_protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+              "core_api": "cb7b33d709791e86be0b821152c1ca34c2a2c72847c3603b4a07826c88b802af",
+              "core_constants": "2c78c4c7c92306cd76f09cc111c28e6604e0e3d4fc16252ec31e8cb8d1493e17",
+              "library": "b33b0fb302e24e4757532f224f04aec21e4b16153979b112923c6f746b2e531f",
+              "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+            },
+            "source_commits": {
+              "client": "0d76e26b30c5ddb0273ee746459506c5719fddb6",
+              "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+              "database": "217ae165c1886af2fc36b823fc08f9fc3ec13185",
+              "lua": "6e22fedb74cf0c9b6656e9fce8b7331db847c605",
+              "scripts": "b83db1cc3f512d3bec2faafb9ecf199143332be1"
+            }
+          },
+          "sqlite_rollback": {
+            "passed": true,
+            "version": "3.53.1"
+          },
+          "torch_cpu_forward_backward": {
+            "cuda_build": null,
+            "device": "cpu",
+            "gradient_norm": 4.40170431137085,
+            "passed": true,
+            "version": "2.14.1+cpu"
+          }
+        },
+        "external_agent": {
+          "codebuddy_executable_present": false,
+          "credentials_read": false,
+          "model_or_quota_checked": false,
+          "provider_called": false,
+          "sdk_execution_verified": false
+        },
+        "formal_training": {
+          "environment_manifests_supplied": {
+            "ocg-2022-07": false,
+            "ocg-2022-10": false,
+            "ocg-2026-10": false
+          },
+          "external_api_cap_known": false,
+          "gate_verification": "not_implemented_by_cpu_health_check",
+          "instance_price_known": false,
+          "machine_selected": false,
+          "paid_execution_authorized": false,
+          "quota_reader_configured": false,
+          "ready": false,
+          "required_evidence": [
+            "G-01",
+            "G-02",
+            "P-01",
+            "Q-02",
+            "Q-03",
+            "Q-04",
+            "Q-05"
+          ],
+          "resource_launch_implemented": false,
+          "stop_remaining_quota_percent": 20
+        },
+        "hardware": {
+          "affinity_cpus": 5,
+          "disk_free_bytes": 31665307648,
+          "logical_cpus": 5,
+          "python": "3.12.14"
+        },
+        "local_commit": "6629676eb0e6d1091b1d8dd2686a754a93f19259",
+        "ok": true,
+        "plan_id": "three-environments-v1",
+        "plan_sha256": "9d0a209c2408e855eb475834881ee1c50763462b8e2e75924d9d061f4a441b46",
+        "schema_version": 1,
+        "scope": "credential-free-local-cpu-preflight",
+        "toolchain_present": {
+          "cmake": false,
+          "g++": true,
+          "git": true
+        }
+      },
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "training-preflight",
+        "--root",
+        ".cache/m3d-unprepared-native-negative",
+        "--plan",
+        "configs/training-plan-v1.json"
+      ],
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "wall_seconds": 1.089227574000688,
+      "stdout": {
+        "checks": {
+          "locked_native_assets": {
+            "passed": false,
+            "reason": "locked native assets unavailable or incompatible"
+          },
+          "sqlite_rollback": {
+            "passed": true,
+            "version": "3.53.1"
+          },
+          "torch_cpu_forward_backward": {
+            "cuda_build": null,
+            "device": "cpu",
+            "gradient_norm": 4.40170431137085,
+            "passed": true,
+            "version": "2.14.1+cpu"
+          }
+        },
+        "external_agent": {
+          "codebuddy_executable_present": false,
+          "credentials_read": false,
+          "model_or_quota_checked": false,
+          "provider_called": false,
+          "sdk_execution_verified": false
+        },
+        "formal_training": {
+          "environment_manifests_supplied": {
+            "ocg-2022-07": false,
+            "ocg-2022-10": false,
+            "ocg-2026-10": false
+          },
+          "external_api_cap_known": false,
+          "gate_verification": "not_implemented_by_cpu_health_check",
+          "instance_price_known": false,
+          "machine_selected": false,
+          "paid_execution_authorized": false,
+          "quota_reader_configured": false,
+          "ready": false,
+          "required_evidence": [
+            "G-01",
+            "G-02",
+            "P-01",
+            "Q-02",
+            "Q-03",
+            "Q-04",
+            "Q-05"
+          ],
+          "resource_launch_implemented": false,
+          "stop_remaining_quota_percent": 20
+        },
+        "hardware": {
+          "affinity_cpus": 5,
+          "disk_free_bytes": 31665307648,
+          "logical_cpus": 5,
+          "python": "3.12.14"
+        },
+        "local_commit": "6629676eb0e6d1091b1d8dd2686a754a93f19259",
+        "ok": false,
+        "plan_id": "three-environments-v1",
+        "plan_sha256": "9d0a209c2408e855eb475834881ee1c50763462b8e2e75924d9d061f4a441b46",
+        "schema_version": 1,
+        "scope": "credential-free-local-cpu-preflight",
+        "toolchain_present": {
+          "cmake": false,
+          "g++": true,
+          "git": true
+        }
+      },
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "budget-call",
+        ".cache/m3d-budget-status.json",
+        "--ledger",
+        ".cache/m3d-delivery-budget.sqlite3",
+        "--role",
+        "monitor"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "wall_seconds": 0.05796670100062329,
+      "stdout": {
+        "id": "budget-status",
+        "ok": true,
+        "result": {
+          "billing_verified": false,
+          "by_stage_gpu_hours": {
+            "failure-revalidation-reserve": 0.0,
+            "lora-final-evaluation": 0.0,
+            "ocg-2022-07": 0.0,
+            "ocg-2022-10": 0.0,
+            "ocg-2026-10": 0.0,
+            "throughput-small-train": 0.0
+          },
+          "cloud_stop_confirmed": false,
+          "cpu_wall_seconds_reported_separately": 30.73332890599886,
+          "events": 1,
+          "gpu_instance_hours_remaining": 100.0,
+          "gpu_instance_hours_used": 0.0,
+          "over_budget": false,
+          "paid_launch_enabled": false,
+          "plan_id": "three-environments-v1",
+          "plan_sha256": "9d0a209c2408e855eb475834881ee1c50763462b8e2e75924d9d061f4a441b46",
+          "reported_amounts_by_currency": {},
+          "revision": 1,
+          "source": "host_reported_unverified",
+          "unknown_amount_events": 1
+        },
+        "schema_version": 1
+      },
+      "stderr": "",
+      "input": {
+        "schema_version": 1,
+        "id": "budget-status",
+        "method": "status",
+        "params": {}
+      }
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "budget-call",
+        ".cache/m3d-budget-usage-final.json",
+        "--ledger",
+        ".cache/m3d-delivery-budget.sqlite3",
+        "--role",
+        "trainer"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "wall_seconds": 0.06687178300126106,
+      "stdout": {
+        "id": "cpu-usage-final",
+        "ok": true,
+        "result": {
+          "billing_verified": false,
+          "by_stage_gpu_hours": {
+            "failure-revalidation-reserve": 0.0,
+            "lora-final-evaluation": 0.0,
+            "ocg-2022-07": 0.0,
+            "ocg-2022-10": 0.0,
+            "ocg-2026-10": 0.0,
+            "throughput-small-train": 0.0
+          },
+          "cloud_stop_confirmed": false,
+          "cpu_wall_seconds_reported_separately": 61.64199446800012,
+          "events": 2,
+          "gpu_instance_hours_remaining": 100.0,
+          "gpu_instance_hours_used": 0.0,
+          "over_budget": false,
+          "paid_launch_enabled": false,
+          "plan_id": "three-environments-v1",
+          "plan_sha256": "9d0a209c2408e855eb475834881ee1c50763462b8e2e75924d9d061f4a441b46",
+          "reported_amounts_by_currency": {},
+          "revision": 2,
+          "source": "host_reported_unverified",
+          "unknown_amount_events": 2
+        },
+        "schema_version": 1
+      },
+      "stderr": "",
+      "input": {
+        "schema_version": 1,
+        "id": "cpu-usage-final",
+        "method": "usage.record",
+        "params": {
+          "event_id": "m3d-cpu-engineering-final",
+          "stage_id": "throughput-small-train",
+          "gpu_count": 0,
+          "wall_seconds": 30.90866556200126,
+          "activity": "train",
+          "outcome": "completed",
+          "amount": null,
+          "currency": null,
+          "expected_revision": 1
+        }
+      }
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "budget-call",
+        ".cache/m3d-budget-status.json",
+        "--ledger",
+        ".cache/m3d-delivery-budget.sqlite3",
+        "--role",
+        "monitor"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "wall_seconds": 0.0577324990008492,
+      "stdout": {
+        "id": "budget-status",
+        "ok": true,
+        "result": {
+          "billing_verified": false,
+          "by_stage_gpu_hours": {
+            "failure-revalidation-reserve": 0.0,
+            "lora-final-evaluation": 0.0,
+            "ocg-2022-07": 0.0,
+            "ocg-2022-10": 0.0,
+            "ocg-2026-10": 0.0,
+            "throughput-small-train": 0.0
+          },
+          "cloud_stop_confirmed": false,
+          "cpu_wall_seconds_reported_separately": 61.64199446800012,
+          "events": 2,
+          "gpu_instance_hours_remaining": 100.0,
+          "gpu_instance_hours_used": 0.0,
+          "over_budget": false,
+          "paid_launch_enabled": false,
+          "plan_id": "three-environments-v1",
+          "plan_sha256": "9d0a209c2408e855eb475834881ee1c50763462b8e2e75924d9d061f4a441b46",
+          "reported_amounts_by_currency": {},
+          "revision": 2,
+          "source": "host_reported_unverified",
+          "unknown_amount_events": 2
+        },
+        "schema_version": 1
+      },
+      "stderr": "",
+      "input": {
+        "schema_version": 1,
+        "id": "budget-status",
+        "method": "status",
+        "params": {}
+      }
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "budget-call",
+        ".cache/m3d-budget-denied-final.json",
+        "--ledger",
+        ".cache/m3d-delivery-budget.sqlite3",
+        "--role",
+        "monitor"
+      ],
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "wall_seconds": 0.057378546000109054,
+      "stdout": {
+        "error": {
+          "code": "PERMISSION_DENIED",
+          "message": "method unavailable to budget host role"
+        },
+        "id": "no-launch-final",
+        "ok": false,
+        "schema_version": 1
+      },
+      "stderr": "",
+      "input": {
+        "schema_version": 1,
+        "id": "no-launch-final",
+        "method": "training.start",
+        "params": {}
+      }
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "agent-call",
+        ".cache/m3d-read-checkpoint-final.json",
+        "--state-root",
+        ".cache/m3d-lora-proof-final",
+        "--role",
+        "monitor"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "wall_seconds": 0.07594231499933812,
+      "stdout": {
+        "id": "read-adapted-group-final",
+        "ok": true,
+        "result": {
+          "artifact_bytes": 4080233,
+          "artifact_sha256": "7ec4c4fe035d83b2d4642ffc9dd034d3df21fcac065ae55cf9b43950cf656bd7",
+          "checkpoint_id": "group-adapted-before-duel",
+          "deserialized": false,
+          "integrity_verified": true,
+          "run_id": "m3d-lora-20261023-final",
+          "schema_version": 1,
+          "source": "trainer",
+          "step": 8
+        },
+        "schema_version": 1
+      },
+      "stderr": "",
+      "input": {
+        "schema_version": 1,
+        "id": "read-adapted-group-final",
+        "method": "checkpoints.read",
+        "params": {
+          "run_id": "m3d-lora-20261023-final",
+          "checkpoint_id": "group-adapted-before-duel"
+        }
+      }
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "coordinator-call",
+        ".cache/m3d-read-forecast-final.json",
+        "--ledger",
+        ".cache/m3d-lora-proof-final/runs/m3d-lora-20261023-final-base/coordinator.sqlite3",
+        "--role",
+        "monitor"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "wall_seconds": 0.06552326599921798,
+      "stdout": {
+        "id": "read-lora-forecast-final",
+        "ok": true,
+        "result": {
+          "alerts": [],
+          "calibration": "pending",
+          "checks": [],
+          "forecast": {
+            "calibration": "pending",
+            "candidate_id": "group-candidate",
+            "forecast_id": "lora-forecast",
+            "model_sha256": "b01bc551a0e475b9eb3367cb85c89c2a6fe9021e2705d08c3e4b4d17761bdf57",
+            "origin_role": "coordinator",
+            "policy": {
+              "calibration": "pending",
+              "checkpoints": [
+                25,
+                50,
+                75,
+                100,
+                125,
+                250,
+                500,
+                750,
+                1000
+              ],
+              "draw_score": 0.0,
+              "family_alpha": 0.05,
+              "margin": 0.1,
+              "minimum_matches": 25,
+              "schema_version": 1
+            },
+            "probability": 0.5088353157043457,
+            "scope": {
+              "actor_policy_sha256": "7dae61d5679a85f2ed4c945f95d4225eeef4382a20e5d4a703f98adb0c90b5f9",
+              "duel_lora": "8518b99f4839a381f2c69d8aefb5b56881454e37f7e700d3498c632d7347e524",
+              "initiative_weights": [
+                1.0,
+                0.0
+              ],
+              "opponents": [
+                {
+                  "deck_sha256": "d07793a84067021e256298cfcce238336c6e43330a1d3eed0e32488e6a782f04",
+                  "driver_sha256": "c373069f9fe1c627f11717822568957fd2a32d2e4cbc93403d505a35ed4d11d6",
+                  "opponent_id": "fixed-rule-engineering",
+                  "weight": 1.0
+                }
+              ],
+              "prediction_target": "win_rate",
+              "unit": "BO1",
+              "versions": {
+                "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+                "card_pool": "native-effect-duel-v1",
+                "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+                "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+                "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+                "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+              }
+            },
+            "source": "real_engine"
+          },
+          "forecast_ordinal": 2,
+          "mandatory_rebuild": false,
+          "matches": 1,
+          "observed_win_rate": 0.0,
+          "outcome_counts": {
+            "loss": 1
+          },
+          "scope_sha256": "41a904f6ad26d7c41b3cf185e1752d6012cc609b5b700c6b7bef4b8b3a134ae3",
+          "score_mean": 0.0,
+          "source": "real_engine",
+          "wins": 0
+        },
+        "schema_version": 1
+      },
+      "stderr": "",
+      "input": {
+        "schema_version": 1,
+        "id": "read-lora-forecast-final",
+        "method": "forecast.read",
+        "params": {
+          "forecast_id": "lora-forecast"
+        }
+      }
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "coordinator-call",
+        ".cache/m3d-read-base-forecast-final.json",
+        "--ledger",
+        ".cache/m3d-lora-proof-final/runs/m3d-lora-20261023-final-base/coordinator.sqlite3",
+        "--role",
+        "monitor"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "wall_seconds": 0.07036735700057761,
+      "stdout": {
+        "id": "read-base-forecast-final",
+        "ok": true,
+        "result": {
+          "alerts": [],
+          "calibration": "pending",
+          "checks": [],
+          "forecast": {
+            "calibration": "pending",
+            "candidate_id": "group-candidate",
+            "forecast_id": "group-forecast",
+            "model_sha256": "1eb31517925da3f4aa8f5362814592690c293b9dd0ef46b5288bd7a6b7c2ba4b",
+            "origin_role": "coordinator",
+            "policy": {
+              "calibration": "pending",
+              "checkpoints": [
+                25,
+                50,
+                75,
+                100,
+                125,
+                250,
+                500,
+                750,
+                1000
+              ],
+              "draw_score": 0.0,
+              "family_alpha": 0.05,
+              "margin": 0.1,
+              "minimum_matches": 25,
+              "schema_version": 1
+            },
+            "probability": 0.5086906552314758,
+            "scope": {
+              "actor_policy_sha256": "ca1be5ab45563b0df8438bf5b7da821745b18d257ca837a29aa8ad3b1cfca51d",
+              "duel_lora": null,
+              "initiative_weights": [
+                1.0,
+                0.0
+              ],
+              "opponents": [
+                {
+                  "deck_sha256": "d07793a84067021e256298cfcce238336c6e43330a1d3eed0e32488e6a782f04",
+                  "driver_sha256": "c373069f9fe1c627f11717822568957fd2a32d2e4cbc93403d505a35ed4d11d6",
+                  "opponent_id": "fixed-rule-engineering",
+                  "weight": 1.0
+                }
+              ],
+              "prediction_target": "win_rate",
+              "unit": "BO1",
+              "versions": {
+                "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+                "card_pool": "native-effect-duel-v1",
+                "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+                "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+                "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+                "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+              }
+            },
+            "source": "real_engine"
+          },
+          "forecast_ordinal": 1,
+          "mandatory_rebuild": false,
+          "matches": 1,
+          "observed_win_rate": 0.0,
+          "outcome_counts": {
+            "loss": 1
+          },
+          "scope_sha256": "1b94cfe3d5c1bd2a280c5759d58bcc09e442feeb1b004ea861aa6eac61ef9a57",
+          "score_mean": 0.0,
+          "source": "real_engine",
+          "wins": 0
+        },
+        "schema_version": 1
+      },
+      "stderr": "",
+      "input": {
+        "schema_version": 1,
+        "id": "read-base-forecast-final",
+        "method": "forecast.read",
+        "params": {
+          "forecast_id": "group-forecast"
+        }
+      }
+    }
+  ],
+  "original_archive_verification": {
+    "checked": 11,
+    "all_originals_unchanged": true,
+    "files": [
+      {
+        "path": "docs/current/游戏王AI项目设计定稿.docx",
+        "bytes": 46669,
+        "sha256": "58d5e4d1e37993e5e90f3e935c4c20ae179cd19f9f5e6da7f743ab3271bf74df",
+        "ok": true
+      },
+      {
+        "path": "docs/learning/游戏王AI项目亲手实作手册.docx",
+        "bytes": 47278,
+        "sha256": "faa23237491b578389ae41ea8ee764b1cfad284a226d1c22fdf6dc666cac6927",
+        "ok": true
+      },
+      {
+        "path": "docs/learning/游戏王AI亲手练习包.zip",
+        "bytes": 4415,
+        "sha256": "4e2390210a8d019793a63407f6fba8447d5fc1943380ed32b700147c0a9f2937",
+        "ok": true
+      },
+      {
+        "path": "docs/reference/游戏王AI_技术选型调研_2026-10-18.docx",
+        "bytes": 53826,
+        "sha256": "da05079224ec7de4ca7a5446f72650099b9a752a6086f2a5a20eae4c216c3452",
+        "ok": true
+      },
+      {
+        "path": "docs/reference/游戏王AI_技术选型调研_2026-10-18.pdf",
+        "bytes": 667814,
+        "sha256": "b09323268e9eae04bbeab0783f133274383bad1e2498f1533e1a30daba762a9d",
+        "ok": true
+      },
+      {
+        "path": "docs/archive/YGO模型设计草案_小幅修订版(1).docx",
+        "bytes": 34426,
+        "sha256": "89a0f271b58e22d9a33fe38be1622b881100a613577ef57372f5971c8ae291ad",
+        "ok": true
+      },
+      {
+        "path": "docs/archive/YGO模型设计草案_小幅修订版.docx",
+        "bytes": 34384,
+        "sha256": "2a16571b5ecc764575b4fa7c1881d3a478ec3fff283272b72c599bda28fba775",
+        "ok": true
+      },
+      {
+        "path": "docs/archive/YGO模型设计草案.docx",
+        "bytes": 43526,
+        "sha256": "7673521dfabef77e49b411a089f3f949eabac1ba445ee423286b31870f5cc42f",
+        "ok": true
+      },
+      {
+        "path": "docs/reference/游戏王AI_现有技术与混合部署调研.pdf",
+        "bytes": 1910963,
+        "sha256": "af81f108ed6a535ec7f81a9c11237cf27c11b6cb14d5002d74d38b8347f88ee9",
+        "ok": true
+      },
+      {
+        "path": "docs/archive/标签驱动游戏王AI_设计草案.pdf",
+        "bytes": 1879234,
+        "sha256": "9a33dcdfcdd6f09e4acd2ca2437f3f1846b7e75e09a4ce0f1b208527ddc32d7e",
+        "ok": true
+      },
+      {
+        "path": "docs/reference/游戏王对战AI_项目核验与自建路线_2026-10-18.pdf",
+        "bytes": 1875576,
+        "sha256": "f56c5834e9bec11097b7ef549bd309fa6369a0f608aec66ca20c09d2df1b925b",
+        "ok": true
+      }
+    ]
+  },
+  "artifact_cross_checks": {
+    "files": [
+      {
+        "artifact": "model-group",
+        "cloud_relative_path": ".cache/m3d-lora-proof-final/runs/m3d-lora-20261023-final/checkpoints/group-adapted-before-duel.weights",
+        "bytes": 4080233,
+        "sha256": "7ec4c4fe035d83b2d4642ffc9dd034d3df21fcac065ae55cf9b43950cf656bd7",
+        "verified": true
+      },
+      {
+        "artifact": "build_goal",
+        "cloud_relative_path": ".cache/m3d-lora-proof-final/runs/m3d-lora-20261023-final/adapters/build_goal.weights",
+        "bytes": 25880,
+        "sha256": "4c0a6feb56127fe35ec68904544ba3f1148756defa4e5b6381ce78fe74845906",
+        "verified": true
+      },
+      {
+        "artifact": "build_optimizer",
+        "cloud_relative_path": ".cache/m3d-lora-proof-final/runs/m3d-lora-20261023-final/adapters/build_optimizer.weights",
+        "bytes": 25944,
+        "sha256": "d0478448ebc3f0e749f18eab8c5b45874692f6b8c9cc65409cba922000e1889a",
+        "verified": true
+      },
+      {
+        "artifact": "coordinator",
+        "cloud_relative_path": ".cache/m3d-lora-proof-final/runs/m3d-lora-20261023-final/adapters/coordinator.weights",
+        "bytes": 17624,
+        "sha256": "6ef11065bc543cf04da18bee4b50eb5fcc580189c9033afd056ef4a8f4dc5145",
+        "verified": true
+      },
+      {
+        "artifact": "duel",
+        "cloud_relative_path": ".cache/m3d-lora-proof-final/runs/m3d-lora-20261023-final/adapters/duel.weights",
+        "bytes": 32704,
+        "sha256": "288b8dee5111d9cf141bb295249ee0f3bd83357eaee16cbc173bd2afcb253a65",
+        "verified": true
+      }
+    ],
+    "implementation_sha256": "c373069f9fe1c627f11717822568957fd2a32d2e4cbc93403d505a35ed4d11d6",
+    "proof_matches_cloud_run": true,
+    "formatted_proof_sha256": "982d3c39e2746807be64e764f6930601a9a4cbb77ddca165f27971118bc6ef31"
+  },
+  "development_corrections": [
+    {
+      "scope": "test_harness",
+      "reason": "Path attribute named run shadowed unittest.TestCase.run; renamed run_dir before first saved code commit",
+      "final_targeted_lora_tests_passed": 5
+    },
+    {
+      "scope": "preflight_missing_resources",
+      "previous_code_commit": "7fd82f78b3cdb5e52bbc8f9ba978120476f9c94c",
+      "previous_unit_count": 101,
+      "previous_integration_count": 67,
+      "fix_commit": "6629676eb0e6d1091b1d8dd2686a754a93f19259",
+      "reason": "catch EngineUnavailable as failed locked-assets health; full final tests and independent CLI rerun",
+      "prior_successful_cli_cpu_seconds_recorded": 30.73332890599886,
+      "prior_evidence_preserved_in_cloud": ".cache/m3d-before-preflight-fix"
+    }
+  ],
+  "source_research": {
+    "lora_primary": "https://arxiv.org/abs/2106.09685",
+    "pytorch_parametrizations": "https://docs.pytorch.org/docs/2.14/generated/torch.nn.utils.parametrize.register_parametrization.html",
+    "cloud_studio": "https://cloud.tencent.com/document/product/1039/131814",
+    "codebuddy_sdk": "https://www.codebuddy.ai/docs/cli/sdk",
+    "codebuddy_target_environment_verified": false,
+    "models_and_permissions_subpages_latest_fetch": "502; no authentication or service setup attempted"
+  },
+  "documentation_checks": {
+    "master_unique_ids": 125,
+    "master_states": {
+      "已完成": 44,
+      "部分完成": 37,
+      "未开始": 29,
+      "待定/依赖": 10,
+      "未通过": 5
+    },
+    "relative_links_checked": 102,
+    "missing_relative_links": 0,
+    "production_code_unchanged_since_test_commit": true
+  }
+}
