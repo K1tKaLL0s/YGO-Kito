@@ -1,0 +1,283 @@
+{
+  "timestamp_utc": "2026-10-22T20:15:57.025539+00:00",
+  "code_commit": "6ff0719a9b597222da188f0dedc0f67d8f343c1a",
+  "unit_tests": {
+    "command": [
+      ".venv/bin/python",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests",
+      "-v"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 5.017005960999995,
+    "test_count": 71,
+    "skipped": false
+  },
+  "integration_tests": {
+    "command": [
+      ".venv/bin/python",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "integration_tests",
+      "-v"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 65.38464848100011,
+    "test_count": 56,
+    "skipped": false
+  },
+  "original_files": {
+    "checked": 11,
+    "all_originals_unchanged": true,
+    "files": [
+      {
+        "path": "docs/current/游戏王AI项目设计定稿.docx",
+        "bytes": 46669,
+        "sha256": "58d5e4d1e37993e5e90f3e935c4c20ae179cd19f9f5e6da7f743ab3271bf74df",
+        "ok": true
+      },
+      {
+        "path": "docs/learning/游戏王AI项目亲手实作手册.docx",
+        "bytes": 47278,
+        "sha256": "faa23237491b578389ae41ea8ee764b1cfad284a226d1c22fdf6dc666cac6927",
+        "ok": true
+      },
+      {
+        "path": "docs/learning/游戏王AI亲手练习包.zip",
+        "bytes": 4415,
+        "sha256": "4e2390210a8d019793a63407f6fba8447d5fc1943380ed32b700147c0a9f2937",
+        "ok": true
+      },
+      {
+        "path": "docs/reference/游戏王AI_技术选型调研_2026-10-18.docx",
+        "bytes": 53826,
+        "sha256": "da05079224ec7de4ca7a5446f72650099b9a752a6086f2a5a20eae4c216c3452",
+        "ok": true
+      },
+      {
+        "path": "docs/reference/游戏王AI_技术选型调研_2026-10-18.pdf",
+        "bytes": 667814,
+        "sha256": "b09323268e9eae04bbeab0783f133274383bad1e2498f1533e1a30daba762a9d",
+        "ok": true
+      },
+      {
+        "path": "docs/archive/YGO模型设计草案_小幅修订版(1).docx",
+        "bytes": 34426,
+        "sha256": "89a0f271b58e22d9a33fe38be1622b881100a613577ef57372f5971c8ae291ad",
+        "ok": true
+      },
+      {
+        "path": "docs/archive/YGO模型设计草案_小幅修订版.docx",
+        "bytes": 34384,
+        "sha256": "2a16571b5ecc764575b4fa7c1881d3a478ec3fff283272b72c599bda28fba775",
+        "ok": true
+      },
+      {
+        "path": "docs/archive/YGO模型设计草案.docx",
+        "bytes": 43526,
+        "sha256": "7673521dfabef77e49b411a089f3f949eabac1ba445ee423286b31870f5cc42f",
+        "ok": true
+      },
+      {
+        "path": "docs/reference/游戏王AI_现有技术与混合部署调研.pdf",
+        "bytes": 1910963,
+        "sha256": "af81f108ed6a535ec7f81a9c11237cf27c11b6cb14d5002d74d38b8347f88ee9",
+        "ok": true
+      },
+      {
+        "path": "docs/archive/标签驱动游戏王AI_设计草案.pdf",
+        "bytes": 1879234,
+        "sha256": "9a33dcdfcdd6f09e4acd2ca2437f3f1846b7e75e09a4ce0f1b208527ddc32d7e",
+        "ok": true
+      },
+      {
+        "path": "docs/reference/游戏王对战AI_项目核验与自建路线_2026-10-18.pdf",
+        "bytes": 1875576,
+        "sha256": "f56c5834e9bec11097b7ef549bd309fa6369a0f608aec66ca20c09d2df1b925b",
+        "ok": true
+      }
+    ]
+  },
+  "checks": [
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "build-train-cpu",
+        "--root",
+        ".cache",
+        "--state-root",
+        ".cache/m3b-build-proof",
+        "--run-id",
+        "m3b-build-20261023-v2",
+        "--task",
+        "configs/build-engineering-v1.json",
+        "--training-config",
+        "configs/build-training-smoke.json"
+      ],
+      "exit_code": 0,
+      "wall_seconds_including_startup": 10.21732135900038,
+      "stderr": "",
+      "stdout_file": "2026-10-23-m3b-build-proof.json",
+      "stdout_sha256": "173d3ba5f13676c6256bd1bb1c6219cff0b4ff3f74e9c085465f7deb78f26a9c",
+      "formatted_stdout_file_sha256": "c4baf15737ba240e92c8235683aad86070a4f2f561cbe6556501d870e0cc4178"
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "build-check",
+        "--root",
+        ".cache",
+        "--task",
+        "configs/build-engineering-v1.json",
+        "--deck",
+        ".cache/m3b-build-proof/best-deck-v2.json"
+      ],
+      "exit_code": 0,
+      "stdout": {
+        "card_list_legal": true,
+        "construction_quality_status": "not_evaluated",
+        "deck_sha256": "29e92f47f2f3d35bc6d3d9b9dfb995b96cb0347d6566b2bdad27a6eeb759c0cb",
+        "hard_constraints_preserved": true,
+        "historical_rules_verified": false,
+        "ok": true,
+        "route_status": "not_evaluated",
+        "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505"
+      },
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "agent-serve",
+        "--role",
+        "monitor",
+        "--state-root",
+        ".cache/m3b-build-proof"
+      ],
+      "stdin": [
+        {
+          "schema_version": 1,
+          "id": "caps",
+          "method": "capabilities",
+          "params": {}
+        },
+        {
+          "schema_version": 1,
+          "id": "run",
+          "method": "runs.read",
+          "params": {
+            "run_id": "m3b-build-20261023-v2"
+          }
+        },
+        {
+          "schema_version": 1,
+          "id": "weights",
+          "method": "checkpoints.read",
+          "params": {
+            "run_id": "m3b-build-20261023-v2",
+            "checkpoint_id": "batch-2"
+          }
+        }
+      ],
+      "exit_code": 0,
+      "responses": [
+        {
+          "id": "caps",
+          "ok": true,
+          "result": {
+            "api": "ygo-kito-local-json-v1",
+            "methods": [
+              "capabilities",
+              "checkpoints.read",
+              "opponents.summary",
+              "runs.list",
+              "runs.metrics",
+              "runs.read"
+            ],
+            "model_verified": false,
+            "provider_connected": false,
+            "provider_invocation_implemented": false,
+            "role": "monitor",
+            "training_backend_configured": false,
+            "transport": "json-lines-not-mcp"
+          },
+          "schema_version": 1
+        },
+        {
+          "id": "run",
+          "ok": true,
+          "result": {
+            "checkpoint_ids": [
+              "batch-1",
+              "batch-2"
+            ],
+            "metrics": {
+              "elapsed_seconds": 7.456415503000244,
+              "loss": 0.6930025219917297,
+              "process_cpu_seconds": 7.4513644580000005,
+              "process_peak_rss_bytes": 352129024,
+              "steps": 4
+            },
+            "model_versions": {
+              "build_goal": "cpu-goal-prototype-v1",
+              "build_optimizer": "cpu-optimizer-prototype-v1"
+            },
+            "revision": 4,
+            "run_id": "m3b-build-20261023-v2",
+            "schema_version": 1,
+            "source": "trainer",
+            "state": "completed"
+          },
+          "schema_version": 1
+        },
+        {
+          "id": "weights",
+          "ok": true,
+          "result": {
+            "artifact_bytes": 509483,
+            "artifact_sha256": "f86ef668730f01973538052a33f4b5af7e4b642ae301898dda75b329bd784542",
+            "checkpoint_id": "batch-2",
+            "deserialized": false,
+            "integrity_verified": true,
+            "run_id": "m3b-build-20261023-v2",
+            "schema_version": 1,
+            "source": "trainer",
+            "step": 2
+          },
+          "schema_version": 1
+        }
+      ],
+      "stderr": ""
+    }
+  ],
+  "checklist": {
+    "total": 117,
+    "counts": {
+      "已完成": 34,
+      "部分完成": 33,
+      "未开始": 35,
+      "待定/依赖": 10,
+      "未通过": 5
+    },
+    "unique_ids": 117
+  },
+  "artifact_cross_checks": {
+    "saved_and_published_proof_equal": true,
+    "implementation_digest_current": true,
+    "both_checkpoint_bytes_and_hashes_verified": true,
+    "three_section_export_matches_actual_result": true,
+    "active_markdown_links_exist": true
+  },
+  "exported_deck_file": "2026-10-23-m3b-best-deck.json"
+}

@@ -15,7 +15,7 @@
 - 第一阶段真实规则核心，第二阶段训练前验证 PC YGOPro／萌卡兼容。**手机端及 YGOMobile 暂移出本期范围**；云端训练与 PC 推理/微调的硬件压力仍必须记录。
 - 构筑预测与实战反馈：百场内明显落后预警、千场内明显落后强制重构；具体统计阈值实施前冻结。
 
-当前已完成CPU工程骨架、固定上游源码构建的core、限定通常怪兽和工程效果牌组真实终局/重放、费用/连锁/检索/诱发及次数限制回归。新增265,378参数的独立决斗Transformer原型、合法动作掩码、真实核心当前策略采样及两次CPU参数更新；checkpoint实际恢复后重采样/更新一致。**63项单元＋46项集成通过，无跳过。** [当前交接与数值证据](docs/reports/2026-10-23-duel-cpu-m3a.md)明确范围：**构筑目标、构筑优化及统筹尚未实现，一般卡池、标准客户端回放、1A/1B及PC兼容门槛未通过；无竞技能力结论或付费训练。** 实验尺寸/超参数不冒充最终冻结，本云端开发不表示离线本机已同步。
+当前已有CPU工程骨架、固定上游源码构建的core、限定通常怪兽/效果牌组真实终局与重放，以及三个独立执行Transformer最小原型：决斗265,378参数，构筑目标/优化各17,665参数。均有真实CPU参数更新及checkpoint续跑证据；构筑四步交替逐阶段由真实核心验证条件通常召唤目标，保留固定约束和可重放改动。**71项单元＋56项集成通过，无跳过。** [当前交接与数值证据](docs/reports/2026-10-23-building-cpu-m3b.md)明确范围：**目标/优化只完成有界工程切片，学习统筹尚未实现；一般卡池、标准客户端回放、1A/1B及PC兼容门槛未通过，无竞技或合理构筑能力结论、无付费训练。** 工程参数不冒充最终冻结，本云端开发不表示离线本机已同步。
 
 运行与验收见 [CPU 骨架说明](docs/development/cpu-foundation.md)、[阶段任务清单](docs/plans/2026-10-22-phase-1-cpu-checklist.md)及[云端启动实证](docs/reports/2026-10-22-cloud-bootstrap.md)。本云端可执行：
 
@@ -34,6 +34,8 @@ PYTHONPATH=src .venv/bin/python -m ygo_kito --config configs/cpu.toml status
 [M2e 次数与发动资格回归](docs/development/count-reset.md) 补充跨回合重置、两张同名副本共享次数，以及检索后发动封锁与未检索对照；卡片汽车·D 只验证发动资格，没有执行其解放费用、抽卡或结束阶段处理。
 
 [决斗模型CPU训练/恢复说明](docs/development/cpu-duel-training.md)提供明确的 `duel-train-cpu` 命令、工程配置和真实checkpoint/监控接口。只用既有云端CPU，不启动付费资源或外部API；模型权重在云端缓存保存，PR提交代码、原始指标和哈希。工程样例不替代用户牌组或独立能力验收。
+
+[构筑目标/优化CPU说明](docs/development/cpu-building.md)提供 `build-train-cpu`、`build-check`、主/额外/副卡DTO及目标→优化→目标→优化接口。目标模型使用真实条件路线/明确硬失败监督，优化模型仅以明示的弱代理比较作训练；当前17张工程pool不取代未来交叉检索，非空额外卡表合法不代表额外路线已接入。JSON输出已实际导入现有注册器，用户3＋8套仍待接收。
 
 [2026-10-21 旧阶段计划](docs/plans/2026-10-21-development-and-training-budget.md) 与 [旧技术复核](docs/reviews/2026-10-21-technical-route-review.md) 保留决策历史，不再作为最新选型入口。尤其旧文的 LoRA 可选、移动端后续排期、预算未分配和架构待讨论表述，不覆盖统一说明。
 
@@ -68,7 +70,7 @@ PYTHONPATH=src .venv/bin/python -m ygo_kito --config configs/cpu.toml status
 
 - [原件清单与 SHA-256](archive-manifest.json) 记录 11 份原件的来源 ID、字节数和哈希。
 - 练习包保持 ZIP 原样，原归档时已静态检查其中 6 个教学文件；本次工程测试独立于学生练习，不解包覆盖或代填学生 TODO。
-- 原件归档时未开始开发；现已有CPU骨架和自行初始化的决斗模型CPU工程更新，未启动付费训练或下载模型。仓库未收录密钥、账户配置、权重二进制、大型数据或无关私人资料；小型工程checkpoint在云端缓存保存。未核实的 ygo_work_handoff.zip 未收录。
+- 原件归档时未开始开发；现已有CPU骨架及自行初始化的决斗/构筑目标/优化模型工程更新，未启动付费训练或下载模型。仓库未收录密钥、账户配置、权重二进制、大型数据或无关私人资料；小型工程checkpoint在云端缓存保存。未核实的 ygo_work_handoff.zip 未收录。
 - 原件均保留在原来源；两个小幅修订版的字节和哈希不同，分别归档。
 - PDF 中原有的 C2PA Content Credentials 来源元数据保留在文件内。
 

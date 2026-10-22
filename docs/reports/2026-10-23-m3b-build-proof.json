@@ -1,0 +1,1655 @@
+{
+  "alternation": {
+    "best_criterion": "engineering_mean_printed_attack_proxy_only",
+    "best_deck": {
+      "extra": [],
+      "main": [
+        32864,
+        32864,
+        549481,
+        732302,
+        732302,
+        732302,
+        756652,
+        756652,
+        756652,
+        1184620,
+        1184620,
+        1184620,
+        1761063,
+        1761063,
+        1761063,
+        1784619,
+        1784619,
+        1784619,
+        1929294,
+        1929294,
+        2118022,
+        2118022,
+        2311603,
+        2311603,
+        2311603,
+        2468169,
+        2468169,
+        2483611,
+        2483611,
+        2830619,
+        2830619,
+        2863439,
+        2863439,
+        2906250,
+        2906250,
+        2957055,
+        2957055,
+        69247929,
+        69247929,
+        69247929
+      ],
+      "side": [
+        2957055
+      ]
+    },
+    "competitive_ability_validated": false,
+    "failures": [],
+    "kind": "goal-optimizer-alternation",
+    "schema_version": 1,
+    "stage_budget": 4,
+    "stages": [
+      {
+        "candidate_count": 4,
+        "changes": [
+          {
+            "after": 2,
+            "before": 0,
+            "card_id": 32864,
+            "zone": "main"
+          },
+          {
+            "after": 2,
+            "before": 0,
+            "card_id": 549481,
+            "zone": "main"
+          },
+          {
+            "after": 3,
+            "before": 0,
+            "card_id": 732302,
+            "zone": "main"
+          },
+          {
+            "after": 3,
+            "before": 0,
+            "card_id": 756652,
+            "zone": "main"
+          },
+          {
+            "after": 3,
+            "before": 0,
+            "card_id": 1184620,
+            "zone": "main"
+          },
+          {
+            "after": 3,
+            "before": 0,
+            "card_id": 1761063,
+            "zone": "main"
+          },
+          {
+            "after": 3,
+            "before": 0,
+            "card_id": 1784619,
+            "zone": "main"
+          },
+          {
+            "after": 2,
+            "before": 0,
+            "card_id": 1929294,
+            "zone": "main"
+          },
+          {
+            "after": 2,
+            "before": 0,
+            "card_id": 2118022,
+            "zone": "main"
+          },
+          {
+            "after": 2,
+            "before": 0,
+            "card_id": 2311603,
+            "zone": "main"
+          },
+          {
+            "after": 2,
+            "before": 0,
+            "card_id": 2468169,
+            "zone": "main"
+          },
+          {
+            "after": 2,
+            "before": 0,
+            "card_id": 2483611,
+            "zone": "main"
+          },
+          {
+            "after": 2,
+            "before": 0,
+            "card_id": 2830619,
+            "zone": "main"
+          },
+          {
+            "after": 2,
+            "before": 0,
+            "card_id": 2863439,
+            "zone": "main"
+          },
+          {
+            "after": 2,
+            "before": 0,
+            "card_id": 2906250,
+            "zone": "main"
+          },
+          {
+            "after": 2,
+            "before": 0,
+            "card_id": 2957055,
+            "zone": "main"
+          },
+          {
+            "after": 3,
+            "before": 0,
+            "card_id": 69247929,
+            "zone": "main"
+          },
+          {
+            "after": 1,
+            "before": 0,
+            "card_id": 2957055,
+            "zone": "side"
+          }
+        ],
+        "deck": {
+          "extra": [],
+          "main": [
+            32864,
+            32864,
+            549481,
+            549481,
+            732302,
+            732302,
+            732302,
+            756652,
+            756652,
+            756652,
+            1184620,
+            1184620,
+            1184620,
+            1761063,
+            1761063,
+            1761063,
+            1784619,
+            1784619,
+            1784619,
+            1929294,
+            1929294,
+            2118022,
+            2118022,
+            2311603,
+            2311603,
+            2468169,
+            2468169,
+            2483611,
+            2483611,
+            2830619,
+            2830619,
+            2863439,
+            2863439,
+            2906250,
+            2906250,
+            2957055,
+            2957055,
+            69247929,
+            69247929,
+            69247929
+          ],
+          "side": [
+            2957055
+          ]
+        },
+        "elapsed_seconds": 1.3207677599993985,
+        "engineering_proxy": 1162.5,
+        "lora_version": null,
+        "model_score_uncalibrated": -0.03450620174407959,
+        "model_sha256": "0884c75cf8b84f3b37d3e6b869b61cca16e0806a1359d28affb7733b633e5600",
+        "role": "build_goal",
+        "stage": 0,
+        "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+        "uncertainty": "uncalibrated engineering prototype; construction quality unknown",
+        "validation": {
+          "card_list_legal": true,
+          "core_attempts": [
+            {
+              "declared_opening_condition_met": false,
+              "seed_audit_only": 7
+            },
+            {
+              "declared_opening_condition_met": true,
+              "seed_audit_only": 24
+            }
+          ],
+          "core_event_kinds": [
+            90,
+            90,
+            40,
+            41,
+            2,
+            41,
+            41,
+            11,
+            2,
+            18,
+            50,
+            60,
+            16,
+            16,
+            61,
+            16
+          ],
+          "deck_sha256": "07125042f4a2fa22dfabd690afc1a59aef6099d0f2788eb8f090f1d880cb3fd0",
+          "elapsed_seconds": 1.3169897640000272,
+          "random_dependency": "goal card must be in the actual opening hand",
+          "responses": [
+            {
+              "action_id": "choice-3",
+              "player": 0,
+              "request_sha256": "b9414a84e74c313dfd7aba00edcddc550cc18029f3166946cf391078c2f59b01"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 0,
+              "request_sha256": "734ee1d21fcb2c60014df7f58351f4f5bd0e04a02d6445ea3173bb0a1043956b"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 0,
+              "request_sha256": "12cf819ce561f03e4faa47a945fb128d08ba6f3e3a602e7ba87a61ccb2afb9b8"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 1,
+              "request_sha256": "e2b481f29428765fe915bd8764ff410a0eb662eed444fae5a35b6a21a7d7f4ec"
+            }
+          ],
+          "starting_condition": {
+            "player": 0,
+            "requires_opening_hand": [
+              69247929
+            ],
+            "turn": 1
+          },
+          "status": "verified_success",
+          "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+          "trajectory_sha256": "2c70922a22a07154ec0fa2ed0f20a9fe8100ac502d0015bacb6c960d7bb6b3de",
+          "unmet": []
+        },
+        "versions": {
+          "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+          "card_pool": "native-effect-duel-v1",
+          "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+          "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+          "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+        }
+      },
+      {
+        "candidate_count": 16,
+        "changes": [
+          {
+            "after": 1,
+            "before": 2,
+            "card_id": 549481,
+            "zone": "main"
+          },
+          {
+            "after": 3,
+            "before": 2,
+            "card_id": 2311603,
+            "zone": "main"
+          }
+        ],
+        "deck": {
+          "extra": [],
+          "main": [
+            32864,
+            32864,
+            549481,
+            732302,
+            732302,
+            732302,
+            756652,
+            756652,
+            756652,
+            1184620,
+            1184620,
+            1184620,
+            1761063,
+            1761063,
+            1761063,
+            1784619,
+            1784619,
+            1784619,
+            1929294,
+            1929294,
+            2118022,
+            2118022,
+            2311603,
+            2311603,
+            2311603,
+            2468169,
+            2468169,
+            2483611,
+            2483611,
+            2830619,
+            2830619,
+            2863439,
+            2863439,
+            2906250,
+            2906250,
+            2957055,
+            2957055,
+            69247929,
+            69247929,
+            69247929
+          ],
+          "side": [
+            2957055
+          ]
+        },
+        "elapsed_seconds": 2.539306480999585,
+        "engineering_proxy": 1190.0,
+        "lora_version": null,
+        "model_score_uncalibrated": -0.18493281304836273,
+        "model_sha256": "cb7971bccc5040724c38b024ea1b7612452482c58b0e0a3728b45a7f9f4dcb23",
+        "role": "build_optimizer",
+        "stage": 1,
+        "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+        "uncertainty": "uncalibrated engineering prototype; construction quality unknown",
+        "validation": {
+          "card_list_legal": true,
+          "core_attempts": [
+            {
+              "declared_opening_condition_met": false,
+              "seed_audit_only": 7
+            },
+            {
+              "declared_opening_condition_met": true,
+              "seed_audit_only": 24
+            }
+          ],
+          "core_event_kinds": [
+            90,
+            90,
+            40,
+            41,
+            2,
+            41,
+            41,
+            11,
+            2,
+            18,
+            50,
+            60,
+            16,
+            16,
+            61,
+            16
+          ],
+          "deck_sha256": "29e92f47f2f3d35bc6d3d9b9dfb995b96cb0347d6566b2bdad27a6eeb759c0cb",
+          "elapsed_seconds": 1.2102974980007275,
+          "random_dependency": "goal card must be in the actual opening hand",
+          "responses": [
+            {
+              "action_id": "choice-3",
+              "player": 0,
+              "request_sha256": "b9e85c01a036edcc306b4b229894b5383c1f9addeb10901dda0d3678ddee8d93"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 0,
+              "request_sha256": "d41057d9909efad181133377c775ee7c48c2d368a44a480f9f5281a53d1c6a73"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 0,
+              "request_sha256": "a3561646826ce685d08d7455b94e44b842a8ad469761ebcd4d418b3730bb6f7f"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 1,
+              "request_sha256": "551cd518b0cac3dc5a5a225b6945c925a79f2696bef044373a125cbef897a28b"
+            }
+          ],
+          "starting_condition": {
+            "player": 0,
+            "requires_opening_hand": [
+              69247929
+            ],
+            "turn": 1
+          },
+          "status": "verified_success",
+          "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+          "trajectory_sha256": "789d0cdcc3542561feae0c5f95807dd5bcc2899fab729153e0d18ab6db22cd7a",
+          "unmet": []
+        },
+        "versions": {
+          "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+          "card_pool": "native-effect-duel-v1",
+          "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+          "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+          "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+        }
+      },
+      {
+        "candidate_count": 1,
+        "changes": [],
+        "deck": {
+          "extra": [],
+          "main": [
+            32864,
+            32864,
+            549481,
+            732302,
+            732302,
+            732302,
+            756652,
+            756652,
+            756652,
+            1184620,
+            1184620,
+            1184620,
+            1761063,
+            1761063,
+            1761063,
+            1784619,
+            1784619,
+            1784619,
+            1929294,
+            1929294,
+            2118022,
+            2118022,
+            2311603,
+            2311603,
+            2311603,
+            2468169,
+            2468169,
+            2483611,
+            2483611,
+            2830619,
+            2830619,
+            2863439,
+            2863439,
+            2906250,
+            2906250,
+            2957055,
+            2957055,
+            69247929,
+            69247929,
+            69247929
+          ],
+          "side": [
+            2957055
+          ]
+        },
+        "elapsed_seconds": 3.7514515349994326,
+        "engineering_proxy": 1190.0,
+        "lora_version": null,
+        "model_score_uncalibrated": -0.03672845661640167,
+        "model_sha256": "0884c75cf8b84f3b37d3e6b869b61cca16e0806a1359d28affb7733b633e5600",
+        "role": "build_goal",
+        "stage": 2,
+        "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+        "uncertainty": "uncalibrated engineering prototype; construction quality unknown",
+        "validation": {
+          "card_list_legal": true,
+          "core_attempts": [
+            {
+              "declared_opening_condition_met": false,
+              "seed_audit_only": 7
+            },
+            {
+              "declared_opening_condition_met": true,
+              "seed_audit_only": 24
+            }
+          ],
+          "core_event_kinds": [
+            90,
+            90,
+            40,
+            41,
+            2,
+            41,
+            41,
+            11,
+            2,
+            18,
+            50,
+            60,
+            16,
+            16,
+            61,
+            16
+          ],
+          "deck_sha256": "29e92f47f2f3d35bc6d3d9b9dfb995b96cb0347d6566b2bdad27a6eeb759c0cb",
+          "elapsed_seconds": 1.2092540700004974,
+          "random_dependency": "goal card must be in the actual opening hand",
+          "responses": [
+            {
+              "action_id": "choice-3",
+              "player": 0,
+              "request_sha256": "b9e85c01a036edcc306b4b229894b5383c1f9addeb10901dda0d3678ddee8d93"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 0,
+              "request_sha256": "d41057d9909efad181133377c775ee7c48c2d368a44a480f9f5281a53d1c6a73"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 0,
+              "request_sha256": "a3561646826ce685d08d7455b94e44b842a8ad469761ebcd4d418b3730bb6f7f"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 1,
+              "request_sha256": "551cd518b0cac3dc5a5a225b6945c925a79f2696bef044373a125cbef897a28b"
+            }
+          ],
+          "starting_condition": {
+            "player": 0,
+            "requires_opening_hand": [
+              69247929
+            ],
+            "turn": 1
+          },
+          "status": "verified_success",
+          "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+          "trajectory_sha256": "789d0cdcc3542561feae0c5f95807dd5bcc2899fab729153e0d18ab6db22cd7a",
+          "unmet": []
+        },
+        "versions": {
+          "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+          "card_pool": "native-effect-duel-v1",
+          "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+          "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+          "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+        }
+      },
+      {
+        "candidate_count": 16,
+        "changes": [
+          {
+            "after": 0,
+            "before": 1,
+            "card_id": 549481,
+            "zone": "main"
+          },
+          {
+            "after": 3,
+            "before": 2,
+            "card_id": 2830619,
+            "zone": "main"
+          }
+        ],
+        "deck": {
+          "extra": [],
+          "main": [
+            32864,
+            32864,
+            732302,
+            732302,
+            732302,
+            756652,
+            756652,
+            756652,
+            1184620,
+            1184620,
+            1184620,
+            1761063,
+            1761063,
+            1761063,
+            1784619,
+            1784619,
+            1784619,
+            1929294,
+            1929294,
+            2118022,
+            2118022,
+            2311603,
+            2311603,
+            2311603,
+            2468169,
+            2468169,
+            2483611,
+            2483611,
+            2830619,
+            2830619,
+            2830619,
+            2863439,
+            2863439,
+            2906250,
+            2906250,
+            2957055,
+            2957055,
+            69247929,
+            69247929,
+            69247929
+          ],
+          "side": [
+            2957055
+          ]
+        },
+        "elapsed_seconds": 4.9670354459995,
+        "engineering_proxy": 1187.5,
+        "lora_version": null,
+        "model_score_uncalibrated": -0.18415169417858124,
+        "model_sha256": "cb7971bccc5040724c38b024ea1b7612452482c58b0e0a3728b45a7f9f4dcb23",
+        "role": "build_optimizer",
+        "stage": 3,
+        "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+        "uncertainty": "uncalibrated engineering prototype; construction quality unknown",
+        "validation": {
+          "card_list_legal": true,
+          "core_attempts": [
+            {
+              "declared_opening_condition_met": false,
+              "seed_audit_only": 7
+            },
+            {
+              "declared_opening_condition_met": true,
+              "seed_audit_only": 24
+            }
+          ],
+          "core_event_kinds": [
+            90,
+            90,
+            40,
+            41,
+            2,
+            41,
+            41,
+            11,
+            2,
+            18,
+            50,
+            60,
+            16,
+            16,
+            61,
+            16
+          ],
+          "deck_sha256": "1e5e90cd70c7ada82e42f59064165a8b117e4b597e6f5613a29ae66c659f4e24",
+          "elapsed_seconds": 1.2078983940000398,
+          "random_dependency": "goal card must be in the actual opening hand",
+          "responses": [
+            {
+              "action_id": "choice-3",
+              "player": 0,
+              "request_sha256": "1f61e1a4cef0a1e0f14b5f47270d341b641683379d634faf84b101f5376e5430"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 0,
+              "request_sha256": "d5372990c6dd2b9273df741a9aa7ef6e637322c660c2b156b7f7303393eabe13"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 0,
+              "request_sha256": "5cc6d2ddf9a657188dd8e3476878677cf2a4cc51a7ce3c6966cafe6f4278ce91"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 1,
+              "request_sha256": "b922a63bd645027f2918faf305e8bb45d463b4d2668ab7db14cc200654ce2876"
+            }
+          ],
+          "starting_condition": {
+            "player": 0,
+            "requires_opening_hand": [
+              69247929
+            ],
+            "turn": 1
+          },
+          "status": "verified_success",
+          "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+          "trajectory_sha256": "bfb268844b74495f953fc486e09937a13d5f43246af20435a72e5db952425c8a",
+          "unmet": []
+        },
+        "versions": {
+          "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+          "card_pool": "native-effect-duel-v1",
+          "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+          "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+          "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+        }
+      }
+    ],
+    "status": "verified_candidates",
+    "stop_reason": "stage_budget_reached",
+    "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+    "time_budget_seconds": 30.0,
+    "unmet": [
+      "competitive construction quality not evaluated"
+    ]
+  },
+  "binding": {
+    "feature_version": "build-task-catalog-candidate-v1",
+    "python": "3.12.14",
+    "python_implementation_sha256": "f238ef4fba2fa7e481421c8a322d222e2015fd55611df8ee818627d1ab8ed3c0",
+    "resources": {
+      "banlist": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+      "card_data_abi": "754c750eb26e81eba44de3253c056a89de364f942ec5cd63ecd9d9791acff45e",
+      "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+      "client_config": "07f92954941343d33f38eae3986997cc620d595301e67adb9e473bfa3c254d0c",
+      "client_protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+      "core_api": "cb7b33d709791e86be0b821152c1ca34c2a2c72847c3603b4a07826c88b802af",
+      "core_constants": "2c78c4c7c92306cd76f09cc111c28e6604e0e3d4fc16252ec31e8cb8d1493e17",
+      "library": "b33b0fb302e24e4757532f224f04aec21e4b16153979b112923c6f746b2e531f",
+      "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+    },
+    "source_commits": {
+      "client": "0d76e26b30c5ddb0273ee746459506c5719fddb6",
+      "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+      "database": "217ae165c1886af2fc36b823fc08f9fc3ec13185",
+      "lua": "6e22fedb74cf0c9b6656e9fce8b7331db847c605",
+      "scripts": "b83db1cc3f512d3bec2faafb9ecf199143332be1"
+    },
+    "supervision_sha256": "2741c489a581512cac00def49648f608fe83ee9b1657437a91637a677566e983",
+    "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+    "torch": "2.14.1+cpu"
+  },
+  "canonical_optimizer_calls": 4,
+  "canonical_updates_per_role": 2,
+  "checkpoints": [
+    {
+      "artifact_bytes": 509483,
+      "artifact_sha256": "bf16cfda873719e2450b29962625da88c4ca5ff581bde5e9d81f459f1bd9e6bc",
+      "checkpoint_id": "batch-1",
+      "run_id": "m3b-build-20261023-v2",
+      "schema_version": 1,
+      "step": 1
+    },
+    {
+      "artifact_bytes": 509483,
+      "artifact_sha256": "f86ef668730f01973538052a33f4b5af7e4b642ae301898dda75b329bd784542",
+      "checkpoint_id": "batch-2",
+      "run_id": "m3b-build-20261023-v2",
+      "schema_version": 1,
+      "step": 2
+    }
+  ],
+  "competitive_construction_quality_validated": false,
+  "cost": {
+    "cloud_development_cpu_cost": "not-exposed",
+    "external_api_calls": 0,
+    "new_paid_instances_started": 0
+  },
+  "hardware": {
+    "cpu_affinity_count": 5,
+    "cuda_build": null,
+    "device": "cpu",
+    "logical_cpu_count": 5,
+    "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+    "processor": "AMD EPYC 9V74 80-Core Processor",
+    "torch_threads": 1
+  },
+  "independent_weights": true,
+  "learned_coordinator_implemented": false,
+  "metrics": {
+    "elapsed_seconds": 7.453045059000033,
+    "loss": 0.6930025219917297,
+    "process_cpu_seconds": 7.449624462000001,
+    "process_peak_rss_bytes": 352129024,
+    "steps": 4
+  },
+  "ok": true,
+  "parameter_counts": {
+    "build_goal": 17665,
+    "build_optimizer": 17665
+  },
+  "physical_optimizer_calls_including_recovery": 6,
+  "restore_verified": true,
+  "schema_version": 1,
+  "scope": "bounded-goal-optimizer-cpu-engineering",
+  "source": "actual-transformer-updates-and-real-core-goal-checks",
+  "supervision": {
+    "competitive_quality_labels": false,
+    "goals": [
+      {
+        "deck": {
+          "extra": [],
+          "main": [
+            32864,
+            32864,
+            32864,
+            549481,
+            549481,
+            549481,
+            732302,
+            732302,
+            732302,
+            756652,
+            756652,
+            756652,
+            1184620,
+            1184620,
+            1184620,
+            1761063,
+            1761063,
+            1784619,
+            1784619,
+            1929294,
+            1929294,
+            2118022,
+            2118022,
+            2311603,
+            2311603,
+            2468169,
+            2468169,
+            2483611,
+            2483611,
+            2830619,
+            2830619,
+            2863439,
+            2863439,
+            2906250,
+            2906250,
+            2957055,
+            2957055,
+            69247929,
+            69247929,
+            69247929
+          ],
+          "side": [
+            2957055
+          ]
+        },
+        "evidence": {
+          "card_list_legal": true,
+          "core_attempts": [
+            {
+              "declared_opening_condition_met": false,
+              "seed_audit_only": 7
+            },
+            {
+              "declared_opening_condition_met": true,
+              "seed_audit_only": 24
+            }
+          ],
+          "core_event_kinds": [
+            90,
+            90,
+            40,
+            41,
+            2,
+            41,
+            41,
+            11,
+            2,
+            18,
+            50,
+            60,
+            16,
+            16,
+            61,
+            16
+          ],
+          "deck_sha256": "7ae1cdef18e00042a354abf79e9884b94a8d206382cc2f177f3e19d91bd8d63b",
+          "elapsed_seconds": 1.2068979409996246,
+          "random_dependency": "goal card must be in the actual opening hand",
+          "responses": [
+            {
+              "action_id": "choice-3",
+              "player": 0,
+              "request_sha256": "d7d76975cda85793d11524d3df4caf2aec43c4269655cb80a4d036dbe8acc47f"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 0,
+              "request_sha256": "556a135c749235b2e005f0720b6098c6f366fd49ace428391a4a8d290b601bb5"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 0,
+              "request_sha256": "7ccec595eaa45c8b744aa2d4e1a757fd9d36017574987001442cbc38099a7bfe"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 1,
+              "request_sha256": "685d2298b1a37164689ffc58e94d16a5d280e2b3215889cf409abf9d8d03ec33"
+            }
+          ],
+          "starting_condition": {
+            "player": 0,
+            "requires_opening_hand": [
+              69247929
+            ],
+            "turn": 1
+          },
+          "status": "verified_success",
+          "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+          "trajectory_sha256": "1fe872996f37f9df4f498e098eee78d77d77dd19382aaf976a3d18c85f3d94e5",
+          "unmet": []
+        },
+        "label": 1.0,
+        "source": "real_core_conditional_goal"
+      },
+      {
+        "deck": {
+          "extra": [],
+          "main": [
+            32864,
+            32864,
+            32864,
+            549481,
+            549481,
+            549481,
+            732302,
+            732302,
+            732302,
+            756652,
+            756652,
+            756652,
+            1184620,
+            1184620,
+            1184620,
+            1761063,
+            1761063,
+            1784619,
+            1784619,
+            1929294,
+            1929294,
+            2118022,
+            2118022,
+            2311603,
+            2311603,
+            2468169,
+            2468169,
+            2483611,
+            2483611,
+            2830619,
+            2830619,
+            2863439,
+            2863439,
+            2906250,
+            2906250,
+            2957055,
+            2957055,
+            69247929,
+            69247929
+          ],
+          "side": [
+            2957055
+          ]
+        },
+        "evidence": {
+          "reason": "main size differs from task",
+          "status": "hard_constraint_failure"
+        },
+        "label": 0.0,
+        "source": "explicit_hard_constraint_failure"
+      },
+      {
+        "deck": {
+          "extra": [],
+          "main": [
+            32864,
+            32864,
+            549481,
+            549481,
+            549481,
+            732302,
+            732302,
+            732302,
+            756652,
+            756652,
+            756652,
+            1184620,
+            1184620,
+            1184620,
+            1761063,
+            1761063,
+            1761063,
+            1784619,
+            1784619,
+            1929294,
+            1929294,
+            2118022,
+            2118022,
+            2311603,
+            2311603,
+            2468169,
+            2468169,
+            2483611,
+            2483611,
+            2830619,
+            2830619,
+            2863439,
+            2863439,
+            2906250,
+            2906250,
+            2957055,
+            2957055,
+            69247929,
+            69247929,
+            69247929
+          ],
+          "side": [
+            2957055
+          ]
+        },
+        "evidence": {
+          "card_list_legal": true,
+          "core_attempts": [
+            {
+              "declared_opening_condition_met": false,
+              "seed_audit_only": 7
+            },
+            {
+              "declared_opening_condition_met": true,
+              "seed_audit_only": 24
+            }
+          ],
+          "core_event_kinds": [
+            90,
+            90,
+            40,
+            41,
+            2,
+            41,
+            41,
+            11,
+            2,
+            18,
+            50,
+            60,
+            16,
+            16,
+            61,
+            16
+          ],
+          "deck_sha256": "d8f63f489acf886373d3d13753be09173031292893d827ad869575bd2734037e",
+          "elapsed_seconds": 1.2019233760001953,
+          "random_dependency": "goal card must be in the actual opening hand",
+          "responses": [
+            {
+              "action_id": "choice-3",
+              "player": 0,
+              "request_sha256": "b9414a84e74c313dfd7aba00edcddc550cc18029f3166946cf391078c2f59b01"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 0,
+              "request_sha256": "734ee1d21fcb2c60014df7f58351f4f5bd0e04a02d6445ea3173bb0a1043956b"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 0,
+              "request_sha256": "12cf819ce561f03e4faa47a945fb128d08ba6f3e3a602e7ba87a61ccb2afb9b8"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 1,
+              "request_sha256": "685d2298b1a37164689ffc58e94d16a5d280e2b3215889cf409abf9d8d03ec33"
+            }
+          ],
+          "starting_condition": {
+            "player": 0,
+            "requires_opening_hand": [
+              69247929
+            ],
+            "turn": 1
+          },
+          "status": "verified_success",
+          "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+          "trajectory_sha256": "1ad964dff7e1c5946f3f08c69155fa071a14f21e7737107197d1fddca92e8943",
+          "unmet": []
+        },
+        "label": 1.0,
+        "source": "real_core_conditional_goal"
+      },
+      {
+        "deck": {
+          "extra": [],
+          "main": [
+            32864,
+            32864,
+            549481,
+            549481,
+            549481,
+            732302,
+            732302,
+            732302,
+            756652,
+            756652,
+            756652,
+            1184620,
+            1184620,
+            1184620,
+            1761063,
+            1761063,
+            1761063,
+            1784619,
+            1784619,
+            1929294,
+            1929294,
+            2118022,
+            2118022,
+            2311603,
+            2311603,
+            2468169,
+            2468169,
+            2483611,
+            2483611,
+            2830619,
+            2830619,
+            2863439,
+            2863439,
+            2906250,
+            2906250,
+            2957055,
+            2957055,
+            69247929,
+            69247929
+          ],
+          "side": [
+            2957055
+          ]
+        },
+        "evidence": {
+          "reason": "main size differs from task",
+          "status": "hard_constraint_failure"
+        },
+        "label": 0.0,
+        "source": "explicit_hard_constraint_failure"
+      }
+    ],
+    "pairs": [
+      {
+        "better": {
+          "extra": [],
+          "main": [
+            32864,
+            32864,
+            32864,
+            549481,
+            549481,
+            732302,
+            732302,
+            732302,
+            756652,
+            756652,
+            756652,
+            1184620,
+            1184620,
+            1184620,
+            1761063,
+            1761063,
+            1784619,
+            1784619,
+            1929294,
+            1929294,
+            2118022,
+            2118022,
+            2311603,
+            2311603,
+            2311603,
+            2468169,
+            2468169,
+            2483611,
+            2483611,
+            2830619,
+            2830619,
+            2863439,
+            2863439,
+            2906250,
+            2906250,
+            2957055,
+            2957055,
+            69247929,
+            69247929,
+            69247929
+          ],
+          "side": [
+            2957055
+          ]
+        },
+        "better_value": 1167.5,
+        "hard_constraints_checked": true,
+        "source": "engineering_mean_printed_attack_proxy_only",
+        "worse": {
+          "extra": [],
+          "main": [
+            32864,
+            32864,
+            549481,
+            549481,
+            549481,
+            732302,
+            732302,
+            732302,
+            756652,
+            756652,
+            756652,
+            1184620,
+            1184620,
+            1184620,
+            1761063,
+            1761063,
+            1784619,
+            1784619,
+            1929294,
+            1929294,
+            2118022,
+            2118022,
+            2311603,
+            2311603,
+            2468169,
+            2468169,
+            2483611,
+            2483611,
+            2830619,
+            2830619,
+            2830619,
+            2863439,
+            2863439,
+            2906250,
+            2906250,
+            2957055,
+            2957055,
+            69247929,
+            69247929,
+            69247929
+          ],
+          "side": [
+            2957055
+          ]
+        },
+        "worse_value": 1120.0
+      },
+      {
+        "better": {
+          "extra": [],
+          "main": [
+            32864,
+            32864,
+            32864,
+            549481,
+            549481,
+            732302,
+            732302,
+            732302,
+            756652,
+            756652,
+            756652,
+            1184620,
+            1184620,
+            1184620,
+            1761063,
+            1761063,
+            1784619,
+            1784619,
+            1929294,
+            1929294,
+            2118022,
+            2118022,
+            2311603,
+            2311603,
+            2311603,
+            2468169,
+            2468169,
+            2483611,
+            2483611,
+            2830619,
+            2830619,
+            2863439,
+            2863439,
+            2906250,
+            2906250,
+            2957055,
+            2957055,
+            69247929,
+            69247929,
+            69247929
+          ],
+          "side": [
+            2957055
+          ]
+        },
+        "better_value": 1167.5,
+        "hard_constraints_checked": true,
+        "source": "engineering_mean_printed_attack_proxy_only",
+        "worse": {
+          "extra": [],
+          "main": [
+            32864,
+            32864,
+            549481,
+            549481,
+            549481,
+            732302,
+            732302,
+            732302,
+            756652,
+            756652,
+            756652,
+            1184620,
+            1184620,
+            1184620,
+            1761063,
+            1761063,
+            1784619,
+            1784619,
+            1929294,
+            1929294,
+            1929294,
+            2118022,
+            2118022,
+            2311603,
+            2311603,
+            2468169,
+            2468169,
+            2483611,
+            2483611,
+            2830619,
+            2830619,
+            2863439,
+            2863439,
+            2906250,
+            2906250,
+            2957055,
+            2957055,
+            69247929,
+            69247929,
+            69247929
+          ],
+          "side": [
+            2957055
+          ]
+        },
+        "worse_value": 1120.0
+      }
+    ],
+    "public_effect_receipts": [
+      {
+        "card_id": 32864,
+        "effect_text_sha256": "ae457e94d1f2891f1d87dd84adda9c655f950e93e3cb137f3eec7b67c03dbfaa",
+        "name": "第13人的埋葬者",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 549481,
+        "effect_text_sha256": "2a26f89a451f53e0e4ad8129fc9cdf73d2f9f3a2fa7a7061e1e5f52709d86be9",
+        "name": "硬毛鼠",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 732302,
+        "effect_text_sha256": "62042ae66b4f026941c4605e9c14d95e805161aa1778a0ccdc1b7dff14dd2e86",
+        "name": "骷髅寺院",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 756652,
+        "effect_text_sha256": "3072a8610917fc3437006c40a6184d59d33acb8c68ee5d54be94cacf97c64f22",
+        "name": "多隆",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 1184620,
+        "effect_text_sha256": "e32c5971f6c0a275934619faf4f212eb31395adec8552214fa10ab17fc12a5a6",
+        "name": "魔物狩人",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 1761063,
+        "effect_text_sha256": "47807433a93302907abbcf9f520eca3f509997758c58a6649bce64d7f7ea5bc4",
+        "name": "猫妖精",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 1784619,
+        "effect_text_sha256": "00508f9fdc18b6d2971696edc9b798673e9a79cb34390865781529614d423992",
+        "name": "荒野盗龙",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 1929294,
+        "effect_text_sha256": "90e02008f5bda79f743cfe0f8751146f8a1cfebb666b269e807a0c41d92ee313",
+        "name": "心钥妖精",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 2118022,
+        "effect_text_sha256": "d94503c2ef292776edce596a0035ffbb489035cdb58c0736fe10b99391c1af93",
+        "name": "兵主部",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 2311603,
+        "effect_text_sha256": "99fbf07d5d7e8dec430a7eccfbdd6a80ffef0e8a767465dfce17d3eecfa3e2f1",
+        "name": "机关炮装甲车",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 2468169,
+        "effect_text_sha256": "0770462dc0d25d269843c1f9cb3ff20104317a167ab8c438e1d374016530fa43",
+        "name": "封印师 明晴",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 2483611,
+        "effect_text_sha256": "d805456c6aa99529f43e1aa636f223dd4b49a932ca39409bbbd244d96fe50fe3",
+        "name": "水之舞女",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 2830619,
+        "effect_text_sha256": "608d1e5f90d4cc4ea899a80cc598eaa954c248e528aa625b188aa7f2ab8d7f3c",
+        "name": "火焰毒蛇",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 2863439,
+        "effect_text_sha256": "b897712a860457d1b8d60de3d3028c62934c0699bf543f1332f34d51d83a384c",
+        "name": "镜子幻象鸟",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 2906250,
+        "effect_text_sha256": "2bd3c12086c9506259f8337c8db8807d6d219fb53ba70f8d38356a85daff48b8",
+        "name": "捕猎蛇",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 2957055,
+        "effect_text_sha256": "2668cba45a844173aead2641433ea896587058aaf516c01778674dd0e57cc0e0",
+        "name": "魔头邪龙",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 69247929,
+        "effect_text_sha256": "b915c7b83f8a418847178a96c706b3a4d74390f037286c1f0911ec3967b80143",
+        "name": "基因狼人",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      }
+    ],
+    "source": "engineering_fixture",
+    "supervision_sha256": "2741c489a581512cac00def49648f608fe83ee9b1657437a91637a677566e983",
+    "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+    "unknown_routes_used_as_negative": false
+  },
+  "task": {
+    "annotations": [
+      {
+        "condition": "Conditional normal-monster engineering example; not a user deck.",
+        "layer": "engineering_goal",
+        "source": "configs/build-engineering-v1.json",
+        "subject": "self",
+        "tag": "theme·engineering-normal"
+      },
+      {
+        "condition": "Goal card must be in the actual own opening hand at turn one.",
+        "layer": "engineering_goal",
+        "source": "real-core-supported-scope-v1",
+        "subject": "self",
+        "tag": "effect·normal-summon"
+      },
+      {
+        "condition": "Weak engineering comparison only; no win-rate or stability label.",
+        "layer": "engineering_proxy",
+        "source": "mean-printed-monster-atk-v1",
+        "subject": "self",
+        "tag": "situation·printed-attack-proxy"
+      }
+    ],
+    "candidate_budget": 16,
+    "environment": {
+      "authority": "custom",
+      "environment_id": "custom-native-current",
+      "release_cutoff": null,
+      "versions": {
+        "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+        "card_pool": "native-effect-duel-v1",
+        "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+        "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+        "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+        "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+      }
+    },
+    "goal": {
+      "card_id": 69247929,
+      "kind": "normal_summon",
+      "starting_conditions": {
+        "player": 0,
+        "requires_opening_hand": [
+          69247929
+        ],
+        "turn": 1
+      }
+    },
+    "pool": [
+      32864,
+      549481,
+      732302,
+      756652,
+      1184620,
+      1761063,
+      1784619,
+      1929294,
+      2118022,
+      2311603,
+      2468169,
+      2483611,
+      2830619,
+      2863439,
+      2906250,
+      2957055,
+      69247929
+    ],
+    "requirements": [
+      {
+        "card_id": 69247929,
+        "maximum": 3,
+        "minimum": 3,
+        "zone": "main"
+      },
+      {
+        "card_id": 2957055,
+        "maximum": 1,
+        "minimum": 1,
+        "zone": "side"
+      }
+    ],
+    "schema_version": 1,
+    "sizes": {
+      "extra": 0,
+      "main": 40,
+      "side": 1
+    },
+    "source": "engineering_fixture",
+    "task_id": "engineering-normal-build-v1"
+  },
+  "training_config": {
+    "batch_seed": 987,
+    "batches": 2,
+    "learning_rate": 0.001,
+    "model": {
+      "card_width": 16,
+      "feedforward": 64,
+      "heads": 4,
+      "layers": 1,
+      "max_tokens": 192,
+      "width": 32
+    },
+    "model_seeds": [
+      321,
+      654
+    ]
+  },
+  "updates": [
+    [
+      {
+        "after_sha256": "fe0069acaa99342c9ab15e8168189c23bc5b067b98732b123d9f245f063bc7db",
+        "before_sha256": "160bb0a39bb253d502d6170ab3c549e60d1ce2a9270e9b1d48d8bf78344c8d13",
+        "changed_parameter_elements": 10769,
+        "gradient_norm_before_clip": 0.04485418647527695,
+        "head_delta_l2": 0.03299621189530159,
+        "learning_rate_next": 0.00099,
+        "loss": 0.6928175687789917,
+        "optimizer_step": 1,
+        "parameter_delta_l2": 0.10334297912469287,
+        "role": "build_goal"
+      },
+      {
+        "after_sha256": "59da7bc68486b9e828a6b554f4e3c295623a8bfcee73b4cbce5bd8e6a0695b36",
+        "before_sha256": "7c7b77eb36234b508ca054fe6d9fe618f8658bca3326930a0467b0613f1a2ed0",
+        "changed_parameter_elements": 10703,
+        "gradient_norm_before_clip": 0.012528592720627785,
+        "head_delta_l2": 0.03292389316234395,
+        "learning_rate_next": 0.00099,
+        "loss": 0.6933132410049438,
+        "optimizer_step": 1,
+        "parameter_delta_l2": 0.10267058699562949,
+        "role": "build_optimizer"
+      }
+    ],
+    [
+      {
+        "after_sha256": "0884c75cf8b84f3b37d3e6b869b61cca16e0806a1359d28affb7733b633e5600",
+        "before_sha256": "fe0069acaa99342c9ab15e8168189c23bc5b067b98732b123d9f245f063bc7db",
+        "changed_parameter_elements": 10769,
+        "gradient_norm_before_clip": 0.09321027249097824,
+        "head_delta_l2": 0.013395685776842251,
+        "learning_rate_next": 0.0009801,
+        "loss": 0.6933296918869019,
+        "optimizer_step": 2,
+        "parameter_delta_l2": 0.06208130848452049,
+        "role": "build_goal"
+      },
+      {
+        "after_sha256": "cb7971bccc5040724c38b024ea1b7612452482c58b0e0a3728b45a7f9f4dcb23",
+        "before_sha256": "59da7bc68486b9e828a6b554f4e3c295623a8bfcee73b4cbce5bd8e6a0695b36",
+        "changed_parameter_elements": 10768,
+        "gradient_norm_before_clip": 0.012351131066679955,
+        "head_delta_l2": 0.03068460144335412,
+        "learning_rate_next": 0.0009801,
+        "loss": 0.6926753520965576,
+        "optimizer_step": 2,
+        "parameter_delta_l2": 0.09506075345646209,
+        "role": "build_optimizer"
+      }
+    ]
+  ]
+}

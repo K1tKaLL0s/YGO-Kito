@@ -47,13 +47,13 @@ cd /workspace/YGO-Kito
 
 ## 训练监控与受控操作
 
-训练进程可使用 `RunReporter.resources()` 收集本进程墙钟/CPU/峰值RSS；GPU等指标须由真实框架另行提供，未采集时不造0。可信训练端调用 `RunReporter.publish(snapshot)`，通过字段/有限数/版本校验后带写锁原子发布到 `STATE/runs/RUN_ID/status.json`。它不是外部agent写工具，监控读取无需LLM。M3a已接入实际CPU决斗训练端，见[命令与恢复说明](cpu-duel-training.md)。运行快照必须包含：
+训练进程可使用 `RunReporter.resources()` 收集本进程墙钟/CPU/峰值RSS；GPU等指标须由真实框架另行提供，未采集时不造0。可信训练端调用 `RunReporter.publish(snapshot)`，通过字段/有限数/版本校验后带写锁原子发布到 `STATE/runs/RUN_ID/status.json`。它不是外部agent写工具，监控读取无需LLM。M3a已接入实际CPU决斗训练端，M3b增加构筑目标/优化双模型；见[决斗说明](cpu-duel-training.md)及[构筑说明](cpu-building.md)。运行快照必须包含：
 
 ```json
 {"schema_version":1,"run_id":"run-id","state":"created","revision":0,"model_versions":{},"metrics":{},"checkpoint_ids":[],"source":"trainer"}
 ```
 
-这只是格式示例，不创建真实训练。runs.list在所选state root尚未发布时为空；契约测试样本明确使用source=local_contract_fixture。M3a实际CPU训练发布source=trainer、两步参数更新与真实小型checkpoint，已通过此只读接口回读。检查点读取仅接受该运行登记的ID，核对元数据/字节数/SHA-256，拒绝路径越界，不反序列化权重。
+这只是格式示例，不创建真实训练。runs.list在所选state root尚未发布时为空；契约测试样本明确使用source=local_contract_fixture。M3a/M3b实际CPU训练发布source=trainer、角色版本、参数更新计数和真实小型checkpoint，已通过此只读接口回读。构筑checkpoint的step为成对批次游标，运行metrics.steps为两个角色实际规范更新总数，恢复对照另列物理调用次数。检查点读取仅接受该运行登记的ID，核对元数据/字节数/SHA-256，拒绝路径越界，不反序列化权重。
 
 `training.control {run_id,operation,expected_revision}`只允许start/pause/resume/stop/save_checkpoint。默认没有后端，返回TRAINING_BACKEND_NOT_CONFIGURED，未执行操作。M3a的明确CPU训练命令没有自动成为此控制后端，不能通过外部agent启动/暂停该训练。未来可信宿主显式注入TrainingBackend：必须原子校验expected_revision并给出applied/revision，不能接受任意shell命令。请求ID持久幂等、同运行版本仅保留一次操作；异常/中断留下uncertain，禁止自动重试，先回读状态查明实际结果。外部真实控制、完整1B恢复和目标环境仍待验证。
 
