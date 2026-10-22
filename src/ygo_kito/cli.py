@@ -115,6 +115,11 @@ def parser():
     accept.add_argument("--root", type=Path, default=Path(".cache"))
     accept.add_argument("--state-root", type=Path, default=Path(".cache/acceptance"))
     accept.add_argument("--run-id", required=True)
+    runner = sub.add_parser("cpu-runner-acceptance", help="short multiround CPU/validation/recovery proof with an owned-worker fault; no paid training")
+    runner.add_argument("--root", type=Path, default=Path(".cache"))
+    runner.add_argument("--state-root", type=Path, default=Path(".cache/runner"))
+    runner.add_argument("--run-id", required=True)
+    runner.add_argument("--recipe", type=Path, default=Path("configs/cpu-runner-v1.json"))
     for name in ("agent-serve", "agent-call"):
         agent = sub.add_parser(name, help="host-scoped local JSON tools; no provider or training launch")
         if name == "agent-call":
@@ -132,6 +137,7 @@ def parser():
         agent.add_argument("--provider", default="unverified")
         agent.add_argument("--model", default="unverified")
         agent.add_argument("--local-cpu-control", action="store_true", help="trusted host opt-in for prepared, bounded local CPU workers only")
+        agent.add_argument("--local-training-config", type=Path, help="trusted host CPU round recipe; requires trainer role and explicit local control")
     return result
 
 
@@ -140,6 +146,9 @@ def main(argv=None) -> int:
     try:
         config = load_config(args.config)
         match args.command:
+            case "cpu-runner-acceptance":
+                from .runner_acceptance import run_runner_acceptance
+                output = run_runner_acceptance(args.root, args.state_root, args.run_id, read_json(args.recipe))
             case "status":
                 output = {"version": __version__, "python": platform.python_version(),
                           "sqlite": sqlite3.sqlite_version, "config": config.to_dict(), "engine": engine_status()}
@@ -260,11 +269,14 @@ def main(argv=None) -> int:
             case "agent-serve" | "agent-call":
                 from .agent_bridge import AgentBridge, serve_bridge
                 backend = None
+                if args.local_training_config is not None and not args.local_cpu_control:
+                    raise ContractError("local training configuration requires explicit local CPU control")
                 if args.local_cpu_control:
                     if args.role != "trainer":
                         raise ContractError("local CPU control host must use the trainer role")
                     from .local_training import LocalCpuBackend
-                    backend = LocalCpuBackend(args.state_root, args.root)
+                    backend = LocalCpuBackend(args.state_root, args.root,
+                        recipe=read_json(args.local_training_config) if args.local_training_config is not None else None)
                 bridge = AgentBridge(Path(__file__).resolve().parents[2], args.state_root, args.root,
                     role=args.role, seat=args.seat, profile=read_json(args.profile) if args.profile is not None else None,
                     seed=args.seed, decision_timeout=args.decision_timeout, opponent_id=args.opponent_id,

@@ -65,8 +65,10 @@ class CpuTrainingConfig:
         if (self.episode_seconds > 60 or self.learning_rate > .01 or self.clip_ratio >= 1
                 or max(self.gamma, self.gae_lambda, self.lr_decay) > 1):
             raise ContractError("training configuration exceeds CPU proof budget")
-        if not isinstance(self.game_seeds, tuple) or len(self.game_seeds) != 2:
-            raise ContractError("CPU proof requires exactly two declared game seeds")
+        if not isinstance(self.game_seeds, tuple) or not 1 <= len(self.game_seeds) <= 100000:
+            raise ContractError("CPU training requires 1..100000 declared game seeds")
+        if len(set(self.game_seeds)) != len(self.game_seeds):
+            raise ContractError("training game seeds must be unique")
         for seed in self.game_seeds:
             integer(seed, "game seed", 0, 2**32 - 8)
 
@@ -120,12 +122,25 @@ class CpuTrainer:
         self.batch_rng = torch.Generator(device="cpu").manual_seed(config.batch_seed)
         self.updates, self.episode_cursor = 0, 0
 
-    def sample_episode(self, root, profile):
-        if self.episode_cursor >= len(self.config.game_seeds):
+    def sample_episode(self, root, profile, *, purpose="train", seed=None,
+                       policy_seed=None, opponent="visible-effects-first-v1"):
+        if purpose not in ("train", "validation") or opponent not in ("visible-effects-first-v1", "visible-effects-last-option-v1"):
+            raise ContractError("unsupported sample purpose or fixed opponent")
+        if purpose == "train" and (seed is not None or policy_seed is not None):
+            raise ContractError("training seed/RNG must come from the checkpoint cursor")
+        if purpose == "train" and self.episode_cursor >= len(self.config.game_seeds):
             raise ContractError("declared engineering episode budget exhausted")
         cfg = self.config
         policy_hash, version = parameter_digest(self.model), self.updates
-        seed = cfg.game_seeds[self.episode_cursor]  # Controller metadata, never a model feature.
+        if purpose == "train":
+            seed, sampler_rng = cfg.game_seeds[self.episode_cursor], self.policy_rng
+        else:
+            integer(seed, "held-out game seed", 0, 2**32 - 8)
+            integer(policy_seed, "held-out policy seed", 0, 2**32 - 8)
+            if seed in cfg.game_seeds:
+                raise ContractError("validation seed overlaps training")
+            sampler_rng = torch.Generator(device="cpu").manual_seed(policy_seed)
+        # Seeds and opponent versions are controller metadata, never model features.
         steps, audit, latencies = [], [], []
         self.model.eval()
         started = time.monotonic()
@@ -140,7 +155,7 @@ class CpuTrainer:
                     with torch.no_grad():
                         logits, values = self.model(self.encoder.batch([request]))
                         distribution = Categorical(logits=logits)
-                        index = int(torch.multinomial(distribution.probs[0], 1, generator=self.policy_rng).item())
+                        index = int(torch.multinomial(distribution.probs[0], 1, generator=sampler_rng).item())
                     action = request.actions[index]
                     steps.append({"request": request, "action_index": index,
                                   "old_log_prob": float(distribution.log_prob(torch.tensor([index]))[0]),
@@ -148,6 +163,8 @@ class CpuTrainer:
                     latencies.append((time.perf_counter() - tick) * 1000)
                 else:
                     action = choose_effect_duel_action(request, facts)
+                    if opponent == "visible-effects-last-option-v1" and request.prompt.message == 14:
+                        action = request.actions[-1]
                 audit.append({"player": request.observation.observer, "request_sha256": request_digest(request), "action_id": action.action_id})
                 engine.submit(ActionSelection(request.context.run_id, request.duel_id, request.decision_id, action.action_id))
                 request = engine.next_decision()
@@ -157,17 +174,19 @@ class CpuTrainer:
             reward = (1. if winner == cfg.actor_seat else -1.) if winner in (0, 1) else 0.
             steps[-1]["reward"] = reward
             summary = {"source": "live-core-actor-seat", "policy_version": version, "policy_sha256": policy_hash,
+                       "purpose": purpose, "opponent": opponent,
                        "seed_audit_only": seed, "actor_seat": cfg.actor_seat, "turns": engine.turn,
                        "native_decisions": len(audit), "actor_samples": len(steps), "outcome": engine.outcome,
                        "terminal_reward": reward, "elapsed_seconds": time.monotonic() - started,
                        "actor_inference_ms": latencies,
                        "trajectory_sha256": hashlib.sha256(canonical_json(audit).encode()).hexdigest()}
-        self.episode_cursor += 1
+        if purpose == "train":
+            self.episode_cursor += 1
         return {"source": "live-core-actor-seat", "policy_version": version, "policy_sha256": policy_hash,
-                "steps": steps, "summary": summary}
+                "purpose": purpose, "steps": steps, "summary": summary}
 
     def update(self, episode):
-        if episode["source"] != "live-core-actor-seat" or episode["policy_version"] != self.updates or episode["policy_sha256"] != parameter_digest(self.model):
+        if episode.get("purpose") != "train" or episode["source"] != "live-core-actor-seat" or episode["policy_version"] != self.updates or episode["policy_sha256"] != parameter_digest(self.model):
             raise ContractError("PPO rejects stale/off-policy or non-live-core data")
         steps, cfg = episode["steps"], self.config
         if not steps or self.episode_cursor != self.updates + 1:
@@ -233,6 +252,8 @@ def save_checkpoint(trainer, directory, checkpoint_id, binding, *, allow_initial
     directory.mkdir(parents=True, exist_ok=True)
     with path.open("xb") as output:
         torch.save(state, output)
+        output.flush()
+        os.fsync(output.fileno())
     return path
 
 
@@ -242,11 +263,12 @@ def load_checkpoint(path, expected_binding, *, allow_initial=False):
     initial = allow_initial is True and state["boundary"] == "initial" and state["updates"] == state["episode_cursor"] == 0
     if type(state["schema_version"]) is not int or state["schema_version"] != 1 or state["role"] != "duel" or (state["boundary"] != "complete-episode" and not initial) or state["binding"] != expected_binding:
         raise ContractError("checkpoint schema/boundary/resources differ")
-    integer(state["updates"], "checkpoint updates", 0 if initial else 1, 2)
-    integer(state["episode_cursor"], "checkpoint episode cursor", 0 if initial else 1, 2)
+    config = config_from_dict(state["config"])
+    integer(state["updates"], "checkpoint updates", 0 if initial else 1, len(config.game_seeds))
+    integer(state["episode_cursor"], "checkpoint episode cursor", 0 if initial else 1, len(config.game_seeds))
     if state["episode_cursor"] != state["updates"]:
         raise ContractError("checkpoint cursor/update boundary differs")
-    trainer = CpuTrainer(config_from_dict(state["config"]), state["card_ids"])
+    trainer = CpuTrainer(config, state["card_ids"])
     trainer.model.load_state_dict(state["model"], strict=True)
     trainer.optimizer.load_state_dict(state["optimizer"])
     trainer.scheduler.load_state_dict(state["scheduler"])

@@ -14,7 +14,8 @@ from .validation import ContractError, array, fields, integer, member, read_json
 METRICS = {"steps", "episodes", "loss", "reward_mean", "samples_per_second", "elapsed_seconds",
            "cpu_percent", "rss_bytes", "gpu_memory_bytes", "budget_instance_hours", "process_cpu_seconds", "process_peak_rss_bytes",
            "time_limit_seconds", "budget_seconds_remaining", "discarded_episodes", "recovery_count",
-           "setup_process_cpu_seconds", "unmeasured_worker_segments"}
+           "setup_process_cpu_seconds", "unmeasured_worker_segments", "validation_episodes", "committed_rounds",
+           "usage_segments", "usage_wall_seconds"}
 
 
 class RunMonitor:

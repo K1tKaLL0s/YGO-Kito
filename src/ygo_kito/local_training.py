@@ -134,7 +134,8 @@ def write_checkpoint(trainer, state_root, row, *, checkpoint_id=None):
 def verified_trainer(state_root, row):
     from .agent_monitor import RunMonitor
     from .cpu_training import load_checkpoint, resource_binding
-    if resource_binding(Path(row["native_root"]), row["profile"]) != row["binding"]:
+    from .training_runner import binding_for
+    if binding_for(Path(row["native_root"]), row) != row["binding"]:
         raise ContractError("local CPU recipe implementation/resources changed")
     latest = row["checkpoint_ids"][-1]
     receipt = RunMonitor(state_root).checkpoint(row["run_id"], latest)
@@ -144,12 +145,17 @@ def verified_trainer(state_root, row):
         # JSON normalizes tuples in the recipe; compare canonical wire values.
         if trainer.updates != receipt["step"] or digest(asdict(trainer.config)) != digest(row["config"]):
             raise ContractError("local checkpoint step/configuration differs")
+    if "recipe" in row:
+        from .training_runner import verify_committed
+        verify_committed(state_root, row, trainer)
     return trainer
 
 
 class LocalCpuBackend:
-    def __init__(self, state_root, native_root):
+    def __init__(self, state_root, native_root, *, recipe=None):
         self.state_root, self.native_root = Path(state_root).resolve(), Path(native_root).resolve()
+        from .training_runner import validate_recipe
+        self.recipe = validate_recipe(recipe) if recipe is not None else None
         self.children = {}
 
     def details(self, run_id):
@@ -159,10 +165,12 @@ class LocalCpuBackend:
         with closing(db):
             return get_row(db, run_id)
 
-    def prepare(self, run_id, *, wall_limit_seconds=60.):
+    def prepare(self, run_id, *, wall_limit_seconds=None):
         identifier(run_id)
-        if type(wall_limit_seconds) not in (int, float) or not 1 <= wall_limit_seconds <= 60:
-            raise ContractError("local CPU wall budget must be within 1..60 seconds")
+        cap = self.recipe["wall_seconds"] if self.recipe is not None else 60.
+        wall_limit_seconds = cap if wall_limit_seconds is None else wall_limit_seconds
+        if type(wall_limit_seconds) not in (int, float) or not 1 <= wall_limit_seconds <= cap:
+            raise ContractError("local CPU wall budget exceeds the trusted host configuration")
         started = time.monotonic()
         setup_cpu = time.process_time()
         from .build_pipeline import BuildAssets
@@ -177,7 +185,13 @@ class LocalCpuBackend:
             if db.execute("SELECT 1 FROM runs WHERE id=?", (run_id,)).fetchone():
                 raise ContractError("local run identity already prepared")
         profile = read_json(ROOT / "configs/effect-duel-v1.json")
-        trainer = CpuTrainer(CpuTrainingConfig(), sorted(c for c in assets.rows if 0 < c < 2**32))
+        cfg = CpuTrainingConfig()
+        profiles = None
+        if self.recipe is not None:
+            from .training_runner import recipe_inputs
+            profiles, cfg = recipe_inputs(self.recipe)
+            profile = profiles["train"]
+        trainer = CpuTrainer(cfg, sorted(c for c in assets.rows if 0 < c < 2**32))
         row = {"schema_version": 1, "run_id": run_id, "native_root": str(self.native_root), "profile": profile,
                "config": json.loads(canonical_json(asdict(trainer.config))), "binding": resource_binding(self.native_root, profile),
                "wall_limit_seconds": float(wall_limit_seconds), "active_seconds": 0., "segment_started": None,
@@ -185,16 +199,33 @@ class LocalCpuBackend:
                "pid": None, "pid_stamp": None, "generation": None, "checkpoint_ids": [],
                "metrics": {"steps": 0, "episodes": 0}, "updates": [], "history": [],
                "discarded_episodes": 0, "recovery_count": 0, "reason": "prepared_real_initial_weights_not_a_training_update"}
+        if self.recipe is not None:
+            from .training_runner import binding_for
+            from .training_plan import validate_plan
+            from .duel_model import parameter_digest
+            row.update(recipe=self.recipe, validation_profile=profiles["validation"], rounds=[], validations=[],
+                       scheduled_checkpoint_ids=[], usage_outbox=[],
+                       initial_model_sha256=parameter_digest(trainer.model),
+                       budget_plan=validate_plan(read_json(ROOT / "configs/training-plan-v1.json")))
+            row["binding"] = binding_for(self.native_root, row)
         receipt = write_checkpoint(trainer, self.state_root, row)
         row["checkpoint_ids"] = [receipt["checkpoint_id"]]
         row["active_seconds"] = time.monotonic() - started
         row["completed_worker_cpu_seconds"] = 0.
         row["metrics"]["setup_process_cpu_seconds"] = time.process_time() - setup_cpu
         row["metrics"]["unmeasured_worker_segments"] = 0
+        if self.recipe is not None:
+            row["usage_outbox"].append({"payload": {"event_id": "setup-" + digest(run_id)[:40],
+                "stage_id": "throughput-small-train", "gpu_count": 0, "wall_seconds": max(.001, row["active_seconds"]),
+                "activity": "setup", "outcome": "completed", "amount": None, "currency": None},
+                "measurement": "measured_host_setup", "exported": False})
         row["history"].append({"event": "prepared", "checkpoint_id": receipt["checkpoint_id"], "optimizer_steps": 0})
         RunReporter(self.state_root).publish(snapshot_for(row))
         with closing(_connect(self.state_root)) as db, db:
             db.execute("INSERT INTO runs VALUES(?,?)", (run_id, canonical_json(row)))
+        if self.recipe is not None:
+            from .training_runner import sync_usage
+            sync_usage(self.state_root, run_id)
         return self.status(run_id)
 
     def status(self, run_id):
@@ -209,17 +240,25 @@ class LocalCpuBackend:
             db.execute("BEGIN IMMEDIATE")
             row = get_row(db, run_id)
             if row["state"] == "running" and row.get("pid") and not alive(row):
-                row["active_seconds"] = elapsed(row)
-                row["segment_started"] = None
+                if "recipe" in row:
+                    from .training_runner import settle_usage
+                    settle_usage(row, "uncertain", "observed_elapsed_upper_bound_after_worker_loss")
+                else:
+                    row["active_seconds"] = elapsed(row)
+                    row["segment_started"] = None
                 row["state"] = "stopped" if row["active_seconds"] >= row["wall_limit_seconds"] else "failed"
                 row["reason"] = "kernel_wall_budget_exhausted" if row["state"] == "stopped" else "worker_lost_inspect_checkpoint"
                 row["usage_source"] = "observed_elapsed_upper_bound_after_worker_loss"
                 row["metrics"]["unmeasured_worker_segments"] += 1
-                row["discarded_episodes"] += int(row["phase"] in ("sampling", "updating", "saving"))
+                row["discarded_episodes"] += int(row["phase"] in ("sampling", "updating", "saving", "validating"))
                 row["phase"] = "exited"
                 row["revision"] += 1
                 put_row(db, row)
-            return row
+        if "recipe" in row:
+            from .training_runner import sync_usage
+            sync_usage(self.state_root, run_id)
+            row = self.details(run_id)
+        return row
 
     def _signal_owned(self, row, sig):
         if not alive(row):
@@ -358,9 +397,13 @@ class LocalCpuBackend:
             raise ContractError("recovery requires the inspected failed local run and no live worker")
         expected_revision = row["revision"]
         trainer = verified_trainer(self.state_root, row)
+        round_reconciliation = None
+        if "recipe" in row:
+            from .training_runner import reconcile_round
+            round_reconciliation = reconcile_round(self.state_root, row, trainer)
         next_file = run_path(self.state_root, run_id) / "checkpoints" / f"local-step-{trainer.updates + 1}.weights"
         reconciliation = None
-        if next_file.exists():
+        if "recipe" not in row and next_file.exists():
             manifest = next_file.with_suffix(".json")
             if manifest.exists():
                 receipt = fields(read_json(manifest), {"schema_version", "run_id", "checkpoint_id", "artifact_sha256", "artifact_bytes", "step"})
@@ -391,6 +434,11 @@ class LocalCpuBackend:
                     row["checkpoint_ids"].append(reconciliation["checkpoint_id"])
                     row["metrics"].update(steps=reconciliation["step"], episodes=reconciliation["step"])
                     row["metrics"].pop("loss", None)  # Unlogged loss is unknown.
+            if round_reconciliation is not None:
+                from .training_runner import commit_round
+                if "manifest" in round_reconciliation:
+                    commit_round(row, round_reconciliation["manifest"])
+                row["history"].append({k: v for k, v in round_reconciliation.items() if k != "manifest"})
             row["history"].append({"event": "explicit_recovery", "checkpoint_id": row["checkpoint_ids"][-1],
                                    "optimizer_steps": trainer.updates})
             put_row(db, row)
@@ -411,8 +459,13 @@ def worker(state_root, run_id, generation):
     from .agent_monitor import RunReporter
     reporter = RunReporter(state_root)
     try:
-        trainer = verified_trainer(state_root, row)
-        while trainer.updates < 2:
+        if "recipe" in row:
+            from .training_runner import worker_rounds
+            completed = worker_rounds(state_root, run_id, generation, reporter)
+        else:
+            completed = False
+        trainer = verified_trainer(state_root, row) if "recipe" not in row else None
+        while trainer is not None and trainer.updates < 2:
             with closing(_connect(state_root)) as db, db:
                 db.execute("BEGIN IMMEDIATE")
                 row = get_row(db, run_id)
@@ -444,23 +497,40 @@ def worker(state_root, run_id, generation):
                 row["history"].append({"event": "actual_optimizer_update_checkpointed", "step": trainer.updates,
                                        "model_sha256": update["after_sha256"], "checkpoint_id": receipt["checkpoint_id"]})
                 put_row(db, row)
+        if trainer is not None:
+            completed = trainer.updates == 2
         with closing(_connect(state_root)) as db, db:
             db.execute("BEGIN IMMEDIATE")
             row = get_row(db, run_id)
-            row["active_seconds"], row["segment_started"] = elapsed(row), None
+            if "recipe" in row:
+                from .training_runner import settle_usage
+                settle_usage(row, "completed" if completed else "interrupted", "measured_worker_wall")
+            else:
+                row["active_seconds"], row["segment_started"] = elapsed(row), None
             row["completed_worker_cpu_seconds"] += reporter.resources()["process_cpu_seconds"]
             row["metrics"]["process_cpu_seconds"] = row["completed_worker_cpu_seconds"]
-            row["state"] = "completed" if trainer.updates == 2 else row["desired"]
-            row["phase"], row["reason"] = "exited", "safe_checkpoint_boundary"
+            row["state"] = "completed" if completed else row["desired"]
+            row["phase"] = "exited"
+            if row["reason"] != "wall_budget_reserve_reached":
+                row["reason"] = "safe_checkpoint_boundary"
             row["revision"] += 1
             put_row(db, row)
+        if "recipe" in row:
+            from .training_runner import sync_usage
+            sync_usage(state_root, run_id)
         return 0
     except Exception as error:
         with closing(_connect(state_root)) as db, db:
             db.execute("BEGIN IMMEDIATE")
             row = get_row(db, run_id)
-            row["active_seconds"], row["segment_started"] = elapsed(row), None
-            row["completed_worker_cpu_seconds"] += reporter.resources()["process_cpu_seconds"]
+            unsettled = row["segment_started"] is not None
+            if "recipe" in row:
+                from .training_runner import settle_usage
+                settle_usage(row, "failed", "measured_worker_wall")
+            else:
+                row["active_seconds"], row["segment_started"] = elapsed(row), None
+            if unsettled:
+                row["completed_worker_cpu_seconds"] += reporter.resources()["process_cpu_seconds"]
             row["metrics"]["process_cpu_seconds"] = row["completed_worker_cpu_seconds"]
             row.update(state="failed", phase="exited", reason=type(error).__name__ + "_inspect_checkpoint",
                        revision=row["revision"] + 1)
