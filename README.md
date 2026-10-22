@@ -13,7 +13,7 @@
 - 第一阶段真实规则核心，第二阶段训练前验证 PC YGOPro／萌卡兼容。**手机端及 YGOMobile 暂移出本期范围**；云端训练与 PC 推理/微调的硬件压力仍必须记录。
 - 构筑预测与实战反馈：百场内明显落后预警、千场内明显落后强制重构；具体统计阈值实施前冻结。
 
-当前已完成 CPU 工程骨架，并从固定上游源码构建 core，支持限定通常怪兽完整对局/重放、两个费用/连锁路线，以及真实检索/公开确认/三眼怪诱发与同回合次数用例。37 项单元测试与 19 项真实引擎集成测试通过。**一般效果牌组、标准客户端回放及 PC 兼容门槛尚未通过；模型与训练尚未开始。** 具体版本、模型大小、超参数、兼容性和资源指标须实测；本云端开发不表示离线本机已同步。
+当前已完成 CPU 工程骨架，并从固定上游源码构建 core，支持限定通常怪兽完整对局/重放、两个费用/连锁路线，以及真实检索/公开确认/三眼怪诱发、次数重置及同名共享限制用例。37 项单元测试与 22 项真实引擎集成测试通过。**一般效果牌组、标准客户端回放及 PC 兼容门槛尚未通过；模型与训练尚未开始。** 具体版本、模型大小、超参数、兼容性和资源指标须实测；本云端开发不表示离线本机已同步。
 
 运行与验收见 [CPU 骨架说明](docs/development/cpu-foundation.md)、[阶段任务清单](docs/plans/2026-10-22-phase-1-cpu-checklist.md)及[云端启动实证](docs/reports/2026-10-22-cloud-bootstrap.md)。本云端可执行：
 
@@ -28,6 +28,8 @@ PYTHONPATH=src .venv/bin/python -m ygo_kito --config configs/cpu.toml status
 [native-effects / native-effect-replay](docs/development/selected-effects.md) 覆盖两个固定真实脚本路线，并区分费用、对象、否定与处理；控制器重放轨迹不作为玩家公开历史或策略输入。
 
 [native-search / native-search-replay](docs/development/search-trigger.md) 覆盖合法卡组候选、选中后的公开确认、场上/卡组送墓诱发条件及同卡复活后的同回合次数限制；不向对手暴露未选候选或牌序。
+
+[M2e 次数与发动资格回归](docs/development/count-reset.md) 补充跨回合重置、两张同名副本共享次数，以及检索后发动封锁与未检索对照；卡片汽车·D 只验证发动资格，没有执行其解放费用、抽卡或结束阶段处理。
 
 [2026-10-21 旧阶段计划](docs/plans/2026-10-21-development-and-training-budget.md) 与 [旧技术复核](docs/reviews/2026-10-21-technical-route-review.md) 保留决策历史，不再作为最新选型入口。尤其旧文的 LoRA 可选、移动端后续排期、预算未分配和架构待讨论表述，不覆盖统一说明。
 
