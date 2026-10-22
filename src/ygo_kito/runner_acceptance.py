@@ -15,7 +15,7 @@ from .build_contracts import digest
 from .engineering_acceptance import wait_for
 from .local_training import LocalCpuBackend, alive, verified_trainer, _connect, get_row, put_row
 from .training_plan import BudgetBook
-from .training_runner import sync_usage, opponent_binding, atomic_json, validate_recipe
+from .training_runner import sync_usage, opponent_binding, atomic_json, validate_recipe, file_receipt
 from .validation import ContractError, read_json
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -83,6 +83,12 @@ def run_runner_acceptance(root, state_root, run_id, recipe):
         interrupted = backend.details(name)
         backend._signal_owned(interrupted, signal.SIGKILL)
         failed = wait_for(lambda: (r if (r := backend.refresh(name))["state"] == "failed" and not alive(r) else None), seconds=30)
+        run_directory = host_root / "runs" / name
+        discarded_path = run_directory / "data/train" / f"step-2-{interrupted['generation']}.json"
+        discarded = read_json(discarded_path)
+        if discarded["partition"] != "train" or discarded["policy_version"] != 1 or not discarded["steps"]:
+            raise ContractError("validation fault lacks the actual uncommitted training trajectory")
+        discarded_receipt = file_receipt(discarded_path, run_directory)
         tool("training.control", {"run_id": name, "operation": "resume", "expected_revision": failed["revision"]}, expected=False)
         recovery = tool("training.recover", {"run_id": name, "expected_revision": failed["revision"]})
         if recovery["result"]["execution"] != "applied":
@@ -95,6 +101,9 @@ def run_runner_acceptance(root, state_root, run_id, recipe):
         attempts = [h for h in final_row["history"] if h["event"] == "fresh_episode_started" and h["step"] == 2]
         if len(attempts) != 2 or attempts[0]["generation"] == attempts[1]["generation"]:
             raise ContractError("recovery must sample a fresh second episode in a new worker")
+        second_manifest = read_json(run_directory / "rounds/step-2.json")
+        if second_manifest["train_shard"]["path"] == discarded_receipt["path"]:
+            raise ContractError("recovery reused the uncommitted training shard")
         tool("training.prepare", {"run_id": continuous_name})
         control(continuous_name, "start")
         baseline_row = finished(continuous_name)
@@ -141,9 +150,13 @@ def run_runner_acceptance(root, state_root, run_id, recipe):
                   "canonical_updates_per_run": final.updates, "independent_runs": 2,
                   "physical_committed_optimizer_calls": final.updates + baseline.updates,
                   "known_discarded_optimizer_calls": 1, "fresh_second_episode_attempts": attempts,
+                  "physical_optimizer_calls_confirmed": final.updates + baseline.updates + 1,
+                  "discarded_training_shard": discarded_receipt,
                   "injected_crash_phase": interrupted["phase"],
-                  "completed_training_games": len(final_row["updates"]) + len(baseline_row["updates"]),
-                  "completed_validation_games": len(final_row["validations"]) + len(baseline_row["validations"]),
+                  "committed_training_games": len(final_row["updates"]) + len(baseline_row["updates"]),
+                  "completed_training_games_confirmed": len(final_row["updates"]) + len(baseline_row["updates"]) + 1,
+                  "committed_validation_games": len(final_row["validations"]) + len(baseline_row["validations"]),
+                  "uncommitted_validation_completion": "unknown_after_process_loss_not_counted_as_committed",
                   "discarded_episode_attempts": final_row["discarded_episodes"],
                   "final_model_sha256": parameter_digest(final.model), "continuous_model_sha256": parameter_digest(baseline.model),
                   "continuous_recovery_equal": equal, "validation_trajectory_recovery_equal": val_equal,

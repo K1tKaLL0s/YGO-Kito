@@ -31,8 +31,10 @@ class RealMultiroundRunnerTests(unittest.TestCase):
         p = self.proof
         self.assertTrue(p["ok"])
         self.assertEqual(p["canonical_updates_per_run"], 4)
-        self.assertEqual(p["completed_training_games"], 8)
-        self.assertEqual(p["completed_validation_games"], 4)
+        self.assertEqual(p["committed_training_games"], 8)
+        self.assertEqual(p["completed_training_games_confirmed"], 9)
+        self.assertEqual(p["physical_optimizer_calls_confirmed"], 9)
+        self.assertEqual(p["committed_validation_games"], 4)
         self.assertEqual(p["scheduled_checkpoint_ids"], ["local-step-2", "local-step-4"])
         for index, item in enumerate(p["actual_updates"], 1):
             self.assertEqual(item["update"]["optimizer_step"], index)
