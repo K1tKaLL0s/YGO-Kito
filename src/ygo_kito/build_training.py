@@ -229,14 +229,15 @@ def binding_for(task, assets, data):
             "supervision_sha256": data["supervision_sha256"]}
 
 
-def save_checkpoint(trainer, directory, checkpoint_id, binding):
+def save_checkpoint(trainer, directory, checkpoint_id, binding, *, allow_initial=False):
     identifier(checkpoint_id)
-    if trainer.batch_cursor < 1 or any(n != trainer.batch_cursor for n in trainer.updates.values()):
+    initial = allow_initial is True and trainer.batch_cursor == 0 and all(n == 0 for n in trainer.updates.values())
+    if not initial and (trainer.batch_cursor < 1 or any(n != trainer.batch_cursor for n in trainer.updates.values())):
         raise ContractError("paired building checkpoint requires completed role-update boundary")
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
     path = directory / f"{checkpoint_id}.weights"
-    state = {"schema_version": 1, "kind": "paired-building-cpu", "boundary": "complete-role-update-batch",
+    state = {"schema_version": 1, "kind": "paired-building-cpu", "boundary": "initial" if initial else "complete-role-update-batch",
              "config": asdict(trainer.config), "task": trainer.task.to_dict(), "binding": binding,
              "vocabulary_sha256": trainer.encoder.vocabulary_sha256, "updates": trainer.updates,
              "batch_cursor": trainer.batch_cursor,
@@ -250,13 +251,14 @@ def save_checkpoint(trainer, directory, checkpoint_id, binding):
     return path
 
 
-def load_checkpoint(path, assets, expected_binding):
+def load_checkpoint(path, assets, expected_binding, *, allow_initial=False):
     state = torch.load(path, map_location="cpu", weights_only=True)
     fields(state, {"schema_version", "kind", "boundary", "config", "task", "binding", "vocabulary_sha256", "updates", "batch_cursor",
                    "models", "model_hashes", "optimizers", "schedulers", "rng"})
     integer(state["schema_version"], "building checkpoint schema", 1, 1)
-    integer(state["batch_cursor"], "building checkpoint cursor", 1, 2)
-    if state["kind"] != "paired-building-cpu" or state["boundary"] != "complete-role-update-batch" or state["binding"] != expected_binding:
+    initial = allow_initial is True and state["boundary"] == "initial" and state["batch_cursor"] == 0
+    integer(state["batch_cursor"], "building checkpoint cursor", 0 if initial else 1, 2)
+    if state["kind"] != "paired-building-cpu" or (state["boundary"] != "complete-role-update-batch" and not initial) or state["binding"] != expected_binding:
         raise ContractError("building checkpoint boundary/resources differ")
     task = BuildTask.from_dict(state["task"])
     if task.sha256 != expected_binding["task_sha256"]:

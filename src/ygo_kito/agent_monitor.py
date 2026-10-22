@@ -15,7 +15,7 @@ METRICS = {"steps", "episodes", "loss", "reward_mean", "samples_per_second", "el
            "cpu_percent", "rss_bytes", "gpu_memory_bytes", "budget_instance_hours", "process_cpu_seconds", "process_peak_rss_bytes",
            "time_limit_seconds", "budget_seconds_remaining", "discarded_episodes", "recovery_count",
            "setup_process_cpu_seconds", "unmeasured_worker_segments", "validation_episodes", "committed_rounds",
-           "usage_segments", "usage_wall_seconds"}
+           "usage_segments", "usage_wall_seconds", "optimizer_updates", "cycles_completed", "committed_stages"}
 
 
 class RunMonitor:

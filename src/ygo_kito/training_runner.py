@@ -23,6 +23,9 @@ OPPONENTS = ("visible-effects-first-v1", "visible-effects-last-option-v1")
 
 
 def validate_recipe(value):
+    if isinstance(value, dict) and value.get("workflow") == "four-model-alternating-v1":
+        from .group_runner import validate_recipe as validate_group
+        return validate_group(value)
     from .cpu_training import config_from_dict
     from .training_plan import number
     fields(value, {"schema_version", "max_updates", "validate_every", "checkpoint_every", "wall_seconds",

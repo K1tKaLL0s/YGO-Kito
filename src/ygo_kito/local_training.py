@@ -89,7 +89,7 @@ def snapshot_for(row):
     if state == "running" and row.get("pid") and not alive(row):
         state = "stopped" if active >= row["wall_limit_seconds"] else "failed"
     return {"schema_version": 1, "run_id": row["run_id"], "state": state, "revision": row["revision"],
-            "model_versions": {"duel": "bounded-local-cpu-prototype-v1"}, "metrics": metrics,
+            "model_versions": row.get("model_versions", {"duel": "bounded-local-cpu-prototype-v1"}), "metrics": metrics,
             "checkpoint_ids": row["checkpoint_ids"], "source": "trainer"}
 
 
@@ -117,7 +117,12 @@ def write_checkpoint(trainer, state_root, row, *, checkpoint_id=None):
     checkpoint_id = checkpoint_id or f"local-step-{trainer.updates}"
     directory = run_path(state_root, row["run_id"]) / "checkpoints"
     staged = directory / ("staging-" + uuid4().hex)
-    path = save_checkpoint(trainer, staged, checkpoint_id, row["binding"], allow_initial=True)
+    if row.get("recipe", {}).get("workflow") == "four-model-alternating-v1":
+        staged.mkdir(parents=True)
+        path = staged / (checkpoint_id + ".weights")
+        trainer.save_to(path)
+    else:
+        path = save_checkpoint(trainer, staged, checkpoint_id, row["binding"], allow_initial=True)
     receipt = checkpoint_receipt(row["run_id"], path, trainer.updates)
     target = directory / path.name
     if target.exists() or target.with_suffix(".json").exists():
@@ -132,6 +137,9 @@ def write_checkpoint(trainer, state_root, row, *, checkpoint_id=None):
 
 
 def verified_trainer(state_root, row):
+    if row.get("recipe", {}).get("workflow") == "four-model-alternating-v1":
+        from .group_runner import verified
+        return verified(state_root, row)
     from .agent_monitor import RunMonitor
     from .cpu_training import load_checkpoint, resource_binding
     from .training_runner import binding_for
@@ -171,6 +179,9 @@ class LocalCpuBackend:
         wall_limit_seconds = cap if wall_limit_seconds is None else wall_limit_seconds
         if type(wall_limit_seconds) not in (int, float) or not 1 <= wall_limit_seconds <= cap:
             raise ContractError("local CPU wall budget exceeds the trusted host configuration")
+        if self.recipe is not None and self.recipe.get("workflow") == "four-model-alternating-v1":
+            from .group_runner import prepare
+            return prepare(self, run_id, wall_limit_seconds)
         started = time.monotonic()
         setup_cpu = time.process_time()
         from .build_pipeline import BuildAssets
@@ -400,8 +411,12 @@ class LocalCpuBackend:
         trainer = verified_trainer(self.state_root, row)
         round_reconciliation = None
         if "recipe" in row:
-            from .training_runner import reconcile_round
-            round_reconciliation = reconcile_round(self.state_root, row, trainer)
+            if row["recipe"].get("workflow") == "four-model-alternating-v1":
+                from .group_runner import reconcile
+                round_reconciliation = reconcile(self.state_root, row, trainer)
+            else:
+                from .training_runner import reconcile_round
+                round_reconciliation = reconcile_round(self.state_root, row, trainer)
         next_file = run_path(self.state_root, run_id) / "checkpoints" / f"local-step-{trainer.updates + 1}.weights"
         reconciliation = None
         if "recipe" not in row and next_file.exists():
@@ -436,12 +451,16 @@ class LocalCpuBackend:
                     row["metrics"].update(steps=reconciliation["step"], episodes=reconciliation["step"])
                     row["metrics"].pop("loss", None)  # Unlogged loss is unknown.
             if round_reconciliation is not None:
-                from .training_runner import commit_round
                 if "manifest" in round_reconciliation:
-                    commit_round(row, round_reconciliation["manifest"])
+                    if row["recipe"].get("workflow") == "four-model-alternating-v1":
+                        from .group_runner import commit
+                        commit(row, round_reconciliation["manifest"])
+                    else:
+                        from .training_runner import commit_round
+                        commit_round(row, round_reconciliation["manifest"])
                 row["history"].append({k: v for k, v in round_reconciliation.items() if k != "manifest"})
             row["history"].append({"event": "explicit_recovery", "checkpoint_id": row["checkpoint_ids"][-1],
-                                   "optimizer_steps": row["metrics"]["steps"]})
+                                   "optimizer_steps": row["metrics"].get("optimizer_updates", row["metrics"]["steps"])})
             put_row(db, row)
         return snapshot_for(row)
 
@@ -460,7 +479,10 @@ def worker(state_root, run_id, generation):
     from .agent_monitor import RunReporter
     reporter = RunReporter(state_root)
     try:
-        if "recipe" in row:
+        if row.get("recipe", {}).get("workflow") == "four-model-alternating-v1":
+            from .group_runner import worker as group_worker
+            completed = group_worker(state_root, run_id, generation, reporter)
+        elif "recipe" in row:
             from .training_runner import worker_rounds
             completed = worker_rounds(state_root, run_id, generation, reporter)
         else:
@@ -512,7 +534,7 @@ def worker(state_root, run_id, generation):
             row["metrics"]["process_cpu_seconds"] = row["completed_worker_cpu_seconds"]
             row["state"] = "completed" if completed else row["desired"]
             row["phase"] = "exited"
-            if row["reason"] != "wall_budget_reserve_reached":
+            if row["reason"] not in ("wall_budget_reserve_reached", "worker_stage_budget_reached"):
                 row["reason"] = "safe_checkpoint_boundary"
             row["revision"] += 1
             put_row(db, row)
@@ -534,7 +556,7 @@ def worker(state_root, run_id, generation):
                 row["completed_worker_cpu_seconds"] += reporter.resources()["process_cpu_seconds"]
             row["metrics"]["process_cpu_seconds"] = row["completed_worker_cpu_seconds"]
             row.update(state="failed", phase="exited", reason=type(error).__name__ + "_inspect_checkpoint",
-                       revision=row["revision"] + 1)
+                       revision=row["revision"] + 1, failure_detail=str(error)[:400])
             put_row(db, row)
         return 2
     # Leave the kernel timer armed through interpreter/native teardown.
