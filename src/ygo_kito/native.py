@@ -13,6 +13,7 @@ import random
 import sqlite3
 import struct
 import threading
+from uuid import uuid4
 
 from .contracts import ActionSelection, CardView, DecisionRequest, LegalAction, Observation, PublicEvent, RunContext, SearchChoice, Versions, validate_selection
 from .engine import EngineUnavailable
@@ -141,7 +142,7 @@ class NativeNormalEngine:
                     self.lib.new_card(self.handle, code, player, player, 1, 0, 8)
             self._check_callbacks()
             hashes = self.receipt["resources"]
-            self.context = RunContext("native-smoke", Versions(self.lock["sources"]["core"]["commit"],
+            self.context = RunContext(f"native-{uuid4().hex}", Versions(self.lock["sources"]["core"]["commit"],
                 hashes["scripts"], hashes["cards"], hashes["client_protocol"],
                 self.lock["card_pool"]["id"] if scenario == "normal" else f"native-{scenario}-v1", "2026.10:" + hashes["banlist"]), None)
             self.lib.start_duel(self.handle, 5 << 16)  # Master Rule 2020, no TEST/SIMPLE_AI mode.

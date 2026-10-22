@@ -20,6 +20,21 @@ CACHE = ROOT / ".cache"
 
 
 class RealNativeEngineTests(unittest.TestCase):
+    def test_closed_engine_selection_cannot_be_reused_in_fresh_instance(self):
+        with NativeSmokeEngine(CACHE) as first:
+            request = first.next_decision()
+            action = next(a for a in request.actions if a.kind == "summon")
+            old = ActionSelection(request.context.run_id, request.duel_id, request.decision_id, action.action_id)
+        with NativeSmokeEngine(CACHE) as second:
+            fresh = second.next_decision()
+            self.assertNotEqual(old.run_id, fresh.context.run_id)
+            with self.assertRaises(ContractError):
+                second.submit(old)
+            self.assertIs(second.pending, fresh)
+            new = next(a for a in fresh.actions if a.kind == "summon")
+            second.submit(ActionSelection(fresh.context.run_id, fresh.duel_id, fresh.decision_id, new.action_id))
+            self.assertIsNotNone(second.next_decision())
+
     def test_real_summon_repeats_from_seed_with_database_and_upstream_scripts(self):
         first = run_native_smoke(CACHE, 7)
         second = run_native_smoke(CACHE, 7)

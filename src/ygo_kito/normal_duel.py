@@ -31,7 +31,11 @@ def choose_normal_action(request):
 
 
 def request_digest(request):
-    return hashlib.sha256(canonical_json(request.to_dict()).encode()).hexdigest()
+    payload = request.to_dict()
+    # A fresh session ID binds live submissions; replay fingerprints describe state.
+    # Retain the historical placeholder only in this digest for frozen-trace compatibility.
+    payload["context"]["run_id"] = "native-smoke"
+    return hashlib.sha256(canonical_json(payload).encode()).hexdigest()
 
 
 def run_normal_duel(root: Path, *, seed=7, replay=None, max_decisions=2000, budget_seconds=30):
