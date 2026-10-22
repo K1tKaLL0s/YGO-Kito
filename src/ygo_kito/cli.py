@@ -120,6 +120,11 @@ def parser():
     runner.add_argument("--state-root", type=Path, default=Path(".cache/runner"))
     runner.add_argument("--run-id", required=True)
     runner.add_argument("--recipe", type=Path, default=Path("configs/cpu-runner-v1.json"))
+    group_runner = sub.add_parser("group-runner-acceptance", help="two-cycle four-model CPU/LoRA alternation, frozen eval and owned-worker fault; no paid training")
+    group_runner.add_argument("--root", type=Path, default=Path(".cache"))
+    group_runner.add_argument("--state-root", type=Path, default=Path(".cache/group-runner"))
+    group_runner.add_argument("--run-id", required=True)
+    group_runner.add_argument("--recipe", type=Path, default=Path("configs/group-runner-v1.json"))
     for name in ("agent-serve", "agent-call"):
         agent = sub.add_parser(name, help="host-scoped local JSON tools; no provider or training launch")
         if name == "agent-call":
@@ -149,6 +154,9 @@ def main(argv=None) -> int:
             case "cpu-runner-acceptance":
                 from .runner_acceptance import run_runner_acceptance
                 output = run_runner_acceptance(args.root, args.state_root, args.run_id, read_json(args.recipe))
+            case "group-runner-acceptance":
+                from .group_runner_acceptance import run_group_acceptance
+                output = run_group_acceptance(args.root, args.state_root, args.run_id, read_json(args.recipe))
             case "status":
                 output = {"version": __version__, "python": platform.python_version(),
                           "sqlite": sqlite3.sqlite_version, "config": config.to_dict(), "engine": engine_status()}
@@ -324,7 +332,7 @@ def main(argv=None) -> int:
         print(canonical_json(output))
         return 0
     except EngineUnavailable as error:
-        code = ("CPU_TRAINING_UNAVAILABLE" if args.command in ("duel-train-cpu", "build-train-cpu", "model-group-cpu", "lora-group-cpu") else
+        code = ("CPU_TRAINING_UNAVAILABLE" if args.command in ("duel-train-cpu", "build-train-cpu", "model-group-cpu", "lora-group-cpu", "cpu-runner-acceptance", "group-runner-acceptance") else
                 "NATIVE_RESOURCES_UNAVAILABLE" if args.command == "build-check" else
                 "NATIVE_RESOURCES_UNAVAILABLE" if args.command.startswith("native-") else "ENGINE_NOT_IMPLEMENTED")
         message = str(error)
