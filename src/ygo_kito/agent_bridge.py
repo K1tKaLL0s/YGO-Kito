@@ -25,7 +25,7 @@ from .validation import ContractError, array, canonical_json, fields, integer, m
 
 READ = {"capabilities", "runs.list", "runs.read", "runs.metrics", "checkpoints.read", "opponents.summary"}
 DUEL = {"duel.open", "duel.next", "duel.status", "duel.submit_action", "duel.close", "cards.lookup"}
-ROLES = {"monitor": READ, "trainer": READ | {"training.control"},
+ROLES = {"monitor": READ, "trainer": READ | {"training.prepare", "training.recover", "training.control"},
          "manager": READ | {"environment.runtime", "environment.register", "deck.import", "deck.read", "opponent.register", "coding.prepare_handoff"},
          "opponent": {"capabilities"} | DUEL}
 
@@ -103,7 +103,8 @@ class AgentBridge:
             fields(params, set())
             return {"api": "ygo-kito-local-json-v1", "transport": "json-lines-not-mcp", "role": self.role,
                     "methods": sorted(ROLES[self.role]), "training_backend_configured": self.backend is not None,
-                    "provider_connected": False, "model_verified": False, "provider_invocation_implemented": False}
+                    "provider_connected": False, "model_verified": False, "provider_invocation_implemented": False,
+                    "cloud_resource_control_implemented": False}
         if method == "runs.list":
             fields(params, set())
             return self.monitor.runs()
@@ -135,6 +136,20 @@ class AgentBridge:
             return self.coding.prepare(params)
         if method == "training.control":
             return self._control(params, request_id)
+        if method == "training.prepare":
+            d = fields(params, {"run_id"})
+            if self.backend is None or not hasattr(self.backend, "prepare"):
+                raise ApiError("TRAINING_BACKEND_NOT_CONFIGURED", "explicit local CPU host backend required; no operation executed")
+            return self.backend.prepare(identifier(d["run_id"]))
+        if method == "training.recover":
+            d = fields(params, {"run_id", "expected_revision"})
+            identifier(d["run_id"])
+            integer(d["expected_revision"], "recovery expected revision")
+            if self.backend is None or not hasattr(self.backend, "recover"):
+                raise ApiError("TRAINING_BACKEND_NOT_CONFIGURED", "explicit local CPU recovery backend required")
+            return self.registry.control_once(request_id, dict(d, operation="recover"),
+                lambda: {"execution": "applied", "scope": "managed-local-cpu", "snapshot": self.backend.recover(**d),
+                         "cloud_billing_stopped": False})
         if method == "cards.lookup":
             d = fields(params, {"card_ids"})
             codes = array(d["card_ids"], "card IDs")
@@ -219,8 +234,11 @@ class AgentBridge:
                  "stop": {"created", "running", "paused"}, "save_checkpoint": {"running", "paused"}}
         if run["state"] not in valid[d["operation"]]:
             raise ContractError("training operation invalid for current state")
+        if hasattr(self.backend, "validate_control"):
+            self.backend.validate_control(**d)
         def execute():
-            result = fields(self.backend.control(**d, request_id=request_id), {"applied", "revision"}, {"checkpoint_id"})
+            result = fields(self.backend.control(**d, request_id=request_id), {"applied", "revision"},
+                            {"checkpoint_id", "state", "scope", "local_process_exited", "cloud_billing_stopped"})
             if type(result["applied"]) is not bool:
                 raise ContractError("backend acknowledgement must be bool")
             integer(result["revision"], "backend revision")

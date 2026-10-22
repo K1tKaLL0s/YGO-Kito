@@ -218,12 +218,13 @@ class CpuTrainer:
                 "learning_rate_next": self.optimizer.param_groups[0]["lr"]}
 
 
-def save_checkpoint(trainer, directory, checkpoint_id, binding):
+def save_checkpoint(trainer, directory, checkpoint_id, binding, *, allow_initial=False):
     identifier(checkpoint_id)
-    if trainer.updates < 1 or trainer.episode_cursor != trainer.updates:
+    initial = allow_initial is True and trainer.updates == trainer.episode_cursor == 0
+    if not initial and (trainer.updates < 1 or trainer.episode_cursor != trainer.updates):
         raise ContractError("checkpoint requires an updated complete-episode boundary")
     path = directory / f"{checkpoint_id}.weights"
-    state = {"schema_version": 1, "role": "duel", "boundary": "complete-episode", "config": asdict(trainer.config),
+    state = {"schema_version": 1, "role": "duel", "boundary": "initial" if initial else "complete-episode", "config": asdict(trainer.config),
              "binding": binding, "card_ids": list(trainer.encoder.card_ids), "vocab_sha256": trainer.encoder.vocab_sha256,
              "model": trainer.model.state_dict(), "optimizer": trainer.optimizer.state_dict(), "scheduler": trainer.scheduler.state_dict(),
              "updates": trainer.updates, "episode_cursor": trainer.episode_cursor, "model_sha256": parameter_digest(trainer.model),
@@ -235,13 +236,14 @@ def save_checkpoint(trainer, directory, checkpoint_id, binding):
     return path
 
 
-def load_checkpoint(path, expected_binding):
+def load_checkpoint(path, expected_binding, *, allow_initial=False):
     state = torch.load(path, map_location="cpu", weights_only=True)
     fields(state, {"schema_version", "role", "boundary", "config", "binding", "card_ids", "vocab_sha256", "model", "optimizer", "scheduler", "updates", "episode_cursor", "model_sha256", "rng"})
-    if type(state["schema_version"]) is not int or state["schema_version"] != 1 or state["role"] != "duel" or state["boundary"] != "complete-episode" or state["binding"] != expected_binding:
+    initial = allow_initial is True and state["boundary"] == "initial" and state["updates"] == state["episode_cursor"] == 0
+    if type(state["schema_version"]) is not int or state["schema_version"] != 1 or state["role"] != "duel" or (state["boundary"] != "complete-episode" and not initial) or state["binding"] != expected_binding:
         raise ContractError("checkpoint schema/boundary/resources differ")
-    integer(state["updates"], "checkpoint updates", 1, 2)
-    integer(state["episode_cursor"], "checkpoint episode cursor", 1, 2)
+    integer(state["updates"], "checkpoint updates", 0 if initial else 1, 2)
+    integer(state["episode_cursor"], "checkpoint episode cursor", 0 if initial else 1, 2)
     if state["episode_cursor"] != state["updates"]:
         raise ContractError("checkpoint cursor/update boundary differs")
     trainer = CpuTrainer(config_from_dict(state["config"]), state["card_ids"])

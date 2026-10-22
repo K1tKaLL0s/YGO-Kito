@@ -127,6 +127,7 @@ def parser():
         agent.add_argument("--controller-source", choices=("unverified_external", "local_contract_fixture"), default="unverified_external")
         agent.add_argument("--provider", default="unverified")
         agent.add_argument("--model", default="unverified")
+        agent.add_argument("--local-cpu-control", action="store_true", help="trusted host opt-in for prepared, bounded local CPU workers only")
     return result
 
 
@@ -241,10 +242,17 @@ def main(argv=None) -> int:
                 return 0 if output["ok"] else 2
             case "agent-serve" | "agent-call":
                 from .agent_bridge import AgentBridge, serve_bridge
+                backend = None
+                if args.local_cpu_control:
+                    if args.role != "trainer":
+                        raise ContractError("local CPU control host must use the trainer role")
+                    from .local_training import LocalCpuBackend
+                    backend = LocalCpuBackend(args.state_root, args.root)
                 bridge = AgentBridge(Path(__file__).resolve().parents[2], args.state_root, args.root,
                     role=args.role, seat=args.seat, profile=read_json(args.profile) if args.profile is not None else None,
                     seed=args.seed, decision_timeout=args.decision_timeout, opponent_id=args.opponent_id,
-                    own_deck_id=args.own_deck_id, controller_source=args.controller_source, provider=args.provider, model=args.model)
+                    own_deck_id=args.own_deck_id, controller_source=args.controller_source, provider=args.provider, model=args.model,
+                    training_backend=backend)
                 if args.command == "agent-serve":
                     return serve_bridge(bridge, sys.stdin, sys.stdout)
                 try:

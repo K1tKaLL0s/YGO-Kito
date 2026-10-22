@@ -12,7 +12,9 @@ from .agent_registry import identifier
 from .validation import ContractError, array, fields, integer, member, read_json, text
 
 METRICS = {"steps", "episodes", "loss", "reward_mean", "samples_per_second", "elapsed_seconds",
-           "cpu_percent", "rss_bytes", "gpu_memory_bytes", "budget_instance_hours", "process_cpu_seconds", "process_peak_rss_bytes"}
+           "cpu_percent", "rss_bytes", "gpu_memory_bytes", "budget_instance_hours", "process_cpu_seconds", "process_peak_rss_bytes",
+           "time_limit_seconds", "budget_seconds_remaining", "discarded_episodes", "recovery_count",
+           "setup_process_cpu_seconds", "unmeasured_worker_segments"}
 
 
 class RunMonitor:
@@ -35,6 +37,11 @@ class RunMonitor:
         return [self.snapshot(p.name) for p in sorted(self.root.iterdir()) if p.is_dir() and (p / "status.json").is_file()]
 
     def snapshot(self, run_id):
+        identifier(run_id)
+        from .local_training import local_snapshot
+        managed = local_snapshot(self.root.parent, run_id)
+        if managed is not None:
+            return self.validate_snapshot(managed, run_id)
         return self.validate_snapshot(read_json(self._path(run_id, "status.json")), run_id)
 
     @staticmethod
