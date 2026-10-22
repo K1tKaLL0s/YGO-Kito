@@ -90,6 +90,11 @@ def _parts(parts):
 def goal_candidates(task, assets, base=None):
     """Bounded constraint construction followed by model ranking, not learned rule code."""
     assets.check_task(task)
+    if base is not None:
+        if not isinstance(base, DeckParts):
+            raise ContractError("typed existing deck required")
+        # A legal existing deck may miss the new goal; illegal listings are rejected.
+        validate_deck_parts(base.to_dict(), assets.rows, assets.limits, allowed=set(task.pool))
     found = []
     if base is not None and assets.accepts(task, base):
         found.append(base)

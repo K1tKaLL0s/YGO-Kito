@@ -55,6 +55,16 @@ class BuildContractTests(unittest.TestCase):
                         {"main": [1], "extra": [], "side": [], "hidden_order": []}):
             with self.assertRaises(ContractError):
                 DeckParts.from_dict(payload)
+        for where in ("requirement", "opening"):
+            payload = copy.deepcopy(TASK)
+            payload["pool"] = sorted([1, *payload["pool"]])
+            if where == "requirement":
+                payload["requirements"].append({"zone": "main", "card_id": True, "minimum": 0, "maximum": 3})
+            else:
+                payload["goal"]["card_id"] = payload["requirements"][0]["card_id"] = 1
+                payload["goal"]["starting_conditions"]["requires_opening_hand"] = [True]
+            with self.subTest(where=where), self.assertRaises(ContractError):
+                BuildTask.from_dict(payload)
 
     def rows(self):
         rows = {code: {"id": code, "alias": 0, "ot": 1, "type": 17} for code in range(1, 61)}

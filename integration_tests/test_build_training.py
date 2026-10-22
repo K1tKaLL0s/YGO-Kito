@@ -201,3 +201,18 @@ class RealBuildingCpuTests(unittest.TestCase):
         self.assertEqual(record["source"], "engineering_fixture")
         self.assertTrue(record["runtime_compatible"])
         self.assertFalse(record["user_acceptance_verified"])
+
+    def test_existing_legal_deck_can_repair_a_new_goal_but_illegal_list_is_rejected(self):
+        base = DeckParts.from_dict(self.result["alternation"]["best_deck"])
+        changed = list(base.main)
+        changed.remove(TASK.goal["card_id"])
+        spare = next(c for c in TASK.pool if c != TASK.goal["card_id"] and changed.count(c) + base.side.count(c) < 3)
+        changed.append(spare)
+        repaired = goal_candidates(TASK, self.assets, DeckParts(tuple(sorted(changed)), base.extra, base.side))
+        self.assertTrue(repaired)
+        self.assertTrue(all(c.main.count(TASK.goal["card_id"]) == 3 for c in repaired))
+        illegal = list(base.main)
+        illegal.remove(next(c for c in illegal if c != TASK.goal["card_id"]))
+        illegal.append(TASK.goal["card_id"])
+        with self.assertRaises(ContractError):
+            goal_candidates(TASK, self.assets, DeckParts(tuple(sorted(illegal)), base.extra, base.side))

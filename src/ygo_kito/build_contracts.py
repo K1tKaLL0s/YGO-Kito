@@ -68,6 +68,8 @@ class BuildTask:
         start = fields(goal["starting_conditions"], {"player", "turn", "requires_opening_hand"})
         integer(start["player"], "goal player", 0, 0)
         integer(start["turn"], "goal turn", 1, 1)
+        for code in array(start["requires_opening_hand"], "opening-hand requirements"):
+            integer(code, "opening-hand card ID", 1, 2**32 - 1)
         if start["requires_opening_hand"] != [goal["card_id"]]:
             raise ContractError("normal-summon proof requires the declared goal card in the opening hand")
         fields(self.sizes, set(ZONES))
@@ -82,6 +84,7 @@ class BuildTask:
         for req in self.requirements:
             fields(req, {"zone", "card_id", "minimum", "maximum"})
             member(req["zone"], "requirement zone", ZONES)
+            integer(req["card_id"], "required card ID", 1, 2**32 - 1)
             if req["card_id"] not in self.pool or (req["zone"], req["card_id"]) in seen:
                 raise ContractError("required card absent from pool or duplicated")
             seen.add((req["zone"], req["card_id"]))
