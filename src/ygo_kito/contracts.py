@@ -191,6 +191,23 @@ class LegalAction:
 
 
 @dataclass(frozen=True)
+class SearchChoice:
+    """A legally offered identity without deck position or native index."""
+    ref: str
+    card_id: int
+    owner: int
+
+    def __post_init__(self):
+        text(self.ref, "search reference")
+        integer(self.card_id, "search card_id", 1)
+        integer(self.owner, "search owner", 0, 1)
+
+    @classmethod
+    def from_dict(cls, value):
+        return cls(**fields(value, {"ref", "card_id", "owner"}))
+
+
+@dataclass(frozen=True)
 class DecisionRequest:
     context: RunContext
     duel_id: str
@@ -198,6 +215,7 @@ class DecisionRequest:
     observation: Observation
     actions: tuple[LegalAction, ...]
     schema_version: int = field(default=SCHEMA_VERSION)
+    search_choices: tuple[SearchChoice, ...] = ()
 
     def __post_init__(self):
         if type(self.schema_version) is not int or self.schema_version != SCHEMA_VERSION:
@@ -211,20 +229,27 @@ class DecisionRequest:
         if len({a.action_id for a in self.actions}) != len(self.actions):
             raise ContractError("duplicate action IDs")
         refs = {c.ref for c in self.observation.cards}
+        for choice in self.search_choices:
+            if not isinstance(choice, SearchChoice) or choice.owner != self.observation.observer or choice.ref in refs:
+                raise ContractError("search choices must be unique and visible only to the chooser")
+            refs.add(choice.ref)
         if any(set(action.card_refs) - refs for action in self.actions):
             raise ContractError("action references an unobserved card")
 
     @classmethod
     def from_dict(cls, value):
-        d = fields(value, {"schema_version", "context", "duel_id", "decision_id", "observation", "actions"})
+        d = fields(value, {"schema_version", "context", "duel_id", "decision_id", "observation", "actions"}, {"search_choices"})
         return cls(
             RunContext.from_dict(d["context"]), d["duel_id"], d["decision_id"],
             Observation.from_dict(d["observation"]), tuple(LegalAction.from_dict(a) for a in array(d["actions"], "actions")),
-            d["schema_version"],
+            d["schema_version"], tuple(SearchChoice.from_dict(c) for c in array(d.get("search_choices", []), "search_choices")),
         )
 
     def to_dict(self):
-        return asdict(self)
+        result = asdict(self)
+        if not self.search_choices:
+            result.pop("search_choices")
+        return result
 
 
 @dataclass(frozen=True)

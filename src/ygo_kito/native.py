@@ -14,7 +14,7 @@ import sqlite3
 import struct
 import threading
 
-from .contracts import ActionSelection, CardView, DecisionRequest, LegalAction, Observation, PublicEvent, RunContext, Versions, validate_selection
+from .contracts import ActionSelection, CardView, DecisionRequest, LegalAction, Observation, PublicEvent, RunContext, SearchChoice, Versions, validate_selection
 from .engine import EngineUnavailable
 from .native_assets import LOCK_PATH, verify_resources
 from .validation import ContractError, integer
@@ -251,6 +251,7 @@ class NativeNormalEngine:
     def _prompt(self, kind, reader):
         player = reader.u8()
         options = []
+        search_choices = ()
         if kind == 10:
             if reader.u8():
                 raise NativeError("battle activation outside normal-monster scope")
@@ -286,19 +287,24 @@ class NativeNormalEngine:
             options = [("yes", (), None, 1), ("no", (), None, 0)]
         elif kind == 15:
             cancelable, minimum, maximum, count = reader.u8(), reader.u8(), reader.u8(), reader.u8()
-            refs = []
+            refs, candidates = [], []
             for _ in range(count):
-                reader.u32()
+                code = reader.u32()
                 owner, location, sequence, _subsequence = reader.u8(), reader.u8(), reader.u8(), reader.u8()
-                zone = {2: "hand", 4: "monster", 8: "spell_trap", 16: "graveyard"}.get(location)
-                if zone is None or (location == 2 and owner != player):
-                    raise NativeError("selection outside normal-monster visible zones")
-                refs.append(f"p{owner}.{zone}.{sequence}")
-            if count > 10:
-                raise NativeError("selection exceeds bounded combination scope")
-            for size in range(minimum, maximum + 1):
-                for indices in combinations(range(count), size):
-                    options.append(("select", tuple(refs[i] for i in indices), size, bytes((size, *indices))))
+                candidates.append((code, owner, location, sequence))
+            if any(c[2] == 1 for c in candidates):
+                search_choices, options = decode_deck_choices(player, minimum, maximum, candidates)
+            else:
+                for code, owner, location, sequence in candidates:
+                    zone = {2: "hand", 4: "monster", 8: "spell_trap", 16: "graveyard"}.get(location)
+                    if zone is None or (location == 2 and owner != player):
+                        raise NativeError("selection outside supported visible zones")
+                    refs.append(f"p{owner}.{zone}.{sequence}")
+                if count > 10:
+                    raise NativeError("selection exceeds bounded combination scope")
+                for size in range(minimum, maximum + 1):
+                    for indices in combinations(range(count), size):
+                        options.append(("select", tuple(refs[i] for i in indices), size, bytes((size, *indices))))
             if cancelable:
                 options.append(("pass", (), None, -1))
         elif kind == 16:
@@ -340,7 +346,7 @@ class NativeNormalEngine:
         actions = tuple(LegalAction(f"choice-{i}", action_kind, refs, value) for i, (action_kind, refs, value, _) in enumerate(options))
         self._observer_windows[player] += 1
         window_id = f"window-{self.window}" if self._legacy_ids else f"p{player}-window-{self._observer_windows[player]}"
-        self.pending = DecisionRequest(self.context, "native-smoke-duel", window_id, self._observation(player), actions)
+        self.pending = DecisionRequest(self.context, "native-smoke-duel", window_id, self._observation(player), actions, search_choices=search_choices)
         self.pending_kind = kind
         return self.pending
 
@@ -476,6 +482,20 @@ class NativeNormalEngine:
 
     def __exit__(self, *_):
         self.close()
+
+
+def decode_deck_choices(player, minimum, maximum, candidates):
+    """Discard native order/deck positions while keeping response indices private."""
+    if minimum != 1 or maximum != 1 or not 0 < len(candidates) <= 128:
+        raise NativeError("only bounded single-card deck choices are supported")
+    if any(owner != player or zone != 1 or not code for code, owner, zone, _ in candidates):
+        raise NativeError("blind/opponent/mixed deck selection is unsupported")
+    choices, options = [], []
+    for ordinal, (native_index, (code, owner, _zone, _sequence)) in enumerate(sorted(enumerate(candidates), key=lambda item: item[1][0])):
+        ref = f"search-choice-{ordinal}"
+        choices.append(SearchChoice(ref, code, owner))
+        options.append(("select", (ref,), 1, bytes((1, native_index))))
+    return tuple(choices), options
 
 
 NativeSmokeEngine = NativeNormalEngine  # M2a compatibility alias.
