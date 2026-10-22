@@ -72,7 +72,7 @@ def banlist_limits(path: Path, section="2026.10") -> dict[int, int]:
 class NativeNormalEngine:
     def __init__(self, root: Path, *, seed=7, scenario="normal", legacy_request_ids=False):
         integer(seed, "seed", 0, 2**32 - 8)
-        if scenario not in ("normal", "effects-counter", "search-trigger", "search-condition", "count-reset", "count-shared"):
+        if scenario not in ("normal", "effects-counter", "search-trigger", "search-condition", "count-reset", "count-shared", "search-lock", "lock-control"):
             raise ContractError("unsupported scoped native scenario")
         if legacy_request_ids and scenario != "normal":
             raise ContractError("legacy requests are reserved for old normal replay")
@@ -117,6 +117,12 @@ class NativeNormalEngine:
                 self._allowed_pool.update((26202165, 53129443, 43422537))
                 extra = 53129443 if scenario == "count-reset" else 43422537
                 self.player_decks = (self.deck[:36] + (26202165, 26202165, 53129443, extra), self.deck)
+            elif scenario == "search-lock":
+                self._allowed_pool.update((26202165, 53129443, 43422537, 45812361))
+                self.player_decks = (self.deck[:36] + (26202165, 53129443, 43422537, 45812361), self.deck)
+            elif scenario == "lock-control":
+                self._allowed_pool.add(45812361)
+                self.player_decks = (self.deck[:39] + (45812361,), self.deck)
             for deck in self.player_decks:
                 self.validate_deck(deck)
             self._install_callbacks()

@@ -49,7 +49,7 @@ def parser():
     effects_replay.add_argument("--root", type=Path, default=Path(".cache"))
     search = sub.add_parser("native-search", help="selected real deck-search/trigger/count-limit cases")
     search.add_argument("--root", type=Path, default=Path(".cache"))
-    search.add_argument("--route", choices=("field-twice", "deck-grave", "cross-turn", "shared-name"), default="field-twice")
+    search.add_argument("--route", choices=("field-twice", "deck-grave", "cross-turn", "shared-name", "activation-lock", "activation-control"), default="field-twice")
     search.add_argument("--seed", type=int)
     search.add_argument("--trace", type=Path)
     search_replay = sub.add_parser("native-search-replay")
