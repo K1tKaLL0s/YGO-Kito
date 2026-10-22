@@ -1,6 +1,6 @@
 # 外部 agent 接口、CodeBuddy 接管与对手配置
 
-本地工程入口已有版本化JSON Lines、固定角色、真实CPU训练控制、卡组/对手注册及真实核心单席位动作。**这不是MCP服务器；未连接CodeBuddy/DeepSeek、未启动付费训练。** 默认训练后端关闭，可信宿主显式--local-cpu-control可启用固定两步决斗CPU配方，真实启动/暂停退出/保存/重启与故障恢复已验；通用长训练/云后端仍缺。当前入口见[整体验收](../reports/2026-10-23-engineering-delivery.md)与[本地控制说明](local-training-control.md)，不以本地通过代表provider或正式阶段通过。
+本地工程入口已有版本化JSON Lines、固定角色、真实CPU训练控制、卡组/对手注册及真实核心单席位动作。**这不是MCP服务器；未连接CodeBuddy/DeepSeek、未启动付费训练。** 默认训练后端关闭，可信宿主显式--local-cpu-control启用决斗CPU配方，另以--local-training-config选择配置驱动的多轮/独立验证/用量恢复路径；请求不能选任意训练命令。全模型交替运行器与云后端仍缺。当前入口见[多轮交付](../reports/2026-10-23-multiround-runner.md)与[本地控制说明](local-training-control.md)，不以本地通过代表provider或正式阶段通过。
 
 ## 启动与工具权限
 

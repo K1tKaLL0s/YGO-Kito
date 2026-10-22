@@ -1,0 +1,269 @@
+{
+  "timestamp_utc": "2026-10-22T22:28:57.733875+00:00",
+  "code_commit": "1c934099959b9ae70adfe4b53ce21ec7e21aae19",
+  "command": [
+    "/workspace/YGO-Kito/.venv/bin/python",
+    "-m",
+    "ygo_kito",
+    "cpu-runner-acceptance",
+    "--root",
+    ".cache",
+    "--state-root",
+    ".cache/runner-delivery",
+    "--run-id",
+    "runner-20261023-v1"
+  ],
+  "exit_code": 0,
+  "cli_wall_seconds": 52.253992595000454,
+  "proof_sha256": "14142081197fc07944fad40acd5cb6b5acc039e14c8f5098f6977eb0d6fcecfb",
+  "proof_bytes": 21513,
+  "stderr_bytes": 0,
+  "unit_tests": {
+    "count": 109,
+    "exit_code": 0,
+    "wall_seconds": 10.72033778399964,
+    "code_commit": "7f71195f45b3ee3e0356c54b32dbdd51f62e1878",
+    "log": "2026-10-23-runner-unit-tests.log"
+  },
+  "integration_tests": {
+    "count": 83,
+    "exit_code": 0,
+    "wall_seconds": 220.8768198580001,
+    "code_commit": "7f71195f45b3ee3e0356c54b32dbdd51f62e1878",
+    "log": "2026-10-23-runner-integration-tests.log"
+  },
+  "final_targeted_tests": {
+    "count": 8,
+    "exit_code": 0,
+    "wall_seconds": 62.47799140799907,
+    "code_commit": "1c934099959b9ae70adfe4b53ce21ec7e21aae19",
+    "log": "2026-10-23-runner-final-targeted-tests.log"
+  },
+  "managed_worker_exit_verification": [
+    {
+      "run_id": "multiround-duel",
+      "state": "completed",
+      "phase": "exited",
+      "alive": false,
+      "active_seconds": 22.282919274997766,
+      "steps": 4
+    },
+    {
+      "run_id": "continuous-duel",
+      "state": "completed",
+      "phase": "exited",
+      "alive": false,
+      "active_seconds": 12.982236560001184,
+      "steps": 4
+    },
+    {
+      "run_id": "budget-boundary",
+      "state": "stopped",
+      "phase": "exited",
+      "alive": false,
+      "active_seconds": 3.9519762839991017,
+      "steps": 0
+    }
+  ],
+  "committed_data_artifact_verification": [
+    {
+      "run_id": "multiround-duel",
+      "bytes": 3694334,
+      "path": "data/train/step-1-d9c5f33ef37647c99eaf80924b1f3dc0.json",
+      "sha256": "2f3520763a19b2c18ae3e150c50bfaf3dc775df9f13b04d7ad26544db33a5c11",
+      "integrity_verified": true
+    },
+    {
+      "run_id": "multiround-duel",
+      "bytes": 10594488,
+      "path": "data/train/step-2-742bdde0935041bfa0dab2b8d2bd609f.json",
+      "sha256": "7887a03c92beec64c81e94ef7641438228db15a17b01a93c6185e318631bca1e",
+      "integrity_verified": true
+    },
+    {
+      "run_id": "multiround-duel",
+      "bytes": 1003076,
+      "path": "data/validation/step-2-0-742bdde0935041bfa0dab2b8d2bd609f.json",
+      "sha256": "9b6fdac54c62c7d85a9eb5d6107948138a985db8ffa68d704b1cc2f9a973b8eb",
+      "integrity_verified": true
+    },
+    {
+      "run_id": "multiround-duel",
+      "bytes": 644054,
+      "path": "data/train/step-3-742bdde0935041bfa0dab2b8d2bd609f.json",
+      "sha256": "be4021e5d39aba00c8a2e814bce19d28cad935ca768626c8bfde3ad28e6abd1c",
+      "integrity_verified": true
+    },
+    {
+      "run_id": "multiround-duel",
+      "bytes": 669221,
+      "path": "data/train/step-4-742bdde0935041bfa0dab2b8d2bd609f.json",
+      "sha256": "34c7aa8e341c5768856c955586e938d05056f680f5ed2f310fd0a827945bc265",
+      "integrity_verified": true
+    },
+    {
+      "run_id": "multiround-duel",
+      "bytes": 1003024,
+      "path": "data/validation/step-4-0-742bdde0935041bfa0dab2b8d2bd609f.json",
+      "sha256": "ca90e03ae1cb6b694e635da3690d413d3b59e51fed78bf817e242065dc2a8e34",
+      "integrity_verified": true
+    },
+    {
+      "run_id": "continuous-duel",
+      "bytes": 3694334,
+      "path": "data/train/step-1-91460ead21204406b51ee23f63d42c4d.json",
+      "sha256": "ea0392bf90b35373740fdbd50c8a024323609f042cfe73d2ad88930c19716a15",
+      "integrity_verified": true
+    },
+    {
+      "run_id": "continuous-duel",
+      "bytes": 10594488,
+      "path": "data/train/step-2-91460ead21204406b51ee23f63d42c4d.json",
+      "sha256": "8991b9997b5b91bdd4dd3a021cee4df5ca0f40bc0ec860c436fb16e1f6c7c3a5",
+      "integrity_verified": true
+    },
+    {
+      "run_id": "continuous-duel",
+      "bytes": 1003076,
+      "path": "data/validation/step-2-0-91460ead21204406b51ee23f63d42c4d.json",
+      "sha256": "010e966f04e57b3b9862503df9223292f7ecd090d889d5592836b2aefbec9ff9",
+      "integrity_verified": true
+    },
+    {
+      "run_id": "continuous-duel",
+      "bytes": 644054,
+      "path": "data/train/step-3-91460ead21204406b51ee23f63d42c4d.json",
+      "sha256": "9f4b26971d9f291d36bdaff5ae74452825a4b3389f5e9c0632fb0c762be4d490",
+      "integrity_verified": true
+    },
+    {
+      "run_id": "continuous-duel",
+      "bytes": 669221,
+      "path": "data/train/step-4-91460ead21204406b51ee23f63d42c4d.json",
+      "sha256": "a7c59e63b92670a2dcfe8db83f5c5b05298dd105a431d718c9fa867165fa11a4",
+      "integrity_verified": true
+    },
+    {
+      "run_id": "continuous-duel",
+      "bytes": 1003024,
+      "path": "data/validation/step-4-0-91460ead21204406b51ee23f63d42c4d.json",
+      "sha256": "09db52503e6260ae4c9446e591f20209264e7e5f0dfd7c0c4b710e13b36ae247",
+      "integrity_verified": true
+    }
+  ],
+  "checks": {
+    "all_workers_exited": true,
+    "all_data_artifacts_verified": true,
+    "continuous_recovery_equal": true,
+    "validation_recovery_equal": true,
+    "usage_idempotent": true,
+    "formal_training_ready": false
+  },
+  "original_archive_verification": {
+    "checked": 11,
+    "all_originals_unchanged": true,
+    "files": [
+      {
+        "path": "docs/current/游戏王AI项目设计定稿.docx",
+        "bytes": 46669,
+        "sha256": "58d5e4d1e37993e5e90f3e935c4c20ae179cd19f9f5e6da7f743ab3271bf74df",
+        "ok": true
+      },
+      {
+        "path": "docs/learning/游戏王AI项目亲手实作手册.docx",
+        "bytes": 47278,
+        "sha256": "faa23237491b578389ae41ea8ee764b1cfad284a226d1c22fdf6dc666cac6927",
+        "ok": true
+      },
+      {
+        "path": "docs/learning/游戏王AI亲手练习包.zip",
+        "bytes": 4415,
+        "sha256": "4e2390210a8d019793a63407f6fba8447d5fc1943380ed32b700147c0a9f2937",
+        "ok": true
+      },
+      {
+        "path": "docs/reference/游戏王AI_技术选型调研_2026-10-18.docx",
+        "bytes": 53826,
+        "sha256": "da05079224ec7de4ca7a5446f72650099b9a752a6086f2a5a20eae4c216c3452",
+        "ok": true
+      },
+      {
+        "path": "docs/reference/游戏王AI_技术选型调研_2026-10-18.pdf",
+        "bytes": 667814,
+        "sha256": "b09323268e9eae04bbeab0783f133274383bad1e2498f1533e1a30daba762a9d",
+        "ok": true
+      },
+      {
+        "path": "docs/archive/YGO模型设计草案_小幅修订版(1).docx",
+        "bytes": 34426,
+        "sha256": "89a0f271b58e22d9a33fe38be1622b881100a613577ef57372f5971c8ae291ad",
+        "ok": true
+      },
+      {
+        "path": "docs/archive/YGO模型设计草案_小幅修订版.docx",
+        "bytes": 34384,
+        "sha256": "2a16571b5ecc764575b4fa7c1881d3a478ec3fff283272b72c599bda28fba775",
+        "ok": true
+      },
+      {
+        "path": "docs/archive/YGO模型设计草案.docx",
+        "bytes": 43526,
+        "sha256": "7673521dfabef77e49b411a089f3f949eabac1ba445ee423286b31870f5cc42f",
+        "ok": true
+      },
+      {
+        "path": "docs/reference/游戏王AI_现有技术与混合部署调研.pdf",
+        "bytes": 1910963,
+        "sha256": "af81f108ed6a535ec7f81a9c11237cf27c11b6cb14d5002d74d38b8347f88ee9",
+        "ok": true
+      },
+      {
+        "path": "docs/archive/标签驱动游戏王AI_设计草案.pdf",
+        "bytes": 1879234,
+        "sha256": "9a33dcdfcdd6f09e4acd2ca2437f3f1846b7e75e09a4ce0f1b208527ddc32d7e",
+        "ok": true
+      },
+      {
+        "path": "docs/reference/游戏王对战AI_项目核验与自建路线_2026-10-18.pdf",
+        "bytes": 1875576,
+        "sha256": "f56c5834e9bec11097b7ef549bd309fa6369a0f608aec66ca20c09d2df1b925b",
+        "ok": true
+      }
+    ]
+  },
+  "local_run_disk_measurements": {
+    "multiround-duel": {
+      "files": 25,
+      "bytes": 42719586,
+      "training_shard_bytes": 26196585,
+      "validation_shard_bytes": 2006100,
+      "checkpoint_bytes": 14508410
+    },
+    "continuous-duel": {
+      "files": 22,
+      "bytes": 32125106,
+      "training_shard_bytes": 15602097,
+      "validation_shard_bytes": 2006100,
+      "checkpoint_bytes": 14508410
+    },
+    "budget-boundary": {
+      "files": 4,
+      "bytes": 1175713,
+      "training_shard_bytes": 0,
+      "validation_shard_bytes": 0,
+      "checkpoint_bytes": 1175062
+    }
+  },
+  "documentation_checks": {
+    "relative_links_checked_in": 16,
+    "broken": [],
+    "master_ids_unique": true,
+    "master_status_counts": {
+      "completed": 47,
+      "partial": 38,
+      "not_started": 28,
+      "pending": 10,
+      "not_passed": 5
+    }
+  }
+}

@@ -62,7 +62,7 @@ checkpoint 含配置、全公开卡库词表与哈希、参数、优化器、调
 {"schema_version":1,"id":"weights","method":"checkpoints.read","params":{"run_id":"my-cpu-proof","checkpoint_id":"step-1"}}
 ```
 
-`duel-train-cpu` 是明确的独立本地训练命令；另有[显式受控CPU后端](local-training-control.md)复用真实采样/更新/检查点，JSON可启动、暂停退出、保存和新进程恢复固定两步配方。默认后端仍关闭，CodeBuddy/DeepSeek接管、通用生产训练、8套用户牌组及历史对手资格待验；外部LLM不成为基础闭环依赖。
+`duel-train-cpu`保留独立两步冒烟；另有[显式受控CPU后端](local-training-control.md)复用真实采样/更新/检查点，宿主--local-training-config可配置多轮决斗训练、隔离验证、周期检查点和有限预算，JSON可暂停/保存/恢复。默认后端仍关闭，构筑/统筹长期交替、CodeBuddy/DeepSeek接管、8套用户牌组及历史对手资格待验；外部LLM不成为基础闭环依赖。
 
 记录的 elapsed/process CPU 从初始模型和优化器建立后开始，包含 checkpoint 和实际恢复对照；`samples_per_second` 是两个规范 rollout 的样本数除以整个证明用时，包含恢复开销，不是纯训练吞吐。RSS 为整个进程生命周期峰值，包含 Torch/优化器；网络前向时延不代替 PC 端到端时延。记录没有新开付费实例和外部 API 调用，平台云端开发 CPU 费用不可见，不能宣称无限免费。没有 GPU 时不编造 GPU 读数。
 
