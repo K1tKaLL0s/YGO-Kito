@@ -189,6 +189,8 @@ class Coordinator:
                 if old[0] != encoded:
                     raise ContractError("job ID conflict")
                 return json.loads(old[0])
+            if db.execute("SELECT COUNT(*) FROM jobs WHERE state IN ('pending','leased')").fetchone()[0] >= 1:
+                raise ContractError("one outstanding job budget reached; collect or inspect it before scheduling")
             db.execute("INSERT INTO jobs VALUES(?,?,?,'pending',NULL)", (d["job_id"], d["forecast_id"], encoded))
             self._event(db, {"event": "duel_job_allocated", "job_id": d["job_id"], "forecast_id": d["forecast_id"], "source": self.source})
         return payload

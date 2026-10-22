@@ -340,7 +340,8 @@ def run_build_training_smoke(root, state_root, run_id, task, config=None):
                                "platform": platform.platform(), "logical_cpu_count": os.cpu_count(),
                                "cpu_affinity_count": len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else None},
                   "cost": {"new_paid_instances_started": 0, "external_api_calls": 0, "cloud_development_cpu_cost": "not-exposed"},
-                  "competitive_construction_quality_validated": False, "learned_coordinator_implemented": False}
+                  "competitive_construction_quality_validated": False, "models_in_this_run": list(ROLES),
+                  "coordinator_training_in_this_run": False}
         (run / "proof.json").write_text(canonical_json(result) + "\n")
         publish("completed")
         return result

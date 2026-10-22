@@ -80,6 +80,20 @@ def parser():
     build_train.add_argument("--run-id", required=True)
     build_train.add_argument("--task", type=Path, default=Path("configs/build-engineering-v1.json"))
     build_train.add_argument("--training-config", type=Path, default=Path("configs/build-training-smoke.json"))
+    group = sub.add_parser("model-group-cpu", help="one bounded real group workflow with pre-registered forecast and pending-job recovery")
+    group.add_argument("--root", type=Path, default=Path(".cache"))
+    group.add_argument("--state-root", type=Path, default=Path(".cache/agent"))
+    group.add_argument("--run-id", required=True)
+    group.add_argument("--task", type=Path, default=Path("configs/build-engineering-v1.json"))
+    group.add_argument("--feedback-policy", type=Path, default=Path("configs/coordinator-feedback-engineering.json"))
+    control = sub.add_parser("coordinator-call", help="fixed-role JSON coordination/monitor tools; no arbitrary commands or paid jobs")
+    control.add_argument("input", type=Path)
+    control.add_argument("--ledger", type=Path, required=True)
+    control.add_argument("--role", choices=("monitor", "coordinator", "build_goal", "build_optimizer", "duel_worker"), default="monitor")
+    control.add_argument("--source", choices=("real_engine", "synthetic_contract_test"), default="real_engine")
+    control.add_argument("--root", type=Path, default=Path(".cache"))
+    control.add_argument("--feedback-policy", type=Path, default=Path("configs/coordinator-feedback-engineering.json"))
+    control.add_argument("--create", action="store_true")
     for name in ("agent-serve", "agent-call"):
         agent = sub.add_parser(name, help="host-scoped local JSON tools; no provider or training launch")
         if name == "agent-call":
@@ -163,6 +177,31 @@ def main(argv=None) -> int:
                 from .build_contracts import BuildTask
                 output = run_build_training_smoke(args.root, args.state_root, args.run_id,
                                                  BuildTask.from_dict(read_json(args.task)), config_from_dict(read_json(args.training_config)))
+            case "model-group-cpu":
+                try:
+                    from .model_group import run_model_group_smoke
+                except ModuleNotFoundError as error:
+                    if error.name != "torch":
+                        raise
+                    raise EngineUnavailable("CPU PyTorch required for model-group proof") from None
+                from .build_contracts import BuildTask
+                from .coord_contracts import FeedbackPolicy
+                output = run_model_group_smoke(args.root, args.state_root, args.run_id, BuildTask.from_dict(read_json(args.task)),
+                                               FeedbackPolicy.from_dict(read_json(args.feedback_policy)))
+            case "coordinator-call":
+                from .coord_contracts import FeedbackPolicy
+                from .coordinator import Coordinator
+                payload = read_json(args.input)
+                assets = None
+                if (args.role in ("coordinator", "build_goal", "build_optimizer") and args.source == "real_engine"
+                        and isinstance(payload, dict) and payload.get("method") == "handoff.submit"):
+                    from .build_pipeline import BuildAssets
+                    assets = BuildAssets(args.root)
+                host = Coordinator(args.ledger, FeedbackPolicy.from_dict(read_json(args.feedback_policy)), role=args.role,
+                                   source=args.source, assets=assets, create=args.create)
+                output = host.dispatch(payload)
+                print(canonical_json(output))
+                return 0 if output["ok"] else 2
             case "agent-serve" | "agent-call":
                 from .agent_bridge import AgentBridge, serve_bridge
                 bridge = AgentBridge(Path(__file__).resolve().parents[2], args.state_root, args.root,
@@ -211,7 +250,7 @@ def main(argv=None) -> int:
         print(canonical_json(output))
         return 0
     except EngineUnavailable as error:
-        code = ("CPU_TRAINING_UNAVAILABLE" if args.command in ("duel-train-cpu", "build-train-cpu") else
+        code = ("CPU_TRAINING_UNAVAILABLE" if args.command in ("duel-train-cpu", "build-train-cpu", "model-group-cpu") else
                 "NATIVE_RESOURCES_UNAVAILABLE" if args.command == "build-check" else
                 "NATIVE_RESOURCES_UNAVAILABLE" if args.command.startswith("native-") else "ENGINE_NOT_IMPLEMENTED")
         message = str(error)

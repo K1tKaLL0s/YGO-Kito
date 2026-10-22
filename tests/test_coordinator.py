@@ -170,3 +170,4 @@ class CoordinatorContractTests(unittest.TestCase):
         worker = self.host("duel_worker")
         self.call(worker, "job.claim", {"job_id": "exclusive-job", "worker_id": "worker-1"})
         self.assertFalse(worker.dispatch(message("job.claim", {"job_id": "exclusive-job", "worker_id": "worker-2"}))["ok"])
+        self.assertFalse(self.coord.dispatch(message("job.schedule", {"job_id": "overscheduled", "forecast_id": "forecast", "seed": 10, "purpose": "evaluation"}))["ok"])

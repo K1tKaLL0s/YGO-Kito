@@ -75,6 +75,39 @@ class CliTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2, result.stderr)
         self.assertEqual(json.loads(result.stderr)["error"]["code"], "NATIVE_RESOURCES_UNAVAILABLE")
 
+    def test_coordinator_readonly_missing_ledger_creates_no_fake_state(self):
+        repo = Path(__file__).resolve().parents[1]
+        ledger = self.root / "missing-ledger.sqlite3"
+        payload = self.write_json("coord-read.json", {"schema_version": 1, "id": "read", "method": "status", "params": {}})
+        result = self.run_cli("coordinator-call", payload, "--ledger", str(ledger), "--feedback-policy",
+                              str(repo / "configs/coordinator-feedback-engineering.json"))
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertFalse(ledger.exists())
+
+    def test_explicit_synthetic_coordinator_cli_is_marked_and_monitor_cannot_submit_results(self):
+        repo = Path(__file__).resolve().parents[1]
+        ledger = self.root / "contract-ledger.sqlite3"
+        policy = str(repo / "configs/coordinator-feedback-engineering.json")
+        payload = self.write_json("coord-create.json", {"schema_version": 1, "id": "create", "method": "status", "params": {}})
+        result = self.run_cli("coordinator-call", payload, "--ledger", str(ledger), "--feedback-policy", policy,
+                              "--source", "synthetic_contract_test", "--role", "coordinator", "--create")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["result"]["source"], "synthetic_contract_test")
+        forbidden = self.write_json("coord-forbidden.json", {"schema_version": 1, "id": "forbidden", "method": "results.append", "params": {"results": []}})
+        denied = self.run_cli("coordinator-call", forbidden, "--ledger", str(ledger), "--feedback-policy", policy, "--source", "synthetic_contract_test")
+        self.assertEqual(denied.returncode, 2, denied.stderr)
+        self.assertEqual(json.loads(denied.stdout)["error"]["code"], "PERMISSION_DENIED")
+
+    def test_model_group_missing_native_assets_does_not_start_or_publish_a_result(self):
+        repo = Path(__file__).resolve().parents[1]
+        state = self.root / "group-state"
+        result = self.run_cli("model-group-cpu", "--run-id", "missing-group", "--root", str(self.root / "missing-assets"),
+                              "--state-root", str(state), "--task", str(repo / "configs/build-engineering-v1.json"),
+                              "--feedback-policy", str(repo / "configs/coordinator-feedback-engineering.json"))
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(json.loads(result.stderr)["error"]["code"], "CPU_TRAINING_UNAVAILABLE")
+        self.assertFalse(state.exists())
+
     def test_cli_initialization_import_and_lookup_work_from_another_directory(self):
         for args in (("db-init",), ("db-init",), ("cards-import", self.write_json("cards.json", dataset())), ("card-show", "1")):
             output = self.run_cli(*args)
