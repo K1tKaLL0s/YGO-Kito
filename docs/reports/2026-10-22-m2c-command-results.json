@@ -1,0 +1,86 @@
+{
+  "timestamp_utc": "2026-10-22T08:52:49.895560+00:00",
+  "scope": "selected real effects; no general effect/PC acceptance",
+  "tests": {
+    "unit": 33,
+    "unit_observed_seconds": 0.866,
+    "real_integration": 15,
+    "integration_observed_seconds": 13.554,
+    "observed_exit_code": 0,
+    "raw_integration_log": "2026-10-22-m2c-native-tests.log"
+  },
+  "checks": [
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-effects",
+        "--route",
+        "negate",
+        "--trace",
+        "docs/reports/2026-10-22-m2c-negate.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5490820159993746,\"eligibility\":{\"initial_no_target_spell_unavailable\":true,\"same_turn_jammer_unavailable\":true},\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":false,\"responses\":24,\"result\":{\"activations\":[43898403,77414722],\"cost_moves\":[{\"from_zone\":2,\"kind\":50,\"player\":1,\"public_card\":2830619,\"reason\":16512,\"to_zone\":16},{\"from_zone\":2,\"kind\":50,\"player\":0,\"public_card\":3557275,\"reason\":16512,\"to_zone\":16}],\"costs_before_resolution\":true,\"effect_destructions\":[{\"from_zone\":8,\"kind\":50,\"player\":1,\"public_card\":43898403,\"reason\":65,\"to_zone\":16}],\"graveyard_ids\":[[3557275,77414722],[2830619,43898403]],\"hand_counts\":[2,4],\"loaded_scripts\":[\"c43898403.lua\",\"c5318639.lua\",\"c77414722.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"negated_links\":[1],\"public_events\":[{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"move\"},{\"card_ids\":[],\"event\":\"move\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[43898403],\"event\":\"move\"},{\"card_ids\":[43898403],\"event\":\"activate\"},{\"card_ids\":[2830619],\"event\":\"move\"},{\"card_ids\":[77414722],\"event\":\"activate\"},{\"card_ids\":[3557275],\"event\":\"move\"},{\"card_ids\":[43898403],\"event\":\"move\"},{\"card_ids\":[77414722],\"event\":\"move\"}],\"public_history_equal\":true,\"route\":\"negate\"},\"route\":\"negate\",\"scope\":\"three selected effect cards; not full effect support\",\"seed\":1724,\"trace_sha256\":\"4e6af741b0fd4df5f81bd79a98722587a256066c8214bb8cd28713ae904037ef\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-effect-replay",
+        "docs/reports/2026-10-22-m2c-negate.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5489242900002864,\"eligibility\":{\"initial_no_target_spell_unavailable\":true,\"same_turn_jammer_unavailable\":true},\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":true,\"responses\":24,\"result\":{\"activations\":[43898403,77414722],\"cost_moves\":[{\"from_zone\":2,\"kind\":50,\"player\":1,\"public_card\":2830619,\"reason\":16512,\"to_zone\":16},{\"from_zone\":2,\"kind\":50,\"player\":0,\"public_card\":3557275,\"reason\":16512,\"to_zone\":16}],\"costs_before_resolution\":true,\"effect_destructions\":[{\"from_zone\":8,\"kind\":50,\"player\":1,\"public_card\":43898403,\"reason\":65,\"to_zone\":16}],\"graveyard_ids\":[[3557275,77414722],[2830619,43898403]],\"hand_counts\":[2,4],\"loaded_scripts\":[\"c43898403.lua\",\"c5318639.lua\",\"c77414722.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"negated_links\":[1],\"public_events\":[{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"move\"},{\"card_ids\":[],\"event\":\"move\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[43898403],\"event\":\"move\"},{\"card_ids\":[43898403],\"event\":\"activate\"},{\"card_ids\":[2830619],\"event\":\"move\"},{\"card_ids\":[77414722],\"event\":\"activate\"},{\"card_ids\":[3557275],\"event\":\"move\"},{\"card_ids\":[43898403],\"event\":\"move\"},{\"card_ids\":[77414722],\"event\":\"move\"}],\"public_history_equal\":true,\"route\":\"negate\"},\"route\":\"negate\",\"scope\":\"three selected effect cards; not full effect support\",\"seed\":1724,\"trace_sha256\":\"4e6af741b0fd4df5f81bd79a98722587a256066c8214bb8cd28713ae904037ef\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-effects",
+        "--route",
+        "resolve",
+        "--trace",
+        "docs/reports/2026-10-22-m2c-resolve.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5503504840016831,\"eligibility\":{\"initial_no_target_spell_unavailable\":true,\"same_turn_jammer_unavailable\":true},\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":false,\"responses\":22,\"result\":{\"activations\":[43898403],\"cost_moves\":[{\"from_zone\":2,\"kind\":50,\"player\":1,\"public_card\":2830619,\"reason\":16512,\"to_zone\":16}],\"costs_before_resolution\":true,\"effect_destructions\":[{\"from_zone\":8,\"kind\":50,\"player\":0,\"public_card\":5318639,\"reason\":65,\"to_zone\":16},{\"from_zone\":8,\"kind\":50,\"player\":0,\"public_card\":77414722,\"reason\":65,\"to_zone\":16}],\"graveyard_ids\":[[5318639,77414722],[2830619,43898403]],\"hand_counts\":[3,4],\"loaded_scripts\":[\"c43898403.lua\",\"c5318639.lua\",\"c77414722.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"negated_links\":[],\"public_events\":[{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"move\"},{\"card_ids\":[],\"event\":\"move\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[43898403],\"event\":\"move\"},{\"card_ids\":[43898403],\"event\":\"activate\"},{\"card_ids\":[2830619],\"event\":\"move\"},{\"card_ids\":[5318639],\"event\":\"move\"},{\"card_ids\":[77414722],\"event\":\"move\"},{\"card_ids\":[43898403],\"event\":\"move\"}],\"public_history_equal\":true,\"route\":\"resolve\"},\"route\":\"resolve\",\"scope\":\"three selected effect cards; not full effect support\",\"seed\":1724,\"trace_sha256\":\"c2f564280d7883ff779129d2882796b91554a912e03e21b9feaa16cc3185176b\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-effect-replay",
+        "docs/reports/2026-10-22-m2c-resolve.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.543831588998728,\"eligibility\":{\"initial_no_target_spell_unavailable\":true,\"same_turn_jammer_unavailable\":true},\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":true,\"responses\":22,\"result\":{\"activations\":[43898403],\"cost_moves\":[{\"from_zone\":2,\"kind\":50,\"player\":1,\"public_card\":2830619,\"reason\":16512,\"to_zone\":16}],\"costs_before_resolution\":true,\"effect_destructions\":[{\"from_zone\":8,\"kind\":50,\"player\":0,\"public_card\":5318639,\"reason\":65,\"to_zone\":16},{\"from_zone\":8,\"kind\":50,\"player\":0,\"public_card\":77414722,\"reason\":65,\"to_zone\":16}],\"graveyard_ids\":[[5318639,77414722],[2830619,43898403]],\"hand_counts\":[3,4],\"loaded_scripts\":[\"c43898403.lua\",\"c5318639.lua\",\"c77414722.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"negated_links\":[],\"public_events\":[{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"move\"},{\"card_ids\":[],\"event\":\"move\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[43898403],\"event\":\"move\"},{\"card_ids\":[43898403],\"event\":\"activate\"},{\"card_ids\":[2830619],\"event\":\"move\"},{\"card_ids\":[5318639],\"event\":\"move\"},{\"card_ids\":[77414722],\"event\":\"move\"},{\"card_ids\":[43898403],\"event\":\"move\"}],\"public_history_equal\":true,\"route\":\"resolve\"},\"route\":\"resolve\",\"scope\":\"three selected effect cards; not full effect support\",\"seed\":1724,\"trace_sha256\":\"c2f564280d7883ff779129d2882796b91554a912e03e21b9feaa16cc3185176b\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-replay",
+        "docs/reports/2026-10-22-normal-m2b.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"decisions\":217,\"engine\":\"real-ygopro-core\",\"events\":477,\"general_effect_duels_supported\":false,\"life_points\":[8000,0],\"metrics\":{\"cpu_seconds\":0.579672556,\"decision_cycle_ms\":{\"median\":0.14369599921337795,\"p95\":0.19561400040402077,\"p99\":0.2234959993074881},\"decision_cycle_samples_ms\":[0.24164299975382164,0.21422200006782077,0.1346320004813606,0.13315000069269445,0.11524300134624355,0.11738600005628541,0.11852799980260897,0.1743020002322737,0.12543800039566122,0.17805699826567434,0.17248899894184433,0.15007499860075768,0.1168649996543536,0.12449699897842947,0.1318180002272129,0.12217299990879837,0.12211400098749436,0.1344419997622026,0.13486199895851314,0.12899399916932452,0.11248900045757182,0.11558299956959672,3.1128369992075022,0.16394699923694134,0.12497800162236672,0.12356499973975588,0.1146120011981111,0.1253079990419792,0.11440200069046114,0.1518379995104624,0.13908899927628227,0.15038600031402893,0.11493300007714424,0.1228340006491635,0.11770700075430796,0.12087100003554951,0.14310500046121888,0.11674600136757363,0.20533899987640325,0.20550900080706924,0.1706869988993276,0.12817199967685156,0.1308959999732906,0.12324499948590528,0.1868109993665712,0.1421229990228312,0.15136699948925525,0.14108200048212893,0.1253179998457199,0.12397599857649766,0.11982999967585783,0.1607409994903719,0.12404600056470372,0.12192400026833639,0.11788699885073584,0.12493800022639334,0.12175199844932649,0.14772200120205525,0.1198900008603232,0.14884400115988683,0.12033099847030826,0.13242899876786396,0.12884300122095738,0.12009100100840442,0.1215230004163459,0.11611500121944118,0.12745200001518242,0.14440700033446774,0.14408700008061714,0.1344419997622026,0.1487440003984375,0.12369599971862044,0.14416600060940254,0.12114200035284739,0.15405100020871032,0.12329499986662995,0.12785199942300096,0.12481799967645202,0.13384100020630285,0.15438199989148416,0.11888900007761549,0.20594899979187176,0.19233899911341723,0.1741110008879332,0.12846299978264142,0.1359939997200854,0.12280400005693082,0.12992600022698753,0.1632250005059177,0.1443270011804998,0.1515080002718605,0.14225400082068518,0.13773700084129814,0.1481730014347704,0.14856300003884826,0.14634999934060033,0.15406199963763356,0.12995500037504826,0.12194299961265642,0.1311979995080037,0.12147199959144928,0.14945400107535534,0.1467000001866836,0.149354000313906,0.1254580001841532,0.13441200098895933,0.12999499995203223,0.1330800005234778,0.15699600044172257,0.1523690007161349,0.19469300059427042,0.1823839993448928,0.17152799955511,0.13875799959350843,0.14292400010162964,0.1712969988147961,0.18064100004266948,0.15259899919328745,0.16318599955411628,0.15250900105456822,0.14242399993236177,0.1738720002322225,0.1648580000619404,0.15003599946794566,0.13399099952948745,0.13876800039724912,0.13299999955052044,0.13789700096822344,0.15177899877016898,0.16020099974412005,0.1349930007563671,0.13600500096799806,0.13091700020595454,0.1482029983890243,0.14378700143424794,0.15596400044159964,0.14033099978405517,0.1333700001850957,0.14016000022820663,0.13475200103130192,0.14369599921337795,0.13203799971961416,0.15714600158389658,0.13588399997388478,0.15911900118226185,0.13324999963515438,0.13700600175070576,0.13021599988860544,0.14546899910783395,0.16295499881380238,0.16054099978646263,0.14007099889568053,0.13229900105216075,0.14283500058809295,0.1309569997829385,0.1364149993605679,0.14652000027126633,0.14158299927657936,0.13051600035396405,0.15225800052576233,0.13079600103083067,0.1360139995085774,0.12951499957125634,0.1606109999556793,0.1416630002495367,0.15932899987092242,0.17227900025318377,0.1348330006294418,0.2007610000873683,0.2234959993074881,0.19566399896575604,0.14645999908680096,0.1518280005257111,0.13908899927628227,0.14716099940415006,0.167942000189214,0.18702099987422116,0.1792900002328679,0.16527800107724033,0.13998999929754063,0.14554799963661935,0.16297399997711182,0.16319499991368502,0.14202399870555382,0.14598000052501447,0.13814699923386797,0.14717100020789076,0.14643000031355768,0.18017999900621362,0.14668999938294291,0.17385099999955855,0.14219399963621981,0.15257000086421613,0.14620000001741573,0.16995599980873521,0.17744700016919523,0.14691100113850553,0.20425699949555565,0.19391199930396397,0.18366600124863908,0.1729789983073715,0.19561400040402077,0.15829799849598203,0.1655389987718081,0.16593899999861605,0.17280900101468433,0.18790200010698754,0.15055699986987747,0.15371100016636774,0.1469610015192302,0.15829800031497143,0.15722600073786452,0.17172799925901927,0.1525389998278115,0.15545399946859106,0.1458589995309012,0.06885299990244675],\"decisions_per_second\":375.6813843198921,\"definition\":\"rule selection + submit + next native prompt/projection; elapsed also includes resource verification/setup\",\"elapsed_seconds\":0.5776171220004471,\"hardware\":{\"logical_cpus\":5,\"machine\":\"x86_64\",\"processor\":\"AMD EPYC 9V74 80-Core Processor\"},\"kernel\":\"6.18.55\",\"os\":\"Linux\",\"process_peak_rss_native_units\":34484,\"rss_units\":\"KiB on Linux; bytes on macOS\"},\"ok\":true,\"outcome\":{\"reason_code\":1,\"winner\":0},\"policy\":\"deterministic-rule-baseline-not-a-model\",\"replay_verified\":true,\"scope\":\"explicit-normal-monster-pool\",\"seed\":7,\"trace_sha256\":\"663f1d6bd5ccf9e5920e832cfde48eb788cc1c05199682be9535c4414746a81a\",\"turns\":7}\n",
+      "stderr": ""
+    }
+  ],
+  "upstream_card_script_sha256": {
+    "TwinTwisters": "b7e1d9abd93bd325fcf6325319a2b6b3a98fb69ddf58b5518434c56c1e099608",
+    "MagicJammer": "c882c73dfc377d809fabfa4e6647bbb2e4cbc2696fdcebe5f014835a28a9f9d9",
+    "MysticalSpaceTyphoon": "2ca56eae0bb525ff2459c186254d86de6c33783078c79fb63c868206cbf8e652"
+  },
+  "originals_unchanged": true
+}

@@ -39,6 +39,14 @@ def parser():
     replay = sub.add_parser("native-replay", help="replay saved native responses and compare all events")
     replay.add_argument("input", type=Path)
     replay.add_argument("--root", type=Path, default=Path(".cache"))
+    effects = sub.add_parser("native-effects", help="two selected real-script cost/chain cases")
+    effects.add_argument("--root", type=Path, default=Path(".cache"))
+    effects.add_argument("--route", choices=("negate", "resolve"), default="negate")
+    effects.add_argument("--seed", type=int, default=1724)
+    effects.add_argument("--trace", type=Path)
+    effects_replay = sub.add_parser("native-effect-replay")
+    effects_replay.add_argument("input", type=Path)
+    effects_replay.add_argument("--root", type=Path, default=Path(".cache"))
     return result
 
 
@@ -81,18 +89,21 @@ def main(argv=None) -> int:
                 raise EngineUnavailable("no runnable engine backend")
             case "native-smoke":
                 output = run_native_smoke(args.root, args.seed)
-            case "native-duel" | "native-replay":
+            case "native-duel" | "native-replay" | "native-effects" | "native-effect-replay":
                 from .normal_duel import run_normal_duel
-                if args.command == "native-duel":
+                from .effect_cases import run_effect_case
+                if args.command in ("native-duel", "native-effects"):
                     if args.trace is not None and args.trace.exists():
                         raise ContractError("trace already exists; choose a new path")
-                    output, trace = run_normal_duel(args.root, seed=args.seed)
+                    output, trace = (run_normal_duel(args.root, seed=args.seed) if args.command == "native-duel"
+                                     else run_effect_case(args.root, route=args.route, seed=args.seed))
                     if args.trace is not None:
                         args.trace.parent.mkdir(parents=True, exist_ok=True)
                         with args.trace.open("x", encoding="utf-8") as handle:
                             handle.write(canonical_json(trace) + "\n")
                 else:
-                    output, _ = run_normal_duel(args.root, replay=read_json(args.input))
+                    output, _ = (run_normal_duel(args.root, replay=read_json(args.input)) if args.command == "native-replay"
+                                 else run_effect_case(args.root, replay=read_json(args.input)))
         print(canonical_json(output))
         return 0
     except EngineUnavailable as error:

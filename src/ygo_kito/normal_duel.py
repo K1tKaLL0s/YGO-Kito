@@ -49,9 +49,10 @@ def run_normal_duel(root: Path, *, seed=7, replay=None, max_decisions=2000, budg
         seed = replay["seed"]
     start, cpu_start = time.monotonic(), time.process_time()
     latencies = []
-    with NativeNormalEngine(root, seed=seed) as engine:
+    legacy = replay is not None and replay["versions"].get("adapter_schema") == "native-normal-v1-shuffled-deal"
+    with NativeNormalEngine(root, seed=seed, legacy_request_ids=legacy) as engine:
         versions = {"source_commits": engine.receipt["source_commits"], "resources": engine.receipt["resources"],
-                    "adapter_schema": "native-normal-v1-shuffled-deal", "python": platform.python_version(),
+                    "adapter_schema": "native-normal-v1-shuffled-deal" if legacy else "native-normal-v2-observer-windows", "python": platform.python_version(),
                     "initial_order": "host random.Random(seed*2+player).shuffle; native insertion sequence 0"}
         if replay is not None and replay["versions"] != versions:
             raise ContractError("replay native versions/resources differ")
