@@ -1,0 +1,118 @@
+{
+  "timestamp_utc": "2026-10-22T09:35:41.984774+00:00",
+  "code_commit": "a795bcb9f019ec7e88c1a3431421457e823369e7",
+  "unit_tests": 37,
+  "real_integration_tests": 23,
+  "test_logs_result": "OK; no skips",
+  "checks": [
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-replay",
+        "docs/reports/2026-10-22-normal-m2b.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"decisions\":217,\"engine\":\"real-ygopro-core\",\"events\":477,\"general_effect_duels_supported\":false,\"life_points\":[8000,0],\"metrics\":{\"cpu_seconds\":0.583922763,\"decision_cycle_ms\":{\"median\":0.1450180006941082,\"p95\":0.22606999846175313,\"p99\":0.34498800050641876},\"decision_cycle_samples_ms\":[0.2414720001979731,0.18157300110033248,0.1279520001844503,0.12815199988835957,0.1473119991715066,0.12246400001458824,0.11860799895657692,0.15403100042021833,0.11499199899844825,0.18011099928116892,0.17157799993583467,0.16933400002017152,0.14302499948826153,0.12980500105186366,0.11204799920960795,0.12193400107207708,0.12403600157995243,0.13294999916979577,0.15775700012454763,0.1382469999953173,0.1621430001250701,3.2401890002802247,0.16406700160587206,0.15754699961689766,0.15590399925713427,0.13243900139059406,0.18754200027615298,0.1513579991296865,0.12107200018363073,0.16468700050609186,0.12387600145302713,0.17636399934417568,0.12746200081892312,0.13022600069234613,0.12476799929572735,0.1286330007133074,0.14840299991192296,0.12102199980290607,0.1992090001294855,0.17126800048572477,0.1681829999142792,0.1255489987670444,0.1294840003538411,0.12147199959144928,0.14864400145597756,0.1673219994700048,0.17394200040143915,0.1415229999111034,0.12200299897813238,0.1236059997609118,0.11799700041592587,0.12815199988835957,0.14223300058802124,0.12521799908427056,0.1180279996333411,0.1225140003953129,0.12023999988741707,0.1508859986643074,0.12076100028934889,0.12290400081838015,0.13956899965705816,0.13189799938118085,0.12705100016319193,0.11866800014104228,0.1201209997816477,0.11513299978105351,0.12273500033188611,0.11492300109239295,0.13591400056611747,0.12524799967650324,0.1250179993803613,0.3596200003812555,0.16343499919457827,0.12875299944425933,0.16372599930036813,0.15047699889692012,0.13593400035460945,0.1301259999308968,0.14068099881114904,0.16026099910959601,0.1427040006092284,0.19614499979070388,0.26636999973561615,0.191146998986369,0.13648499952978455,0.14383600137080066,0.17149700033769477,0.14062099944567308,0.1363240007776767,0.14871299936203286,0.1594990008015884,0.14914399980625603,0.12968500050192233,0.16925400086620357,0.12818199866160285,0.13873799980501644,0.12272399908397347,0.13090699940221384,0.12342599984549452,0.13218900130596012,0.14091200137045234,0.1794600011635339,0.13190800018492155,0.15187800090643577,0.1271109995286679,0.13953900088381488,0.1422830009687459,0.17249899974558502,0.1680429995758459,0.13551300071412697,0.19556299957912415,0.1812820009945426,0.17302000014751684,0.166110001373454,0.14503800048260018,0.13744700117968023,0.16159299957507756,0.1533210015622899,0.16179300109797623,0.16924400006246287,0.14053099948796444,0.1391890000377316,0.13465200026985258,0.14237299910746515,0.1361539998470107,0.13593399853562005,0.15463300042029005,0.16479800069646444,0.1365549996990012,0.15808699936314952,0.1330799987044884,0.1367659988318337,0.133379999169847,0.17262900109926704,0.1500649996160064,0.13663500067195855,0.14000100054545328,0.13482299982570112,0.1427650004188763,0.13454200052365195,0.1537509997433517,0.14225400082068518,0.1405910006724298,0.13412100088316947,0.15342099868576042,0.13197899897932075,0.13734599997405894,0.15506300042034127,0.1479619986639591,0.1432349999959115,0.13311000111571047,0.13513300109480042,0.13303000014275312,0.1394889986841008,0.1496439999755239,0.15755700042063836,0.13239899999462068,0.1386579988320591,0.13046599997323938,0.15210799938358832,0.13131699961377308,0.15494299987039994,0.13490199853549711,0.14246399950934574,0.14050099889573175,0.15015600001788698,0.17649500114202965,0.13621399921248667,0.24079200011328794,0.19952999900851864,0.1905170011013979,0.1450180006941082,0.15085699851624668,0.16350599980796687,0.1507560009486042,0.1494249991083052,0.16079200031526852,0.17297999875154346,0.16222399972321,0.13960999967821408,0.165178000315791,0.16335600048478227,0.1557240011607064,0.1411520006513456,0.14274400018621236,0.13607399887405336,0.16263500037894119,0.1422240002284525,0.171547999343602,0.14745199950993992,0.3008420007972745,0.2443270004732767,0.18130299940821715,0.16312499974446837,0.16661999870848376,0.33534399881318677,0.20459799998207018,0.22897400049259886,0.2041670013568364,0.19413100017118268,0.16145299923664425,0.1897450001706602,0.17762700008461252,0.1757240006554639,0.16890299957594834,0.34498800050641876,0.22606999846175313,0.16350599980796687,0.22017099945514929,0.19135799993819091,0.17963999925996177,0.1865600006567547,0.22315500063996296,0.16886400044313632,0.1652390001254389,0.1534709990664851,0.07310000000870787],\"decisions_per_second\":372.93877341522443,\"definition\":\"rule selection + submit + next native prompt/projection; elapsed also includes resource verification/setup\",\"elapsed_seconds\":0.581864947998838,\"hardware\":{\"logical_cpus\":5,\"machine\":\"x86_64\",\"processor\":\"AMD EPYC 9V74 80-Core Processor\"},\"kernel\":\"6.18.55\",\"os\":\"Linux\",\"process_peak_rss_native_units\":34640,\"rss_units\":\"KiB on Linux; bytes on macOS\"},\"ok\":true,\"outcome\":{\"reason_code\":1,\"winner\":0},\"policy\":\"deterministic-rule-baseline-not-a-model\",\"replay_verified\":true,\"scope\":\"explicit-normal-monster-pool\",\"seed\":7,\"trace_sha256\":\"663f1d6bd5ccf9e5920e832cfde48eb788cc1c05199682be9535c4414746a81a\",\"turns\":7}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-effect-replay",
+        "docs/reports/2026-10-22-m2c-negate.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5424158700006956,\"eligibility\":{\"initial_no_target_spell_unavailable\":true,\"same_turn_jammer_unavailable\":true},\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":true,\"responses\":24,\"result\":{\"activations\":[43898403,77414722],\"cost_moves\":[{\"from_zone\":2,\"kind\":50,\"player\":1,\"public_card\":2830619,\"reason\":16512,\"to_zone\":16},{\"from_zone\":2,\"kind\":50,\"player\":0,\"public_card\":3557275,\"reason\":16512,\"to_zone\":16}],\"costs_before_resolution\":true,\"effect_destructions\":[{\"from_zone\":8,\"kind\":50,\"player\":1,\"public_card\":43898403,\"reason\":65,\"to_zone\":16}],\"graveyard_ids\":[[3557275,77414722],[2830619,43898403]],\"hand_counts\":[2,4],\"loaded_scripts\":[\"c43898403.lua\",\"c5318639.lua\",\"c77414722.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"negated_links\":[1],\"public_events\":[{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"move\"},{\"card_ids\":[],\"event\":\"move\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[43898403],\"event\":\"move\"},{\"card_ids\":[43898403],\"event\":\"activate\"},{\"card_ids\":[2830619],\"event\":\"move\"},{\"card_ids\":[77414722],\"event\":\"activate\"},{\"card_ids\":[3557275],\"event\":\"move\"},{\"card_ids\":[43898403],\"event\":\"move\"},{\"card_ids\":[77414722],\"event\":\"move\"}],\"public_history_equal\":true,\"route\":\"negate\"},\"route\":\"negate\",\"scope\":\"three selected effect cards; not full effect support\",\"seed\":1724,\"trace_sha256\":\"4e6af741b0fd4df5f81bd79a98722587a256066c8214bb8cd28713ae904037ef\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-effect-replay",
+        "docs/reports/2026-10-22-m2c-resolve.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5476954820005631,\"eligibility\":{\"initial_no_target_spell_unavailable\":true,\"same_turn_jammer_unavailable\":true},\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":true,\"responses\":22,\"result\":{\"activations\":[43898403],\"cost_moves\":[{\"from_zone\":2,\"kind\":50,\"player\":1,\"public_card\":2830619,\"reason\":16512,\"to_zone\":16}],\"costs_before_resolution\":true,\"effect_destructions\":[{\"from_zone\":8,\"kind\":50,\"player\":0,\"public_card\":5318639,\"reason\":65,\"to_zone\":16},{\"from_zone\":8,\"kind\":50,\"player\":0,\"public_card\":77414722,\"reason\":65,\"to_zone\":16}],\"graveyard_ids\":[[5318639,77414722],[2830619,43898403]],\"hand_counts\":[3,4],\"loaded_scripts\":[\"c43898403.lua\",\"c5318639.lua\",\"c77414722.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"negated_links\":[],\"public_events\":[{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"move\"},{\"card_ids\":[],\"event\":\"move\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[43898403],\"event\":\"move\"},{\"card_ids\":[43898403],\"event\":\"activate\"},{\"card_ids\":[2830619],\"event\":\"move\"},{\"card_ids\":[5318639],\"event\":\"move\"},{\"card_ids\":[77414722],\"event\":\"move\"},{\"card_ids\":[43898403],\"event\":\"move\"}],\"public_history_equal\":true,\"route\":\"resolve\"},\"route\":\"resolve\",\"scope\":\"three selected effect cards; not full effect support\",\"seed\":1724,\"trace_sha256\":\"c2f564280d7883ff779129d2882796b91554a912e03e21b9feaa16cc3185176b\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-search-replay",
+        "docs/reports/2026-10-22-m2d-field-twice.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5429288710001856,\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":true,\"responses\":28,\"result\":{\"activations\":[53129443,26202165,83764718,53129443],\"confirmations\":[{\"both_public_histories_agree\":true,\"opponent_public_hand_ids\":[],\"revealed_ids\":[32864]}],\"hand_counts\":[2,5],\"loaded_scripts\":[\"c26202165.lua\",\"c53129443.lua\",\"c83764718.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"route\":\"field-twice\",\"sangan_activations\":1,\"sangan_field_to_grave\":2,\"search_windows\":[{\"candidate_count\":29,\"candidate_ids\":[32864,549481,732302,756652,1184620,1761063,1784619,1929294,2118022,2468169,2483611,2830619,2863439,2906250,2957055,3134241,3170832,3573512,3606209,3732747,3985011,4042268,4920010,4931562,5434080,5628232,5818798,6103114,6297941],\"opponent_public_history_ids\":[26202165,26202165,53129443,53129443,26202165,53129443,26202165],\"player\":0}],\"turns\":1},\"route\":\"field-twice\",\"seed\":9154,\"trace_sha256\":\"ee7c61e0ac651d44b91cdf314646d20f375b02739a9ffb2f9fe46fb6964bf0de\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-search-replay",
+        "docs/reports/2026-10-22-m2d-deck-grave.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5490439389996027,\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":true,\"responses\":5,\"result\":{\"activations\":[81439173],\"confirmations\":[],\"hand_counts\":[4,5],\"loaded_scripts\":[\"c26202165.lua\",\"c81439173.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"route\":\"deck-grave\",\"sangan_activations\":0,\"sangan_field_to_grave\":0,\"search_windows\":[{\"candidate_count\":35,\"candidate_ids\":[32864,549481,732302,756652,1184620,1761063,1784619,1929294,2311603,2468169,2483611,2830619,2863439,2906250,2957055,3134241,3170832,3557275,3573512,3732747,3985011,4042268,4148264,4920010,4931562,5053103,5265750,5388481,5434080,5464695,5628232,5818798,6367785,6400512,26202165],\"opponent_public_history_ids\":[81439173,81439173],\"player\":0}],\"turns\":1},\"route\":\"deck-grave\",\"seed\":24,\"trace_sha256\":\"daecee3f7a3cc7de2ebf0039467df5c674773e22fec376c0db371ece68802449\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-search-replay",
+        "docs/reports/2026-10-22-m2e-cross-turn.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5540648520000104,\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":true,\"responses\":38,\"result\":{\"activations\":[53129443,26202165,53129443,26202165],\"confirmations\":[{\"both_public_histories_agree\":true,\"opponent_public_hand_ids\":[],\"revealed_ids\":[32864]},{\"both_public_histories_agree\":true,\"opponent_public_hand_ids\":[],\"revealed_ids\":[549481]}],\"hand_counts\":[4,6],\"loaded_scripts\":[\"c26202165.lua\",\"c53129443.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"maximum_sangan_on_field\":1,\"route\":\"cross-turn\",\"sangan_activation_turns\":[1,3],\"sangan_activations\":2,\"sangan_field_to_grave\":2,\"search_windows\":[{\"candidate_count\":29,\"candidate_ids\":[32864,549481,732302,756652,1184620,1761063,1784619,1929294,2118022,2468169,2483611,2830619,2863439,2906250,2957055,3134241,3170832,3573512,3606209,3732747,3985011,4042268,4920010,4931562,5434080,5628232,5818798,6103114,6297941],\"opponent_public_history_ids\":[26202165,26202165,53129443,53129443,26202165,53129443,26202165],\"player\":0},{\"candidate_count\":27,\"candidate_ids\":[549481,756652,1184620,1761063,1784619,1929294,2118022,2468169,2483611,2830619,2863439,2906250,2957055,3134241,3170832,3573512,3606209,3732747,3985011,4042268,4920010,4931562,5434080,5628232,5818798,6103114,6297941],\"opponent_public_history_ids\":[26202165,26202165,53129443,53129443,26202165,53129443,26202165,32864,26202165,26202165,53129443,53129443,26202165,53129443,26202165],\"player\":0}],\"turns\":3},\"route\":\"cross-turn\",\"seed\":9154,\"trace_sha256\":\"e2fedcd819183bde8a375dda8ea2c7a62e9cc7e8ff72016782708ab4a90db3d4\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-search-replay",
+        "docs/reports/2026-10-22-m2e-shared-name.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5502761539992207,\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":true,\"responses\":26,\"result\":{\"activations\":[43422537,53129443,26202165],\"confirmations\":[{\"both_public_histories_agree\":true,\"opponent_public_hand_ids\":[],\"revealed_ids\":[32864]}],\"hand_counts\":[2,5],\"loaded_scripts\":[\"c26202165.lua\",\"c43422537.lua\",\"c53129443.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"maximum_sangan_on_field\":2,\"route\":\"shared-name\",\"sangan_activation_turns\":[1],\"sangan_activations\":1,\"sangan_field_to_grave\":2,\"search_windows\":[{\"candidate_count\":29,\"candidate_ids\":[32864,549481,732302,756652,1184620,1761063,1784619,1929294,2118022,2468169,2483611,2830619,2863439,2906250,2957055,3134241,3170832,3573512,3606209,3732747,3985011,4042268,4920010,4931562,5434080,5628232,5818798,6103114,6297941],\"opponent_public_history_ids\":[26202165,26202165,43422537,43422537,43422537,26202165,26202165,53129443,53129443,26202165,26202165,53129443,26202165],\"player\":0}],\"turns\":1},\"route\":\"shared-name\",\"seed\":9154,\"trace_sha256\":\"798d48cca593f871945b1f106dd066fbb81f61ac5a5a41769213d0a16be9350a\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-search-replay",
+        "docs/reports/2026-10-22-m2e-activation-lock.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5491064270008792,\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":true,\"responses\":27,\"result\":{\"activations\":[43422537,53129443,26202165],\"cardcar_d_activation_available\":false,\"cardcar_d_effect_resolved\":false,\"confirmations\":[{\"both_public_histories_agree\":true,\"opponent_public_hand_ids\":[],\"revealed_ids\":[45812361]}],\"hand_counts\":[2,5],\"loaded_scripts\":[\"c26202165.lua\",\"c43422537.lua\",\"c45812361.lua\",\"c53129443.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"route\":\"activation-lock\",\"sangan_activations\":1,\"sangan_field_to_grave\":1,\"search_windows\":[{\"candidate_count\":29,\"candidate_ids\":[32864,549481,732302,756652,1184620,1761063,1929294,2118022,2468169,2483611,2830619,2863439,2906250,2957055,3134241,3170832,3557275,3606209,3732747,3985011,4042268,4920010,4931562,5434080,5628232,5818798,6103114,6297941,45812361],\"opponent_public_history_ids\":[26202165,26202165,43422537,43422537,43422537,53129443,53129443,26202165,53129443,26202165],\"player\":0}],\"turns\":1},\"route\":\"activation-lock\",\"seed\":494,\"trace_sha256\":\"204ab42482c9dc4be40bbd76ce5300bb64eb508baa39ad4fb742b7b134c959ba\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-search-replay",
+        "docs/reports/2026-10-22-m2e-activation-control.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5402107379995869,\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":true,\"responses\":6,\"result\":{\"activations\":[],\"cardcar_d_activation_available\":true,\"cardcar_d_effect_resolved\":false,\"confirmations\":[],\"hand_counts\":[4,5],\"loaded_scripts\":[\"c45812361.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"route\":\"activation-control\",\"sangan_activations\":0,\"sangan_field_to_grave\":0,\"search_windows\":[],\"turns\":1},\"route\":\"activation-control\",\"seed\":24,\"trace_sha256\":\"98730172eef353e29fa9e36f66ff7eb6a086eb1400a73d4c230551d8657340c6\"}\n",
+      "stderr": ""
+    }
+  ],
+  "original_files_verified": 11
+}
