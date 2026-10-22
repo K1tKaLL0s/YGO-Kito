@@ -1,0 +1,391 @@
+{
+  "timestamp_utc": "2026-10-22T19:11:23.274818+00:00",
+  "code_commit": "67856f86d40f421b107f9efde72225b737206093",
+  "unit_tests": 55,
+  "checks": [
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "agent-serve",
+        "--state-root",
+        "/workspace/YGO-Kito/.cache/m2g-evidence-20261023",
+        "--role",
+        "monitor"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"id\":\"caps\",\"ok\":true,\"result\":{\"api\":\"ygo-kito-local-json-v1\",\"methods\":[\"capabilities\",\"checkpoints.read\",\"opponents.summary\",\"runs.list\",\"runs.metrics\",\"runs.read\"],\"model_verified\":false,\"provider_connected\":false,\"provider_invocation_implemented\":false,\"role\":\"monitor\",\"training_backend_configured\":false,\"transport\":\"json-lines-not-mcp\"},\"schema_version\":1}\n{\"id\":\"empty\",\"ok\":true,\"result\":[],\"schema_version\":1}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "agent-call",
+        "/workspace/YGO-Kito/.cache/m2g-evidence-20261023/unconfigured-control.json",
+        "--state-root",
+        "/workspace/YGO-Kito/.cache/m2g-evidence-20261023",
+        "--role",
+        "trainer"
+      ],
+      "exit_code": 2,
+      "stdout": "{\"error\":{\"code\":\"TRAINING_BACKEND_NOT_CONFIGURED\",\"message\":\"no training backend; no operation executed\"},\"id\":\"unconfigured\",\"ok\":false,\"schema_version\":1}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-effect-duel-replay",
+        "docs/reports/2026-10-23-m2f-effect-duel.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"activation_count\":11,\"decisions\":250,\"engine\":\"real-ygopro-core-and-upstream-lua\",\"general_card_pool_supported\":false,\"loaded_scripts\":[\"c14087893.lua\",\"c26202165.lua\",\"c43422537.lua\",\"c43898403.lua\",\"c45812361.lua\",\"c4929256.lua\",\"c53129443.lua\",\"c5318639.lua\",\"c54652250.lua\",\"c70095154.lua\",\"c71413901.lua\",\"c77414722.lua\",\"c81439173.lua\",\"c83764718.lua\",\"c98045062.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"metrics\":{\"cpu_seconds\":0.67671989,\"decision_cycle_median_ms\":0.47823350018916244,\"decision_cycle_p95_ms\":0.6622559999414079,\"decision_cycle_p99_ms\":1.5787019997333118,\"decision_cycle_samples_ms\":[0.31846899992160616,0.2511769998818636,0.19521400008670753,0.22769299994251924,0.18393599975752295,0.20600900006684242,0.22034100038581528,0.24137199989127112,0.2131599999302125,0.20761199994012713,0.2133200000571378,0.2231849998679536,0.2048579999609501,0.21900899992033374,0.2552440000727074,0.26150199983021594,0.19583400035116938,0.2231749999737076,0.1906770003188285,0.27363100025468157,0.2540020000196819,0.42713199991339934,0.2951930000563152,0.25915000014720135,0.3179080003974377,0.242653999976028,0.315133999720274,0.28591900036190054,0.4909669996777666,0.35991999993711943,0.3429449998293421,0.2994599999510683,0.3558339999472082,0.3089249998993182,0.28730200028803665,0.30314500008898904,0.31245899981513503,0.30977500000517466,0.30431699997279793,0.347983000210661,0.34541900004114723,0.3584490000321239,0.3005710000252293,0.3426849998504622,0.346090000221011,0.36340599990580813,0.2950329999293899,0.3028950000043551,0.3524700000525627,0.3246979999858013,0.3477029999885417,0.37635599983332213,0.321983000048931,0.3180479998263763,0.3537810002853803,0.3539319995979895,0.3220840003450576,0.4942430000483,0.3272509998168971,0.4434359998413129,0.36492900017037755,0.34022199997707503,0.3229560002182552,0.44177400013722945,0.3321189997222973,0.48877499966692994,0.48819299991009757,0.3716289998010325,0.3143330000057176,0.39201899971885723,0.3563150003174087,0.3673420001177874,0.38890399991942104,0.4250690003573254,0.38484800006699516,0.5272029998195649,0.49711599967849907,0.36212399982105126,0.3453389999776846,0.32593000014458084,0.3526700002112193,0.40272500018545543,0.44621100005315384,0.36840400025539566,0.3814940000665956,0.37549400030911784,0.37691600027756067,0.3997600001639512,0.3896250000252621,0.37003599982199376,0.5384590003814083,0.3968260002693569,0.43934999985140166,0.4137010000704322,0.45147899982111994,0.4503370000747964,0.4260499999872991,0.40394699999524164,0.4233459999340994,0.5131809998601966,0.39465300005758763,0.4081229999428615,0.4322190002312709,0.4000310000265017,0.4100659998584888,0.38351600005626096,0.411478000387433,0.6257600002754771,0.4717690003417374,0.40912500026024645,0.49434299990025465,0.4340219998084649,0.40276500021718675,0.4110069999114785,0.4154640000706422,0.41424199980610865,0.40775200022835634,0.37777699981234036,0.40743199997450574,0.3918590000466793,0.549474999843369,0.4861809998146782,0.4754840001623961,0.5176370000299357,0.4961549998370174,0.43557500021051965,0.4906679996565799,0.4736219998449087,0.5598409998128773,0.55398199992851,0.46953600030974485,0.5688550004379067,0.6026159999237279,0.7215139999061648,0.48018200004662503,0.5808020000586112,0.49546499985808623,0.494233000154054,0.4761249997500272,0.49949000003834954,0.4770270002154575,0.5809629997202137,0.47487399979218026,0.47362100031023147,0.4919790003441449,0.4969159999745898,0.48184399975070846,0.48371599996244186,0.46399700022448087,0.46921500006646966,0.47325100013040355,0.46271599967440125,0.5883439998797257,0.5167559997971694,0.7475530001102015,0.6670220000160043,0.5813940001644369,0.48924500015345984,0.4863200001636869,0.49993099992207135,0.5533110002033936,0.48695200030124397,0.5581679997703759,0.48177400003623916,0.5038969998167886,0.4899760001535469,0.47944000016286736,0.49467300004835124,0.4738519996863033,0.4563659999803349,0.5117380001138372,0.515834999987419,0.5466309999064833,0.47978100019463454,0.5426050001915428,0.560622000193689,0.5527399998754845,0.7922599997982616,0.5769669996880111,0.6795009999223112,0.5598809998446086,0.5648179999298009,0.5700470001102076,0.5845380001119338,0.6219839997356758,0.6224750000001222,0.6333820001600543,0.5434560002868238,0.5440879999696335,0.6393310000021302,0.589386000228842,0.6431970000448928,0.693081000008533,0.5443779996312514,0.5746430001636327,0.5191999998714891,0.5565659998865158,0.5043169999225938,0.5324799999470997,0.5023040002924972,0.5445280003186781,0.5509279999387218,0.5904569998165243,0.5382790000112436,0.6086140001571039,0.64742299991849,0.5369160003283469,0.5520390000128828,0.5434169997897698,0.6272430000535678,0.5940920000284677,0.6779190002816904,0.6622559999414079,0.8051599997997982,0.8006329999261652,0.5995199999233591,0.6218849998731457,0.6062699999347387,0.5607530001725536,0.5803519998153206,0.5531310002879763,0.5980290002298716,0.5923799999436596,0.6053990000509657,1.5787019997333118,0.5904669997107703,0.6399509998118447,0.5682840001099976,1.6435900001852133,0.618278999809263,0.5696859998352011,1.7643810001573002,0.6448290000662382,0.6178480002745346,0.6560460001310275,0.583096000354999,0.603457000124763,0.5693049997717026,0.5726499998672807,0.6117789998825174,0.5734709998250764,0.5928099999437109,0.5713689997719484,0.5890649999855668,0.5794009998680849,0.5574580000029528,0.5758960001003288,0.5597210001724306,0.5578689997491892,0.2758750001703447],\"elapsed_seconds\":0.6767371529999764,\"hardware\":{\"logical_cpus\":5,\"machine\":\"x86_64\",\"processor\":\"AMD EPYC 9V74 80-Core Processor\"},\"process_peak_rss_kib_linux\":65732},\"ok\":true,\"outcome\":{\"reason_code\":1,\"winner\":1},\"prompt_counts\":{\"10\":11,\"11\":20,\"14\":1,\"15\":13,\"16\":188,\"18\":16,\"19\":1},\"replay_verified\":true,\"scope\":\"explicit-effect-main-decks\",\"seed\":1724,\"trace_sha256\":\"ba54c7c8826932fcc9d2fb29cfb7ed5ee7acba712fb5f4220317f46de218d9bb\",\"trained_model\":false,\"turns\":6}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-replay",
+        "docs/reports/2026-10-22-normal-m2b.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"decisions\":217,\"engine\":\"real-ygopro-core\",\"events\":477,\"general_effect_duels_supported\":false,\"life_points\":[8000,0],\"metrics\":{\"cpu_seconds\":0.589995821,\"decision_cycle_ms\":{\"median\":0.1526800001556694,\"p95\":0.2121580000675749,\"p99\":0.24548900000809226},\"decision_cycle_samples_ms\":[0.26452700012669084,0.1961150001079659,0.16549800011489424,0.14077200012252433,0.12701999958153465,0.12348600012046518,0.12537900011011516,0.18359600016992772,0.1251579997187946,0.1875009998002497,0.18157300019083777,0.16106200018839445,0.1318180002272129,0.16204299981836812,0.12752200018439908,0.1304460001847474,0.13387099988904083,0.3094949997830554,0.1663500001995999,0.2057290002994705,0.13135700010025175,0.13003499998376356,0.12603999994098558,0.13549400000556489,0.11862799965456361,0.12432699986675289,0.14451700008066837,0.1335410001956916,0.14038099971003248,0.16202300002987613,0.12041100035276031,0.14179300023897667,0.12290399990888545,0.15125700019780197,0.13303000014275312,0.12932399977216846,0.15140799996515852,0.12409700002535828,0.1848479996624519,0.17407199993613176,0.17628499972488498,0.13738600000579027,0.14045099987924914,0.12921500001539243,0.1416929999322747,0.14543899987984332,0.15687599989178125,0.2187489999414538,0.1359240000056161,0.13366100029088557,0.12985500006834627,0.1409120000062103,0.12890400012111058,0.15355100003944244,0.13372100011110888,0.18406699973638752,0.13644499995280057,0.16009000000849483,0.13079700011076056,0.13522300014301436,0.15122700006031664,0.14983500022935914,0.1405010002599738,0.12738100031128852,0.129584999740473,0.12621900032172562,0.13535300013245433,0.1496649997534405,0.13565300014306558,0.12861300001532072,0.14980499963712646,0.1301050001529802,0.15072599990162416,0.12939499993080972,0.1321189997725014,0.14821299964751233,0.1365649995932472,0.13717599995288765,0.14303499983725487,0.18064100004266948,0.15264900002875947,0.2321890001439897,0.22853299969938234,0.19044600003326195,0.14023099993210053,0.14726199970027665,0.13661499997397186,0.16536800012545427,0.14680000003863825,0.1592590001564531,0.17809800010581966,0.15873900019869325,0.13534399977288558,0.15937999978632433,0.1358640001853928,0.14458699979513767,0.14611999995395308,0.13656500004799454,0.1299049999943236,0.1413029999639548,0.15219900024021626,0.16414700030509266,0.13527300006899168,0.15568299977530842,0.13733600007981295,0.14469699999608565,0.14023099993210053,0.1664100000198232,0.2301459999216604,0.1526800001556694,0.20954499996150844,0.193851999938488,0.2041870002358337,0.15348000033554854,0.15311100014514523,0.14469699999608565,0.1606109999556793,0.16074199993454386,0.19086700012849178,0.1667009996708657,0.1471709997531434,0.151146999996854,0.14526799986924743,0.1542519999020442,0.14249500009100302,0.1740009997774905,0.144707000345079,0.15007499996499973,0.1469409999117488,0.16553900013605016,0.1450179997846135,0.16746199980843812,0.14811300025030505,0.18746199975794298,0.16513799982931232,0.1597500004208996,0.151117000314116,0.16662100006215042,0.15962999987095827,0.14409599998543854,0.1496449999649485,0.14242399993236177,0.14808200012339512,0.14231300019673654,0.1919379997161741,0.15333999999711523,0.1535309997962031,0.14527900020766538,0.16083200034699985,0.15886899973338586,0.16552899978705682,0.15065600018715486,0.14426699999603443,0.15418099974340294,0.14551799995388137,0.14735100012330804,0.14432699981625774,0.17272900004172698,0.15509300010307925,0.19947999999203603,0.14800300004935707,0.14835299998594564,0.14506800016533816,0.17776699996829848,0.1561150002089562,0.1656290000937588,0.19709599973793956,0.15046599992274423,0.21663600000465522,0.23808800006008823,0.2067300001726835,0.15935900000840775,0.16793299982964527,0.15179799993347842,0.18662000002223067,0.17112700015786686,0.17749700009517255,0.1833960000112711,0.17441199997847434,0.15170799997576978,0.18009999985224567,0.1519279999229184,0.1945020003404352,0.15598499976476887,0.157556999965891,0.15088700001797406,0.1833760002227791,0.15648499993403675,0.17214799981957185,0.1513570000497566,0.18505799971535453,0.15664600005038665,0.20388600023579784,0.1694139996288868,0.16537800001970027,0.18715099986366113,0.15974999996615225,0.24548900000809226,0.2135009999619797,0.19939000003432739,0.16516799996679765,0.17048600011548842,0.16149199973369832,0.2121580000675749,0.20226400010869838,0.19404199974815128,0.17729699993651593,0.1619740000933234,0.19809800005532452,0.17576399977770052,0.1743110001370951,0.16106200018839445,0.16146300004038494,0.1592590001564531,0.190286000361084,0.16285499987134244,0.07501299978684983],\"decisions_per_second\":369.09133816766473,\"definition\":\"rule selection + submit + next native prompt/projection; elapsed also includes resource verification/setup\",\"elapsed_seconds\":0.5879303510000682,\"hardware\":{\"logical_cpus\":5,\"machine\":\"x86_64\",\"processor\":\"AMD EPYC 9V74 80-Core Processor\"},\"kernel\":\"6.18.55\",\"os\":\"Linux\",\"process_peak_rss_native_units\":65732,\"rss_units\":\"KiB on Linux; bytes on macOS\"},\"ok\":true,\"outcome\":{\"reason_code\":1,\"winner\":0},\"policy\":\"deterministic-rule-baseline-not-a-model\",\"replay_verified\":true,\"scope\":\"explicit-normal-monster-pool\",\"seed\":7,\"trace_sha256\":\"663f1d6bd5ccf9e5920e832cfde48eb788cc1c05199682be9535c4414746a81a\",\"turns\":7}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-effect-replay",
+        "docs/reports/2026-10-22-m2c-negate.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5551422520002234,\"eligibility\":{\"initial_no_target_spell_unavailable\":true,\"same_turn_jammer_unavailable\":true},\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":true,\"responses\":24,\"result\":{\"activations\":[43898403,77414722],\"cost_moves\":[{\"from_zone\":2,\"kind\":50,\"player\":1,\"public_card\":2830619,\"reason\":16512,\"to_zone\":16},{\"from_zone\":2,\"kind\":50,\"player\":0,\"public_card\":3557275,\"reason\":16512,\"to_zone\":16}],\"costs_before_resolution\":true,\"effect_destructions\":[{\"from_zone\":8,\"kind\":50,\"player\":1,\"public_card\":43898403,\"reason\":65,\"to_zone\":16}],\"graveyard_ids\":[[3557275,77414722],[2830619,43898403]],\"hand_counts\":[2,4],\"loaded_scripts\":[\"c43898403.lua\",\"c5318639.lua\",\"c77414722.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"negated_links\":[1],\"public_events\":[{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"move\"},{\"card_ids\":[],\"event\":\"move\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[43898403],\"event\":\"move\"},{\"card_ids\":[43898403],\"event\":\"activate\"},{\"card_ids\":[2830619],\"event\":\"move\"},{\"card_ids\":[77414722],\"event\":\"activate\"},{\"card_ids\":[3557275],\"event\":\"move\"},{\"card_ids\":[43898403],\"event\":\"move\"},{\"card_ids\":[77414722],\"event\":\"move\"}],\"public_history_equal\":true,\"route\":\"negate\"},\"route\":\"negate\",\"scope\":\"three selected effect cards; not full effect support\",\"seed\":1724,\"trace_sha256\":\"4e6af741b0fd4df5f81bd79a98722587a256066c8214bb8cd28713ae904037ef\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-effect-replay",
+        "docs/reports/2026-10-22-m2c-resolve.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5585845129999143,\"eligibility\":{\"initial_no_target_spell_unavailable\":true,\"same_turn_jammer_unavailable\":true},\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":true,\"responses\":22,\"result\":{\"activations\":[43898403],\"cost_moves\":[{\"from_zone\":2,\"kind\":50,\"player\":1,\"public_card\":2830619,\"reason\":16512,\"to_zone\":16}],\"costs_before_resolution\":true,\"effect_destructions\":[{\"from_zone\":8,\"kind\":50,\"player\":0,\"public_card\":5318639,\"reason\":65,\"to_zone\":16},{\"from_zone\":8,\"kind\":50,\"player\":0,\"public_card\":77414722,\"reason\":65,\"to_zone\":16}],\"graveyard_ids\":[[5318639,77414722],[2830619,43898403]],\"hand_counts\":[3,4],\"loaded_scripts\":[\"c43898403.lua\",\"c5318639.lua\",\"c77414722.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"negated_links\":[],\"public_events\":[{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"move\"},{\"card_ids\":[],\"event\":\"move\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[43898403],\"event\":\"move\"},{\"card_ids\":[43898403],\"event\":\"activate\"},{\"card_ids\":[2830619],\"event\":\"move\"},{\"card_ids\":[5318639],\"event\":\"move\"},{\"card_ids\":[77414722],\"event\":\"move\"},{\"card_ids\":[43898403],\"event\":\"move\"}],\"public_history_equal\":true,\"route\":\"resolve\"},\"route\":\"resolve\",\"scope\":\"three selected effect cards; not full effect support\",\"seed\":1724,\"trace_sha256\":\"c2f564280d7883ff779129d2882796b91554a912e03e21b9feaa16cc3185176b\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-search-replay",
+        "docs/reports/2026-10-22-m2d-field-twice.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5401695479999944,\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":true,\"responses\":28,\"result\":{\"activations\":[53129443,26202165,83764718,53129443],\"confirmations\":[{\"both_public_histories_agree\":true,\"opponent_public_hand_ids\":[],\"revealed_ids\":[32864]}],\"hand_counts\":[2,5],\"loaded_scripts\":[\"c26202165.lua\",\"c53129443.lua\",\"c83764718.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"route\":\"field-twice\",\"sangan_activations\":1,\"sangan_field_to_grave\":2,\"search_windows\":[{\"candidate_count\":29,\"candidate_ids\":[32864,549481,732302,756652,1184620,1761063,1784619,1929294,2118022,2468169,2483611,2830619,2863439,2906250,2957055,3134241,3170832,3573512,3606209,3732747,3985011,4042268,4920010,4931562,5434080,5628232,5818798,6103114,6297941],\"opponent_public_history_ids\":[26202165,26202165,53129443,53129443,26202165,53129443,26202165],\"player\":0}],\"turns\":1},\"route\":\"field-twice\",\"seed\":9154,\"trace_sha256\":\"ee7c61e0ac651d44b91cdf314646d20f375b02739a9ffb2f9fe46fb6964bf0de\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-search-replay",
+        "docs/reports/2026-10-22-m2d-deck-grave.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5243445430000975,\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":true,\"responses\":5,\"result\":{\"activations\":[81439173],\"confirmations\":[],\"hand_counts\":[4,5],\"loaded_scripts\":[\"c26202165.lua\",\"c81439173.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"route\":\"deck-grave\",\"sangan_activations\":0,\"sangan_field_to_grave\":0,\"search_windows\":[{\"candidate_count\":35,\"candidate_ids\":[32864,549481,732302,756652,1184620,1761063,1784619,1929294,2311603,2468169,2483611,2830619,2863439,2906250,2957055,3134241,3170832,3557275,3573512,3732747,3985011,4042268,4148264,4920010,4931562,5053103,5265750,5388481,5434080,5464695,5628232,5818798,6367785,6400512,26202165],\"opponent_public_history_ids\":[81439173,81439173],\"player\":0}],\"turns\":1},\"route\":\"deck-grave\",\"seed\":24,\"trace_sha256\":\"daecee3f7a3cc7de2ebf0039467df5c674773e22fec376c0db371ece68802449\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-search-replay",
+        "docs/reports/2026-10-22-m2e-cross-turn.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5520110070001465,\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":true,\"responses\":38,\"result\":{\"activations\":[53129443,26202165,53129443,26202165],\"confirmations\":[{\"both_public_histories_agree\":true,\"opponent_public_hand_ids\":[],\"revealed_ids\":[32864]},{\"both_public_histories_agree\":true,\"opponent_public_hand_ids\":[],\"revealed_ids\":[549481]}],\"hand_counts\":[4,6],\"loaded_scripts\":[\"c26202165.lua\",\"c53129443.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"maximum_sangan_on_field\":1,\"route\":\"cross-turn\",\"sangan_activation_turns\":[1,3],\"sangan_activations\":2,\"sangan_field_to_grave\":2,\"search_windows\":[{\"candidate_count\":29,\"candidate_ids\":[32864,549481,732302,756652,1184620,1761063,1784619,1929294,2118022,2468169,2483611,2830619,2863439,2906250,2957055,3134241,3170832,3573512,3606209,3732747,3985011,4042268,4920010,4931562,5434080,5628232,5818798,6103114,6297941],\"opponent_public_history_ids\":[26202165,26202165,53129443,53129443,26202165,53129443,26202165],\"player\":0},{\"candidate_count\":27,\"candidate_ids\":[549481,756652,1184620,1761063,1784619,1929294,2118022,2468169,2483611,2830619,2863439,2906250,2957055,3134241,3170832,3573512,3606209,3732747,3985011,4042268,4920010,4931562,5434080,5628232,5818798,6103114,6297941],\"opponent_public_history_ids\":[26202165,26202165,53129443,53129443,26202165,53129443,26202165,32864,26202165,26202165,53129443,53129443,26202165,53129443,26202165],\"player\":0}],\"turns\":3},\"route\":\"cross-turn\",\"seed\":9154,\"trace_sha256\":\"e2fedcd819183bde8a375dda8ea2c7a62e9cc7e8ff72016782708ab4a90db3d4\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-search-replay",
+        "docs/reports/2026-10-22-m2e-shared-name.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5385917270000391,\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":true,\"responses\":26,\"result\":{\"activations\":[43422537,53129443,26202165],\"confirmations\":[{\"both_public_histories_agree\":true,\"opponent_public_hand_ids\":[],\"revealed_ids\":[32864]}],\"hand_counts\":[2,5],\"loaded_scripts\":[\"c26202165.lua\",\"c43422537.lua\",\"c53129443.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"maximum_sangan_on_field\":2,\"route\":\"shared-name\",\"sangan_activation_turns\":[1],\"sangan_activations\":1,\"sangan_field_to_grave\":2,\"search_windows\":[{\"candidate_count\":29,\"candidate_ids\":[32864,549481,732302,756652,1184620,1761063,1784619,1929294,2118022,2468169,2483611,2830619,2863439,2906250,2957055,3134241,3170832,3573512,3606209,3732747,3985011,4042268,4920010,4931562,5434080,5628232,5818798,6103114,6297941],\"opponent_public_history_ids\":[26202165,26202165,43422537,43422537,43422537,26202165,26202165,53129443,53129443,26202165,26202165,53129443,26202165],\"player\":0}],\"turns\":1},\"route\":\"shared-name\",\"seed\":9154,\"trace_sha256\":\"798d48cca593f871945b1f106dd066fbb81f61ac5a5a41769213d0a16be9350a\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-search-replay",
+        "docs/reports/2026-10-22-m2e-activation-lock.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5494233889999123,\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":true,\"responses\":27,\"result\":{\"activations\":[43422537,53129443,26202165],\"cardcar_d_activation_available\":false,\"cardcar_d_effect_resolved\":false,\"confirmations\":[{\"both_public_histories_agree\":true,\"opponent_public_hand_ids\":[],\"revealed_ids\":[45812361]}],\"hand_counts\":[2,5],\"loaded_scripts\":[\"c26202165.lua\",\"c43422537.lua\",\"c45812361.lua\",\"c53129443.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"route\":\"activation-lock\",\"sangan_activations\":1,\"sangan_field_to_grave\":1,\"search_windows\":[{\"candidate_count\":29,\"candidate_ids\":[32864,549481,732302,756652,1184620,1761063,1929294,2118022,2468169,2483611,2830619,2863439,2906250,2957055,3134241,3170832,3557275,3606209,3732747,3985011,4042268,4920010,4931562,5434080,5628232,5818798,6103114,6297941,45812361],\"opponent_public_history_ids\":[26202165,26202165,43422537,43422537,43422537,53129443,53129443,26202165,53129443,26202165],\"player\":0}],\"turns\":1},\"route\":\"activation-lock\",\"seed\":494,\"trace_sha256\":\"204ab42482c9dc4be40bbd76ce5300bb64eb508baa39ad4fb742b7b134c959ba\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-search-replay",
+        "docs/reports/2026-10-22-m2e-activation-control.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5287046540001938,\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":true,\"responses\":6,\"result\":{\"activations\":[],\"cardcar_d_activation_available\":true,\"cardcar_d_effect_resolved\":false,\"confirmations\":[],\"hand_counts\":[4,5],\"loaded_scripts\":[\"c45812361.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"route\":\"activation-control\",\"sangan_activations\":0,\"sangan_field_to_grave\":0,\"search_windows\":[],\"turns\":1},\"route\":\"activation-control\",\"seed\":24,\"trace_sha256\":\"98730172eef353e29fa9e36f66ff7eb6a086eb1400a73d4c230551d8657340c6\"}\n",
+      "stderr": ""
+    }
+  ],
+  "local_api": [
+    {
+      "method": "environment.register",
+      "result": {
+        "authority": "custom",
+        "environment_id": "custom-native-current",
+        "historical_rules_verified": false,
+        "release_cutoff": null,
+        "runtime_compatible": true,
+        "validation": "custom-runtime-verified",
+        "versions": {
+          "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+          "card_pool": "native-effect-duel-v1",
+          "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+          "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+          "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+        }
+      }
+    },
+    {
+      "method": "deck.import",
+      "result": {
+        "cards": {
+          "extra": [],
+          "main": [
+            32864,
+            549481,
+            732302,
+            756652,
+            1184620,
+            1761063,
+            1784619,
+            1929294,
+            2118022,
+            2311603,
+            26202165,
+            26202165,
+            26202165,
+            71413901,
+            71413901,
+            71413901,
+            4929256,
+            4929256,
+            70095154,
+            70095154,
+            54652250,
+            54652250,
+            45812361,
+            98045062,
+            98045062,
+            98045062,
+            14087893,
+            14087893,
+            14087893,
+            43898403,
+            43898403,
+            5318639,
+            5318639,
+            53129443,
+            83764718,
+            43422537,
+            81439173,
+            77414722,
+            77414722,
+            77414722
+          ],
+          "side": []
+        },
+        "deck_id": "engineering-own",
+        "environment_id": "custom-native-current",
+        "historical_rules_verified": false,
+        "runtime_compatible": true,
+        "sha256": "d07793a84067021e256298cfcce238336c6e43330a1d3eed0e32488e6a782f04",
+        "source": "engineering_fixture",
+        "user_acceptance_verified": false,
+        "validation": "custom-runtime-verified"
+      }
+    },
+    {
+      "method": "deck.import",
+      "result": {
+        "cards": {
+          "extra": [],
+          "main": [
+            32864,
+            549481,
+            732302,
+            756652,
+            1184620,
+            1761063,
+            1784619,
+            1929294,
+            2118022,
+            2311603,
+            26202165,
+            26202165,
+            26202165,
+            71413901,
+            71413901,
+            71413901,
+            4929256,
+            4929256,
+            70095154,
+            70095154,
+            54652250,
+            54652250,
+            45812361,
+            98045062,
+            98045062,
+            98045062,
+            14087893,
+            14087893,
+            14087893,
+            43898403,
+            43898403,
+            5318639,
+            5318639,
+            53129443,
+            83764718,
+            43422537,
+            81439173,
+            77414722,
+            77414722,
+            77414722
+          ],
+          "side": []
+        },
+        "deck_id": "engineering-opponent",
+        "environment_id": "custom-native-current",
+        "historical_rules_verified": false,
+        "runtime_compatible": true,
+        "sha256": "d07793a84067021e256298cfcce238336c6e43330a1d3eed0e32488e6a782f04",
+        "source": "engineering_fixture",
+        "user_acceptance_verified": false,
+        "validation": "custom-runtime-verified"
+      }
+    },
+    {
+      "method": "opponent.register",
+      "result": {
+        "controller": "external_llm",
+        "deck_id": "engineering-opponent",
+        "driver_version": "engineering-v1",
+        "environment_id": "custom-native-current",
+        "model": "no-connected-model",
+        "operation_strength_verified": false,
+        "opponent_id": "engineering-slot",
+        "provider": "local-contract-driver",
+        "provider_verified": false,
+        "source": "engineering_fixture",
+        "training_ready": false,
+        "validation": "registered-not-end-to-end-verified"
+      }
+    }
+  ],
+  "source": "engineering-fixtures-not-user-decks",
+  "external_provider_calls": 0,
+  "coding_handoff": {
+    "task_id": "next-bounded-work",
+    "checklist_ids": [
+      "EA-07"
+    ],
+    "goal": "Verify the target CodeBuddy environment after authorization without changing credentials.",
+    "model": "explicit-unverified-target-model",
+    "branch": "codex/phase-1-cpu-foundation",
+    "head": "992ba44aadb374a2d5b442beeb5cb279f212b16a",
+    "workspace": "/workspace/YGO-Kito",
+    "constraints": [
+      "preserve learning TODO",
+      "no merge or force push",
+      "no paid training or API fallback",
+      "no Tencent Cloud or GPU launch",
+      "no model or CUDA downloads",
+      "no credential or permission changes",
+      "save and stop at 20 percent quota",
+      "update MASTER-CHECKLIST evidence"
+    ],
+    "provider": "codebuddy-cli",
+    "cli_available": false,
+    "model_verified": false,
+    "external_end_to_end_verified": false,
+    "executed": false,
+    "suggested_argv": [
+      "codebuddy",
+      "-p",
+      "--model",
+      "explicit-unverified-target-model",
+      "{\"branch\":\"codex/phase-1-cpu-foundation\",\"checklist_ids\":[\"EA-07\"],\"constraints\":[\"preserve learning TODO\",\"no merge or force push\",\"no paid training or API fallback\",\"no Tencent Cloud or GPU launch\",\"no model or CUDA downloads\",\"no credential or permission changes\",\"save and stop at 20 percent quota\",\"update MASTER-CHECKLIST evidence\"],\"goal\":\"Verify the target CodeBuddy environment after authorization without changing credentials.\",\"task_id\":\"next-bounded-work\"}"
+    ]
+  },
+  "registered_opponent_real_game": {
+    "status": {
+      "actor_decisions": 133,
+      "actor_seat": 1,
+      "life_points": [
+        0,
+        8000
+      ],
+      "open": true,
+      "outcome": {
+        "reason_code": 1,
+        "winner": 1
+      },
+      "phase": "battle",
+      "provider_verified": false,
+      "terminal": true,
+      "turn": 6,
+      "turn_player": 1
+    },
+    "last_core_message": 5,
+    "source": "local_contract_fixture",
+    "external_provider_verified": false
+  },
+  "deterministic_monitor": {
+    "checkpoint_ids": [],
+    "metrics": {
+      "elapsed_seconds": 5.59899990548729e-06,
+      "process_cpu_seconds": 3.4159999999783253e-06,
+      "process_peak_rss_bytes": 67309568
+    },
+    "model_versions": {},
+    "revision": 0,
+    "run_id": "resource-fixture",
+    "schema_version": 1,
+    "source": "local_contract_fixture",
+    "state": "created"
+  },
+  "original_files_verified": 11,
+  "integration_tests": 40,
+  "integration_scope": "real core, pinned card/banlist assets, local CLI/API; external provider and training remain unverified",
+  "policy_commit": "992ba44aadb374a2d5b442beeb5cb279f212b16a",
+  "post_policy_check": "10 local contract tests passed; policy-only change, no engine or trainer changes"
+}
