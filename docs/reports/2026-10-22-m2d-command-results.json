@@ -1,0 +1,106 @@
+{
+  "timestamp_utc": "2026-10-22T09:12:23.119426+00:00",
+  "scope": "selected real search/trigger/count-limit cases; not general card support",
+  "unit_tests": 37,
+  "real_integration_tests": 19,
+  "all_test_exit_codes": 0,
+  "checks": [
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-search",
+        "--route",
+        "field-twice",
+        "--trace",
+        "docs/reports/2026-10-22-m2d-field-twice.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5645293109992053,\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":false,\"responses\":28,\"result\":{\"activations\":[53129443,26202165,83764718,53129443],\"confirmations\":[{\"both_public_histories_agree\":true,\"opponent_public_hand_ids\":[],\"revealed_ids\":[32864]}],\"hand_counts\":[2,5],\"loaded_scripts\":[\"c26202165.lua\",\"c53129443.lua\",\"c83764718.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"route\":\"field-twice\",\"sangan_activations\":1,\"sangan_field_to_grave\":2,\"search_windows\":[{\"candidate_count\":29,\"candidate_ids\":[32864,549481,732302,756652,1184620,1761063,1784619,1929294,2118022,2468169,2483611,2830619,2863439,2906250,2957055,3134241,3170832,3573512,3606209,3732747,3985011,4042268,4920010,4931562,5434080,5628232,5818798,6103114,6297941],\"opponent_public_history_ids\":[26202165,26202165,53129443,53129443,26202165,53129443,26202165],\"player\":0}],\"turns\":1},\"route\":\"field-twice\",\"seed\":9154,\"trace_sha256\":\"ee7c61e0ac651d44b91cdf314646d20f375b02739a9ffb2f9fe46fb6964bf0de\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-search-replay",
+        "docs/reports/2026-10-22-m2d-field-twice.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5736042970002018,\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":true,\"responses\":28,\"result\":{\"activations\":[53129443,26202165,83764718,53129443],\"confirmations\":[{\"both_public_histories_agree\":true,\"opponent_public_hand_ids\":[],\"revealed_ids\":[32864]}],\"hand_counts\":[2,5],\"loaded_scripts\":[\"c26202165.lua\",\"c53129443.lua\",\"c83764718.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"route\":\"field-twice\",\"sangan_activations\":1,\"sangan_field_to_grave\":2,\"search_windows\":[{\"candidate_count\":29,\"candidate_ids\":[32864,549481,732302,756652,1184620,1761063,1784619,1929294,2118022,2468169,2483611,2830619,2863439,2906250,2957055,3134241,3170832,3573512,3606209,3732747,3985011,4042268,4920010,4931562,5434080,5628232,5818798,6103114,6297941],\"opponent_public_history_ids\":[26202165,26202165,53129443,53129443,26202165,53129443,26202165],\"player\":0}],\"turns\":1},\"route\":\"field-twice\",\"seed\":9154,\"trace_sha256\":\"ee7c61e0ac651d44b91cdf314646d20f375b02739a9ffb2f9fe46fb6964bf0de\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-search",
+        "--route",
+        "deck-grave",
+        "--trace",
+        "docs/reports/2026-10-22-m2d-deck-grave.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5965256679992308,\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":false,\"responses\":5,\"result\":{\"activations\":[81439173],\"confirmations\":[],\"hand_counts\":[4,5],\"loaded_scripts\":[\"c26202165.lua\",\"c81439173.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"route\":\"deck-grave\",\"sangan_activations\":0,\"sangan_field_to_grave\":0,\"search_windows\":[{\"candidate_count\":35,\"candidate_ids\":[32864,549481,732302,756652,1184620,1761063,1784619,1929294,2311603,2468169,2483611,2830619,2863439,2906250,2957055,3134241,3170832,3557275,3573512,3732747,3985011,4042268,4148264,4920010,4931562,5053103,5265750,5388481,5434080,5464695,5628232,5818798,6367785,6400512,26202165],\"opponent_public_history_ids\":[81439173,81439173],\"player\":0}],\"turns\":1},\"route\":\"deck-grave\",\"seed\":24,\"trace_sha256\":\"daecee3f7a3cc7de2ebf0039467df5c674773e22fec376c0db371ece68802449\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-search-replay",
+        "docs/reports/2026-10-22-m2d-deck-grave.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5442502109999623,\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":true,\"responses\":5,\"result\":{\"activations\":[81439173],\"confirmations\":[],\"hand_counts\":[4,5],\"loaded_scripts\":[\"c26202165.lua\",\"c81439173.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"route\":\"deck-grave\",\"sangan_activations\":0,\"sangan_field_to_grave\":0,\"search_windows\":[{\"candidate_count\":35,\"candidate_ids\":[32864,549481,732302,756652,1184620,1761063,1784619,1929294,2311603,2468169,2483611,2830619,2863439,2906250,2957055,3134241,3170832,3557275,3573512,3732747,3985011,4042268,4148264,4920010,4931562,5053103,5265750,5388481,5434080,5464695,5628232,5818798,6367785,6400512,26202165],\"opponent_public_history_ids\":[81439173,81439173],\"player\":0}],\"turns\":1},\"route\":\"deck-grave\",\"seed\":24,\"trace_sha256\":\"daecee3f7a3cc7de2ebf0039467df5c674773e22fec376c0db371ece68802449\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-replay",
+        "docs/reports/2026-10-22-normal-m2b.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"decisions\":217,\"engine\":\"real-ygopro-core\",\"events\":477,\"general_effect_duels_supported\":false,\"life_points\":[8000,0],\"metrics\":{\"cpu_seconds\":0.5893520800000001,\"decision_cycle_ms\":{\"median\":0.14427699898078572,\"p95\":0.20789200061699376,\"p99\":0.2818729990394786},\"decision_cycle_samples_ms\":[0.271217999397777,0.18088199976773467,0.1308860009885393,0.13138699978298973,0.11707599878718611,0.11798699961218517,0.11893899863935076,0.1779470003384631,0.16415599930041935,0.1846570012276061,0.17344099978799932,0.1513480001449352,0.11722599992936011,0.14839299910818227,0.11929900028917473,0.12083200090273749,0.12008100020466372,0.1369360015814891,0.14213400027074385,0.13498299995262641,0.11371099935786333,3.3392679997632513,0.16010100080166012,0.1490440008637961,0.11952000022574794,0.12421700012055226,0.13638400014315266,0.12946500100952107,0.11123699914605822,0.1502249997429317,0.11574399832170457,0.13906899948779028,0.11597500088100787,0.12618999971891753,0.14203400132828392,0.12952500037499703,0.14757200005988125,0.12048099961248226,0.1809920013329247,0.1683330010564532,0.16542900084459689,0.1478119993407745,0.15536400132987183,0.12992499978281558,0.15101700046216138,0.13560399929701816,0.14309499965747818,0.13578399921243545,0.14309499965747818,0.12188300024718046,0.11896900105057284,0.1304159995925147,0.11931900007766671,0.12000100105069578,0.11687600090226624,0.12207299914734904,0.1419830005033873,0.15536300088569988,0.12279499969736207,0.12471800073399208,0.12010099999315571,0.1323690012213774,0.12929500007885508,0.13583399959316012,0.12388600043777842,0.11661499956971966,0.12481799967645202,0.11551399984455202,0.11719599933712743,0.12092100041627418,0.12326499927439727,0.11498299863887951,0.16568899991398212,0.14692100012325682,0.12860400056524668,0.12386600064928643,0.12757200056512374,0.12573899948620237,0.13801699969917536,0.2818729990394786,0.15225900096993428,0.20789200061699376,0.19123700076306704,0.18217400065623224,0.18011999964073766,0.14791200010222383,0.13252999997348525,0.1351430000795517,0.13295999997353647,0.14902300063113216,0.1927089997479925,0.15451199942617677,0.12721200073428918,0.14334499974211212,0.12982499902136624,0.14091200137045234,0.12403700020513497,0.12770199828082696,0.14396699953067582,0.16019100075936876,0.1286330007133074,0.1544520000607008,0.12449699897842947,0.14814200039836578,0.1265499995497521,0.15767700097057968,0.1329989991063485,0.13614399904327001,0.15855800120334607,0.12857299952884205,0.19000599968421739,0.20130299890297465,0.17544399997859728,0.13930000022810418,0.14419699982681777,0.13475299965648446,0.16124200010381173,0.1515080002718605,0.18237499898532405,0.15218899898172822,0.1376370000798488,0.1385080013278639,0.13422200026980136,0.14241399912862107,0.1480920000176411,0.13790699995297473,0.15581399929942563,0.1413529989804374,0.13171799946576357,0.15713600078015588,0.13419199967756867,0.16040099944802932,0.13679500079888385,0.15119700037757866,0.3895959998772014,0.16871300067577977,0.18262400044477545,0.14597900008084252,0.1498950005043298,0.1409010001225397,0.1393389993609162,0.1447869999537943,0.14317600107460748,0.15374100075860042,0.16074199993454386,0.22745199930795934,0.15249900025082752,0.13635499999509193,0.15226899995468557,0.1805319989216514,0.1622339987079613,0.1411520006513456,0.13226899864093866,0.1461100000597071,0.1327699992543785,0.1360950009257067,0.15008500122348778,0.14049099991098046,0.13218899948697072,0.15255000107572414,0.13005599976168014,0.13646499974129256,0.12921400048071519,0.15799699940544087,0.1422240002284525,0.1516980009910185,0.18562900004326366,0.1392800004396122,0.20229400070093106,0.21947999994154088,0.26307500047551,0.1619929989828961,0.16119200154207647,0.1415820006513968,0.1781170012691291,0.17860899970401078,0.16702100037946366,0.17073700109904166,0.16141299965966027,0.13987999955134,0.1613019994692877,0.1394990013068309,0.15184899893938564,0.13791699893772602,0.14032099898031447,0.1363440005661687,0.14829300016572233,0.15737600006104913,0.17405099970346782,0.14217300122254528,0.17120700067607686,0.14427699898078572,0.14869400001771282,0.14477799959422555,0.1778170008037705,0.24786199901427608,0.1643759987928206,0.21512300008907914,0.1982079993467778,0.26075200003106147,0.16179300109797623,0.16714099911041558,0.15373099995485973,0.16583000069658738,0.1874919998954283,0.18479800019122194,0.16675100050633773,0.15177800014498644,0.15208799959509633,0.16038099965953734,0.1790490005078027,0.15314000120270066,0.15369100037787575,0.14862299940432422,0.15553299999737646,0.15122700096981134,0.06909399962751195],\"decisions_per_second\":369.56600261751265,\"definition\":\"rule selection + submit + next native prompt/projection; elapsed also includes resource verification/setup\",\"elapsed_seconds\":0.5871752229995764,\"hardware\":{\"logical_cpus\":5,\"machine\":\"x86_64\",\"processor\":\"AMD EPYC 9V74 80-Core Processor\"},\"kernel\":\"6.18.55\",\"os\":\"Linux\",\"process_peak_rss_native_units\":34456,\"rss_units\":\"KiB on Linux; bytes on macOS\"},\"ok\":true,\"outcome\":{\"reason_code\":1,\"winner\":0},\"policy\":\"deterministic-rule-baseline-not-a-model\",\"replay_verified\":true,\"scope\":\"explicit-normal-monster-pool\",\"seed\":7,\"trace_sha256\":\"663f1d6bd5ccf9e5920e832cfde48eb788cc1c05199682be9535c4414746a81a\",\"turns\":7}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-effect-replay",
+        "docs/reports/2026-10-22-m2c-negate.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5633263229992735,\"eligibility\":{\"initial_no_target_spell_unavailable\":true,\"same_turn_jammer_unavailable\":true},\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":true,\"responses\":24,\"result\":{\"activations\":[43898403,77414722],\"cost_moves\":[{\"from_zone\":2,\"kind\":50,\"player\":1,\"public_card\":2830619,\"reason\":16512,\"to_zone\":16},{\"from_zone\":2,\"kind\":50,\"player\":0,\"public_card\":3557275,\"reason\":16512,\"to_zone\":16}],\"costs_before_resolution\":true,\"effect_destructions\":[{\"from_zone\":8,\"kind\":50,\"player\":1,\"public_card\":43898403,\"reason\":65,\"to_zone\":16}],\"graveyard_ids\":[[3557275,77414722],[2830619,43898403]],\"hand_counts\":[2,4],\"loaded_scripts\":[\"c43898403.lua\",\"c5318639.lua\",\"c77414722.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"negated_links\":[1],\"public_events\":[{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"move\"},{\"card_ids\":[],\"event\":\"move\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[43898403],\"event\":\"move\"},{\"card_ids\":[43898403],\"event\":\"activate\"},{\"card_ids\":[2830619],\"event\":\"move\"},{\"card_ids\":[77414722],\"event\":\"activate\"},{\"card_ids\":[3557275],\"event\":\"move\"},{\"card_ids\":[43898403],\"event\":\"move\"},{\"card_ids\":[77414722],\"event\":\"move\"}],\"public_history_equal\":true,\"route\":\"negate\"},\"route\":\"negate\",\"scope\":\"three selected effect cards; not full effect support\",\"seed\":1724,\"trace_sha256\":\"4e6af741b0fd4df5f81bd79a98722587a256066c8214bb8cd28713ae904037ef\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "native-effect-replay",
+        "docs/reports/2026-10-22-m2c-resolve.trace.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"elapsed_seconds\":0.5538797190001787,\"eligibility\":{\"initial_no_target_spell_unavailable\":true,\"same_turn_jammer_unavailable\":true},\"engine\":\"real-ygopro-core-and-upstream-lua\",\"ok\":true,\"replay_verified\":true,\"responses\":22,\"result\":{\"activations\":[43898403],\"cost_moves\":[{\"from_zone\":2,\"kind\":50,\"player\":1,\"public_card\":2830619,\"reason\":16512,\"to_zone\":16}],\"costs_before_resolution\":true,\"effect_destructions\":[{\"from_zone\":8,\"kind\":50,\"player\":0,\"public_card\":5318639,\"reason\":65,\"to_zone\":16},{\"from_zone\":8,\"kind\":50,\"player\":0,\"public_card\":77414722,\"reason\":65,\"to_zone\":16}],\"graveyard_ids\":[[5318639,77414722],[2830619,43898403]],\"hand_counts\":[3,4],\"loaded_scripts\":[\"c43898403.lua\",\"c5318639.lua\",\"c77414722.lua\",\"constant.lua\",\"procedure.lua\",\"utility.lua\"],\"negated_links\":[],\"public_events\":[{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"move\"},{\"card_ids\":[],\"event\":\"move\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[],\"event\":\"phase\"},{\"card_ids\":[43898403],\"event\":\"move\"},{\"card_ids\":[43898403],\"event\":\"activate\"},{\"card_ids\":[2830619],\"event\":\"move\"},{\"card_ids\":[5318639],\"event\":\"move\"},{\"card_ids\":[77414722],\"event\":\"move\"},{\"card_ids\":[43898403],\"event\":\"move\"}],\"public_history_equal\":true,\"route\":\"resolve\"},\"route\":\"resolve\",\"scope\":\"three selected effect cards; not full effect support\",\"seed\":1724,\"trace_sha256\":\"c2f564280d7883ff779129d2882796b91554a912e03e21b9feaa16cc3185176b\"}\n",
+      "stderr": ""
+    }
+  ],
+  "script_sha256": {
+    "26202165": "238d78bc971fc4d358e5c1bbe1a4e9daa4968a608ac32dbecd41d7284b9e9268",
+    "53129443": "37375c0e3b7f7f34138a7c73dfa800d255aa2798fa3d4a6abdd0fef59a3cc3ee",
+    "83764718": "e03752a1f934c77cd1b21b4ba0093d348956f6cbf26fa4413ad907beaa1ed943",
+    "81439173": "fa700f02baca7dc79d990a1ab355d070a8c3534c4cb07856ab830b8eefca845c"
+  },
+  "originals_unchanged": true
+}
