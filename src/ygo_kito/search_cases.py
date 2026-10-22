@@ -11,6 +11,7 @@ from .normal_duel import request_digest
 from .validation import ContractError, array, canonical_json, fields
 
 SANGAN, HOLE, REBORN, FOOLISH = 26202165, 53129443, 83764718, 81439173
+DOUBLE_SUMMON = 43422537
 
 
 def choose_search_action(request, route):
@@ -21,10 +22,12 @@ def choose_search_action(request, route):
         return next(a for a in request.actions if chosen.ref in a.card_refs)
     for action in request.actions:
         ids = [cards[r].card_id for r in action.card_refs]
-        if route == "field-twice" and action.kind == "summon" and SANGAN in ids:
+        if route in ("field-twice", "cross-turn", "shared-name") and action.kind == "summon" and SANGAN in ids:
             return action
-        if action.kind == "activate" and any(code in ids for code in (SANGAN, HOLE, REBORN, FOOLISH)):
-            return action
+    for code in (SANGAN, DOUBLE_SUMMON, HOLE, REBORN, FOOLISH):
+        for action in request.actions:
+            if action.kind == "activate" and any(cards[r].card_id == code for r in action.card_refs):
+                return action
     selected = [a for a in request.actions if a.kind == "select"]
     if selected:
         return next((a for a in selected if any(cards[r].card_id == SANGAN for r in a.card_refs)), selected[0])
@@ -43,11 +46,11 @@ def run_search_case(root: Path, *, route="field-twice", seed=None, replay=None):
         for row in array(replay["responses"], "responses"):
             fields(row, {"player", "decision_id", "prompt", "action_id", "request_sha256", "response"})
         route, seed = replay["route"], replay["seed"]
-    if route not in ("field-twice", "deck-grave"):
+    if route not in ("field-twice", "deck-grave", "cross-turn", "shared-name"):
         raise ContractError("unknown search route")
     if seed is None:
-        seed = 9154 if route == "field-twice" else 24
-    scenario = "search-trigger" if route == "field-twice" else "search-condition"
+        seed = 24 if route == "deck-grave" else 9154
+    scenario = {"field-twice": "search-trigger", "deck-grave": "search-condition", "cross-turn": "count-reset", "shared-name": "count-shared"}[route]
     started = time.monotonic()
     with NativeNormalEngine(root, scenario=scenario, seed=seed) as engine:
         versions = {"resources": engine.receipt["resources"], "source_commits": engine.receipt["source_commits"],
@@ -55,17 +58,22 @@ def run_search_case(root: Path, *, route="field-twice", seed=None, replay=None):
         if replay is not None and replay["versions"] != versions:
             raise ContractError("search replay versions differ")
         rows, search_windows, confirmation_checks = [], [], []
+        maximum_sangan_on_field = 0
         request = engine.next_decision()
         initial_hand = [c.card_id for c in request.observation.cards if c.zone == "hand"]
         if route == "field-twice":
             if initial_hand.count(HOLE) != 2 or not {SANGAN, REBORN}.issubset(initial_hand):
                 raise NativeError("seed lacks declared double-send starting hand")
-        elif FOOLISH not in initial_hand or SANGAN in initial_hand:
+        elif route == "deck-grave" and (FOOLISH not in initial_hand or SANGAN in initial_hand):
             raise NativeError("seed lacks declared deck-to-grave starting conditions")
+        elif route in ("cross-turn", "shared-name"):
+            if initial_hand.count(SANGAN) != 2 or initial_hand.count(HOLE) != (2 if route == "cross-turn" else 1) or (route == "shared-name" and DOUBLE_SUMMON not in initial_hand):
+                raise NativeError("seed lacks declared two-copy starting hand")
         seen_confirmations = 0
         for step in range(150):
             if request is None or time.monotonic() - started > 20:
                 raise NativeError("search scenario stopped before checkpoint")
+            maximum_sangan_on_field = max(maximum_sangan_on_field, sum(c.zone == "monster" and c.card_id == SANGAN for c in request.observation.cards))
             if request.search_choices:
                 if request.observation.observer != 0 or any(c.zone == "deck" for c in request.observation.cards):
                     raise NativeError("search visibility contract violated")
@@ -102,15 +110,28 @@ def run_search_case(root: Path, *, route="field-twice", seed=None, replay=None):
                 seen_confirmations = len(confirmations)
             field_sends = [e for e in engine.events if e["kind"] == 50 and e.get("public_card") == SANGAN and e["from_zone"] == 4 and e["to_zone"] == 16]
             chains_done = sum(e["kind"] == 74 for e in engine.events)
-            done = (len(field_sends) == 2 and chains_done >= 4) if route == "field-twice" else (chains_done >= 1 and any(e["kind"] == 50 and e.get("public_card") == SANGAN and e["from_zone"] == 1 and e["to_zone"] == 16 for e in engine.events))
+            if route in ("field-twice", "cross-turn", "shared-name"):
+                done = len(field_sends) == 2 and chains_done >= (3 if route == "shared-name" else 4)
+            else:
+                done = chains_done >= 1 and any(e["kind"] == 50 and e.get("public_card") == SANGAN and e["from_zone"] == 1 and e["to_zone"] == 16 for e in engine.events)
             if done:
                 activations = [e["public_card"] for e in engine.events if e["kind"] == 70]
-                expected = 1 if route == "field-twice" else 0
-                if engine.turn != 1 or activations.count(SANGAN) != expected or len(confirmation_checks) != expected or engine.callback_errors:
+                expected = 2 if route == "cross-turn" else 0 if route == "deck-grave" else 1
+                if engine.turn != (3 if route == "cross-turn" else 1) or activations.count(SANGAN) != expected or len(confirmation_checks) != expected or engine.callback_errors:
                     raise NativeError("real trigger condition/count-limit result mismatch")
                 result = {"route": route, "turns": engine.turn, "activations": activations, "sangan_field_to_grave": len(field_sends),
                           "sangan_activations": expected, "search_windows": search_windows, "confirmations": confirmation_checks,
                           "hand_counts": list(engine._observation(0).hand_counts), "loaded_scripts": sorted(engine.loaded_scripts)}
+                if route in ("cross-turn", "shared-name"):
+                    turn, activation_turns = 0, []
+                    for event in engine.events:
+                        if event["kind"] == 40:
+                            turn = event["turn"]
+                        if event["kind"] == 70 and event["public_card"] == SANGAN:
+                            activation_turns.append(turn)
+                    if activation_turns != ([1, 3] if route == "cross-turn" else [1]) or (route == "shared-name" and maximum_sangan_on_field != 2):
+                        raise NativeError("shared name/reset turn evidence mismatch")
+                    result.update(sangan_activation_turns=activation_turns, maximum_sangan_on_field=maximum_sangan_on_field)
                 trace = {"schema_version": 1, "kind": "search-trigger-replay-not-policy-input", "route": route, "seed": seed,
                          "versions": versions, "decks": [list(d) for d in engine.player_decks], "responses": rows,
                          "events": engine.events, "result": result}
