@@ -139,6 +139,7 @@ class AgentContractTests(unittest.TestCase):
         self.assertFalse(r["model_verified"])
         self.assertTrue(r["suggested_argv"][-1].startswith("{"))
         self.assertIn("20 percent", " ".join(r["constraints"]))
+        self.assertIn("no credential or permission changes", r["constraints"])
         with self.assertRaises(ContractError):
             adapter.prepare({"task_id": "x", "checklist_ids": ["EA-01"], "goal": "fix", "model": "--skip-permissions"})
 

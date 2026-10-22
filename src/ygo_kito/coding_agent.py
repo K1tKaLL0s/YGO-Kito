@@ -34,7 +34,8 @@ class CodeBuddyCLIAdapter:
             raise ContractError("coding handoff requires a work branch")
         head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=self.workspace, text=True).strip()
         packet = dict(d, branch=branch, head=head, workspace=str(self.workspace),
-            constraints=["preserve learning TODO", "no merge or force push", "no paid training or credential changes",
+            constraints=["preserve learning TODO", "no merge or force push", "no paid training or API fallback",
+                         "no Tencent Cloud or GPU launch", "no model or CUDA downloads", "no credential or permission changes",
                          "save and stop at 20 percent quota", "update MASTER-CHECKLIST evidence"],
             provider="codebuddy-cli", cli_available=shutil.which("codebuddy") is not None,
             model_verified=False, external_end_to_end_verified=False, executed=False)
