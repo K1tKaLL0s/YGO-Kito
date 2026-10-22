@@ -17,7 +17,7 @@
 
 当前已有CPU骨架、固定上游源码构建的core、限定真实终局/重放，以及四个独立网络原型：决斗Transformer265,378参数，构筑目标/优化Transformer各17,665参数，统筹MLP648参数。已串通真实构筑托付→版本绑定预测→冻结策略验证→结果回收及组恢复；规则控制最终行为，统筹学习原型只用明示合成监督提供建议。
 
-最新[多轮运行器/数据隔离交付](docs/reports/2026-10-23-multiround-runner.md)把决斗CPU训练从固定两步推广为配置驱动：真实多轮采样/更新、独立对手/种子/构筑验证、完整轮次发布和预算/用量恢复；4轮与中断/连续对照有实证。**完整回归109单元＋83集成通过，无跳过**。此前[整体交付表](docs/reports/2026-10-23-engineering-delivery.md)中的四模型/LoRA支持链继续保留，四模型/LoRA长期交替、通用协议/三期数据/一般构筑/合格对手等自主工程仍缺；能力与外部依赖另验。**完整阶段1未交付，full_phase_1_delivered及formal_training_ready仍false**，无付费训练；工程参数不冒充最终冻结，云端开发不表示离线本机已同步。
+最新[四模型交替CPU交付](docs/reports/2026-10-23-four-model-runner.md)已把目标/优化/决斗/统筹及LoRA接成配置周期：基模真实冒烟后冻结，每周期适配、版本预测、冻结核心评估及规则反馈；双周期、真实崩溃恢复和阶段预算resume有实证。完整回归112单元＋94集成全部通过、无跳过，含新增11项交替/恢复检查。此前[决斗多轮](docs/reports/2026-10-23-multiround-runner.md)与[整体缺口表](docs/reports/2026-10-23-engineering-delivery.md)继续保留；通用协议、非通常召唤/一般构筑、实战纠偏、三期数据/合格对手和大规模课程等仍须工程。**完整阶段1未交付，full_phase_1_delivered及formal_training_ready仍false**；弱构筑代理/合成统筹监督不冒充能力或正式冻结，无付费训练，云端开发不表示本机已同步。
 
 预测/统计配置仍待校准；25/125是完整工程配置在合成样例上的首次触发，没有缩小百/千场设计。LoRA工程正确性不证明迁移能力，PC门槛和标准回放未通过。
 
@@ -46,6 +46,8 @@ PYTHONPATH=src .venv/bin/python -m ygo_kito --config configs/cpu.toml status
 [LoRA管理与腾讯云受限交接](docs/development/lora-and-cloud-handoff.md)提供 `lora-group-cpu`、`training-preflight`、`budget-call`，实际适配器/基模版本绑定、真实恢复和既定100h规划入口；CPU健康通过不放行正式门槛。CodeBuddy/DeepSeek真实联调、计费/停机核验和PC验证待验，不启动腾讯云或扩PC应用。
 
 [一条命令与本地训练控制](docs/development/local-training-control.md)提供 `engineering-acceptance`、`cpu-runner-acceptance` 和宿主 `--local-cpu-control --local-training-config configs/cpu-runner-v1.json`。示范会有意终止自己管理的worker并验证恢复；每个worker有内核墙钟期限，本地停止始终不证明腾讯云计费停止。
+
+[四模型交替指南](docs/development/four-model-runner.md)提供 `group-runner-acceptance`，宿主选择 `configs/group-runner-v1.json` 即可沿用同一JSON权限/控制入口；逐阶段保存四模型、全部优化器/适配器、调度/RNG/数据标记和累计预算，不自动续额。
 
 [2026-10-21 旧阶段计划](docs/plans/2026-10-21-development-and-training-budget.md) 与 [旧技术复核](docs/reviews/2026-10-21-technical-route-review.md) 保留决策历史，不再作为最新选型入口。尤其旧文的 LoRA 可选、移动端后续排期、预算未分配和架构待讨论表述，不覆盖统一说明。
 

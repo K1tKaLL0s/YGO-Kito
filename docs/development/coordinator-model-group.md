@@ -82,4 +82,4 @@ win/loss/draw/timeout/crash/invalid_action全部进入总体分母，分类保�
 
 监控不加载神经网络/原生对局，不调用LLM。外部对手仍只允许[单席位动作接口](external-agent-interface.md)，不能拿统筹台账、双方牌表、种子或审计记录作为策略输入。统筹/构筑上下文有本方牌表及任务信息，不能直接透传给对手。
 
-`training.control`默认关闭，宿主显式启用的[本地CPU后端](local-training-control.md)已有配置驱动的决斗多轮/独立验证/用量恢复；本组命令仍未成为可持续交替的全模型后端。CodeBuddy/DeepSeek、SDK额度和真实外部端到端未验，没有配置凭据。[整体验收表](../reports/2026-10-23-engineering-delivery.md)及[多轮增量](../reports/2026-10-23-multiround-runner.md)区分支持链与自主必需工程、能力和外部缺口，不放行正式ready或扩PC应用。学习ZIP/TODO保留，剩余20%保存停止，不使用重置卡。
+`training.control`默认关闭。宿主可选择[四模型/LoRA交替CPU后端](four-model-runner.md)，逐阶段保存/暂停/恢复、真实版本冻结评估及反馈已实现；本页model-group-cpu保留单次托付冒烟。通用CB/课程/大数据和实战纠偏仍缺，统筹学习当前合成监督/建议，规则权威。CodeBuddy/DeepSeek、SDK额度和外部端到端未验，没有配置凭据。[最新交付](../reports/2026-10-23-four-model-runner.md)列具体协议/构筑下一项，不放行正式ready或扩PC应用。学习ZIP/TODO保留，20%保存停止，不使用重置卡。

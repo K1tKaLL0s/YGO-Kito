@@ -69,7 +69,7 @@ usage.record字段为event_id、stage_id、gpu_count、wall_seconds、activity�
 
 不可变计划/source、原子版本检查、事件幂等/冲突拒绝和超额记录保留均有测试。已超支的真实报告照记，后续admission返回不满足预算，不能为美化余量丢弃超支。budget.check仅是对已登记用量的估算，**不是并发资源预留、采购授权、云计费核验或自动停机控制器**；所有返回都execution_authorized=false。
 
-台账的100h规划余量不是腾讯云账户余额，也不是Codex额度。正式API费用封顶、云实时采集/资源租约及停机确认仍缺。[本地CPU控制](local-training-control.md)已可按宿主配置持续多轮决斗采样/更新、独立验证及恢复用量；原两步冒烟保留。默认后端关闭，四模型/LoRA长期交替及真实外部provider仍未接入，本地退出不代表云计费停止。接手优先读[多轮报告](../reports/2026-10-23-multiround-runner.md)，不要复用历史源代码摘要不符的checkpoint。
+台账的100h规划余量不是腾讯云账户余额，也不是Codex额度。正式API封顶、云计费/租约停机仍缺。[四模型CPU后端](four-model-runner.md)已有基模真实冒烟后冻结、四角色适配周期、冻结核心评估/规则反馈及混合阶段恢复；检查点含模型/全部优化器/适配器/RNG/数据标记与预算快照，恢复保留更晚SQL用量，不回退成本。默认后端关闭，通用课程/100h吞吐及真实provider未验，本地退出不代表云计费停止。接手优先读[最新报告](../reports/2026-10-23-four-model-runner.md)，历史源摘要不同的checkpoint必须按原提交恢复，不能强行放宽绑定。
 
 ## CodeBuddy接手与八个外部对手
 

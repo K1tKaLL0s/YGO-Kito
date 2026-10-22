@@ -68,6 +68,6 @@ checkpoint含两个模型/优化器/调度器、RNG、批次游标、任务/词�
 
 每个选中候选重新由真实核心验证条件目标。预算耗尽或无法验证时只返还此前已验证候选及未满足项；“最佳”目前只按明示的工程攻击力代理比较，不代表最佳实战构筑。原始结果包含末次优化使代理下降的实际记录，不以参数已更新宣称质量已学成。
 
-训练状态以source=trainer发布到既有RunReporter，`agent-serve --role monitor --state-root STATE`可读真实指标及登记checkpoint。[显式本地控制](local-training-control.md)已能执行固定决斗CPU配方；本构筑命令尚未接成可暂停的通用模型组后端，CodeBuddy/DeepSeek端到端未验，不因已有CLI就授予任意训练启动权。
+训练状态以source=trainer发布到RunReporter，`agent-serve --role monitor --state-root STATE`可读真实指标及登记checkpoint。本页独立构筑冒烟保留；宿主可另选[四模型交替CPU后端](four-model-runner.md)，把当前条件目标/弱代理构筑与决斗/统筹/LoRA接成可暂停/恢复周期。一般CB/额外路线和实战纠偏仍缺，CodeBuddy/DeepSeek端到端未验，不因已有CLI就授予任意训练启动权。
 
 构筑独立切片结果保留在[M3b交接](../reports/2026-10-23-building-cpu-m3b.md)；当前[M3c统筹/四模型流程](coordinator-model-group.md)已接收构筑托付并实际冻结策略验证、回收结果及组恢复。三个执行Transformer和648参数学习统筹均仅为原型，统筹规则优先/合成监督/预测待校准，1A/1B/PC门槛仍未通过，见[总清单](../plans/MASTER-CHECKLIST.md)。LoRA与原始学习实践保留，学生ZIP/TODO不改。剩余20%保存停止，不使用重置卡；云端无实时余额接口，不声称当前额度。

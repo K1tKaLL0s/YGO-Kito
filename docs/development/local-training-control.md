@@ -1,6 +1,6 @@
 # 本地训练控制与本轮整体验收
 
-新增[多轮运行器验收](../reports/2026-10-23-multiround-runner.md)：配置驱动的决斗CPU采样/更新、独立验证、完整轮次发布及用量恢复。它仍不是四模型长期交替训练器，阶段1与正式ready继续未通过。
+新增[四模型交替运行器](four-model-runner.md)：在[决斗多轮](../reports/2026-10-23-multiround-runner.md)基础上接入目标/优化/决斗/统筹及四角色LoRA、逐阶段检查点、冻结评估/反馈和累计预算核对。当前仅工程条件路线/弱代理/合成统筹课程，阶段1与正式ready继续未通过。
 
 [交付表与证据](../reports/2026-10-23-engineering-delivery.md)按统一说明区分已完成的最小工程链、后续必需工程、能力验收和外部依赖。**本命令成功不代表完整阶段1A/1B或正式训练通过**；输出保留full_phase_1_delivered=false、formal_training_ready=false。
 
@@ -29,7 +29,7 @@ run-id须唯一且≤24字符，已有目录拒绝覆盖。该命令实际执行
       --role trainer --local-cpu-control \
       --local-training-config configs/cpu-runner-v1.json
 
-配方由宿主CLI加载，JSON工具请求仍只收run_id及白名单操作，不能传shell、可执行文件、GPU或任意配置路径。配方仅支持决斗CPU模型，既有构筑/统筹/LoRA组流程尚未接成可持续交替的全模型运行器。
+配方由宿主CLI加载，JSON工具请求仍只收run_id及白名单操作，不能传shell、可执行文件、GPU或任意配置路径。cpu-runner-v1仅支持决斗；改用configs/group-runner-v1.json可启用[四模型CPU周期](four-model-runner.md)，保留同一权限/控制/监控入口。它已支持工程课程的可配置周期，不宣称一般构筑/三期大数据或100h吞吐已验。
 
 各请求严格采用schema_version/id/method/params：
 
