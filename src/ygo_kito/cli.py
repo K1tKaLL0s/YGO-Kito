@@ -101,6 +101,16 @@ def parser():
     control.add_argument("--root", type=Path, default=Path(".cache"))
     control.add_argument("--feedback-policy", type=Path, default=Path("configs/coordinator-feedback-engineering.json"))
     control.add_argument("--create", action="store_true")
+    preflight = sub.add_parser("training-preflight", help="local CPU health and pending training gates; no credentials or paid launch")
+    preflight.add_argument("--root", type=Path, default=Path(".cache"))
+    preflight.add_argument("--plan", type=Path, default=Path("configs/training-plan-v1.json"))
+    budget = sub.add_parser("budget-call", help="fixed-role host-reported usage ledger; never starts or stops resources")
+    budget.add_argument("input", type=Path)
+    budget.add_argument("--ledger", type=Path, required=True)
+    budget.add_argument("--plan", type=Path, default=Path("configs/training-plan-v1.json"))
+    budget.add_argument("--role", choices=("monitor", "trainer"), default="monitor")
+    budget.add_argument("--source", choices=("host_reported_unverified", "synthetic_contract_test"), default="host_reported_unverified")
+    budget.add_argument("--create", action="store_true")
     for name in ("agent-serve", "agent-call"):
         agent = sub.add_parser(name, help="host-scoped local JSON tools; no provider or training launch")
         if name == "agent-call":
@@ -184,6 +194,17 @@ def main(argv=None) -> int:
                 from .build_contracts import BuildTask
                 output = run_build_training_smoke(args.root, args.state_root, args.run_id,
                                                  BuildTask.from_dict(read_json(args.task)), config_from_dict(read_json(args.training_config)))
+            case "training-preflight":
+                from .training_preflight import cpu_preflight
+                output = cpu_preflight(args.root, read_json(args.plan))
+                print(canonical_json(output))
+                return 0 if output["ok"] else 2
+            case "budget-call":
+                from .training_plan import BudgetBook
+                book = BudgetBook(args.ledger, read_json(args.plan), role=args.role, source=args.source, create=args.create)
+                output = book.dispatch(read_json(args.input))
+                print(canonical_json(output))
+                return 0 if output["ok"] else 2
             case "lora-group-cpu":
                 try:
                     from .lora_group import run_lora_group_smoke

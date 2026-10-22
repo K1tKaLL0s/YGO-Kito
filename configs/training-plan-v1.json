@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "plan_id": "three-environments-v1",
+  "provider": "tencent",
+  "billing_unit": "gpu_instance_hours",
+  "gpu_hours_limit": 100.0,
+  "stages": [
+    {"stage_id":"throughput-small-train","gpu_hours":5.0},
+    {"stage_id":"ocg-2022-07","gpu_hours":25.0},
+    {"stage_id":"ocg-2022-10","gpu_hours":25.0},
+    {"stage_id":"ocg-2026-10","gpu_hours":20.0},
+    {"stage_id":"lora-final-evaluation","gpu_hours":10.0},
+    {"stage_id":"failure-revalidation-reserve","gpu_hours":15.0}
+  ],
+  "roles": ["duel","build_goal","build_optimizer","coordinator"],
+  "stop_remaining_quota_percent": 20,
+  "machine_type": null,
+  "gpu_count": null,
+  "instance_price_per_hour": null,
+  "currency": null,
+  "external_api_amount_limit": null,
+  "paid_execution_authorized": false,
+  "calibration": "pending",
+  "required_gates": ["G-01","G-02","P-01","Q-02","Q-03","Q-04","Q-05"],
+  "environment_artifacts": {
+    "ocg-2022-07": null,
+    "ocg-2022-10": null,
+    "ocg-2026-10": null
+  }
+}

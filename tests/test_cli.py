@@ -108,6 +108,42 @@ class CliTests(unittest.TestCase):
         self.assertEqual(json.loads(result.stderr)["error"]["code"], "CPU_TRAINING_UNAVAILABLE")
         self.assertFalse(state.exists())
 
+    def test_lora_missing_assets_does_not_initialize_a_fake_trainer(self):
+        repo = Path(__file__).resolve().parents[1]
+        state = self.root / "lora-state"
+        result = self.run_cli("lora-group-cpu", "--run-id", "missing-lora", "--root", str(self.root / "missing-assets"),
+                              "--state-root", str(state), "--task", str(repo / "configs/build-engineering-v1.json"),
+                              "--lora-config", str(repo / "configs/lora-engineering-v1.json"),
+                              "--feedback-policy", str(repo / "configs/coordinator-feedback-engineering.json"))
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(json.loads(result.stderr)["error"]["code"], "CPU_TRAINING_UNAVAILABLE")
+        self.assertFalse(state.exists())
+
+    def test_budget_read_missing_ledger_does_not_create_usage(self):
+        repo = Path(__file__).resolve().parents[1]
+        ledger = self.root / "missing-budget.sqlite3"
+        request = self.write_json("budget-read.json", {"schema_version": 1, "id": "read", "method": "status", "params": {}})
+        result = self.run_cli("budget-call", request, "--ledger", str(ledger), "--plan", str(repo / "configs/training-plan-v1.json"))
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertFalse(ledger.exists())
+
+    def test_budget_cli_is_marked_synthetic_rejects_launch_and_does_not_import_torch(self):
+        repo = Path(__file__).resolve().parents[1]
+        ledger = self.root / "contract-budget.sqlite3"
+        plan = str(repo / "configs/training-plan-v1.json")
+        request = self.write_json("budget-status.json", {"schema_version": 1, "id": "create", "method": "status", "params": {}})
+        args = ["budget-call", request, "--ledger", str(ledger), "--plan", plan, "--source", "synthetic_contract_test", "--role", "trainer", "--create"]
+        script = "import sys; from ygo_kito.cli import main; assert main(" + repr(args) + ") == 0; assert 'torch' not in sys.modules"
+        created = subprocess.run([sys.executable, "-c", script], cwd=self.root, env=self.env, capture_output=True, text=True, timeout=10)
+        self.assertEqual(created.returncode, 0, created.stderr)
+        status = json.loads(created.stdout)["result"]
+        self.assertEqual(status["source"], "synthetic_contract_test")
+        self.assertFalse(status["paid_launch_enabled"])
+        denied = self.write_json("budget-denied.json", {"schema_version": 1, "id": "no-launch", "method": "training.start", "params": {}})
+        output = self.run_cli("budget-call", denied, "--ledger", str(ledger), "--plan", plan, "--source", "synthetic_contract_test")
+        self.assertEqual(output.returncode, 2, output.stderr)
+        self.assertEqual(json.loads(output.stdout)["error"]["code"], "PERMISSION_DENIED")
+
     def test_cli_initialization_import_and_lookup_work_from_another_directory(self):
         for args in (("db-init",), ("db-init",), ("cards-import", self.write_json("cards.json", dataset())), ("card-show", "1")):
             output = self.run_cli(*args)

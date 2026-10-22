@@ -113,6 +113,8 @@ def run_lora_group_smoke(root, state_root, run_id, task, lora_config, policy=Non
     run = state_root / "runs" / run_id
     if run.exists():
         raise ContractError("LoRA run exists; choose a new ID")
+    assets = BuildAssets(root)
+    assets.check_task(task)
     reporter = RunReporter(state_root)
     snapshot = {"schema_version": 1, "run_id": run_id, "state": "running", "revision": 0,
                 "model_versions": {r: configs[r].adapter_id for r in ROLES}, "metrics": reporter.resources(),
@@ -121,7 +123,7 @@ def run_lora_group_smoke(root, state_root, run_id, task, lora_config, policy=Non
     try:
         base_id = run_id + "-base"
         base_proof = run_model_group_smoke(root, state_root, base_id, task, policy)
-        assets, profile = BuildAssets(root), read_json(ROOT / "configs/effect-duel-v1.json")
+        profile = read_json(ROOT / "configs/effect-duel-v1.json")
         binding = group_binding(task, assets, policy)
         base_file = state_root / "runs" / base_id / "checkpoints/group-before-duel.weights"
         recovered = restore_group(base_file, run / "base-components", assets, binding)
