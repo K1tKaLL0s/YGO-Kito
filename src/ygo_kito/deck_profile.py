@@ -36,3 +36,27 @@ def validate_main_deck(codes, rows, limits, *, allowed=None, strict_40=False):
         aliases[row["alias"] or code] += 1
     if any(count > limits.get(code, 3) for code, count in aliases.items()):
         raise ContractError("deck aliases exceed combined copy limit")
+
+
+def validate_deck_parts(deck, rows, limits, *, allowed=None):
+    """Shared main/extra/side listing checks, not card-effect or route validation."""
+    fields(deck, {"main", "extra", "side"})
+    for zone in ("main", "extra", "side"):
+        array(deck[zone], zone)
+        for code in deck[zone]:
+            integer(code, "card ID", 1, 2**32 - 1)
+    if len(deck["extra"]) > 15 or len(deck["side"]) > 15:
+        raise ContractError("extra/side deck exceeds 15 cards")
+    validate_main_deck(deck["main"], rows, limits, allowed=allowed)
+    counts = Counter()
+    for code in deck["main"] + deck["extra"] + deck["side"]:
+        row = rows.get(code)
+        if not row or not row["ot"] & 1 or (allowed is not None and code not in allowed):
+            raise ContractError("card absent from declared OCG pool")
+        if row["type"] & 0x4000:  # TYPE_TOKEN in the locked core common.h.
+            raise ContractError("tokens cannot be listed in a deck")
+        counts[row["alias"] or code] += 1
+    if any(count > limits.get(code, 3) for code, count in counts.items()):
+        raise ContractError("combined main/extra/side alias limit exceeded")
+    if any(not rows[code]["type"] & (0x40 | 0x2000 | 0x800000 | 0x4000000) for code in deck["extra"]):
+        raise ContractError("non-extra-deck card in extra deck")

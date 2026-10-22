@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "model": {
+    "width": 32,
+    "card_width": 16,
+    "heads": 4,
+    "layers": 1,
+    "feedforward": 64,
+    "max_tokens": 192
+  },
+  "learning_rate": 0.001,
+  "model_seeds": [321, 654],
+  "batch_seed": 987,
+  "batches": 2
+}

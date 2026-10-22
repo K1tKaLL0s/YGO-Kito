@@ -42,7 +42,7 @@ class RealCpuTrainingTests(unittest.TestCase):
         self.assertFalse(result["competitive_ability_validated"])
         self.assertEqual(result["canonical_updates"], 2)
         self.assertEqual(result["physical_optimizer_calls"], 3)
-        self.assertFalse(result["other_models_implemented"])
+        self.assertEqual(result["models_in_this_run"], ["duel"])
         for episode, update in zip(result["episodes"], result["updates"]):
             self.assertEqual(episode["source"], "live-core-actor-seat")
             self.assertIn(episode["outcome"]["winner"], (0, 1, 2))

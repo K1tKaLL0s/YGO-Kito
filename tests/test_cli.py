@@ -56,6 +56,25 @@ class CliTests(unittest.TestCase):
         self.assertEqual(json.loads(result.stderr)["error"]["code"], "CPU_TRAINING_UNAVAILABLE")
         self.assertFalse(state.exists())
 
+    def test_build_training_missing_resources_does_not_create_model_or_success(self):
+        repo = Path(__file__).resolve().parents[1]
+        state = self.root / "build-state"
+        result = self.run_cli("build-train-cpu", "--run-id", "missing-build-assets", "--root", str(self.root / "missing-native"),
+                              "--state-root", str(state), "--task", str(repo / "configs/build-engineering-v1.json"),
+                              "--training-config", str(repo / "configs/build-training-smoke.json"))
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(json.loads(result.stderr)["error"]["code"], "CPU_TRAINING_UNAVAILABLE")
+        self.assertFalse(state.exists())
+
+    def test_build_listing_check_does_not_claim_a_route_when_native_assets_are_missing(self):
+        repo = Path(__file__).resolve().parents[1]
+        deck = self.write_json("candidate.json", {"main": list(range(1, 41)), "extra": [], "side": []})
+        result = self.run_cli("build-check", "--root", str(self.root / "missing-native"),
+                              "--task", str(repo / "configs/build-engineering-v1.json"), "--deck", deck)
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(json.loads(result.stderr)["error"]["code"], "NATIVE_RESOURCES_UNAVAILABLE")
+
     def test_cli_initialization_import_and_lookup_work_from_another_directory(self):
         for args in (("db-init",), ("db-init",), ("cards-import", self.write_json("cards.json", dataset())), ("card-show", "1")):
             output = self.run_cli(*args)

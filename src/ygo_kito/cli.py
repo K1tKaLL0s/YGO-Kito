@@ -70,6 +70,16 @@ def parser():
     train.add_argument("--run-id", required=True)
     train.add_argument("--profile", type=Path, default=Path("configs/effect-duel-v1.json"))
     train.add_argument("--training-config", type=Path, default=Path("configs/cpu-training-smoke.json"))
+    build_check = sub.add_parser("build-check", help="validate a typed building task and three card-list sections; no route/quality claim")
+    build_check.add_argument("--root", type=Path, default=Path(".cache"))
+    build_check.add_argument("--task", type=Path, default=Path("configs/build-engineering-v1.json"))
+    build_check.add_argument("--deck", type=Path, required=True)
+    build_train = sub.add_parser("build-train-cpu", help="bounded independent goal/optimizer CPU updates, recovery and real conditional goal checks")
+    build_train.add_argument("--root", type=Path, default=Path(".cache"))
+    build_train.add_argument("--state-root", type=Path, default=Path(".cache/agent"))
+    build_train.add_argument("--run-id", required=True)
+    build_train.add_argument("--task", type=Path, default=Path("configs/build-engineering-v1.json"))
+    build_train.add_argument("--training-config", type=Path, default=Path("configs/build-training-smoke.json"))
     for name in ("agent-serve", "agent-call"):
         agent = sub.add_parser(name, help="host-scoped local JSON tools; no provider or training launch")
         if name == "agent-call":
@@ -137,6 +147,22 @@ def main(argv=None) -> int:
                     raise EngineUnavailable("CPU PyTorch required for this optional command; infrastructure commands do not require it") from None
                 output = run_cpu_training_smoke(args.root, args.state_root, args.run_id,
                                                read_json(args.profile), config_from_dict(read_json(args.training_config)))
+            case "build-check":
+                from .build_contracts import BuildTask, DeckParts
+                from .build_pipeline import BuildAssets
+                output = dict(BuildAssets(args.root).validate(BuildTask.from_dict(read_json(args.task)),
+                                                             DeckParts.from_dict(read_json(args.deck))),
+                              ok=True, route_status="not_evaluated", construction_quality_status="not_evaluated")
+            case "build-train-cpu":
+                try:
+                    from .build_training import config_from_dict, run_build_training_smoke
+                except ModuleNotFoundError as error:
+                    if error.name != "torch":
+                        raise
+                    raise EngineUnavailable("CPU PyTorch required for this optional command") from None
+                from .build_contracts import BuildTask
+                output = run_build_training_smoke(args.root, args.state_root, args.run_id,
+                                                 BuildTask.from_dict(read_json(args.task)), config_from_dict(read_json(args.training_config)))
             case "agent-serve" | "agent-call":
                 from .agent_bridge import AgentBridge, serve_bridge
                 bridge = AgentBridge(Path(__file__).resolve().parents[2], args.state_root, args.root,
@@ -185,7 +211,8 @@ def main(argv=None) -> int:
         print(canonical_json(output))
         return 0
     except EngineUnavailable as error:
-        code = ("CPU_TRAINING_UNAVAILABLE" if args.command == "duel-train-cpu" else
+        code = ("CPU_TRAINING_UNAVAILABLE" if args.command in ("duel-train-cpu", "build-train-cpu") else
+                "NATIVE_RESOURCES_UNAVAILABLE" if args.command == "build-check" else
                 "NATIVE_RESOURCES_UNAVAILABLE" if args.command.startswith("native-") else "ENGINE_NOT_IMPLEMENTED")
         message = str(error)
     except NativeError as error:

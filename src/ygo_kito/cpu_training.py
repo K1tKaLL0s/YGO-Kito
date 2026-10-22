@@ -331,7 +331,7 @@ def run_cpu_training_smoke(root, state_root, run_id, profile, config=None):
                   "measurement_scope": "after-initial-model-optimizer-setup; includes recovery replay; RSS is process lifetime peak",
                   "episodes": summaries, "updates": updates, "canonical_updates": 2, "physical_optimizer_calls": 3,
                   "restore_verified": verified, "restored_second_trajectory_sha256": restored_episode["summary"]["trajectory_sha256"],
-                  "checkpoints": checkpoint_metadata, "metrics": metrics, "other_models_implemented": False}
+                  "checkpoints": checkpoint_metadata, "metrics": metrics, "models_in_this_run": ["duel"]}
         (run / "proof.json").write_text(canonical_json(result) + "\n")
         reporter.publish(dict(reporter.snapshot(run_id), state="completed",
                               revision=reporter.snapshot(run_id)["revision"] + 1))

@@ -1,6 +1,5 @@
 """Local deck/opponent registration. No user decks, paid providers or jobs are preloaded."""
 
-from collections import Counter
 from datetime import date
 import hashlib
 import json
@@ -9,7 +8,7 @@ import re
 import sqlite3
 
 from .contracts import Versions
-from .deck_profile import validate_main_deck
+from .deck_profile import validate_deck_parts
 from .native import banlist_limits
 from .native_assets import verify_resources
 from .validation import ContractError, array, canonical_json, fields, integer, member, text
@@ -125,25 +124,8 @@ class OpponentRegistry:
         deck = parse_ydk(d["content"]) if d["format"] == "ydk" else fields(d["content"], {"main", "extra", "side"})
         env = self.get("environment", d["environment_id"])
         self._assets()
-        for zone in ("main", "extra", "side"):
-            array(deck[zone], zone)
-            for code in deck[zone]:
-                integer(code, "card ID", 1, 2**32 - 1)
-        if len(deck["extra"]) > 15 or len(deck["side"]) > 15:
-            raise ContractError("extra/side deck exceeds 15 cards")
         limits = self._limits if env["runtime_compatible"] else {}
-        validate_main_deck(deck["main"], self._rows, limits)
-        all_codes = deck["main"] + deck["extra"] + deck["side"]
-        counts = Counter()
-        for code in all_codes:
-            row = self._rows.get(code)
-            if not row or not row["ot"] & 1:
-                raise ContractError("card absent from OCG database")
-            counts[row["alias"] or code] += 1
-        if any(count > limits.get(code, 3) for code, count in counts.items()):
-            raise ContractError("combined main/extra/side alias limit exceeded")
-        if any(not self._rows[code]["type"] & (0x40 | 0x2000 | 0x800000 | 0x4000000) for code in deck["extra"]):
-            raise ContractError("non-extra-deck card in extra deck")
+        validate_deck_parts(deck, self._rows, limits)
         payload = {"deck_id": d["deck_id"], "environment_id": d["environment_id"], "source": d["source"],
                    "cards": deck, "sha256": hashlib.sha256(canonical_json(deck).encode()).hexdigest(),
                    "validation": env["validation"], "runtime_compatible": env["runtime_compatible"] and not deck["extra"],
