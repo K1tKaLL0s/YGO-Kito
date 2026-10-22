@@ -45,6 +45,15 @@ class CliTests(unittest.TestCase):
             cwd=self.root, env=self.env, capture_output=True, text=True, timeout=10)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_runner_recipe_requires_explicit_trainer_host_opt_in(self):
+        payload = self.write_json("caps.json", {"schema_version": 1, "id": "caps", "method": "capabilities", "params": {}})
+        for options in (("--role", "trainer"), ("--role", "opponent", "--local-cpu-control")):
+            result = self.run_cli("agent-call", payload, "--state-root", str(self.root / "managed"),
+                                  "--local-training-config", str(self.root / "not-read.json"), *options)
+            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertEqual(json.loads(result.stderr)["error"]["code"], "INVALID_INPUT")
+            self.assertFalse((self.root / "managed").exists())
+
     def test_explicit_cpu_training_with_missing_resources_fails_without_a_fake_run(self):
         repo = Path(__file__).resolve().parents[1]
         state = self.root / "training-state"

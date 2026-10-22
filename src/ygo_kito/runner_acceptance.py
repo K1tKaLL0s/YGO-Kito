@@ -76,7 +76,10 @@ def run_runner_acceptance(root, state_root, run_id, recipe):
         if paused_row["metrics"]["steps"] != 1 or not paused["local_process_exited"] or paused["cloud_billing_stopped"]:
             raise ContractError("runner pause did not preserve exactly the first real boundary")
         control(name, "resume")
-        wait_for(lambda: backend.details(name)["phase"] == "sampling", seconds=30)
+        # Crash after a real second optimizer update, during held-out validation,
+        # before the round has a checkpoint/manifest transaction. This verifies
+        # rollback of uncommitted updates as well as partial data isolation.
+        wait_for(lambda: backend.details(name)["phase"] == "validating", seconds=30)
         interrupted = backend.details(name)
         backend._signal_owned(interrupted, signal.SIGKILL)
         failed = wait_for(lambda: (r if (r := backend.refresh(name))["state"] == "failed" and not alive(r) else None), seconds=30)
@@ -89,6 +92,9 @@ def run_runner_acceptance(root, state_root, run_id, recipe):
         if final_row["state"] != "completed" or final_row["metrics"]["steps"] != recipe["max_updates"]:
             raise ContractError("recovered multiround runner failed: " + final_row["reason"])
         final = verified_trainer(host_root, final_row)
+        attempts = [h for h in final_row["history"] if h["event"] == "fresh_episode_started" and h["step"] == 2]
+        if len(attempts) != 2 or attempts[0]["generation"] == attempts[1]["generation"]:
+            raise ContractError("recovery must sample a fresh second episode in a new worker")
         tool("training.prepare", {"run_id": continuous_name})
         control(continuous_name, "start")
         baseline_row = finished(continuous_name)
@@ -134,6 +140,8 @@ def run_runner_acceptance(root, state_root, run_id, recipe):
                   "run_id": run_id, "transcript": transcript, "pause_ack": paused,
                   "canonical_updates_per_run": final.updates, "independent_runs": 2,
                   "physical_committed_optimizer_calls": final.updates + baseline.updates,
+                  "known_discarded_optimizer_calls": 1, "fresh_second_episode_attempts": attempts,
+                  "injected_crash_phase": interrupted["phase"],
                   "completed_training_games": len(final_row["updates"]) + len(baseline_row["updates"]),
                   "completed_validation_games": len(final_row["validations"]) + len(baseline_row["validations"]),
                   "discarded_episode_attempts": final_row["discarded_episodes"],

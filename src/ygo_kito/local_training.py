@@ -344,7 +344,7 @@ class LocalCpuBackend:
                 if operation in ("pause", "stop"):
                     row["desired"] = "paused" if operation == "pause" else "stopped"
                     if not alive(row):
-                        row["state"], row["phase"] = row["desired"], "exited"
+                        row["state"], row["phase"] = ("failed" if "recipe" in row and operation == "pause" else row["desired"]), "exited"
                 row["revision"] += 1
                 row["history"].append({"event": "control_requested", "operation": operation, "request_id": request_id})
                 put_row(db, row)
@@ -440,7 +440,7 @@ class LocalCpuBackend:
                     commit_round(row, round_reconciliation["manifest"])
                 row["history"].append({k: v for k, v in round_reconciliation.items() if k != "manifest"})
             row["history"].append({"event": "explicit_recovery", "checkpoint_id": row["checkpoint_ids"][-1],
-                                   "optimizer_steps": trainer.updates})
+                                   "optimizer_steps": row["metrics"]["steps"]})
             put_row(db, row)
         return snapshot_for(row)
 

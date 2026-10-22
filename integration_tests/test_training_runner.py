@@ -9,7 +9,7 @@ from ygo_kito.cpu_training import load_checkpoint
 from ygo_kito.local_training import LocalCpuBackend, verified_trainer, _connect, get_row, put_row
 from ygo_kito.runner_acceptance import run_runner_acceptance
 from ygo_kito.training_runner import read_artifact
-from ygo_kito.validation import ContractError, read_json
+from ygo_kito.validation import ContractError, read_json, canonical_json
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -47,6 +47,9 @@ class RealMultiroundRunnerTests(unittest.TestCase):
         self.assertEqual(self.proof["final_status"]["metrics"]["recovery_count"], 1)
         self.assertGreaterEqual(self.proof["discarded_episode_attempts"], 1)
         self.assertTrue(self.proof["pause_ack"]["local_process_exited"])
+        self.assertEqual(self.proof["injected_crash_phase"], "validating")
+        self.assertEqual(self.proof["known_discarded_optimizer_calls"], 1)
+        self.assertEqual(len(self.proof["fresh_second_episode_attempts"]), 2)
 
     def test_train_validation_seeds_opponent_versions_and_player_data_are_separate(self):
         p = self.proof
@@ -138,6 +141,19 @@ class RealMultiroundRunnerTests(unittest.TestCase):
             path.write_bytes(path.read_bytes() + b" ")
             with self.assertRaisesRegex(ContractError, "data integrity"):
                 verified_trainer(corrupt_state, row)
+
+    def test_unregistered_round_cannot_change_data_purpose_seed_or_opponent(self):
+        with tempfile.TemporaryDirectory() as temp:
+            for field, value in (("purpose", "validation"), ("seed_audit_only", 1724),
+                                 ("opponent", "visible-effects-last-option-v1")):
+                state = Path(temp) / field
+                backend, row = self.fixture_host(state, 1)
+                manifest_path = state / "runs/multiround-duel/rounds/step-2.json"
+                manifest = read_json(manifest_path)
+                manifest["train_summary"][field] = value
+                manifest_path.write_text(canonical_json(manifest) + "\n")
+                with self.assertRaisesRegex(ContractError, "seed/purpose/opponent"):
+                    backend.recover(row["run_id"], row["revision"])
 
 
 if __name__ == "__main__":

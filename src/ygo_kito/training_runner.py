@@ -319,6 +319,8 @@ def worker_rounds(state_root, run_id, generation, reporter):
                 put_row(db, row)
                 break
             row.update(phase="sampling", revision=row["revision"] + 1)
+            row["history"].append({"event": "fresh_episode_started", "step": trainer.updates + 1,
+                                   "generation": generation, "policy_sha256": parameter_digest(trainer.model)})
             put_row(db, row)
         episode = trainer.sample_episode(Path(row["native_root"]), row["profile"], opponent=recipe["train"]["opponent"])
         with closing(_connect(state_root)) as db, db:
