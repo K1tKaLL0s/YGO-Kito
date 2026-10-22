@@ -55,6 +55,15 @@ def parser():
     search_replay = sub.add_parser("native-search-replay")
     search_replay.add_argument("input", type=Path)
     search_replay.add_argument("--root", type=Path, default=Path(".cache"))
+    effect_duel = sub.add_parser("native-effect-duel", help="complete a real duel for an explicit effect-deck profile")
+    effect_duel.add_argument("--root", type=Path, default=Path(".cache"))
+    effect_duel.add_argument("--profile", type=Path, default=Path("configs/effect-duel-v1.json"))
+    effect_duel.add_argument("--seed", type=int, default=7)
+    effect_duel.add_argument("--option-preference", choices=("first", "last"), default="first")
+    effect_duel.add_argument("--trace", type=Path)
+    effect_duel_replay = sub.add_parser("native-effect-duel-replay")
+    effect_duel_replay.add_argument("input", type=Path)
+    effect_duel_replay.add_argument("--root", type=Path, default=Path(".cache"))
     return result
 
 
@@ -97,6 +106,18 @@ def main(argv=None) -> int:
                 raise EngineUnavailable("no runnable engine backend")
             case "native-smoke":
                 output = run_native_smoke(args.root, args.seed)
+            case "native-effect-duel" | "native-effect-duel-replay":
+                from .effect_duel import run_effect_duel
+                if args.command == "native-effect-duel":
+                    if args.trace is not None and args.trace.exists():
+                        raise ContractError("trace already exists; choose a new path")
+                    output, trace = run_effect_duel(args.root, read_json(args.profile), seed=args.seed, option_preference=args.option_preference)
+                    if args.trace is not None:
+                        args.trace.parent.mkdir(parents=True, exist_ok=True)
+                        with args.trace.open("x", encoding="utf-8") as handle:
+                            handle.write(canonical_json(trace) + "\n")
+                else:
+                    output, _ = run_effect_duel(args.root, {}, replay=read_json(args.input))
             case "native-duel" | "native-replay" | "native-effects" | "native-effect-replay" | "native-search" | "native-search-replay":
                 from .normal_duel import run_normal_duel
                 from .effect_cases import run_effect_case

@@ -18,13 +18,10 @@ from uuid import uuid4
 from .contracts import ActionSelection, CardView, DecisionRequest, LegalAction, Observation, PublicEvent, RunContext, SearchChoice, Versions, validate_selection
 from .engine import EngineUnavailable
 from .native_assets import LOCK_PATH, verify_resources
+from .native_protocol import NativeError, Reader, decode_prompt, decode_deck_choices
 from .validation import ContractError, integer
 
 _ACTIVE = threading.Lock()  # The upstream callback registry is process-global.
-
-
-class NativeError(RuntimeError):
-    pass
 
 
 class CardData(C.Structure):
@@ -32,28 +29,6 @@ class CardData(C.Structure):
                 *[(key, C.c_uint32) for key in ("type", "level", "attribute", "race")],
                 ("attack", C.c_int32), ("defense", C.c_int32),
                 *[(key, C.c_uint32) for key in ("lscale", "rscale", "link_marker", "rule_code")]]
-
-
-class Reader:
-    def __init__(self, data):
-        self.data, self.offset = data, 0
-
-    def take(self, count):
-        end = self.offset + count
-        if end > len(self.data):
-            raise NativeError("truncated native message")
-        value = self.data[self.offset:end]
-        self.offset = end
-        return value
-
-    def u8(self):
-        return self.take(1)[0]
-
-    def u16(self):
-        return struct.unpack("<H", self.take(2))[0]
-
-    def u32(self):
-        return struct.unpack("<I", self.take(4))[0]
 
 
 def banlist_limits(path: Path, section="2026.10") -> dict[int, int]:
@@ -71,13 +46,16 @@ def banlist_limits(path: Path, section="2026.10") -> dict[int, int]:
 
 
 class NativeNormalEngine:
-    def __init__(self, root: Path, *, seed=7, scenario="normal", legacy_request_ids=False):
+    def __init__(self, root: Path, *, seed=7, scenario="normal", legacy_request_ids=False, deck_profile=None):
         integer(seed, "seed", 0, 2**32 - 8)
-        if scenario not in ("normal", "effects-counter", "search-trigger", "search-condition", "count-reset", "count-shared", "search-lock", "lock-control"):
+        if scenario not in ("normal", "effects-counter", "search-trigger", "search-condition", "count-reset", "count-shared", "search-lock", "lock-control", "effect-duel"):
             raise ContractError("unsupported scoped native scenario")
+        if (scenario == "effect-duel") != (deck_profile is not None):
+            raise ContractError("effect duel requires an explicit deck profile")
         if legacy_request_ids and scenario != "normal":
             raise ContractError("legacy requests are reserved for old normal replay")
         self.scenario, self._legacy_ids = scenario, legacy_request_ids
+        self.general_actions = scenario == "effect-duel"
         self._observer_windows = [0, 0]
         self.root = root.resolve()
         self.receipt = verify_resources(self.root)
@@ -124,6 +102,10 @@ class NativeNormalEngine:
             elif scenario == "lock-control":
                 self._allowed_pool.add(45812361)
                 self.player_decks = (self.deck[:39] + (45812361,), self.deck)
+            elif scenario == "effect-duel":
+                from .deck_profile import validate_profile
+                self.player_decks = validate_profile(deck_profile)
+                self._allowed_pool = set().union(*self.player_decks)
             for deck in self.player_decks:
                 self.validate_deck(deck)
             self._install_callbacks()
@@ -173,12 +155,20 @@ class NativeNormalEngine:
 
     def validate_deck(self, deck):
         limits = banlist_limits(self.sources / "client/lflist.conf")
-        if len(deck) != 40:
+        if self.general_actions and not 40 <= len(deck) <= 60:
+            raise ContractError("native main deck must contain 40 to 60 cards")
+        if not self.general_actions and len(deck) != 40:
             raise ContractError("native smoke requires a 40-card main deck")
+        aliases = Counter()
         for code, count in Counter(deck).items():
             row = self._rows.get(code)
             if not row or code not in self._allowed_pool or not row["ot"] & 1 or count > limits.get(row["alias"] or code, 3):
                 raise ContractError("deck violates explicit smoke pool or locked banlist")
+            if self.general_actions and row["type"] & (0x40 | 0x2000 | 0x800000 | 0x4000000):
+                raise ContractError("extra-deck card cannot be placed in main deck")
+            aliases[row["alias"] or code] += count
+        if any(count > limits.get(code, 3) for code, count in aliases.items()):
+            raise ContractError("deck aliases exceed combined copy limit")
 
     def _install_callbacks(self):
         def script_reader(name, length):
@@ -247,11 +237,30 @@ class NativeNormalEngine:
     def _count(self, player, location):
         return self.lib.query_field_count(self.handle, player, location)
 
+    def _visible_data(self, player, location, sequence, combat=False):
+        if location not in (2, 4, 8, 16):
+            raise NativeError("unsupported visible card query")
+        flags = 0x40001 | (0x300 if combat else 0)
+        buffer = (C.c_uint8 * 64)()
+        length = self.lib.query_card(self.handle, player, location, sequence, flags, buffer, 0)
+        if not 8 <= length <= len(buffer):
+            raise NativeError("invalid visible query length")
+        reader = Reader(bytes(buffer[:length]))
+        if reader.u32() != length or reader.u32() != flags:
+            raise NativeError("invalid visible query schema")
+        code = reader.u32()
+        attack, defense = (struct.unpack("<ii", reader.take(8))) if combat else (None, None)
+        owner = reader.u32()
+        if reader.offset != length or owner not in (0, 1):
+            raise NativeError("invalid visible card owner/schema")
+        return code, owner, attack, defense
+
     def _observation(self, observer):
         cards = []
         for sequence in range(self._count(observer, 2)):
             code, _ = self._query(observer, 2, sequence, 1)
-            cards.append(CardView(f"p{observer}.hand.{sequence}", observer, observer, "hand", "observer", code))
+            owner = self._visible_data(observer, 2, sequence)[1] if self.general_actions else observer
+            cards.append(CardView(f"p{observer}.hand.{sequence}", owner, observer, "hand", "observer", code))
         opponent = 1 - observer
         for sequence, code in sorted(self._revealed_hand[opponent].items()):
             cards.append(CardView(f"p{opponent}.hand.{sequence}", opponent, opponent, "hand", "public", code))
@@ -264,15 +273,31 @@ class NativeNormalEngine:
                     public = location == 16 or bool(position[1] & 5)
                     visible = player == observer or public
                     code = self._query(player, location, sequence, 1)[0] if visible else None
-                    cards.append(CardView(f"p{player}.{zone}.{sequence}", player, player, zone,
-                                          "public" if public else "observer" if visible else "hidden", code))
+                    owner, attack, defense = player, None, None
+                    if self.general_actions:
+                        owner = None
+                        if visible:
+                            code, owner, attack, defense = self._visible_data(player, location, sequence, public and location == 4)
+                    cards.append(CardView(f"p{player}.{zone}.{sequence}", owner, player, zone,
+                                          "public" if public else "observer" if visible else "hidden", code,
+                                          position[1] if self.general_actions and location in (4, 8) else None, attack, defense))
         history = ()
         if self.scenario != "normal":
-            history = tuple(PublicEvent(f"public-{i}", e["event"], tuple(e["card_ids"])) for i, e in enumerate(public_event_projection(self.events)))
+            history = tuple(PublicEvent(f"public-{i}", e["event"], tuple(e["card_ids"])) for i, e in enumerate(public_event_projection(self.events, extended=self.general_actions)))
         return Observation(observer, self.turn_player, self.turn, self.phase, tuple(self.life_points),
                            tuple(self._count(p, 2) for p in (0, 1)), tuple(self._count(p, 1) for p in (0, 1)), tuple(cards), history)
 
     def _prompt(self, kind, reader):
+        if self.general_actions:
+            decoded = decode_prompt(kind, reader)
+            self.window += 1
+            self._observer_windows[decoded.player] += 1
+            self._responses = {f"choice-{i}": o.response for i, o in enumerate(decoded.options)}
+            actions = tuple(LegalAction(f"choice-{i}", o.kind, o.refs, o.value, o.details) for i, o in enumerate(decoded.options))
+            self.pending = DecisionRequest(self.context, "native-effect-duel", f"p{decoded.player}-window-{self._observer_windows[decoded.player]}",
+                self._observation(decoded.player), actions, search_choices=decoded.search_choices, prompt=decoded.info)
+            self.pending_kind = kind
+            return self.pending
         player = reader.u8()
         options = []
         search_choices = ()
@@ -396,7 +421,7 @@ class NativeNormalEngine:
                 self.events.append(event)
                 if kind == 1:
                     raise NativeError("real engine rejected response (MSG_RETRY)")
-                if kind in (10, 11, 12, 13, 15, 16, 18, 19):
+                if kind in (10, 11, 12, 13, 15, 16, 18, 19) or (self.general_actions and kind in (14, 20, 26)):
                     request = self._prompt(kind, reader)
                     event.update(player=request.observation.observer, choices=len(request.actions))
                     if reader.offset != len(reader.data):
@@ -434,10 +459,14 @@ class NativeNormalEngine:
                         event["reason"] = reason
                         if current[1] == 16 or (current[1] in (4, 8) and current[3] & 5):
                             event["public_card"] = code
-                elif kind in (60, 62):
-                    event["public_summoning_card"] = reader.u32()
-                    event["player"] = reader.take(4)[0]
-                elif kind in (61, 63):
+                elif kind in (60, 62) or (self.general_actions and kind == 64):
+                    code, slot = reader.u32(), reader.take(4)
+                    if not self.general_actions or slot[3] & 5:
+                        event["public_summoning_card"] = code
+                    event["player"] = slot[0]
+                    if self.general_actions:
+                        event.update(zone=slot[1], slot=slot[2], position=slot[3])
+                elif kind in (61, 63) or (self.general_actions and kind == 65):
                     pass
                 elif kind == 5:
                     self.outcome = {"winner": reader.u8(), "reason_code": reader.u8()}
@@ -451,6 +480,16 @@ class NativeNormalEngine:
                         raise NativeError("invalid LP event player")
                     self.life_points[player] = (amount if kind == 94 else self.life_points[player] + amount if kind == 92 else max(0, self.life_points[player] - amount))
                     event.update(player=player, amount=amount, lp=self.life_points[player])
+                elif kind == 53 and self.general_actions:
+                    code = reader.u32()
+                    owner, zone, sequence, previous, current = reader.take(5)
+                    event.update(player=owner, zone=zone, slot=sequence, previous_position=previous, position=current)
+                    if (previous | current) & 5:
+                        event["public_card"] = code
+                elif kind in (101, 102) and self.general_actions:
+                    event["counter_type"] = reader.u16()
+                    event["player"], event["zone"], event["slot"] = reader.u8(), reader.u8(), reader.u8()
+                    event["count"] = reader.u16()
                 elif kind in (53, 160):
                     reader.take(9)
                 elif kind == 54:
@@ -528,26 +567,14 @@ class NativeNormalEngine:
         self.close()
 
 
-def decode_deck_choices(player, minimum, maximum, candidates):
-    """Discard native order/deck positions while keeping response indices private."""
-    if minimum != 1 or maximum != 1 or not 0 < len(candidates) <= 128:
-        raise NativeError("only bounded single-card deck choices are supported")
-    if any(owner != player or zone != 1 or not code for code, owner, zone, _ in candidates):
-        raise NativeError("blind/opponent/mixed deck selection is unsupported")
-    choices, options = [], []
-    for ordinal, (native_index, (code, owner, _zone, _sequence)) in enumerate(sorted(enumerate(candidates), key=lambda item: item[1][0])):
-        ref = f"search-choice-{ordinal}"
-        choices.append(SearchChoice(ref, code, owner))
-        options.append(("select", (ref,), 1, bytes((1, native_index))))
-    return tuple(choices), options
-
-
 NativeSmokeEngine = NativeNormalEngine  # M2a compatibility alias.
 
 
-def public_event_projection(events):
+def public_event_projection(events, *, extended=False):
     """Whitelist public facts; discard private prompts/counts and their global indices."""
     names = {5: "result", 31: "reveal", 40: "phase", 41: "phase", 50: "move", 60: "summon", 62: "summon", 70: "activate"}
+    if extended:
+        names.update({53: "move", 64: "summon", 110: "attack"})
     return [{"event": names[e["kind"]], "card_ids": e.get("public_cards", [e.get("public_card", e.get("public_summoning_card"))]
              if e.get("public_card", e.get("public_summoning_card")) else [])}
             for e in events if e["kind"] in names]
