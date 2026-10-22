@@ -138,6 +138,28 @@ class CliTests(unittest.TestCase):
         self.assertFalse(status["formal_training"]["ready"])
         self.assertFalse(missing.exists())
 
+    def test_local_cpu_backend_is_explicit_and_never_available_to_opponent_role(self):
+        denied = self.run_cli("agent-call", self.write_json("cpu-capabilities.json",
+            {"schema_version": 1, "id": "caps", "method": "capabilities", "params": {}}),
+            "--role", "opponent", "--local-cpu-control")
+        self.assertEqual(denied.returncode, 2)
+        self.assertEqual(json.loads(denied.stderr)["error"]["code"], "INVALID_INPUT")
+        request = self.write_json("cpu-prepare-no-backend.json",
+            {"schema_version": 1, "id": "prepare", "method": "training.prepare", "params": {"run_id": "no-backend"}})
+        state = self.root / "no-local-backend"
+        result = self.run_cli("agent-call", request, "--role", "trainer", "--state-root", str(state))
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["error"]["code"], "TRAINING_BACKEND_NOT_CONFIGURED")
+        self.assertFalse((state / "runs").exists())
+
+    def test_acceptance_missing_assets_does_not_create_a_fake_flow(self):
+        repo = Path(__file__).resolve().parents[1]
+        state = self.root / "no-acceptance-state"
+        result = self.run_cli("engineering-acceptance", "--root", str(self.root / "unprepared"),
+                              "--state-root", str(state), "--run-id", "no-assets")
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertFalse(state.exists())
+
     def test_budget_cli_is_marked_synthetic_rejects_launch_and_does_not_import_torch(self):
         repo = Path(__file__).resolve().parents[1]
         ledger = self.root / "contract-budget.sqlite3"

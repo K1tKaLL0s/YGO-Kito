@@ -111,6 +111,10 @@ def parser():
     budget.add_argument("--role", choices=("monitor", "trainer"), default="monitor")
     budget.add_argument("--source", choices=("host_reported_unverified", "synthetic_contract_test"), default="host_reported_unverified")
     budget.add_argument("--create", action="store_true")
+    accept = sub.add_parser("engineering-acceptance", help="bounded whole CPU chain, real managed training and explicit owned-worker faults; not formal readiness")
+    accept.add_argument("--root", type=Path, default=Path(".cache"))
+    accept.add_argument("--state-root", type=Path, default=Path(".cache/acceptance"))
+    accept.add_argument("--run-id", required=True)
     for name in ("agent-serve", "agent-call"):
         agent = sub.add_parser(name, help="host-scoped local JSON tools; no provider or training launch")
         if name == "agent-call":
@@ -195,6 +199,19 @@ def main(argv=None) -> int:
                 from .build_contracts import BuildTask
                 output = run_build_training_smoke(args.root, args.state_root, args.run_id,
                                                  BuildTask.from_dict(read_json(args.task)), config_from_dict(read_json(args.training_config)))
+            case "engineering-acceptance":
+                import signal
+                from .engineering_acceptance import run_engineering_acceptance
+                if not hasattr(signal, "setitimer"):
+                    raise EngineUnavailable("engineering acceptance requires this cloud's Unix process timer")
+                old_handler = signal.signal(signal.SIGALRM, signal.SIG_DFL)
+                signal.setitimer(signal.ITIMER_REAL, 180.)
+                try:
+                    output = run_engineering_acceptance(args.root, args.state_root, args.run_id)
+                    output["acceptance_cli_wall_limit_seconds"] = 180
+                finally:
+                    signal.setitimer(signal.ITIMER_REAL, 0)
+                    signal.signal(signal.SIGALRM, old_handler)
             case "training-preflight":
                 from .training_preflight import cpu_preflight
                 output = cpu_preflight(args.root, read_json(args.plan))
