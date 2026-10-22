@@ -70,4 +70,4 @@ checkpoint含两个模型/优化器/调度器、RNG、批次游标、任务/词�
 
 训练状态以source=trainer发布到既有RunReporter，`agent-serve --role monitor --state-root STATE`可读真实指标及登记checkpoint。`training.control`仍未接后端，CodeBuddy/DeepSeek端到端未验；这个CPU命令不授予外部agent启动训练的权限。
 
-当前结果与剩余项见[M3b交接](../reports/2026-10-23-building-cpu-m3b.md)和[总清单](../plans/MASTER-CHECKLIST.md)。三个执行模型只有最小原型，学习统筹尚未实现，1A/1B/PC门槛仍未通过。LoRA与原始学习实践保留，学生ZIP/TODO不改。剩余20%保存停止，不使用重置卡；云端无实时余额接口，不声称当前额度。
+构筑独立切片结果保留在[M3b交接](../reports/2026-10-23-building-cpu-m3b.md)；当前[M3c统筹/四模型流程](coordinator-model-group.md)已接收构筑托付并实际冻结策略验证、回收结果及组恢复。三个执行Transformer和648参数学习统筹均仅为原型，统筹规则优先/合成监督/预测待校准，1A/1B/PC门槛仍未通过，见[总清单](../plans/MASTER-CHECKLIST.md)。LoRA与原始学习实践保留，学生ZIP/TODO不改。剩余20%保存停止，不使用重置卡；云端无实时余额接口，不声称当前额度。

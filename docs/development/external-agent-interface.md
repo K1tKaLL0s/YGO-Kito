@@ -55,7 +55,9 @@ cd /workspace/YGO-Kito
 
 这只是格式示例，不创建真实训练。runs.list在所选state root尚未发布时为空；契约测试样本明确使用source=local_contract_fixture。M3a/M3b实际CPU训练发布source=trainer、角色版本、参数更新计数和真实小型checkpoint，已通过此只读接口回读。构筑checkpoint的step为成对批次游标，运行metrics.steps为两个角色实际规范更新总数，恢复对照另列物理调用次数。检查点读取仅接受该运行登记的ID，核对元数据/字节数/SHA-256，拒绝路径越界，不反序列化权重。
 
-`training.control {run_id,operation,expected_revision}`只允许start/pause/resume/stop/save_checkpoint。默认没有后端，返回TRAINING_BACKEND_NOT_CONFIGURED，未执行操作。M3a的明确CPU训练命令没有自动成为此控制后端，不能通过外部agent启动/暂停该训练。未来可信宿主显式注入TrainingBackend：必须原子校验expected_revision并给出applied/revision，不能接受任意shell命令。请求ID持久幂等、同运行版本仅保留一次操作；异常/中断留下uncertain，禁止自动重试，先回读状态查明实际结果。外部真实控制、完整1B恢复和目标环境仍待验证。
+`training.control {run_id,operation,expected_revision}`只允许start/pause/resume/stop/save_checkpoint。默认没有后端，返回TRAINING_BACKEND_NOT_CONFIGURED，未执行操作。M3a/b/c的明确CPU训练/组流程命令没有自动成为此控制后端，不能通过外部agent启动/暂停该训练。未来可信宿主显式注入TrainingBackend：必须原子校验expected_revision并给出applied/revision，不能接受任意shell命令。请求ID持久幂等、同运行版本仅保留一次操作；异常/中断留下uncertain，禁止自动重试，先回读状态查明实际结果。外部真实控制、完整1B恢复和目标环境仍待验证。
+
+[M3c统筹与组流程](coordinator-model-group.md)另提供固定角色的coordinator-call，用于可信宿主的构筑托付/固定预测/任务租用/结果回收与只读历史；不属于opponent工具。四模型checkpoint及真实trainer指标沿用本页monitor接口回读，原生验证只执行当前支持的BO1工程范围。对手agent仍只能看本席位合法DTO，不得取得统筹任务中的双方牌表/种子/内部审计；宿主角色配置须与OS/进程权限隔离一起落实，不能将CLI的--role参数本身当系统沙箱。
 
 ## 卡组导入、绑定和操控方
 

@@ -15,7 +15,7 @@
 - 第一阶段真实规则核心，第二阶段训练前验证 PC YGOPro／萌卡兼容。**手机端及 YGOMobile 暂移出本期范围**；云端训练与 PC 推理/微调的硬件压力仍必须记录。
 - 构筑预测与实战反馈：百场内明显落后预警、千场内明显落后强制重构；具体统计阈值实施前冻结。
 
-当前已有CPU工程骨架、固定上游源码构建的core、限定通常怪兽/效果牌组真实终局与重放，以及三个独立执行Transformer最小原型：决斗265,378参数，构筑目标/优化各17,665参数。均有真实CPU参数更新及checkpoint续跑证据；构筑四步交替逐阶段由真实核心验证条件通常召唤目标，保留固定约束和可重放改动。**71项单元＋56项集成通过，无跳过。** [当前交接与数值证据](docs/reports/2026-10-23-building-cpu-m3b.md)明确范围：**目标/优化只完成有界工程切片，学习统筹尚未实现；一般卡池、标准客户端回放、1A/1B及PC兼容门槛未通过，无竞技或合理构筑能力结论、无付费训练。** 工程参数不冒充最终冻结，本云端开发不表示离线本机已同步。
+当前已有CPU工程骨架、固定上游源码构建的core、限定真实终局/重放，以及四个独立网络原型：决斗Transformer265,378参数，构筑目标/优化Transformer各17,665参数，轻量统筹MLP648参数。均有实际CPU更新与恢复证据；构筑四步交替由真实核心验证条件目标，已串通托付→版本绑定预测→冻结策略真实验证→结果回收及组恢复。**87项单元＋61项集成通过，无跳过。** [当前交接与数值证据](docs/reports/2026-10-23-coordinator-m3c.md)明确范围：**统筹规则优先，学习原型只用明示合成监督提供建议，预测未校准；百场/千场工程反馈用单独合成记录验边界，不冒充千场实战。完整模型能力、一般卡池、标准客户端回放、1A/1B及PC门槛未通过，无竞技或合理构筑能力结论、无付费训练。** 工程参数不冒充最终冻结，本云端开发不表示离线本机已同步。
 
 运行与验收见 [CPU 骨架说明](docs/development/cpu-foundation.md)、[阶段任务清单](docs/plans/2026-10-22-phase-1-cpu-checklist.md)及[云端启动实证](docs/reports/2026-10-22-cloud-bootstrap.md)。本云端可执行：
 
@@ -36,6 +36,8 @@ PYTHONPATH=src .venv/bin/python -m ygo_kito --config configs/cpu.toml status
 [决斗模型CPU训练/恢复说明](docs/development/cpu-duel-training.md)提供明确的 `duel-train-cpu` 命令、工程配置和真实checkpoint/监控接口。只用既有云端CPU，不启动付费资源或外部API；模型权重在云端缓存保存，PR提交代码、原始指标和哈希。工程样例不替代用户牌组或独立能力验收。
 
 [构筑目标/优化CPU说明](docs/development/cpu-building.md)提供 `build-train-cpu`、`build-check`、主/额外/副卡DTO及目标→优化→目标→优化接口。目标模型使用真实条件路线/明确硬失败监督，优化模型仅以明示的弱代理比较作训练；当前17张工程pool不取代未来交叉检索，非空额外卡表合法不代表额外路线已接入。JSON输出已实际导入现有注册器，用户3＋8套仍待接收。
+
+[统筹与四模型闭环说明](docs/development/coordinator-model-group.md)提供 `model-group-cpu`、分权 `coordinator-call`、固定预测/谱系/单在途任务、预设百场/千场反馈及完整组checkpoint。独立CPU命令实际7次更新、1局验证且恢复重跑一致；合成统计与真实结果分账。下一批为LoRA管理及腾讯云受限交接，当前不启动腾讯云或扩PC应用。
 
 [2026-10-21 旧阶段计划](docs/plans/2026-10-21-development-and-training-budget.md) 与 [旧技术复核](docs/reviews/2026-10-21-technical-route-review.md) 保留决策历史，不再作为最新选型入口。尤其旧文的 LoRA 可选、移动端后续排期、预算未分配和架构待讨论表述，不覆盖统一说明。
 
@@ -70,7 +72,7 @@ PYTHONPATH=src .venv/bin/python -m ygo_kito --config configs/cpu.toml status
 
 - [原件清单与 SHA-256](archive-manifest.json) 记录 11 份原件的来源 ID、字节数和哈希。
 - 练习包保持 ZIP 原样，原归档时已静态检查其中 6 个教学文件；本次工程测试独立于学生练习，不解包覆盖或代填学生 TODO。
-- 原件归档时未开始开发；现已有CPU骨架及自行初始化的决斗/构筑目标/优化模型工程更新，未启动付费训练或下载模型。仓库未收录密钥、账户配置、权重二进制、大型数据或无关私人资料；小型工程checkpoint在云端缓存保存。未核实的 ygo_work_handoff.zip 未收录。
+- 原件归档时未开始开发；现已有CPU骨架及自行初始化的决斗/构筑目标/优化/统筹原型工程更新，未启动付费训练或下载模型。仓库未收录密钥、账户配置、权重二进制、大型数据或无关私人资料；小型工程checkpoint在云端缓存保存。未核实的 ygo_work_handoff.zip 未收录。
 - 原件均保留在原来源；两个小幅修订版的字节和哈希不同，分别归档。
 - PDF 中原有的 C2PA Content Credentials 来源元数据保留在文件内。
 
