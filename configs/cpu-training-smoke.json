@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "model": {
+    "width": 32,
+    "card_width": 16,
+    "heads": 4,
+    "layers": 1,
+    "feedforward": 64,
+    "history_events": 32,
+    "max_tokens": 256,
+    "max_actions": 2048
+  },
+  "model_seed": 123,
+  "policy_seed": 456,
+  "batch_seed": 789,
+  "actor_seat": 0,
+  "batch_size": 32,
+  "native_decision_limit": 1500,
+  "episode_seconds": 30.0,
+  "learning_rate": 0.001,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "clip_ratio": 0.2,
+  "value_weight": 0.5,
+  "entropy_weight": 0.01,
+  "grad_clip": 0.5,
+  "lr_decay": 0.99,
+  "game_seeds": [1724, 24]
+}

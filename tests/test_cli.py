@@ -39,6 +39,23 @@ class CliTests(unittest.TestCase):
         self.assertFalse(json.loads(output.stdout)["engine"]["ready"])
         self.assertFalse((self.root / "local").exists())
 
+    def test_infrastructure_status_does_not_import_optional_torch(self):
+        result = subprocess.run([sys.executable, "-c",
+            'import sys; from ygo_kito.cli import main; main(["status"]); assert "torch" not in sys.modules'],
+            cwd=self.root, env=self.env, capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_explicit_cpu_training_with_missing_resources_fails_without_a_fake_run(self):
+        repo = Path(__file__).resolve().parents[1]
+        state = self.root / "training-state"
+        result = self.run_cli("duel-train-cpu", "--run-id", "missing-assets", "--root", str(self.root / "missing-native"),
+                              "--state-root", str(state), "--profile", str(repo / "configs/effect-duel-v1.json"),
+                              "--training-config", str(repo / "configs/cpu-training-smoke.json"))
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(json.loads(result.stderr)["error"]["code"], "CPU_TRAINING_UNAVAILABLE")
+        self.assertFalse(state.exists())
+
     def test_cli_initialization_import_and_lookup_work_from_another_directory(self):
         for args in (("db-init",), ("db-init",), ("cards-import", self.write_json("cards.json", dataset())), ("card-show", "1")):
             output = self.run_cli(*args)

@@ -64,6 +64,12 @@ def parser():
     effect_duel_replay = sub.add_parser("native-effect-duel-replay")
     effect_duel_replay.add_argument("input", type=Path)
     effect_duel_replay.add_argument("--root", type=Path, default=Path(".cache"))
+    train = sub.add_parser("duel-train-cpu", help="bounded real-core CPU parameter-update/recovery proof; no provider or paid resource launch")
+    train.add_argument("--root", type=Path, default=Path(".cache"))
+    train.add_argument("--state-root", type=Path, default=Path(".cache/agent"))
+    train.add_argument("--run-id", required=True)
+    train.add_argument("--profile", type=Path, default=Path("configs/effect-duel-v1.json"))
+    train.add_argument("--training-config", type=Path, default=Path("configs/cpu-training-smoke.json"))
     for name in ("agent-serve", "agent-call"):
         agent = sub.add_parser(name, help="host-scoped local JSON tools; no provider or training launch")
         if name == "agent-call":
@@ -122,6 +128,15 @@ def main(argv=None) -> int:
                 raise EngineUnavailable("no runnable engine backend")
             case "native-smoke":
                 output = run_native_smoke(args.root, args.seed)
+            case "duel-train-cpu":
+                try:
+                    from .cpu_training import config_from_dict, run_cpu_training_smoke
+                except ModuleNotFoundError as error:
+                    if error.name != "torch":
+                        raise
+                    raise EngineUnavailable("CPU PyTorch required for this optional command; infrastructure commands do not require it") from None
+                output = run_cpu_training_smoke(args.root, args.state_root, args.run_id,
+                                               read_json(args.profile), config_from_dict(read_json(args.training_config)))
             case "agent-serve" | "agent-call":
                 from .agent_bridge import AgentBridge, serve_bridge
                 bridge = AgentBridge(Path(__file__).resolve().parents[2], args.state_root, args.root,
@@ -170,7 +185,8 @@ def main(argv=None) -> int:
         print(canonical_json(output))
         return 0
     except EngineUnavailable as error:
-        code = "NATIVE_RESOURCES_UNAVAILABLE" if args.command.startswith("native-") else "ENGINE_NOT_IMPLEMENTED"
+        code = ("CPU_TRAINING_UNAVAILABLE" if args.command == "duel-train-cpu" else
+                "NATIVE_RESOURCES_UNAVAILABLE" if args.command.startswith("native-") else "ENGINE_NOT_IMPLEMENTED")
         message = str(error)
     except NativeError as error:
         code = "NATIVE_ENGINE_ERROR"
