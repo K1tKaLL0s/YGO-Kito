@@ -5,6 +5,7 @@ is native-core evidence; it is not a calibrated win-rate/strength experiment.
 """
 
 from dataclasses import asdict
+from contextlib import ExitStack
 import hashlib
 import json
 from pathlib import Path
@@ -57,7 +58,10 @@ def route_with_model(host, model, candidate_id, forecast_id, remaining):
     return result, advice
 
 
-def save_group(path, builder, duel, coordinator, data, host, task, assets, policy, training_profile, cursor):
+def save_group(path, builder, duel, coordinator, data, host, task, assets, policy, training_profile, cursor, *, adapters=None):
+    from torch.nn.utils.parametrize import is_parametrized
+    if adapters is None and any(is_parametrized(m) for model in (*builder.models.values(), duel.model, coordinator.model) for m in model.modules()):
+        raise ContractError("parametrized model group requires explicit adapter states")
     path = Path(path)
     if path.exists():
         raise ContractError("group checkpoint exists; no overwrite")
@@ -70,8 +74,18 @@ def save_group(path, builder, duel, coordinator, data, host, task, assets, polic
     path.parent.mkdir(parents=True, exist_ok=True)
     components = path.parent / "components"
     components.mkdir(exist_ok=True)
-    build_file = save_build(builder, components, "build", binding_for(task, assets, data))
-    duel_file = save_duel(duel, components, "duel", resource_binding(assets.root, training_profile))
+    adapter_states = None
+    if adapters is not None:
+        models = dict(builder.models, duel=duel.model, coordinator=coordinator.model)
+        if set(adapters) != set(models) or any(adapters[r].model is not models[r] for r in models):
+            raise ContractError("group adapters must bind all four actual role models")
+        adapter_states = {r: a.state() for r, a in adapters.items()}
+    with ExitStack() as stack:
+        for adapter in (adapters or {}).values():
+            stack.enter_context(adapter.suspended())
+        build_file = save_build(builder, components, "build", binding_for(task, assets, data))
+        duel_file = save_duel(duel, components, "duel", resource_binding(assets.root, training_profile))
+        coordinator_state = coordinator.state()
     backup_path = components / "ledger.sqlite3"
     if backup_path.exists():
         raise ContractError("ledger backup exists; inspect before retry")
@@ -82,20 +96,31 @@ def save_group(path, builder, duel, coordinator, data, host, task, assets, polic
     state = {"schema_version": 1, "boundary": "pending-unclaimed-duel-job", "binding": group_binding(task, assets, policy),
              "task": task.to_dict(), "cursor": cursor, "training_profile": training_profile,
              "build": torch.load(build_file, map_location="cpu", weights_only=True),
-             "duel": torch.load(duel_file, map_location="cpu", weights_only=True), "coordinator": coordinator.state(),
+             "duel": torch.load(duel_file, map_location="cpu", weights_only=True), "coordinator": coordinator_state,
              "ledger_bytes": ledger_bytes, "ledger_sha256": hashlib.sha256(ledger_bytes).hexdigest(),
              "ledger_state_sha256": host.state_digest(), "global_rng": {"torch": torch.get_rng_state(), "python": random.getstate()}}
+    if adapter_states is not None:
+        state.update(schema_version=2, adapters=adapter_states)
     with path.open("xb") as handle:
         torch.save(state, handle)
     return {"path": path.name, "artifact_bytes": path.stat().st_size, "artifact_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
             "ledger_sha256": state["ledger_sha256"], "ledger_state_sha256": state["ledger_state_sha256"], "boundary": state["boundary"]}
 
 
-def restore_group(path, destination, assets, expected_binding):
+def restore_group(path, destination, assets, expected_binding, *, expected_adapters=None):
     state = torch.load(path, map_location="cpu", weights_only=True)
     fields(state, {"schema_version", "boundary", "binding", "task", "cursor", "training_profile", "build", "duel", "coordinator",
-                   "ledger_bytes", "ledger_sha256", "ledger_state_sha256", "global_rng"})
-    integer(state["schema_version"], "group checkpoint schema", 1, 1)
+                   "ledger_bytes", "ledger_sha256", "ledger_state_sha256", "global_rng"}, {"adapters"})
+    integer(state["schema_version"], "group checkpoint schema", 1, 2)
+    if ((state["schema_version"] == 2) != ("adapters" in state) or
+            ("adapters" in state) != (expected_adapters is not None)):
+        raise ContractError("adapter group requires explicit expected adapter bindings")
+    if expected_adapters is not None:
+        from .lora import ROLES
+        if set(state["adapters"]) != set(ROLES) or set(expected_adapters) != set(ROLES):
+            raise ContractError("all role adapter bindings required")
+        if any(state["adapters"][r]["compatibility"] != expected_adapters[r] for r in ROLES):
+            raise ContractError("adapter group base/version/context differs")
     task = BuildTask.from_dict(state["task"])
     policy = FeedbackPolicy.from_dict(state["binding"]["feedback_policy"])
     if (state["boundary"] != "pending-unclaimed-duel-job" or state["binding"] != expected_binding
@@ -116,6 +141,11 @@ def restore_group(path, destination, assets, expected_binding):
         raise ContractError("restored duel training resource binding differs")
     duel = load_duel(destination / "duel.weights", actual_duel_binding)
     coordinator = CoordinatorTrainer.restore(state["coordinator"])
+    adapters = None
+    if expected_adapters is not None:
+        from .lora import AdapterSession
+        models = dict(builder.models, duel=duel.model, coordinator=coordinator.model)
+        adapters = {r: AdapterSession.restore(models[r], state["adapters"][r], expected_adapters[r]) for r in models}
     ledger = destination / "coordinator.sqlite3"
     with ledger.open("xb") as handle:
         handle.write(state["ledger_bytes"])
@@ -124,14 +154,25 @@ def restore_group(path, destination, assets, expected_binding):
         raise ContractError("restored coordinator state differs")
     torch.set_rng_state(state["global_rng"]["torch"])
     random.setstate(state["global_rng"]["python"])
-    return {"builder": builder, "duel": duel, "coordinator": coordinator, "host": host, "cursor": state["cursor"], "task": task}
+    return {"builder": builder, "duel": duel, "coordinator": coordinator, "host": host, "cursor": state["cursor"], "task": task,
+            "adapters": adapters}
 
 
-def execute_duel_job(host, duel, coordinator, assets, opponent_profile, cursor):
+def execute_duel_job(host, duel, coordinator, assets, opponent_profile, cursor, *, adapter=None):
+    from torch.nn.utils.parametrize import is_parametrized
+    if adapter is None and any(is_parametrized(m) for m in duel.model.modules()):
+        raise ContractError("parametrized actor requires an explicit adapter session")
     worker = Coordinator(host.path, host.policy, role="duel_worker", source="real_engine", assets=assets)
     job = call(worker, "job.claim", {"job_id": cursor["job_id"], "worker_id": "native-neural-evaluator"})
     actor_hash = parameter_digest(duel.model)
-    if (actor_hash != job["scope"]["actor_policy_sha256"] or job["scope"]["unit"] != "BO1" or job["scope"]["duel_lora"] is not None or
+    lora_version = None
+    if adapter is not None:
+        from .lora import AdapterSession
+        if not isinstance(adapter, AdapterSession) or adapter.model is not duel.model or not adapter.enabled:
+            raise ContractError("duel adapter must be explicitly active on the actual actor")
+        adapter.verify_base()
+        lora_version = adapter.version_id()
+    if (actor_hash != job["scope"]["actor_policy_sha256"] or job["scope"]["unit"] != "BO1" or job["scope"]["duel_lora"] != lora_version or
             job["deck"]["extra"] or
             job["actor_seat"] != duel.config.actor_seat or job["source"] != "real_engine" or
             job["opponent"]["deck_sha256"] != digest({"main": opponent_profile["decks"][1], "extra": [], "side": []}) or

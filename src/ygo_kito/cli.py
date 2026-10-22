@@ -86,6 +86,13 @@ def parser():
     group.add_argument("--run-id", required=True)
     group.add_argument("--task", type=Path, default=Path("configs/build-engineering-v1.json"))
     group.add_argument("--feedback-policy", type=Path, default=Path("configs/coordinator-feedback-engineering.json"))
+    lora = sub.add_parser("lora-group-cpu", help="actual frozen-base four-role LoRA updates and native evaluation/recovery; no paid launch")
+    lora.add_argument("--root", type=Path, default=Path(".cache"))
+    lora.add_argument("--state-root", type=Path, default=Path(".cache/agent"))
+    lora.add_argument("--run-id", required=True)
+    lora.add_argument("--task", type=Path, default=Path("configs/build-engineering-v1.json"))
+    lora.add_argument("--lora-config", type=Path, default=Path("configs/lora-engineering-v1.json"))
+    lora.add_argument("--feedback-policy", type=Path, default=Path("configs/coordinator-feedback-engineering.json"))
     control = sub.add_parser("coordinator-call", help="fixed-role JSON coordination/monitor tools; no arbitrary commands or paid jobs")
     control.add_argument("input", type=Path)
     control.add_argument("--ledger", type=Path, required=True)
@@ -177,6 +184,15 @@ def main(argv=None) -> int:
                 from .build_contracts import BuildTask
                 output = run_build_training_smoke(args.root, args.state_root, args.run_id,
                                                  BuildTask.from_dict(read_json(args.task)), config_from_dict(read_json(args.training_config)))
+            case "lora-group-cpu":
+                try:
+                    from .lora_group import run_lora_group_smoke
+                    from .build_contracts import BuildTask
+                    from .coord_contracts import FeedbackPolicy
+                except ImportError:
+                    raise EngineUnavailable("CPU PyTorch required for LoRA group proof") from None
+                output = run_lora_group_smoke(args.root, args.state_root, args.run_id, BuildTask.from_dict(read_json(args.task)),
+                                             read_json(args.lora_config), FeedbackPolicy.from_dict(read_json(args.feedback_policy)))
             case "model-group-cpu":
                 try:
                     from .model_group import run_model_group_smoke
@@ -250,7 +266,7 @@ def main(argv=None) -> int:
         print(canonical_json(output))
         return 0
     except EngineUnavailable as error:
-        code = ("CPU_TRAINING_UNAVAILABLE" if args.command in ("duel-train-cpu", "build-train-cpu", "model-group-cpu") else
+        code = ("CPU_TRAINING_UNAVAILABLE" if args.command in ("duel-train-cpu", "build-train-cpu", "model-group-cpu", "lora-group-cpu") else
                 "NATIVE_RESOURCES_UNAVAILABLE" if args.command == "build-check" else
                 "NATIVE_RESOURCES_UNAVAILABLE" if args.command.startswith("native-") else "ENGINE_NOT_IMPLEMENTED")
         message = str(error)

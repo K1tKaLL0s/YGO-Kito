@@ -233,9 +233,14 @@ def verify_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budget
             "unmet": ["conditional route not verified within declared search budget; not proof of impossibility"]}
 
 
-def alternate_build(task, assets, models, encoder, *, base=None, stages=4, seconds=30.):
+def alternate_build(task, assets, models, encoder, *, base=None, stages=4, seconds=30., lora_versions=None):
     import torch
     from .duel_model import parameter_digest
+    if lora_versions is not None:
+        from .coord_contracts import sha256
+        fields(lora_versions, {"build_goal", "build_optimizer"})
+        for version in lora_versions.values():
+            sha256(version)
     integer(stages, "alternating stages", 1, 4)
     if type(seconds) not in (int, float) or not math.isfinite(seconds) or not 0 <= seconds <= 60:
         raise ContractError("alternation time budget outside CPU range")
@@ -280,7 +285,7 @@ def alternate_build(task, assets, models, encoder, *, base=None, stages=4, secon
             raise ContractError("alternation failed goal identity/change verification")
         history.append({"stage": i, "role": role, "task_sha256": fixed, "deck": selected.to_dict(),
                         "changes": changes, "model_score_uncalibrated": float(scores[index]), "candidate_count": len(candidates),
-                        "model_sha256": parameter_digest(models[role]), "lora_version": None,
+                        "model_sha256": parameter_digest(models[role]), "lora_version": (lora_versions or {}).get(role),
                         "versions": task.environment["versions"], "elapsed_seconds": time.monotonic() - started,
                         "uncertainty": "uncalibrated engineering prototype; construction quality unknown",
                         "engineering_proxy": engineering_proxy(selected, assets), "validation": proof})

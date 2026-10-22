@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "base_version": "cpu-engineering-v1",
+  "calibration": "pending",
+  "scope": "structural-engineering-not-transfer-ability",
+  "adapters": [
+    {"adapter_id":"duel-engineering-v1","role":"duel","targets":["encoder.layers.0.linear1","encoder.layers.0.linear2","policy_head.0","value_head.0"],"rank":4,"alpha":8.0,"seed":881,"learning_rate":0.003,"max_updates":2},
+    {"adapter_id":"goal-engineering-v1","role":"build_goal","targets":["encoder.layers.0.linear1","encoder.layers.0.linear2","head.0"],"rank":4,"alpha":8.0,"seed":991,"learning_rate":0.003,"max_updates":2},
+    {"adapter_id":"optimizer-engineering-v1","role":"build_optimizer","targets":["encoder.layers.0.linear1","encoder.layers.0.linear2","head.0"],"rank":4,"alpha":8.0,"seed":1101,"learning_rate":0.003,"max_updates":2},
+    {"adapter_id":"coordinator-engineering-v1","role":"coordinator","targets":["encoder.0","encoder.2","route_head"],"rank":4,"alpha":8.0,"seed":1211,"learning_rate":0.003,"max_updates":2}
+  ]
+}
