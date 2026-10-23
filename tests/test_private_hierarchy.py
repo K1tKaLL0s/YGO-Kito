@@ -9,6 +9,8 @@ from ygo_kito.duel_model import DuelModelConfig,DuelActorCritic,PlayerEncoder
 from ygo_kito.hierarchical_policy import score_requests,sample_index
 from ygo_kito.validation import ContractError
 from ygo_kito.effect_duel import choose_effect_duel_action
+from ygo_kito.training_runner import validate_shard
+from types import SimpleNamespace
 
 CTX=RunContext('unit',Versions(*(['unit-wire-fixture']*6)),None)
 def observation(cards=()):return Observation(0,0,1,'main1',(8000,8000),(1,3),(35,35),cards)
@@ -93,5 +95,22 @@ class HierarchicalPolicyContracts(unittest.TestCase):
  def test_empty_or_unbounded_logits_and_insufficient_branch_budget_are_rejected(self):
   for logits,cap in [(torch.tensor([]),64),(torch.zeros(50001),64),(torch.tensor([float('nan')]),64),(torch.zeros(3),1)]:
    with self.assertRaises(ContractError):sample_index(logits,generator=torch.Generator(),max_actions=cap)
+ def test_shards_restore_complete_large_action_metadata_and_reject_tampering(self):
+  cards=list(range(1,2051));cfg=DuelModelConfig(max_actions=64,max_tokens=32)
+  req=DecisionRequest(CTX,'unit','unit',observation(),tuple(LegalAction('a'+str(i),'number',value=i) for i in cards),prompt=PromptInfo(142,1,1))
+  idx,receipt=sample_index(torch.zeros(2050),generator=torch.Generator().manual_seed(1),max_actions=64)
+  step={'request':json.loads(json.dumps(req.to_dict())),'action_index':idx,'old_log_prob':receipt['path_log_prob'],'old_value':0.,'reward':1.,'hierarchy':receipt}
+  shard={'schema_version':1,'partition':'train','policy_version':0,'policy_sha256':'unit','opponent_binding_sha256':'unit','steps':[step]}
+  trainer=SimpleNamespace(config=SimpleNamespace(actor_seat=0),encoder=PlayerEncoder(cards,cfg))
+  kwargs={'purpose':'train','version':0,'policy_sha256':'unit','opponent_sha256':'unit'}
+  validate_shard(shard,trainer,**kwargs)
+  for mutate in ('count','path','extra','logprob','missing'):
+   bad=json.loads(json.dumps(shard));meta=bad['steps'][0]['hierarchy']
+   if mutate=='count':meta['leaf_count']-=1
+   elif mutate=='path':meta['path'][0]['chosen']=(meta['path'][0]['chosen']+1)%meta['path'][0]['branches']
+   elif mutate=='extra':meta['seed']=123
+   elif mutate=='logprob':meta['path_log_prob']+=1
+   else:bad['steps'][0].pop('hierarchy')
+   with self.subTest(mutate=mutate),self.assertRaises(ContractError):validate_shard(bad,trainer,**kwargs)
 
 if __name__=='__main__':unittest.main()

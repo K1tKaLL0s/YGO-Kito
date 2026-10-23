@@ -27,7 +27,7 @@ from .effect_duel import choose_effect_duel_action, public_card_facts
 from .native import NativeError, NativeNormalEngine
 from .native_assets import verify_resources
 from .normal_duel import request_digest
-from .hierarchical_policy import score_requests, sample_index
+from .hierarchical_policy import score_requests, sample_index, validate_receipt
 from .validation import ContractError, canonical_json, fields, integer
 
 
@@ -211,6 +211,12 @@ class CpuTrainer:
         steps, cfg = episode["steps"], self.config
         if not steps or self.episode_cursor != self.updates + 1:
             raise ContractError("PPO requires one fresh complete episode per update")
+        for step in steps:
+            if 'hierarchy' in step:
+                validate_receipt(step['hierarchy'],action_count=len(step['request'].actions),action_index=step['action_index'],
+                                 old_log_prob=step['old_log_prob'],max_actions=cfg.model.max_actions)
+            elif len(step['request'].actions)>cfg.model.max_actions:
+                raise ContractError('large-action PPO requires its actual hierarchical sampling receipt')
         advantages, following_value, gae = [], 0., 0.
         for step in reversed(steps):
             delta = step["reward"] + cfg.gamma * following_value - step["old_value"]

@@ -148,6 +148,8 @@ def opponent_binding(row, part):
 
 def validate_shard(value, trainer, *, purpose, version, policy_sha256, opponent_sha256):
     from .contracts import DecisionRequest
+    from dataclasses import replace
+    from .hierarchical_policy import MAX_LEAVES,validate_receipt
     fields(value, {"schema_version", "partition", "policy_version", "policy_sha256", "opponent_binding_sha256", "steps"})
     if (value["schema_version"] != 1 or value["partition"] != purpose or value["policy_version"] != version
             or value["policy_sha256"] != policy_sha256 or value["opponent_binding_sha256"] != opponent_sha256):
@@ -155,12 +157,20 @@ def validate_shard(value, trainer, *, purpose, version, policy_sha256, opponent_
     if not isinstance(value["steps"], list) or not value["steps"]:
         raise ContractError("round shard lacks a complete actor trajectory")
     for step in value["steps"]:
-        fields(step, {"request", "action_index", "old_log_prob", "old_value", "reward"})
+        fields(step, {"request", "action_index", "old_log_prob", "old_value", "reward"}, {"hierarchy"})
         request = DecisionRequest.from_dict(step["request"])
         if request.observation.observer != trainer.config.actor_seat:
             raise ContractError("round shard contains another seat's private observation")
-        trainer.encoder.encode(request)
         integer(step["action_index"], "shard legal action index", 0, len(request.actions) - 1)
+        if len(request.actions)>MAX_LEAVES:raise ContractError('shard legal actions exceed complete policy budget')
+        cap=trainer.encoder.config.max_actions
+        if 'hierarchy' in step:
+            validate_receipt(step['hierarchy'],action_count=len(request.actions),action_index=step['action_index'],
+                             old_log_prob=step['old_log_prob'],max_actions=cap)
+        elif len(request.actions)>cap:
+            raise ContractError('large-action shard lacks its hierarchical policy receipt')
+        for start in range(0,len(request.actions),cap):
+            trainer.encoder.encode(replace(request,actions=request.actions[start:start+cap]))
 
 
 def commit_round(row, manifest):

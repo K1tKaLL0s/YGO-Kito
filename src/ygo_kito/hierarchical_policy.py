@@ -11,10 +11,41 @@ import torch
 from torch.distributions import Categorical
 from torch.nn.functional import pad
 
-from .validation import ContractError
+from .validation import ContractError,fields,integer,array
 
 POLICY_VERSION='exact-leaf-mass-hierarchy-v1'
 MAX_LEAVES=50000
+
+
+def validate_receipt(value,*,action_count,action_index,old_log_prob,max_actions):
+    fields(value,{'version','leaf_count','path','path_log_prob'})
+    integer(value['leaf_count'],'hierarchical leaves',1,MAX_LEAVES)
+    if value['version']!=POLICY_VERSION or value['leaf_count']!=action_count:
+        raise ContractError('hierarchical policy version/complete candidate count differs')
+    prob=value['path_log_prob']
+    if (type(prob) not in (int,float) or not math.isfinite(prob) or prob>1e-4
+            or type(old_log_prob) not in (int,float) or not math.isfinite(old_log_prob) or abs(prob-old_log_prob)>1e-4):
+        raise ContractError('hierarchical path log probability differs')
+    path=array(value['path'],'hierarchical path')
+    if action_count<=max_actions:
+        if path:raise ContractError('flat action window cannot claim hierarchical branches')
+        return
+    fanout=min(128,max_actions)
+    if fanout<2:raise ContractError('hierarchy requires multiple branches')
+    start,end,cursor=0,action_count,0
+    while end-start>fanout:
+        width=math.ceil((end-start)/fanout);branches=math.ceil((end-start)/width)
+        if cursor>=len(path):raise ContractError('incomplete hierarchical path')
+        node=fields(path[cursor],{'branches','chosen'})
+        integer(node['branches'],'hierarchical branches',branches,branches)
+        integer(node['chosen'],'hierarchical branch index',0,branches-1)
+        start,end=start+node['chosen']*width,min(start+(node['chosen']+1)*width,end)
+        cursor+=1
+    if cursor+1!=len(path):raise ContractError('hierarchical leaf path length differs')
+    leaf=fields(path[cursor],{'branches','chosen'})
+    integer(leaf['branches'],'hierarchical leaf branches',end-start,end-start)
+    integer(leaf['chosen'],'hierarchical leaf index',0,end-start-1)
+    if start+leaf['chosen']!=action_index:raise ContractError('hierarchical path selects another action')
 
 
 def score_requests(model,encoder,requests):
