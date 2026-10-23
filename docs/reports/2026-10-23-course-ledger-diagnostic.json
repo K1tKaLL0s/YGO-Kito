@@ -1,0 +1,7 @@
+{
+  "independent_real_handoffs": 2,
+  "differing_fields": [
+    ".validation.native_route.elapsed_seconds"
+  ],
+  "ledger_equal_before_fix": false
+}
