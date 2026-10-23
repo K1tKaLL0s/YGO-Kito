@@ -1,0 +1,45 @@
+{
+  "source_commit": "0ffdf5656537977a5da1bdff093c8304efe23230",
+  "python": "3.12.14",
+  "implementation_sha256": "143b81478bf51ff69a7e79b37491260b0002112557922850a296b37c9698519f",
+  "started_utc": "2026-10-23T07:29:10.979937+00:00",
+  "results": [
+    {
+      "name": "unit",
+      "command": [
+        "/workspace/YGO-Kito/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 13.184845893003512,
+      "child_cpu_seconds": 16.229925000000005,
+      "child_peak_rss_kib": 282496,
+      "log": ".cache/knowledge-final-unit.log",
+      "log_sha256": "cb5a63559d3945f85247f62e105b0a648c38414007b48e680536f353e12dfda1"
+    },
+    {
+      "name": "integration",
+      "command": [
+        "/workspace/YGO-Kito/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "integration_tests",
+        "-v"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 780.7103511710011,
+      "child_cpu_seconds": 813.043484,
+      "child_peak_rss_kib": 470432,
+      "log": ".cache/knowledge-final-integration.log",
+      "log_sha256": "cffc06046f29ba73a07db3a83c39098e8e2942d65df2d94fd64590d48d44e968"
+    }
+  ],
+  "finished_utc": "2026-10-23T07:42:24.876994+00:00"
+}

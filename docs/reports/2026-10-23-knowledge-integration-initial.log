@@ -1,0 +1,25 @@
+test_each_actual_script_case_replays_every_request_response_public_event_and_terminal (test_private_knowledge.RealPrivateKnowledgeTests.test_each_actual_script_case_replays_every_request_response_public_event_and_terminal) ... ok
+test_facedown_real_host_keeps_public_materials_without_hidden_identity_or_query (test_private_knowledge.RealPrivateKnowledgeTests.test_facedown_real_host_keeps_public_materials_without_hidden_identity_or_query) ... ok
+test_native_rejects_bad_26_and_opponent_deck_returns_and_stale_or_forged_action (test_private_knowledge.RealPrivateKnowledgeTests.test_native_rejects_bad_26_and_opponent_deck_returns_and_stale_or_forged_action) ... ok
+test_real_hidden_deck_26_add_remove_readd_without_transferring_cards_early (test_private_knowledge.RealPrivateKnowledgeTests.test_real_hidden_deck_26_add_remove_readd_without_transferring_cards_early) ... ok
+test_real_hidden_host_destruction_cleans_material_associations_and_public_grave (test_private_knowledge.RealPrivateKnowledgeTests.test_real_hidden_host_destruction_cleans_material_associations_and_public_grave) ... ok
+test_real_hidden_world_changes_leave_opponent_blind_requests_and_all_tensors_equal (test_private_knowledge.RealPrivateKnowledgeTests.test_real_hidden_world_changes_leave_opponent_blind_requests_and_all_tensors_equal) ... ok
+test_real_private_confirmation_survives_as_unlocated_knowledge_but_shuffle_breaks_aliases (test_private_knowledge.RealPrivateKnowledgeTests.test_real_private_confirmation_survives_as_unlocated_knowledge_but_shuffle_breaks_aliases) ... ERROR
+test_real_unshuffled_opponent_deck_selection_has_evidence_not_inferred_ownership (test_private_knowledge.RealPrivateKnowledgeTests.test_real_unshuffled_opponent_deck_selection_has_evidence_not_inferred_ownership) ... ok
+
+======================================================================
+ERROR: test_real_private_confirmation_survives_as_unlocated_knowledge_but_shuffle_breaks_aliases (test_private_knowledge.RealPrivateKnowledgeTests.test_real_private_confirmation_survives_as_unlocated_knowledge_but_shuffle_breaks_aliases)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/integration_tests/test_private_knowledge.py", line 67, in test_real_private_confirmation_survives_as_unlocated_knowledge_but_shuffle_breaks_aliases
+    self.assertFalse(any(e['details']['message']==31 for e in req.observation.public_history))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/integration_tests/test_private_knowledge.py", line 67, in <genexpr>
+    self.assertFalse(any(e['details']['message']==31 for e in req.observation.public_history))
+                         ~^^^^^^^^^^^
+TypeError: 'PublicEvent' object is not subscriptable
+
+----------------------------------------------------------------------
+Ran 8 tests in 10.342s
+
+FAILED (errors=1)

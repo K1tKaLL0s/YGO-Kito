@@ -1,5 +1,7 @@
 # 私有选择与完整候选分层策略 v4
 
+此页记录v4历史交付；当前新增的合法私有确认、对方卡组/隐藏26真实机制与盖放宿主公共素材见[v5入口](private-knowledge-v5.md)。旧v4特征权重按旧源码复现，当前特征升级到v5，不自动迁移历史权重。
+
 本入口承接[统一设计](../plans/2026-10-22-unified-development-spec.md)和[历史 v3](protocol-history-v3.md)。原卡库、脚本、核心与客户端协议保持固定；显式 v2 profile 的 `adapter_revision:4` 启用 `native-private-selection-v4`。v1/v2/v3 保留原动作与轨迹格式。新特征与训练权重独立绑定版本，不静默加载旧权重或改写学习包。
 
 ```bash
