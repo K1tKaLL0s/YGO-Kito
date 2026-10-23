@@ -35,6 +35,10 @@ def choose_effect_duel_action(request, facts):
     """A deterministic, intentionally simple policy; core alone decides what is legal."""
     cards = {c.ref: c for c in request.observation.cards}
     player = request.observation.observer
+    if request.prompt.message == 132:
+        # Public seat breaks the deterministic baseline's repeated ties. This
+        # is an intentionally weak engineering fallback, not learned play.
+        return next(a for a in request.actions if a.value == 1 + player)
 
     def strength(card):
         if card.card_id is None:
@@ -123,7 +127,7 @@ def run_effect_duel(root, profile, *, seed=7, replay=None, max_decisions=3000, b
     with NativeNormalEngine(root, seed=seed, scenario="effect-duel", deck_profile=profile) as engine:
         facts = public_card_facts(root)
         versions = {"source_commits": engine.receipt["source_commits"], "resources": engine.receipt["resources"],
-                    "adapter_schema": "native-extra-material-v2" if engine.extended_actions else "native-effect-duel-v1-general-actions", "python": platform.python_version(),
+                    "adapter_schema": "native-protocol-history-v3" if engine.modern_actions else "native-extra-material-v2" if engine.extended_actions else "native-effect-duel-v1-general-actions", "python": platform.python_version(),
                     "policy": "declared-route-then-visible-baseline-v2" if route_driver else "visible-dto-effect-protocol-baseline-v1", "option_preference": option_preference}
         if route_driver:
             versions["route_task_sha256"] = route_task.sha256

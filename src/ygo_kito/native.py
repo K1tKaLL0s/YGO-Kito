@@ -56,7 +56,13 @@ class NativeNormalEngine:
             raise ContractError("legacy requests are reserved for old normal replay")
         self.scenario, self._legacy_ids = scenario, legacy_request_ids
         self.general_actions = scenario == "effect-duel"
+        if self.general_actions:
+            from .deck_profile import validate_profile
+            validate_profile(deck_profile)
         self.extended_actions = self.general_actions and deck_profile.get("schema_version") == 2
+        self.modern_actions = self.general_actions and deck_profile.get("adapter_revision") == 3
+        self._public_history = []
+        self._public_declarations = {}
         self._known_owners, self._overlay_owners = {}, {}
         self._observer_windows = [0, 0]
         self.root = root.resolve()
@@ -144,7 +150,7 @@ class NativeNormalEngine:
             hashes = self.receipt["resources"]
             self.context = RunContext(f"native-{uuid4().hex}", Versions(self.lock["sources"]["core"]["commit"],
                 hashes["scripts"], hashes["cards"], hashes["client_protocol"],
-                "native-extra-material-v2" if self.extended_actions else self.lock["card_pool"]["id"] if scenario == "normal" else f"native-{scenario}-v1", "2026.10:" + hashes["banlist"]), None)
+                "native-protocol-history-v3" if self.modern_actions else "native-extra-material-v2" if self.extended_actions else self.lock["card_pool"]["id"] if scenario == "normal" else f"native-{scenario}-v1", "2026.10:" + hashes["banlist"]), None)
             self.lib.start_duel(self.handle, 5 << 16)  # Master Rule 2020, no TEST/SIMPLE_AI mode.
         except BaseException:
             self.close()
@@ -270,15 +276,25 @@ class NativeNormalEngine:
             owner = self._visible_data(observer, 2, sequence)[1] if self.general_actions else observer
             cards.append(CardView(f"p{observer}.hand.{sequence}", owner, observer, "hand", "observer", code))
         opponent = 1 - observer
-        for sequence, code in sorted(self._revealed_hand[opponent].items()):
-            cards.append(CardView(f"p{opponent}.hand.{sequence}", opponent, opponent, "hand", "public", code))
+        revealed = dict(self._revealed_hand[opponent])
+        if self.modern_actions:
+            # PUBLIC hand status can persist independently of ConfirmCards.
+            # Position-only query first; identities are queried only after a
+            # public faceup status or an explicit broadcast confirmation.
+            for sequence in range(self._count(opponent, 2)):
+                value = self._query(opponent,2,sequence,2)
+                if value is not None and value[1]&5:
+                    revealed[sequence] = self._visible_data(opponent,2,sequence)[0]
+        for sequence, code in sorted(revealed.items()):
+            owner = self._visible_data(opponent,2,sequence)[1] if self.modern_actions else opponent
+            cards.append(CardView(f"p{opponent}.hand.{sequence}", owner, opponent, "hand", "public", code))
         for player in (0, 1):
             for location, zone, count in ((4, "monster", 7), (8, "spell_trap", 8), (16, "graveyard", self._count(player, 16))):
                 for sequence in range(count):
                     position = self._query(player, location, sequence, 2)
                     if position is None:
                         continue
-                    public = location == 16 or bool(position[1] & 5)
+                    public = location == 16 or bool(position[1] & 5) or self.modern_actions and bool(position[1]&0x80)
                     visible = player == observer or public
                     code = self._query(player, location, sequence, 1)[0] if visible else None
                     owner, attack, defense = player, None, None
@@ -288,13 +304,15 @@ class NativeNormalEngine:
                             code, owner, attack, defense = self._visible_data(player, location, sequence, public and location == 4)
                     cards.append(CardView(f"p{player}.{zone}.{sequence}", owner, player, zone,
                                           "public" if public else "observer" if visible else "hidden", code,
-                                          position[1] if self.general_actions and location in (4, 8) else None, attack, defense))
+                                          (position[1]&15 if self.modern_actions else position[1]) if self.general_actions and location in (4, 8) else None, attack, defense))
         if self.extended_actions:
             from .extra_observation import extend
             cards = extend(self, observer, cards)
         history = ()
-        if self.scenario != "normal":
+        if self.scenario != "normal" and not self.modern_actions:
             history = tuple(PublicEvent(f"public-{i}", e["event"], tuple(e["card_ids"])) for i, e in enumerate(public_event_projection(self.events, extended=self.general_actions)))
+        if self.modern_actions:
+            history = tuple(self._public_history)
         return Observation(observer, self.turn_player, self.turn, self.phase, tuple(self.life_points),
                            tuple(self._count(p, 2) for p in (0, 1)), tuple(self._count(p, 1) for p in (0, 1)), tuple(cards), history)
 
@@ -308,7 +326,9 @@ class NativeNormalEngine:
             observation = self._observation(player) if self.extended_actions else None
             if self.extended_actions:
                 from .extra_observation import resolve
-                decoded = decode_prompt(kind, reader, allow_sum=True, ref_resolver=lambda *args: resolve(self, *args))
+                decoded = decode_prompt(kind, reader, allow_sum=True, allow_advanced=self.modern_actions,
+                                        catalog=self._rows if self.modern_actions else None,
+                                        ref_resolver=lambda *args: resolve(self, *args))
             else:
                 decoded = decode_prompt(kind, reader)
             self.window += 1
@@ -443,12 +463,20 @@ class NativeNormalEngine:
                 self.events.append(event)
                 if kind == 1:
                     raise NativeError("real engine rejected response (MSG_RETRY)")
-                if kind in (10, 11, 12, 13, 15, 16, 18, 19) or (self.general_actions and kind in (14, 20, 26)) or (self.extended_actions and kind == 23):
+                if kind in (10, 11, 12, 13, 15, 16, 18, 19) or (self.general_actions and kind in (14, 20, 26)) or (self.extended_actions and kind == 23) or (self.modern_actions and kind in (22,24,25,132,140,141,142,143)):
                     request = self._prompt(kind, reader)
                     event.update(player=request.observation.observer, choices=len(request.actions))
                     if reader.offset != len(reader.data):
                         raise NativeError("unexpected bytes after native prompt")
                     return request
+                if self.modern_actions:
+                    from .public_history import consume
+                    consume(self,kind,reader,event)
+                    if self.outcome is not None:
+                        if reader.offset != len(reader.data):
+                            raise NativeError("unexpected bytes after terminal result")
+                        return None
+                    continue
                 if kind == 2:
                     reader.take(6)
                 elif kind == 40:
@@ -561,6 +589,12 @@ class NativeNormalEngine:
                 else:
                     raise NativeError(f"unsupported native message {kind}; full duel not implemented")
             if result & 0x30000000:
+                if self.modern_actions and length and result & 0x10000000 and not result & 0x20000000:
+                    # The pinned processor flushes non-decision buffers (e.g.
+                    # declaration result hints) under WAITING too. Every byte
+                    # was decoded above; advance only after nonempty output.
+                    self._confirmation_pause = False
+                    continue
                 if result & 0x10000000 and not result & 0x20000000 and self._confirmation_pause:
                     self._confirmation_pause = False
                     continue  # Fixed core PROCESSOR_WAIT removes itself; confirmation has no response.
@@ -572,6 +606,9 @@ class NativeNormalEngine:
             raise ContractError("no active native decision window")
         action = validate_selection(self.pending, selection)
         response = self._responses[action.action_id]
+        if self.modern_actions and self.pending_kind in (140,141,142,143):
+            hint = {140:6,141:7,142:8,143:9}[self.pending_kind]
+            self._public_declarations[(hint,self.pending.observation.observer)] = action.value
         self.pending = None
         self._responses = {}
         if isinstance(response, bytes):

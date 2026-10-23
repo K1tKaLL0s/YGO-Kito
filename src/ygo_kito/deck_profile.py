@@ -8,7 +8,10 @@ from .validation import ContractError, array, fields, integer, text
 def validate_profile(value):
     version = integer(value.get("schema_version") if isinstance(value, dict) else None, "deck profile schema", 1, 2)
     d = fields(value, {"schema_version", "name", "decks"} | ({"extras", "sides"} if version == 2 else set()),
-               {"sides"} if version == 1 else set())
+               ({"sides"} if version == 1 else set()) | {"adapter_revision"})
+    if "adapter_revision" in d:
+        if version != 2 or type(d["adapter_revision"]) is not int or d["adapter_revision"] != 3:
+            raise ContractError("adapter revision 3 requires an explicit v2 extra/side profile")
     text(d["name"], "deck profile name")
     decks = array(d["decks"], "decks")
     if len(decks) != 2:

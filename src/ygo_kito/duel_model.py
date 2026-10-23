@@ -17,9 +17,9 @@ from .validation import ContractError, canonical_json, integer
 KINDS = ("summon", "special_summon", "set", "activate", "attack", "select", "order", "number", "position", "yes", "no", "pass")
 ZONES = ("state", "hand", "monster", "spell_trap", "graveyard", "banished", "extra", "search", "history", "overlay", "sum")
 PHASES = ("draw", "standby", "main1", "battle", "main2", "end")
-EVENTS = ("none", "reveal", "move", "activate", "summon", "attack", "phase", "result")
+EVENTS = ("none", "reveal", "move", "activate", "summon", "attack", "phase", "result", "turn", "chain", "lp", "counter", "shuffle", "battle", "position", "announce", "random", "equip", "target", "disabled", "hint")
 OPERATIONS = (None, "add", "remove", "finish", "cancel", "shuffle", "sum")
-FEATURE_VERSION = "legal-player-dto-v2-extra-sum"
+FEATURE_VERSION = "legal-player-dto-v3-public-history-protocol"
 
 
 @dataclass(frozen=True)
@@ -101,6 +101,24 @@ class PlayerEncoder:
             for code in event.card_ids or (None,):
                 tokens.append([self._card(code), ZONES.index("history"), 2, 0, 0, 0, EVENTS.index(event.kind)])
                 numbers.append([0.] * 4)
+            if event.details is not None:
+                d = event.details
+                # Typed facts, not raw audit records. Distinct tokens preserve
+                # timing, costs, resolutions, numeric announcements and public
+                # locations; no private sequence or seed is accepted by DTOs.
+                payloads = [[d.message/255, relative(d.player)/2, (d.turn or 0)/100, (d.link or 0)/128],
+                            [(d.amount or 0)/10000, ((d.value or 0)&0xffff)/65536, ((d.value or 0)>>16)/65536, float(d.value is not None)],
+                            [((d.reason or 0)&0xffff)/65536, ((d.reason or 0)>>16)/65536,
+                             ((d.description or 0)&0xffff)/65536, ((d.description or 0)>>16)/65536],
+                            [0. if d.life_points is None else d.life_points[obs.observer]/8000,
+                             0. if d.life_points is None else d.life_points[1-obs.observer]/8000,
+                             float(d.life_points is not None), 0. if d.phase is None else (PHASES.index(d.phase)+1)/6]]
+                payloads += [[(v&0xffff)/65536, (v>>16)/65536, (i+1)/255, 1.] for i,v in enumerate(d.values)]
+                payloads += [[relative(p.controller), (0 if p.zone == "none" else ZONES.index(p.zone) if p.zone != "deck" else 12)/12,
+                              0. if p.sequence is None else (p.sequence+1)/256, (p.position or 0)/15] for p in d.locations]
+                for payload in payloads:
+                    tokens.append([0, ZONES.index("history"), 2, 0, 0, 0, EVENTS.index(event.kind)])
+                    numbers.append(payload)
         if len(tokens) > cfg.max_tokens or len(request.actions) > cfg.max_actions:
             raise ContractError("player input exceeds model token/action budget")
         p, other = obs.observer, 1 - obs.observer
@@ -121,10 +139,14 @@ class PlayerEncoder:
                             0 if dest is None else dest.sequence + 1])
             action_numbers.append([0. if action.value is None else math.tanh(action.value / 1000),
                                    float(action.value is not None), len(action.card_refs) / 10,
-                                   0. if request.prompt is None else request.prompt.message / 32])
+                                   0. if request.prompt is None else request.prompt.message / 255,
+                                   0. if action.value is None else action.value/2**32,
+                                   0. if not details or not details.quantities else 1. + (details.counter_type or 0)/65536,
+                                   0. if not details else sum((1 << (p.sequence + (0 if p.zone=="monster" else 8))) * (1 if p.controller==obs.observer else 0) for p in details.destinations)/65536,
+                                   0. if not details else sum((1 << (p.sequence + (0 if p.zone=="monster" else 8))) * (1 if p.controller!=obs.observer else 0) for p in details.destinations)/65536])
             pointer = [0.] * len(tokens)
             for i, ref in enumerate(action.card_refs):
-                pointer[refs[ref]] = 1 / (i + 1) if action.kind == "order" else 1
+                pointer[refs[ref]] = details.quantities[i] if details and details.quantities else 1 / (i + 1) if action.kind == "order" else 1
             total = sum(pointer)
             pointers.append([value / total if total else 0. for value in pointer])
         return {"tokens": torch.tensor(tokens, dtype=torch.long), "numbers": torch.tensor(numbers, dtype=torch.float32),
@@ -143,7 +165,7 @@ class PlayerEncoder:
             action_count = pad_actions_to
         b = {"tokens": torch.zeros(count, length, 7, dtype=torch.long), "numbers": torch.zeros(count, length, 4),
              "state": torch.stack([e["state"] for e in encoded]), "actions": torch.zeros(count, action_count, 7, dtype=torch.long),
-             "action_numbers": torch.zeros(count, action_count, 4), "pointers": torch.zeros(count, action_count, length),
+             "action_numbers": torch.zeros(count, action_count, 8), "pointers": torch.zeros(count, action_count, length),
              "context_mask": torch.zeros(count, length, dtype=torch.bool), "action_mask": torch.zeros(count, action_count, dtype=torch.bool)}
         for i, e in enumerate(encoded):
             n, a = e["tokens"].shape[0], e["actions"].shape[0]
@@ -167,7 +189,7 @@ class DuelActorCritic(nn.Module):
         layer = nn.TransformerEncoderLayer(w, config.heads, config.feedforward, dropout=0., batch_first=True)
         self.encoder = nn.TransformerEncoder(layer, config.layers, enable_nested_tensor=False)
         self.action_embeddings = nn.ModuleList(nn.Embedding(size, w) for size in (len(KINDS), 16, len(OPERATIONS), 3, 3, 9))
-        self.action_numbers = nn.Linear(4, w)
+        self.action_numbers = nn.Linear(8, w)
         self.policy_head = nn.Sequential(nn.Linear(w * 2, w), nn.Tanh(), nn.Linear(w, 1))
         self.value_head = nn.Sequential(nn.Linear(w, w), nn.Tanh(), nn.Linear(w, 1))
 

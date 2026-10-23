@@ -86,9 +86,13 @@ def decode_deck_choices(player, minimum, maximum, candidates):
     return tuple(choices), options
 
 
-def decode_prompt(kind, reader, *, ref_resolver=None, allow_sum=False):
+def decode_prompt(kind, reader, *, ref_resolver=None, allow_sum=False, allow_advanced=False, catalog=None):
     """All choices are bounded, native-offered operations; unsupported messages raise."""
     resolve = ref_resolver or visible_ref
+    if allow_advanced:
+        from .advanced_protocol import MESSAGES, decode_advanced
+        if kind in MESSAGES:
+            return decode_advanced(kind, reader, resolve, catalog)
     if kind == 23 and allow_sum:
         from .sum_protocol import decode_sum
         return decode_sum(reader, resolve)

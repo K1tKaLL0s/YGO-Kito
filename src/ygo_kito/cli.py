@@ -89,6 +89,9 @@ def parser():
     acceptance.add_argument("--root", type=Path, default=Path(".cache"))
     acceptance.add_argument("--state-root", type=Path, default=Path(".cache/discovery"))
     acceptance.add_argument("--run-id", required=True)
+    protocol = sub.add_parser("protocol-history-acceptance", help="bounded real MSG23/remaining prompts and legal public history/replays; CPU only")
+    protocol.add_argument("--root", type=Path, default=Path(".cache"))
+    protocol.add_argument("--output", type=Path, required=True)
     build_train = sub.add_parser("build-train-cpu", help="bounded independent goal/optimizer CPU updates, recovery and real conditional goal checks")
     build_train.add_argument("--root", type=Path, default=Path(".cache"))
     build_train.add_argument("--state-root", type=Path, default=Path(".cache/agent"))
@@ -195,6 +198,18 @@ def main(argv=None) -> int:
                 finally:
                     signal.setitimer(signal.ITIMER_REAL, 0)
                     signal.signal(signal.SIGALRM, old_handler)
+            case "protocol-history-acceptance":
+                import signal
+                from .protocol_acceptance import run_protocol_acceptance
+                if not hasattr(signal,"setitimer"):
+                    raise EngineUnavailable("protocol acceptance requires this cloud's Unix process timer")
+                old_handler=signal.signal(signal.SIGALRM,signal.SIG_DFL)
+                signal.setitimer(signal.ITIMER_REAL,120.)
+                try:
+                    output=run_protocol_acceptance(args.root,args.output)
+                finally:
+                    signal.setitimer(signal.ITIMER_REAL,0)
+                    signal.signal(signal.SIGALRM,old_handler)
             case "cpu-runner-acceptance":
                 from .runner_acceptance import run_runner_acceptance
                 output = run_runner_acceptance(args.root, args.state_root, args.run_id, read_json(args.recipe))

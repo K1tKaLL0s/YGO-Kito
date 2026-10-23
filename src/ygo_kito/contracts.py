@@ -123,21 +123,93 @@ class CardView:
 
 
 @dataclass(frozen=True)
+class PublicLocation:
+    controller: int
+    zone: str
+    sequence: int | None = None
+    position: int | None = None
+
+    def __post_init__(self):
+        integer(self.controller, "history controller", 0, 1)
+        member(self.zone, "history zone", ("deck", "hand", "monster", "spell_trap", "graveyard", "banished", "extra", "overlay", "none"))
+        if self.sequence is not None:
+            if self.zone in ("deck", "hand", "extra", "none"):
+                raise ContractError("private historical sequence is forbidden")
+            integer(self.sequence, "public historical sequence", 0, 255)
+        if self.position is not None:
+            integer(self.position, "historical position", 0, 15)
+
+    @classmethod
+    def from_dict(cls, value):
+        return cls(**fields(value, {"controller", "zone"}, {"sequence", "position"}))
+
+
+@dataclass(frozen=True)
+class PublicEventDetails:
+    message: int
+    player: int | None = None
+    turn: int | None = None
+    phase: str | None = None
+    locations: tuple[PublicLocation, ...] = ()
+    amount: int | None = None
+    value: int | None = None
+    values: tuple[int, ...] = ()
+    link: int | None = None
+    description: int | None = None
+    reason: int | None = None
+    life_points: tuple[int, int] | None = None
+
+    def __post_init__(self):
+        integer(self.message, "public native message", 0, 255)
+        if self.player is not None:
+            integer(self.player, "history player", 0, 1)
+        if self.turn is not None:
+            integer(self.turn, "history turn", 0)
+        if self.phase is not None:
+            member(self.phase, "history phase", ("draw", "standby", "main1", "battle", "main2", "end"))
+        if not isinstance(self.locations, tuple) or len(self.locations) > 255 or any(not isinstance(x, PublicLocation) for x in self.locations):
+            raise ContractError("history locations must be typed and bounded")
+        for key in ("amount", "value", "link", "description", "reason"):
+            value = getattr(self, key)
+            if value is not None:
+                integer(value, "history " + key, -2**31, 2**32 - 1)
+        if not isinstance(self.values, tuple) or len(self.values) > 255:
+            raise ContractError("history values must be a bounded tuple")
+        for v in self.values:
+            integer(v, "history numeric value", -2**31, 2**32 - 1)
+        if self.life_points is not None:
+            _pair(self.life_points, "historical life points")
+
+    @classmethod
+    def from_dict(cls, value):
+        d = dict(fields(value, {"message"}, {"player", "turn", "phase", "locations", "amount", "value", "values", "link", "description", "reason", "life_points"}))
+        d["locations"] = tuple(PublicLocation.from_dict(x) for x in array(d.get("locations", []), "history locations"))
+        d["values"] = tuple(array(d.get("values", []), "history values"))
+        if d.get("life_points") is not None:
+            d["life_points"] = tuple(array(d["life_points"], "historical life points"))
+        return cls(**d)
+
+
+@dataclass(frozen=True)
 class PublicEvent:
     event_id: str
     kind: str
     card_ids: tuple[int, ...] = ()
+    details: PublicEventDetails | None = None
 
     def __post_init__(self):
         text(self.event_id, "event_id")
-        member(self.kind, "public event", ("reveal", "move", "activate", "summon", "attack", "phase", "result"))
+        member(self.kind, "public event", ("reveal", "move", "activate", "summon", "attack", "phase", "result", "turn", "chain", "lp", "counter", "shuffle", "battle", "position", "announce", "random", "equip", "target", "disabled", "hint"))
         for card_id in self.card_ids:
             integer(card_id, "public historical card_id", 1)
+        if self.details is not None and not isinstance(self.details, PublicEventDetails):
+            raise ContractError("public details must be typed")
 
     @classmethod
     def from_dict(cls, value):
-        d = fields(value, {"event_id", "kind", "card_ids"})
-        return cls(d["event_id"], d["kind"], tuple(array(d["card_ids"], "public card_ids")))
+        d = fields(value, {"event_id", "kind", "card_ids"}, {"details"})
+        return cls(d["event_id"], d["kind"], tuple(array(d["card_ids"], "public card_ids")),
+                   PublicEventDetails.from_dict(d["details"]) if d.get("details") is not None else None)
 
 
 def _pair(value, label):
@@ -217,6 +289,9 @@ class ActionDetails:
     description: int | None = None
     operation: str | None = None
     destination: Placement | None = None
+    quantities: tuple[int, ...] = ()
+    destinations: tuple[Placement, ...] = ()
+    counter_type: int | None = None
 
     def __post_init__(self):
         if self.description is not None:
@@ -225,14 +300,26 @@ class ActionDetails:
             member(self.operation, "selection operation", ("add", "remove", "finish", "cancel", "shuffle", "sum"))
         if self.destination is not None and not isinstance(self.destination, Placement):
             raise ContractError("destination must be Placement")
-        if self.description is None and self.operation is None and self.destination is None:
+        if self.counter_type is not None:
+            integer(self.counter_type,"counter type",1,65535)
+        if not isinstance(self.quantities, tuple) or len(self.quantities) > 32:
+            raise ContractError("counter quantities must be bounded")
+        for q in self.quantities:
+            integer(q, "counter quantity", 0, 65535)
+        if not isinstance(self.destinations, tuple) or len(self.destinations) > 21 or any(not isinstance(p, Placement) for p in self.destinations):
+            raise ContractError("destinations must be typed and bounded")
+        if len(set(self.destinations)) != len(self.destinations):
+            raise ContractError("duplicate destinations")
+        if self.description is None and self.operation is None and self.destination is None and not self.quantities and not self.destinations and self.counter_type is None:
             raise ContractError("action details cannot be empty")
 
     @classmethod
     def from_dict(cls, value):
-        d = fields(value, set(), {"description", "operation", "destination"})
+        d = fields(value, set(), {"description", "operation", "destination", "quantities", "destinations", "counter_type"})
         return cls(d.get("description"), d.get("operation"),
-                   Placement.from_dict(d["destination"]) if d.get("destination") is not None else None)
+                   Placement.from_dict(d["destination"]) if d.get("destination") is not None else None,
+                   tuple(array(d.get("quantities", []), "counter quantities")),
+                   tuple(Placement.from_dict(p) for p in array(d.get("destinations", []), "destinations")),d.get("counter_type"))
 
 
 @dataclass(frozen=True)
@@ -245,13 +332,13 @@ class PromptInfo:
 
     def __post_init__(self):
         integer(self.message, "native prompt message", 0, 255)
-        if self.message not in (10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 23, 26):
+        if self.message not in (10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 22, 23, 24, 25, 26, 132, 140, 141, 142, 143):
             raise ContractError("unsupported native prompt message")
         if (self.minimum is None) != (self.maximum is None):
             raise ContractError("both selection bounds are required")
         if self.minimum is not None:
-            integer(self.minimum, "selection minimum", 0, 255)
-            integer(self.maximum, "selection maximum", self.minimum, 255)
+            integer(self.minimum, "selection minimum", 0, 65535)
+            integer(self.maximum, "selection maximum", self.minimum, 65535)
         if type(self.cancelable) is not bool or type(self.finishable) is not bool:
             raise ContractError("selection flags must be bool")
 
@@ -290,15 +377,17 @@ class SearchChoice:
     ref: str
     card_id: int
     owner: int
+    scope: str = "search"
 
     def __post_init__(self):
         text(self.ref, "search reference")
         integer(self.card_id, "search card_id", 1)
         integer(self.owner, "search owner", 0, 1)
+        member(self.scope, "choice scope", ("search", "ordering"))
 
     @classmethod
     def from_dict(cls, value):
-        return cls(**fields(value, {"ref", "card_id", "owner"}))
+        return cls(**fields(value, {"ref", "card_id", "owner"}, {"scope"}))
 
 
 @dataclass(frozen=True)
@@ -380,11 +469,23 @@ class DecisionRequest:
             if any(c.ref not in visible for c in self.sum_selection.mandatory + self.sum_selection.optional):
                 raise ContractError("sum values cannot reveal unobserved/hidden cards")
         for choice in self.search_choices:
-            if not isinstance(choice, SearchChoice) or choice.owner != self.observation.observer or choice.ref in refs:
+            if not isinstance(choice, SearchChoice) or (choice.scope == "search" and choice.owner != self.observation.observer) or choice.ref in refs:
                 raise ContractError("search choices must be unique and visible only to the chooser")
+            if choice.scope == "ordering" and (self.prompt is None or self.prompt.message != 25):
+                raise ContractError("ordering identities require their explicit chooser-only prompt")
             refs.add(choice.ref)
         if any(set(action.card_refs) - refs for action in self.actions):
             raise ContractError("action references an unobserved card")
+        for action in self.actions:
+            if action.details and action.details.quantities:
+                if self.prompt is None or self.prompt.message != 22 or len(action.details.quantities) != len(action.card_refs):
+                    raise ContractError("counter allocations require one quantity per referenced native candidate")
+                if action.details.counter_type is None:
+                    raise ContractError("counter allocation requires its native counter type")
+            if action.details and action.details.counter_type is not None and (self.prompt is None or self.prompt.message != 22):
+                raise ContractError("counter type requires counter selection")
+            if action.details and action.details.destinations and (self.prompt is None or self.prompt.message not in (18,24)):
+                raise ContractError("multiple destinations require disabled-field prompt")
 
     @classmethod
     def from_dict(cls, value):
@@ -408,10 +509,22 @@ class DecisionRequest:
         for action in result["actions"]:
             if action["details"] is None:
                 action.pop("details")
+            else:
+                for key in ("quantities", "destinations"):
+                    if not action["details"][key]:
+                        action["details"].pop(key)
+                if action["details"]["counter_type"] is None:
+                    action["details"].pop("counter_type")
+        for choice in result.get("search_choices", []):
+            if choice["scope"] == "search":
+                choice.pop("scope")
         for card in result["observation"]["cards"]:
             for key in ("position", "attack", "defense", "attached_to", "material_count"):
                 if card[key] is None:
                     card.pop(key)
+        for event in result["observation"]["public_history"]:
+            if event["details"] is None:
+                event.pop("details")
         return result
 
 
