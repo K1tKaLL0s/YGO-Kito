@@ -109,13 +109,18 @@ class NativeNormalEngine:
                 self.player_decks = validate_profile(deck_profile)
                 self._allowed_pool = set().union(*self.player_decks)
             self.player_extras = ((), ())
+            self.player_sides = ((), ())
+            if self.general_actions and "sides" in deck_profile:
+                self.player_sides = tuple(tuple(d) for d in deck_profile["sides"])
             if self.extended_actions:
-                from .deck_profile import validate_deck_parts
                 self.player_extras = tuple(tuple(d) for d in deck_profile["extras"])
                 self._allowed_pool.update(code for d in self.player_extras for code in d)
+            if self.extended_actions or any(self.player_sides):
+                from .deck_profile import validate_deck_parts
+                self._allowed_pool.update(code for d in self.player_sides for code in d)
                 for player in (0, 1):
                     validate_deck_parts({"main": list(self.player_decks[player]), "extra": list(self.player_extras[player]),
-                                         "side": deck_profile["sides"][player]}, self._rows, limits)
+                                         "side": list(self.player_sides[player])}, self._rows, limits)
             else:
                 for deck in self.player_decks:
                     self.validate_deck(deck)

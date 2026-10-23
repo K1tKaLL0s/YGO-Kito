@@ -7,11 +7,11 @@ from .validation import ContractError, array, fields, integer, text
 
 def validate_profile(value):
     version = integer(value.get("schema_version") if isinstance(value, dict) else None, "deck profile schema", 1, 2)
-    d = fields(value, {"schema_version", "name", "decks"} | ({"extras", "sides"} if version == 2 else set()))
+    d = fields(value, {"schema_version", "name", "decks"} | ({"extras", "sides"} if version == 2 else set()),
+               {"sides"} if version == 1 else set())
     text(d["name"], "deck profile name")
     decks = array(d["decks"], "decks")
     if len(decks) != 2:
-        from .validation import ContractError
         raise ContractError("deck profile requires exactly two main decks")
     result = []
     for deck in decks:
@@ -19,8 +19,8 @@ def validate_profile(value):
         for code in codes:
             integer(code, "card ID", 1, 2**32 - 1)
         result.append(tuple(codes))
-    if version == 2:
-        for zone in ("extras", "sides"):
+    if version == 2 or "sides" in d:
+        for zone in (("extras", "sides") if version == 2 else ("sides",)):
             parts = array(d[zone], zone)
             if len(parts) != 2:
                 raise ContractError("extended profile requires two extra/side lists")

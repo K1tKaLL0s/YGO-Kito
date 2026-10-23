@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from ygo_kito.build_contracts import BuildTask, DeckParts
 from ygo_kito.construction_curriculum import inputs
+from ygo_kito.deck_profile import validate_profile
 from ygo_kito.group_runner import actor_profile, inputs as group_inputs, profile_deck, validate_recipe
 from ygo_kito.validation import ContractError, read_json
 
@@ -57,6 +58,26 @@ class RealCurriculumContractTests(unittest.TestCase):
         old = {k: profile[k] for k in ("schema_version", "name", "decks")}; old["schema_version"] = 1
         with self.assertRaises(ContractError):
             actor_profile(old, altered)
+
+    def test_v1_side_metadata_preserves_opponent_and_rejects_extras_and_bad_bounds(self):
+        profile = read_json(ROOT / "configs/effect-duel-v1.json")
+        original = deepcopy(profile)
+        deck = DeckParts(tuple(profile["decks"][0]), (), (26593852,))
+        actual = actor_profile(profile, deck)
+        self.assertEqual(actual["schema_version"], 1)
+        self.assertEqual(actual["sides"], [[26593852], []])
+        self.assertEqual(profile, original)
+        profile["sides"] = [[], [78156759]]
+        self.assertEqual(actor_profile(profile, deck)["sides"], [[26593852], [78156759]])
+        validate_profile(actual)
+        for mutation in ("extras", "length", "size", "bool"):
+            bad = deepcopy(actual)
+            if mutation == "extras": bad["extras"] = [[], []]
+            elif mutation == "length": bad["sides"] = [[]]
+            elif mutation == "size": bad["sides"][0] *= 16
+            else: bad["sides"][0] = [True]
+            with self.subTest(mutation=mutation), self.assertRaises(ContractError):
+                validate_profile(bad)
 
 
 if __name__ == "__main__":

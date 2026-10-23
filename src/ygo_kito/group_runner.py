@@ -523,11 +523,15 @@ def profile_deck(profile, player):
 
 
 def actor_profile(profile, deck):
-    if profile["schema_version"] == 1 and (deck.extra or deck.side):
-        raise ContractError("extended construction requires an explicit version-2 duel profile")
+    if profile["schema_version"] == 1 and deck.extra:
+        raise ContractError("extra-deck construction requires an explicit version-2 duel profile")
     result = dict(profile, decks=[list(deck.main), profile["decks"][1]])
     if profile["schema_version"] == 2:
         result.update(extras=[list(deck.extra), profile["extras"][1]], sides=[list(deck.side), profile["sides"][1]])
+    elif deck.side or "sides" in profile:
+        # BO1 side is version-bound deck metadata, never inserted into the core.
+        # Keep legacy no-side profiles byte-compatible and v1 actions/versions.
+        result["sides"] = [list(deck.side), profile.get("sides", [[], []])[1]]
     return result
 
 

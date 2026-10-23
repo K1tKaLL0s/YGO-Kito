@@ -6,11 +6,12 @@ import unittest
 
 import torch
 
-from ygo_kito.build_contracts import BuildTask, DeckParts
+from ygo_kito.build_contracts import BuildTask, DeckParts, digest
 from ygo_kito.build_pipeline import BuildAssets, verify_goal
 from ygo_kito.contracts import ActionSelection, DecisionRequest, Observation
 from ygo_kito.duel_model import DuelActorCritic, DuelModelConfig, PlayerEncoder
 from ygo_kito.extra_routes import RouteDriver, completed_special_summon, profile_for, verify_extra_goal
+from ygo_kito.group_runner import actor_profile
 from ygo_kito.native import NativeError, NativeNormalEngine
 from ygo_kito.normal_duel import request_digest
 from ygo_kito.validation import ContractError
@@ -98,6 +99,30 @@ class RealExtraMaterialTests(unittest.TestCase):
         encoder = PlayerEncoder(sorted(set(self.deck.main + (26593852, 78156759))), DuelModelConfig())
         first, second = [encoder.encode(r) for r in requests]
         self.assertTrue(all(torch.equal(first[k], second[k]) for k in first))
+
+    def test_v1_side_is_bound_validated_and_never_dealt_or_enabled_as_extra(self):
+        profile = json.loads((ROOT / "configs/effect-duel-v1.json").read_text())
+        baseline = copy.deepcopy(profile)
+        with NativeNormalEngine(CACHE, scenario="effect-duel", deck_profile=profile, seed=7) as engine:
+            expected = request_digest(engine.next_decision())
+        bound = actor_profile(profile, DeckParts(tuple(profile["decks"][0]), (), (26593852,)))
+        self.assertNotEqual(digest(profile), digest(bound))
+        with NativeNormalEngine(CACHE, scenario="effect-duel", deck_profile=bound, seed=7) as engine:
+            req = engine.next_decision()
+            self.assertEqual(engine.player_sides, ((26593852,), ()))
+            self.assertEqual(engine.player_extras, ((), ()))
+            self.assertFalse(engine.extended_actions)
+            self.assertEqual(req.context.versions.card_pool, "native-effect-duel-v1")
+            self.assertEqual(request_digest(req), expected)
+            self.assertNotIn(26593852, engine.player_decks[0])
+            self.assertFalse(any(c.card_id == 26593852 for c in req.observation.cards))
+        self.assertEqual(profile, baseline)
+        token = next(c for c, row in self.assets.rows.items() if row["type"] & 0x4000 and row["ot"] & 1)
+        for side in ([26202165], [32864] * 16, [token]):
+            bad = dict(profile, sides=[side, []])
+            with self.assertRaises(ContractError):
+                with NativeNormalEngine(CACHE, scenario="effect-duel", deck_profile=bad, seed=7):
+                    pass
 
     def test_real_sum_metadata_reaches_network_and_preserves_distinct_action_pointers(self):
         req = DecisionRequest.from_dict(json.loads(json.dumps(self.proofs[0]["route_evidence"]["sum_choices"][0]["request"])))
