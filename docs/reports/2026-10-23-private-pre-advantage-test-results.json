@@ -1,0 +1,32 @@
+{
+  "source_commit": "c2e6601c0eb574e2535f6b165ed826c74d702c24",
+  "python": "3.12.14",
+  "implementation_sha256": "88b20622fcff3e58477f2f9d4f188c87b3ea9d99a61c01a7be84583e0e11b4f2",
+  "results": [
+    {
+      "label": "unit",
+      "command": [
+        "/workspace/YGO-Kito/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "source_commit": "c2e6601c0eb574e2535f6b165ed826c74d702c24",
+      "exit_code": 0,
+      "started_at_utc": "2026-10-23T06:12:25.103271+00:00",
+      "wall_seconds": 12.64327417700406,
+      "log": ".cache/private-hierarchy-final-unit.log",
+      "child_peak_rss_kib_cumulative": 279920,
+      "published_log": "docs/reports/2026-10-23-private-pre-advantage-unit.log"
+    }
+  ],
+  "interruption": {
+    "reason": "one-decision curriculum centers its actor advantage to zero; reward-gradient regression requires a fix",
+    "integration_status": "intentionally stopped, not passed",
+    "processes_terminated": 2,
+    "source_kept": true
+  }
+}

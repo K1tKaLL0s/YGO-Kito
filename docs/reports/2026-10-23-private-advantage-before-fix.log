@@ -1,0 +1,14 @@
+test_real_full_catalogue_hierarchy_updates_and_checkpoint_continuation_match (integration_tests.test_private_hierarchy.RealLargeActionLearningTests.test_real_full_catalogue_hierarchy_updates_and_checkpoint_continuation_match) ... FAIL
+
+======================================================================
+FAIL: test_real_full_catalogue_hierarchy_updates_and_checkpoint_continuation_match (integration_tests.test_private_hierarchy.RealLargeActionLearningTests.test_real_full_catalogue_hierarchy_updates_and_checkpoint_continuation_match)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/integration_tests/test_private_hierarchy.py", line 133, in test_real_full_catalogue_hierarchy_updates_and_checkpoint_continuation_match
+    self.assertGreater(abs(metrics['policy_loss']),0, 'terminal reward must affect the actor, not only entropy/value updates')
+AssertionError: 0.0 not greater than 0 : terminal reward must affect the actor, not only entropy/value updates
+
+----------------------------------------------------------------------
+Ran 1 test in 2.461s
+
+FAILED (failures=1)

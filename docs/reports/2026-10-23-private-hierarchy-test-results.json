@@ -1,0 +1,98 @@
+{
+  "source_commit": "71cb9fe4c8dc32ef8700876ec7695bf8d697f958",
+  "python": "3.12.14",
+  "implementation_sha256": "c050c3ffec24a7bbf0380ae7fbd0ee4660c01b30fd90366930374543b77cd1b4",
+  "results": [
+    {
+      "label": "unit",
+      "command": [
+        "/workspace/YGO-Kito/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "source_commit": "71cb9fe4c8dc32ef8700876ec7695bf8d697f958",
+      "exit_code": 0,
+      "started_at_utc": "2026-10-23T06:23:19.586441+00:00",
+      "wall_seconds": 12.122962913002993,
+      "log": ".cache/private-hierarchy-final-unit.log",
+      "child_peak_rss_kib_cumulative": 281880,
+      "test_count": 154,
+      "framework_seconds": 10.694,
+      "skipped": 0,
+      "published_log": "docs/reports/2026-10-23-private-final-unit.log",
+      "published_log_sha256": "7e292084536620da0129ee3b786b32afe52fb8d30e88f7686b062470cd71df66"
+    },
+    {
+      "label": "integration",
+      "command": [
+        "/workspace/YGO-Kito/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "integration_tests",
+        "-v"
+      ],
+      "source_commit": "71cb9fe4c8dc32ef8700876ec7695bf8d697f958",
+      "exit_code": 0,
+      "started_at_utc": "2026-10-23T06:23:31.709686+00:00",
+      "wall_seconds": 764.0782822450055,
+      "log": ".cache/private-hierarchy-final-integration.log",
+      "child_peak_rss_kib_cumulative": 470400,
+      "test_count": 147,
+      "framework_seconds": 762.556,
+      "skipped": 0,
+      "published_log": "docs/reports/2026-10-23-private-final-integration.log",
+      "published_log_sha256": "0ba43389720c406f0c41c2bbb1746846a7962ae61e0515a7f3976a9f783b7a12"
+    },
+    {
+      "label": "independent_private_hierarchy_cli",
+      "command": [
+        "/workspace/YGO-Kito/.venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "private-hierarchy-acceptance",
+        "--root",
+        ".cache",
+        "--output",
+        ".cache/private-hierarchy-delivery-v1"
+      ],
+      "source_commit": "71cb9fe4c8dc32ef8700876ec7695bf8d697f958",
+      "started_at_utc": "2026-10-23T06:36:32.045812+00:00",
+      "exit_code": 0,
+      "wall_seconds": 20.022426142997574,
+      "stdout": ".cache/private-hierarchy-cli-final.stdout.json",
+      "stderr": ".cache/private-hierarchy-cli-final.stderr.log",
+      "child_peak_rss_kib": 319872,
+      "measured": {
+        "parent_peak_rss_kib": 319872,
+        "process_cpu_seconds": 18.598135228,
+        "wall_seconds": 18.61597857400193
+      },
+      "checkpoint_receipts_verified": 3,
+      "published_proof": "docs/reports/private-hierarchy-v4-evidence/delivery-proof.json",
+      "published_stderr": "docs/reports/2026-10-23-private-cli.stderr.log",
+      "private_raw_stdout_in_cloud": ".cache/private-hierarchy-cli-final.stdout.json",
+      "private_source_receipts_verified_in_cloud": 11,
+      "redacted_history_and_summary_receipts_verified": 11
+    }
+  ],
+  "publication_note": "Later documentation/evidence-only commit does not change this implementation binding.",
+  "scope_note": "The standalone CLI uses 2 canonical / 3 physical real CPU updates; final full regression also executes existing bounded training. Neither is competitive evaluation.",
+  "observed_hardware": {
+    "machine": "x86_64",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "logical_cpus": 5,
+    "torch": "2.14.1+cpu",
+    "note": "Observed in the same cloud; not a dedicated-core or PC guarantee."
+  },
+  "export_boundary": {
+    "raw_audit_upload": "denied by automatic approval review, not executed or retried",
+    "raw_private_artifacts": "retained in cloud output directory",
+    "github_delivery": "strict common-public-history projections and aggregate metrics only"
+  }
+}
