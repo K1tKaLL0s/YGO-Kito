@@ -50,6 +50,8 @@ def run_private_acceptance(root,output):
     trainer=CpuTrainer(config,sorted(public_card_facts(root)))
     first=trainer.sample_episode(root,profile)
     before=parameter_digest(trainer.model);first_update=trainer.update(first)
+    if not first_update['policy_loss'] or not first_update['policy_head_delta_l2']:
+        raise ContractError('real terminal reward did not reach the actor update')
     checkpoint=save_checkpoint(trainer,output,'large-action-first',binding)
     restored=load_checkpoint(checkpoint,binding)
     continuous=trainer.sample_episode(root,profile);resumed=restored.sample_episode(root,profile)

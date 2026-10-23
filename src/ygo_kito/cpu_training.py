@@ -225,7 +225,10 @@ class CpuTrainer:
         actions = torch.tensor([s["action_index"] for s in chosen])
         old_log_probs = torch.tensor([s["old_log_prob"] for s in chosen])
         advantage = advantages[indices]
-        advantage = (advantage - advantage.mean()) / (advantage.std(unbiased=False) + 1e-8)
+        # Centering a single real decision would erase its entire reward
+        # signal. Keep that raw advantage; multi-sample PPO retains scaling.
+        if advantage.numel() > 1:
+            advantage = (advantage - advantage.mean()) / (advantage.std(unbiased=False) + 1e-8)
         self.model.train()
         logits, values = score_requests(self.model,self.encoder,[s["request"] for s in chosen])
         dist = Categorical(logits=logits)

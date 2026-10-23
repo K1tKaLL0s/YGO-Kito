@@ -130,6 +130,7 @@ class RealLargeActionLearningTests(unittest.TestCase):
    self.assertGreater(len(step['hierarchy']['path']),1)
    self.assertAlmostEqual(step['old_log_prob'],step['hierarchy']['path_log_prob'],places=4)
   metrics=trainer.update(first)
+  self.assertGreater(abs(metrics['policy_loss']),0, 'terminal reward must affect the actor, not only entropy/value updates')
   self.assertGreater(metrics['policy_head_delta_l2'],0)
   self.assertGreater(metrics['changed_parameter_elements'],0)
   with tempfile.TemporaryDirectory() as tmp:
