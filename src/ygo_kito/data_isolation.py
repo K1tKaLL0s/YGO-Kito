@@ -110,6 +110,9 @@ class DataIndex:
         scope=digest({k:dataset['versions'][k] for k in ('core','scripts','cards','protocol','banlist')})
         record={'artifact_id':artifact_id,'dataset_id':dataset['dataset_id'],'dataset_sha256':digest(dataset),
                 'purpose':dataset['purpose'],'family':dataset['family'],'payload':payload,'payload_sha256':digest(payload)}
+        # DTOs may contain tuples; compare the persisted JSON representation on
+        # retries instead of rejecting its equivalent list representation.
+        record=json.loads(json.dumps(record,sort_keys=True))
         with sqlite3.connect(self.path) as db:
             db.execute('BEGIN IMMEDIATE')
             old=db.execute('SELECT payload FROM artifacts WHERE id=?',(artifact_id,)).fetchone()

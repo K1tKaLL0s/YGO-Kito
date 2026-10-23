@@ -1,5 +1,6 @@
 """Constraint language and split-integrity contracts, not real game tests."""
 import copy,json,sqlite3,tempfile,unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from ygo_kito.build_contracts import BuildTask
@@ -12,6 +13,14 @@ from ygo_kito.validation import ContractError
 TASK=json.loads((Path(__file__).resolve().parents[1]/'configs/build-semantic-engineering-v4.json').read_text())
 
 class SemanticContracts(unittest.TestCase):
+    def test_custom_course_cannot_relabel_current_resources_as_a_historical_period(self):
+        from ygo_kito.semantic_curriculum import inputs
+        cfg=json.loads((Path(__file__).resolve().parents[1]/'configs/construction-semantic-v1.json').read_text())
+        cfg['period_id']='2022-07'
+        with patch('ygo_kito.semantic_curriculum.read_json',return_value=cfg):
+            with self.assertRaisesRegex(ContractError,'historical'):
+                inputs({'construction_curriculum':'configs/construction-semantic-v1.json'},BuildTask.from_dict(TASK))
+
     def test_general_goal_has_no_synthetic_summon_or_opening_condition(self):
         t=BuildTask.from_dict(TASK);self.assertEqual(BuildTask.from_dict(t.to_dict()),t)
         self.assertNotIn('card_id',t.goal);self.assertNotIn('starting_conditions',t.goal)
@@ -72,3 +81,10 @@ class DataSplitContracts(unittest.TestCase):
         with self.assertRaises(ContractError):self.index._store('a',ds,{'synthetic':False},(9,))
         with sqlite3.connect(self.index.path) as db:db.execute("UPDATE datasets SET payload=? WHERE id='train'",(json.dumps(dict(ds,purpose='validation')),))
         with self.assertRaisesRegex(ContractError,'binding changed'):self.index.artifact('a')
+
+    def test_nested_dto_tuple_json_roundtrip_is_idempotent_but_changes_still_fail(self):
+        ds=self.freeze('train')
+        first=self.index._store('dto',ds,{'refs':('one','two'),'nested':{'bounds':(1,3)}},())
+        self.assertEqual(first,self.index._store('dto',ds,{'refs':['one','two'],'nested':{'bounds':[1,3]}},()))
+        with self.assertRaisesRegex(ContractError,'overwritten'):
+            self.index._store('dto',ds,{'refs':['one','different'],'nested':{'bounds':[1,3]}},())

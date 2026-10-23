@@ -101,10 +101,11 @@ def run_group_acceptance(root, state_root, run_id, recipe):
         if baseline_row["state"] != "completed":
             raise ContractError("group continuous run failed: " + str(baseline_row.get("failure_detail", baseline_row["reason"])))
         baseline = verified_trainer(host, baseline_row)
-        equal = (final_fingerprint == baseline.training_fingerprint() and final.events == baseline.events
-                 and final_versions == baseline.versions() and final_ledger == baseline.host.state_digest())
+        comparisons={'models_optimizers_rng':final_fingerprint==baseline.training_fingerprint(),'events':final.events==baseline.events,
+                     'model_versions':final_versions==baseline.versions(),'ledger':final_ledger==baseline.host.state_digest()}
+        equal=all(comparisons.values())
         if not equal:
-            raise ContractError("four-model stage recovery differs from continuous models/optimizers/RNG/evaluation/ledger")
+            raise ContractError("four-model stage recovery differs from continuous models/optimizers/RNG/evaluation/ledger: "+str(comparisons))
 
         # A host-selected stage slice stops after the second frozen evaluation,
         # keeping the same total active budget. Explicit resume only does feedback.

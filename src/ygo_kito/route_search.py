@@ -20,6 +20,24 @@ from .validation import ContractError, array, canonical_json, fields, integer
 DRIVER = "bounded-public-dto-route-search-v1"
 
 
+def resolved_chain_cards(events,player=0):
+    """Only common-public CHAINING/SOLVED/NEGATED/DISABLED broadcasts.
+
+    A processed, non-negated chain link is not itself evidence of its precise
+    benefit. Separate final-state objectives still have to be proved by core.
+    """
+    links={};blocked=set();result=set()
+    for event in events:
+        kind=event['kind']
+        if kind==70:links[event['link']]=(event['public_card'],event['player'])
+        elif kind in (75,76):blocked.add(event['link'])
+        elif kind==73 and event['link'] in links and event['link'] not in blocked:
+            code,seat=links[event['link']]
+            if seat==player:result.add(code)
+        elif kind==74:links.clear();blocked.clear()
+    return result
+
+
 def ranked_actions(request, goal, rows, *, width=4):
     """Pure observer DTO/public catalog function; no live-state oracle."""
     cards = {c.ref: c for c in request.observation.cards}
@@ -67,7 +85,7 @@ def ranked_actions(request, goal, rows, *, width=4):
     return ordered[:width]
 
 
-def discover_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budget=100, branch_budget=24, width=4):
+def discover_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budget=100, branch_budget=24, width=4,required_activations=(),required_chain_resolutions=()):
     assets.validate(task, deck)
     integer(attempts, "discovery attempts", 0, 64)
     integer(decision_budget, "discovery decisions per branch", 1, 100)
@@ -77,6 +95,12 @@ def discover_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budg
         raise ContractError("discovery wall budget outside CPU range")
     if task.schema_version != 3 or "route" in task.goal or task.goal["kind"] not in ("synchro_summon", "xyz_summon"):
         raise ContractError("discovery requires a version-3 goal without prewritten route")
+    for values in (required_activations,required_chain_resolutions):
+        if not isinstance(values,tuple) or len(values)>4:raise ContractError('bounded distinct effect objectives required')
+        for code in values:
+            integer(code,'effect objective card',1,2**32-1)
+            if code not in task.pool:raise ContractError('effect objective outside public pool')
+        if len(set(values))!=len(values):raise ContractError('effect objectives repeat')
     mask = {"synchro_summon": 0x2000, "xyz_summon": 0x800000}[task.goal["kind"]]
     if not assets.rows[task.goal["card_id"]]["type"] & mask:
         return {"status": "unsupported_route", "card_list_legal": True,
@@ -90,6 +114,7 @@ def discover_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budg
             prefix = pending.pop()
             branches += 1
             audit, sums, intents = [], [], []
+            activated=set()
             try:
                 with NativeNormalEngine(assets.root, scenario="effect-duel", deck_profile=profile_for(deck), seed=seed) as engine:
                     req = engine.next_decision()
@@ -122,6 +147,8 @@ def discover_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budg
                         if action.card_refs:
                             intents.append({"operation": "search" if req.search_choices else action.kind,
                                             "card_ids": [identities.get(r) for r in action.card_refs]})
+                            if action.kind=='activate' and req.observation.observer==0:
+                                activated.update(identities.get(r) for r in action.card_refs)
                         if req.sum_selection is not None:
                             window = json.loads(canonical_json(req.to_dict()))
                             window["context"]["run_id"] = "private-search-replay-audit"
@@ -131,7 +158,8 @@ def discover_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budg
                         engine.submit(ActionSelection(req.context.run_id, req.duel_id, req.decision_id, action.action_id))
                         req = engine.next_decision()
                         own = engine._observation(0)
-                        if completed_special_summon(engine.events, own, 0, task.goal["card_id"]):
+                        if (completed_special_summon(engine.events, own, 0, task.goal["card_id"]) and set(required_activations)<=activated
+                            and set(required_chain_resolutions)<=resolved_chain_cards(engine.events)):
                             return {"status": "verified_success", "card_list_legal": True, "task_sha256": task.sha256,
                                     "deck_sha256": digest(deck.to_dict()), "starting_condition": task.goal["starting_conditions"],
                                     "random_dependency": "actual declared opening; neutral opponent; no stability/probability claim",
@@ -143,7 +171,9 @@ def discover_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budg
                                         "core_event_audit_not_policy_input": list(engine.events), "versions": task.environment["versions"],
                                         "exploration": {"branches_executed": branches, "branch_budget": branch_budget,
                                                         "discovered_intents": intents, "prewritten_route_supplied": False,
-                                                        "failed_branches": failures}}}
+                                                        "failed_branches": failures,
+                                                        **({'required_activations':list(required_activations)} if required_activations else {}),
+                                                        **({'required_chain_resolutions':list(required_chain_resolutions)} if required_chain_resolutions else {})}}}
             except NativeError as error:
                 # Unsupported messages terminate this branch; never replace a rule.
                 failures.append({"status": "unsupported_native_branch", "reason": str(error)[:256]})
@@ -154,13 +184,13 @@ def discover_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budg
             "exploration": {"branches_executed": branches, "failed_branches": failures}}
 
 
-def replay_discovered_goal(task, deck, assets, proof):
+def replay_discovered_goal(task, deck, assets, proof,*,required_activations=(),required_chain_resolutions=()):
     assets.validate(task, deck)
     fields(proof, {"status", "card_list_legal", "task_sha256", "deck_sha256", "starting_condition", "random_dependency",
                    "core_attempts", "responses", "core_event_kinds", "trajectory_sha256", "elapsed_seconds", "unmet", "route_evidence"})
     evidence = fields(proof["route_evidence"], {"driver", "opponent", "conditional_only", "material_preference", "sum_choices",
         "final_observation", "core_event_audit_not_policy_input", "versions", "exploration"})
-    exploration = fields(evidence["exploration"], {"branches_executed", "branch_budget", "discovered_intents", "prewritten_route_supplied", "failed_branches"})
+    exploration = fields(evidence["exploration"], {"branches_executed", "branch_budget", "discovered_intents", "prewritten_route_supplied", "failed_branches"},{'required_activations','required_chain_resolutions'})
     integer(exploration["branch_budget"], "replay branch budget", 1, 64)
     integer(exploration["branches_executed"], "replay branch count", 1, exploration["branch_budget"])
     mask = {"synchro_summon": 0x2000, "xyz_summon": 0x800000}.get(task.goal["kind"], 0)
@@ -169,7 +199,9 @@ def replay_discovered_goal(task, deck, assets, proof):
             or proof["starting_condition"] != task.goal["starting_conditions"] or proof["card_list_legal"] is not True
             or proof["trajectory_sha256"] != digest(proof["responses"]) or evidence["versions"] != task.environment["versions"]
             or evidence["driver"] != DRIVER or evidence["conditional_only"] is not True
-            or evidence["exploration"].get("prewritten_route_supplied") is not False):
+            or evidence["exploration"].get("prewritten_route_supplied") is not False
+            or tuple(exploration.get('required_activations',()))!=required_activations
+            or tuple(exploration.get('required_chain_resolutions',()))!=required_chain_resolutions):
         raise ContractError("discovered route binding differs")
     responses = array(proof["responses"], "discovered responses")
     integer(len(responses), "discovered response count", 1, 100)
@@ -182,16 +214,27 @@ def replay_discovered_goal(task, deck, assets, proof):
         opening = Counter(c.card_id for c in engine._observation(0).cards if c.zone == "hand")
         if any(opening[c] < n for c, n in Counter(task.goal["starting_conditions"]["requires_opening_hand"]).items()):
             raise ContractError("discovered replay actual opening does not satisfy the task")
+        activated=set();actual_intents=[]
         for row in responses:
             fields(row, {"player", "request_sha256", "action_id"})
             if (req is None or engine.turn != 1 or request_digest(req) != row["request_sha256"]
                     or req.observation.observer != row["player"]):
                 raise ContractError("discovered route replay request diverged")
+            action=next((a for a in req.actions if a.action_id==row['action_id']),None)
+            if action is None:raise ContractError('discovered action not offered')
+            identities={c.ref:c.card_id for c in req.observation.cards}
+            identities.update({c.ref:c.card_id for c in req.search_choices})
+            if action.card_refs:
+                ids=[identities.get(ref) for ref in action.card_refs]
+                actual_intents.append({'operation':'search' if req.search_choices else action.kind,'card_ids':ids})
+                if action.kind=='activate' and row['player']==0:activated.update(ids)
             engine.submit(ActionSelection(req.context.run_id, req.duel_id, req.decision_id, row["action_id"]))
             req = engine.next_decision()
         if (engine.turn != 1 or engine.events != evidence["core_event_audit_not_policy_input"]
                 or [e["kind"] for e in engine.events] != proof["core_event_kinds"]
                 or json.loads(canonical_json(asdict(engine._observation(0)))) != evidence["final_observation"]
+                or actual_intents!=exploration['discovered_intents'] or not set(required_activations)<=activated
+                or not set(required_chain_resolutions)<=resolved_chain_cards(engine.events)
                 or not completed_special_summon(engine.events, engine._observation(0), 0, task.goal["card_id"])):
             raise ContractError("discovered route replay did not reproduce completed summon")
     return {"replay_verified": True, "trajectory_sha256": proof["trajectory_sha256"]}

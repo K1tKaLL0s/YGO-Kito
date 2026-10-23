@@ -144,6 +144,9 @@ class BuildTask:
         for name in ("environment", "goal", "sizes", "requirements", "annotations"):
             value = json.loads(canonical_json(getattr(self, name)))
             object.__setattr__(self, name, tuple(value) if name in ("requirements", "annotations") else value)
+        if semantic and 'route_goal' in self.goal:
+            from .build_semantics import route_task
+            route_task(self)  # Reuse the same strict starting-condition/minimum contracts.
 
     @classmethod
     def from_dict(cls, value):

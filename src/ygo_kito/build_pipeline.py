@@ -207,6 +207,9 @@ def verify_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budget
         raise ContractError("route time budget outside CPU proof range")
     assets.validate(task, deck)
     if task.goal['kind']=='deck_constraints':
+        if 'route_goal' in task.goal:
+            from .build_semantics import verify_combined
+            return verify_combined(task,deck,assets,seconds=seconds,attempts=attempts,decision_budget=decision_budget)
         from .build_semantics import proof
         return proof(task,deck,assets)
     if task.goal["kind"] != "normal_summon":
@@ -296,7 +299,8 @@ def alternate_build(task, assets, models, encoder, *, base=None, stages=4, secon
             except NativeError as error:
                 failures.append({"stage": i, "role": role, "status": "native_route_unverified", "reason": str(error)})
                 continue
-            if proof["status"] == ("constraints_satisfied" if task.goal['kind']=='deck_constraints' else "verified_success"):
+            from .build_semantics import accepted_status
+            if proof["status"] == accepted_status(task):
                 selected = candidate
                 break
             failures.append({"stage": i, "role": role, "status": proof["status"], "unmet": proof["unmet"]})

@@ -62,7 +62,7 @@ def supervision_projection(data):
     result={"task_sha256": data["task_sha256"],
             "goals": [{"deck": r["deck"], "label": r["label"], "source": r["source"],
                        "evidence_status": r["evidence"]["status"],
-                       "trajectory_sha256": r["evidence"].get("trajectory_sha256")} for r in data["goals"]],
+                       "trajectory_sha256": r["evidence"].get("trajectory_sha256",r["evidence"].get('native_route',{}).get('trajectory_sha256'))} for r in data["goals"]],
             "pairs": data["pairs"]}
     if 'purpose' in data:result['purpose']=data['purpose']
     return result
@@ -373,7 +373,7 @@ def run_build_training_smoke(root, state_root, run_id, task, config=None):
             raise ContractError("four actual goal/optimizer stages not verified")
         metrics = publish("running")
         result = {"schema_version": 1, "ok": True, "scope": "bounded-goal-optimizer-cpu-engineering",
-                  "source": "actual-transformer-updates-and-catalog-constraints" if semantic else "actual-transformer-updates-and-real-core-goal-checks",
+                  "source": ("actual-transformer-updates-and-combined-native-objectives" if 'route_goal' in task.goal else "actual-transformer-updates-and-catalog-constraints") if semantic else "actual-transformer-updates-and-real-core-goal-checks",
                   "task": task.to_dict(), "binding": binding, "training_config": asdict(config),
                   "parameter_counts": {r: sum(p.numel() for p in trainer.models[r].parameters()) for r in ROLES},
                   "independent_weights": True, "updates": updates, "canonical_updates_per_role": 2,

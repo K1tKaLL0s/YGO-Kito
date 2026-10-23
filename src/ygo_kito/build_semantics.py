@@ -37,8 +37,17 @@ def validate_predicate(value,pool,depth=0):
 
 
 def validate_goal(goal,pool):
-    d=fields(goal,{'kind','constraints','preferences'})
+    d=fields(goal,{'kind','constraints','preferences'},{'route_goal','required_activations','required_chain_resolutions'})
     if d['kind']!='deck_constraints':raise ContractError('unsupported semantic goal')
+    for key in ('required_activations','required_chain_resolutions'):
+        if key not in d:continue
+        values=array(d[key],'required public effect objectives')
+        if 'route_goal' not in d or not 1<=len(values)<=4:
+            raise ContractError('bounded distinct effect objectives require a native route goal')
+        for code in values:
+            integer(code,'required activation',1,2**32-1)
+            if code not in pool:raise ContractError('required activation outside public pool')
+        if len(set(values))!=len(values):raise ContractError('effect objectives repeat')
     constraints=array(d['constraints'],'hard count constraints');preferences=array(d['preferences'],'soft preferences')
     integer(len(constraints),'hard semantic constraint count',1,12);integer(len(preferences),'preference count',0,8)
     seen=set()
@@ -175,3 +184,36 @@ def proof(task,deck,assets):
     return {'status':'constraints_satisfied','task_sha256':task.sha256,'deck_sha256':digest(deck.to_dict()),
             'counts':validate_counts(task,deck,assets),'versions':task.environment['versions'],
             'effect_execution_verified':False,'competitive_strength_verified':False}
+
+
+def route_task(task):
+    """Explicit observer/schema projection for existing real v3 route discovery.
+
+    Physical core/scripts/cards/banlist stay identical. The v2 route probe and
+    v5 general-duel DTOs remain separately labelled, never silently interchanged.
+    """
+    from .build_contracts import BuildTask
+    goal=fields(task.goal.get('route_goal'),{'kind','card_id','starting_conditions'},{'route'})
+    if goal['kind'] not in ('synchro_summon','xyz_summon'):
+        raise ContractError('combined goal supports explicit conditional synchro/xyz objectives')
+    raw=task.to_dict();raw['schema_version']=3;raw['goal']=raw['goal']['route_goal']
+    if 'route' in raw['goal']:raise ContractError('combined objective uses core discovery, not a prewritten route')
+    raw['environment']['versions']['card_pool']='native-extra-material-v2'
+    return BuildTask.from_dict(raw)
+
+
+def verify_combined(task,deck,assets,*,seconds=10.,attempts=16,decision_budget=100):
+    from .route_search import discover_goal
+    counts=proof(task,deck,assets);native=route_task(task)
+    route=discover_goal(native,deck,assets,seconds=seconds,attempts=attempts,decision_budget=decision_budget,
+                        required_activations=tuple(task.goal.get('required_activations',())),
+                        required_chain_resolutions=tuple(task.goal.get('required_chain_resolutions',())))
+    return {'status':'constraints_and_route_verified' if route['status']=='verified_success' else route['status'],
+            'task_sha256':task.sha256,'deck_sha256':counts['deck_sha256'],'constraints':counts,'native_route':route,
+            'effect_execution_verified':route['status']=='verified_success','competitive_strength_verified':False,
+            'unmet':route.get('unmet',[])}
+
+
+def accepted_status(task):
+    if task.goal['kind']!='deck_constraints':return 'verified_success'
+    return 'constraints_and_route_verified' if 'route_goal' in task.goal else 'constraints_satisfied'

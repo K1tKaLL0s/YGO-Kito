@@ -67,6 +67,9 @@ def inputs(recipe):
     task = BuildTask.from_dict(read_json(config_path(recipe["task"])))
     from .construction_curriculum import inputs as curriculum_inputs
     curriculum_inputs(recipe, task)
+    from .semantic_curriculum import configured
+    if task.goal['kind']=='deck_constraints' and not configured(recipe):
+        raise ContractError('schema4 group training requires its indexed semantic curriculum')
     lora = read_json(config_path(recipe["adapters"]))
     fields(lora, {"schema_version", "base_version", "calibration", "scope", "adapters"})
     if lora["schema_version"] != 1 or lora["calibration"] != "pending" or lora["scope"] != "structural-engineering-not-transfer-ability":
@@ -177,6 +180,7 @@ class GroupState:
         self.coordinator = CoordinatorTrainer()
         self.sessions, self.data = None, None
         self.construction_state = None
+        self.data_index = None
         self.policy_rng = torch.Generator(device="cpu").manual_seed(self.duel.config.policy_seed + 10)
         self.cycle, self.phase, self.updates = 0, "bootstrap", 0
         self.consumed, self.events, self.data_marks, self.evaluations = [], [], [], []
@@ -323,6 +327,8 @@ class GroupState:
                      "global_rng": {"torch": torch.get_rng_state(), "python": random.getstate()}}
             if "construction_curriculum" in self.row["recipe"]:
                 state["construction_state"] = self.construction_state
+            from .semantic_curriculum import configured,snapshot_index
+            if configured(self.row['recipe']):state['data_index_snapshot']=snapshot_index(self)
             with path.open("xb") as output:
                 torch.save(state, output)
                 output.flush(); os.fsync(output.fileno())
@@ -339,9 +345,12 @@ class GroupState:
         from .local_training import run_path
         from .training_runner import read_artifact, validate_shard, opponent_binding
         state = torch.load(path, weights_only=True, map_location="cpu")
+        from .semantic_curriculum import configured,restore_index
+        semantic=configured(row['recipe'])
         fields(state, {"schema_version", "boundary", "binding", "components", "adapters", "cursor", "consumed", "events", "data", "data_marks", "evaluations",
                        "deck", "candidate_id", "forecast_id", "last_feedback", "ledger_bytes", "ledger_sha256", "ledger_state_sha256", "policy_rng", "global_rng", "budget_snapshot"}
-               | ({"construction_state"} if "construction_curriculum" in row["recipe"] else set()))
+               | ({"construction_state"} if "construction_curriculum" in row["recipe"] else set())
+               | ({'data_index_snapshot'} if semantic else set()))
         if (state["schema_version"] != 1 or state["boundary"] != "complete-workflow-stage" or state["binding"] != row["binding"]
                 or binding_for(assets.root, row) != row["binding"] or hashlib.sha256(state["ledger_bytes"]).hexdigest() != state["ledger_sha256"]):
             raise ContractError("group checkpoint boundary/version/ledger differs")
@@ -350,6 +359,8 @@ class GroupState:
         obj.assets, obj.row, obj.state_root = assets, row, Path(state_root)
         obj.task, obj.data = BuildTask.from_dict(row["task"]), state["data"]
         obj.construction_state = state.get("construction_state")
+        obj.data_index=None
+        if semantic:restore_index(obj,state['data_index_snapshot'])
         if obj.data is not None:
             validate_supervision(obj.task, assets, obj.data)
         expected_data = obj.data or {"supervision_sha256": digest({"phase": "before-bootstrap", "task": obj.task.sha256})}
@@ -491,13 +502,20 @@ def record_episode(state, episode, generation):
     index = sum(m["event_id"] == event_id for m in state.data_marks)
     path = run / "data" / purpose / f"{event_id}-{index}-{generation}.json"
     binding = opponent_binding(state.row, "train" if purpose == "train" else "validation")
+    from .semantic_curriculum import configured,ingest_episode
+    extra={}
+    if configured(state.row['recipe']):
+        extra['indexed_artifact_id']=ingest_episode(state,episode)
+        raw=run/'data/private-audits'/f'{event_id}-{index}-{generation}.json'
+        atomic_json(raw,episode['_private_audit']);extra['private_audit']=file_receipt(raw,run)
     atomic_json(path, shard_for(episode, binding))
     state.data_marks.append({"event_id": event_id, "partition": purpose, "artifact": file_receipt(path, run),
-                             "policy_version": episode["policy_version"], "policy_sha256": episode["policy_sha256"]})
+                             "policy_version": episode["policy_version"], "policy_sha256": episode["policy_sha256"],**extra})
 
 
 def select_goal(state):
     import torch
+    import time
     from .build_pipeline import goal_candidates, verify_goal
     base = None if state.deck is None else DeckParts.from_dict(state.deck)
     from .construction_curriculum import candidates as curriculum_candidates
@@ -508,10 +526,14 @@ def select_goal(state):
     model.eval()
     with torch.no_grad():
         scores = model(state.builder.encoder.batch(state.task, candidates))
+    combined='route_goal' in state.task.goal;started=time.monotonic()
     for index in scores.argsort(descending=True).tolist():
+        remaining=30.-(time.monotonic()-started) if combined else 30.
+        if remaining<=0:break
         proof = verify_goal(state.task, candidates[index], state.assets,
-                            attempts=64 if state.task.goal["kind"] != "normal_summon" else 16, seconds=30.)
-        if proof["status"] == "verified_success":
+                            attempts=64 if state.task.goal["kind"] != "normal_summon" else 16, seconds=remaining)
+        from .build_semantics import accepted_status
+        if proof["status"] == accepted_status(state.task):
             state.deck = candidates[index].to_dict()
             return {"deck": state.deck, "validation": without_timing(proof), "model_score_uncalibrated": float(scores[index])}
     raise ContractError("group goal route remains unverified")
@@ -574,8 +596,10 @@ def evaluate(state, generation):
         if job["scope"] != scope or job["actor_seat"] != 0 or job["deck"] != state.deck or job["seed"] != seed:
             raise ContractError("group frozen job/version/deck/seed differs")
         actual_profile = actor_profile(profile, deck)
-        episode = sampler(state).sample_episode(state.assets.root, actual_profile, purpose="validation", seed=seed,
-            policy_seed=state.row["recipe"]["validation"]["policy_seed"], opponent=state.row["recipe"]["validation"]["opponent"])
+        from .semantic_curriculum import configured,opponent as semantic_opponent
+        adapter=semantic_opponent(state,actual_profile,'validation') if configured(state.row['recipe']) else None
+        episode = sampler(state).sample_episode(state.assets.root, adapter.profile if adapter else actual_profile, purpose="validation", seed=seed,
+            policy_seed=state.row["recipe"]["validation"]["policy_seed"], opponent=state.row["recipe"]["validation"]["opponent"],opponent_adapter=adapter)
         record_episode(state, episode, generation)
         winner = episode["summary"]["outcome"]["winner"]
         result = {"result_id": job_id + "-result", "job_id": job_id, "worker_id": "cpu-group-evaluator", "forecast_id": state.forecast_id,
@@ -604,25 +628,29 @@ def execute_stage(state, generation):
     from .coordinator_model import engineering_examples
     from .build_pipeline import alternate_build
     from .model_group import route_with_model
+    from .semantic_curriculum import configured,admission,opponent as semantic_opponent,ingest_episode
+    semantic=configured(state.row['recipe'])
     if state.event_id() in state.consumed:
         raise ContractError("cannot execute an already committed group stage")
     if state.phase == "bootstrap":
         state.data = initialize(state, generation)
-        updates = state.builder.step(state.data)
+        updates = state.builder.step(state.data,data_admission=admission(state) if semantic else None)
         for role in ("build_goal", "build_optimizer"):
             consume(state, role)
-        episode = state.duel.sample_episode(state.assets.root, state.row["profile"], opponent=state.row["recipe"]["train"]["opponent"])
+        adapter=semantic_opponent(state,state.row['profile'],'train') if semantic else None
+        episode = state.duel.sample_episode(state.assets.root, adapter.profile if adapter else state.row["profile"], opponent=state.row["recipe"]["train"]["opponent"],opponent_adapter=adapter)
         record_episode(state, episode, generation)
         updates.append(dict(state.duel.update(episode), role="duel"))
         updates.append(dict(state.coordinator.step(engineering_examples()), role="coordinator"))
         state.attach()
         return {"kind": "real-four-base-warmup", "updates": updates, "duel": without_timing(episode["summary"]),
                 "supervision_source": {"building": state.data["source"],
-                    "optimization": "frozen-real-rule-driver-pair" if state.construction_state is not None else "printed-attack-weak-proxy",
+                    "optimization": "explicit-catalog-preference-not-strength" if semantic else "frozen-real-rule-driver-pair" if state.construction_state is not None else "printed-attack-weak-proxy",
                     "coordinator": "synthetic-rule-and-probability-anchors"}}
     if state.phase in ("build_goal", "build_optimizer"):
         role = state.phase
-        update = state.sessions[role].step(construction_loss(role, state.sessions[role], state.builder, state.task, state.data))
+        update = state.sessions[role].step(construction_loss(role, state.sessions[role], state.builder, state.task, state.data,
+                                                          data_admission=admission(state) if semantic else None))
         consume(state, role)
         if role == "build_goal":
             construction = select_goal(state)
@@ -638,9 +666,11 @@ def execute_stage(state, generation):
     if state.phase == "duel_train":
         current = sampler(state)
         profile = actor_profile(state.row["profile"], DeckParts.from_dict(state.deck))
-        episode = current.sample_episode(state.assets.root, profile, opponent=state.row["recipe"]["train"]["opponent"])
+        adapter=semantic_opponent(state,profile,'train') if semantic else None
+        episode = current.sample_episode(state.assets.root, adapter.profile if adapter else profile, opponent=state.row["recipe"]["train"]["opponent"],opponent_adapter=adapter)
         if episode["purpose"] != "train" or episode["policy_version"] != state.sessions["duel"].updates:
             raise ContractError("group PPO requires this phase's fresh on-policy episode")
+        if semantic:ingest_episode(state,episode)
         values = ppo_inputs(episode, current, state.sessions["duel"])
         update = state.sessions["duel"].step(ppo_loss(state.sessions["duel"], values, current.config))
         record_episode(state, episode, generation)
@@ -740,8 +770,17 @@ def worker(state_root, run_id, generation, reporter):
                        state.duel.config.episode_seconds + 3 if state.phase == "duel_train" else 33 if state.phase in ("build_goal", "build_optimizer") else 3)
             if "construction_curriculum" in row["recipe"]:
                 from .construction_curriculum import inputs as curriculum_inputs
-                comparison_seconds = curriculum_inputs(row["recipe"], state.task)["config"]["comparison_seconds"]
-                if state.phase == "bootstrap":
+                comparison_seconds = curriculum_inputs(row["recipe"], state.task)["config"].get("comparison_seconds",0.)
+                from .semantic_curriculum import configured
+                if configured(row['recipe']):
+                    # Count constraints use one 30s inner alternation, not four
+                    # separately bounded 30s native route searches. Preserve the
+                    # actual 180s run cap while reserving this workflow's bounds.
+                    combined='route_goal' in state.task.goal
+                    reserve={'bootstrap':90 if combined else 60,'build_goal':35 if combined else 10,'build_optimizer':35,
+                             'duel_train':state.duel.config.episode_seconds+5,
+                             'evaluate':state.duel.config.episode_seconds*len(row['recipe']['validation']['seeds'])+10}.get(state.phase,3)
+                elif state.phase == "bootstrap":
                     reserve += comparison_seconds + 60  # comparison plus two bounded goal proofs
                 elif state.phase == "evaluate":
                     reserve += comparison_seconds

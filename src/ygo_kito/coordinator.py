@@ -25,6 +25,13 @@ PERMISSIONS = {"monitor": READ,
                "duel_worker": {"job.read", "job.claim", "results.append"}}
 
 
+def versioned_proof(value):
+    """Timing is measured in private run receipts, not candidate identity."""
+    if isinstance(value,dict):return {k:versioned_proof(v) for k,v in value.items() if k!='elapsed_seconds'}
+    if isinstance(value,list):return [versioned_proof(v) for v in value]
+    return value
+
+
 class Coordinator:
     def __init__(self, path, policy, *, role="monitor", source="real_engine", assets=None, create=False):
         member(role, "coordinator role", tuple(PERMISSIONS))
@@ -105,9 +112,10 @@ class Coordinator:
             if self.assets is None:
                 raise ContractError("real handoff requires explicit locked assets")
             validation = verify_goal(task, deck, self.assets)
-            if validation["status"] != "verified_success":
+            from .build_semantics import accepted_status
+            if validation["status"] != accepted_status(task):
                 raise ContractError("handoff goal route not verified; not accepted as valid")
-            validation = {k: v for k, v in validation.items() if k != "elapsed_seconds"}
+            validation = versioned_proof(validation)
         else:
             validation = {"status": "synthetic_contract_only", "card_list_legal": None, "core_executed": False}
         payload = dict(d, deck=deck.to_dict(), source=self.source, task_sha256=task.sha256, goal_key=goal_key, deck_sha256=deck_hash,
@@ -272,7 +280,7 @@ class Coordinator:
         status = self.forecast_status(d["forecast_id"]) if d["forecast_id"] is not None else None
         if status and status["forecast"]["candidate_id"] != d["candidate_id"]:
             raise ContractError("route forecast belongs to another candidate")
-        context = {"goal_valid": candidate["validation"]["status"] in ("verified_success", "synthetic_contract_only"),
+        context = {"goal_valid": candidate["validation"]["status"] in ("verified_success", "constraints_satisfied", "constraints_and_route_verified", "synthetic_contract_only"),
                    "card_list_valid": True, "has_forecast": status is not None, "warning": warning,
                    "rebuild_required": required, "operation_error": bool(status and status["outcome_counts"].get("invalid_action")),
                    "system_error": bool(status and any(status["outcome_counts"].get(k) for k in ("timeout", "crash"))),

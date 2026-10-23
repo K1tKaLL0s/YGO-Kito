@@ -1,0 +1,134 @@
+{
+  "annotations": [
+    {
+      "tag": "构筑·公开事实计数",
+      "layer": "engineering_goal",
+      "source": "pinned-cdb-not-effect-parser",
+      "subject": "self",
+      "condition": "engineer fixture, not user deck or strength label"
+    }
+  ],
+  "candidate_budget": 4,
+  "environment": {
+    "environment_id": "custom-native-current",
+    "versions": {
+      "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+      "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0",
+      "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+      "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+      "card_pool": "native-private-knowledge-v5",
+      "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769"
+    },
+    "authority": "custom",
+    "release_cutoff": null
+  },
+  "goal": {
+    "kind": "deck_constraints",
+    "constraints": [
+      {
+        "id": "spellbook-spells",
+        "zones": [
+          "main"
+        ],
+        "predicate": {
+          "all": [
+            {
+              "field": "setcode",
+              "value": 4206
+            },
+            {
+              "field": "type_all",
+              "value": 2
+            }
+          ]
+        },
+        "minimum": 5,
+        "maximum": 5
+      },
+      {
+        "id": "monster-proportion",
+        "zones": [
+          "main"
+        ],
+        "predicate": {
+          "field": "type_all",
+          "value": 1
+        },
+        "minimum": 34,
+        "maximum": 36
+      },
+      {
+        "id": "side-spells",
+        "zones": [
+          "side"
+        ],
+        "predicate": {
+          "field": "type_all",
+          "value": 2
+        },
+        "minimum": 1,
+        "maximum": 2
+      }
+    ],
+    "preferences": [
+      {
+        "id": "prefer-beasts",
+        "zones": [
+          "main"
+        ],
+        "predicate": {
+          "field": "race_any",
+          "value": 16384
+        },
+        "weight": 1
+      }
+    ]
+  },
+  "pool": [
+    32864,
+    549481,
+    732302,
+    756652,
+    1184620,
+    1761063,
+    1784619,
+    1929294,
+    2118022,
+    2311603,
+    2468169,
+    2483611,
+    2830619,
+    2863439,
+    2906250,
+    2957055,
+    3134241,
+    3170832,
+    3557275,
+    3573512,
+    3606209,
+    3732747,
+    3985011,
+    4042268,
+    25123082,
+    40230018,
+    78156759,
+    89739383,
+    96677818
+  ],
+  "requirements": [
+    {
+      "zone": "extra",
+      "card_id": 78156759,
+      "minimum": 1,
+      "maximum": 1
+    }
+  ],
+  "schema_version": 4,
+  "sizes": {
+    "main": 40,
+    "extra": 1,
+    "side": 2
+  },
+  "source": "engineering_fixture",
+  "task_id": "engineering-semantic-heldout-v4"
+}

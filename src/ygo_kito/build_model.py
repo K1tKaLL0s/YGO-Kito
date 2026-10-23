@@ -12,7 +12,7 @@ from torch import nn
 from .build_contracts import BuildTask, DeckParts, ZONES, digest
 from .validation import ContractError, canonical_json, integer
 
-FEATURE_VERSION = "build-task-catalog-candidate-v4-semantic-constraints"
+FEATURE_VERSION = "build-task-catalog-candidate-v5-combined-native-objectives"
 
 
 @dataclass(frozen=True)
@@ -58,7 +58,8 @@ class BuildEncoder:
             numbers.append(self.assets.facts(code) + [minimum / 3, maximum / 3, count / 3, context])
 
         semantic=task.goal['kind']=='deck_constraints'
-        extra_goal = not semantic and task.goal["kind"] != "normal_summon"
+        route_goal=task.goal.get('route_goal') if semantic else task.goal
+        extra_goal = route_goal is not None and route_goal['kind']!='normal_summon'
         if semantic:
             from .build_semantics import count,matches
             for hard,items in ((True,task.goal['constraints']),(False,task.goal['preferences'])):
@@ -73,18 +74,23 @@ class BuildEncoder:
                             if matches(self.assets.rows[code],item['predicate']):
                                 ids.append([self.card_index[code],1+ZONES.index(zone),0,6])
                                 numbers.append(self.assets.facts(code)+[0.,0.,0.,1. if hard else -1.])
-        else:
-            goal_kind = ("normal_summon", "synchro_summon", "xyz_summon").index(task.goal["kind"])
-            card(task.goal["card_id"], "extra" if extra_goal else "main", 1, context=goal_kind / 2)
+        if route_goal is not None:
+            goal_kind = ("normal_summon", "synchro_summon", "xyz_summon").index(route_goal["kind"])
+            card(route_goal["card_id"], "extra" if extra_goal else "main", 1, context=goal_kind / 2)
         if extra_goal:
-            for code in task.goal["starting_conditions"]["requires_opening_hand"]:
+            for code in route_goal["starting_conditions"]["requires_opening_hand"]:
                 card(code, "main", 5)
-            numbers[0][-1] = float("route" not in task.goal)
-            for intent in task.goal.get("route", []):
+            numbers[0][-1] = float("route" not in route_goal)
+            for intent in route_goal.get("route", []):
                 operation = intent["operation"]
                 for code in intent["card_ids"]:
                     card(code, "extra" if operation == "special_summon" else "main", 6,
                          context=("activate", "summon", "search", "special_summon").index(operation) / 3)
+        if semantic:
+            from .build_pipeline import EXTRA_TYPES
+            for key,context in (('required_activations',.5),('required_chain_resolutions',.75)):
+                for code in task.goal.get(key,[]):
+                    card(code,'extra' if self.assets.rows[code]['type']&EXTRA_TYPES else 'main',6,context=context)
         for req in task.requirements:
             card(req["card_id"], req["zone"], 2, req["minimum"], req["maximum"])
         for annotation in task.annotations:

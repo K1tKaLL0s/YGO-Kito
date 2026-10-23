@@ -43,7 +43,14 @@ def adapter_configs(value):
     return {c.role: c for c in rows}
 
 
-def construction_loss(role, session, builder, task, data):
+def construction_loss(role, session, builder, task, data,*,data_admission=None):
+    from .semantic_training import SOURCE
+    if data['source']==SOURCE:
+        from .build_training import validate_supervision
+        from .data_isolation import ConstructionAdmission
+        validate_supervision(task,builder.encoder.assets,data)
+        if not isinstance(data_admission,ConstructionAdmission):raise ContractError('semantic adapter loss requires indexed training admission')
+        data_admission.assert_data(task,data)
     records = data["goals"] if role == "build_goal" else data["pairs"]
     rows = [records[i] for i in torch.randperm(len(records), generator=session.rng).tolist()]
     session.model.train()
@@ -68,6 +75,12 @@ def coordinator_loss(session):
 def ppo_inputs(episode, sampler, session):
     if episode["policy_sha256"] != parameter_digest(session.model) or episode["source"] != "live-core-actor-seat":
         raise ContractError("LoRA PPO batch must originate from this initial live policy")
+    if 'opponent_binding' in episode.get('summary',{}):
+        from .data_isolation import DataAdmission,episode_digest
+        admission=episode.get('_data_admission')
+        if (episode.get('purpose')!='train' or sampler._pending_episode_digest!=episode_digest(episode)
+            or not isinstance(admission,DataAdmission)):raise ContractError('registered LoRA PPO requires fresh indexed on-policy data')
+        admission.assert_episode(episode)
     steps, cfg = episode["steps"], sampler.config
     advantages, following, gae = [], 0., 0.
     for step in reversed(steps):

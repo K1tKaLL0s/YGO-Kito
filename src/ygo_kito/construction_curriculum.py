@@ -15,6 +15,8 @@ def inputs(recipe, task):
     if FIELD not in recipe:
         return None
     config = read_json(config_path(recipe[FIELD]))
+    from .semantic_curriculum import COURSE,inputs as semantic_inputs
+    if config.get('source')==COURSE:return semantic_inputs(recipe,task)
     fields(config, {"schema_version", "source", "train", "validation", "comparison_seconds"})
     integer(config["schema_version"], "construction schema", 1, 1)
     if config["source"] != "explicit-frozen-real-comparison-engineering-v1":
@@ -71,6 +73,8 @@ def run_comparison(state, partition, generation):
 
 
 def initialize(state, generation):
+    from .semantic_curriculum import configured,initialize as semantic_initialize
+    if configured(state.row['recipe']):return semantic_initialize(state,generation)
     cfg = inputs(state.row["recipe"], state.task)
     if cfg is None:
         from .build_training import engineering_dataset
@@ -83,6 +87,8 @@ def initialize(state, generation):
 
 
 def consume(state, role):
+    from .semantic_curriculum import configured,consume as semantic_consume
+    if configured(state.row['recipe']):return semantic_consume(state,role)
     if state.construction_state is None:
         return
     marker = {"event_id": state.event_id(), "role": role, "partition": "construction_train",
@@ -94,6 +100,8 @@ def consume(state, role):
 
 
 def validate_state(state, *, artifacts=False):
+    from .semantic_curriculum import configured,validate_state as semantic_validate
+    if configured(state.row['recipe']):return semantic_validate(state,artifacts=artifacts)
     from .local_training import run_path
     from .training_runner import read_artifact
     cfg = inputs(state.row["recipe"], state.task)
@@ -164,6 +172,8 @@ def validate_trace(game, trace, assets):
 
 
 def candidates(state):
+    from .semantic_curriculum import configured
+    if configured(state.row['recipe']):return None
     if state.construction_state is None:
         return None
     return [DeckParts.from_dict(d) for d in state.data["pairs"][0]["evidence"]["plan"]["candidates"]]
@@ -174,6 +184,11 @@ def alternate(state):
     import torch
     from .build_pipeline import apply_changes, deck_changes, verify_goal
     from .duel_model import parameter_digest
+    from .semantic_curriculum import configured
+    if configured(state.row['recipe']):
+        from .build_pipeline import alternate_build
+        return alternate_build(state.task,state.assets,state.builder.models,state.builder.encoder,base=DeckParts.from_dict(state.deck),
+                               lora_versions={r:state.sessions[r].version_id() for r in state.builder.models})
     bank = candidates(state)
     comparison = state.data["pairs"][0]["evidence"]
     current, stages, verified = DeckParts.from_dict(state.deck), [], []
@@ -205,6 +220,8 @@ def alternate(state):
 
 
 def evaluate(state, generation):
+    from .semantic_curriculum import configured,evaluate as semantic_evaluate
+    if configured(state.row['recipe']):return semantic_evaluate(state,generation)
     comparison, receipt = run_comparison(state, "validation", generation)
     state.construction_state["validation"].append({"event_id": state.event_id(), "artifact": receipt,
         "comparison_sha256": comparison["comparison_sha256"], "partition": "construction_validation"})
