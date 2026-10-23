@@ -14,6 +14,7 @@ from .native_protocol import NativeError, Reader, visible_ref
 def extend(engine, observer, cards):
     engine._extra_refs = {}
     engine._material_refs = {}
+    engine._banished_refs = {}
     for player in (0, 1):
         for sequence in range(engine._count(player, 32)):
             position = engine._query(player, 32, sequence, 2)[1]
@@ -22,6 +23,7 @@ def extend(engine, observer, cards):
             code, owner = None, None
             if visible:
                 code, owner, _, _ = engine._visible_data(player, 32, sequence)
+                engine._banished_refs[(player, sequence)] = f"p{player}.banished.{sequence}"
             cards.append(CardView(f"p{player}.banished.{sequence}", owner, player, "banished",
                                   "public" if public else "observer" if visible else "hidden", code, position))
         visible_extra, hidden = [], 0
@@ -70,7 +72,7 @@ def resolve(engine, player, controller, location, sequence, subsequence=None):
     elif location & 0x80:
         ref = engine._material_refs.get((controller, location & 0x7f, sequence, subsequence))
     elif location == 32:
-        ref = f"p{controller}.banished.{sequence}" if controller in (0, 1) else None
+        ref = engine._banished_refs.get((controller, sequence))
     else:
         return visible_ref(player, controller, location, sequence, subsequence)
     if ref is None:

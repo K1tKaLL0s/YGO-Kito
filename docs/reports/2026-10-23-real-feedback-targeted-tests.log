@@ -1,0 +1,12 @@
+test_checkpoint_restore_exact_state_and_real_artifact_integrity_and_version_rejection (integration_tests.test_real_build_feedback.RealBuildFeedbackTests.test_checkpoint_restore_exact_state_and_real_artifact_integrity_and_version_rejection) ... ok
+test_real_comparison_is_complete_frozen_paired_and_explicitly_unqualified (integration_tests.test_real_build_feedback.RealBuildFeedbackTests.test_real_comparison_is_complete_frozen_paired_and_explicitly_unqualified) ... ok
+test_real_pair_updates_independent_goal_and_optimizer_weights_and_retains_goal (integration_tests.test_real_build_feedback.RealBuildFeedbackTests.test_real_pair_updates_independent_goal_and_optimizer_weights_and_retains_goal) ... ok
+test_real_routed_replay_rejects_response_mutation_and_wrong_actual_opening (integration_tests.test_real_build_feedback.RealBuildFeedbackTests.test_real_routed_replay_rejects_response_mutation_and_wrong_actual_opening) ... ok
+test_synthetic_mutations_of_real_comparison_reject_missing_duplicate_score_driver_and_version (integration_tests.test_real_build_feedback.RealBuildFeedbackTests.test_synthetic_mutations_of_real_comparison_reject_missing_duplicate_score_driver_and_version) ... ok
+test_synthetic_tie_and_validation_partition_do_not_become_training_labels (integration_tests.test_real_build_feedback.RealBuildFeedbackTests.test_synthetic_tie_and_validation_partition_do_not_become_training_labels) ... ok
+test_three_routed_extra_games_reach_native_terminal_and_exact_private_replays (integration_tests.test_real_build_feedback.RealBuildFeedbackTests.test_three_routed_extra_games_reach_native_terminal_and_exact_private_replays) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 48.356s
+
+OK

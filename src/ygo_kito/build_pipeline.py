@@ -193,7 +193,7 @@ def engineering_proxy(deck, assets):
 
 
 def verify_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budget=100):
-    integer(attempts, "route attempts", 0, 16)
+    integer(attempts, "route attempts", 0, 64 if isinstance(task, BuildTask) and task.goal["kind"] != "normal_summon" else 16)
     integer(decision_budget, "route decision budget", 1, 100)
     if type(seconds) not in (int, float) or not math.isfinite(seconds) or not 0 <= seconds <= 30:
         raise ContractError("route time budget outside CPU proof range")

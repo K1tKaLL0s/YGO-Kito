@@ -69,7 +69,7 @@ def supervision_projection(data):
 def validate_supervision(task, assets, data):
     fields(data, {"source", "task_sha256", "goals", "pairs", "supervision_sha256", "unknown_routes_used_as_negative",
                   "competitive_quality_labels", "public_effect_receipts"})
-    if (data["source"] != "engineering_fixture" or data["task_sha256"] != task.sha256
+    if (data["source"] not in ("engineering_fixture", "engineering_real_game_pair_v1") or data["task_sha256"] != task.sha256
             or data["unknown_routes_used_as_negative"] is not False or data["competitive_quality_labels"] is not False):
         raise ContractError("building supervision source/goal/label boundary differs")
     integer(len(array(data["goals"], "goal records")), "goal record count", 1, 16)
@@ -82,13 +82,23 @@ def validate_supervision(task, assets, data):
         proof = record["evidence"]
         if record["label"] == 1:
             fields(proof, {"status", "card_list_legal", "task_sha256", "deck_sha256", "starting_condition", "random_dependency",
-                           "core_attempts", "responses", "core_event_kinds", "trajectory_sha256", "elapsed_seconds", "unmet"})
+                           "core_attempts", "responses", "core_event_kinds", "trajectory_sha256", "elapsed_seconds", "unmet"}, {"route_evidence"})
             assets.validate(task, deck)
             if (record["source"] != "real_core_conditional_goal" or proof["status"] != "verified_success"
                     or proof["task_sha256"] != task.sha256 or proof["deck_sha256"] != digest(deck.to_dict())
                     or proof["starting_condition"] != task.goal["starting_conditions"]
-                    or 61 not in proof["core_event_kinds"] or digest(proof["responses"]) != proof["trajectory_sha256"]):
+                    or (61 if task.goal["kind"] == "normal_summon" else 63) not in proof["core_event_kinds"]
+                    or digest(proof["responses"]) != proof["trajectory_sha256"]):
                 raise ContractError("positive goal record lacks consistent conditional core evidence")
+            if task.goal["kind"] != "normal_summon":
+                from .contracts import Observation
+                from .extra_routes import completed_special_summon
+                evidence = fields(proof.get("route_evidence"), {"driver", "opponent", "conditional_only", "material_preference",
+                                                              "sum_choices", "final_observation", "core_event_audit_not_policy_input", "versions"})
+                if (evidence["conditional_only"] is not True or evidence["versions"] != task.environment["versions"]
+                        or not completed_special_summon(evidence["core_event_audit_not_policy_input"],
+                                                       Observation.from_dict(evidence["final_observation"]), 0, task.goal["card_id"])):
+                    raise ContractError("extra goal lacks its own completed real-core route")
         else:
             fields(proof, {"status", "reason"})
             if record["source"] != "explicit_hard_constraint_failure" or proof["status"] != "hard_constraint_failure":
@@ -100,14 +110,24 @@ def validate_supervision(task, assets, data):
             else:
                 raise ContractError("negative goal record does not actually fail hard constraints")
     for pair in data["pairs"]:
-        fields(pair, {"better", "worse", "better_value", "worse_value", "source", "hard_constraints_checked"})
+        fields(pair, {"better", "worse", "better_value", "worse_value", "source", "hard_constraints_checked"}, {"evidence"})
         better, worse = [DeckParts.from_dict(pair[k]) for k in ("better", "worse")]
         assets.validate(task, better)
         assets.validate(task, worse)
-        if (pair["source"] != "engineering_mean_printed_attack_proxy_only" or pair["hard_constraints_checked"] is not True
-                or pair["better_value"] != engineering_proxy(better, assets) or pair["worse_value"] != engineering_proxy(worse, assets)
-                or pair["better_value"] <= pair["worse_value"]):
-            raise ContractError("engineering optimization proxy comparison is invalid")
+        if data["source"] == "engineering_fixture":
+            if (pair["source"] != "engineering_mean_printed_attack_proxy_only" or "evidence" in pair
+                    or pair["hard_constraints_checked"] is not True or pair["better_value"] != engineering_proxy(better, assets)
+                    or pair["worse_value"] != engineering_proxy(worse, assets) or pair["better_value"] <= pair["worse_value"]):
+                raise ContractError("engineering optimization proxy comparison is invalid")
+        else:
+            from .build_feedback import SOURCE, validate_comparison
+            comparison = pair.get("evidence")
+            candidates = validate_comparison(task, assets, comparison)
+            preferred = comparison["preferred_index"]
+            if (pair["source"] != SOURCE or comparison["plan"]["purpose"] != "construction_train" or preferred is None
+                    or pair["hard_constraints_checked"] is not True or better != candidates[preferred] or worse != candidates[1-preferred]
+                    or pair["better_value"] != comparison["mean_scores"][preferred] or pair["worse_value"] != comparison["mean_scores"][1-preferred]):
+                raise ContractError("real optimization comparison is tied, mismatched or not training data")
     if digest(supervision_projection(data)) != data["supervision_sha256"]:
         raise ContractError("building supervision fingerprint differs")
 

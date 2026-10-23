@@ -60,6 +60,7 @@ def parser():
     effect_duel.add_argument("--profile", type=Path, default=Path("configs/effect-duel-v1.json"))
     effect_duel.add_argument("--seed", type=int, default=7)
     effect_duel.add_argument("--option-preference", choices=("first", "last"), default="first")
+    effect_duel.add_argument("--route-task", type=Path, help="explicit conditional extra-goal engineering route, never a trained policy")
     effect_duel.add_argument("--trace", type=Path)
     effect_duel_replay = sub.add_parser("native-effect-duel-replay")
     effect_duel_replay.add_argument("input", type=Path)
@@ -125,6 +126,10 @@ def parser():
     group_runner.add_argument("--state-root", type=Path, default=Path(".cache/group-runner"))
     group_runner.add_argument("--run-id", required=True)
     group_runner.add_argument("--recipe", type=Path, default=Path("configs/group-runner-v1.json"))
+    extra_accept = sub.add_parser("extra-feedback-acceptance", help="real extra goals/complete duels/paired construction updates and recovery; CPU engineering only")
+    extra_accept.add_argument("--root", type=Path, default=Path(".cache"))
+    extra_accept.add_argument("--state-root", type=Path, default=Path(".cache/extra-feedback"))
+    extra_accept.add_argument("--run-id", required=True)
     for name in ("agent-serve", "agent-call"):
         agent = sub.add_parser(name, help="host-scoped local JSON tools; no provider or training launch")
         if name == "agent-call":
@@ -216,6 +221,19 @@ def main(argv=None) -> int:
                 from .build_contracts import BuildTask
                 output = run_build_training_smoke(args.root, args.state_root, args.run_id,
                                                  BuildTask.from_dict(read_json(args.task)), config_from_dict(read_json(args.training_config)))
+            case "extra-feedback-acceptance":
+                import signal
+                from .extra_acceptance import run_extra_feedback_acceptance
+                if not hasattr(signal, "setitimer"):
+                    raise EngineUnavailable("extra feedback acceptance requires this cloud's Unix process timer")
+                old_handler = signal.signal(signal.SIGALRM, signal.SIG_DFL)
+                signal.setitimer(signal.ITIMER_REAL, 180.)
+                try:
+                    output = run_extra_feedback_acceptance(args.root, args.state_root, args.run_id)
+                    output["acceptance_cli_wall_limit_seconds"] = 180
+                finally:
+                    signal.setitimer(signal.ITIMER_REAL, 0)
+                    signal.signal(signal.SIGALRM, old_handler)
             case "engineering-acceptance":
                 import signal
                 from .engineering_acceptance import run_engineering_acceptance
@@ -303,7 +321,8 @@ def main(argv=None) -> int:
                 if args.command == "native-effect-duel":
                     if args.trace is not None and args.trace.exists():
                         raise ContractError("trace already exists; choose a new path")
-                    output, trace = run_effect_duel(args.root, read_json(args.profile), seed=args.seed, option_preference=args.option_preference)
+                    output, trace = run_effect_duel(args.root, read_json(args.profile), seed=args.seed, option_preference=args.option_preference,
+                                                    route_task=read_json(args.route_task) if args.route_task else None)
                     if args.trace is not None:
                         args.trace.parent.mkdir(parents=True, exist_ok=True)
                         with args.trace.open("x", encoding="utf-8") as handle:

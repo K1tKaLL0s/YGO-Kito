@@ -297,7 +297,10 @@ class NativeNormalEngine:
         if self.general_actions:
             if self.extended_actions and reader.offset + int(kind == 23) >= len(reader.data):
                 raise NativeError("truncated native prompt player")
-            observation = self._observation(reader.data[reader.offset + int(kind == 23)]) if self.extended_actions else None
+            player = reader.data[reader.offset + int(kind == 23)] if self.extended_actions else None
+            if self.extended_actions and player not in (0, 1):
+                raise NativeError("invalid native prompt player")
+            observation = self._observation(player) if self.extended_actions else None
             if self.extended_actions:
                 from .extra_observation import resolve
                 decoded = decode_prompt(kind, reader, allow_sum=True, ref_resolver=lambda *args: resolve(self, *args))

@@ -1,0 +1,188 @@
+{
+  "schema_version": 2,
+  "task_id": "engineering-real-paired-feedback-v2",
+  "source": "engineering_fixture",
+  "candidate_budget": 4,
+  "environment": {
+    "environment_id": "custom-native-current",
+    "versions": {
+      "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+      "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0",
+      "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+      "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+      "card_pool": "native-extra-material-v2",
+      "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769"
+    },
+    "authority": "custom",
+    "release_cutoff": null
+  },
+  "goal": {
+    "kind": "synchro_summon",
+    "card_id": 26593852,
+    "starting_conditions": {
+      "player": 0,
+      "turn": 1,
+      "requires_opening_hand": [
+        911883,
+        14878871
+      ]
+    },
+    "route": [
+      {
+        "operation": "activate",
+        "card_ids": [
+          911883
+        ]
+      },
+      {
+        "operation": "search",
+        "card_ids": [
+          11066358
+        ]
+      },
+      {
+        "operation": "summon",
+        "card_ids": [
+          14878871
+        ]
+      },
+      {
+        "operation": "activate",
+        "card_ids": [
+          14878871
+        ]
+      },
+      {
+        "operation": "search",
+        "card_ids": [
+          1761063,
+          32269855
+        ]
+      },
+      {
+        "operation": "special_summon",
+        "card_ids": [
+          26593852
+        ]
+      }
+    ]
+  },
+  "sizes": {
+    "main": 40,
+    "extra": 1,
+    "side": 0
+  },
+  "pool": [
+    911883,
+    1761063,
+    1929294,
+    2830619,
+    3557275,
+    3573512,
+    3985011,
+    4148264,
+    4931562,
+    5464695,
+    6103114,
+    6400512,
+    7359741,
+    7459013,
+    7670542,
+    7892180,
+    7902349,
+    8124921,
+    8715625,
+    8783685,
+    8944575,
+    9430387,
+    10071456,
+    10598400,
+    11066358,
+    11091375,
+    11321183,
+    11793047,
+    11987744,
+    12057781,
+    12143771,
+    12493482,
+    12883044,
+    13179332,
+    13193642,
+    14181608,
+    14531242,
+    14575467,
+    14708569,
+    14878871,
+    14898066,
+    15025844,
+    15150371,
+    15401633,
+    16587243,
+    18108166,
+    23115241,
+    23771716,
+    24639891,
+    26593852,
+    30532390,
+    32269855,
+    35052053,
+    37265642,
+    38445524,
+    42071342,
+    43096270,
+    47226949,
+    47894537,
+    49003308,
+    49881766,
+    58400390,
+    58831685,
+    62651957
+  ],
+  "requirements": [
+    {
+      "zone": "main",
+      "card_id": 911883,
+      "minimum": 3,
+      "maximum": 3
+    },
+    {
+      "zone": "main",
+      "card_id": 14878871,
+      "minimum": 3,
+      "maximum": 3
+    },
+    {
+      "zone": "main",
+      "card_id": 11066358,
+      "minimum": 3,
+      "maximum": 3
+    },
+    {
+      "zone": "main",
+      "card_id": 1761063,
+      "minimum": 1,
+      "maximum": 3
+    },
+    {
+      "zone": "main",
+      "card_id": 32269855,
+      "minimum": 1,
+      "maximum": 3
+    },
+    {
+      "zone": "extra",
+      "card_id": 26593852,
+      "minimum": 1,
+      "maximum": 1
+    }
+  ],
+  "annotations": [
+    {
+      "tag": "同调·真实条件路线",
+      "layer": "engineering_goal",
+      "source": "pinned-core-scripts",
+      "subject": "self",
+      "condition": "实际起手条件；公开路线意图；不代表稳定性或竞技能力"
+    }
+  ]
+}

@@ -72,7 +72,7 @@ def profile_for(deck, *, opponent=None):
 
 
 def verify_extra_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budget=100, material_preference="first"):
-    integer(attempts, "extra route attempts", 0, 16)
+    integer(attempts, "extra route attempts", 0, 64)
     integer(decision_budget, "extra route decision budget", 1, 100)
     if type(seconds) not in (int, float) or not math.isfinite(seconds) or not 0 <= seconds <= 30:
         raise ContractError("extra route time budget outside CPU proof range")
@@ -85,7 +85,7 @@ def verify_extra_goal(task, deck, assets, *, seconds=10., attempts=16, decision_
     started, trials = time.monotonic(), []
     required = Counter(task.goal["starting_conditions"]["requires_opening_hand"])
     last_unmet = "conditional route not found within the declared search budget; not impossibility"
-    for seed in (7, 24, 1724, *range(13))[:attempts]:
+    for seed in tuple(dict.fromkeys((7, 24, 1724, *range(64))))[:attempts]:
         if time.monotonic() - started >= seconds:
             break
         audit, sums = [], []

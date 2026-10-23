@@ -85,44 +85,66 @@ def choose_effect_duel_action(request, facts):
     return request.actions[0]
 
 
-def run_effect_duel(root, profile, *, seed=7, replay=None, max_decisions=3000, budget_seconds=60, option_preference="first"):
+def run_effect_duel(root, profile, *, seed=7, replay=None, max_decisions=3000, budget_seconds=60, option_preference="first", route_task=None):
     integer(max_decisions, "max_decisions", 1, 10000)
     if type(budget_seconds) not in (int, float) or not 0 < budget_seconds <= 300:
         raise ContractError("effect duel budget must be within 300 seconds")
     if replay is not None:
-        fields(replay, {"schema_version", "kind", "seed", "versions", "profile", "responses", "events", "outcome", "turns", "life_points"})
-        integer(replay["schema_version"], "effect duel replay schema", 1, 1)
+        fields(replay, {"schema_version", "kind", "seed", "versions", "profile", "responses", "events", "outcome", "turns", "life_points"}, {"route_task"})
+        integer(replay["schema_version"], "effect duel replay schema", 1, 2)
+        if (replay["schema_version"] == 2) != ("route_task" in replay):
+            raise ContractError("routed replay schema differs")
         if replay["kind"] != "effect-duel-replay-not-policy-input":
             raise ContractError("unsupported effect duel replay")
         for row in array(replay["responses"], "responses"):
             fields(row, {"player", "decision_id", "prompt", "action_id", "request_sha256", "response"})
         seed, profile = replay["seed"], replay["profile"]
-        fields(replay["versions"], {"source_commits", "resources", "adapter_schema", "python", "policy", "option_preference"})
+        route_task = replay.get("route_task")
+        fields(replay["versions"], {"source_commits", "resources", "adapter_schema", "python", "policy", "option_preference"}, {"route_task_sha256"})
         option_preference = replay["versions"]["option_preference"]
     if option_preference not in ("first", "last"):
         raise ContractError("option preference must be first or last")
     validate_profile(profile)
+    route_driver, route_verified = None, False
+    if route_task is not None:
+        from .build_contracts import BuildTask, DeckParts
+        from .build_pipeline import BuildAssets
+        from .extra_routes import RouteDriver, completed_special_summon
+        route_task = route_task if isinstance(route_task, BuildTask) else BuildTask.from_dict(route_task)
+        if profile["schema_version"] != 2 or route_task.goal["kind"] == "normal_summon":
+            raise ContractError("routed effect game requires a version-2 extra goal/profile")
+        assets = BuildAssets(root)
+        assets.validate(route_task, DeckParts(tuple(profile["decks"][0]), tuple(profile["extras"][0]), tuple(profile["sides"][0])))
+        route_driver = RouteDriver(route_task.goal["route"], material_preference=option_preference)
     started, cpu_started = time.monotonic(), time.process_time()
     latencies, responses = [], []
     with NativeNormalEngine(root, seed=seed, scenario="effect-duel", deck_profile=profile) as engine:
         facts = public_card_facts(root)
         versions = {"source_commits": engine.receipt["source_commits"], "resources": engine.receipt["resources"],
-                    "adapter_schema": "native-effect-duel-v1-general-actions", "python": platform.python_version(),
-                    "policy": "visible-dto-effect-protocol-baseline-v1", "option_preference": option_preference}
+                    "adapter_schema": "native-extra-material-v2" if engine.extended_actions else "native-effect-duel-v1-general-actions", "python": platform.python_version(),
+                    "policy": "declared-route-then-visible-baseline-v2" if route_driver else "visible-dto-effect-protocol-baseline-v1", "option_preference": option_preference}
+        if route_driver:
+            versions["route_task_sha256"] = route_task.sha256
         if replay is not None and replay["versions"] != versions:
             raise ContractError("effect duel replay resources differ")
         request = engine.next_decision()
+        if route_driver:
+            opening = Counter(c.card_id for c in request.observation.cards if c.zone == "hand")
+            if any(opening[c] < n for c, n in Counter(route_task.goal["starting_conditions"]["requires_opening_hand"]).items()):
+                raise ContractError("routed engineering game's actual opening condition was not met")
         while request is not None:
             if len(responses) >= max_decisions or time.monotonic() - started >= budget_seconds:
                 raise NativeError("effect duel budget exhausted; no natural result claimed")
             tick = time.perf_counter()
-            action = choose_effect_duel_action(request, facts)
-            if request.prompt.message == 14 and option_preference == "last":
+            action = route_driver.choose(request) if route_driver and not route_verified else choose_effect_duel_action(request, facts)
+            if request.prompt.message == 14 and option_preference == "last" and not (route_driver and not route_verified):
                 action = request.actions[-1]
             if replay is not None:
                 if len(responses) >= len(replay["responses"]):
                     raise NativeError("effect duel replay truncated")
                 saved = replay["responses"][len(responses)]
+                if route_driver and not route_verified and saved["action_id"] != action.action_id:
+                    raise NativeError("routed effect replay differs from the declared driver")
                 action = next((a for a in request.actions if a.action_id == saved["action_id"]), None)
                 if action is None:
                     raise NativeError("effect duel replay action unavailable")
@@ -135,12 +157,20 @@ def run_effect_duel(root, profile, *, seed=7, replay=None, max_decisions=3000, b
             responses.append(row)
             engine.submit(ActionSelection(request.context.run_id, request.duel_id, request.decision_id, action.action_id))
             request = engine.next_decision()
+            if route_driver and not route_verified:
+                route_verified = completed_special_summon(engine.events, engine._observation(0), 0, route_task.goal["card_id"])
+                if engine.turn > 1 and not route_verified:
+                    raise NativeError("declared extra goal did not complete in its required turn")
             latencies.append((time.perf_counter() - tick) * 1000)
         if engine.outcome is None or 5 not in engine.messages or engine.callback_errors:
             raise NativeError("effect duel lacks clean core terminal result")
-        trace = {"schema_version": 1, "kind": "effect-duel-replay-not-policy-input", "seed": seed,
+        if route_driver and not route_verified:
+            raise NativeError("routed game ended without its verified goal")
+        trace = {"schema_version": 2 if route_driver else 1, "kind": "effect-duel-replay-not-policy-input", "seed": seed,
                  "versions": versions, "profile": profile, "responses": responses, "events": engine.events,
                  "outcome": engine.outcome, "turns": engine.turn, "life_points": engine.life_points}
+        if route_driver:
+            trace["route_task"] = route_task.to_dict()
         if replay is not None and trace != replay:
             raise NativeError("effect duel replay events/result divergence")
         import resource
@@ -148,7 +178,7 @@ def run_effect_duel(root, profile, *, seed=7, replay=None, max_decisions=3000, b
         cpu_info = Path("/proc/cpuinfo")
         processor = next((line.partition(":")[2].strip() for line in cpu_info.read_text().splitlines()
                           if line.startswith("model name")), "unknown") if cpu_info.exists() else platform.processor()
-        summary = {"ok": True, "engine": "real-ygopro-core-and-upstream-lua", "scope": "explicit-effect-main-decks",
+        summary = {"ok": True, "engine": "real-ygopro-core-and-upstream-lua", "scope": "explicit-effect-extra-decks" if engine.extended_actions else "explicit-effect-main-decks",
                    "general_card_pool_supported": False, "trained_model": False, "seed": seed,
                    "turns": engine.turn, "outcome": engine.outcome, "decisions": len(responses),
                    "prompt_counts": dict(sorted(Counter(r["prompt"] for r in responses).items())),
@@ -162,4 +192,7 @@ def run_effect_duel(root, profile, *, seed=7, replay=None, max_decisions=3000, b
                                "decision_cycle_p95_ms": ordered[max(0, math.ceil(len(ordered) * .95) - 1)],
                                "decision_cycle_p99_ms": ordered[max(0, math.ceil(len(ordered) * .99) - 1)],
                                "decision_cycle_samples_ms": latencies}}
+        if route_driver:
+            summary.update(conditional_route_verified=route_verified, opening_condition=route_task.goal["starting_conditions"],
+                           route_driver="declared-route-then-visible-baseline-v2")
         return summary, trace

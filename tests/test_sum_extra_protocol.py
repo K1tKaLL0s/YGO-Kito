@@ -3,11 +3,14 @@ import copy
 import json
 import struct
 import unittest
+from types import SimpleNamespace
 
 from tests.fixtures import request
 from ygo_kito.contracts import DecisionRequest
 from ygo_kito.native_protocol import NativeError, Reader, decode_deck_choices, decode_prompt
 from ygo_kito.sum_protocol import accepted, contributions
+from ygo_kito.extra_observation import moved, resolve
+from ygo_kito.native import NativeNormalEngine
 from ygo_kito.validation import ContractError
 
 
@@ -81,12 +84,39 @@ class SumExtraProtocolTests(unittest.TestCase):
                                  "mandatory": [{"ref": "host", "values": [2]}], "optional": [{"ref": "mat", "values": [3]}]}
         parsed = DecisionRequest.from_dict(data)
         self.assertEqual(parsed, DecisionRequest.from_dict(json.loads(json.dumps(parsed.to_dict()))))
-        for mutation in ("host", "controller", "hidden", "prompt", "unknown"):
+        for mutation in ("host", "controller", "hidden", "prompt", "unknown", "hidden-host", "count"):
             bad = copy.deepcopy(data)
             if mutation == "host": bad["observation"]["cards"][1]["attached_to"] = "absent"
             elif mutation == "controller": bad["observation"]["cards"][1]["controller"] = 1
             elif mutation == "hidden": bad["observation"]["cards"][1].update(visibility="hidden", card_id=None)
             elif mutation == "prompt": bad["prompt"]["message"] = 15
+            elif mutation == "hidden-host": bad["observation"]["cards"][0].update(visibility="hidden", owner=None, card_id=None)
+            elif mutation == "count": bad["observation"]["cards"][0]["material_count"] = 2
             else: bad["sum_selection"]["native_indices"] = [0, 1]
             with self.subTest(mutation=mutation), self.assertRaises(ContractError):
                 DecisionRequest.from_dict(bad)
+
+    def test_host_relocation_detach_owner_indices_and_hidden_region_resolution(self):
+        # Pure projection unit test with synthetic MOVE coordinates/known owners.
+        engine = SimpleNamespace(_known_owners={(0, 4, 0): 1, (0, 4, 1): 0}, _overlay_owners={},
+                                 _extra_refs={}, _material_refs={}, _banished_refs={})
+        moved(engine, (0, 4, 0, 1), (0, 192, 0, 0))
+        moved(engine, (0, 4, 1, 1), (0, 192, 0, 1))
+        moved(engine, (0, 64, 0, 8), (0, 4, 2, 1))
+        self.assertEqual(engine._overlay_owners, {(0, 4, 2, 0): 1, (0, 4, 2, 1): 0})
+        moved(engine, (0, 132, 2, 0), (1, 16, 0, 1))
+        self.assertEqual(engine._overlay_owners, {(0, 4, 2, 0): 0})
+        self.assertEqual(engine._known_owners[(1, 16, 0)], 1)
+        for zone, sub in ((32, None), (64, None), (132, 0)):
+            with self.assertRaises(NativeError):
+                resolve(engine, 0, 1, zone, 0, sub)
+        engine._banished_refs[(0, 0)] = "own-visible-banished"
+        self.assertEqual(resolve(engine, 0, 0, 32, 0), "own-visible-banished")
+
+    def test_invalid_prompt_player_fails_before_any_native_query(self):
+        engine = object.__new__(NativeNormalEngine)
+        engine.general_actions = engine.extended_actions = True
+        engine._observation = lambda *_: self.fail("invalid player reached the native observation query")
+        for kind, wire in ((15, b"\x02"), (23, b"\x00\x02"), (23, b"\x00")):
+            with self.assertRaises(NativeError):
+                engine._prompt(kind, Reader(wire))
