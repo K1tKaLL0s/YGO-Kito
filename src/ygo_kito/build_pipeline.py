@@ -199,6 +199,9 @@ def verify_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budget
         raise ContractError("route time budget outside CPU proof range")
     assets.validate(task, deck)
     if task.goal["kind"] != "normal_summon":
+        if task.schema_version == 3 and "route" not in task.goal:
+            from .route_search import discover_goal
+            return discover_goal(task, deck, assets, seconds=seconds, attempts=attempts, decision_budget=decision_budget)
         from .extra_routes import verify_extra_goal
         return verify_extra_goal(task, deck, assets, seconds=seconds, attempts=attempts, decision_budget=decision_budget)
     row = assets.rows[task.goal["card_id"]]

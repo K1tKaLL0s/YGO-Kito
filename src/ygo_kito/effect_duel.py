@@ -111,6 +111,8 @@ def run_effect_duel(root, profile, *, seed=7, replay=None, max_decisions=3000, b
         from .build_pipeline import BuildAssets
         from .extra_routes import RouteDriver, completed_special_summon
         route_task = route_task if isinstance(route_task, BuildTask) else BuildTask.from_dict(route_task)
+        if "route" not in route_task.goal:
+            raise ContractError("full routed duel requires explicit intents; bounded discovery receipts are replayed separately")
         if profile["schema_version"] != 2 or route_task.goal["kind"] == "normal_summon":
             raise ContractError("routed effect game requires a version-2 extra goal/profile")
         assets = BuildAssets(root)

@@ -75,6 +75,20 @@ def parser():
     build_check.add_argument("--root", type=Path, default=Path(".cache"))
     build_check.add_argument("--task", type=Path, default=Path("configs/build-engineering-v1.json"))
     build_check.add_argument("--deck", type=Path, required=True)
+    catalog = sub.add_parser("catalog-recall", help="public effect/theme/context cross recall; no rule/strength claim")
+    catalog.add_argument("--root", type=Path, default=Path(".cache"))
+    catalog.add_argument("--task", type=Path, required=True)
+    catalog.add_argument("--query", type=Path, required=True)
+    discovery = sub.add_parser("goal-discover", help="bounded real-core exploration of a v3 goal without prewritten route")
+    discovery.add_argument("--root", type=Path, default=Path(".cache"))
+    discovery.add_argument("--task", type=Path, required=True)
+    discovery.add_argument("--deck", type=Path, required=True)
+    discovery.add_argument("--seconds", type=float, default=10.)
+    discovery.add_argument("--attempts", type=int, default=16)
+    acceptance = sub.add_parser("discovery-curriculum-acceptance", help="real MSG26/search and two CPU curriculum runs including recovery; no paid launch")
+    acceptance.add_argument("--root", type=Path, default=Path(".cache"))
+    acceptance.add_argument("--state-root", type=Path, default=Path(".cache/discovery"))
+    acceptance.add_argument("--run-id", required=True)
     build_train = sub.add_parser("build-train-cpu", help="bounded independent goal/optimizer CPU updates, recovery and real conditional goal checks")
     build_train.add_argument("--root", type=Path, default=Path(".cache"))
     build_train.add_argument("--state-root", type=Path, default=Path(".cache/agent"))
@@ -156,6 +170,31 @@ def main(argv=None) -> int:
     try:
         config = load_config(args.config)
         match args.command:
+            case "catalog-recall":
+                from .build_contracts import BuildTask
+                from .build_pipeline import BuildAssets
+                from .catalog_search import CatalogQuery, recall
+                output = {"hits": recall(BuildTask.from_dict(read_json(args.task)), BuildAssets(args.root), CatalogQuery.from_dict(read_json(args.query))),
+                          "route_verified": False}
+            case "goal-discover":
+                from .build_contracts import BuildTask, DeckParts
+                from .build_pipeline import BuildAssets
+                from .route_search import discover_goal
+                output = discover_goal(BuildTask.from_dict(read_json(args.task)), DeckParts.from_dict(read_json(args.deck)), BuildAssets(args.root),
+                                       seconds=args.seconds, attempts=args.attempts)
+            case "discovery-curriculum-acceptance":
+                import signal
+                from .discovery_acceptance import run_discovery_acceptance
+                if not hasattr(signal, "setitimer"):
+                    raise EngineUnavailable("discovery acceptance requires this cloud's Unix process timer")
+                old_handler = signal.signal(signal.SIGALRM, signal.SIG_DFL)
+                signal.setitimer(signal.ITIMER_REAL, 600.)
+                try:
+                    output = run_discovery_acceptance(args.root, args.state_root, args.run_id)
+                    output["acceptance_cli_wall_limit_seconds"] = 600
+                finally:
+                    signal.setitimer(signal.ITIMER_REAL, 0)
+                    signal.signal(signal.SIGALRM, old_handler)
             case "cpu-runner-acceptance":
                 from .runner_acceptance import run_runner_acceptance
                 output = run_runner_acceptance(args.root, args.state_root, args.run_id, read_json(args.recipe))

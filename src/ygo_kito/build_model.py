@@ -12,7 +12,7 @@ from torch import nn
 from .build_contracts import BuildTask, DeckParts, ZONES, digest
 from .validation import ContractError, canonical_json, integer
 
-FEATURE_VERSION = "build-task-catalog-candidate-v2-routes"
+FEATURE_VERSION = "build-task-catalog-candidate-v3-discovery"
 
 
 @dataclass(frozen=True)
@@ -63,7 +63,8 @@ class BuildEncoder:
         if extra_goal:
             for code in task.goal["starting_conditions"]["requires_opening_hand"]:
                 card(code, "main", 5)
-            for intent in task.goal["route"]:
+            numbers[0][-1] = float("route" not in task.goal)
+            for intent in task.goal.get("route", []):
                 operation = intent["operation"]
                 for code in intent["card_ids"]:
                     card(code, "extra" if operation == "special_summon" else "main", 6,

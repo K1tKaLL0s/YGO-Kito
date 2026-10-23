@@ -94,7 +94,7 @@ def validate_supervision(task, assets, data):
                 from .contracts import Observation
                 from .extra_routes import completed_special_summon
                 evidence = fields(proof.get("route_evidence"), {"driver", "opponent", "conditional_only", "material_preference",
-                                                              "sum_choices", "final_observation", "core_event_audit_not_policy_input", "versions"})
+                                                              "sum_choices", "final_observation", "core_event_audit_not_policy_input", "versions"}, {"exploration"})
                 if (evidence["conditional_only"] is not True or evidence["versions"] != task.environment["versions"]
                         or not completed_special_summon(evidence["core_event_audit_not_policy_input"],
                                                        Observation.from_dict(evidence["final_observation"]), 0, task.goal["card_id"])):

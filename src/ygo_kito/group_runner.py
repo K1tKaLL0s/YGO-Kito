@@ -24,6 +24,7 @@ WORKFLOW = "four-model-alternating-v1"
 PHASES = ("build_goal", "build_optimizer", "duel_train", "coordinator_train", "evaluate", "feedback")
 ROLE_PHASE = {"build_goal": 0, "build_optimizer": 1, "duel": 2, "coordinator": 3}
 EXTRA_FIELDS = {"workflow", "task", "adapters", "bootstrap_seed", "stages_per_worker"}
+OPTIONAL_FIELDS = {"construction_curriculum"}
 
 
 def config_path(value):
@@ -38,10 +39,10 @@ def config_path(value):
 def validate_recipe(value):
     from .training_runner import validate_recipe as validate_duel
     fields(value, {"schema_version", "max_updates", "validate_every", "checkpoint_every", "wall_seconds", "cpu_config",
-                   "train", "validation"} | EXTRA_FIELDS)
+                   "train", "validation"} | EXTRA_FIELDS, OPTIONAL_FIELDS)
     if value["workflow"] != WORKFLOW:
         raise ContractError("unsupported group workflow")
-    validate_duel({k: v for k, v in value.items() if k not in EXTRA_FIELDS})
+    validate_duel({k: v for k, v in value.items() if k not in EXTRA_FIELDS | OPTIONAL_FIELDS})
     integer(value["max_updates"], "group cycles", 1, 10000)
     integer(value["stages_per_worker"], "worker stage budget", 1, 60001)
     integer(value["validate_every"], "group validation interval", 1, 1)
@@ -52,6 +53,8 @@ def validate_recipe(value):
         raise ContractError("base warmup, adaptation and validation seeds must be disjoint")
     for key in ("task", "adapters"):
         config_path(value[key])
+    if "construction_curriculum" in value:
+        config_path(value["construction_curriculum"])
     if value["cpu_config"].get("actor_seat", 0) != 0:
         raise ContractError("conditional group curriculum currently binds actor seat zero")
     return json.loads(canonical_json(value))
@@ -60,8 +63,10 @@ def validate_recipe(value):
 def inputs(recipe):
     from .training_runner import recipe_inputs
     from .lora import AdapterConfig, ROLES
-    profiles, config = recipe_inputs({k: v for k, v in recipe.items() if k not in EXTRA_FIELDS})
+    profiles, config = recipe_inputs({k: v for k, v in recipe.items() if k not in EXTRA_FIELDS | OPTIONAL_FIELDS})
     task = BuildTask.from_dict(read_json(config_path(recipe["task"])))
+    from .construction_curriculum import inputs as curriculum_inputs
+    curriculum_inputs(recipe, task)
     lora = read_json(config_path(recipe["adapters"]))
     fields(lora, {"schema_version", "base_version", "calibration", "scope", "adapters"})
     if lora["schema_version"] != 1 or lora["calibration"] != "pending" or lora["scope"] != "structural-engineering-not-transfer-ability":
@@ -79,9 +84,12 @@ def binding_for(root, row):
     if (profiles["train"] != row["profile"] or profiles["validation"] != row["validation_profile"]
             or digest(asdict(cfg)) != digest(row["config"]) or task.to_dict() != row["task"]):
         raise ContractError("group recipe/task/profile changed")
+    from .construction_curriculum import inputs as curriculum_inputs
+    curriculum = curriculum_inputs(recipe, task)
+    extra = {} if curriculum is None else {"construction_curriculum_sha256": curriculum["binding_sha256"]}
     return dict(resource_binding(Path(root), profiles["train"]), workflow=WORKFLOW, runner_recipe_sha256=digest(recipe),
                 validation_profile_sha256=digest(profiles["validation"]), task_sha256=task.sha256,
-                adapters_config_sha256=digest(lora), feedback_policy_sha256=digest(row["feedback_policy"]))
+                adapters_config_sha256=digest(lora), feedback_policy_sha256=digest(row["feedback_policy"]), **extra)
 
 
 def tree_digest(value):
@@ -168,6 +176,7 @@ class GroupState:
                                sorted(c for c in assets.rows if 0 < c < 2**32))
         self.coordinator = CoordinatorTrainer()
         self.sessions, self.data = None, None
+        self.construction_state = None
         self.policy_rng = torch.Generator(device="cpu").manual_seed(self.duel.config.policy_seed + 10)
         self.cycle, self.phase, self.updates = 0, "bootstrap", 0
         self.consumed, self.events, self.data_marks, self.evaluations = [], [], [], []
@@ -228,6 +237,7 @@ class GroupState:
             self.phase = PHASES[PHASES.index(self.phase) + 1]
 
     def validate_cursor(self):
+        from .construction_curriculum import validate_state
         limit = self.row["recipe"]["max_updates"]
         integer(self.cycle, "group cycle cursor", 0, limit)
         integer(self.updates, "group committed stage cursor", 0, 1 + limit * len(PHASES))
@@ -239,6 +249,7 @@ class GroupState:
                 or [e["event_id"] for e in self.events] != self.consumed or (self.phase == "done") != (self.cycle == limit)):
             raise ContractError("group committed data/stage cursor differs")
         warm = int(position > 0)
+        validate_state(self)
         if (self.builder.batch_cursor != warm or any(n != warm for n in self.builder.updates.values())
                 or self.duel.updates != warm or self.duel.episode_cursor != warm or self.coordinator.updates != warm):
             raise ContractError("group base warmup cursor differs")
@@ -310,6 +321,8 @@ class GroupState:
                      "ledger_state_sha256": self.host.state_digest(), "policy_rng": self.policy_rng.get_state(),
                      "budget_snapshot": budget_snapshot(self.state_root, self.row),
                      "global_rng": {"torch": torch.get_rng_state(), "python": random.getstate()}}
+            if "construction_curriculum" in self.row["recipe"]:
+                state["construction_state"] = self.construction_state
             with path.open("xb") as output:
                 torch.save(state, output)
                 output.flush(); os.fsync(output.fileno())
@@ -327,7 +340,8 @@ class GroupState:
         from .training_runner import read_artifact, validate_shard, opponent_binding
         state = torch.load(path, weights_only=True, map_location="cpu")
         fields(state, {"schema_version", "boundary", "binding", "components", "adapters", "cursor", "consumed", "events", "data", "data_marks", "evaluations",
-                       "deck", "candidate_id", "forecast_id", "last_feedback", "ledger_bytes", "ledger_sha256", "ledger_state_sha256", "policy_rng", "global_rng", "budget_snapshot"})
+                       "deck", "candidate_id", "forecast_id", "last_feedback", "ledger_bytes", "ledger_sha256", "ledger_state_sha256", "policy_rng", "global_rng", "budget_snapshot"}
+               | ({"construction_state"} if "construction_curriculum" in row["recipe"] else set()))
         if (state["schema_version"] != 1 or state["boundary"] != "complete-workflow-stage" or state["binding"] != row["binding"]
                 or binding_for(assets.root, row) != row["binding"] or hashlib.sha256(state["ledger_bytes"]).hexdigest() != state["ledger_sha256"]):
             raise ContractError("group checkpoint boundary/version/ledger differs")
@@ -335,6 +349,7 @@ class GroupState:
         obj = cls.__new__(cls)
         obj.assets, obj.row, obj.state_root = assets, row, Path(state_root)
         obj.task, obj.data = BuildTask.from_dict(row["task"]), state["data"]
+        obj.construction_state = state.get("construction_state")
         if obj.data is not None:
             validate_supervision(obj.task, assets, obj.data)
         expected_data = obj.data or {"supervision_sha256": digest({"phase": "before-bootstrap", "task": obj.task.sha256})}
@@ -369,6 +384,8 @@ class GroupState:
             if db.execute("SELECT COUNT(*) FROM jobs WHERE state IN ('pending','leased')").fetchone()[0]:
                 raise ContractError("restored group contains an uncommitted evaluation")
         obj.validate_cursor()
+        from .construction_curriculum import validate_state
+        validate_state(obj, artifacts=True)
         for mark in obj.data_marks:
             if mark["event_id"] not in obj.consumed or mark["partition"] not in ("train", "validation"):
                 raise ContractError("group data marker was not committed in its stage")
@@ -483,7 +500,8 @@ def select_goal(state):
     import torch
     from .build_pipeline import goal_candidates, verify_goal
     base = None if state.deck is None else DeckParts.from_dict(state.deck)
-    candidates = goal_candidates(state.task, state.assets, base)
+    from .construction_curriculum import candidates as curriculum_candidates
+    candidates = curriculum_candidates(state) or goal_candidates(state.task, state.assets, base)
     if not candidates:
         raise ContractError("group goal stage found no legal candidate")
     model = state.builder.models["build_goal"]
@@ -491,11 +509,26 @@ def select_goal(state):
     with torch.no_grad():
         scores = model(state.builder.encoder.batch(state.task, candidates))
     for index in scores.argsort(descending=True).tolist():
-        proof = verify_goal(state.task, candidates[index], state.assets)
+        proof = verify_goal(state.task, candidates[index], state.assets,
+                            attempts=64 if state.task.goal["kind"] != "normal_summon" else 16, seconds=30.)
         if proof["status"] == "verified_success":
             state.deck = candidates[index].to_dict()
             return {"deck": state.deck, "validation": without_timing(proof), "model_score_uncalibrated": float(scores[index])}
     raise ContractError("group goal route remains unverified")
+
+
+def profile_deck(profile, player):
+    return DeckParts(tuple(profile["decks"][player]), tuple(profile.get("extras", [[], []])[player]),
+                     tuple(profile.get("sides", [[], []])[player]))
+
+
+def actor_profile(profile, deck):
+    if profile["schema_version"] == 1 and (deck.extra or deck.side):
+        raise ContractError("extended construction requires an explicit version-2 duel profile")
+    result = dict(profile, decks=[list(deck.main), profile["decks"][1]])
+    if profile["schema_version"] == 2:
+        result.update(extras=[list(deck.extra), profile["extras"][1]], sides=[list(deck.side), profile["sides"][1]])
+    return result
 
 
 def evaluate(state, generation):
@@ -523,7 +556,7 @@ def evaluate(state, generation):
     profile = state.row["validation_profile"]
     actor_hash = state.versions()["duel"]
     scope = {"actor_policy_sha256": actor_hash, "duel_lora": state.sessions["duel"].version_id(),
-             "opponents": [{"opponent_id": "held-out-visible-engineering", "deck_sha256": digest({"main": profile["decks"][1], "extra": [], "side": []}),
+             "opponents": [{"opponent_id": "held-out-visible-engineering", "deck_sha256": digest(profile_deck(profile, 1).to_dict()),
                             "driver_sha256": opponent_binding(state.row, "validation"), "weight": 1.}],
              "initiative_weights": [1., 0.], "unit": "BO1", "prediction_target": "win_rate", "versions": state.task.environment["versions"]}
     forecast = call(state.host, "forecast.register", {"forecast_id": state.forecast_id, "candidate_id": state.candidate_id,
@@ -536,7 +569,7 @@ def evaluate(state, generation):
         job = call(worker, "job.claim", {"job_id": job_id, "worker_id": "cpu-group-evaluator"})
         if job["scope"] != scope or job["actor_seat"] != 0 or job["deck"] != state.deck or job["seed"] != seed:
             raise ContractError("group frozen job/version/deck/seed differs")
-        actual_profile = dict(profile, decks=[list(deck.main), profile["decks"][1]])
+        actual_profile = actor_profile(profile, deck)
         episode = sampler(state).sample_episode(state.assets.root, actual_profile, purpose="validation", seed=seed,
             policy_seed=state.row["recipe"]["validation"]["policy_seed"], opponent=state.row["recipe"]["validation"]["opponent"])
         record_episode(state, episode, generation)
@@ -550,14 +583,19 @@ def evaluate(state, generation):
                  "actor_deck_sha256": digest(state.deck), "opponent_binding_sha256": opponent_binding(state.row, "validation")}
         state.evaluations.append(entry)
         results.append(entry)
+    construction_validation = None
+    if state.construction_state is not None:
+        from .construction_curriculum import evaluate as evaluate_construction
+        construction_validation = evaluate_construction(state, generation)
     if state.training_fingerprint() != frozen:
         raise ContractError("frozen group evaluation changed training weights/optimizers/RNG/cursor")
     return {"forecast": forecast, "evaluations": results, "frozen_training_state_sha256": frozen,
-            "training_state_unchanged": True, "ledger_state_sha256": state.host.state_digest()}
+            "training_state_unchanged": True, "ledger_state_sha256": state.host.state_digest(),
+            **({"construction_validation": construction_validation} if construction_validation is not None else {})}
 
 
 def execute_stage(state, generation):
-    from .build_training import engineering_dataset
+    from .construction_curriculum import initialize, consume, alternate as alternate_curriculum
     from .lora_group import construction_loss, coordinator_loss, ppo_inputs, ppo_loss
     from .coordinator_model import engineering_examples
     from .build_pipeline import alternate_build
@@ -565,22 +603,27 @@ def execute_stage(state, generation):
     if state.event_id() in state.consumed:
         raise ContractError("cannot execute an already committed group stage")
     if state.phase == "bootstrap":
-        state.data = engineering_dataset(state.task, state.assets)
+        state.data = initialize(state, generation)
         updates = state.builder.step(state.data)
+        for role in ("build_goal", "build_optimizer"):
+            consume(state, role)
         episode = state.duel.sample_episode(state.assets.root, state.row["profile"], opponent=state.row["recipe"]["train"]["opponent"])
         record_episode(state, episode, generation)
         updates.append(dict(state.duel.update(episode), role="duel"))
         updates.append(dict(state.coordinator.step(engineering_examples()), role="coordinator"))
         state.attach()
         return {"kind": "real-four-base-warmup", "updates": updates, "duel": without_timing(episode["summary"]),
-                "supervision_source": {"building": state.data["source"], "optimization": "printed-attack-weak-proxy", "coordinator": "synthetic-rule-and-probability-anchors"}}
+                "supervision_source": {"building": state.data["source"],
+                    "optimization": "frozen-real-rule-driver-pair" if state.construction_state is not None else "printed-attack-weak-proxy",
+                    "coordinator": "synthetic-rule-and-probability-anchors"}}
     if state.phase in ("build_goal", "build_optimizer"):
         role = state.phase
         update = state.sessions[role].step(construction_loss(role, state.sessions[role], state.builder, state.task, state.data))
+        consume(state, role)
         if role == "build_goal":
             construction = select_goal(state)
         else:
-            construction = alternate_build(state.task, state.assets, state.builder.models, state.builder.encoder,
+            construction = alternate_curriculum(state) if state.construction_state is not None else alternate_build(state.task, state.assets, state.builder.models, state.builder.encoder,
                 base=DeckParts.from_dict(state.deck), lora_versions={r: state.sessions[r].version_id() for r in state.builder.models})
             if len(construction["stages"]) != 4 or construction["best_deck"] is None:
                 raise ContractError("group goal/optimizer inner alternation remains unverified")
@@ -590,7 +633,7 @@ def execute_stage(state, generation):
                 "previous_feedback": state.last_feedback}
     if state.phase == "duel_train":
         current = sampler(state)
-        profile = dict(state.row["profile"], decks=[list(DeckParts.from_dict(state.deck).main), state.row["profile"]["decks"][1]])
+        profile = actor_profile(state.row["profile"], DeckParts.from_dict(state.deck))
         episode = current.sample_episode(state.assets.root, profile, opponent=state.row["recipe"]["train"]["opponent"])
         if episode["purpose"] != "train" or episode["policy_version"] != state.sessions["duel"].updates:
             raise ContractError("group PPO requires this phase's fresh on-policy episode")
@@ -691,6 +734,15 @@ def worker(state_root, run_id, generation, reporter):
             reserve = (state.duel.config.episode_seconds + 15 if state.phase == "bootstrap" else
                        state.duel.config.episode_seconds * len(row["recipe"]["validation"]["seeds"]) + 10 if state.phase == "evaluate" else
                        state.duel.config.episode_seconds + 3 if state.phase == "duel_train" else 33 if state.phase in ("build_goal", "build_optimizer") else 3)
+            if "construction_curriculum" in row["recipe"]:
+                from .construction_curriculum import inputs as curriculum_inputs
+                comparison_seconds = curriculum_inputs(row["recipe"], state.task)["config"]["comparison_seconds"]
+                if state.phase == "bootstrap":
+                    reserve += comparison_seconds + 60  # comparison plus two bounded goal proofs
+                elif state.phase == "evaluate":
+                    reserve += comparison_seconds
+                elif state.phase == "build_optimizer":
+                    reserve = 4 * 30 + 3  # four independently bounded goal revalidations
             if row["wall_limit_seconds"] - elapsed(row) <= reserve:
                 row.update(desired="stopped", reason="wall_budget_reserve_reached")
                 put_row(db, row)

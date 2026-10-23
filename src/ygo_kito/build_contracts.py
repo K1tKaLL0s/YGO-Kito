@@ -53,7 +53,7 @@ class BuildTask:
     schema_version: int = 1
 
     def __post_init__(self):
-        integer(self.schema_version, "build schema", 1, 2)
+        integer(self.schema_version, "build schema", 1, 3)
         identifier(self.task_id)
         member(self.source, "build task source", ("engineering_fixture", "user_provided"))
         env = fields(self.environment, {"environment_id", "versions", "authority", "release_cutoff"})
@@ -77,10 +77,11 @@ class BuildTask:
             if opening != [goal["card_id"]] or "route" in goal:
                 raise ContractError("normal-summon proof requires the declared goal card in the opening hand")
         else:
-            if self.schema_version != 2 or "route" not in goal:
-                raise ContractError("extra-deck goals require a version-2 explicit route intent")
-            route = array(goal["route"], "route intents")
-            integer(len(route), "route intent count", 1, 16)
+            if self.schema_version < 2 or (self.schema_version == 2 and "route" not in goal):
+                raise ContractError("extra goals require explicit v2 intents or bounded v3 discovery")
+            route = array(goal.get("route", []), "route intents")
+            if "route" in goal:
+                integer(len(route), "route intent count", 1, 16)
             for intent in route:
                 fields(intent, {"operation", "card_ids"})
                 member(intent["operation"], "route operation", ("activate", "summon", "search", "special_summon"))
@@ -88,7 +89,7 @@ class BuildTask:
                 integer(len(ids), "route card count", 1, 8 if intent["operation"] == "search" else 1)
                 for code in ids:
                     integer(code, "route card", 1, 2**32 - 1)
-            if route[-1] != {"operation": "special_summon", "card_ids": [goal["card_id"]]}:
+            if route and route[-1] != {"operation": "special_summon", "card_ids": [goal["card_id"]]}:
                 raise ContractError("extra-deck route must end with the declared goal summon")
         fields(self.sizes, set(ZONES))
         for zone in ZONES:
@@ -115,7 +116,7 @@ class BuildTask:
             for code, count in Counter(opening).items():
                 if not any(r["zone"] == "main" and r["card_id"] == code and r["minimum"] >= count for r in self.requirements):
                     raise ContractError("opening requirements require explicit main-deck minima")
-            if any(code not in self.pool for step in goal["route"] for code in step["card_ids"]):
+            if any(code not in self.pool for step in goal.get("route", []) for code in step["card_ids"]):
                 raise ContractError("route intent card outside the task pool")
         if any(sum(r["minimum"] for r in self.requirements if r["zone"] == zone) > self.sizes[zone] for zone in ZONES):
             raise ContractError("required minimum counts exceed declared section size")

@@ -110,7 +110,11 @@ def verify_extra_goal(task, deck, assets, *, seconds=10., attempts=16, decision_
                               "action_id": action.action_id})
                 if request.sum_selection is not None:
                     cards = {c.ref: c.card_id for c in request.observation.cards}
-                    sums.append({"request": json.loads(canonical_json(request.to_dict())), "chosen_card_ids": [cards[r] for r in action.card_refs],
+                    window = json.loads(canonical_json(request.to_dict()))
+                    # Live run IDs bind submissions; persisted receipt equality
+                    # describes decisions and must not depend on random sessions.
+                    window["context"]["run_id"] = "private-route-replay-audit"
+                    sums.append({"request": window, "chosen_card_ids": [cards[r] for r in action.card_refs],
                                  "action_id": action.action_id})
                 engine.submit(ActionSelection(request.context.run_id, request.duel_id, request.decision_id, action.action_id))
                 request = engine.next_decision()
