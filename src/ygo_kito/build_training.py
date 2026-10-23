@@ -59,14 +59,19 @@ def config_from_dict(value):
 
 
 def supervision_projection(data):
-    return {"task_sha256": data["task_sha256"],
+    result={"task_sha256": data["task_sha256"],
             "goals": [{"deck": r["deck"], "label": r["label"], "source": r["source"],
                        "evidence_status": r["evidence"]["status"],
                        "trajectory_sha256": r["evidence"].get("trajectory_sha256")} for r in data["goals"]],
             "pairs": data["pairs"]}
+    if 'purpose' in data:result['purpose']=data['purpose']
+    return result
 
 
 def validate_supervision(task, assets, data):
+    from .semantic_training import SOURCE as semantic_source,validate as validate_semantic
+    if isinstance(data,dict) and data.get('source')==semantic_source:
+        return validate_semantic(task,assets,data)
     fields(data, {"source", "task_sha256", "goals", "pairs", "supervision_sha256", "unknown_routes_used_as_negative",
                   "competitive_quality_labels", "public_effect_receipts"})
     if (data["source"] not in ("engineering_fixture", "engineering_real_game_pair_v1") or data["task_sha256"] != task.sha256
@@ -215,10 +220,15 @@ class BuildTrainer:
                 "before_sha256": previous_hash, "after_sha256": parameter_digest(model),
                 "learning_rate_next": optimizer.param_groups[0]["lr"]}
 
-    def step(self, data):
+    def step(self, data,*,data_admission=None):
         if self.batch_cursor >= self.config.batches:
             raise ContractError("building supervision identity/budget differs")
         validate_supervision(self.task, self.encoder.assets, data)
+        from .semantic_training import SOURCE as semantic_source
+        if data['source']==semantic_source:
+            from .data_isolation import ConstructionAdmission
+            if not isinstance(data_admission,ConstructionAdmission):raise ContractError('semantic model updates require indexed training data admission')
+            data_admission.assert_data(self.task,data)
         results = []
         for role in ROLES:
             self.models[role].train()
@@ -327,12 +337,23 @@ def run_build_training_smoke(root, state_root, run_id, task, config=None):
         return metrics
 
     try:
-        data = engineering_dataset(task, assets)
+        admission = None
+        semantic = task.goal['kind']=='deck_constraints'
+        if semantic:
+            from .semantic_training import dataset
+            from .data_isolation import DataIndex
+            data=dataset(task,assets)
+            index=DataIndex(run/'private-data')
+            index.freeze({'dataset_id':'construction-train','experiment_id':run_id,'purpose':'train','family':'construction',
+                          'versions':task.environment['versions'],'opponents':[],'task_sha256':task.sha256})
+            index.ingest_construction('construction-train','construction-labels',task,assets,data,seeds=())
+            admission=index.admit_construction('construction-labels',task,data)
+        else:data = engineering_dataset(task, assets)
         binding = binding_for(task, assets, data)
         (run / "supervision.json").write_text(canonical_json(data) + "\n")
         first = None
         for batch in range(1, 3):
-            updates.append(trainer.step(data))
+            updates.append(trainer.step(data,data_admission=admission))
             name = f"batch-{batch}"
             path = save_checkpoint(trainer, run / "checkpoints", name, binding)
             first = path if batch == 1 else first
@@ -343,7 +364,7 @@ def run_build_training_smoke(root, state_root, run_id, task, config=None):
             publish("running")
             RunMonitor(state_root).checkpoint(run_id, name)
         recovered = load_checkpoint(first, assets, binding)
-        repeat = recovered.step(data)
+        repeat = recovered.step(data,data_admission=admission)
         verified = (repeat == updates[-1] and all(parameter_digest(trainer.models[r]) == parameter_digest(recovered.models[r]) for r in ROLES))
         if not verified:
             raise ContractError("actual building continuation diverged")
@@ -351,7 +372,8 @@ def run_build_training_smoke(root, state_root, run_id, task, config=None):
         if len(alternation["stages"]) != 4:
             raise ContractError("four actual goal/optimizer stages not verified")
         metrics = publish("running")
-        result = {"schema_version": 1, "ok": True, "scope": "bounded-goal-optimizer-cpu-engineering", "source": "actual-transformer-updates-and-real-core-goal-checks",
+        result = {"schema_version": 1, "ok": True, "scope": "bounded-goal-optimizer-cpu-engineering",
+                  "source": "actual-transformer-updates-and-catalog-constraints" if semantic else "actual-transformer-updates-and-real-core-goal-checks",
                   "task": task.to_dict(), "binding": binding, "training_config": asdict(config),
                   "parameter_counts": {r: sum(p.numel() for p in trainer.models[r].parameters()) for r in ROLES},
                   "independent_weights": True, "updates": updates, "canonical_updates_per_role": 2,
@@ -364,6 +386,7 @@ def run_build_training_smoke(root, state_root, run_id, task, config=None):
                   "cost": {"new_paid_instances_started": 0, "external_api_calls": 0, "cloud_development_cpu_cost": "not-exposed"},
                   "competitive_construction_quality_validated": False, "models_in_this_run": list(ROLES),
                   "coordinator_training_in_this_run": False}
+        if semantic:result['data_index']=index.summary()
         (run / "proof.json").write_text(canonical_json(result) + "\n")
         publish("completed")
         return result

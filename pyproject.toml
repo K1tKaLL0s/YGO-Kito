@@ -9,6 +9,9 @@ description = "CPU infrastructure and contracts for YGO-Kito; real engine integr
 requires-python = ">=3.12"
 dependencies = []
 
+[project.optional-dependencies]
+semantic = ["scipy==1.16.3"]
+
 [project.scripts]
 ygo-kito = "ygo_kito.cli:main"
 

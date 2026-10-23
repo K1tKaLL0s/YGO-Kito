@@ -12,7 +12,7 @@ from torch import nn
 from .build_contracts import BuildTask, DeckParts, ZONES, digest
 from .validation import ContractError, canonical_json, integer
 
-FEATURE_VERSION = "build-task-catalog-candidate-v3-discovery"
+FEATURE_VERSION = "build-task-catalog-candidate-v4-semantic-constraints"
 
 
 @dataclass(frozen=True)
@@ -57,9 +57,25 @@ class BuildEncoder:
             ids.append([self.card_index[code], 1 + ZONES.index(zone), 0, kind])
             numbers.append(self.assets.facts(code) + [minimum / 3, maximum / 3, count / 3, context])
 
-        extra_goal = task.goal["kind"] != "normal_summon"
-        goal_kind = ("normal_summon", "synchro_summon", "xyz_summon").index(task.goal["kind"])
-        card(task.goal["card_id"], "extra" if extra_goal else "main", 1, context=goal_kind / 2)
+        semantic=task.goal['kind']=='deck_constraints'
+        extra_goal = not semantic and task.goal["kind"] != "normal_summon"
+        if semantic:
+            from .build_semantics import count,matches
+            for hard,items in ((True,task.goal['constraints']),(False,task.goal['preferences'])):
+                for item in sorted(items,key=lambda c:canonical_json({k:v for k,v in c.items() if k!='id'})):
+                    ids.append([0,0,0,6])
+                    numbers.append([item.get('minimum',0)/90,item.get('maximum',90)/90,
+                                    count(deck,item,self.assets.rows)/90,item.get('weight',0)/100,
+                                    sum(1<<ZONES.index(z) for z in item['zones'])/7,float(hard),0.,0.,0.,0.])
+                    for zone in ZONES:
+                        if zone not in item['zones']:continue
+                        for code in task.pool:
+                            if matches(self.assets.rows[code],item['predicate']):
+                                ids.append([self.card_index[code],1+ZONES.index(zone),0,6])
+                                numbers.append(self.assets.facts(code)+[0.,0.,0.,1. if hard else -1.])
+        else:
+            goal_kind = ("normal_summon", "synchro_summon", "xyz_summon").index(task.goal["kind"])
+            card(task.goal["card_id"], "extra" if extra_goal else "main", 1, context=goal_kind / 2)
         if extra_goal:
             for code in task.goal["starting_conditions"]["requires_opening_hand"]:
                 card(code, "main", 5)

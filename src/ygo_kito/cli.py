@@ -98,6 +98,9 @@ def parser():
     knowledge=sub.add_parser("private-knowledge-acceptance",help="real v5 private deck/confirmation and facedown host proof; exports only common-public histories")
     knowledge.add_argument("--root",type=Path,default=Path(".cache"))
     knowledge.add_argument("--output",type=Path,required=True)
+    foundation=sub.add_parser("foundation-acceptance",help="bounded semantic builds, indexed real-core PPO and executable frozen opponents; public-only export")
+    foundation.add_argument("--root",type=Path,default=Path(".cache"))
+    foundation.add_argument("--output",type=Path,required=True)
     build_train = sub.add_parser("build-train-cpu", help="bounded independent goal/optimizer CPU updates, recovery and real conditional goal checks")
     build_train.add_argument("--root", type=Path, default=Path(".cache"))
     build_train.add_argument("--state-root", type=Path, default=Path(".cache/agent"))
@@ -237,6 +240,18 @@ def main(argv=None) -> int:
                 signal.setitimer(signal.ITIMER_REAL,120.)
                 try:
                     output=run_knowledge_acceptance(args.root,args.output)
+                finally:
+                    signal.setitimer(signal.ITIMER_REAL,0)
+                    signal.signal(signal.SIGALRM,old_handler)
+            case "foundation-acceptance":
+                import signal
+                from .foundation_acceptance import run_foundation_acceptance
+                if not hasattr(signal,"setitimer"):
+                    raise EngineUnavailable("foundation acceptance requires this cloud's Unix process timer")
+                old_handler=signal.signal(signal.SIGALRM,signal.SIG_DFL)
+                signal.setitimer(signal.ITIMER_REAL,180.)
+                try:
+                    output=run_foundation_acceptance(args.root,args.output)
                 finally:
                     signal.setitimer(signal.ITIMER_REAL,0)
                     signal.signal(signal.SIGALRM,old_handler)

@@ -125,11 +125,17 @@ class CpuTrainer:
         self.policy_rng = torch.Generator(device="cpu").manual_seed(config.policy_seed)
         self.batch_rng = torch.Generator(device="cpu").manual_seed(config.batch_seed)
         self.updates, self.episode_cursor = 0, 0
+        self._pending_episode_digest=None
 
     def sample_episode(self, root, profile, *, purpose="train", seed=None,
-                       policy_seed=None, opponent="visible-effects-first-v1"):
-        if purpose not in ("train", "validation") or opponent not in ("visible-effects-first-v1", "visible-effects-last-option-v1"):
+                       policy_seed=None, opponent="visible-effects-first-v1",opponent_adapter=None):
+        if purpose not in ("train", "validation","final_eval") or opponent not in ("visible-effects-first-v1", "visible-effects-last-option-v1"):
             raise ContractError("unsupported sample purpose or fixed opponent")
+        if opponent_adapter is not None:
+            from .opponent_pool import FrozenOpponent
+            if not isinstance(opponent_adapter,FrozenOpponent) or self.config.curriculum is not None:
+                raise ContractError('registered opponents require their typed adapter and an unscripted sampler')
+            opponent_adapter.assert_runtime(root,profile,self.config.actor_seat)
         if purpose == "train" and (seed is not None or policy_seed is not None):
             raise ContractError("training seed/RNG must come from the checkpoint cursor")
         if purpose == "train" and self.episode_cursor >= len(self.config.game_seeds):
@@ -177,8 +183,9 @@ class CpuTrainer:
                                   "old_value": float(values[0]), "reward": 0., "hierarchy": hierarchy})
                     latencies.append((time.perf_counter() - tick) * 1000)
                 else:
-                    action = driver.choose(request,after_case=bool(steps)) if driver is not None else choose_effect_duel_action(request, facts)
-                    if opponent == "visible-effects-last-option-v1" and request.prompt.message == 14:
+                    action = (opponent_adapter.policy.choose(request) if opponent_adapter is not None else
+                              driver.choose(request,after_case=bool(steps)) if driver is not None else choose_effect_duel_action(request, facts))
+                    if opponent_adapter is None and opponent == "visible-effects-last-option-v1" and request.prompt.message == 14:
                         action = request.actions[-1]
                 audit.append({"player": request.observation.observer, "request_sha256": request_digest(request), "action_id": action.action_id})
                 engine.submit(ActionSelection(request.context.run_id, request.duel_id, request.decision_id, action.action_id))
@@ -200,10 +207,24 @@ class CpuTrainer:
                                        'case':curriculum,'policy_messages':list(assigned),'competitive_evaluation':False}
                 summary['real_core_events_sha256']=hashlib.sha256(canonical_json(engine.events).encode()).hexdigest()
                 summary['callback_errors']=len(engine.callback_errors)
+            private_audit=None
+            if opponent_adapter is not None:
+                summary['opponent']='registered:'+opponent_adapter.binding['driver_version']
+                summary['opponent_binding']=json.loads(canonical_json(opponent_adapter.binding))
+                private_audit={'schema_version':1,'kind':'registered-opponent-private-replay-v1','name':'registered-opponent-engineering',
+                               'profile':profile,'seed_audit_only':seed,'selection_key_audit_only':engine._selection_seed,
+                               'resources':engine.receipt,'responses':audit,'events':engine.events,'outcome':engine.outcome,
+                               'final_observations':[json.loads(canonical_json(asdict(engine._observation(p)))) for p in (0,1)],
+                               'result':{'turns':engine.turn,'life_points':engine.life_points},'opponent_binding':summary['opponent_binding']}
         if purpose == "train":
             self.episode_cursor += 1
-        return {"source": "live-core-actor-seat", "policy_version": version, "policy_sha256": policy_hash,
+        episode={"source": "live-core-actor-seat", "policy_version": version, "policy_sha256": policy_hash,
                 "purpose": purpose, "steps": steps, "summary": summary}
+        if private_audit is not None:episode['_private_audit']=private_audit
+        if purpose=='train':
+            from .data_isolation import episode_digest
+            self._pending_episode_digest=episode_digest(episode)
+        return episode
 
     def update(self, episode):
         if episode.get("purpose") != "train" or episode["source"] != "live-core-actor-seat" or episode["policy_version"] != self.updates or episode["policy_sha256"] != parameter_digest(self.model):
@@ -217,6 +238,13 @@ class CpuTrainer:
                                  old_log_prob=step['old_log_prob'],max_actions=cfg.model.max_actions)
             elif len(step['request'].actions)>cfg.model.max_actions:
                 raise ContractError('large-action PPO requires its actual hierarchical sampling receipt')
+        from .data_isolation import DataAdmission,episode_digest
+        if getattr(self,'_pending_episode_digest',None)!=episode_digest(episode):
+            raise ContractError('PPO episode is not the actual fresh training sample; held-out relabeling rejected')
+        if '_data_admission' in episode:
+            admission=episode['_data_admission']
+            if not isinstance(admission,DataAdmission):raise ContractError('typed data admission required')
+            admission.assert_episode(episode)
         advantages, following_value, gae = [], 0., 0.
         for step in reversed(steps):
             delta = step["reward"] + cfg.gamma * following_value - step["old_value"]
@@ -255,6 +283,7 @@ class CpuTrainer:
         delta = math.sqrt(sum(float(((before[n] - p.detach()) ** 2).sum()) for n, p in self.model.named_parameters()))
         head_delta = math.sqrt(sum(float(((before[n] - p.detach()) ** 2).sum()) for n, p in self.model.named_parameters() if n.startswith("policy_head")))
         self.updates += 1
+        self._pending_episode_digest=None
         if not changed or not grad_norm or not delta:
             raise ContractError("no actual nonzero parameter update occurred")
         return {"optimizer_step": self.updates, "batch_samples": len(chosen), "episode_samples": len(steps),

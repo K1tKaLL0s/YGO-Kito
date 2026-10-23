@@ -14,6 +14,8 @@ from .native_assets import verify_resources
 from .validation import ContractError, array, canonical_json, fields, integer, member, text
 
 APPLICATION_ID = 0x59474F41
+RUNTIME_POOLS={1:'native-effect-duel-v1',2:'native-extra-material-v2',3:'native-protocol-history-v3',
+               4:'native-private-selection-v4',5:'native-private-knowledge-v5'}
 
 
 def identifier(value):
@@ -105,15 +107,23 @@ class OpponentRegistry:
             except ValueError:
                 raise ContractError("release cutoff must be an ISO date") from None
         self._assets()
-        verified = d["authority"] == "custom" and d["release_cutoff"] is None and versions == self._runtime_versions
+        verified = self._compatible_environment(d)
         payload = dict(d, validation="custom-runtime-verified" if verified else "pending-environment-validation",
                        historical_rules_verified=False, runtime_compatible=verified)
         return self.put("environment", d["environment_id"], payload)
 
-    def runtime_environment(self):
+    def _compatible_environment(self,value):
+        from dataclasses import replace
+        versions=Versions.from_dict(value['versions'])
+        return (value['authority']=='custom' and value['release_cutoff'] is None and versions.card_pool in RUNTIME_POOLS.values()
+                and versions==replace(self._runtime_versions,card_pool=versions.card_pool))
+
+    def runtime_environment(self,adapter_revision=1):
         self._assets()
         from dataclasses import asdict
-        return {"environment_id": "custom-native-current", "versions": asdict(self._runtime_versions),
+        integer(adapter_revision,'registered adapter revision',1,5)
+        versions=asdict(self._runtime_versions);versions['card_pool']=RUNTIME_POOLS[adapter_revision]
+        return {"environment_id": "custom-native-current"+(f'-v{adapter_revision}' if adapter_revision!=1 else ''), "versions": versions,
                 "authority": "custom", "release_cutoff": None}
 
     def import_deck(self, value):
@@ -128,7 +138,7 @@ class OpponentRegistry:
         validate_deck_parts(deck, self._rows, limits)
         payload = {"deck_id": d["deck_id"], "environment_id": d["environment_id"], "source": d["source"],
                    "cards": deck, "sha256": hashlib.sha256(canonical_json(deck).encode()).hexdigest(),
-                   "validation": env["validation"], "runtime_compatible": env["runtime_compatible"] and not deck["extra"],
+                   "validation": env["validation"], "runtime_compatible": env["runtime_compatible"] and (not deck["extra"] or env['versions']['card_pool']!=RUNTIME_POOLS[1]),
                    "historical_rules_verified": False, "user_acceptance_verified": False}
         return self.put("deck", d["deck_id"], payload)
 
@@ -136,7 +146,7 @@ class OpponentRegistry:
         d = fields(value, {"opponent_id", "deck_id", "controller", "provider", "model", "driver_version"})
         identifier(d["opponent_id"])
         deck = self.get("deck", d["deck_id"])
-        member(d["controller"], "controller", ("rule_baseline", "bot", "external_llm"))
+        member(d["controller"], "controller", ("rule_baseline", "bot", "external_llm","local_snapshot"))
         for key in ("provider", "model", "driver_version"):
             text(d[key], key)
         return self.put("opponent", d["opponent_id"], dict(d, environment_id=deck["environment_id"],
@@ -154,12 +164,16 @@ class OpponentRegistry:
             raise ContractError("environment or extra-deck protocol is not ready for this runtime")
         self._assets(refresh=True)
         environment = self.get("environment", deck["environment_id"])
-        if (Versions.from_dict(environment["versions"]) != self._runtime_versions or
-                environment["authority"] != "custom" or environment["release_cutoff"] is not None):
+        if not self._compatible_environment(environment):
             raise ContractError("registered environment versions do not match current runtime")
-        decks = [other["cards"]["main"], other["cards"]["main"]]
-        decks[seat] = deck["cards"]["main"]
-        return {"profile": {"schema_version": 1, "name": "registered-main-deck-match", "decks": decks},
+        parts=[other['cards'],other['cards']];parts[seat]=deck['cards']
+        revision=next(rev for rev,pool in RUNTIME_POOLS.items() if pool==environment['versions']['card_pool'])
+        profile={"schema_version":1 if revision==1 else 2,"name":"registered-main-deck-match" if revision==1 else f"registered-v{revision}-match",
+                 "decks":[d['main'] for d in parts]}
+        if revision!=1:profile['extras']=[d['extra'] for d in parts]
+        if revision>=3:profile['adapter_revision']=revision
+        if revision!=1 or any(d['side'] for d in parts):profile['sides']=[d['side'] for d in parts]
+        return {"profile": profile,
                 "opponent": opponent, "versions": environment["versions"], "actor_seat": seat, "training_ready": False}
 
     def audit(self, kind, value):

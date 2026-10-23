@@ -82,6 +82,7 @@ def validate_comparison(task, assets, comparison):
         integer(game["turns"], "complete turns", 1, 10000)
         integer(game["decisions"], "complete decisions", 1, 3000)
         profile = profile_for(candidates[index], opponent=opponent) if seat == 0 else profile_for(opponent, opponent=candidates[index])
+        if task.goal['kind']=='deck_constraints':profile['adapter_revision']=5
         if (game["profile_sha256"] != digest(profile) or game["core_terminal_received"] is not True or game["replay_verified"] is not True
                 or type(game["score"]) not in (int, float) or game["score"] != outcome_score(game["outcome"], seat)):
             raise ContractError("comparison game does not match the frozen pairing or natural outcome")
@@ -126,6 +127,7 @@ def compare_candidates(task, assets, candidates, opponent, *, seeds=(7, 24), pur
         for seed in seeds:
             for seat in (0, 1):
                 profile = profile_for(candidate, opponent=opponent) if seat == 0 else profile_for(opponent, opponent=candidate)
+                if task.goal['kind']=='deck_constraints':profile['adapter_revision']=5
                 remaining = seconds - (time.monotonic() - started)
                 if remaining <= 0:
                     raise ContractError("paired comparison budget exhausted; incomplete cases cannot become labels")

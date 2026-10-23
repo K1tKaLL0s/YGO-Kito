@@ -41,6 +41,8 @@ class BuildAssets:
         environment = dict(self.environment, versions=dict(self.environment["versions"]))
         if kind in ("synchro_summon", "xyz_summon"):
             environment["versions"]["card_pool"] = "native-extra-material-v2"
+        elif kind=="deck_constraints":
+            environment["versions"]["card_pool"]="native-private-knowledge-v5"
         return environment
 
     def check_task(self, task):
@@ -67,6 +69,9 @@ class BuildAssets:
             count = getattr(deck, req["zone"]).count(req["card_id"])
             if not req["minimum"] <= count <= req["maximum"]:
                 raise ContractError("deck violates a fixed goal/card constraint")
+        if task.goal['kind']=='deck_constraints':
+            from .build_semantics import validate_counts
+            validate_counts(task,deck,self)
         return {"card_list_legal": True, "hard_constraints_preserved": True, "task_sha256": task.sha256,
                 "deck_sha256": digest(deck.to_dict()), "historical_rules_verified": False}
 
@@ -96,6 +101,9 @@ def _parts(parts):
 def goal_candidates(task, assets, base=None):
     """Bounded constraint construction followed by model ranking, not learned rule code."""
     assets.check_task(task)
+    if task.goal['kind']=='deck_constraints':
+        from .build_semantics import solve_candidates
+        return solve_candidates(task,assets,base)['candidates']
     if base is not None:
         if not isinstance(base, DeckParts):
             raise ContractError("typed existing deck required")
@@ -198,6 +206,9 @@ def verify_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budget
     if type(seconds) not in (int, float) or not math.isfinite(seconds) or not 0 <= seconds <= 30:
         raise ContractError("route time budget outside CPU proof range")
     assets.validate(task, deck)
+    if task.goal['kind']=='deck_constraints':
+        from .build_semantics import proof
+        return proof(task,deck,assets)
     if task.goal["kind"] != "normal_summon":
         if task.schema_version == 3 and "route" not in task.goal:
             from .route_search import discover_goal
@@ -285,7 +296,7 @@ def alternate_build(task, assets, models, encoder, *, base=None, stages=4, secon
             except NativeError as error:
                 failures.append({"stage": i, "role": role, "status": "native_route_unverified", "reason": str(error)})
                 continue
-            if proof["status"] == "verified_success":
+            if proof["status"] == ("constraints_satisfied" if task.goal['kind']=='deck_constraints' else "verified_success"):
                 selected = candidate
                 break
             failures.append({"stage": i, "role": role, "status": proof["status"], "unmet": proof["unmet"]})
@@ -303,13 +314,17 @@ def alternate_build(task, assets, models, encoder, *, base=None, stages=4, secon
                         "engineering_proxy": engineering_proxy(selected, assets), "validation": proof})
         verified.append(selected)
         current = selected
-    best = max(verified, key=lambda d: engineering_proxy(d, assets)) if verified else None
+    if task.goal['kind']=='deck_constraints':
+        from .build_semantics import preference_value
+        criterion=lambda d:preference_value(task,d,assets)
+    else:criterion=lambda d:engineering_proxy(d,assets)
+    best = max(verified, key=criterion) if verified else None
     stop_reason = ("stage_budget_reached" if len(history) == stages else
                    "time_budget_exhausted" if time.monotonic() - started >= seconds else "no_verified_candidate_within_budget")
     return {"schema_version": 1, "kind": "goal-optimizer-alternation",
             "status": "verified_candidates" if best else "not_found_within_budget", "task_sha256": fixed,
             "stages": history, "best_deck": None if best is None else best.to_dict(),
-            "best_criterion": "engineering_mean_printed_attack_proxy_only", "stop_reason": stop_reason,
+            "best_criterion": "explicit_semantic_preferences_not_strength" if task.goal['kind']=='deck_constraints' else "engineering_mean_printed_attack_proxy_only", "stop_reason": stop_reason,
             "failures": failures, "time_budget_seconds": seconds, "stage_budget": stages,
             "unmet": ["competitive construction quality not evaluated"] + ([] if len(history) == stages else ["requested stages not all verified"]),
             "competitive_ability_validated": False}
