@@ -107,3 +107,10 @@ def moved(engine, previous, current):
         engine._overlay_owners[(current[0], current[1] & 0x7f, current[2], current[3])] = owner
     elif current[1] != 1 and owner is not None:
         engine._known_owners[tuple(current[:3])] = owner
+
+
+def shuffled_hand(engine, player):
+    # A shuffle changes hand sequence ownership associations without MOVE events.
+    engine._known_owners = {key: owner for key, owner in engine._known_owners.items() if key[:2] != (player, 2)}
+
+

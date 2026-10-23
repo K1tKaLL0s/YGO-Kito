@@ -9,7 +9,7 @@ from tests.fixtures import request
 from ygo_kito.contracts import DecisionRequest
 from ygo_kito.native_protocol import NativeError, Reader, decode_deck_choices, decode_prompt
 from ygo_kito.sum_protocol import accepted, contributions
-from ygo_kito.extra_observation import moved, resolve
+from ygo_kito.extra_observation import moved, resolve, shuffled_hand
 from ygo_kito.native import NativeNormalEngine
 from ygo_kito.validation import ContractError
 
@@ -120,3 +120,13 @@ class SumExtraProtocolTests(unittest.TestCase):
         for kind, wire in ((15, b"\x02"), (23, b"\x00\x02"), (23, b"\x00")):
             with self.assertRaises(NativeError):
                 engine._prompt(kind, Reader(wire))
+
+    def test_hand_shuffle_invalidates_only_unverified_hand_owner_associations(self):
+        # Synthetic ownership-cache projection; no claim of executing a shuffle effect.
+        engine = SimpleNamespace(_known_owners={(0, 2, 0): 1, (1, 2, 0): 0, (0, 4, 0): 0},
+                                 _overlay_owners={(0, 4, 0, 0): 1}, _revealed_hand=[{0: 123}, {0: 456}])
+        shuffled_hand(engine, 0)
+        self.assertEqual(engine._known_owners, {(1, 2, 0): 0, (0, 4, 0): 0})
+        self.assertEqual(engine._overlay_owners, {(0, 4, 0, 0): 1})
+        shuffled_hand(engine, 1)
+        self.assertEqual(engine._known_owners, {(0, 4, 0): 0})

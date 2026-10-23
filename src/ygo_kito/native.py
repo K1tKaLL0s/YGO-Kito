@@ -462,6 +462,9 @@ class NativeNormalEngine:
                 elif kind in (33, 90):
                     event["player"], event["count"] = reader.u8(), reader.u8()
                     self._revealed_hand[event["player"]].clear()
+                    if self.extended_actions and kind == 33:
+                        from .extra_observation import shuffled_hand
+                        shuffled_hand(self, event["player"])
                     reader.take(event["count"] * 4)  # Discard identities, including opponent draws.
                 elif kind == 50:
                     code = reader.u32()
