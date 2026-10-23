@@ -54,6 +54,7 @@ class DecodedPrompt:
     options: tuple[NativeOption, ...]
     search_choices: tuple[SearchChoice, ...] = ()
     sum_selection: SumSelection | None = None
+    selection_choices: tuple = ()
 
 
 def visible_ref(player, controller, location, sequence, subsequence=None):
@@ -86,9 +87,13 @@ def decode_deck_choices(player, minimum, maximum, candidates):
     return tuple(choices), options
 
 
-def decode_prompt(kind, reader, *, ref_resolver=None, allow_sum=False, allow_advanced=False, catalog=None):
+def decode_prompt(kind, reader, *, ref_resolver=None, allow_sum=False, allow_advanced=False, catalog=None,
+                  selection_observation=None, selection_seed=None):
     """All choices are bounded, native-offered operations; unsupported messages raise."""
     resolve = ref_resolver or visible_ref
+    if selection_observation is not None and kind in (15,26):
+        from .private_selection import decode_selection
+        return decode_selection(kind,reader,resolve,selection_observation,selection_seed)
     if allow_advanced:
         from .advanced_protocol import MESSAGES, decode_advanced
         if kind in MESSAGES:

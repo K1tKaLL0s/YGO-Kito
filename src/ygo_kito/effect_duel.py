@@ -34,6 +34,14 @@ def public_card_facts(root):
 def choose_effect_duel_action(request, facts):
     """A deterministic, intentionally simple policy; core alone decides what is legal."""
     cards = {c.ref: c for c in request.observation.cards}
+    if request.selection_choices:
+        # No hidden card lookup or identity-based ranking. The neutral baseline
+        # may take an offered action, while a model receives the typed choices.
+        if request.prompt.message == 26:
+            for operation in ("finish", "add"):
+                action=next((a for a in request.actions if a.details and a.details.operation==operation),None)
+                if action is not None:return action
+        return next((a for a in request.actions if a.kind == "select"), request.actions[0])
     player = request.observation.observer
     if request.prompt.message == 132:
         # Public seat breaks the deterministic baseline's repeated ties. This
@@ -94,7 +102,7 @@ def run_effect_duel(root, profile, *, seed=7, replay=None, max_decisions=3000, b
     if type(budget_seconds) not in (int, float) or not 0 < budget_seconds <= 300:
         raise ContractError("effect duel budget must be within 300 seconds")
     if replay is not None:
-        fields(replay, {"schema_version", "kind", "seed", "versions", "profile", "responses", "events", "outcome", "turns", "life_points"}, {"route_task"})
+        fields(replay, {"schema_version", "kind", "seed", "versions", "profile", "responses", "events", "outcome", "turns", "life_points"}, {"route_task", "selection_key_audit_only"})
         integer(replay["schema_version"], "effect duel replay schema", 1, 2)
         if (replay["schema_version"] == 2) != ("route_task" in replay):
             raise ContractError("routed replay schema differs")
@@ -124,10 +132,13 @@ def run_effect_duel(root, profile, *, seed=7, replay=None, max_decisions=3000, b
         route_driver = RouteDriver(route_task.goal["route"], material_preference=option_preference)
     started, cpu_started = time.monotonic(), time.process_time()
     latencies, responses = [], []
-    with NativeNormalEngine(root, seed=seed, scenario="effect-duel", deck_profile=profile) as engine:
+    if replay is not None and (profile.get('adapter_revision')==4) != ('selection_key_audit_only' in replay):
+        raise ContractError('private selection replay key/version binding differs')
+    with NativeNormalEngine(root, seed=seed, scenario="effect-duel", deck_profile=profile,
+                            selection_key=replay.get('selection_key_audit_only') if replay else None) as engine:
         facts = public_card_facts(root)
         versions = {"source_commits": engine.receipt["source_commits"], "resources": engine.receipt["resources"],
-                    "adapter_schema": "native-protocol-history-v3" if engine.modern_actions else "native-extra-material-v2" if engine.extended_actions else "native-effect-duel-v1-general-actions", "python": platform.python_version(),
+                    "adapter_schema": "native-private-selection-v4" if engine.private_actions else "native-protocol-history-v3" if engine.modern_actions else "native-extra-material-v2" if engine.extended_actions else "native-effect-duel-v1-general-actions", "python": platform.python_version(),
                     "policy": "declared-route-then-visible-baseline-v2" if route_driver else "visible-dto-effect-protocol-baseline-v1", "option_preference": option_preference}
         if route_driver:
             versions["route_task_sha256"] = route_task.sha256
@@ -175,6 +186,7 @@ def run_effect_duel(root, profile, *, seed=7, replay=None, max_decisions=3000, b
         trace = {"schema_version": 2 if route_driver else 1, "kind": "effect-duel-replay-not-policy-input", "seed": seed,
                  "versions": versions, "profile": profile, "responses": responses, "events": engine.events,
                  "outcome": engine.outcome, "turns": engine.turn, "life_points": engine.life_points}
+        if engine.private_actions:trace['selection_key_audit_only']=engine._selection_seed
         if route_driver:
             trace["route_task"] = route_task.to_dict()
         if replay is not None and trace != replay:

@@ -27,6 +27,7 @@ from .effect_duel import choose_effect_duel_action, public_card_facts
 from .native import NativeError, NativeNormalEngine
 from .native_assets import verify_resources
 from .normal_duel import request_digest
+from .hierarchical_policy import score_requests, sample_index
 from .validation import ContractError, canonical_json, fields, integer
 
 
@@ -49,8 +50,11 @@ class CpuTrainingConfig:
     grad_clip: float = .5
     lr_decay: float = .99
     game_seeds: tuple = (1724, 24)
+    curriculum: str | None = None
 
     def __post_init__(self):
+        if self.curriculum not in (None,"large-declaration"):
+            raise ContractError("unsupported versioned CPU prompt curriculum")
         if not isinstance(self.model, DuelModelConfig):
             raise ContractError("training requires a bounded duel model configuration")
         integer(self.actor_seat, "actor seat", 0, 1)
@@ -131,6 +135,7 @@ class CpuTrainer:
         if purpose == "train" and self.episode_cursor >= len(self.config.game_seeds):
             raise ContractError("declared engineering episode budget exhausted")
         cfg = self.config
+        curriculum=cfg.curriculum
         policy_hash, version = parameter_digest(self.model), self.updates
         if purpose == "train":
             seed, sampler_rng = cfg.game_seeds[self.episode_cursor], self.policy_rng
@@ -144,25 +149,35 @@ class CpuTrainer:
         steps, audit, latencies = [], [], []
         self.model.eval()
         started = time.monotonic()
-        with NativeNormalEngine(root, scenario="effect-duel", deck_profile=profile, seed=seed) as engine:
+        # Independent view randomness is private controller state; use the
+        # checkpointed sampler stream rather than leaking the duel RNG rank.
+        selection_key=None
+        if profile.get('adapter_revision')==4:
+            words=torch.randint(0,2**63-1,(2,),generator=sampler_rng).tolist()
+            selection_key=b''.join(w.to_bytes(8,'big') for w in words).hex()
+        with NativeNormalEngine(root, scenario="effect-duel", deck_profile=profile, seed=seed,selection_key=selection_key) as engine:
             facts = public_card_facts(root)
+            driver,assigned=(None,())
+            if curriculum is not None:
+                from .private_cases import prompt_curriculum
+                driver,assigned=prompt_curriculum(curriculum,profile,engine._rows)
             request = engine.next_decision()
             while request is not None:
                 if len(audit) >= cfg.native_decision_limit or time.monotonic() - started > cfg.episode_seconds:
                     raise NativeError("CPU sample budget exhausted; no terminal reward/update claimed")
-                if request.observation.observer == cfg.actor_seat:
+                if request.observation.observer == cfg.actor_seat and (driver is None or request.prompt.message in assigned):
                     tick = time.perf_counter()
                     with torch.no_grad():
-                        logits, values = self.model(self.encoder.batch([request]))
+                        logits, values = score_requests(self.model,self.encoder,[request])
                         distribution = Categorical(logits=logits)
-                        index = int(torch.multinomial(distribution.probs[0], 1, generator=sampler_rng).item())
+                        index, hierarchy = sample_index(logits[0],generator=sampler_rng,max_actions=cfg.model.max_actions)
                     action = request.actions[index]
                     steps.append({"request": request, "action_index": index,
                                   "old_log_prob": float(distribution.log_prob(torch.tensor([index]))[0]),
-                                  "old_value": float(values[0]), "reward": 0.})
+                                  "old_value": float(values[0]), "reward": 0., "hierarchy": hierarchy})
                     latencies.append((time.perf_counter() - tick) * 1000)
                 else:
-                    action = choose_effect_duel_action(request, facts)
+                    action = driver.choose(request,after_case=bool(steps)) if driver is not None else choose_effect_duel_action(request, facts)
                     if opponent == "visible-effects-last-option-v1" and request.prompt.message == 14:
                         action = request.actions[-1]
                 audit.append({"player": request.observation.observer, "request_sha256": request_digest(request), "action_id": action.action_id})
@@ -174,12 +189,17 @@ class CpuTrainer:
             reward = (1. if winner == cfg.actor_seat else -1.) if winner in (0, 1) else 0.
             steps[-1]["reward"] = reward
             summary = {"source": "live-core-actor-seat", "policy_version": version, "policy_sha256": policy_hash,
-                       "purpose": purpose, "opponent": opponent,
+                       "purpose": purpose, "opponent": opponent if driver is None else "engineering-prefix-then-visible-normal-v1",
                        "seed_audit_only": seed, "actor_seat": cfg.actor_seat, "turns": engine.turn,
                        "native_decisions": len(audit), "actor_samples": len(steps), "outcome": engine.outcome,
                        "terminal_reward": reward, "elapsed_seconds": time.monotonic() - started,
                        "actor_inference_ms": latencies,
                        "trajectory_sha256": hashlib.sha256(canonical_json(audit).encode()).hexdigest()}
+            if curriculum is not None:
+                summary['curriculum']={'kind':'engineering-scripted-prefix-and-baseline-continuation',
+                                       'case':curriculum,'policy_messages':list(assigned),'competitive_evaluation':False}
+                summary['real_core_events_sha256']=hashlib.sha256(canonical_json(engine.events).encode()).hexdigest()
+                summary['callback_errors']=len(engine.callback_errors)
         if purpose == "train":
             self.episode_cursor += 1
         return {"source": "live-core-actor-seat", "policy_version": version, "policy_sha256": policy_hash,
@@ -202,13 +222,12 @@ class CpuTrainer:
         returns = advantages + old_values
         indices = torch.randperm(len(steps), generator=self.batch_rng)[:cfg.batch_size]
         chosen = [steps[i] for i in indices.tolist()]
-        batch = self.encoder.batch([s["request"] for s in chosen])
         actions = torch.tensor([s["action_index"] for s in chosen])
         old_log_probs = torch.tensor([s["old_log_prob"] for s in chosen])
         advantage = advantages[indices]
         advantage = (advantage - advantage.mean()) / (advantage.std(unbiased=False) + 1e-8)
         self.model.train()
-        logits, values = self.model(batch)
+        logits, values = score_requests(self.model,self.encoder,[s["request"] for s in chosen])
         dist = Categorical(logits=logits)
         ratio = (dist.log_prob(actions) - old_log_probs).exp()
         policy_loss = -torch.minimum(ratio * advantage, ratio.clamp(1 - cfg.clip_ratio, 1 + cfg.clip_ratio) * advantage).mean()

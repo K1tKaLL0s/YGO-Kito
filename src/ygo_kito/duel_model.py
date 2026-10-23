@@ -15,11 +15,11 @@ from .contracts import DecisionRequest
 from .validation import ContractError, canonical_json, integer
 
 KINDS = ("summon", "special_summon", "set", "activate", "attack", "select", "order", "number", "position", "yes", "no", "pass")
-ZONES = ("state", "hand", "monster", "spell_trap", "graveyard", "banished", "extra", "search", "history", "overlay", "sum")
+ZONES = ("state", "hand", "monster", "spell_trap", "graveyard", "banished", "extra", "search", "history", "overlay", "sum", "deck")
 PHASES = ("draw", "standby", "main1", "battle", "main2", "end")
 EVENTS = ("none", "reveal", "move", "activate", "summon", "attack", "phase", "result", "turn", "chain", "lp", "counter", "shuffle", "battle", "position", "announce", "random", "equip", "target", "disabled", "hint")
 OPERATIONS = (None, "add", "remove", "finish", "cancel", "shuffle", "sum")
-FEATURE_VERSION = "legal-player-dto-v3-public-history-protocol"
+FEATURE_VERSION = "legal-player-dto-v4-private-selection-hierarchy"
 
 
 @dataclass(frozen=True)
@@ -97,6 +97,11 @@ class PlayerEncoder:
             refs[choice.ref] = len(tokens)
             tokens.append([self._card(choice.card_id), ZONES.index("search"), relative(choice.owner), relative(choice.owner), 1, 0, 0])
             numbers.append([float(choice.scope == "ordering"), 0., 0., 0.])
+        for choice in request.selection_choices:
+            refs[choice.ref] = len(tokens)
+            tokens.append([self._card(choice.card_id), ZONES.index(choice.zone), relative(choice.owner),
+                           relative(choice.controller), 2 if choice.visibility == "hidden" else 1, 0, 0])
+            numbers.append([0., 0., 0., 0.])
         for event in obs.public_history[-cfg.history_events:]:
             for code in event.card_ids or (None,):
                 tokens.append([self._card(code), ZONES.index("history"), 2, 0, 0, 0, EVENTS.index(event.kind)])
@@ -137,6 +142,10 @@ class PlayerEncoder:
                             OPERATIONS.index(operation), 0 if dest is None else 1 + relative(dest.controller),
                             0 if dest is None else (1 if dest.zone == "monster" else 2),
                             0 if dest is None else dest.sequence + 1])
+            if request.prompt is not None and request.prompt.message == 142 and action.kind == "number":
+                # Declared names are public candidate identities, not hidden
+                # card state. Their learned embeddings must reach the head.
+                actions[-1][1] = self._card(action.value)
             action_numbers.append([0. if action.value is None else math.tanh(action.value / 1000),
                                    float(action.value is not None), len(action.card_refs) / 10,
                                    0. if request.prompt is None else request.prompt.message / 255,

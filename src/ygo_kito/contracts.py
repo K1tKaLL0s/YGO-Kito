@@ -391,6 +391,34 @@ class SearchChoice:
 
 
 @dataclass(frozen=True)
+class SelectionChoice:
+    """Window-local selection, with no native index or hidden-zone sequence."""
+    ref: str
+    controller: int
+    zone: str
+    visibility: str
+    card_id: int | None = None
+    owner: int | None = None
+
+    def __post_init__(self):
+        text(self.ref, "selection reference")
+        integer(self.controller, "selection controller", 0, 1)
+        member(self.zone, "selection zone", ("deck", "hand", "monster", "spell_trap", "graveyard", "banished", "extra", "overlay"))
+        member(self.visibility, "selection visibility", ("observer", "hidden"))
+        if self.visibility == "hidden":
+            if self.card_id is not None or self.owner is not None:
+                raise ContractError("opaque selections cannot carry identity or ownership")
+        else:
+            integer(self.card_id, "offered selection identity", 1, 2**32 - 1)
+        if self.owner is not None:
+            integer(self.owner, "selection owner", 0, 1)
+
+    @classmethod
+    def from_dict(cls, value):
+        return cls(**fields(value, {"ref", "controller", "zone", "visibility"}, {"card_id", "owner"}))
+
+
+@dataclass(frozen=True)
 class SumCandidate:
     ref: str
     values: tuple[int, ...]
@@ -447,6 +475,7 @@ class DecisionRequest:
     search_choices: tuple[SearchChoice, ...] = ()
     prompt: PromptInfo | None = None
     sum_selection: SumSelection | None = None
+    selection_choices: tuple[SelectionChoice, ...] = ()
 
     def __post_init__(self):
         if type(self.schema_version) is not int or self.schema_version != SCHEMA_VERSION:
@@ -474,6 +503,14 @@ class DecisionRequest:
             if choice.scope == "ordering" and (self.prompt is None or self.prompt.message != 25):
                 raise ContractError("ordering identities require their explicit chooser-only prompt")
             refs.add(choice.ref)
+        for choice in self.selection_choices:
+            if not isinstance(choice, SelectionChoice) or choice.ref in refs:
+                raise ContractError("selection choices must be typed and unique")
+            if self.prompt is None or self.prompt.message not in (15,26):
+                raise ContractError("temporary selections require an explicit selection window")
+            if choice.visibility == "observer" and choice.controller != self.observation.observer:
+                raise ContractError("opponent temporary identities require an existing legal card view")
+            refs.add(choice.ref)
         if any(set(action.card_refs) - refs for action in self.actions):
             raise ContractError("action references an unobserved card")
         for action in self.actions:
@@ -489,13 +526,14 @@ class DecisionRequest:
 
     @classmethod
     def from_dict(cls, value):
-        d = fields(value, {"schema_version", "context", "duel_id", "decision_id", "observation", "actions"}, {"search_choices", "prompt", "sum_selection"})
+        d = fields(value, {"schema_version", "context", "duel_id", "decision_id", "observation", "actions"}, {"search_choices", "prompt", "sum_selection", "selection_choices"})
         return cls(
             RunContext.from_dict(d["context"]), d["duel_id"], d["decision_id"],
             Observation.from_dict(d["observation"]), tuple(LegalAction.from_dict(a) for a in array(d["actions"], "actions")),
             d["schema_version"], tuple(SearchChoice.from_dict(c) for c in array(d.get("search_choices", []), "search_choices")),
             PromptInfo.from_dict(d["prompt"]) if d.get("prompt") is not None else None,
             SumSelection.from_dict(d["sum_selection"]) if d.get("sum_selection") is not None else None,
+            tuple(SelectionChoice.from_dict(c) for c in array(d.get("selection_choices", []), "selection_choices")),
         )
 
     def to_dict(self):
@@ -506,6 +544,8 @@ class DecisionRequest:
             result.pop("prompt")
         if self.sum_selection is None:
             result.pop("sum_selection")
+        if not self.selection_choices:
+            result.pop("selection_choices")
         for action in result["actions"]:
             if action["details"] is None:
                 action.pop("details")

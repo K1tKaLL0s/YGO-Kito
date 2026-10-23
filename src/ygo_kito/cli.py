@@ -92,6 +92,9 @@ def parser():
     protocol = sub.add_parser("protocol-history-acceptance", help="bounded real MSG23/remaining prompts and legal public history/replays; CPU only")
     protocol.add_argument("--root", type=Path, default=Path(".cache"))
     protocol.add_argument("--output", type=Path, required=True)
+    private = sub.add_parser("private-hierarchy-acceptance", help="real v4 hidden/mixed choices, full-action CPU update and checkpoint proof; nonpaid")
+    private.add_argument("--root", type=Path, default=Path(".cache"))
+    private.add_argument("--output", type=Path, required=True)
     build_train = sub.add_parser("build-train-cpu", help="bounded independent goal/optimizer CPU updates, recovery and real conditional goal checks")
     build_train.add_argument("--root", type=Path, default=Path(".cache"))
     build_train.add_argument("--state-root", type=Path, default=Path(".cache/agent"))
@@ -207,6 +210,18 @@ def main(argv=None) -> int:
                 signal.setitimer(signal.ITIMER_REAL,120.)
                 try:
                     output=run_protocol_acceptance(args.root,args.output)
+                finally:
+                    signal.setitimer(signal.ITIMER_REAL,0)
+                    signal.signal(signal.SIGALRM,old_handler)
+            case "private-hierarchy-acceptance":
+                import signal
+                from .private_acceptance import run_private_acceptance
+                if not hasattr(signal,"setitimer"):
+                    raise EngineUnavailable("private acceptance requires this cloud's Unix process timer")
+                old_handler=signal.signal(signal.SIGALRM,signal.SIG_DFL)
+                signal.setitimer(signal.ITIMER_REAL,120.)
+                try:
+                    output=run_private_acceptance(args.root,args.output)
                 finally:
                     signal.setitimer(signal.ITIMER_REAL,0)
                     signal.signal(signal.SIGALRM,old_handler)

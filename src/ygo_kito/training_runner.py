@@ -61,6 +61,8 @@ def validate_recipe(value):
     integer(val["policy_seed"], "validation policy RNG seed", 0, 2**32 - 8)
     if not isinstance(value["cpu_config"], dict) or "game_seeds" in value["cpu_config"]:
         raise ContractError("runner owns the training data cursor/seeds")
+    if value["cpu_config"].get("curriculum") is not None:
+        raise ContractError("controlled prompt curriculum needs independently versioned runner train/eval controllers; use the standalone CPU proof")
     config_from_dict(dict(value["cpu_config"], game_seeds=list(seeds)))
     return json.loads(canonical_json(value))
 

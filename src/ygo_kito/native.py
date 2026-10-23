@@ -46,7 +46,7 @@ def banlist_limits(path: Path, section="2026.10") -> dict[int, int]:
 
 
 class NativeNormalEngine:
-    def __init__(self, root: Path, *, seed=7, scenario="normal", legacy_request_ids=False, deck_profile=None):
+    def __init__(self, root: Path, *, seed=7, scenario="normal", legacy_request_ids=False, deck_profile=None, selection_key=None):
         integer(seed, "seed", 0, 2**32 - 8)
         if scenario not in ("normal", "effects-counter", "search-trigger", "search-condition", "count-reset", "count-shared", "search-lock", "lock-control", "effect-duel"):
             raise ContractError("unsupported scoped native scenario")
@@ -60,7 +60,16 @@ class NativeNormalEngine:
             from .deck_profile import validate_profile
             validate_profile(deck_profile)
         self.extended_actions = self.general_actions and deck_profile.get("schema_version") == 2
-        self.modern_actions = self.general_actions and deck_profile.get("adapter_revision") == 3
+        self.modern_actions = self.general_actions and deck_profile.get("adapter_revision") in (3,4)
+        self.private_actions = self.general_actions and deck_profile.get("adapter_revision") == 4
+        if selection_key is not None and not self.private_actions:
+            raise ContractError("private selection replay key requires revision 4")
+        if selection_key is not None:
+            try:
+                if not isinstance(selection_key,str) or len(selection_key)!=32 or len(bytes.fromhex(selection_key))!=16:
+                    raise ValueError()
+            except ValueError as exc:raise ContractError("invalid private selection replay key") from exc
+        self._selection_seed = (selection_key or uuid4().hex) if self.private_actions else None
         self._public_history = []
         self._public_declarations = {}
         self._known_owners, self._overlay_owners = {}, {}
@@ -150,7 +159,7 @@ class NativeNormalEngine:
             hashes = self.receipt["resources"]
             self.context = RunContext(f"native-{uuid4().hex}", Versions(self.lock["sources"]["core"]["commit"],
                 hashes["scripts"], hashes["cards"], hashes["client_protocol"],
-                "native-protocol-history-v3" if self.modern_actions else "native-extra-material-v2" if self.extended_actions else self.lock["card_pool"]["id"] if scenario == "normal" else f"native-{scenario}-v1", "2026.10:" + hashes["banlist"]), None)
+                "native-private-selection-v4" if self.private_actions else "native-protocol-history-v3" if self.modern_actions else "native-extra-material-v2" if self.extended_actions else self.lock["card_pool"]["id"] if scenario == "normal" else f"native-{scenario}-v1", "2026.10:" + hashes["banlist"]), None)
             self.lib.start_duel(self.handle, 5 << 16)  # Master Rule 2020, no TEST/SIMPLE_AI mode.
         except BaseException:
             self.close()
@@ -328,6 +337,8 @@ class NativeNormalEngine:
                 from .extra_observation import resolve
                 decoded = decode_prompt(kind, reader, allow_sum=True, allow_advanced=self.modern_actions,
                                         catalog=self._rows if self.modern_actions else None,
+                                        selection_observation=observation if self.private_actions else None,
+                                        selection_seed=(self._selection_seed,player,self._observer_windows[player]) if self.private_actions else None,
                                         ref_resolver=lambda *args: resolve(self, *args))
             else:
                 decoded = decode_prompt(kind, reader)
@@ -337,7 +348,7 @@ class NativeNormalEngine:
             actions = tuple(LegalAction(f"choice-{i}", o.kind, o.refs, o.value, o.details) for i, o in enumerate(decoded.options))
             self.pending = DecisionRequest(self.context, "native-effect-duel", f"p{decoded.player}-window-{self._observer_windows[decoded.player]}",
                 observation or self._observation(decoded.player), actions, search_choices=decoded.search_choices, prompt=decoded.info,
-                sum_selection=decoded.sum_selection)
+                sum_selection=decoded.sum_selection, selection_choices=decoded.selection_choices)
             self.pending_kind = kind
             return self.pending
         player = reader.u8()
