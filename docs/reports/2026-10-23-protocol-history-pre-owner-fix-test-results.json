@@ -1,0 +1,45 @@
+{
+  "source_commit": "ecc40a6479e6469642bddfea15a484b0020554fd",
+  "python": "3.12.14",
+  "implementation_sha256": "6f747308c433d7d19bfb3a228378ee1f53d2c6b6e7e877fb21e18bc80e899741",
+  "results": [
+    {
+      "label": "unit",
+      "command": [
+        "/workspace/YGO-Kito/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "source_commit": "ecc40a6479e6469642bddfea15a484b0020554fd",
+      "exit_code": 0,
+      "started_at_utc": "2026-10-23T05:13:27.631258+00:00",
+      "wall_seconds": 12.036542831003317,
+      "log": ".cache/protocol-history-final-unit.log",
+      "child_peak_rss_kib_cumulative": 273532,
+      "published_log": "docs/reports/2026-10-23-protocol-history-pre-owner-fix-unit.log"
+    },
+    {
+      "label": "integration",
+      "command": [
+        "/workspace/YGO-Kito/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "integration_tests",
+        "-v"
+      ],
+      "source_commit": "ecc40a6479e6469642bddfea15a484b0020554fd",
+      "exit_code": 0,
+      "started_at_utc": "2026-10-23T05:13:39.668118+00:00",
+      "wall_seconds": 731.5034493729981,
+      "log": ".cache/protocol-history-final-integration.log",
+      "child_peak_rss_kib_cumulative": 468988,
+      "published_log": "docs/reports/2026-10-23-protocol-history-pre-owner-fix-integration.log"
+    }
+  ]
+}

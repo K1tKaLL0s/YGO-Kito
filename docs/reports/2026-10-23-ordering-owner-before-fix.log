@@ -1,0 +1,21 @@
+test_ordering_cards_preserve_controller_and_differ_from_deck_search_tokens (tests.test_advanced_protocol_history.StructuredPublicHistoryTests.test_ordering_cards_preserve_controller_and_differ_from_deck_search_tokens) ... FAIL
+
+======================================================================
+FAIL: test_ordering_cards_preserve_controller_and_differ_from_deck_search_tokens (tests.test_advanced_protocol_history.StructuredPublicHistoryTests.test_ordering_cards_preserve_controller_and_differ_from_deck_search_tokens)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/tests/test_advanced_protocol_history.py", line 192, in test_ordering_cards_preserve_controller_and_differ_from_deck_search_tokens
+    self.assertEqual(other['tokens'][3,2:4].tolist(),[1,1])
+AssertionError: Lists differ: [0, 0] != [1, 1]
+
+First differing element 0:
+0
+1
+
+- [0, 0]
++ [1, 1]
+
+----------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+FAILED (failures=1)
