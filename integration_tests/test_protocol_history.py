@@ -252,3 +252,37 @@ class RealProtocolHistoryTests(unittest.TestCase):
             with self.subTest(mutation=mutation),self.assertRaises((NativeError,ContractError)):
                 run_protocol_case(CACHE,'sort',replay=bad)
 
+
+class RealXyzHistoryRevisionTests(unittest.TestCase):
+    def test_real_extra_host_material_history_never_exposes_extra_sequence_and_replays(self):
+        # Same upstream rescue-cat/XYZ intent as the old v2 case, explicitly run
+        # through the NEW adapter. This is a protocol regression, not a migrated
+        # BuildTask, training curriculum, or proof of learned construction.
+        from dataclasses import asdict
+        from ygo_kito.extra_routes import RouteDriver,completed_special_summon
+        raw=json.loads((CACHE.parent/'configs/build-xyz-engineering-v2.json').read_text())
+        profile=json.loads((CACHE.parent/'configs/extra-material-engineering-v2.json').read_text())
+        profile['adapter_revision']=3;profile['extras'][0]=[78156759]
+        runs=[]
+        for repeat in range(2):
+            with NativeNormalEngine(CACHE,scenario='effect-duel',deck_profile=profile,seed=1) as engine:
+                driver=RouteDriver(raw['goal']['route']);r=engine.next_decision();rows=[]
+                for _ in range(100):
+                    own=engine._observation(0)
+                    if completed_special_summon(engine.events,own,0,78156759):break
+                    self.assertIsNotNone(r);self.assertEqual(engine.turn,1)
+                    a=driver.choose(r);rows.append((request_digest(r),a.action_id))
+                    engine.submit(ActionSelection(r.context.run_id,r.duel_id,r.decision_id,a.action_id));r=engine.next_decision()
+                else:self.fail('real revision-3 XYZ summon did not finish')
+                hist=engine._public_history
+                overlay=[loc for e in hist for loc in e.details.locations if loc.zone=='overlay']
+                self.assertTrue(overlay)
+                self.assertTrue(all(loc.sequence is None for loc in overlay))
+                self.assertEqual({c.card_id for c in own.cards if c.zone=='overlay'},{1761063,32269855})
+                other=engine._observation(1)
+                self.assertEqual({c.card_id for c in other.cards if c.zone=='overlay'},{1761063,32269855})
+                self.assertEqual(own.public_history,other.public_history)
+                self.assertEqual(engine.context.versions.card_pool,'native-protocol-history-v3')
+                runs.append((rows,[asdict(e) for e in hist],engine.events))
+        self.assertEqual(*runs)
+
