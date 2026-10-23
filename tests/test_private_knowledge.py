@@ -113,5 +113,6 @@ class PrivateKnowledgeContracts(unittest.TestCase):
         material=CardView('m',None,0,'overlay','public',111,attached_to='h')
         valid=replace(observation(),cards=(host,material))
         self.assertEqual(valid.cards[0].card_id,None)
-        for cards in ((material,),(replace(host,material_count=None),material),(replace(host,material_count=2),material)):
+        for cards in ((material,),(replace(host,material_count=None),material),(replace(host,material_count=2),material),
+                      (host,replace(material,visibility='hidden',card_id=None))):
             with self.assertRaises(ContractError):replace(valid,cards=cards)

@@ -244,7 +244,8 @@ class Observation:
             raise ContractError("duplicate card references")
         for c in self.cards:
             if c.zone == "overlay" and not any(h.ref == c.attached_to and h.zone == "monster" and h.controller == c.controller
-                                               and (h.visibility == c.visibility or c.visibility == "public" and h.material_count is not None)
+                                               and (h.visibility != "hidden" and h.visibility == c.visibility
+                                                    or c.visibility == "public" and h.material_count is not None)
                                                for h in self.cards):
                 raise ContractError("overlay material references an absent/different host")
             if c.material_count is not None and sum(m.attached_to == c.ref for m in self.cards) != c.material_count:
