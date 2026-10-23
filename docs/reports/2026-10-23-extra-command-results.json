@@ -1,0 +1,227 @@
+{
+  "source_commit": "95f6b56e79bb3970cbdf2f08148605c4d35f7ca9",
+  "command": [
+    ".venv/bin/python",
+    "-m",
+    "ygo_kito",
+    "extra-feedback-acceptance",
+    "--root",
+    ".cache",
+    "--state-root",
+    ".cache/extra-feedback",
+    "--run-id",
+    "extra-material-20261023-v1"
+  ],
+  "started_at_utc": "2026-10-23T03:13:34.832630+00:00",
+  "cli_wall_seconds": 48.18837668800188,
+  "exit_code": 0,
+  "stderr_bytes": 0,
+  "proof_sha256": "1f135bf685641771f2d2bb0c4e083b8cbaf42183e4aad19bde53007c89695a04",
+  "artifact_root": ".cache/extra-feedback/extra-material-20261023-v1",
+  "artifact_verification": [
+    {
+      "bytes": 15824,
+      "path": "route-extra-first.json",
+      "sha256": "8e7816333e13cea640238992478c930b337c3b52d0094e0f278afe9752a80460",
+      "verified": true
+    },
+    {
+      "bytes": 53683,
+      "path": "game-extra-first.json",
+      "sha256": "f24455de5b1d528f09034e59485e00a83b09252dc682411c6dc6212b98f1628a",
+      "verified": true
+    },
+    {
+      "bytes": 15819,
+      "path": "route-extra-last.json",
+      "sha256": "fb32b9c08c345cbcc7564fb0e734720c3e344c2a6b3c9d7c0e4dc0ff32fc392b",
+      "verified": true
+    },
+    {
+      "bytes": 53682,
+      "path": "game-extra-last.json",
+      "sha256": "b6cb0e144c46a1197dbaa7dae30f030cb730a1bf73edd0db5b121e0d67b0a52f",
+      "verified": true
+    },
+    {
+      "bytes": 9357,
+      "path": "route-xyz-first.json",
+      "sha256": "5484b9f361a12cef335f5740ca9dc6aa5232bfa4017671006a223d5599941d66",
+      "verified": true
+    },
+    {
+      "bytes": 64672,
+      "path": "game-xyz-first.json",
+      "sha256": "1148c5ab954f0171fc89929e389112e4838d9e05dbd5a7dfd9922297eed17e21",
+      "verified": true
+    },
+    {
+      "bytes": 5608,
+      "path": "comparison.json",
+      "sha256": "3bfbe3e152219772d8857a8ddab235e7ff5b6feed61411146336aebdf166c8ce",
+      "verified": true
+    },
+    {
+      "bytes": 46771,
+      "path": "comparison-game-0.json",
+      "sha256": "7c85e1ddb931aba143ec48070f6a374c0cd22d2aef441a7cd2fecfec30dd30a4",
+      "verified": true
+    },
+    {
+      "bytes": 60617,
+      "path": "comparison-game-1.json",
+      "sha256": "edd1edfb49937ee96432f3fff49a98ce33bc8209b7aaf795ffb01d92d7ec281d",
+      "verified": true
+    },
+    {
+      "bytes": 50531,
+      "path": "comparison-game-2.json",
+      "sha256": "c0c41b1bc3d8f5e19119c80f1da054b9f7f36145375b02035d3d28aaaae29b07",
+      "verified": true
+    },
+    {
+      "bytes": 51426,
+      "path": "comparison-game-3.json",
+      "sha256": "f9c3d6825c5ccd58992d213f3ca33ef63dfa69a1a0d1411d6ff54397fa95f50d",
+      "verified": true
+    },
+    {
+      "bytes": 39343,
+      "path": "comparison-game-4.json",
+      "sha256": "09d6ad58749ac904cfdea6a449565e2abbe7dd681112c4fa7410320b3ce2b112",
+      "verified": true
+    },
+    {
+      "bytes": 45984,
+      "path": "comparison-game-5.json",
+      "sha256": "d20651cb04b3b0596572731ad728a041eb40749f727e5a80be7a256a68e23071",
+      "verified": true
+    },
+    {
+      "bytes": 39354,
+      "path": "comparison-game-6.json",
+      "sha256": "f3dd6b9338e819fda8a694ecded5240f8603d7dc195a11463f9ee179f53116ce",
+      "verified": true
+    },
+    {
+      "bytes": 44018,
+      "path": "comparison-game-7.json",
+      "sha256": "7abc1b597ff16276cd9f2b5d99b53712f4c2edd101f5ac65686288ceaf1f4752",
+      "verified": true
+    },
+    {
+      "bytes": 55309,
+      "path": "construction-train-data.json",
+      "sha256": "b328c8407b2f4bdb1a761d27e0bf946c0d5a78f86e48dfa970eb77a2a9c4218a",
+      "verified": true
+    },
+    {
+      "bytes": 527851,
+      "path": "paired-feedback-step-1.weights",
+      "sha256": "e7d670ba5b5322cad12c96134f1063cc46722ad93831cf62ca4fe25883c4372f",
+      "verified": true
+    },
+    {
+      "bytes": 527851,
+      "path": "paired-feedback-step-2.weights",
+      "sha256": "cb8d980ec3662b00d8419e56d7841892e487f67e7733ba8272752120e1dec15c",
+      "verified": true
+    },
+    {
+      "bytes": 527915,
+      "path": "paired-feedback-resumed-step-2.weights",
+      "sha256": "d5f88a6777f33403b65cabfd216c3b6b2e439e7c1574ee446b6600d4766cdb7f",
+      "verified": true
+    },
+    {
+      "bytes": 15707,
+      "path": "selected-goal-revalidation.json",
+      "sha256": "145d3e2feec451c6ea3c5e527ea11389d63b78c60ad04e521671f715d28522c8",
+      "verified": true
+    }
+  ],
+  "artifact_total_bytes": 2251322,
+  "package_source_sha256": "a359176abd28fbf929d05fb08c81c9ef8bc9dd522818d2e38ee28198d91af031",
+  "package_source_matches_cli": true,
+  "full_integration_source_commit": "291a070996ae4d278017636730c0c54a64a909b1",
+  "full_integration": {
+    "started_at_utc": "2026-10-23T03:01:45.549878+00:00",
+    "wall_seconds": 465.3765312809992,
+    "exit_code": 0
+  },
+  "post_fix_tests": [
+    {
+      "suite": "unit",
+      "exit_code": 0,
+      "wall_seconds": 13.679523709000932
+    },
+    {
+      "suite": "targeted",
+      "exit_code": 0,
+      "wall_seconds": 67.04412318899995
+    }
+  ],
+  "protected_path_changes": [],
+  "original_verification": [
+    {
+      "path": "docs/current/游戏王AI项目设计定稿.docx",
+      "bytes_match": true,
+      "sha256_match": true
+    },
+    {
+      "path": "docs/learning/游戏王AI项目亲手实作手册.docx",
+      "bytes_match": true,
+      "sha256_match": true
+    },
+    {
+      "path": "docs/learning/游戏王AI亲手练习包.zip",
+      "bytes_match": true,
+      "sha256_match": true
+    },
+    {
+      "path": "docs/reference/游戏王AI_技术选型调研_2026-10-18.docx",
+      "bytes_match": true,
+      "sha256_match": true
+    },
+    {
+      "path": "docs/reference/游戏王AI_技术选型调研_2026-10-18.pdf",
+      "bytes_match": true,
+      "sha256_match": true
+    },
+    {
+      "path": "docs/archive/YGO模型设计草案_小幅修订版(1).docx",
+      "bytes_match": true,
+      "sha256_match": true
+    },
+    {
+      "path": "docs/archive/YGO模型设计草案_小幅修订版.docx",
+      "bytes_match": true,
+      "sha256_match": true
+    },
+    {
+      "path": "docs/archive/YGO模型设计草案.docx",
+      "bytes_match": true,
+      "sha256_match": true
+    },
+    {
+      "path": "docs/reference/游戏王AI_现有技术与混合部署调研.pdf",
+      "bytes_match": true,
+      "sha256_match": true
+    },
+    {
+      "path": "docs/archive/标签驱动游戏王AI_设计草案.pdf",
+      "bytes_match": true,
+      "sha256_match": true
+    },
+    {
+      "path": "docs/reference/游戏王对战AI_项目核验与自建路线_2026-10-18.pdf",
+      "bytes_match": true,
+      "sha256_match": true
+    }
+  ],
+  "quota_remaining": null,
+  "stop_threshold_percent": 20,
+  "reset_card_used": false,
+  "paid_training_started": false,
+  "credentials_or_permissions_changed": false
+}
