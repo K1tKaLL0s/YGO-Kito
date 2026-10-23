@@ -244,7 +244,8 @@ class Observation:
             raise ContractError("duplicate card references")
         for c in self.cards:
             if c.zone == "overlay" and not any(h.ref == c.attached_to and h.zone == "monster" and h.controller == c.controller
-                                               and h.visibility != "hidden" and h.visibility == c.visibility for h in self.cards):
+                                               and (h.visibility == c.visibility or c.visibility == "public" and h.material_count is not None)
+                                               for h in self.cards):
                 raise ContractError("overlay material references an absent/different host")
             if c.material_count is not None and sum(m.attached_to == c.ref for m in self.cards) != c.material_count:
                 raise ContractError("material count differs from observed attachments")
@@ -399,6 +400,7 @@ class SelectionChoice:
     visibility: str
     card_id: int | None = None
     owner: int | None = None
+    knowledge_ref: str | None = None
 
     def __post_init__(self):
         text(self.ref, "selection reference")
@@ -406,16 +408,55 @@ class SelectionChoice:
         member(self.zone, "selection zone", ("deck", "hand", "monster", "spell_trap", "graveyard", "banished", "extra", "overlay"))
         member(self.visibility, "selection visibility", ("observer", "hidden"))
         if self.visibility == "hidden":
-            if self.card_id is not None or self.owner is not None:
+            if self.card_id is not None or self.owner is not None or self.knowledge_ref is not None:
                 raise ContractError("opaque selections cannot carry identity or ownership")
         else:
             integer(self.card_id, "offered selection identity", 1, 2**32 - 1)
         if self.owner is not None:
             integer(self.owner, "selection owner", 0, 1)
+        if self.knowledge_ref is not None:
+            text(self.knowledge_ref,"selection knowledge reference")
+            if self.owner is not None:raise ContractError("private confirmation carries no ownership evidence")
 
     @classmethod
     def from_dict(cls, value):
-        return cls(**fields(value, {"ref", "controller", "zone", "visibility"}, {"card_id", "owner"}))
+        return cls(**fields(value, {"ref", "controller", "zone", "visibility"}, {"card_id", "owner", "knowledge_ref"}))
+
+
+@dataclass(frozen=True)
+class RevealedCard:
+    card_id: int
+    controller: int
+    zone: str
+
+    def __post_init__(self):
+        integer(self.card_id,"revealed identity",1,2**32-1)
+        integer(self.controller,"revealed controller",0,1)
+        member(self.zone,"private revelation zone",("deck",))
+
+    @classmethod
+    def from_dict(cls,value):return cls(**fields(value,{"card_id","controller","zone"}))
+
+
+@dataclass(frozen=True)
+class PrivateReveal:
+    """A past legal confirmation to ONE observer, without card positions."""
+    ref: str
+    observer: int
+    cards: tuple[RevealedCard,...]
+    message: int = 31
+
+    def __post_init__(self):
+        text(self.ref,"private revelation reference")
+        integer(self.observer,"private revelation observer",0,1)
+        integer(self.message,"private revelation message",31,31)
+        if not isinstance(self.cards,tuple) or not 1<=len(self.cards)<=128 or any(not isinstance(c,RevealedCard) for c in self.cards):
+            raise ContractError("private revelation requires bounded typed identities")
+
+    @classmethod
+    def from_dict(cls,value):
+        d=fields(value,{"ref","observer","cards","message"})
+        return cls(d['ref'],d['observer'],tuple(RevealedCard.from_dict(c) for c in array(d['cards'],'revealed identities')),d['message'])
 
 
 @dataclass(frozen=True)
@@ -476,6 +517,7 @@ class DecisionRequest:
     prompt: PromptInfo | None = None
     sum_selection: SumSelection | None = None
     selection_choices: tuple[SelectionChoice, ...] = ()
+    private_reveals: tuple[PrivateReveal,...] = ()
 
     def __post_init__(self):
         if type(self.schema_version) is not int or self.schema_version != SCHEMA_VERSION:
@@ -503,13 +545,26 @@ class DecisionRequest:
             if choice.scope == "ordering" and (self.prompt is None or self.prompt.message != 25):
                 raise ContractError("ordering identities require their explicit chooser-only prompt")
             refs.add(choice.ref)
+        if not isinstance(self.private_reveals,tuple) or len(self.private_reveals)>32:
+            raise ContractError("private revelation history exceeds its bounded contract")
+        knowledge={}
+        for reveal in self.private_reveals:
+            if not isinstance(reveal,PrivateReveal) or reveal.observer!=self.observation.observer or reveal.ref in knowledge:
+                raise ContractError("private revelation belongs to another observer or repeats")
+            from collections import Counter
+            knowledge[reveal.ref]=Counter((c.controller,c.zone,c.card_id) for c in reveal.cards)
         for choice in self.selection_choices:
             if not isinstance(choice, SelectionChoice) or choice.ref in refs:
                 raise ContractError("selection choices must be typed and unique")
             if self.prompt is None or self.prompt.message not in (15,26):
                 raise ContractError("temporary selections require an explicit selection window")
-            if choice.visibility == "observer" and choice.controller != self.observation.observer:
-                raise ContractError("opponent temporary identities require an existing legal card view")
+            if choice.knowledge_ref is not None:
+                counts=knowledge.get(choice.knowledge_ref)
+                key=(choice.controller,choice.zone,choice.card_id)
+                if counts is None or counts[key]<1:raise ContractError("temporary identity lacks its legal confirmation")
+                counts[key]-=1
+            elif choice.visibility == "observer" and choice.controller != self.observation.observer:
+                raise ContractError("opponent temporary identities require legal confirmation evidence")
             refs.add(choice.ref)
         if any(set(action.card_refs) - refs for action in self.actions):
             raise ContractError("action references an unobserved card")
@@ -526,7 +581,7 @@ class DecisionRequest:
 
     @classmethod
     def from_dict(cls, value):
-        d = fields(value, {"schema_version", "context", "duel_id", "decision_id", "observation", "actions"}, {"search_choices", "prompt", "sum_selection", "selection_choices"})
+        d = fields(value, {"schema_version", "context", "duel_id", "decision_id", "observation", "actions"}, {"search_choices", "prompt", "sum_selection", "selection_choices", "private_reveals"})
         return cls(
             RunContext.from_dict(d["context"]), d["duel_id"], d["decision_id"],
             Observation.from_dict(d["observation"]), tuple(LegalAction.from_dict(a) for a in array(d["actions"], "actions")),
@@ -534,6 +589,7 @@ class DecisionRequest:
             PromptInfo.from_dict(d["prompt"]) if d.get("prompt") is not None else None,
             SumSelection.from_dict(d["sum_selection"]) if d.get("sum_selection") is not None else None,
             tuple(SelectionChoice.from_dict(c) for c in array(d.get("selection_choices", []), "selection_choices")),
+            tuple(PrivateReveal.from_dict(c) for c in array(d.get("private_reveals", []), "private_reveals")),
         )
 
     def to_dict(self):
@@ -546,6 +602,9 @@ class DecisionRequest:
             result.pop("sum_selection")
         if not self.selection_choices:
             result.pop("selection_choices")
+        if not self.private_reveals:result.pop('private_reveals')
+        for choice in result.get('selection_choices',[]):
+            if choice['knowledge_ref'] is None:choice.pop('knowledge_ref')
         for action in result["actions"]:
             if action["details"] is None:
                 action.pop("details")

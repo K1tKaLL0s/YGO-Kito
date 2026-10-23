@@ -95,6 +95,9 @@ def parser():
     private = sub.add_parser("private-hierarchy-acceptance", help="real v4 hidden/mixed choices, full-action CPU update and checkpoint proof; nonpaid")
     private.add_argument("--root", type=Path, default=Path(".cache"))
     private.add_argument("--output", type=Path, required=True)
+    knowledge=sub.add_parser("private-knowledge-acceptance",help="real v5 private deck/confirmation and facedown host proof; exports only common-public histories")
+    knowledge.add_argument("--root",type=Path,default=Path(".cache"))
+    knowledge.add_argument("--output",type=Path,required=True)
     build_train = sub.add_parser("build-train-cpu", help="bounded independent goal/optimizer CPU updates, recovery and real conditional goal checks")
     build_train.add_argument("--root", type=Path, default=Path(".cache"))
     build_train.add_argument("--state-root", type=Path, default=Path(".cache/agent"))
@@ -222,6 +225,18 @@ def main(argv=None) -> int:
                 signal.setitimer(signal.ITIMER_REAL,120.)
                 try:
                     output=run_private_acceptance(args.root,args.output)
+                finally:
+                    signal.setitimer(signal.ITIMER_REAL,0)
+                    signal.signal(signal.SIGALRM,old_handler)
+            case "private-knowledge-acceptance":
+                import signal
+                from .knowledge_acceptance import run_knowledge_acceptance
+                if not hasattr(signal,"setitimer"):
+                    raise EngineUnavailable("private knowledge acceptance requires this cloud's Unix process timer")
+                old_handler=signal.signal(signal.SIGALRM,signal.SIG_DFL)
+                signal.setitimer(signal.ITIMER_REAL,120.)
+                try:
+                    output=run_knowledge_acceptance(args.root,args.output)
                 finally:
                     signal.setitimer(signal.ITIMER_REAL,0)
                     signal.signal(signal.SIGALRM,old_handler)

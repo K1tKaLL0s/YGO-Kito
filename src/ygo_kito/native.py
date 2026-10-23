@@ -60,8 +60,13 @@ class NativeNormalEngine:
             from .deck_profile import validate_profile
             validate_profile(deck_profile)
         self.extended_actions = self.general_actions and deck_profile.get("schema_version") == 2
-        self.modern_actions = self.general_actions and deck_profile.get("adapter_revision") in (3,4)
-        self.private_actions = self.general_actions and deck_profile.get("adapter_revision") == 4
+        self.modern_actions = self.general_actions and deck_profile.get("adapter_revision") in (3,4,5)
+        self.private_actions = self.general_actions and deck_profile.get("adapter_revision") in (4,5)
+        self.knowledge_actions = self.general_actions and deck_profile.get("adapter_revision") == 5
+        self._private_reveals=[[],[]]
+        self._private_reveal_counters=[0,0]
+        self._private_revealed_slots=[{},{}]
+        self._public_materials={}
         if selection_key is not None and not self.private_actions:
             raise ContractError("private selection replay key requires revision 4")
         if selection_key is not None:
@@ -159,7 +164,7 @@ class NativeNormalEngine:
             hashes = self.receipt["resources"]
             self.context = RunContext(f"native-{uuid4().hex}", Versions(self.lock["sources"]["core"]["commit"],
                 hashes["scripts"], hashes["cards"], hashes["client_protocol"],
-                "native-private-selection-v4" if self.private_actions else "native-protocol-history-v3" if self.modern_actions else "native-extra-material-v2" if self.extended_actions else self.lock["card_pool"]["id"] if scenario == "normal" else f"native-{scenario}-v1", "2026.10:" + hashes["banlist"]), None)
+                "native-private-knowledge-v5" if self.knowledge_actions else "native-private-selection-v4" if self.private_actions else "native-protocol-history-v3" if self.modern_actions else "native-extra-material-v2" if self.extended_actions else self.lock["card_pool"]["id"] if scenario == "normal" else f"native-{scenario}-v1", "2026.10:" + hashes["banlist"]), None)
             self.lib.start_duel(self.handle, 5 << 16)  # Master Rule 2020, no TEST/SIMPLE_AI mode.
         except BaseException:
             self.close()
@@ -339,6 +344,7 @@ class NativeNormalEngine:
                                         catalog=self._rows if self.modern_actions else None,
                                         selection_observation=observation if self.private_actions else None,
                                         selection_seed=(self._selection_seed,player,self._observer_windows[player]) if self.private_actions else None,
+                                        known_slots=self._private_revealed_slots[player] if self.knowledge_actions else None,
                                         ref_resolver=lambda *args: resolve(self, *args))
             else:
                 decoded = decode_prompt(kind, reader)
@@ -348,7 +354,8 @@ class NativeNormalEngine:
             actions = tuple(LegalAction(f"choice-{i}", o.kind, o.refs, o.value, o.details) for i, o in enumerate(decoded.options))
             self.pending = DecisionRequest(self.context, "native-effect-duel", f"p{decoded.player}-window-{self._observer_windows[decoded.player]}",
                 observation or self._observation(decoded.player), actions, search_choices=decoded.search_choices, prompt=decoded.info,
-                sum_selection=decoded.sum_selection, selection_choices=decoded.selection_choices)
+                sum_selection=decoded.sum_selection, selection_choices=decoded.selection_choices,
+                private_reveals=tuple(self._private_reveals[decoded.player]) if self.knowledge_actions else ())
             self.pending_kind = kind
             return self.pending
         player = reader.u8()

@@ -14,7 +14,7 @@ from .native_protocol import DecodedPrompt, NativeError, NativeOption
 ZONES={1:'deck',2:'hand',4:'monster',8:'spell_trap',16:'graveyard',32:'banished',64:'extra'}
 
 
-def decode_selection(kind,r,resolve,obs,seed):
+def decode_selection(kind,r,resolve,obs,seed,*,known_slots=None):
     player=r.u8()
     if player not in (0,1) or player!=obs.observer or seed is None:
         raise NativeError('private selection requires its legal observer and private replay key')
@@ -54,10 +54,15 @@ def decode_selection(kind,r,resolve,obs,seed):
             # legal card views can retain already-known identities; raw code
             # alone never upgrades knowledge, including own facedown targets.
             offered=code if z==1 and c==player else None
+            knowledge=None
+            if z==1 and c!=player and known_slots is not None:
+                prior=known_slots.get((c,z,s))
+                if prior is not None and prior[0]==code:
+                    offered,knowledge=prior
             if z==1 and c==player and not offered:
                 raise NativeError('own deck selection has no offered identity')
             entries.append({'native':len(entries),'operation':operation,'controller':c,'zone':zone,
-                            'ref':ref,'offered':offered})
+                            'ref':ref,'offered':offered,'knowledge':knowledge})
     read_group(*groups[0])
     if kind==26:read_group('remove',r.u8())
     if r.offset!=len(r.data):raise NativeError('trailing private selection payload')
@@ -76,7 +81,7 @@ def decode_selection(kind,r,resolve,obs,seed):
         if e['ref'] is None:
             e['ref']=f'selection-{i}'
             choices.append(SelectionChoice(e['ref'],e['controller'],e['zone'],
-                                           'observer' if e['offered'] else 'hidden',e['offered']))
+                                           'observer' if e['offered'] else 'hidden',e['offered'],knowledge_ref=e['knowledge']))
     options=[]
     if kind==15:
         count=len(entries);top=min(maximum,count)

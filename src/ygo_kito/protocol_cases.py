@@ -4,6 +4,7 @@ Only deck/seed setup is supplied. No field injection, custom Lua, patched rule,
 pretended victory or all-state policy. Traces are private replay artifacts.
 """
 from dataclasses import asdict
+from collections import Counter
 import json
 from pathlib import Path
 import time
@@ -26,9 +27,11 @@ class EngineeringDriver:
     """Declared case intent + legal DTO + public catalogue, no engine/seed."""
     def __init__(self, case, catalog, preference):
         self.plan, self.catalog, self.preference = case["plan"], catalog, preference
-        self.private = case["profile"].get("adapter_revision") == 4
+        self.private = case["profile"].get("adapter_revision") in (4,5)
         self.selections = case.get("selection_preferences", [])
         self.cursor = 0
+        self.unselect_operations=case.get('unselect_operations',[])
+        self.unselect_cursor=0
 
     def choose(self, req, *, after_case=False):
         if after_case:
@@ -46,7 +49,9 @@ class EngineeringDriver:
                     return matching[0]
         for selection in self.selections:
             if req.observation.observer==selection['player'] and kind==selection['message']:
-                matching=[a for a in req.actions if a.kind=='select' and any(codes.get(r)==selection['card_id'] for r in a.card_refs)]
+                matching=[a for a in req.actions if a.kind=='select' and
+                          (Counter(codes.get(r) for r in a.card_refs)==Counter(selection['card_ids']) if 'card_ids' in selection
+                           else any(codes.get(r)==selection['card_id'] for r in a.card_refs))]
                 if matching:return matching[0]
         if kind in (15,18,19,20,22,23,24,25):
             choices=[a for a in req.actions if a.kind in ("select","order","position")]
@@ -65,7 +70,15 @@ class EngineeringDriver:
         if kind in (12,13):
             return next(a for a in req.actions if a.kind=="yes")
         if kind==26:
-            return next((a for a in req.actions if a.details and a.details.operation=="finish"),req.actions[0])
+            if self.unselect_cursor<len(self.unselect_operations):
+                operation=self.unselect_operations[self.unselect_cursor]
+                self.unselect_cursor+=1
+                return next(a for a in req.actions if a.details and a.details.operation==operation)
+            finished=next((a for a in req.actions if a.details and a.details.operation=="finish"),None)
+            if finished is not None:return finished
+            if self.private:
+                return next((a for a in req.actions if a.details and a.details.operation=="add"),req.actions[0])
+            return req.actions[0]
         if kind==16:
             trigger=next((a for a in req.actions if a.kind=="activate" and any(codes.get(r)==71413901 for r in a.card_refs)),None)
             if trigger is not None:return trigger
@@ -87,8 +100,8 @@ def run_protocol_case(root, name, *, preference="first", replay=None, complete=F
 def run_configured_case(root,name,case,required,*,preference="first",replay=None,complete=False,budget_seconds=30):
     if preference not in ("first","last") or type(complete) is not bool or not 0<budget_seconds<=120:
         raise ContractError("invalid bounded configured protocol case")
-    private=case['profile'].get('adapter_revision')==4
-    trace_kind='real-private-selection-audit-v4' if private else 'real-protocol-history-private-audit-v3'
+    private=case['profile'].get('adapter_revision') in (4,5)
+    trace_kind='real-private-knowledge-audit-v5' if case['profile'].get('adapter_revision')==5 else 'real-private-selection-audit-v4' if private else 'real-protocol-history-private-audit-v3'
     if replay is not None:
         fields(replay,{"schema_version","kind","name","preference","complete","case","resources","responses","windows","events","final_observations","outcome","result"},{"selection_key_audit_only"})
         if replay["schema_version"]!=1 or replay["kind"]!=trace_kind or replay["name"]!=name or replay["case"]!=case or replay["preference"]!=preference or replay["complete"]!=complete:

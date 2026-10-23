@@ -132,13 +132,13 @@ def run_effect_duel(root, profile, *, seed=7, replay=None, max_decisions=3000, b
         route_driver = RouteDriver(route_task.goal["route"], material_preference=option_preference)
     started, cpu_started = time.monotonic(), time.process_time()
     latencies, responses = [], []
-    if replay is not None and (profile.get('adapter_revision')==4) != ('selection_key_audit_only' in replay):
+    if replay is not None and (profile.get('adapter_revision') in (4,5)) != ('selection_key_audit_only' in replay):
         raise ContractError('private selection replay key/version binding differs')
     with NativeNormalEngine(root, seed=seed, scenario="effect-duel", deck_profile=profile,
                             selection_key=replay.get('selection_key_audit_only') if replay else None) as engine:
         facts = public_card_facts(root)
         versions = {"source_commits": engine.receipt["source_commits"], "resources": engine.receipt["resources"],
-                    "adapter_schema": "native-private-selection-v4" if engine.private_actions else "native-protocol-history-v3" if engine.modern_actions else "native-extra-material-v2" if engine.extended_actions else "native-effect-duel-v1-general-actions", "python": platform.python_version(),
+                    "adapter_schema": "native-private-knowledge-v5" if engine.knowledge_actions else "native-private-selection-v4" if engine.private_actions else "native-protocol-history-v3" if engine.modern_actions else "native-extra-material-v2" if engine.extended_actions else "native-effect-duel-v1-general-actions", "python": platform.python_version(),
                     "policy": "declared-route-then-visible-baseline-v2" if route_driver else "visible-dto-effect-protocol-baseline-v1", "option_preference": option_preference}
         if route_driver:
             versions["route_task_sha256"] = route_task.sha256

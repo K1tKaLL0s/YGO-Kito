@@ -19,7 +19,7 @@ ZONES = ("state", "hand", "monster", "spell_trap", "graveyard", "banished", "ext
 PHASES = ("draw", "standby", "main1", "battle", "main2", "end")
 EVENTS = ("none", "reveal", "move", "activate", "summon", "attack", "phase", "result", "turn", "chain", "lp", "counter", "shuffle", "battle", "position", "announce", "random", "equip", "target", "disabled", "hint")
 OPERATIONS = (None, "add", "remove", "finish", "cancel", "shuffle", "sum")
-FEATURE_VERSION = "legal-player-dto-v4-private-selection-hierarchy"
+FEATURE_VERSION = "legal-player-dto-v5-private-knowledge-hierarchy"
 
 
 @dataclass(frozen=True)
@@ -102,6 +102,11 @@ class PlayerEncoder:
             tokens.append([self._card(choice.card_id), ZONES.index(choice.zone), relative(choice.owner),
                            relative(choice.controller), 2 if choice.visibility == "hidden" else 1, 0, 0])
             numbers.append([0., 0., 0., 0.])
+        for reveal in request.private_reveals:
+            for card in reveal.cards:
+                tokens.append([self._card(card.card_id),ZONES.index("history"),2,relative(card.controller),1,0,EVENTS.index("reveal")])
+                # This is past knowledge, not a current-position/card inventory.
+                numbers.append([0.,0.,0.,0.])
         for event in obs.public_history[-cfg.history_events:]:
             for code in event.card_ids or (None,):
                 tokens.append([self._card(code), ZONES.index("history"), 2, 0, 0, 0, EVENTS.index(event.kind)])

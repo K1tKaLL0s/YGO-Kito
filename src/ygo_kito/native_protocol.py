@@ -88,12 +88,12 @@ def decode_deck_choices(player, minimum, maximum, candidates):
 
 
 def decode_prompt(kind, reader, *, ref_resolver=None, allow_sum=False, allow_advanced=False, catalog=None,
-                  selection_observation=None, selection_seed=None):
+                  selection_observation=None, selection_seed=None,known_slots=None):
     """All choices are bounded, native-offered operations; unsupported messages raise."""
     resolve = ref_resolver or visible_ref
     if selection_observation is not None and kind in (15,26):
         from .private_selection import decode_selection
-        return decode_selection(kind,reader,resolve,selection_observation,selection_seed)
+        return decode_selection(kind,reader,resolve,selection_observation,selection_seed,known_slots=known_slots)
     if allow_advanced:
         from .advanced_protocol import MESSAGES, decode_advanced
         if kind in MESSAGES:

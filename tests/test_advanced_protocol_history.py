@@ -97,7 +97,8 @@ class AdvancedCodecTests(unittest.TestCase):
         value={'schema_version':2,'adapter_revision':3,'name':'example','decks':[[],[]],'extras':[[],[]],'sides':[[],[]]}
         validate_profile(value)
         validate_profile({**value,'adapter_revision':4})
-        for rev in (True,2,5):
+        validate_profile({**value,'adapter_revision':5})
+        for rev in (True,2,6):
             with self.assertRaises(ContractError):validate_profile({**value,'adapter_revision':rev})
         for malformed in ('not-a-profile',[],{},True):
             with self.assertRaises(ContractError):
@@ -178,7 +179,7 @@ class StructuredPublicHistoryTests(unittest.TestCase):
         data['observation']['public_history'][0]['details']['amount']=1000
         new=encoder.encode(DecisionRequest.from_dict(data))
         self.assertFalse(torch.equal(old['numbers'],new['numbers']))
-        self.assertIn('v4',FEATURE_VERSION)
+        self.assertIn('v5',FEATURE_VERSION)
 
     def test_ordering_cards_preserve_controller_and_differ_from_deck_search_tokens(self):
         data=request();data['context']['seed']=None

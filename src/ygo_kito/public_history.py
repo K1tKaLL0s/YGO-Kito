@@ -74,12 +74,18 @@ def consume(engine, kind, r, audit):
     elif kind in (32,35):
         p = r.u8()
         if p not in (0,1): raise NativeError("invalid shuffle player")
+        from .private_knowledge import forget_slots
+        forget_slots(engine,p,1 if kind==32 else 16)
+        if kind==35:forget_slots(engine,p,1)  # grave/deck swap changes BOTH arrays
         engine._known_owners = {k:v for k,v in engine._known_owners.items() if k[:2] != (p,16)} if kind == 35 else engine._known_owners
         audit["player"] = p
         emit(engine, "shuffle", kind, player=p)
     elif kind in (33,39,90):
         p, count = r.u8(), r.u8()
         if p not in (0,1): raise NativeError("invalid hand/extra event player")
+        from .private_knowledge import forget_slots
+        forget_slots(engine,p,2 if kind in (33,90) else 64)
+        if kind==90:forget_slots(engine,p,1)
         codes = tuple(r.u32() for _ in range(count))
         audit.update(player=p, count=count)
         engine._revealed_hand[p].clear()
@@ -94,12 +100,14 @@ def consume(engine, kind, r, audit):
              (c & 0x7fffffff for c in codes if c & 0x80000000) if kind == 90 else (), player=p, amount=count)
     elif kind == 50:
         code, previous, current, reason = r.u32(), r.take(4), r.take(4), r.u32()
+        from .private_knowledge import public_move
+        public_move(engine,code,previous,current,public_slot(previous))
         from .extra_observation import moved
         moved(engine, previous, current)
         for slot in (previous,current):
             if slot[1] == 2: engine._revealed_hand[slot[0]].clear()
         audit.update(from_zone=previous[1], to_zone=current[1], player=current[0], reason=reason)
-        visible = public_slot(previous) or public_slot(current)
+        visible = public_slot(previous) or public_slot(current) or getattr(engine,"knowledge_actions",False) and bool(current[1]&0x80)
         if visible and code: audit["public_card"] = code
         # Core emits zero-code DECK->DECK moves while sorting. Their count and
         # positions are not public decisions and must not leak into history.
@@ -130,6 +138,8 @@ def consume(engine, kind, r, audit):
         # Swapping public-field associations invalidates ownership caches.
         engine._known_owners.clear()
         engine._overlay_owners.clear()
+        from .private_knowledge import forget_material_associations
+        forget_material_associations(engine)
         emit(engine,"move",kind,tuple(c for c,s in ((c1,s1),(c2,s2)) if public_slot(s)),locations=(location(s1),location(s2)))
     elif kind == 56:
         emit(engine,"disabled",kind,value=r.u32())
@@ -200,6 +210,9 @@ def consume(engine, kind, r, audit):
         # DECK goes only to the requested viewer. Other confirmations and
         # ConfirmDecktop/Extratop are broadcast. Never infer this from a name.
         public=kind!=31 or not cards or cards[0][2]!=1
+        if not public:
+            from .private_knowledge import remember_confirmation
+            remember_confirmation(engine,p,cards)
         audit.update(viewer=p,public_cards=[c for c,own,z,s in cards] if public else [])
         if public:
             for c,own,z,s in cards:
@@ -215,8 +228,12 @@ def consume(engine, kind, r, audit):
         r.take(4*count)
         engine._known_owners.clear()
         engine._overlay_owners.clear()
+        from .private_knowledge import forget_material_associations
+        forget_material_associations(engine)
         emit(engine,"shuffle",kind,amount=count,locations=tuple(location(s) for s in old))
     elif kind == 37:
+        from .private_knowledge import forget_slots
+        forget_slots(engine,zone=1)
         emit(engine,"shuffle",kind)
     elif kind == 38:
         p,_offset,packed=r.u8(),r.u8(),r.u32()

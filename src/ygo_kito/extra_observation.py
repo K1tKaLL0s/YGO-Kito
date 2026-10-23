@@ -1,8 +1,8 @@
 """Player-visible extra/banished/attached material projection for profile v2.
 
 Extra sequence indices stay private. Unknown material owner is represented as
-unknown, never guessed from the host controller. Hidden host materials are not
-queried for an opponent; this intentionally conservative case remains partial.
+unknown, never guessed from the host controller. Revision 5 retains only the
+previously broadcast overlay objects under a now hidden host, without a query.
 """
 from dataclasses import replace
 import ctypes
@@ -42,9 +42,24 @@ def extend(engine, observer, cards):
         for index in range(hidden):
             cards.append(CardView(f"p{player}.extra.hidden-{index}", None, player, "extra", "hidden", None, 8))
     for index, host in enumerate(tuple(cards)):
-        if host.zone != "monster" or host.visibility == "hidden":
+        if host.zone != "monster":
             continue
         sequence = int(host.ref.rsplit(".", 1)[1])
+        host_key=(host.controller,4,sequence)
+        if host.visibility == "hidden":
+            if not engine.knowledge_actions:
+                continue
+            known={key[3]:value for key,value in engine._public_materials.items() if key[:3]==host_key}
+            # An incomplete set cannot certify total material count. Do not
+            # consult hidden host state to fill a gap after a hidden shuffle.
+            if not known or set(known)!=set(range(len(known))):
+                continue
+            cards[index]=replace(host,material_count=len(known))
+            for material,(code,owner) in sorted(known.items()):
+                ref=host.ref+f".material.{material}"
+                engine._material_refs[host_key+(material,)]=ref
+                cards.append(CardView(ref,owner,host.controller,"overlay","public",code,attached_to=host.ref))
+            continue
         buffer = (ctypes.c_uint8 * 1024)()
         length = engine.lib.query_card(engine.handle, host.controller, 4, sequence, 0x10000, buffer, 0)
         if not 12 <= length <= len(buffer):
@@ -61,7 +76,14 @@ def extend(engine, observer, cards):
             ref = host.ref + f".material.{material}"
             engine._material_refs[(host.controller, 4, sequence, material)] = ref
             owner = engine._overlay_owners.get((host.controller, 4, sequence, material))
-            cards.append(CardView(ref, owner, host.controller, "overlay", "public" if host.visibility == "public" else "observer",
+            if engine.knowledge_actions:
+                key=host_key+(material,)
+                prior=engine._public_materials.get(key,(None,None))
+                owner=prior[1] if prior[0]==code else None
+                if host.visibility=="public":
+                    engine._public_materials[key]=(code,owner)
+            public=host.visibility=="public" or engine.knowledge_actions and engine._public_materials.get(host_key+(material,),(None,None))[0]==code
+            cards.append(CardView(ref, owner, host.controller, "overlay", "public" if public else "observer",
                                   code, attached_to=host.ref))
     return cards
 

@@ -152,7 +152,7 @@ class CpuTrainer:
         # Independent view randomness is private controller state; use the
         # checkpointed sampler stream rather than leaking the duel RNG rank.
         selection_key=None
-        if profile.get('adapter_revision')==4:
+        if profile.get('adapter_revision') in (4,5):
             words=torch.randint(0,2**63-1,(2,),generator=sampler_rng).tolist()
             selection_key=b''.join(w.to_bytes(8,'big') for w in words).hex()
         with NativeNormalEngine(root, scenario="effect-duel", deck_profile=profile, seed=seed,selection_key=selection_key) as engine:

@@ -10,8 +10,8 @@ def validate_profile(value):
     d = fields(value, {"schema_version", "name", "decks"} | ({"extras", "sides"} if version == 2 else set()),
                ({"sides"} if version == 1 else set()) | {"adapter_revision"})
     if "adapter_revision" in d:
-        if version != 2 or type(d["adapter_revision"]) is not int or d["adapter_revision"] not in (3,4):
-            raise ContractError("adapter revision 3/4 requires an explicit v2 extra/side profile")
+        if version != 2 or type(d["adapter_revision"]) is not int or d["adapter_revision"] not in (3,4,5):
+            raise ContractError("adapter revision 3/4/5 requires an explicit v2 extra/side profile")
     text(d["name"], "deck profile name")
     decks = array(d["decks"], "decks")
     if len(decks) != 2:
