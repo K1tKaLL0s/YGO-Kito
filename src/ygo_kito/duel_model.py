@@ -95,8 +95,8 @@ class PlayerEncoder:
                                     float(required), refs[choice.ref] / cfg.max_tokens])
         for choice in request.search_choices:
             refs[choice.ref] = len(tokens)
-            tokens.append([self._card(choice.card_id), ZONES.index("search"), 0, 0, 1, 0, 0])
-            numbers.append([0.] * 4)
+            tokens.append([self._card(choice.card_id), ZONES.index("search"), relative(choice.owner), relative(choice.owner), 1, 0, 0])
+            numbers.append([float(choice.scope == "ordering"), 0., 0., 0.])
         for event in obs.public_history[-cfg.history_events:]:
             for code in event.card_ids or (None,):
                 tokens.append([self._card(code), ZONES.index("history"), 2, 0, 0, 0, EVENTS.index(event.kind)])

@@ -179,6 +179,23 @@ class StructuredPublicHistoryTests(unittest.TestCase):
         self.assertFalse(torch.equal(old['numbers'],new['numbers']))
         self.assertIn('v3',FEATURE_VERSION)
 
+    def test_ordering_cards_preserve_controller_and_differ_from_deck_search_tokens(self):
+        data=request();data['context']['seed']=None
+        data['prompt']={'message':25,'minimum':1,'maximum':1}
+        data['search_choices']=[{'ref':'ordering-0','card_id':100,'owner':0,'scope':'ordering'}]
+        data['actions']=[{'action_id':'order','kind':'order','card_refs':['ordering-0']}]
+        encoder=PlayerEncoder([1,100],DuelModelConfig())
+        own=encoder.encode(DecisionRequest.from_dict(data))
+        data['search_choices'][0]['owner']=1
+        other=encoder.encode(DecisionRequest.from_dict(data))
+        self.assertEqual(own['tokens'][3,2:4].tolist(),[0,0])
+        self.assertEqual(other['tokens'][3,2:4].tolist(),[1,1])
+        data['prompt']['message']=15
+        data['search_choices'][0].update(owner=0,scope='search')
+        data['actions'][0]['kind']='select'
+        searched=encoder.encode(DecisionRequest.from_dict(data))
+        self.assertFalse(torch.equal(own['numbers'][3],searched['numbers'][3]))
+
     def test_unknown_events_and_malformed_public_locations_fail_closed(self):
         for kind in (21,161,162,163,180,255):
             with self.assertRaises(NativeError):consume(fake_engine(),kind,Reader(b''),{})
