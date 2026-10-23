@@ -15,11 +15,11 @@ from .contracts import DecisionRequest
 from .validation import ContractError, canonical_json, integer
 
 KINDS = ("summon", "special_summon", "set", "activate", "attack", "select", "order", "number", "position", "yes", "no", "pass")
-ZONES = ("state", "hand", "monster", "spell_trap", "graveyard", "banished", "extra", "search", "history")
+ZONES = ("state", "hand", "monster", "spell_trap", "graveyard", "banished", "extra", "search", "history", "overlay", "sum")
 PHASES = ("draw", "standby", "main1", "battle", "main2", "end")
 EVENTS = ("none", "reveal", "move", "activate", "summon", "attack", "phase", "result")
-OPERATIONS = (None, "add", "remove", "finish", "cancel", "shuffle")
-FEATURE_VERSION = "legal-player-dto-v1"
+OPERATIONS = (None, "add", "remove", "finish", "cancel", "shuffle", "sum")
+FEATURE_VERSION = "legal-player-dto-v2-extra-sum"
 
 
 @dataclass(frozen=True)
@@ -76,6 +76,23 @@ class PlayerEncoder:
             numbers.append([0. if card.attack is None else card.attack / 10000,
                             0. if card.defense is None else card.defense / 10000,
                             float(card.attack is not None), float(card.defense is not None)])
+            if card.attached_to is not None:
+                if card.attached_to not in refs:
+                    raise ContractError("material host must precede material in player encoding")
+                numbers[-1] = [0., 0., refs[card.attached_to] / cfg.max_tokens, 1.]
+            elif card.material_count is not None:
+                numbers[-1][3] += card.material_count / 128
+        if request.sum_selection is not None:
+            spec = request.sum_selection
+            tokens.append([0, ZONES.index("sum"), 2, 0, 0, 0, 0])
+            numbers.append([spec.target / 65536, float(spec.mode == "minimal_at_least"),
+                            spec.minimum_optional / 128, spec.maximum_optional / 128])
+            cards = {c.ref: c for c in obs.cards}
+            for required, group in ((True, spec.mandatory), (False, spec.optional)):
+                for choice in group:
+                    tokens.append([self._card(cards[choice.ref].card_id), ZONES.index("sum"), 0, 0, 1, 0, 0])
+                    numbers.append([choice.values[0] / 65536, choice.values[-1] / 65536,
+                                    float(required), refs[choice.ref] / cfg.max_tokens])
         for choice in request.search_choices:
             refs[choice.ref] = len(tokens)
             tokens.append([self._card(choice.card_id), ZONES.index("search"), 0, 0, 1, 0, 0])

@@ -12,7 +12,7 @@ from torch import nn
 from .build_contracts import BuildTask, DeckParts, ZONES, digest
 from .validation import ContractError, canonical_json, integer
 
-FEATURE_VERSION = "build-task-catalog-candidate-v1"
+FEATURE_VERSION = "build-task-catalog-candidate-v2-routes"
 
 
 @dataclass(frozen=True)
@@ -50,14 +50,24 @@ class BuildEncoder:
             raise ContractError("building encoder resource/pool binding differs")
         ids, numbers = [[0, 0, 0, 0]], [[0.] * 10]
 
-        def card(code, zone, kind, minimum=0, maximum=3):
+        def card(code, zone, kind, minimum=0, maximum=3, context=0.):
             if code not in self.card_index:
                 raise ContractError("candidate card outside building vocabulary")
             count = getattr(deck, zone).count(code)
             ids.append([self.card_index[code], 1 + ZONES.index(zone), 0, kind])
-            numbers.append(self.assets.facts(code) + [minimum / 3, maximum / 3, count / 3, 0.])
+            numbers.append(self.assets.facts(code) + [minimum / 3, maximum / 3, count / 3, context])
 
-        card(task.goal["card_id"], "main", 1)
+        extra_goal = task.goal["kind"] != "normal_summon"
+        goal_kind = ("normal_summon", "synchro_summon", "xyz_summon").index(task.goal["kind"])
+        card(task.goal["card_id"], "extra" if extra_goal else "main", 1, context=goal_kind / 2)
+        if extra_goal:
+            for code in task.goal["starting_conditions"]["requires_opening_hand"]:
+                card(code, "main", 5)
+            for intent in task.goal["route"]:
+                operation = intent["operation"]
+                for code in intent["card_ids"]:
+                    card(code, "extra" if operation == "special_summon" else "main", 6,
+                         context=("activate", "summon", "search", "special_summon").index(operation) / 3)
         for req in task.requirements:
             card(req["card_id"], req["zone"], 2, req["minimum"], req["maximum"])
         for annotation in task.annotations:
@@ -96,7 +106,7 @@ class BuildRanker(nn.Module):
         self.card = nn.Embedding(vocabulary_size + 1, config.card_width, padding_idx=0)
         self.card_project = nn.Linear(config.card_width, config.width)
         self.zone = nn.Embedding(4, config.width)
-        self.kind = nn.Embedding(5, config.width)
+        self.kind = nn.Embedding(7, config.width)
         self.annotation = nn.Embedding(annotation_count + 1, config.width, padding_idx=0)
         self.numeric, self.state = nn.Linear(10, config.width), nn.Linear(6, config.width)
         self.position = nn.Embedding(config.max_tokens, config.width)

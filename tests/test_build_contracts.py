@@ -15,6 +15,21 @@ TASK = json.loads((ROOT / "configs/build-engineering-v1.json").read_text())
 
 
 class BuildContractTests(unittest.TestCase):
+    def test_extra_goal_preserves_explicit_route_opening_and_section_constraints(self):
+        payload = json.loads((ROOT / "configs/build-extra-engineering-v2.json").read_text())
+        task = BuildTask.from_dict(payload)
+        self.assertEqual(BuildTask.from_dict(task.to_dict()), task)
+        for mutation in ("schema", "goal-zone", "opening-minimum", "route-end", "route-pool", "hidden-seed"):
+            bad = copy.deepcopy(payload)
+            if mutation == "schema": bad["schema_version"] = 1
+            elif mutation == "goal-zone": bad["requirements"][-1]["zone"] = "main"
+            elif mutation == "opening-minimum": bad["requirements"][0]["minimum"] = 0
+            elif mutation == "route-end": bad["goal"]["route"][-1]["operation"] = "activate"
+            elif mutation == "route-pool": bad["goal"]["route"][0]["card_ids"] = [999999999]
+            else: bad["goal"]["starting_conditions"]["seed"] = 1
+            with self.subTest(mutation=mutation), self.assertRaises(ContractError):
+                BuildTask.from_dict(bad)
+
     def test_task_round_trip_retains_goal_constraints_context_and_sources(self):
         task = BuildTask.from_dict(copy.deepcopy(TASK))
         self.assertEqual(BuildTask.from_dict(task.to_dict()), task)

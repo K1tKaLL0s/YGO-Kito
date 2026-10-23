@@ -85,16 +85,18 @@ class CardView:
     position: int | None = None
     attack: int | None = None
     defense: int | None = None
+    attached_to: str | None = None
+    material_count: int | None = None
 
     def __post_init__(self):
         text(self.ref, "card reference")
         if self.owner is not None:
             integer(self.owner, "owner", 0, 1)
-        elif self.visibility != "hidden":
+        elif self.visibility != "hidden" and self.zone != "overlay":
             raise ContractError("visible cards require a known owner")
         integer(self.controller, "controller", 0, 1)
         # Deck contents/order are not representable in this policy interface.
-        member(self.zone, "card zone", ("hand", "monster", "spell_trap", "graveyard", "banished", "extra"))
+        member(self.zone, "card zone", ("hand", "monster", "spell_trap", "graveyard", "banished", "extra", "overlay"))
         member(self.visibility, "visibility", ("public", "observer", "hidden"))
         if self.visibility == "hidden":
             if self.card_id is not None or self.attack is not None or self.defense is not None:
@@ -106,10 +108,18 @@ class CardView:
         for name in ("attack", "defense"):
             if getattr(self, name) is not None:
                 integer(getattr(self, name), name, -2, 2**31 - 1)
+        if self.zone == "overlay":
+            text(self.attached_to, "material host reference")
+        elif self.attached_to is not None:
+            raise ContractError("only overlay materials have a host reference")
+        if self.material_count is not None:
+            if self.zone != "monster":
+                raise ContractError("only monster hosts have material counts")
+            integer(self.material_count, "material count", 0, 128)
 
     @classmethod
     def from_dict(cls, value):
-        return cls(**fields(value, {"ref", "owner", "controller", "zone", "visibility", "card_id"}, {"position", "attack", "defense"}))
+        return cls(**fields(value, {"ref", "owner", "controller", "zone", "visibility", "card_id"}, {"position", "attack", "defense", "attached_to", "material_count"}))
 
 
 @dataclass(frozen=True)
@@ -161,6 +171,8 @@ class Observation:
         if len({c.ref for c in self.cards}) != len(self.cards):
             raise ContractError("duplicate card references")
         for c in self.cards:
+            if c.zone == "overlay" and not any(h.ref == c.attached_to and h.zone == "monster" and h.controller == c.controller for h in self.cards):
+                raise ContractError("overlay material references an absent/different host")
             if c.visibility == "observer":
                 viewer = c.controller
                 if viewer != self.observer:
@@ -207,7 +219,7 @@ class ActionDetails:
         if self.description is not None:
             integer(self.description, "effect description", 0, 2**32 - 1)
         if self.operation is not None:
-            member(self.operation, "selection operation", ("add", "remove", "finish", "cancel", "shuffle"))
+            member(self.operation, "selection operation", ("add", "remove", "finish", "cancel", "shuffle", "sum"))
         if self.destination is not None and not isinstance(self.destination, Placement):
             raise ContractError("destination must be Placement")
         if self.description is None and self.operation is None and self.destination is None:
@@ -230,7 +242,7 @@ class PromptInfo:
 
     def __post_init__(self):
         integer(self.message, "native prompt message", 0, 255)
-        if self.message not in (10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 26):
+        if self.message not in (10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 23, 26):
             raise ContractError("unsupported native prompt message")
         if (self.minimum is None) != (self.maximum is None):
             raise ContractError("both selection bounds are required")
@@ -287,6 +299,52 @@ class SearchChoice:
 
 
 @dataclass(frozen=True)
+class SumCandidate:
+    ref: str
+    values: tuple[int, ...]
+
+    def __post_init__(self):
+        text(self.ref, "sum reference")
+        if not isinstance(self.values, tuple) or not 1 <= len(self.values) <= 2:
+            raise ContractError("sum candidate requires one/two native contributions")
+        for value in self.values:
+            integer(value, "native sum contribution", 0, 2**31 - 1)
+
+    @classmethod
+    def from_dict(cls, value):
+        d = fields(value, {"ref", "values"})
+        return cls(d["ref"], tuple(array(d["values"], "sum values")))
+
+
+@dataclass(frozen=True)
+class SumSelection:
+    mode: str
+    target: int
+    minimum_optional: int
+    maximum_optional: int
+    mandatory: tuple[SumCandidate, ...]
+    optional: tuple[SumCandidate, ...]
+
+    def __post_init__(self):
+        member(self.mode, "sum mode", ("equal", "minimal_at_least"))
+        integer(self.target, "sum target", 1, 2**31 - 1)
+        integer(self.minimum_optional, "sum minimum", 0, 128)
+        integer(self.maximum_optional, "sum maximum", self.minimum_optional, 128)
+        if not isinstance(self.mandatory, tuple) or not isinstance(self.optional, tuple):
+            raise ContractError("sum candidate groups must be tuples")
+        candidates = self.mandatory + self.optional
+        if any(not isinstance(c, SumCandidate) for c in candidates) or len(candidates) > 128 or len({c.ref for c in candidates}) != len(candidates):
+            raise ContractError("sum candidates must be bounded and unique")
+
+    @classmethod
+    def from_dict(cls, value):
+        d = fields(value, {"mode", "target", "minimum_optional", "maximum_optional", "mandatory", "optional"})
+        return cls(d["mode"], d["target"], d["minimum_optional"], d["maximum_optional"],
+                   tuple(SumCandidate.from_dict(v) for v in array(d["mandatory"], "mandatory sum cards")),
+                   tuple(SumCandidate.from_dict(v) for v in array(d["optional"], "optional sum cards")))
+
+
+@dataclass(frozen=True)
 class DecisionRequest:
     context: RunContext
     duel_id: str
@@ -296,6 +354,7 @@ class DecisionRequest:
     schema_version: int = field(default=SCHEMA_VERSION)
     search_choices: tuple[SearchChoice, ...] = ()
     prompt: PromptInfo | None = None
+    sum_selection: SumSelection | None = None
 
     def __post_init__(self):
         if type(self.schema_version) is not int or self.schema_version != SCHEMA_VERSION:
@@ -311,6 +370,12 @@ class DecisionRequest:
         if len({a.action_id for a in self.actions}) != len(self.actions):
             raise ContractError("duplicate action IDs")
         refs = {c.ref for c in self.observation.cards}
+        if self.sum_selection is not None:
+            if not isinstance(self.sum_selection, SumSelection) or self.prompt is None or self.prompt.message != 23:
+                raise ContractError("sum metadata requires its typed native prompt")
+            visible = {c.ref for c in self.observation.cards if c.card_id is not None}
+            if any(c.ref not in visible for c in self.sum_selection.mandatory + self.sum_selection.optional):
+                raise ContractError("sum values cannot reveal unobserved/hidden cards")
         for choice in self.search_choices:
             if not isinstance(choice, SearchChoice) or choice.owner != self.observation.observer or choice.ref in refs:
                 raise ContractError("search choices must be unique and visible only to the chooser")
@@ -320,12 +385,13 @@ class DecisionRequest:
 
     @classmethod
     def from_dict(cls, value):
-        d = fields(value, {"schema_version", "context", "duel_id", "decision_id", "observation", "actions"}, {"search_choices", "prompt"})
+        d = fields(value, {"schema_version", "context", "duel_id", "decision_id", "observation", "actions"}, {"search_choices", "prompt", "sum_selection"})
         return cls(
             RunContext.from_dict(d["context"]), d["duel_id"], d["decision_id"],
             Observation.from_dict(d["observation"]), tuple(LegalAction.from_dict(a) for a in array(d["actions"], "actions")),
             d["schema_version"], tuple(SearchChoice.from_dict(c) for c in array(d.get("search_choices", []), "search_choices")),
             PromptInfo.from_dict(d["prompt"]) if d.get("prompt") is not None else None,
+            SumSelection.from_dict(d["sum_selection"]) if d.get("sum_selection") is not None else None,
         )
 
     def to_dict(self):
@@ -334,11 +400,13 @@ class DecisionRequest:
             result.pop("search_choices")
         if self.prompt is None:
             result.pop("prompt")
+        if self.sum_selection is None:
+            result.pop("sum_selection")
         for action in result["actions"]:
             if action["details"] is None:
                 action.pop("details")
         for card in result["observation"]["cards"]:
-            for key in ("position", "attack", "defense"):
+            for key in ("position", "attack", "defense", "attached_to", "material_count"):
                 if card[key] is None:
                     card.pop(key)
         return result

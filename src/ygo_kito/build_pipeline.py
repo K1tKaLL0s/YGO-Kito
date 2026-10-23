@@ -1,7 +1,7 @@
 """Constraint-checked building candidates and bounded real-core goal validation.
 
-The CPU slice supports a conditional first-turn normal-summon goal. Card-list
-legality, conditional route success and proxy quality are separate results.
+Conditional first-turn normal and explicit extra-deck route intents are supported.
+Card-list legality, conditional route success and quality are separate results.
 """
 
 from collections import Counter
@@ -37,8 +37,14 @@ class BuildAssets:
         self.environment = {"environment_id": "custom-native-current", "versions": asdict(versions),
                             "authority": "custom", "release_cutoff": None}
 
+    def environment_for(self, kind):
+        environment = dict(self.environment, versions=dict(self.environment["versions"]))
+        if kind in ("synchro_summon", "xyz_summon"):
+            environment["versions"]["card_pool"] = "native-extra-material-v2"
+        return environment
+
     def check_task(self, task):
-        if not isinstance(task, BuildTask) or task.environment != self.environment:
+        if not isinstance(task, BuildTask) or task.environment != self.environment_for(task.goal["kind"]):
             raise ContractError("building environment versions differ from locked runtime")
         if any(code not in self.rows or not self.rows[code]["ot"] & 1 or self.rows[code]["type"] & 0x4000 for code in task.pool):
             raise ContractError("building pool contains unknown, non-OCG or token cards")
@@ -192,6 +198,9 @@ def verify_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budget
     if type(seconds) not in (int, float) or not math.isfinite(seconds) or not 0 <= seconds <= 30:
         raise ContractError("route time budget outside CPU proof range")
     assets.validate(task, deck)
+    if task.goal["kind"] != "normal_summon":
+        from .extra_routes import verify_extra_goal
+        return verify_extra_goal(task, deck, assets, seconds=seconds, attempts=attempts, decision_budget=decision_budget)
     row = assets.rows[task.goal["card_id"]]
     if deck.extra or row["type"] != 17 or (row["level"] & 0xff) > 4:
         return {"status": "unsupported_route", "card_list_legal": True,

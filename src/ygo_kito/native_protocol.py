@@ -9,7 +9,7 @@ from itertools import combinations
 from math import comb
 import struct
 
-from .contracts import ActionDetails, Placement, PromptInfo, SearchChoice
+from .contracts import ActionDetails, Placement, PromptInfo, SearchChoice, SumSelection
 
 
 class NativeError(RuntimeError):
@@ -53,9 +53,10 @@ class DecodedPrompt:
     info: PromptInfo
     options: tuple[NativeOption, ...]
     search_choices: tuple[SearchChoice, ...] = ()
+    sum_selection: SumSelection | None = None
 
 
-def visible_ref(player, controller, location, sequence):
+def visible_ref(player, controller, location, sequence, subsequence=None):
     if controller not in (0, 1) or (location == 2 and controller != player):
         raise NativeError("selection outside player-visible hand")
     zone = {2: "hand", 4: "monster", 8: "spell_trap", 16: "graveyard"}.get(location)
@@ -66,20 +67,31 @@ def visible_ref(player, controller, location, sequence):
 
 def decode_deck_choices(player, minimum, maximum, candidates):
     """Discard native order/deck positions while keeping response indices private."""
-    if minimum != 1 or maximum != 1 or not 0 < len(candidates) <= 128:
-        raise NativeError("only bounded single-card deck choices are supported")
+    count = len(candidates)
+    if not 0 <= minimum <= maximum <= min(count, 63) or not 0 < count <= 128:
+        raise NativeError("deck choice counts exceed native response bounds")
+    if sum(comb(count, k) for k in range(minimum, maximum + 1)) > 2048:
+        raise NativeError("deck choices exceed bounded action enumeration")
     if any(owner != player or zone != 1 or not code for code, owner, zone, _ in candidates):
         raise NativeError("blind/opponent/mixed deck selection is unsupported")
-    choices, options = [], []
+    choices, options, native_indices = [], [], []
     for ordinal, (native_index, (code, owner, _zone, _sequence)) in enumerate(sorted(enumerate(candidates), key=lambda item: item[1][0])):
         ref = f"search-choice-{ordinal}"
         choices.append(SearchChoice(ref, code, owner))
-        options.append(("select", (ref,), 1, bytes((1, native_index))))
+        native_indices.append(native_index)
+    for size in range(minimum, maximum + 1):
+        for selected in combinations(range(count), size):
+            options.append(("select", tuple(choices[i].ref for i in selected), size,
+                            bytes((size, *(native_indices[i] for i in selected)))))
     return tuple(choices), options
 
 
-def decode_prompt(kind, reader):
+def decode_prompt(kind, reader, *, ref_resolver=None, allow_sum=False):
     """All choices are bounded, native-offered operations; unsupported messages raise."""
+    resolve = ref_resolver or visible_ref
+    if kind == 23 and allow_sum:
+        from .sum_protocol import decode_sum
+        return decode_sum(reader, resolve)
     if kind not in (10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 26):
         raise NativeError(f"unsupported native prompt {kind}")
     player = reader.u8()
@@ -102,7 +114,7 @@ def decode_prompt(kind, reader):
         description = reader.u32()
         if owner != player:
             raise NativeError("activation outside own controlled zones")
-        add("activate", (visible_ref(player, owner, zone, sequence),), description, response,
+        add("activate", (resolve(player, owner, zone, sequence),), description, response,
             ActionDetails(description=description))
 
     if kind == 10:
@@ -112,7 +124,7 @@ def decode_prompt(kind, reader):
             _code, owner, zone, sequence, _direct = card(True)
             if owner != player or zone != 4:
                 raise NativeError("attack outside controlled monster zone")
-            add("attack", (visible_ref(player, owner, zone, sequence),), response=(i << 16) | 1)
+            add("attack", (resolve(player, owner, zone, sequence),), response=(i << 16) | 1)
         for value in (2, 3):
             if reader.u8():
                 add("pass", value=value, response=value)
@@ -125,7 +137,7 @@ def decode_prompt(kind, reader):
                     _code, owner, zone, sequence, _ = card()
                     if owner != player:
                         raise NativeError("idle action outside controlled zones")
-                    add(name, (visible_ref(player, owner, zone, sequence),), response=(i << 16) | mode)
+                    add(name, (resolve(player, owner, zone, sequence),), response=(i << 16) | mode)
         for value in (6, 7, 8):
             if reader.u8():
                 add("select" if value == 8 else "pass", value=value, response=value,
@@ -133,8 +145,8 @@ def decode_prompt(kind, reader):
     elif kind in (12, 13):
         refs = ()
         if kind == 12:
-            _code, owner, zone, sequence, _ = card(True)
-            refs = (visible_ref(player, owner, zone, sequence),)
+            _code, owner, zone, sequence, subsequence = card(True)
+            refs = (resolve(player, owner, zone, sequence),)
         description = reader.u32()
         add("yes", refs, description, 1, ActionDetails(description=description))
         add("no", refs, description, 0, ActionDetails(description=description))
@@ -152,12 +164,12 @@ def decode_prompt(kind, reader):
             for name, refs, value, response in raw:
                 add(name, refs, value, response)
         else:
-            refs = [visible_ref(player, c[1], c[2], c[3]) for c in candidates]
+            refs = [resolve(player, c[1], c[2], c[3], c[4] if c[2] & 0x80 else None) for c in candidates]
             if kind == 20 and any(c[2] != 4 or not c[4] for c in candidates):
                 raise NativeError("tribute candidate lacks native release weight or monster zone")
             top = min(maximum, count)
             low = minimum if kind == 15 else 0
-            if count > 128 or sum(comb(count, k) for k in range(low, top + 1)) > 2048:
+            if count > 128 or top > 63 or low > top or sum(comb(count, k) for k in range(low, top + 1)) > 2048:
                 raise NativeError("selection exceeds bounded action enumeration")
             for size in range(low, top + 1):
                 for selected in combinations(range(count), size):
@@ -174,11 +186,11 @@ def decode_prompt(kind, reader):
         forced = False
         for i in range(count):
             _flag, required = reader.u8(), reader.u8()
-            _code, owner, zone, sequence, _ = card(True)
+            _code, owner, zone, sequence, subsequence = card(True)
             description = reader.u32()
             if owner != player:
                 raise NativeError("chain outside controlled visible zones")
-            add("activate", (visible_ref(player, owner, zone, sequence),), description, i,
+            add("activate", (resolve(player, owner, zone, sequence, subsequence if zone & 0x80 else None),), description, i,
                 ActionDetails(description=description))
             forced |= bool(required)
         info = PromptInfo(kind, cancelable=not forced)
@@ -213,7 +225,7 @@ def decode_prompt(kind, reader):
             if offset + len(candidates) > 128:
                 raise NativeError("unselect candidates exceed bounded scope")
             for i, c in enumerate(candidates):
-                add("select", (visible_ref(player, c[1], c[2], c[3]),), int(operation == "add"),
+                add("select", (resolve(player, c[1], c[2], c[3], c[4] if c[2] & 0x80 else None),), int(operation == "add"),
                     bytes((1, offset + i)), ActionDetails(operation=operation))
             offset += len(candidates)
         if finishable or cancelable:

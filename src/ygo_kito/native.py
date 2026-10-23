@@ -56,6 +56,8 @@ class NativeNormalEngine:
             raise ContractError("legacy requests are reserved for old normal replay")
         self.scenario, self._legacy_ids = scenario, legacy_request_ids
         self.general_actions = scenario == "effect-duel"
+        self.extended_actions = self.general_actions and deck_profile.get("schema_version") == 2
+        self._known_owners, self._overlay_owners = {}, {}
         self._observer_windows = [0, 0]
         self.root = root.resolve()
         self.receipt = verify_resources(self.root)
@@ -106,8 +108,17 @@ class NativeNormalEngine:
                 from .deck_profile import validate_profile
                 self.player_decks = validate_profile(deck_profile)
                 self._allowed_pool = set().union(*self.player_decks)
-            for deck in self.player_decks:
-                self.validate_deck(deck)
+            self.player_extras = ((), ())
+            if self.extended_actions:
+                from .deck_profile import validate_deck_parts
+                self.player_extras = tuple(tuple(d) for d in deck_profile["extras"])
+                self._allowed_pool.update(code for d in self.player_extras for code in d)
+                for player in (0, 1):
+                    validate_deck_parts({"main": list(self.player_decks[player]), "extra": list(self.player_extras[player]),
+                                         "side": deck_profile["sides"][player]}, self._rows, limits)
+            else:
+                for deck in self.player_decks:
+                    self.validate_deck(deck)
             self._install_callbacks()
             seeds = (C.c_uint32 * 8)(*(seed + i for i in range(8)))
             self.handle = self.lib.create_duel_v2(seeds)
@@ -122,11 +133,13 @@ class NativeNormalEngine:
                 random.Random(seed * 2 + player).shuffle(order)
                 for code in order:
                     self.lib.new_card(self.handle, code, player, player, 1, 0, 8)
+                for code in self.player_extras[player]:
+                    self.lib.new_card(self.handle, code, player, player, 64, 0, 8)
             self._check_callbacks()
             hashes = self.receipt["resources"]
             self.context = RunContext(f"native-{uuid4().hex}", Versions(self.lock["sources"]["core"]["commit"],
                 hashes["scripts"], hashes["cards"], hashes["client_protocol"],
-                self.lock["card_pool"]["id"] if scenario == "normal" else f"native-{scenario}-v1", "2026.10:" + hashes["banlist"]), None)
+                "native-extra-material-v2" if self.extended_actions else self.lock["card_pool"]["id"] if scenario == "normal" else f"native-{scenario}-v1", "2026.10:" + hashes["banlist"]), None)
             self.lib.start_duel(self.handle, 5 << 16)  # Master Rule 2020, no TEST/SIMPLE_AI mode.
         except BaseException:
             self.close()
@@ -226,7 +239,7 @@ class NativeNormalEngine:
         return self.lib.query_field_count(self.handle, player, location)
 
     def _visible_data(self, player, location, sequence, combat=False):
-        if location not in (2, 4, 8, 16):
+        if location not in ((2, 4, 8, 16, 32, 64) if self.extended_actions else (2, 4, 8, 16)):
             raise NativeError("unsupported visible card query")
         flags = 0x40001 | (0x300 if combat else 0)
         buffer = (C.c_uint8 * 64)()
@@ -241,6 +254,8 @@ class NativeNormalEngine:
         owner = reader.u32()
         if reader.offset != length or owner not in (0, 1):
             raise NativeError("invalid visible card owner/schema")
+        if self.extended_actions:
+            self._known_owners[(player, location, sequence)] = owner
         return code, owner, attack, defense
 
     def _observation(self, observer):
@@ -269,6 +284,9 @@ class NativeNormalEngine:
                     cards.append(CardView(f"p{player}.{zone}.{sequence}", owner, player, zone,
                                           "public" if public else "observer" if visible else "hidden", code,
                                           position[1] if self.general_actions and location in (4, 8) else None, attack, defense))
+        if self.extended_actions:
+            from .extra_observation import extend
+            cards = extend(self, observer, cards)
         history = ()
         if self.scenario != "normal":
             history = tuple(PublicEvent(f"public-{i}", e["event"], tuple(e["card_ids"])) for i, e in enumerate(public_event_projection(self.events, extended=self.general_actions)))
@@ -277,13 +295,21 @@ class NativeNormalEngine:
 
     def _prompt(self, kind, reader):
         if self.general_actions:
-            decoded = decode_prompt(kind, reader)
+            if self.extended_actions and reader.offset + int(kind == 23) >= len(reader.data):
+                raise NativeError("truncated native prompt player")
+            observation = self._observation(reader.data[reader.offset + int(kind == 23)]) if self.extended_actions else None
+            if self.extended_actions:
+                from .extra_observation import resolve
+                decoded = decode_prompt(kind, reader, allow_sum=True, ref_resolver=lambda *args: resolve(self, *args))
+            else:
+                decoded = decode_prompt(kind, reader)
             self.window += 1
             self._observer_windows[decoded.player] += 1
             self._responses = {f"choice-{i}": o.response for i, o in enumerate(decoded.options)}
             actions = tuple(LegalAction(f"choice-{i}", o.kind, o.refs, o.value, o.details) for i, o in enumerate(decoded.options))
             self.pending = DecisionRequest(self.context, "native-effect-duel", f"p{decoded.player}-window-{self._observer_windows[decoded.player]}",
-                self._observation(decoded.player), actions, search_choices=decoded.search_choices, prompt=decoded.info)
+                observation or self._observation(decoded.player), actions, search_choices=decoded.search_choices, prompt=decoded.info,
+                sum_selection=decoded.sum_selection)
             self.pending_kind = kind
             return self.pending
         player = reader.u8()
@@ -409,7 +435,7 @@ class NativeNormalEngine:
                 self.events.append(event)
                 if kind == 1:
                     raise NativeError("real engine rejected response (MSG_RETRY)")
-                if kind in (10, 11, 12, 13, 15, 16, 18, 19) or (self.general_actions and kind in (14, 20, 26)):
+                if kind in (10, 11, 12, 13, 15, 16, 18, 19) or (self.general_actions and kind in (14, 20, 26)) or (self.extended_actions and kind == 23):
                     request = self._prompt(kind, reader)
                     event.update(player=request.observation.observer, choices=len(request.actions))
                     if reader.offset != len(reader.data):
@@ -437,6 +463,9 @@ class NativeNormalEngine:
                 elif kind == 50:
                     code = reader.u32()
                     previous, current = reader.take(4), reader.take(4)
+                    if self.extended_actions:
+                        from .extra_observation import moved
+                        moved(self, previous, current)
                     reason = reader.u32()
                     if previous[1] == 2:
                         self._revealed_hand[previous[0]].clear()
@@ -446,6 +475,8 @@ class NativeNormalEngine:
                     if self.scenario != "normal":
                         event["reason"] = reason
                         if current[1] == 16 or (current[1] in (4, 8) and current[3] & 5):
+                            event["public_card"] = code
+                        elif self.extended_actions and current[1] in (32, 64) and current[3] & 5:
                             event["public_card"] = code
                 elif kind in (60, 62) or (self.general_actions and kind == 64):
                     code, slot = reader.u32(), reader.take(4)
