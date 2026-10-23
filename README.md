@@ -17,7 +17,7 @@
 
 当前已有CPU骨架、固定上游源码构建的core、限定真实终局/重放，以及四个独立网络原型。历史v3完整公开卡库的决斗Transformer为266,018参数；v4匿名/卡名原型配置见[历史报告](docs/reports/2026-10-23-private-hierarchy-v4.md)，当前私有记忆特征已升v5，旧权重不静默兼容。原构筑词表的目标/优化各17,729参数，64卡工程词表各18,417参数；统筹MLP648参数。词表和实验大小不是最终容量冻结。已串通构筑托付、版本预测、冻结策略验证、回收及恢复；规则控制最终行为，统筹学习原型仍为明示合成监督。
 
-云端最新[schema4长周期/真实CB/索引恢复](docs/reports/2026-10-23-schema4-course-and-cb.md)扩展到四模型/LoRA课程、组合目标和同阶段SQL快照。**保留任务静态配置的GitHub写入被自动审批拒绝，新代码/config仍只在云端提交；本批PR只发布获准的公开证据与文档，代码树尚未升级。** [云端命令和边界](docs/development/schema4-course-and-cb.md)不能误作当前PR已含该代码；总清单相应条目保留部分，正式1A/1B/PC仍未通过。
+本轮已发布[schema4长周期/真实CB/索引恢复](docs/reports/2026-10-23-schema4-course-and-cb.md)：四模型/LoRA课程、组合目标与同阶段SQL快照的代码/config已在用户明确批准静态工程配置后保存到[bb50555](https://github.com/K1tKaLL0s/YGO-Kito/commit/bb50555136c8d7bf40b7626a68ffb698587177e7)。[命令和边界](docs/development/schema4-course-and-cb.md)对应云端40d3e65受测源码；总清单T06-03/MG03-03/D08-02已按有界验收勾选，PR未合并，正式1A/1B/PC仍未通过。完整私有对局轨迹仍只留云端。
 
 此前已发布[构筑语义、数据隔离与可执行对手](docs/reports/2026-10-23-semantic-indexed-opponents.md)新增schema4公开属性/主题计数约束与有限编辑、实际双构筑更新/恢复，及train/validation/final_eval索引准入。注册牌表含额外/副卡接真实核心，规则对手和冻结模型已实际对局/PPO/重放；不把注册或弱对手胜负当强度。固定源码MSG18多区无现成调用入口，版本限定分类与MSG24两种双区真实响应已闭合。[CPU命令](docs/development/semantic-indexed-opponents.md)仅导出共同公开历史/聚合证据，完整私有工件留云端。该发布版构筑特征为v4，旧权重不静默兼容；云端新特征版本及未发布状态见最新报告。
 
