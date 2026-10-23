@@ -1,0 +1,10 @@
+test_explicit_source_keeps_old_default_and_binds_separate_partitions (tests.test_construction_curriculum.RealCurriculumContractTests.test_explicit_source_keeps_old_default_and_binds_separate_partitions) ... ok
+test_selected_extra_side_parts_are_not_silently_dropped_from_duel_profiles (tests.test_construction_curriculum.RealCurriculumContractTests.test_selected_extra_side_parts_are_not_silently_dropped_from_duel_profiles) ... ok
+test_v1_side_metadata_preserves_opponent_and_rejects_extras_and_bad_bounds (tests.test_construction_curriculum.RealCurriculumContractTests.test_v1_side_metadata_preserves_opponent_and_rejects_extras_and_bad_bounds) ... ok
+test_validation_overlap_wrong_driver_task_or_partition_fails_closed (tests.test_construction_curriculum.RealCurriculumContractTests.test_validation_overlap_wrong_driver_task_or_partition_fails_closed) ... ok
+test_v1_side_is_bound_validated_and_never_dealt_or_enabled_as_extra (integration_tests.test_extra_materials.RealExtraMaterialTests.test_v1_side_is_bound_validated_and_never_dealt_or_enabled_as_extra) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 12.206s
+
+OK

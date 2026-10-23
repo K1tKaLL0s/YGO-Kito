@@ -16,7 +16,7 @@
 | 18 选区 | 明确 controller/zone/sequence；响应三个原生字节 | 实际召唤选区；仅0/1个位置，多位置仍拒绝 |
 | 19 表示形式 | 返回原生 position 位值 | 实际特殊召唤选择；场上位置观察允许核心魔陷5/10复合掩码 |
 | 20 解放 | 使用核心 release_param 权重，最小权重/最大张数，count+indices | 完整对局实际解放；双权重编码有单元负/正格式检查，不冒充已执行双权重卡效 |
-| 26 逐步选择/撤选 | 分开 add/remove/finish/cancel；保留每步原生响应 | 解码与拒绝单元检查；本批完整对局未出现，真实核心正向覆盖待补 |
+| 26 逐步选择/撤选 | 分开 add/remove/finish/cancel；保留每步原生响应 | 系星之雷后真实SelectSubGroup取消后重试、add/remove/finish、实际回手与特殊召唤及重放已验；非法/过期动作及损坏响应拒绝，其他使用26的机制未外推 |
 | 22 指示物选择 | 未实现，明确失败 | 指示物增减事件101/102能读取，不等于支持选择22 |
 | 23 数值求和 | v2支持mode→player、目标、必选/可选及各自原生贡献；响应count＋必选填充＋可选索引 | 同调两种素材响应实际接受、非法空响应实际MSG_RETRY。精确/至少、双值/打包/数值溢出与超量枚举有单元测试；mode1/双值的真实卡效仍待覆盖。没有取消标记，不能发明cancel |
 | 24 多区域禁用 | 未实现，明确失败 | 不用选区18代替其语义 |
@@ -50,3 +50,7 @@ v2的`CardView.attached_to/material_count`约束宿主、控制者、可见性�
 真实正向证据见 [M2f 报告](../reports/2026-10-23-general-protocol-m2f.md)。新整局是可见 DTO＋静态公开卡库驱动的规则基线，不代表模型能力。未知协议、动作/重放不匹配、预算耗尽明确失败；独立进程看门狗、一般卡池、标准客户端回放及 PC 实机仍未完成，阶段1A/1B不据此通过。
 
 额外/素材的新真实证据与可重复完整命令见[本批报告](../reports/2026-10-23-extra-material-feedback.md)和[运行说明](extra-material-feedback.md)。其中同调/超量整局使用明示路线意图后转可见规则基线，非训练模型；真实规则对局与合成协议负测分开记录。
+
+MSG26新增真实证据、公开目录路线搜索和显式课程的边界见[本批报告](../reports/2026-10-23-discovery-curriculum.md)与[运行入口](discovery-curriculum.md)。
+
+v1 profile可显式增加`sides=[p0,p1]`作为BO1牌表元数据，主＋副卡合并验证别名/禁限和张数；side不插入原生对局、不进玩家DTO，不启用额外/MSG23能力，card_pool仍为native-effect-duel-v1。v1继续拒绝extras；旧无sides序列化不增加空字段，相关兼容修复与回归按源码分列在[报告](../reports/2026-10-23-discovery-curriculum.md)。
