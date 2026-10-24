@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-24T23:06:32.004990+00:00",
+  "scope": "source-handoff-inventory-and-fixed-startup-only",
+  "commit": "82fdfde1499e95fdb3eebc83544ee895a271a3e2",
+  "dependencies": {
+    "installed": {
+      "torch": "2.9.1+cpu",
+      "numpy": "2.3.5",
+      "scipy": "1.16.3",
+      "setuptools": "84.2.1"
+    },
+    "requirement_sha256": {
+      "requirements/ci-cpu.txt": "ce653dcf97e28390f4e533848c6fb67554e67a1c5e5e3fdb77b2f4a558691232"
+    },
+    "lock_matches_installed": null,
+    "note": "Installed versions are observations; use the locked CI environment for reproducible checks. SciPy is optional for the legacy empty-deck solver."
+  },
+  "native_resources": {
+    "hash_receipt_verified": true,
+    "source_commits": {
+      "client": "0d76e26b30c5ddb0273ee746459506c5719fddb6",
+      "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+      "scripts": "b83db1cc3f512d3bec2faafb9ecf199143332be1",
+      "database": "217ae165c1886af2fc36b823fc08f9fc3ec13185",
+      "lua": "6e22fedb74cf0c9b6656e9fce8b7331db847c605"
+    },
+    "native_loaded": false,
+    "rules_verified": false
+  },
+  "checkpoints": {
+    "requested": false,
+    "runs": [],
+    "all_registered_bytes_verified": null,
+    "resume_executed": false
+  },
+  "startup": [
+    {
+      "operation": "status",
+      "exit_code": 0,
+      "passed": true,
+      "elapsed_seconds": 0.10455979399921489,
+      "engine_ready_reported": false
+    },
+    {
+      "operation": "--help",
+      "exit_code": 0,
+      "passed": true,
+      "elapsed_seconds": 0.10173604299779981
+    }
+  ],
+  "hardware": {
+    "python": "3.12.14",
+    "platform": "Linux",
+    "logical_cpus": 5,
+    "affinity_cpus": 5
+  },
+  "resources": {
+    "controller_cpu_seconds": 0.81663459,
+    "controller_peak_rss_bytes": 32559104,
+    "reaped_children_cpu_seconds": 0.210339,
+    "reaped_children_max_peak_rss_bytes": 32559104,
+    "elapsed_seconds": 0.9236428229996818
+  },
+  "missing_measurements": [
+    "GPU memory/utilization",
+    "native games per second",
+    "training samples per second",
+    "PC inference latency"
+  ],
+  "training_started": false,
+  "external_provider_called": false,
+  "formal_training_ready": false,
+  "note": "This inventory never authorizes or starts training. Startup speed is not game/training throughput. Native and model capability gates remain separate."
+}

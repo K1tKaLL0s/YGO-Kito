@@ -38,13 +38,13 @@ EP远端验收：ca6ed9c的[Actions 40134675481](https://github.com/K1tKaLL0s/YG
 
 ## 2026-10-24：训练前工程接续（PT）
 
-以下只记录新增工程边界；历史能力、正式三期数据和训练前PC门槛不因本节勾选而自动通过。最终提交、分组结果和源码包复验见本轮训练前报告；开发中数字不代替固定提交的结果。
+以下只记录新增工程边界；历史能力、正式三期数据和训练前PC门槛不因本节勾选而自动通过。代码6d23fc9与受测82fdfde的生产源码摘要相同；最终311项CPU、23项真实正常核心、15项实际训练恢复、普通/分期group共5项通过。分期周期133.6秒在原180秒内完成。分组和失败历史见[训练前报告](../reports/2026-10-24-pretraining-engineering.md)；工程通过不外推训练能力。
 
-- [ ] **PT-01 验证中** 正常真实规则资源与合法对局已恢复，锁定core/scripts/cards/Lua、真实库及资源摘要齐全；首次16项正常接口通过，最后时期hook提交须再验。DP guard/ABI/响应处理不重做，native仅增加可逐字还原的禁表选择hook，旧崩溃唯一根因没有据此证明。[诊断](../reports/2026-10-24-native-current-diagnosis.md)
-- [ ] **PT-02 验证中** 显式device及模型训练接口：决斗、双构筑、统筹和LoRA支持传递设备、batch/target迁移、优化器和设备RNG绑定；无CUDA拒绝，旧CPU checkpoint不静默跨设备。实际CPU可训练/恢复与CUDA代码实现分开，GPU数值/吞吐未验。
-- [ ] **PT-03 验证中** 三期输入编译/实际加载、PeriodBuildAssets/PeriodNativeEngine、显式host到indexed schema4 group课程接线、actor换牌后实际对手重绑定和多对手数据隔离；不清空截止来伪装历史。普通规则baseline可执行；历史规则、正式来源与用户3＋8资料未资格化。[输入](../development/training-input.md)、[运行适配](../development/period-runtime.md)
-- [ ] **PT-04 验证中** SciPy1.16.3哈希锁定，空牌表实际MILP求解、独立合法性复核及infeasible/未搜索unknown区分。统筹显式带出处日志监督可训练，原合成默认保留且来源可见，不把日志摘要当校准胜率。
-- [ ] **PT-05 验证中** 确定性完整源码包、逐文件manifest校验、无Git源码运行与现有主机静态部署预检；实际归档复验待固定提交。包不含私有牌表/轨迹/权重/凭据或原生资源，不采购云实例。[部署交接](../development/deployment-preparation.md)
+- [x] **PT-01 已完成** 正常真实规则资源与合法对局已恢复，锁定core/scripts/cards/Lua、真实库及资源摘要齐全；首次16项正常接口通过，最终时期hook整合已复验23项正常接口/分期回归。DP guard/ABI/响应处理不重做，native仅增加可逐字还原的禁表选择hook，旧崩溃唯一根因没有据此证明。[诊断](../reports/2026-10-24-native-current-diagnosis.md)
+- [x] **PT-02 已完成** 显式device及模型训练接口：决斗、双构筑、统筹和LoRA支持传递设备、batch/target迁移、优化器和设备RNG绑定；无CUDA拒绝，旧CPU checkpoint不静默跨设备。实际CPU可训练/恢复与CUDA代码实现分开，GPU数值/吞吐未验。
+- [x] **PT-03 已完成** 三期输入编译/实际加载、PeriodBuildAssets/PeriodNativeEngine、显式host到indexed schema4 group课程接线、actor换牌后实际对手重绑定和多对手数据隔离；不清空截止来伪装历史。普通规则baseline可执行；历史规则、正式来源与用户3＋8资料未资格化。[输入](../development/training-input.md)、[运行适配](../development/period-runtime.md)
+- [x] **PT-04 已完成** SciPy1.16.3哈希锁定，空牌表实际MILP求解、独立合法性复核及infeasible/未搜索unknown区分。统筹显式带出处日志监督可训练，原合成默认保留且来源可见，不把日志摘要当校准胜率。
+- [x] **PT-05 已完成** 确定性完整源码包、逐文件manifest校验、无Git源码运行与现有主机静态部署预检；82fdfde固定源码包在/tmp异目录、无本仓库Git元数据实际311/311复验通过；最终包来源提交和SHA独立记录。包不含私有牌表/轨迹/权重/凭据或原生资源，不采购云实例。[部署交接](../development/deployment-preparation.md)
 - [ ] **PT-06 外部依赖** 官方完整禁表/发行日期资料及截止、旧裁定/目标PC兼容、用户牌表/合格对手、真实provider配置，以及实际腾讯云GPU/驱动锁和小试尚未闭合。官方原始HTML下载实际HTTP代理403已停止；正常引擎没有这个阻碍。G-01/G-02/P-01/B-02继续未通过，不能宣称“只剩卡组”。[来源状态](../../configs/official-source-evidence-v1.json)
 
 ## 0：设计、环境和学习分工
