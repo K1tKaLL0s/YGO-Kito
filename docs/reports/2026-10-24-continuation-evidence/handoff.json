@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-24T21:27:48.574431+00:00",
+  "scope": "source-handoff-inventory-and-fixed-startup-only",
+  "commit": "c724a29fd93f978ea4826130f7c4a809783b8d81",
+  "dependencies": {
+    "installed": {
+      "torch": "2.9.1+cpu",
+      "numpy": "2.3.5",
+      "scipy": null,
+      "setuptools": "84.2.1"
+    },
+    "requirement_sha256": {
+      "requirements/ci-cpu.txt": "6d0a0a968d7bf30c18337336b204388a90005c9469c103cae5276fe311db990c"
+    },
+    "lock_matches_installed": null,
+    "note": "Installed versions are observations; use the locked CI environment for reproducible checks. SciPy is optional for the legacy empty-deck solver."
+  },
+  "native_resources": {
+    "hash_receipt_verified": false,
+    "native_loaded": false,
+    "rules_verified": false,
+    "required": [
+      "engine-build/receipt.json",
+      "engine-build/libocgcore.so",
+      "engine-src/database/locales/zh-CN/cards.cdb",
+      "engine-src/client/lflist.conf",
+      "locked core/scripts/client source tree"
+    ],
+    "reason": "locked resource receipt absent or hashes inconsistent; no build/download attempted"
+  },
+  "checkpoints": {
+    "requested": false,
+    "runs": [],
+    "all_registered_bytes_verified": null,
+    "resume_executed": false
+  },
+  "startup": [
+    {
+      "operation": "status",
+      "exit_code": 0,
+      "passed": true,
+      "elapsed_seconds": 0.10639922399968782,
+      "engine_ready_reported": false
+    },
+    {
+      "operation": "--help",
+      "exit_code": 0,
+      "passed": true,
+      "elapsed_seconds": 0.11390941500030749
+    }
+  ],
+  "hardware": {
+    "python": "3.12.14",
+    "platform": "Linux",
+    "logical_cpus": 5,
+    "affinity_cpus": 5
+  },
+  "resources": {
+    "controller_cpu_seconds": 0.18191166,
+    "controller_peak_rss_bytes": 18087936,
+    "reaped_children_cpu_seconds": 0.22746499999999997,
+    "reaped_children_max_peak_rss_bytes": 17170432,
+    "elapsed_seconds": 0.24096291100067901
+  },
+  "missing_measurements": [
+    "GPU memory/utilization",
+    "native games per second",
+    "training samples per second",
+    "PC inference latency"
+  ],
+  "training_started": false,
+  "external_provider_called": false,
+  "formal_training_ready": false,
+  "note": "This inventory never authorizes or starts training. Startup speed is not game/training throughput. Native and model capability gates remain separate."
+}

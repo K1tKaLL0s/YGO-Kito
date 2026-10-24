@@ -28,9 +28,9 @@
 
 ## 2026-10-24：继续工程准备
 
-- [ ] **EP-01 部分完成** 新增只读权限GitHub Actions、Python3.12/CPU Torch全哈希依赖锁、明确白名单与零skip门禁、完整项目启动/接口检查及简单资源收据。锁环境已实际重建；远端CI结论须发布后读取，不用本地结果冒充。[CI说明](../development/safe-cpu-ci.md)
+- [x] **EP-01 已完成** CPU CI工程定义与本地同锁验收：只读权限GitHub Actions、Python3.12.14/CPU Torch2.9.1全哈希锁、明确白名单与零skip门禁、完整项目启动/接口检查及简单资源收据。锁环境实际重建、c724a29的217/217通过；远端CI结论须发布后另读，不用本地结果冒充。[CI说明](../development/safe-cpu-ci.md)、[实际回执](../reports/2026-10-24-continuation-evidence/results.json)
 - [x] **EP-02 已完成** 厂商无关Agent生命周期新增5项fixture工程测试：真实JSON Lines管道prepare/start/checkpoint/pause/resume/stop、跨连接重试去重、stale/uncertain/rejected、failed恢复后resume。复用现有Client/Bridge/SQLite，不调用外部provider或真实训练，prepare不冒称有control去重语义。[测试](../../tests/test_agent_lifecycle.py)
-- [ ] **EP-03 部分完成** 3主＋8对手编号及三期显式收件/历史列表证据预检。卡库/发行截止/禁表/控制方缺失时闭合，测试样例不当用户数据；真实用户牌表、数据来源与可运行课程待交付。[收件说明](../development/deck-intake.md)
+- [x] **EP-03 已完成** 3主＋8对手编号及三期显式收件/历史列表证据预检工程，12项合成CPU测试通过。卡库/发行截止/禁表/控制方缺失时闭合，资料齐备才保存单个不可运行准备记录；测试样例不当用户数据。真实用户牌表、数据来源与可运行课程仍待Q-02/Q-03，未据此晋升数据/训练门槛。[收件说明](../development/deck-intake.md)
 - [x] **EP-04 已完成** 完整源码CPU交接工程准备：哈希锁安装、固定启动、资源缺口报告、既有checkpoint只读字节检查和恢复命令/日志/硬件指标说明；坏或空制品拒绝，无检查点unknown。GPU课程吞吐/真实引擎/PC/模型能力另验，本项不授权训练。[训练交接](../development/training-handoff.md)
 - [x] **EP-05 已完成** 新增6项开放主题/双主轴/否定组合/混合歧义/低置信及多轮反馈重构测试，保留第一阶段和目标→优化，积木身份与粗连接分开。规则/DTO场景和真实未训练分类器分别测试，不把fixture当模型泛化。[测试](../../tests/test_construction_scenarios.py)
 
