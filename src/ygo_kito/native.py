@@ -99,7 +99,7 @@ class NativeNormalEngine:
             with sqlite3.connect((self.sources / "database/locales/zh-CN/cards.cdb").as_uri() + "?mode=ro", uri=True) as db:
                 db.row_factory = sqlite3.Row
                 self._rows = {row["id"]: dict(row) for row in db.execute("SELECT * FROM datas")}
-            limits = banlist_limits(self.sources / "client/lflist.conf")
+            limits = self._deck_limits()
             # Explicit custom pool, not a claimed 2022/2026 release-date curriculum.
             self.deck = tuple(code for code, row in sorted(self._rows.items())
                               if row["type"] == 17 and row["alias"] == 0 and row["ot"] & 1
@@ -192,9 +192,13 @@ class NativeNormalEngine:
             function = getattr(self.lib, name)
             function.argtypes, function.restype = args, result
 
+    def _deck_limits(self):
+        """Host period adapters may select a separately checked historical section."""
+        return banlist_limits(self.sources / "client/lflist.conf")
+
     def validate_deck(self, deck):
         from .deck_profile import validate_main_deck
-        limits = banlist_limits(self.sources / "client/lflist.conf")
+        limits = self._deck_limits()
         validate_main_deck(deck, self._rows, limits, allowed=self._allowed_pool, strict_40=not self.general_actions)
 
     def _install_callbacks(self):

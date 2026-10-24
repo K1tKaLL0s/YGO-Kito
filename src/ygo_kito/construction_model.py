@@ -17,6 +17,8 @@ from torch.nn import functional as F
 from .build_contracts import digest
 from .construction_logic import ConstructionLogic, LogicConnector, LogicMetadata, LogicNode, LogicTag
 from .duel_model import parameter_digest
+from .device import (model_device, execution_metadata, checkpoint_execution, optimizer_to,
+                     capture_device_rng, restore_device_rng)
 from .validation import ContractError, array, canonical_json, fields, integer
 
 ROLES = ("build_goal", "build_optimizer")
@@ -175,6 +177,9 @@ class LogicModelAdapter:
             raise ContractError("graph roles must retain independent parameters")
         deck_encoder.assets.check_task(task)
         self.task, self.models, self.deck_encoder, self.codec = task, models, deck_encoder, codec
+        self.device = model_device(models[ROLES[0]])
+        if any(model_device(model) != self.device for model in models.values()):
+            raise ContractError("graph role models require one execution device")
         self.codec_sha256=digest(codec.to_dict())
         self.encoder=LogicFeatureEncoder(codec,deck_encoder.config.max_tokens)
         if type(learning_rate) not in (int,float) or not math.isfinite(learning_rate) or not 0<learning_rate<=.01:
@@ -242,7 +247,7 @@ class LogicModelAdapter:
         role=context["role"]; model=self.models[role]; optimizer=self.optimizers[role]
         before=parameter_digest(model); model.train(); optimizer.zero_grad(set_to_none=True)
         logits=model(self.encoder.batch(context,graphs))
-        loss=F.cross_entropy(logits.unsqueeze(0),torch.tensor([preferred_index]))
+        loss=F.cross_entropy(logits.unsqueeze(0),torch.tensor([preferred_index],device=logits.device))
         if not torch.isfinite(loss):raise ContractError("nonfinite graph preference loss")
         loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(),1.,error_if_nonfinite=True);optimizer.step()
         after=parameter_digest(model)
@@ -254,6 +259,7 @@ class LogicModelAdapter:
     def save(self, path):
         if digest(self.codec.to_dict())!=self.codec_sha256:raise ContractError("requested logic vocabulary changed")
         state={"kind":FEATURE_VERSION,"task_sha256":self.task.sha256,"codec":self.codec.to_dict(),
+               "execution":execution_metadata(self.device),"device_rng":capture_device_rng(self.device),
                "deck_vocabulary_sha256":self.deck_encoder.vocabulary_sha256,
                "config":asdict(self.deck_encoder.config),"updates":self.updates,
                "models":{r:m.state_dict() for r,m in self.models.items()},
@@ -264,7 +270,8 @@ class LogicModelAdapter:
     def load(self, path):
         if digest(self.codec.to_dict())!=self.codec_sha256:raise ContractError("requested logic vocabulary changed")
         state=torch.load(path,map_location="cpu",weights_only=True)
-        fields(state,{"kind","task_sha256","codec","deck_vocabulary_sha256","config","updates","models","model_hashes","optimizers"})
+        fields(state,{"kind","task_sha256","codec","deck_vocabulary_sha256","config","updates","models","model_hashes","optimizers"},{"execution","device_rng"})
+        checkpoint_execution(state,self.device)
         if any(state.get(k)!=v for k,v in {"kind":FEATURE_VERSION,"task_sha256":self.task.sha256,
             "codec":self.codec.to_dict(),"deck_vocabulary_sha256":self.deck_encoder.vocabulary_sha256,"config":asdict(self.deck_encoder.config)}.items()):
             raise ContractError("graph checkpoint task/codec/model vocabulary differs")
@@ -280,13 +287,17 @@ class LogicModelAdapter:
                 raise ContractError("graph model checksum differs")
         backup_models={r:deepcopy(m.state_dict()) for r,m in self.models.items()}
         backup_optimizers={r:deepcopy(o.state_dict()) for r,o in self.optimizers.items()}
+        backup_rng=capture_device_rng(self.device)
         try:
             for role in ROLES:
                 self.models[role].load_state_dict(state["models"][role],strict=True)
                 self.optimizers[role].load_state_dict(state["optimizers"][role])
+                optimizer_to(self.optimizers[role],self.device)
+            if "device_rng" in state:restore_device_rng(state["device_rng"],self.device)
         except (ValueError,RuntimeError,KeyError,TypeError) as error:
             for role in ROLES:
                 self.models[role].load_state_dict(backup_models[role])
                 self.optimizers[role].load_state_dict(backup_optimizers[role])
+            restore_device_rng(backup_rng,self.device)
             raise ContractError("graph checkpoint restore failed without changing active state") from error
         self.updates=dict(state["updates"])

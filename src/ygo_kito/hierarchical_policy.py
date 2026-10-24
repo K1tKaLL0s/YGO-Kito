@@ -67,6 +67,9 @@ def score_requests(model,encoder,requests):
 
 
 def sample_index(logits,*,generator,max_actions):
+    # Sampling has its own saved CPU generator; model gradients stay on the
+    # selected execution device in the independent training forward.
+    logits = logits.detach().cpu()
     if logits.ndim!=1 or not 0<len(logits)<=MAX_LEAVES or not torch.isfinite(logits).all():
         raise ContractError('invalid complete hierarchical logits')
     if len(logits)<=max_actions:

@@ -28,7 +28,7 @@ class DeckIntakeTests(unittest.TestCase):
             db.executemany("INSERT INTO datas VALUES(?,?,?,?)", [(i, 0, 1, 17) for i in range(1, 21)] +
                            [(21, 1, 1, 17), (22, 0, 1, 0x41), (23, 0, 1, 0x4011)])
         self.banlist = self.root / "lflist.conf"
-        self.banlist.write_text("\n".join("!" + p.replace("-", ".") + "\n1 2" for p in PERIODS), encoding="utf-8")
+        self.banlist.write_text("\n".join("!" + self.config["environments"][p]["banlist_section"] + "\n1 2" for p in PERIODS), encoding="utf-8")
         for period, env in self.config["environments"].items():
             # Explicit synthetic fixture choices, never production defaults.
             env["release_cutoff"] = {"2022-07": "2022-09-30", "2022-10": "2022-12-31", "2026-10": "2026-10-24"}[period]
@@ -144,13 +144,13 @@ class DeckIntakeTests(unittest.TestCase):
         self.assertEqual(prepare_intake(config, self.root)["environments"]["2022-07"]["status"], "pending")
         config["environments"]["2022-07"]["catalog"]["path"] = "../outside.cdb"
         self.assertEqual(prepare_intake(config, self.root)["environments"]["2022-07"]["status"], "invalid")
-        self.banlist.write_text("!2022.07\n1 2\n!2022.07\n1 3\n", encoding="utf-8")
+        self.banlist.write_text("!2022.7\n1 2\n!2022.7\n1 3\n", encoding="utf-8")
         self.config["environments"]["2022-07"]["banlist"] = self.artifact(self.banlist)
         self.assertEqual(self.prepare()["environments"]["2022-07"]["status"], "invalid")
 
     def test_selected_banlist_entries_are_strict_and_never_silently_ignored(self):
         for malformed in (" 1 0", "garbage", "1", "1 nope", "1 -1", "1 4", "1 2 extra", "1 2\n1 0"):
-            self.banlist.write_text("!outside\nignore this outside the chosen section\n!2022.07\n" + malformed + "\n", encoding="utf-8")
+            self.banlist.write_text("!outside\nignore this outside the chosen section\n!2022.7\n" + malformed + "\n", encoding="utf-8")
             self.config["environments"]["2022-07"]["banlist"] = self.artifact(self.banlist)
             with self.subTest(malformed=malformed):
                 self.assertEqual(self.prepare()["environments"]["2022-07"]["status"], "invalid")

@@ -228,7 +228,9 @@ def verify_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budget
             break
         audit = []
         profile = {"schema_version": 1, "name": "conditional-build-goal-proof", "decks": [list(deck.main), list(deck.main)]}
-        with NativeNormalEngine(assets.root, scenario="effect-duel", deck_profile=profile, seed=seed) as engine:
+        if hasattr(assets,"adapt_goal_profile"):profile=assets.adapt_goal_profile(profile)
+        factory=getattr(assets,"engine_factory",NativeNormalEngine)
+        with factory(assets.root, scenario="effect-duel", deck_profile=profile, seed=seed) as engine:
             request = engine.next_decision()
             opening = engine._observation(0)  # Legitimate own hand; never supplied to build-model features.
             present = any(c.zone == "hand" and c.card_id == task.goal["card_id"] for c in opening.cards)

@@ -22,6 +22,8 @@ from .build_model import BuildEncoder, BuildModelConfig, BuildRanker, FEATURE_VE
 from .build_pipeline import BuildAssets, alternate_build, edit_candidates, engineering_proxy, goal_candidates, verify_goal
 from .cpu_training import cpu_name
 from .duel_model import parameter_digest
+from .device import (resolve_device, execution_metadata, checkpoint_device, optimizer_to,
+                     capture_device_rng, restore_device_rng, checkpoint_execution)
 from .validation import ContractError, array, canonical_json, fields, integer
 
 ROLES = ("build_goal", "build_optimizer")
@@ -44,7 +46,7 @@ class BuildTrainingConfig:
             raise ContractError("two independent model seeds required")
         for seed in (*self.model_seeds, self.batch_seed):
             integer(seed, "building RNG seed", 0, 2**32 - 8)
-        integer(self.batches, "building proof batches", 2, 2)
+        integer(self.batches, "building batches", 1, 100000)
 
 
 def config_from_dict(value):
@@ -99,7 +101,9 @@ def validate_supervision(task, assets, data):
                 from .contracts import Observation
                 from .extra_routes import completed_special_summon
                 evidence = fields(proof.get("route_evidence"), {"driver", "opponent", "conditional_only", "material_preference",
-                                                              "sum_choices", "final_observation", "core_event_audit_not_policy_input", "versions"}, {"exploration"})
+                                                              "sum_choices", "final_observation", "core_event_audit_not_policy_input", "versions"}, {"exploration", "private_selection_key_audit_only"})
+                from .extra_routes import route_selection_key
+                route_selection_key(assets,deck,evidence)
                 if (evidence["conditional_only"] is not True or evidence["versions"] != task.environment["versions"]
                         or not completed_special_summon(evidence["core_event_audit_not_policy_input"],
                                                        Observation.from_dict(evidence["final_observation"]), 0, task.goal["card_id"])):
@@ -178,7 +182,8 @@ def engineering_dataset(task, assets):
 
 
 class BuildTrainer:
-    def __init__(self, task, assets, config):
+    def __init__(self, task, assets, config, *, device="cpu"):
+        self.device = resolve_device(device)
         torch.set_num_threads(1)
         torch.use_deterministic_algorithms(True)
         random.seed(config.batch_seed)
@@ -187,7 +192,7 @@ class BuildTrainer:
         self.models, self.optimizers, self.schedulers = {}, {}, {}
         for role, seed in zip(ROLES, config.model_seeds):
             torch.manual_seed(seed)
-            model = BuildRanker(config.model, len(self.encoder.card_ids), len(self.encoder.tags)).to("cpu")
+            model = BuildRanker(config.model, len(self.encoder.card_ids), len(self.encoder.tags)).to(self.device)
             self.models[role] = model
             self.optimizers[role] = torch.optim.AdamW(model.parameters(), lr=config.learning_rate, weight_decay=0., foreach=False, fused=False)
             self.schedulers[role] = torch.optim.lr_scheduler.StepLR(self.optimizers[role], 1, .99)
@@ -238,7 +243,7 @@ class BuildTrainer:
                 records = [records[i] for i in order]
                 decks = [DeckParts.from_dict(r["deck"]) for r in records]
                 scores = self.models[role](self.encoder.batch(self.task, decks))
-                loss = F.binary_cross_entropy_with_logits(scores, torch.tensor([r["label"] for r in records]))
+                loss = F.binary_cross_entropy_with_logits(scores, torch.tensor([r["label"] for r in records], device=self.device))
             else:
                 pairs = [records[i] for i in order]
                 decks = [DeckParts.from_dict(r[part]) for r in pairs for part in ("better", "worse")]
@@ -269,6 +274,7 @@ def save_checkpoint(trainer, directory, checkpoint_id, binding, *, allow_initial
     path = directory / f"{checkpoint_id}.weights"
     state = {"schema_version": 1, "kind": "paired-building-cpu", "boundary": "initial" if initial else "complete-role-update-batch",
              "config": asdict(trainer.config), "task": trainer.task.to_dict(), "binding": binding,
+             "execution": execution_metadata(trainer.device), "device_rng": capture_device_rng(trainer.device),
              "vocabulary_sha256": trainer.encoder.vocabulary_sha256, "updates": trainer.updates,
              "batch_cursor": trainer.batch_cursor,
              "models": {r: trainer.models[r].state_dict() for r in ROLES},
@@ -281,13 +287,14 @@ def save_checkpoint(trainer, directory, checkpoint_id, binding, *, allow_initial
     return path
 
 
-def load_checkpoint(path, assets, expected_binding, *, allow_initial=False):
+def load_checkpoint(path, assets, expected_binding, *, allow_initial=False, device=None):
     state = torch.load(path, map_location="cpu", weights_only=True)
     fields(state, {"schema_version", "kind", "boundary", "config", "task", "binding", "vocabulary_sha256", "updates", "batch_cursor",
-                   "models", "model_hashes", "optimizers", "schedulers", "rng"})
+                   "models", "model_hashes", "optimizers", "schedulers", "rng"}, {"execution", "device_rng"})
     integer(state["schema_version"], "building checkpoint schema", 1, 1)
     initial = allow_initial is True and state["boundary"] == "initial" and state["batch_cursor"] == 0
-    integer(state["batch_cursor"], "building checkpoint cursor", 0 if initial else 1, 2)
+    restored_config = config_from_dict(state["config"])
+    integer(state["batch_cursor"], "building checkpoint cursor", 0 if initial else 1, restored_config.batches)
     if state["kind"] != "paired-building-cpu" or (state["boundary"] != "complete-role-update-batch" and not initial) or state["binding"] != expected_binding:
         raise ContractError("building checkpoint boundary/resources differ")
     task = BuildTask.from_dict(state["task"])
@@ -295,11 +302,12 @@ def load_checkpoint(path, assets, expected_binding, *, allow_initial=False):
         raise ContractError("checkpoint goal identity differs")
     if binding_for(task, assets, {"supervision_sha256": expected_binding["supervision_sha256"]}) != expected_binding:
         raise ContractError("current building resources/implementation differ from checkpoint")
-    trainer = BuildTrainer(task, assets, config_from_dict(state["config"]))
+    trainer = BuildTrainer(task, assets, restored_config, device=checkpoint_execution(state, device))
     for role in ROLES:
         integer(state["updates"][role], "building role updates", state["batch_cursor"], state["batch_cursor"])
         trainer.models[role].load_state_dict(state["models"][role], strict=True)
         trainer.optimizers[role].load_state_dict(state["optimizers"][role])
+        optimizer_to(trainer.optimizers[role], trainer.device)
         trainer.schedulers[role].load_state_dict(state["schedulers"][role])
         if parameter_digest(trainer.models[role]) != state["model_hashes"][role]:
             raise ContractError("building checkpoint parameter checksum differs")
@@ -309,6 +317,7 @@ def load_checkpoint(path, assets, expected_binding, *, allow_initial=False):
     torch.set_rng_state(state["rng"]["torch"])
     trainer.batch_rng.set_state(state["rng"]["batch"])
     random.setstate(state["rng"]["python"])
+    if "device_rng" in state: restore_device_rng(state["device_rng"], trainer.device)
     return trainer
 
 

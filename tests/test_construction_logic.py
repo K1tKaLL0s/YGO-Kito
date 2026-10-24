@@ -1,8 +1,10 @@
 """CPU engineering behavior only; synthetic cards/reviews are not real CBs."""
 
 from dataclasses import asdict, replace
+from copy import deepcopy
 import json
 from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -177,6 +179,110 @@ class ConcreteFillTests(unittest.TestCase):
         return evaluate_fill(self.session, self.assets, self.proposal,
                              text_reviewer=kwargs.pop("text_reviewer", text_review),
                              verifier=kwargs.pop("verifier", goal_proof), **kwargs)
+
+    def test_public_fill_and_fallback_hide_private_key_but_retain_private_replay_proof(self):
+        private = dict(goal_proof(self.task, self.deck, self.assets), elapsed_seconds=.25,
+            route_evidence={"private_selection_key_audit_only": "private-route",
+                "steps": [{"private_selection_key_audit_only": "private-step", "public": [1]}]})
+        before = deepcopy(private)
+        output = self.evaluate(verifier=lambda *args: private)
+        public = output["engine_validation"]
+        self.assertEqual(output["status"], "task_goal_verified_logic_unproven")
+        self.assertEqual(public["route_evidence"], {"steps": [{"public": [1]}]})
+        self.assertEqual(public["elapsed_seconds"], .25)
+        self.assertEqual(private, before)
+        self.assertEqual(self.session._accepted_fill["engine_validation"], before)
+        public["route_evidence"]["steps"][0]["public"].clear()
+        fallback = self.evaluate(text_reviewer=None)["fallback"]["engine_validation"]
+        self.assertEqual(fallback["route_evidence"], {"steps": [{"public": [1]}]})
+        self.assertEqual(self.session._accepted_fill["engine_validation"], before)
+        self.assertEqual(private, before)
+
+    def test_public_projection_removes_only_exact_key_without_mutating_original(self):
+        from ygo_kito.coordinator import versioned_proof
+        from ygo_kito.proof_visibility import without_private_selection_key
+        private = {"private_selection_key_audit_only": "private-root", "elapsed_seconds": 1.,
+            "selection_key": "unrelated-public-field", "steps": [{"private_selection_key_audit_only": "private-step",
+                "elapsed_seconds": 2., "private_selection_key_audit_only_suffix": "keep", "status": "verified"}],
+            "route": {"child": {"private_selection_key_audit_only": "private-child", "public": [1, 2]}}}
+        before = deepcopy(private)
+        public = without_private_selection_key(private)
+        self.assertNotIn("private_selection_key_audit_only", public)
+        self.assertNotIn("private_selection_key_audit_only", public["steps"][0])
+        self.assertNotIn("private_selection_key_audit_only", public["route"]["child"])
+        self.assertEqual(public["elapsed_seconds"], 1.)
+        self.assertEqual(public["selection_key"], "unrelated-public-field")
+        self.assertEqual(public["steps"][0]["private_selection_key_audit_only_suffix"], "keep")
+        stable = versioned_proof(private)
+        self.assertNotIn("elapsed_seconds", stable)
+        self.assertNotIn("elapsed_seconds", stable["steps"][0])
+        self.assertNotIn("private_selection_key_audit_only", stable["steps"][0])
+        public["route"]["child"]["public"].clear()
+        self.assertEqual(private, before)
+
+    def test_candidate_retry_returns_original_public_proof_once_and_rechecks_current_assets(self):
+        from unittest.mock import Mock
+        from ygo_kito.coordinator import Coordinator
+        from ygo_kito.coord_contracts import FeedbackPolicy
+        private = dict(goal_proof(self.task, self.deck, self.assets), elapsed_seconds=.2,
+            responses=[{"request_sha256": "1" * 64, "action_id": "private-key-derived-choice"}],
+            route_evidence=[{"private_selection_key_audit_only": "private-replay", "public": True}])
+        before = deepcopy(private)
+        params = {"candidate_id": "candidate", "parent_candidate_id": None, "task": self.task.to_dict(),
+                  "deck": self.deck.to_dict(), "build_models": {"build_goal": "1" * 64, "build_optimizer": "2" * 64}}
+        integrity = Mock()
+        self.assets.assert_integrity = integrity
+        with tempfile.TemporaryDirectory() as temporary:
+            coord = Coordinator(Path(temporary) / "public.sqlite3", FeedbackPolicy(), role="coordinator",
+                                source="real_engine", assets=self.assets, create=True)
+            # Explicit verifier fixture: actual SQLite publication/retry only,
+            # not native goal execution or a real private-route trajectory.
+            with patch("ygo_kito.coordinator.verify_goal", return_value=private) as verifier:
+                first = coord._candidate(params)
+                reordered = deepcopy(params); reordered["deck"]["main"].reverse()
+                retry = coord._candidate(reordered)
+                self.assertEqual(first, retry)
+                verifier.assert_called_once()
+                integrity.assert_called_once()
+                self.assertEqual(retry["validation"]["route_evidence"], [{"public": True}])
+                self.assertEqual(retry["validation"]["responses"], private["responses"])
+                self.assertNotIn("elapsed_seconds", retry["validation"])
+                for key, value in (("parent_candidate_id", "different-parent"),
+                                   ("build_models", dict(params["build_models"], build_goal="3" * 64))):
+                    with self.subTest(key=key), self.assertRaisesRegex(ContractError, "identity conflict"):
+                        coord._candidate(dict(params, **{key: value}))
+                # A changed live banlist must still prevent reuse of an accepted
+                # receipt; no second verifier call or replacement proof occurs.
+                self.assets.limits[1] = 0
+                with self.assertRaises(ContractError): coord._candidate(params)
+                verifier.assert_called_once()
+            self.assertEqual(private, before)
+
+    def test_candidate_inserted_during_verification_keeps_first_receipt_without_audit_identity_conflict(self):
+        from ygo_kito.coordinator import Coordinator
+        from ygo_kito.coord_contracts import FeedbackPolicy
+        params = {"candidate_id": "concurrent-candidate", "parent_candidate_id": None, "task": self.task.to_dict(),
+                  "deck": self.deck.to_dict(), "build_models": {"build_goal": "1" * 64, "build_optimizer": "2" * 64}}
+        first_proof = dict(goal_proof(self.task, self.deck, self.assets), trajectory_sha256="a" * 64,
+                           route_evidence={"private_selection_key_audit_only": "first-private-key"})
+        later_proof = dict(first_proof, trajectory_sha256="b" * 64,
+                           route_evidence={"private_selection_key_audit_only": "second-private-key"})
+        with tempfile.TemporaryDirectory() as temporary:
+            coord = Coordinator(Path(temporary) / "race.sqlite3", FeedbackPolicy(), role="coordinator",
+                                source="real_engine", assets=self.assets, create=True)
+            accepted = []
+            def interleaved_verifier(*args):
+                # Explicit race fixture: insert the winner after the outer read
+                # and before its transaction. No native engine or threads.
+                with patch("ygo_kito.coordinator.verify_goal", return_value=first_proof):
+                    accepted.append(coord._candidate(params))
+                return later_proof
+            with patch("ygo_kito.coordinator.verify_goal", side_effect=interleaved_verifier):
+                result = coord._candidate(params)
+            self.assertEqual(result, accepted[0])
+            self.assertEqual(result["validation"]["trajectory_sha256"], "a" * 64)
+            with coord._db() as db:
+                self.assertEqual(db.execute("SELECT COUNT(*) FROM candidates").fetchone()[0], 1)
 
     def test_alternative_binding_paths_and_quantities_use_legacy_validation(self):
         for path in (("ns", "trigger"), ("ss", "alternative")):

@@ -14,6 +14,7 @@ from .agent_registry import identifier
 from .build_contracts import BuildTask, DeckParts, digest
 from .build_pipeline import verify_goal
 from .coord_contracts import (FeedbackPolicy, OUTCOMES, SOURCES, evaluation_scope, probability, rule_route, sha256)
+from .proof_visibility import without_private_selection_key
 from .validation import ContractError, array, canonical_json, fields, integer, member, text
 
 APPLICATION_ID = 0x59474F43
@@ -27,9 +28,13 @@ PERMISSIONS = {"monitor": READ,
 
 def versioned_proof(value):
     """Timing is measured in private run receipts, not candidate identity."""
-    if isinstance(value,dict):return {k:versioned_proof(v) for k,v in value.items() if k!='elapsed_seconds'}
-    if isinstance(value,list):return [versioned_proof(v) for v in value]
-    return value
+    def without_timing(item):
+        if isinstance(item, dict):
+            return {k: without_timing(v) for k, v in item.items() if k != "elapsed_seconds"}
+        if isinstance(item, list):
+            return [without_timing(v) for v in item]
+        return item
+    return without_private_selection_key(without_timing(value))
 
 
 class Coordinator:
@@ -107,6 +112,32 @@ class Coordinator:
         deck = DeckParts(*(tuple(sorted(getattr(deck, zone))) for zone in ("main", "extra", "side")))
         goal_key = digest({"goal": task.goal, "requirements": task.requirements, "sizes": task.sizes})
         deck_hash, env_hash = digest(deck.to_dict()), digest(task.environment)
+        submission = dict(d, deck=deck.to_dict())
+
+        def existing_receipt(row):
+            saved = json.loads(row["payload"])
+            # A retry identifies the submitted candidate, not a fresh private
+            # verification trajectory. Keep the first accepted proof immutable.
+            if (any(key not in saved for key in submission)
+                    or canonical_json({key: saved[key] for key in submission}) != canonical_json(submission)
+                    or saved.get("source") != self.source or saved.get("task_sha256") != task.sha256
+                    or saved.get("deck_sha256") != deck_hash or saved.get("goal_key") != goal_key
+                    or row["deck_sha"] != deck_hash or row["env_sha"] != env_hash or row["goal_key"] != goal_key):
+                raise ContractError("candidate identity conflict; preserve lineage")
+            if self.source == "real_engine":
+                if self.assets is None:
+                    raise ContractError("real handoff requires explicit locked assets")
+                integrity = getattr(self.assets, "assert_integrity", None)
+                if integrity is not None:
+                    integrity()
+                self.assets.check_task(task)
+                self.assets.validate(task, deck)
+            return saved
+
+        with self._db() as db:
+            old = db.execute("SELECT payload,deck_sha,env_sha,goal_key FROM candidates WHERE id=?", (d["candidate_id"],)).fetchone()
+            if old:
+                return existing_receipt(old)
         # Source is host configuration, never a request override.
         if self.source == "real_engine":
             if self.assets is None:
@@ -118,15 +149,13 @@ class Coordinator:
             validation = versioned_proof(validation)
         else:
             validation = {"status": "synthetic_contract_only", "card_list_legal": None, "core_executed": False}
-        payload = dict(d, deck=deck.to_dict(), source=self.source, task_sha256=task.sha256, goal_key=goal_key, deck_sha256=deck_hash,
+        payload = dict(submission, source=self.source, task_sha256=task.sha256, goal_key=goal_key, deck_sha256=deck_hash,
                        validation=validation, candidate_quality_validated=False)
         with self._db() as db, db:
             db.execute("BEGIN IMMEDIATE")
-            old = db.execute("SELECT payload FROM candidates WHERE id=?", (d["candidate_id"],)).fetchone()
+            old = db.execute("SELECT payload,deck_sha,env_sha,goal_key FROM candidates WHERE id=?", (d["candidate_id"],)).fetchone()
             if old:
-                if old[0] != canonical_json(payload):
-                    raise ContractError("candidate identity conflict; preserve lineage")
-                return json.loads(old[0])
+                return existing_receipt(old)
             if d["parent_candidate_id"] is not None:
                 parent = self._row(db, "candidates", d["parent_candidate_id"])
                 if parent["goal_key"] != goal_key:

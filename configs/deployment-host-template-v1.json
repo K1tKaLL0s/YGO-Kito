@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "expected_source_commit": null,
+  "dependency_lock": {
+    "path": "requirements/ci-cpu.txt",
+    "sha256": null,
+    "python": "3.12.14",
+    "torch": null
+  },
+  "runtime_device": "cuda",
+  "minimum_hardware": {
+    "cpu_cores": null,
+    "memory_bytes": null,
+    "disk_free_bytes": null,
+    "cuda_devices": null,
+    "cuda_device_memory_bytes": null
+  },
+  "native_root": ".cache",
+  "log_directory": ".cache/deployment-logs",
+  "resume": {
+    "mode": "fresh",
+    "state_root": null,
+    "run_id": null,
+    "checkpoint_id": null
+  },
+  "evidence": []
+}

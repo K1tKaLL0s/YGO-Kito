@@ -24,19 +24,34 @@ def configured(recipe):
             read_json(config_path(recipe['construction_curriculum'])).get('source')==COURSE)
 
 
-def inputs(recipe,task):
+def inputs(recipe,task,*,period_host=None):
     from .group_runner import config_path
     cfg=read_json(config_path(recipe['construction_curriculum']))
     fields(cfg,{'schema_version','source','validation_task','period_id','environment','budget_seconds'})
     integer(cfg['schema_version'],'semantic course schema',1,1)
     if (cfg['source']!=COURSE or task.schema_version!=4 or task.goal['kind']!='deck_constraints'
-        or cfg['environment']!=task.environment or cfg['period_id']!='engineering-custom'):
+        or cfg['environment']!=task.environment):
+        raise ContractError('semantic course requires its exact task and actual environment')
+    host=None
+    if 'period_inputs' in recipe:
+        from .period_host import load_period_host
+        host=period_host if period_host is not None else load_period_host(recipe)
+        if host is None or cfg['period_id']!=host.period_id:
+            raise ContractError('semantic period must match the explicitly loaded host inputs')
+        host.require_task(task)
+    elif cfg['period_id']!='engineering-custom':
         raise ContractError('semantic course requires its exact custom environment; historical periods need independently prepared data')
     if type(cfg['budget_seconds']) not in (float,int) or not 0<cfg['budget_seconds']<=30:raise ContractError('semantic course budget invalid')
     val=BuildTask.from_dict(read_json(config_path(cfg['validation_task'])))
     if val.schema_version!=4 or val.environment!=task.environment or val.sha256==task.sha256:
         raise ContractError('semantic validation must reserve a different task in the same actual environment')
-    return {'config':cfg,'validation_task':val,'binding_sha256':digest({'course':cfg,'train_task':task.to_dict(),'validation_task':val.to_dict()})}
+    binding={'course':cfg,'train_task':task.to_dict(),'validation_task':val.to_dict()}
+    if host is not None:
+        host.require_task(val)
+        binding.update(period_input_sha256=host.loaded.manifest['binding_sha256'],
+                       period_host_sha256=host.descriptor_sha256,
+                       period_context=host.assets.period_context)
+    return {'config':cfg,'validation_task':val,'binding_sha256':digest(binding)}
 
 
 def new_index(state):
@@ -100,10 +115,17 @@ def consume(state,role):
     state.construction_state['consumed'].append(marker)
 
 
-def opponent(state,profile,purpose):
+def opponent(state,profile,purpose,*,episode_cursor=None):
     from .agent_registry import OpponentRegistry
     from .opponent_pool import FrozenOpponent
     from .group_runner import profile_deck
+    if "period_inputs" in state.row["recipe"]:
+        from .group_runner import period_host
+        host=period_host(state.row["recipe"])
+        cursor=(0 if state.phase=="bootstrap" else state.sessions["duel"].updates+1) if purpose=="train" else (episode_cursor or 0)
+        selected=host.loaded.for_runner(host.period_id,purpose,episode_cursor=cursor)
+        original=selected["assets"].opponent_for(selected["opponent_binding"],selected["profile"])
+        return selected["assets"].rebind_rule_opponent(original.binding,profile_deck(profile,0),purpose=purpose)
     registry=OpponentRegistry(state.data_index.root/'opponents',state.assets.root)
     env=registry.runtime_environment(5);registry.environment(env)
     own,other=(profile_deck(profile,p) for p in (0,1))
@@ -119,6 +141,9 @@ def ingest_episode(state,episode):
     purpose=episode['purpose'];binding=episode['summary'].get('opponent_binding')
     if purpose not in ('train','validation') or not binding:raise ContractError('course episode lacks actual registered opponent')
     ident='duel-'+purpose+'-'+binding['own_deck_sha256'][:24]
+    if "period_inputs" in state.row["recipe"]:
+        from .data_isolation import opponent_identity
+        ident='duel-'+purpose+'-'+binding['own_deck_sha256'][:16]+'-'+opponent_identity(binding)[:16]
     freeze(state,ident,purpose,'duel',opponents=(binding,))
     ordinal=sum(m['event_id']==state.event_id() for m in state.data_marks)
     artifact=state.event_id()+'-'+purpose+'-'+str(ordinal)
@@ -143,7 +168,7 @@ def evaluate(state,generation):
         with torch.no_grad():
             if role=='build_goal':
                 logits=model(state.builder.encoder.batch(task,[DeckParts.from_dict(r['deck']) for r in data['goals']]))
-                metrics['goal_bce']=float(F.binary_cross_entropy_with_logits(logits,torch.tensor([r['label'] for r in data['goals']])))
+                metrics['goal_bce']=float(F.binary_cross_entropy_with_logits(logits,torch.tensor([r['label'] for r in data['goals']],device=logits.device)))
             else:
                 logits=model(state.builder.encoder.batch(task,[DeckParts.from_dict(r[k]) for r in data['pairs'] for k in ('better','worse')])).reshape(-1,2)
                 metrics['explicit_preference_pair_accuracy']=float((logits[:,0]>logits[:,1]).float().mean())

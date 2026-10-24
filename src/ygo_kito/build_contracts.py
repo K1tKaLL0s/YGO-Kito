@@ -60,9 +60,17 @@ class BuildTask:
         identifier(env["environment_id"])
         Versions.from_dict(env["versions"])
         member(env["authority"], "environment authority", ("custom", "community", "official"))
-        # Historical environments can be recorded elsewhere; this slice must fail closed.
-        if env["authority"] != "custom" or env["release_cutoff"] is not None:
-            raise ContractError("historical building environment is not verified in this slice")
+        # A descriptor is not historical-rule approval. Period-aware assets must
+        # still match the exact environment and validate every allowed card.
+        if env["authority"] != "custom":
+            raise ContractError("official/community authority requires separately verified runtime evidence")
+        if env["release_cutoff"] is not None:
+            from datetime import date
+            try:
+                if date.fromisoformat(env["release_cutoff"]).isoformat()!=env["release_cutoff"]:
+                    raise ValueError()
+            except (TypeError,ValueError) as error:
+                raise ContractError("explicit release cutoff must be YYYY-MM-DD") from error
         semantic = self.goal.get("kind") == "deck_constraints" if isinstance(self.goal,dict) else False
         if semantic:
             if self.schema_version != 4:raise ContractError("semantic goals require schema 4")

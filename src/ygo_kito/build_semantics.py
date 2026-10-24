@@ -198,7 +198,8 @@ def route_task(task):
         raise ContractError('combined goal supports explicit conditional synchro/xyz objectives')
     raw=task.to_dict();raw['schema_version']=3;raw['goal']=raw['goal']['route_goal']
     if 'route' in raw['goal']:raise ContractError('combined objective uses core discovery, not a prewritten route')
-    raw['environment']['versions']['card_pool']='native-extra-material-v2'
+    if raw['environment']['release_cutoff'] is None:
+        raw['environment']['versions']['card_pool']='native-extra-material-v2'
     return BuildTask.from_dict(raw)
 
 

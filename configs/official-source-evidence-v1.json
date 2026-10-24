@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "kind": "official-source-status-not-a-complete-historical-card-pool",
+  "checked_date_utc": "2026-10-24",
+  "periods": {
+    "2022-07": {
+      "banlist_effective": "2022-07-01",
+      "official_notice_url": "https://yu-gi-oh.jp/news/oid-1313/",
+      "notice_publication_date": "2022-06-12",
+      "verified_scope": "effective date and announced changes; not the complete accumulated list",
+      "full_official_machine_list_verified": false,
+      "community_candidate_section": "2022.7",
+      "release_cutoff": null,
+      "official_release_manifest": null
+    },
+    "2022-10": {
+      "banlist_effective": "2022-10-01",
+      "official_notice_url": "https://yu-gi-oh.jp/news/oid-1388/",
+      "notice_publication_date": "2022-09-11",
+      "verified_scope": "effective date and announced changes; not the complete accumulated list",
+      "full_official_machine_list_verified": false,
+      "community_candidate_section": "2022.10",
+      "release_cutoff": null,
+      "official_release_manifest": null
+    },
+    "2026-10": {
+      "banlist_effective": "2026-10-01",
+      "official_notice_url": "https://www.db.yugioh-card.com/yugiohdb/forbidden_limited.action?request_locale=ja",
+      "notice_publication_date": null,
+      "verified_scope": "OCG Japanese rendered page explicitly updated 2026/10/01, not TCG",
+      "full_official_machine_list_verified": false,
+      "community_candidate_section": "2026.10",
+      "release_cutoff": null,
+      "official_release_manifest": null
+    }
+  },
+  "raw_official_database_download": {
+    "status": "blocked",
+    "action": "HTTPS GET of the official Japanese OCG list raw HTML from the cloud shell",
+    "reason": "HTTP proxy tunnel returned 403 Forbidden",
+    "retry_performed": false
+  },
+  "historical_rules_verified": false,
+  "formal_training_ready": false
+}

@@ -4,8 +4,8 @@
 不绑定 CodeBuddy、DeepSeek、DSH 或任何 SDK。CodeBuddy 只作为仓库内已有的一个具体适配
 示例出现在 `coding_agent.py`，不是运行依赖。
 
-**接口存在不等于已接通。** 本文标注的"已核实"指源码与独立测试层面；实际宿主、真实
-provider、腾讯云实例均**未验证**，见 §9。
+**接口存在不等于已接通。** 本地参考宿主和完整项目 stdio 已实测；真实外部
+provider、腾讯云实例均**未验证**，见 §9。普通真实核心已在当前云端重新构建并跑通合法对局、精确回放及正常接口回归，见[当前诊断](../reports/2026-10-24-native-current-diagnosis.md)。这些结果没有把 fixture 客户端变成真实外部模型，也不改变下文 RPC 的固定权限。
 
 **集成与启动前提。** 本说明中的 CLI 命令需在完整项目中执行。独立交付中的 `_work/` 仅为审查与选定测试准备的局部源码副本，不含 `src/ygo_kito/cli.py`、`src/ygo_kito/__main__.py`，不能直接按独立安装包启动。应用原生响应修复时，`native.py` 与新增 `native_response_guard.py` 必须作为同一组集成；守卫依赖项目现有的 `native_protocol.NativeError`，无需新增第三方依赖。
 

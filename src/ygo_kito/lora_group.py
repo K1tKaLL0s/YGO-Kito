@@ -20,8 +20,9 @@ from .build_pipeline import BuildAssets, alternate_build
 from .build_training import engineering_dataset
 from .coord_contracts import FeedbackPolicy, ROUTES
 from .coordinator import Coordinator
-from .coordinator_model import FEATURE_VERSION as COORD_FEATURES, context_tensor, engineering_examples
+from .coordinator_model import FEATURE_VERSION as COORD_FEATURES, context_tensor, engineering_examples, supervision_rows
 from .duel_model import FEATURE_VERSION as DUEL_FEATURES, parameter_digest
+from .device import model_device, move_batch
 from .lora import AdapterConfig, AdapterSession, ROLES, tensor_digest
 from .model_group import (ROOT, call, execute_duel_job, group_binding, restore_group, route_with_model,
                           run_model_group_smoke, save_group)
@@ -57,19 +58,33 @@ def construction_loss(role, session, builder, task, data,*,data_admission=None):
     if role == "build_goal":
         decks = [DeckParts.from_dict(r["deck"]) for r in rows]
         scores = session.model(builder.encoder.batch(task, decks))
-        return F.binary_cross_entropy_with_logits(scores, torch.tensor([r["label"] for r in rows]))
+        return F.binary_cross_entropy_with_logits(scores, torch.tensor([r["label"] for r in rows], device=scores.device))
     decks = [DeckParts.from_dict(r[k]) for r in rows for k in ("better", "worse")]
     scores = session.model(builder.encoder.batch(task, decks)).reshape(-1, 2)
     return F.softplus(scores[:, 1] - scores[:, 0]).mean()
 
 
-def coordinator_loss(session):
-    rows = engineering_examples()["records"]
+def coordinator_loss(session, examples=None):
+    examples = engineering_examples() if examples is None else examples
+    rows, synthetic = supervision_rows(examples)
     rows = [rows[i] for i in torch.randperm(len(rows), generator=session.rng).tolist()]
     session.model.train()
     logits, forecasts = session.model(torch.tensor([context_tensor(r["context"]) for r in rows]))
-    return (F.cross_entropy(logits, torch.tensor([ROUTES.index(r["route_label"]) for r in rows])) +
-            F.mse_loss(forecasts, torch.tensor([r["synthetic_probability_anchor"] for r in rows])))
+    route_loss = F.cross_entropy(logits, torch.tensor([ROUTES.index(r["route_label"]) for r in rows], device=logits.device))
+    targets = [r["synthetic_probability_anchor" if synthetic else "forecast_target"] for r in rows]
+    labelled = [i for i, target in enumerate(targets) if target is not None]
+    # Omitting this branch keeps forecast-head grads None, including after a
+    # labelled update has populated that adapter's Adam momentum.
+    if not labelled:
+        return route_loss
+    return route_loss + F.mse_loss(forecasts[labelled], torch.tensor([targets[i] for i in labelled], device=forecasts.device))
+
+
+def normalize_advantages(values):
+    """A single decision keeps its learning signal; multiple values are centered."""
+    if not isinstance(values, torch.Tensor) or values.ndim != 1 or not values.numel() or not torch.isfinite(values).all():
+        raise ContractError("finite nonempty advantage vector required")
+    return (values - values.mean()) / (values.std(unbiased=False) + 1e-8) if values.numel() > 1 else values
 
 
 def ppo_inputs(episode, sampler, session):
@@ -93,7 +108,7 @@ def ppo_inputs(episode, sampler, session):
     indices = torch.randperm(len(steps), generator=session.rng)[:cfg.batch_size]
     chosen = [steps[i] for i in indices.tolist()]
     adv = advantages[indices]
-    adv = (adv - adv.mean()) / (adv.std(unbiased=False) + 1e-8)
+    adv = normalize_advantages(adv)
     return {"batch": sampler.encoder.batch([s["request"] for s in chosen]),
             "actions": torch.tensor([s["action_index"] for s in chosen]),
             "old_log_probs": torch.tensor([s["old_log_prob"] for s in chosen]),
@@ -101,6 +116,7 @@ def ppo_inputs(episode, sampler, session):
 
 
 def ppo_loss(session, values, config):
+    values = move_batch(values, model_device(session.model))
     session.model.train()
     logits, predicted = session.model(values["batch"])
     distribution = Categorical(logits=logits)

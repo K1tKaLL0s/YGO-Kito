@@ -10,6 +10,7 @@ import math
 
 from .build_contracts import DeckParts, digest
 from .construction_logic import LogicTag, reachable, select_main_axes, short
+from .proof_visibility import without_private_selection_key
 from .validation import ContractError, array, fields, member
 
 
@@ -170,7 +171,7 @@ def evaluate_fill(session, assets, proposal, *, scopes=(), text_reviewer=None, v
         if (prior and prior["task_sha256"] == task.sha256 and prior["logic_sha256"] == graph.sha256
                 and prior["scope_sha256"] == output.get("scope_sha256")):
             output["best_deck"] = deepcopy(prior["deck"])
-            output["fallback"] = deepcopy(prior)
+            output["fallback"] = without_private_selection_key(prior)
         session.record_feedback("fill", message)
         return output
 
@@ -231,7 +232,7 @@ def evaluate_fill(session, assets, proposal, *, scopes=(), text_reviewer=None, v
     session.check_goal()
     if session.logic.sha256 != graph.sha256:
         raise ContractError("logic changed during existing goal verification")
-    output["engine_validation"] = proof
+    output["engine_validation"] = without_private_selection_key(proof)
     from .build_semantics import accepted_status
     if proof.get("status") != accepted_status(task):
         return reject("existing_goal_unverified", "existing goal verification did not succeed: " + str(proof.get("status")))

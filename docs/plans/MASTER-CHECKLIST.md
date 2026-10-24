@@ -1,8 +1,8 @@
 # YGO-Kito 总工作清单
 
-更新日期：2026-10-24（新增 EP继续工程准备，CL/MP及既有记录保留）。依据[统一开发说明 1.1 及构筑逻辑补充][spec]和其继承的原定稿；本表是持续进度索引，不改变设计、验收目标或执行授权。[第一阶段详细清单][phase1]与历史报告继续保留。
+更新日期：2026-10-24（新增 PT训练前工程，EP/CL/MP及既有记录保留）。依据[统一开发说明 1.1 及构筑逻辑补充][spec]和其继承的原定稿；本表是持续进度索引，不改变设计、验收目标或执行授权。[第一阶段详细清单][phase1]与历史报告继续保留。
 
-最新工程接续为[PR #3](https://github.com/K1tKaLL0s/YGO-Kito/pull/3)，见[继续工程报告](../reports/2026-10-24-engineering-continuation.md)和下列EP条目。旧批次“未发布/拒绝”保留历史语境，不覆盖已解除的发布授权；PR均未合并。当前环境缺锁定规则资源，不能把此前云端历史引擎结果说成此检出已可运行。
+最新工程接续为[PR #3](https://github.com/K1tKaLL0s/YGO-Kito/pull/3)，见[继续工程报告](../reports/2026-10-24-engineering-continuation.md)和下列EP/PT条目。旧批次“未发布/拒绝”保留历史语境，不覆盖已解除的发布授权；PR均未合并。当前云端已正常下载锁定源码并构建真实规则资源，合法最小对局、精确回放和16项正常接口已实际通过；旧任务拦截不等于当前正常执行被禁止，见[事实诊断](../reports/2026-10-24-native-current-diagnosis.md)。
 
 当前入口：[构筑语义/数据隔离/可执行对手][foundation]；此前[合法私有记忆/盖放宿主v5][knowledge]、[不透明选择/完整候选策略v4][private]、[公开历史v3][history]及[四模型交替/冻结评估][group-runner]保留。云端 `/workspace/YGO-Kito` 已有真实引擎、四网络/LoRA和JSON受控CPU后端。本批R10-09完成固定版本MSG18分类/真实MSG24多区，MG01-02/MO03-02/D08-01/T07-01完成下述有界验收；同源168单元/163完整集成无跳过、独立CPU命令退出0，收据见[报告][foundation]。私有轨迹/索引/权重留云端，仓库只公开投影/摘要。**完整阶段1仍未交付**，不以切片数替代完成。PR发布不等于合并，本机未据此同步。
 
@@ -35,6 +35,17 @@
 - [x] **EP-05 已完成** 新增6项开放主题/双主轴/否定组合/混合歧义/低置信及多轮反馈重构测试，保留第一阶段和目标→优化，积木身份与粗连接分开。规则/DTO场景和真实未训练分类器分别测试，不把fixture当模型泛化。[测试](../../tests/test_construction_scenarios.py)
 
 EP远端验收：ca6ed9c的[Actions 40134675481](https://github.com/K1tKaLL0s/YGO-Kito/actions/runs/40134675481)已completed/success，实际217/217、0失败/错误/跳过；[平台状态与聚合回执](../reports/2026-10-24-continuation-evidence/ci-passed-run.json)保留源码摘要/依赖/边界。首轮CI错误及修正证据保留，不用本地通过覆盖失败。后续文档提交不改变受测源码，最新head检查仍见PR3。
+
+## 2026-10-24：训练前工程接续（PT）
+
+以下只记录新增工程边界；历史能力、正式三期数据和训练前PC门槛不因本节勾选而自动通过。最终提交、分组结果和源码包复验见本轮训练前报告；开发中数字不代替固定提交的结果。
+
+- [ ] **PT-01 验证中** 正常真实规则资源与合法对局已恢复，锁定core/scripts/cards/Lua、真实库及资源摘要齐全；首次16项正常接口通过，最后时期hook提交须再验。DP guard/ABI/响应处理不重做，native仅增加可逐字还原的禁表选择hook，旧崩溃唯一根因没有据此证明。[诊断](../reports/2026-10-24-native-current-diagnosis.md)
+- [ ] **PT-02 验证中** 显式device及模型训练接口：决斗、双构筑、统筹和LoRA支持传递设备、batch/target迁移、优化器和设备RNG绑定；无CUDA拒绝，旧CPU checkpoint不静默跨设备。实际CPU可训练/恢复与CUDA代码实现分开，GPU数值/吞吐未验。
+- [ ] **PT-03 验证中** 三期输入编译/实际加载、PeriodBuildAssets/PeriodNativeEngine、显式host到indexed schema4 group课程接线、actor换牌后实际对手重绑定和多对手数据隔离；不清空截止来伪装历史。普通规则baseline可执行；历史规则、正式来源与用户3＋8资料未资格化。[输入](../development/training-input.md)、[运行适配](../development/period-runtime.md)
+- [ ] **PT-04 验证中** SciPy1.16.3哈希锁定，空牌表实际MILP求解、独立合法性复核及infeasible/未搜索unknown区分。统筹显式带出处日志监督可训练，原合成默认保留且来源可见，不把日志摘要当校准胜率。
+- [ ] **PT-05 验证中** 确定性完整源码包、逐文件manifest校验、无Git源码运行与现有主机静态部署预检；实际归档复验待固定提交。包不含私有牌表/轨迹/权重/凭据或原生资源，不采购云实例。[部署交接](../development/deployment-preparation.md)
+- [ ] **PT-06 外部依赖** 官方完整禁表/发行日期资料及截止、旧裁定/目标PC兼容、用户牌表/合格对手、真实provider配置，以及实际腾讯云GPU/驱动锁和小试尚未闭合。官方原始HTML下载实际HTTP代理403已停止；正常引擎没有这个阻碍。G-01/G-02/P-01/B-02继续未通过，不能宣称“只剩卡组”。[来源状态](../../configs/official-source-evidence-v1.json)
 
 ## 0：设计、环境和学习分工
 

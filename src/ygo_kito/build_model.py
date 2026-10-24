@@ -10,6 +10,7 @@ import torch
 from torch import nn
 
 from .build_contracts import BuildTask, DeckParts, ZONES, digest
+from .device import model_device, move_batch
 from .validation import ContractError, canonical_json, integer
 
 FEATURE_VERSION = "build-task-catalog-candidate-v5-combined-native-objectives"
@@ -108,7 +109,7 @@ class BuildEncoder:
         state += [task.sizes[z] / (60 if z == "main" else 15) for z in ZONES]
         return ids, numbers, state
 
-    def batch(self, task, decks):
+    def batch(self, task, decks, *, device=None):
         integer(len(decks), "building rank batch", 1, 32)
         encoded = [self.encode(task, deck) for deck in decks]
         length = max(len(row[0]) for row in encoded)
@@ -120,7 +121,7 @@ class BuildEncoder:
             batch["tokens"][i, :len(tokens)] = torch.tensor(tokens)
             batch["numbers"][i, :len(tokens)] = torch.tensor(numbers)
             batch["mask"][i, :len(tokens)] = True
-        return batch
+        return move_batch(batch, device) if device is not None else batch
 
 
 class BuildRanker(nn.Module):
@@ -139,12 +140,13 @@ class BuildRanker(nn.Module):
         self.head = nn.Sequential(nn.Linear(config.width, config.width), nn.Tanh(), nn.Linear(config.width, 1))
 
     def forward(self, batch):
-        if batch["state"].device.type != "cpu" or not batch["mask"][:, 0].all():
+        batch = move_batch(batch, model_device(self))
+        if not batch["mask"][:, 0].all():
             raise ContractError("building ranker requires CPU/valid context")
         t = batch["tokens"]
         x = (self.card_project(self.card(t[..., 0])) + self.zone(t[..., 1]) + self.annotation(t[..., 2])
              + self.kind(t[..., 3]) + self.numeric(batch["numbers"]))
         x[:, 0] = x[:, 0] + self.state(batch["state"])
-        x = x + self.position(torch.arange(x.shape[1]))[None]
+        x = x + self.position(torch.arange(x.shape[1], device=x.device))[None]
         encoded = self.encoder(self.norm(x), src_key_padding_mask=~batch["mask"])
         return self.head(encoded[:, 0]).squeeze(-1)

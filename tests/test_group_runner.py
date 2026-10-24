@@ -10,6 +10,18 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class GroupRecipeTests(unittest.TestCase):
+    def test_explicit_cpu_recipe_is_compatible_and_gpu_allocation_is_never_inferred(self):
+        base=read_json(ROOT / "configs/group-runner-v1.json")
+        explicit=deepcopy(base)
+        explicit['execution']={'schema_version':1,'device':'cpu','dtype':'float32'}
+        explicit['allocated_gpu_count']=0
+        self.assertEqual(inputs(validate_recipe(base))[2],inputs(validate_recipe(explicit))[2])
+        for bad in ({'schema_version':1,'device':'cpu','dtype':'float16'},
+                    {'schema_version':1,'device':'meta','dtype':'float32'}):
+            candidate=deepcopy(explicit);candidate['execution']=bad
+            with self.assertRaises(ContractError):validate_recipe(candidate)
+        explicit['allocated_gpu_count']=1
+        with self.assertRaises(ContractError):validate_recipe(explicit)
     def test_group_recipe_keeps_four_independent_adapters_and_every_cycle_validation(self):
         recipe = validate_recipe(read_json(ROOT / "configs/group-runner-v1.json"))
         profiles, config, task, lora, adapters = inputs(recipe)

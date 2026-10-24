@@ -140,6 +140,10 @@ def shard_for(episode, opponent_binding):
 
 
 def opponent_binding(row, part):
+    if "period_input_sha256" in row["binding"]:
+        return digest({"period_inputs":row["binding"]["period_input_sha256"],"purpose":part,
+                       "implementation":row["binding"]["python_implementation_sha256"],
+                       "resources":row["binding"]["resources"]})
     profile = row["profile"] if part == "train" else row["validation_profile"]
     return digest({"driver": row["recipe"][part]["opponent"], "profile": profile,
                    "implementation": row["binding"]["python_implementation_sha256"],
@@ -277,7 +281,7 @@ def settle_usage(row, outcome, measurement):
     delta = max(.001, active - row["active_seconds"])
     event_id = "cpu-" + digest({"run": row["run_id"], "generation": row["generation"]})[:40]
     if not any(e["payload"]["event_id"] == event_id for e in row["usage_outbox"]):
-        row["usage_outbox"].append({"payload": {"event_id": event_id, "stage_id": "throughput-small-train", "gpu_count": 0,
+        row["usage_outbox"].append({"payload": {"event_id": event_id, "stage_id": "throughput-small-train", "gpu_count": row.get("recipe",{}).get("allocated_gpu_count",0),
                                    "wall_seconds": delta, "activity": "train", "outcome": outcome, "amount": None, "currency": None},
                                    "measurement": measurement, "exported": False})
     row["active_seconds"], row["segment_started"] = active, None

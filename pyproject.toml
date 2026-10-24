@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ygo-kito"
 version = "0.1.0"
-description = "CPU infrastructure and contracts for YGO-Kito; real engine integration pending"
+description = "YGO-Kito construction, model training and pinned native-engine engineering tools"
 requires-python = ">=3.12"
 dependencies = []
 
