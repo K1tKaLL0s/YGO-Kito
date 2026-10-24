@@ -1,0 +1,35 @@
+{
+  "logic_id": "resource-cycle-example",
+  "revision": 0,
+  "parent_sha256": null,
+  "entry_nodes": ["entry"],
+  "goal_nodes": ["recover"],
+  "nodes": [
+    {
+      "node_id": "entry",
+      "tags": [{"dimension": "effect", "value": "送墓"}],
+      "metadata": [{"source": "engineering-example", "layer": "engineering", "note": "示意构筑逻辑，不是已训练模型输出或合法CB。"}]
+    },
+    {
+      "node_id": "trigger",
+      "tags": [{"dimension": "effect_type", "value": "诱发"}, {"dimension": "effect", "value": "资源补充"}],
+      "metadata": []
+    },
+    {
+      "node_id": "alternative",
+      "tags": [{"dimension": "effect", "value": "特殊召唤"}],
+      "metadata": []
+    },
+    {
+      "node_id": "recover",
+      "tags": [{"dimension": "effect", "value": "资源循环"}],
+      "metadata": []
+    }
+  ],
+  "connectors": [
+    {"connector_id": "grave-trigger", "source": "entry", "target": "trigger", "kind": "送墓时发动"},
+    {"connector_id": "alternative-entry", "source": "entry", "target": "alternative", "kind": "ss"},
+    {"connector_id": "trigger-recover", "source": "trigger", "target": "recover", "kind": "ss"},
+    {"connector_id": "alternative-recover", "source": "alternative", "target": "recover", "kind": "ns"}
+  ]
+}

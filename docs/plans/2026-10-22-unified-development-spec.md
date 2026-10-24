@@ -281,3 +281,17 @@ PC 决斗端到端报告中位数、P95/P99、超时率，目标 1–3 秒不能
 - [ygo-tools-for-dsh](https://github.com/mellfy-puppy/ygo-tools-for-dsh)、[DSH provider 文档](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/user/guide/providers.md)：桥接候选，兼容、强度、费用未测。
 - [PPO 说明](https://spinningup.openai.com/en/latest/algorithms/ppo.html)、[PEFT LoRA](https://huggingface.co/docs/peft/developer_guides/lora)：算法与适配器实现参考，须锁定实际版本。
 - [DeepInfer](https://github.com/deepseek-ai/DeepInfer)：此前评估不进入当前基线，不能因同属 DeepSeek 就与 DSH 或推理能力混同。
+
+## 18. 2026-10-24 用户确认：构筑逻辑与入口分类
+
+本节补充并优先于前文尚未细化的构筑顺序；原目标/优化职责、硬约束和规则验证继续有效。
+
+1. 第一阶段命名为**构筑逻辑**：效果类型、字段、种族等信息标签化，功能标签为轻量积木；图节点不先绑定具体卡 ID。粗连接件与标签独立，用通常召唤 `ns`、特殊召唤 `ss`、送墓时发动等宽泛描述，不塞详细卡文或创造复杂条件语言。允许分支、合流、替代路径。
+2. 仅用户要求归属于狭义主题时，第二阶段按字段/种族筛主轴；广义主题跳过第二步直接第三步，仍保留第一步。主题例子不是硬性枚举。主轴候选不封闭通用卡或后续缺口召回。
+3. 第三阶段读取具体卡文填卡和数量，复用已有评分/合法性/实际支持的引擎目标接口；粗逻辑不等于合法 CB，未支持和未验明确保留。
+4. 构筑逻辑可按需求、填卡、决斗与各模型反馈持续调整、必要时重构；目标→优化循环保留，不能静默改变用户目标。
+5. 不新增大模型。目标角色提候选逻辑，优化角色保目标改进，统筹安排阶段和汇总反馈；缺权重明确工程实现/未训练，不以规则模板冒充模型能力。
+6. 入口采用可扩领域词典辅助的轻量非 LLM 文本分类器。按真实主轴意图识别狭义/广义；否定、别名、外挂、组合和未见主题需测试，低置信/混合歧义不得硬二选一。
+7. 基本标签身份与注释元数据分开，只有联合标签展示使用 `·`。
+
+对应工程实现、真实测试及未验项见[开发说明](../development/construction-logic.md)和[独立工作清单](../reports/2026-10-24-construction-logic.md)。本补充不授权或承接原生故障修复、导出、预算、付费训练或外部 API。

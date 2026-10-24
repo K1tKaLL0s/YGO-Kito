@@ -26,6 +26,20 @@ def parser():
     sub.add_parser("cards-import").add_argument("input", type=Path)
     sub.add_parser("card-show").add_argument("card_id", type=int)
     sub.add_parser("request-check").add_argument("input", type=Path)
+    logic_plan = sub.add_parser("construction-plan", help="non-LLM intent and construction-logic check; no engine or training")
+    logic_plan.add_argument("--request", required=True)
+    logic_plan.add_argument("--logic", type=Path)
+    logic_plan.add_argument("--lexicon", type=Path)
+    logic_fill = sub.add_parser("construction-fill-check", help="source-bound text/list checks; existing goal verification is explicit")
+    logic_fill.add_argument("--request", required=True)
+    logic_fill.add_argument("--task", type=Path, required=True)
+    logic_fill.add_argument("--logic", type=Path, required=True)
+    logic_fill.add_argument("--proposal", type=Path, required=True)
+    logic_fill.add_argument("--reviews", type=Path)
+    logic_fill.add_argument("--scopes", type=Path)
+    logic_fill.add_argument("--lexicon", type=Path)
+    logic_fill.add_argument("--root", type=Path, default=Path(".cache"))
+    logic_fill.add_argument("--verify-existing-goal", action="store_true", help="invoke the existing supported goal interface; does not verify arbitrary graph edges")
     action = sub.add_parser("action-check")
     action.add_argument("request", type=Path)
     action.add_argument("selection", type=Path)
@@ -182,6 +196,37 @@ def main(argv=None) -> int:
     try:
         config = load_config(args.config)
         match args.command:
+            case "construction-plan":
+                from .build_intent import DEFAULT_LEXICON, DomainLexicon, classify_build_intent
+                from .construction_logic import ConstructionLogic, stage_route
+                intent = classify_build_intent(args.request, DEFAULT_LEXICON.extended(*DomainLexicon.from_dict(read_json(args.lexicon)).terms) if args.lexicon else None)
+                output = {"classification": intent.to_dict(), "route": stage_route(intent),
+                          "training_status": "engineering_untrained", "graph_execution_verified": False}
+                if args.logic:
+                    graph = ConstructionLogic.from_dict(read_json(args.logic))
+                    output.update(logic=graph.to_dict(), logic_sha256=graph.sha256, graph_structure_valid=True)
+            case "construction-fill-check":
+                from .build_intent import DEFAULT_LEXICON, DomainLexicon
+                from .build_contracts import BuildTask
+                from .build_pipeline import BuildAssets
+                from .construction_logic import ConstructionLogic, ConstructionSession, ThemeScope
+                from .construction_fill import FillProposal, NodeTextReview, evaluate_fill, existing_goal_verifier
+                from .validation import array
+                session = ConstructionSession(args.request, BuildTask.from_dict(read_json(args.task)),
+                    lexicon=DEFAULT_LEXICON.extended(*DomainLexicon.from_dict(read_json(args.lexicon)).terms) if args.lexicon else None)
+                session.submit_logic(ConstructionLogic.from_dict(read_json(args.logic)), role="user", reason="explicit CLI logic input")
+                reviews = [NodeTextReview.from_dict(r) for r in array(read_json(args.reviews), "text reviews")] if args.reviews else []
+                if len({r.node_id for r in reviews}) != len(reviews):
+                    raise ContractError("duplicate supplied node text reviews")
+                indexed = {r.node_id: r for r in reviews}
+                def reviewer(node, cards):
+                    return indexed.get(node.node_id, NodeTextReview(node.node_id, "unknown", (), (),
+                        "CLI-supplied-review", "no supplied concrete text assessment for this node"))
+                scopes = tuple(ThemeScope.from_dict(s) for s in array(read_json(args.scopes), "theme scopes")) if args.scopes else ()
+                output = evaluate_fill(session, BuildAssets(args.root), FillProposal.from_dict(read_json(args.proposal)),
+                    scopes=scopes, text_reviewer=reviewer if reviews else None,
+                    verifier=existing_goal_verifier if args.verify_existing_goal else None)
+                output["classification"] = session.classification.to_dict()
             case "catalog-recall":
                 from .build_contracts import BuildTask
                 from .build_pipeline import BuildAssets
