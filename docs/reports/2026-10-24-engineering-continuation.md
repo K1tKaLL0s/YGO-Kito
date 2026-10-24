@@ -1,6 +1,6 @@
 # PR3继续工程准备：CI、Agent、3＋8收件与训练交接
 
-在已有完整整合候选129baa4及[草稿PR3](https://github.com/K1tKaLL0s/YGO-Kito/pull/3)继续，未另建任务或分支；实现提交为 **`c724a29fd93f978ea4826130f7c4a809783b8d81`**。依赖仍为PR1@6549717 → DP草稿PR2@a7085e2 → PR3。首次发布审批拒绝已在新明确授权后解除，历史bf2fd03保留，不是当前阻碍。未合并、自动合并、强推、删分支或修改权限。
+在已有完整整合候选129baa4及[草稿PR3](https://github.com/K1tKaLL0s/YGO-Kito/pull/3)继续，未另建任务或分支；实现提交为 **`c724a29fd93f978ea4826130f7c4a809783b8d81`**，CI检出兼容修正为 **`60fbb0209989416d059b938b6e8e719d57562788`**。依赖仍为PR1@6549717 → DP草稿PR2@a7085e2 → PR3。首次发布审批拒绝已在新明确授权后解除，历史bf2fd03保留，不是当前阻碍。未合并、自动合并、强推、删分支或修改权限。
 
 ## 先盘点、再补缺口
 
@@ -32,6 +32,8 @@ OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 PYTHONHASHSEED=0 \
 - [测试/版本/DP双文件/资源回执](2026-10-24-continuation-evidence/results.json)
 - [实际只读启动与交接报告](2026-10-24-continuation-evidence/handoff.json)
 
+首轮远端CI暴露工作分支依赖后，60fbb02只修正既有交接测试的隔离，不改生产源码或workflow检出。该提交在同锁环境重跑仍为**217/217通过，0失败/错误/跳过，17.864秒**，2026-10-24 21:31:18 UTC开始；见[最终收据](2026-10-24-continuation-evidence/final/results.json)和[逐项日志](2026-10-24-continuation-evidence/final/tests.log)。原c724收据保留，源码摘要相同。最终父进程CPU2.373秒、峰值约335MiB，仍不含子进程合计。
+
 父测试进程CPU为2.355秒、峰值RSS约332MiB；不含子进程资源合计。独立handoff的status/help分别约0.106/0.114秒，实际退出0且engine ready=false。这些是短CPU工程检查的占用/速度，**不是训练吞吐、游戏速度或硬件压力上限验收**；GPU指标/样本吞吐/PC延迟均未测。
 
 独立审查复验收件12项通过，未发现普通工程阻碍。另独立审查发现空制品即使空SHA匹配也会被原字节监控认可，本次在handoff入口明确拒绝并补测试；它不反序列化模型，不改变既有恢复实现。字节完整不能替代真实恢复/资源/特征绑定。
@@ -39,6 +41,10 @@ OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 PYTHONHASHSEED=0 \
 ## CI发布与边界
 
 新workflow在PR synchronize和main push运行，15分钟总超时、安装10分钟、测试4分钟；CPU线程各2，只有`contents: read`。已静态核对YAML/固定action版本并用相同锁环境本地运行；本报告写入时尚未推送，**远端CI结果待读取**，以后以PR3对应head的workflow结论为准。本地收据`ci_verified:false`保持原证据类别，不随远端状态改写。
+
+后续实际发布043c5bc触发[首轮Actions 40134446833](https://github.com/K1tKaLL0s/YGO-Kito/actions/runs/40134446833)：依赖安装成功，217项执行，1 error、0 failure/skip，job失败，[平台日志聚合回执](2026-10-24-continuation-evidence/ci-first-run.json)保留失败而非覆盖。源码检查及独立临时仓库复现定位到旧test_agent_tools交接正例直接依赖当前ROOT工作分支，Actions默认detached PR合并检出与生产门禁冲突。60fbb02将该测试移至无远端临时Git仓库，关闭fixture hooks/签名，并真实验证工作分支成功、detached/main拒绝；未放松生产门禁、未跳过或改CI检出规避。修正后第二轮远端结果由PR3实际head回读确认。
+
+首轮artifact12576881086的connector下载动作生成了临时文件引用，但云端读取该ZIP时HTTP代理隧道返回403 Forbidden，未取得ZIP字节；停止该读取，不换工具重试。其job日志与聚合JSON已成功读取，足以区分CI失败/修正和本地通过；完整首轮逐项artifact只可由有权限的仓库界面另查。此访问失败不是原生故障操作或审批解除。
 
 未新增付费服务/账户/SDK/权限；GitHub包含分钟和计费状态未读取，不能保证任何runner分钟免费。只上传7天测试日志与聚合JSON，不上传模型、数据库、用户牌表或私有轨迹。整个`tests.test_native_response_buffer`、真实`integration_tests`、原生加载、故障注入/崩溃复现及未筛选discovery均未运行，排除项不计通过或skip。未恢复此前受限任务。
 
