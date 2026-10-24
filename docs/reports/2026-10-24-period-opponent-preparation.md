@@ -37,7 +37,7 @@
 
 新[源码包回执](2026-10-24-period-opponent-evidence/source-bundle.json)：`.cache/ygo-training-source-0c7b537.tar.gz`，来源0c7b537，271文件/667901字节，SHA256为8e7f4061025070e0104901f786857db5e37cfee057bef1e2aad89ae581beb314。它包含本批新模块、样例索引和自包含交接，替代旧59dd60b包；不含native资源、权重/恢复目录、私有轨迹或凭据。解到独立无.git目录后，从/tmp校验完整manifest、固定DP guard/hook、导入新增模块，并通过9项来源上下文/完整启动测试；[归档回执](2026-10-24-period-opponent-evidence/archive-results.json)tested_head=null、source_archive_commit另列，没有重复跑352项或把归档来源当本地Git证明。
 
-远端CI须以实际平台运行结果为准，本地通过不等于CI。后续证据提交只改reports，包内源码仍逐字匹配0c7b537；最终PR head与包来源分别报告。
+远端[Actions 40144767172](https://github.com/K1tKaLL0s/YGO-Kito/actions/runs/40144767172)对head33879e1实际completed/success，**352/352，0失败/错误/跳过，22.410秒**；安装、检查和artifact步骤均成功。[平台与job日志聚合收据](2026-10-24-period-opponent-evidence/ci-33879e1.json)的受测head5e64d5c为GitHub临时PR合并检出，PR仍草稿未合并。生产源码摘要与本地相同。后续证据提交只改reports，包内271个文件已逐字核对仍匹配0c7b537；最终PR head、其平台CI和包来源分别报告，不能用本次记录替代后续提交的实际平台状态。
 
 首次未训练actor对冻结模型的CpuTrainer有界采样未能终局，0更新，没有记为通过。100步合法聚合诊断显示模型有正常召唤/pass而非持续shuffle，callback_errors=0；弱actor的失败不能推断驱动不兼容。后续正常检查使用已有PublicRulePolicy作actor、同一已更新base作冻结对手，保留原上限和模型；仍不评估其强度。失败证据不删除。
 
