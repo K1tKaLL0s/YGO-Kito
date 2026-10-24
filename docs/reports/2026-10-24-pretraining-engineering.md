@@ -50,7 +50,7 @@ DP原生响应/ABI和guard保留，唯一native扩展为两处禁表读取调用
 | 真实group课程/恢复 | 普通2/2，59.534秒；分期3/3，169.470秒（含准备/多次恢复核对）。分期实际完成7阶段、8优化更新、2训练局、1冻结评估；运行计时133.612秒，原180上限和reserve未改；5个索引工件恢复 | 三期日期清单为工程样例；仅选中一期短测，不声称三期正式课程完成 |
 | 设备/硬件 | 分期worker CPU119.050秒、setup CPU14.571秒、进程峰值RSS718692352字节；CLI status/help分别0.105/0.102秒且退出0 | RSS是所报进程峰值，不是全进程树；无GPU压力/显存/吞吐测量 |
 | 源码包 | 82fdfde首份255文件/623455字节包校验通过；在/tmp以无.git安装运行完整311/311，0skip，生产源码摘要一致 | archive来源提交单列，tested_head=null；归档哈希不认证发布者，不含运行数据 |
-| 远端CI | 本轮须推送后从平台读取；前次a344a39的217成功仅为历史，不覆盖新增源码 | 本地与归档通过不冒称CI |
+| 远端CI | da0130b的[Actions 40141837656](https://github.com/K1tKaLL0s/YGO-Kito/actions/runs/40141837656)实际completed/success，311/311、0失败/错误/跳过，23.401秒；安装与artifact步骤成功 | runner临时PR合并检出881e9a9不表示PR已合并；前次217仅历史 |
 | 能力验收 | 未执行正式GPU训练、独立BO3/胜率、分类校准、LoRA迁移或真实外部模型 | 不填写“能力通过” |
 
 普通/分期完整group回执分别为[group](2026-10-24-pretraining-evidence/group-normal-proof.json)与[period](2026-10-24-pretraining-evidence/period-group-normal-proof.json)，无私有selection key或raw trace；[启动与资源清点](2026-10-24-pretraining-evidence/handoff-verified.json)是只读清点，不能覆盖真实引擎测试结论。
@@ -64,3 +64,5 @@ DP原生响应/ABI和guard保留，唯一native扩展为两处禁表读取调用
 [当前真实CPU主机静态预检](2026-10-24-pretraining-evidence/cpu-deployment-proof.json)退出0，来源actual_host：4个cgroup可用核、16GiB内存上限、约30.5GB可用磁盘、CPU Torch实际依赖/资源哈希均匹配。所用1核/128MiB/16MiB阈值只是明示的最小工程预检，不是正式课程容量推荐。未填的[GPU配置模板](2026-10-24-pretraining-evidence/gpu-template-blockers.json)按预期退出2：本机无CUDA、CPU wheel不能作GPU锁，目标硬件/参数尚缺；未自动回退、采购或启动GPU。两份报告均formal_training_ready=false，静态报告不反序列化权重或加载核心。
 
 腾讯接续顺序：取得已核对源码/包→按哈希锁建CPU环境并运行安全检查→按lock准备/验普通native资源→填写收件/分区/period host和真实task→实际目标PC兼容→目标GPU锁/主机静态预检→获准2A小试及恢复/吞吐记录→冻结三期正式课程。具体命令和恢复协议在包内training-handoff/period-runtime/deployment-preparation，无厂商SDK或本机路径依赖。正式牌表到达后仍须验证所需机制与驱动；遇unsupported要明示并适配，不能以本轮通常怪兽/有界超量通过预先保证珠泪全机制。
+
+[平台CI与原始聚合收据](2026-10-24-pretraining-evidence/ci-da0130b.json)保留PR head与临时受测提交的区别；源码摘要ae247a5b与本地/归档一致。后续证据提交的最新head检查仍须另读平台，不能只凭此历史运行声称所有后续head通过。

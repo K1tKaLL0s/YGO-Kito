@@ -47,6 +47,8 @@ EP远端验收：ca6ed9c的[Actions 40134675481](https://github.com/K1tKaLL0s/YG
 - [x] **PT-05 已完成** 确定性完整源码包、逐文件manifest校验、无Git源码运行与现有主机静态部署预检；82fdfde固定源码包在/tmp异目录、无本仓库Git元数据实际311/311复验通过；最终包来源提交和SHA独立记录。包不含私有牌表/轨迹/权重/凭据或原生资源，不采购云实例。[部署交接](../development/deployment-preparation.md)
 - [ ] **PT-06 外部依赖** 官方完整禁表/发行日期资料及截止、旧裁定/目标PC兼容、用户牌表/合格对手、真实provider配置，以及实际腾讯云GPU/驱动锁和小试尚未闭合。官方原始HTML下载实际HTTP代理403已停止；正常引擎没有这个阻碍。G-01/G-02/P-01/B-02继续未通过，不能宣称“只剩卡组”。[来源状态](../../configs/official-source-evidence-v1.json)
 
+PT远端验收：da0130b的[Actions 40141837656](https://github.com/K1tKaLL0s/YGO-Kito/actions/runs/40141837656)已completed/success，311/311、0失败/错误/跳过，生产源码摘要与本地及最终源码包一致；[平台/聚合证据](../reports/2026-10-24-pretraining-evidence/ci-da0130b.json)。后续证据head按PR3平台另核，不据此开启合并。
+
 ## 0：设计、环境和学习分工
 
 - [x] **MP-01 已完成** PR1@6549717、DP草稿PR2@a7085e2及构筑9958769的依赖/历史核实与隔离普通合并。native.py/guard成对保留DP原字节，原作者分支未覆盖。[整合报告](../reports/2026-10-24-merge-preparation.md)
