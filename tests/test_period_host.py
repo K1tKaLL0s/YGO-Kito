@@ -8,12 +8,13 @@ from copy import deepcopy
 import json
 from pathlib import Path
 import sqlite3
+from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from ygo_kito.build_contracts import BuildTask, DeckParts
 from ygo_kito.deck_intake import PERIODS
-from ygo_kito.period_host import load_period_host
+from ygo_kito.period_host import load_period_host, period_host_operation, assert_period_hosts_unchanged
 from ygo_kito.period_runtime import PeriodBuildAssets
 from ygo_kito.semantic_curriculum import COURSE, inputs
 from ygo_kito.training_input import _profile
@@ -111,15 +112,16 @@ class PeriodHostTests(unittest.TestCase):
         recipe["train"].update(seed_start=1003, seed_stride=1)
         recipe["validation"].update(seeds=[1001], policy_seed=2001)
         host = load_period_host(recipe, workspace=self.root)
-        with patch("ygo_kito.group_runner.period_host", return_value=host), \
-                patch("ygo_kito.period_host.load_period_host", return_value=host), \
-                patch("ygo_kito.group_runner.config_path", side_effect=lambda p: self.root / p):
+        with patch("ygo_kito.group_runner.ROOT", self.root), \
+                patch("ygo_kito.period_host.PeriodBuildAssets", wraps=PeriodBuildAssets) as constructor:
             profiles, config, actual, _, _ = group_runner.inputs(recipe)
+            self.assertEqual(constructor.call_count, 3, "group inputs and semantic dispatch must share one complete host load")
             self.assertEqual(actual, task)
             self.assertEqual(config.game_seeds, (1003,))
             self.assertEqual(config.policy_seed, 2000)
             self.assertEqual(profiles["train"], host.for_runner("train")["profile"])
-            self.assertIs(group_runner.runtime_assets(recipe, self.root), host.assets)
+            self.assertEqual(group_runner.runtime_assets(recipe, self.root).period_context, host.assets.period_context)
+            self.assertEqual(constructor.call_count, 6, "a separate operation must fully reload")
             wrong = deepcopy(recipe)
             wrong["train"]["seed_start"] = 1004
             with self.assertRaisesRegex(ContractError, "seed schedule"):
@@ -132,6 +134,121 @@ class PeriodHostTests(unittest.TestCase):
             del legacy["construction_curriculum"]
             with self.assertRaisesRegex(ContractError, "indexed semantic curriculum"):
                 group_runner.inputs(legacy)
+
+    def test_operation_reuses_nested_host_and_reloads_after_success_or_exception(self):
+        with patch("ygo_kito.period_host.PeriodBuildAssets", wraps=PeriodBuildAssets) as constructor:
+            with period_host_operation():
+                first = load_period_host(self.recipe, workspace=self.root)
+                with period_host_operation():
+                    self.assertIs(load_period_host(self.recipe, workspace=self.root), first)
+                self.assertEqual(constructor.call_count, 3)
+            next_host = load_period_host(self.recipe, workspace=self.root)
+            self.assertIsNot(next_host, first)
+            self.assertEqual(constructor.call_count, 6)
+            with self.assertRaisesRegex(RuntimeError, "ordinary-operation-error"):
+                with period_host_operation():
+                    load_period_host(self.recipe, workspace=self.root)
+                    raise RuntimeError("ordinary-operation-error")
+            self.assertEqual(constructor.call_count, 9)
+            with period_host_operation():
+                load_period_host(self.recipe, workspace=self.root)
+            self.assertEqual(constructor.call_count, 12)
+
+    def test_operation_never_shares_different_descriptor_or_workspace(self):
+        alternate = deepcopy(self.descriptor)
+        alternate["period_id"] = "2022-10"
+        self.write("other-host.json", alternate)
+        with period_host_operation(), patch("ygo_kito.period_host.PeriodBuildAssets", wraps=PeriodBuildAssets) as constructor:
+            first = load_period_host(self.recipe, workspace=self.root)
+            other = load_period_host({"period_inputs": "configs/other-host.json"}, workspace=self.root)
+            self.assertEqual((first.period_id, other.period_id), ("2022-07", "2022-10"))
+            self.assertIsNot(first, other)
+            self.assertEqual(constructor.call_count, 6)
+            with self.assertRaises((ContractError, FileNotFoundError)):
+                load_period_host(self.recipe, workspace=self.root / "different-workspace")
+
+    def test_operation_rehashes_configuration_and_all_source_bytes_on_each_hit(self):
+        references = ["configs/period-host.json", "configs/intake.json", "configs/policy.json"]
+        references.extend(self.intake["environments"][p][kind]["path"] for p in PERIODS for kind in ("catalog", "releases", "banlist"))
+        for reference in sorted(set(references)):
+            path = self.root / reference
+            original = path.read_bytes()
+            try:
+                with self.subTest(path=reference), self.assertRaisesRegex(ContractError, "source bytes changed"):
+                    with period_host_operation():
+                        load_period_host(self.recipe, workspace=self.root)
+                        path.write_bytes(original + b"\n")
+                        load_period_host(self.recipe, workspace=self.root)
+            finally:
+                path.write_bytes(original)
+        path = self.root / "configs/policy.json"
+        original = path.read_bytes()
+        try:
+            with self.assertRaisesRegex(ContractError, "source bytes changed"):
+                with period_host_operation():
+                    load_period_host(self.recipe, workspace=self.root)
+                    path.write_bytes(original + b" ")  # Even after the final hit, successful exit rechecks bytes.
+        finally:
+            path.write_bytes(original)
+
+    def test_operation_rejects_mutated_manifest_runtime_path_and_physical_receipt(self):
+        for mutation in ("manifest", "root", "workspace", "receipt", "facts"):
+            with self.subTest(mutation=mutation), self.assertRaisesRegex(ContractError, "changed|binding"):
+                with period_host_operation():
+                    host = load_period_host(self.recipe, workspace=self.root)
+                    if mutation == "manifest": host.loaded.manifest["formal_training_ready"] = True
+                    elif mutation == "root": host.assets.root = self.root / "another-native-root"
+                    elif mutation == "workspace": host.assets.workspace = self.root / "another-workspace"
+                    elif mutation == "receipt": host.assets.receipt["resources"]["cards"] = "0" * 64
+                    else: host.assets.rows[1]["desc"] = "altered public text"
+                    load_period_host(self.recipe, workspace=self.root)
+
+    def test_operation_rejects_retargeted_source_even_when_bytes_are_identical(self):
+        original = self.root / "configs/policy.json"
+        alternate = self.root / "configs/identical-policy.json"
+        alternate.write_bytes(original.read_bytes())
+        link = self.root / "configs/policy-link.json"
+        link.symlink_to(original)
+        self.descriptor["policy"] = "configs/policy-link.json"
+        self.write("period-host.json", self.descriptor)
+        with self.assertRaisesRegex(ContractError, "source path changed"):
+            with period_host_operation():
+                load_period_host(self.recipe, workspace=self.root)
+                link.unlink()
+                link.symlink_to(alternate)
+                load_period_host(self.recipe, workspace=self.root)
+
+    def test_publication_guard_rejects_source_change_before_publisher_runs(self):
+        publisher = Mock()
+        path = self.root / "configs/policy.json"
+        original = path.read_bytes()
+        try:
+            with self.assertRaisesRegex(ContractError, "source bytes changed"):
+                with period_host_operation():
+                    load_period_host(self.recipe, workspace=self.root)
+                    path.write_bytes(original + b"\n")
+                    assert_period_hosts_unchanged()
+                    publisher()
+        finally:
+            path.write_bytes(original)
+        publisher.assert_not_called()
+
+    def test_independent_save_and_stage_reject_new_binding_before_any_write_or_update(self):
+        from ygo_kito import group_runner
+        state = SimpleNamespace(assets=SimpleNamespace(root=self.root),
+            row={"recipe": {}, "binding": {"checkpoint_input": "original"}}, validate_cursor=Mock())
+        with patch("ygo_kito.group_runner.binding_for", return_value={"checkpoint_input": "changed"}), \
+                patch("ygo_kito.group_runner.execute_stage") as execute, \
+                patch("ygo_kito.local_training.write_checkpoint") as checkpoint, \
+                patch("torch.save") as save:
+            with self.assertRaisesRegex(ContractError, "group save.*changed"):
+                group_runner.GroupState.save_to(state, self.root / "must-not-exist.weights")
+            with self.assertRaisesRegex(ContractError, "group stage.*changed"):
+                group_runner._stage_transaction(state, self.root, "unit", "unit", state.row, Mock())
+            state.validate_cursor.assert_not_called()
+            execute.assert_not_called()
+            checkpoint.assert_not_called()
+            save.assert_not_called()
 
     def test_missing_data_fails_before_constructing_any_runtime(self):
         self.policy["periods"]["2022-07"]["versions"] = None

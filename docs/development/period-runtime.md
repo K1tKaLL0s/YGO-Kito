@@ -52,6 +52,8 @@ group recipe 可显式加入 `period_inputs: "configs/具体描述符.json"`，�
 
 批量绑定策略对象时每次检查对象/卡事实/上下文封印，加载输入按期完整核物理资源，开 core 前仍再次完整核验；避免每一个同源对手都重复扫描整个脚本树。策略对象本身的建立不证明执行过原生对局。
 
+`prepare`、`verified/restore`、阶段事务和 `save_to` 使用操作内作用域，共享一次完整加载的宿主；嵌套课程检查和四角色 adapter 检查复用同一对象。每次命中和成功退出都重新读取描述符、intake、policy、三期卡库/发行清单/禁表的字节摘要，并检查路径、manifest、runtime receipt 和内存封印；不使用 stat 捷径或跨操作缓存。异常退出也清空作用域，下一次独立入口重新完整加载。保存 checkpoint、发布准备状态及提交阶段记录前另有显式来源检查；原 `resource_binding` 与开 core 前完整资源检查保留。预算与 reserve 数值不因减少重复加载而提高。
+
 ## 证据边界
 
 安全 CPU：`tests.test_period_runtime` 与 `tests.test_period_host` 使用明示合成文件和模拟物理收据，仅验证宿主门禁及普通接口，不需要 core，不用 skip 制造通过。

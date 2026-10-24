@@ -19,6 +19,7 @@ from uuid import uuid4
 
 from .build_contracts import BuildTask, DeckParts, digest
 from .validation import ContractError, canonical_json, fields, integer, read_json
+from .period_host import host_operation, assert_period_hosts_unchanged
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = "four-model-alternating-v1"
@@ -34,6 +35,7 @@ def period_host(recipe):
     return load_period_host(recipe,workspace=ROOT)
 
 
+@host_operation
 def runtime_assets(recipe, root):
     host=period_host(recipe)
     if host is None:
@@ -106,6 +108,7 @@ def validate_recipe(value):
     return json.loads(canonical_json(value))
 
 
+@host_operation
 def inputs(recipe):
     from .training_runner import recipe_inputs
     from .lora import AdapterConfig, ROLES
@@ -130,7 +133,7 @@ def inputs(recipe):
     task = BuildTask.from_dict(read_json(config_path(recipe["task"])))
     if host is not None:host.require_task(task)
     from .construction_curriculum import inputs as curriculum_inputs
-    curriculum_inputs(recipe, task)
+    curriculum_inputs(recipe, task, period_host=host)
     from .semantic_curriculum import configured
     if host is not None and not configured(recipe):
         raise ContractError('period group training requires its indexed semantic curriculum and actual opponent data admission')
@@ -146,20 +149,21 @@ def inputs(recipe):
     return profiles, config, task, lora, {c.role: c for c in configs}
 
 
+@host_operation
 def binding_for(root, row):
     from .cpu_training import resource_binding
     recipe = validate_recipe(row["recipe"])
+    host=period_host(recipe)
     profiles, cfg, task, lora, _ = inputs(recipe)
     if (profiles["train"] != row["profile"] or profiles["validation"] != row["validation_profile"]
             or digest(asdict(cfg)) != digest(row["config"]) or task.to_dict() != row["task"]):
         raise ContractError("group recipe/task/profile changed")
     from .construction_curriculum import inputs as curriculum_inputs
-    curriculum = curriculum_inputs(recipe, task)
+    curriculum = curriculum_inputs(recipe, task, period_host=host)
     extra = {} if curriculum is None else {"construction_curriculum_sha256": curriculum["binding_sha256"]}
     if "coordinator_supervision" in recipe:
         examples = coordinator_supervision(recipe)
         extra.update(coordinator_supervision_sha256=digest(examples), coordinator_supervision_source=examples["source"])
-    host=period_host(recipe)
     if host is not None:
         extra.update(period_input_sha256=host.loaded.manifest["binding_sha256"],
                      period_context=host.assets.period_context)
@@ -290,6 +294,7 @@ class GroupState:
                 "base_sha256": parameter_digest(model),
                 "target_shapes": {name: list(model.get_submodule(name).weight.shape) for name in cfg.targets}}
 
+    @host_operation
     def attach(self):
         from .lora import AdapterConfig, AdapterSession
         expected = {r: self.expected_adapter(r) for r in self.models()}
@@ -374,11 +379,16 @@ class GroupState:
                             "coord_batch_rng": self.coordinator.batch_rng.get_state(), "cursor": self.cursor(),
                             "execution_rng": capture_device_rng(self.device)})
 
+    @host_operation
     def save_to(self, path):
         import torch
         from .device import execution_metadata, capture_device_rng
         from .build_training import save_checkpoint as save_build, binding_for as build_binding
         from .cpu_training import save_checkpoint as save_duel, resource_binding
+        if binding_for(self.assets.root, self.row) != self.row["binding"]:
+            raise ContractError("group save implementation/resources changed")
+        if "period_inputs" in self.row["recipe"]:
+            self.assets.assert_integrity(physical=False)
         self.validate_cursor()
         with self.host._db() as db:
             if db.execute("SELECT COUNT(*) FROM jobs WHERE state IN ('pending','leased')").fetchone()[0]:
@@ -411,11 +421,14 @@ class GroupState:
                 state["construction_state"] = self.construction_state
             from .semantic_curriculum import configured,snapshot_index
             if configured(self.row['recipe']):state['data_index_snapshot']=snapshot_index(self)
+            assert_period_hosts_unchanged()
             with path.open("xb") as output:
                 torch.save(state, output)
                 output.flush(); os.fsync(output.fileno())
+            assert_period_hosts_unchanged()
 
     @classmethod
+    @host_operation
     def restore(cls, path, state_root, row, assets):
         import torch
         from .build_training import load_checkpoint as load_build, binding_for as build_binding, validate_supervision
@@ -504,6 +517,7 @@ def snapshot(state):
                         "cycles_completed": state.cycle, "committed_stages": state.updates}}
 
 
+@host_operation
 def prepare(backend, run_id, wall_limit_seconds):
     import time
     from .agent_registry import identifier
@@ -539,6 +553,7 @@ def prepare(backend, run_id, wall_limit_seconds):
     state = GroupState(backend.state_root, row, assets)
     initial = snapshot(state)
     row.update(model_versions=initial["model_versions"], metrics=dict(initial["metrics"], unmeasured_worker_segments=0))
+    assert_period_hosts_unchanged()
     receipt = write_checkpoint(state, backend.state_root, row)
     row["checkpoint_ids"] = [receipt["checkpoint_id"]]
     row["active_seconds"] = time.monotonic() - started
@@ -547,13 +562,16 @@ def prepare(backend, run_id, wall_limit_seconds):
         "wall_seconds": max(.001, row["active_seconds"]), "activity": "setup", "outcome": "completed", "amount": None, "currency": None},
         "measurement": "measured_host_setup", "exported": False})
     row["history"].append({"event": "prepared_four_initial_models", "optimizer_updates": 0, "checkpoint_id": receipt["checkpoint_id"]})
+    assert_period_hosts_unchanged()
     RunReporter(backend.state_root).publish(snapshot_for(row))
     with closing(_connect(backend.state_root)) as db, db:
+        assert_period_hosts_unchanged()
         db.execute("INSERT INTO runs VALUES(?,?)", (run_id, canonical_json(row)))
     sync_usage(backend.state_root, run_id)
     return backend.status(run_id)
 
 
+@host_operation
 def verified(state_root, row):
     from .agent_monitor import RunMonitor
     from .build_pipeline import BuildAssets
@@ -720,12 +738,14 @@ def evaluate(state, generation):
             **({"construction_validation": construction_validation} if construction_validation is not None else {})}
 
 
+@host_operation
 def execute_stage(state, generation):
     from .construction_curriculum import initialize, consume, alternate as alternate_curriculum
     from .lora_group import construction_loss, coordinator_loss, ppo_inputs, ppo_loss
     from .build_pipeline import alternate_build
     from .model_group import route_with_model
     from .semantic_curriculum import configured,admission,opponent as semantic_opponent,ingest_episode
+    period_host(state.row["recipe"])
     semantic=configured(state.row['recipe'])
     if state.event_id() in state.consumed:
         raise ContractError("cannot execute an already committed group stage")
@@ -844,6 +864,42 @@ def reconcile(state_root, row, previous):
     return {"event": "adopted_verified_group_stage", "manifest": manifest}
 
 
+@host_operation
+def _stage_transaction(state, state_root, run_id, generation, row, reporter):
+    """One freshly checked input snapshot through the durable stage commit."""
+    from .local_training import _connect, get_row, put_row, write_checkpoint, run_path
+    from .training_runner import atomic_json
+    host=period_host(row["recipe"])
+    if host is not None:
+        if (state.assets.root != host.assets.root or state.assets.workspace != host.assets.workspace or
+                state.assets.period_context != host.assets.period_context or state.assets.receipt != host.assets.receipt):
+            raise ContractError("group stage period assets changed after restore")
+        state.assets.assert_integrity(physical=False)
+    if binding_for(state.assets.root, row) != row["binding"]:
+        raise ContractError("group stage implementation/resources changed")
+    before_cursor = state.cursor()
+    payload = execute_stage(state, generation)
+    state.advance(payload)
+    assert_period_hosts_unchanged()
+    receipt = write_checkpoint(state, state_root, row)
+    manifest = {"schema_version": 1, "binding_sha256": digest(row["binding"]), "checkpoint_id": receipt["checkpoint_id"],
+                "previous_cursor": before_cursor, "event": state.events[-1], "snapshot": snapshot(state),
+                "scheduled_checkpoint": before_cursor["phase"] == "feedback" and
+                    (state.cycle % row["recipe"]["checkpoint_every"] == 0 or state.phase == "done")}
+    assert_period_hosts_unchanged()
+    atomic_json(run_path(state_root, run_id) / "stages" / f"step-{state.updates}.json", manifest)
+    with closing(_connect(state_root)) as db, db:
+        db.execute("BEGIN IMMEDIATE")
+        row = get_row(db, run_id)
+        commit(row, manifest)
+        resources = reporter.resources()
+        row["metrics"].update(process_cpu_seconds=row["completed_worker_cpu_seconds"] + resources["process_cpu_seconds"],
+            process_peak_rss_bytes=max(row["metrics"].get("process_peak_rss_bytes", 0), resources.get("process_peak_rss_bytes", 0)))
+        row.update(phase="checkpoint_boundary", revision=row["revision"] + 1)
+        assert_period_hosts_unchanged()
+        put_row(db, row)
+
+
 def worker(state_root, run_id, generation, reporter):
     from .local_training import _connect, get_row, put_row, elapsed, write_checkpoint, run_path
     from .training_runner import atomic_json
@@ -868,7 +924,6 @@ def worker(state_root, run_id, generation, reporter):
                        state.duel.config.episode_seconds + 3 if state.phase == "duel_train" else 33 if state.phase in ("build_goal", "build_optimizer") else 3)
             if "construction_curriculum" in row["recipe"]:
                 from .construction_curriculum import inputs as curriculum_inputs
-                comparison_seconds = curriculum_inputs(row["recipe"], state.task)["config"].get("comparison_seconds",0.)
                 from .semantic_curriculum import configured
                 if configured(row['recipe']):
                     # Count constraints use one 30s inner alternation, not four
@@ -878,12 +933,14 @@ def worker(state_root, run_id, generation, reporter):
                     reserve={'bootstrap':90 if combined else 60,'build_goal':35 if combined else 10,'build_optimizer':35,
                              'duel_train':state.duel.config.episode_seconds+5,
                              'evaluate':state.duel.config.episode_seconds*len(row['recipe']['validation']['seeds'])+10}.get(state.phase,3)
-                elif state.phase == "bootstrap":
-                    reserve += comparison_seconds + 60  # comparison plus two bounded goal proofs
-                elif state.phase == "evaluate":
-                    reserve += comparison_seconds
-                elif state.phase == "build_optimizer":
-                    reserve = 4 * 30 + 3  # four independently bounded goal revalidations
+                else:
+                    comparison_seconds = curriculum_inputs(row["recipe"], state.task)["config"].get("comparison_seconds",0.)
+                    if state.phase == "bootstrap":
+                        reserve += comparison_seconds + 60  # comparison plus two bounded goal proofs
+                    elif state.phase == "evaluate":
+                        reserve += comparison_seconds
+                    elif state.phase == "build_optimizer":
+                        reserve = 4 * 30 + 3  # four independently bounded goal revalidations
             if row["wall_limit_seconds"] - elapsed(row) <= reserve:
                 row.update(desired="stopped", reason="wall_budget_reserve_reached")
                 put_row(db, row)
@@ -893,23 +950,6 @@ def worker(state_root, run_id, generation, reporter):
             row["history"].append({"event": "group_stage_attempt", "event_id": state.event_id(), "generation": generation,
                                    "committed_stages_before": state.updates, "model_versions": state.versions()})
             put_row(db, row)
-        before_cursor = state.cursor()
-        payload = execute_stage(state, generation)
-        state.advance(payload)
-        receipt = write_checkpoint(state, state_root, row)
-        manifest = {"schema_version": 1, "binding_sha256": digest(row["binding"]), "checkpoint_id": receipt["checkpoint_id"],
-                    "previous_cursor": before_cursor, "event": state.events[-1], "snapshot": snapshot(state),
-                    "scheduled_checkpoint": before_cursor["phase"] == "feedback" and
-                        (state.cycle % row["recipe"]["checkpoint_every"] == 0 or state.phase == "done")}
-        atomic_json(run_path(state_root, run_id) / "stages" / f"step-{state.updates}.json", manifest)
-        with closing(_connect(state_root)) as db, db:
-            db.execute("BEGIN IMMEDIATE")
-            row = get_row(db, run_id)
-            commit(row, manifest)
-            resources = reporter.resources()
-            row["metrics"].update(process_cpu_seconds=row["completed_worker_cpu_seconds"] + resources["process_cpu_seconds"],
-                process_peak_rss_bytes=max(row["metrics"].get("process_peak_rss_bytes", 0), resources.get("process_peak_rss_bytes", 0)))
-            row.update(phase="checkpoint_boundary", revision=row["revision"] + 1)
-            put_row(db, row)
+        _stage_transaction(state, state_root, run_id, generation, row, reporter)
         segment_stages += 1
     return state.phase == "done"
