@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 import json
+import hashlib
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
@@ -14,6 +15,32 @@ from ygo_kito.period_runtime import PeriodBuildAssets, PeriodNativeEngine
 from ygo_kito.validation import ContractError
 from tests import test_deck_intake as intake_fixtures
 from tests.test_construction_logic import fixture_assets
+
+
+def synthetic_snapshot_fields(root, receipt, profile):
+    """Untrained serialized contract fixture; NOT a completed native episode.
+
+    Only the explicit real integration module uses actual updated checkpoints.
+    The positive completion fields here exercise validation, not training proof.
+    """
+    import torch
+    from ygo_kito.cpu_training import CpuTrainer, CpuTrainingConfig, save_checkpoint
+    from ygo_kito.duel_model import DuelModelConfig, FEATURE_VERSION
+    trainer = CpuTrainer(CpuTrainingConfig(model=DuelModelConfig(width=8, card_width=4, heads=2, feedforward=16),
+        game_seeds=(7,)), list(range(1, 24)))
+    binding = {"feature_version": FEATURE_VERSION, "resources": deepcopy(receipt["resources"]),
+        "source_commits": deepcopy(receipt["source_commits"]), "profile_sha256": digest(profile)}
+    initial = save_checkpoint(trainer, Path(root) / "unit-model", "initial", binding, allow_initial=True)
+    state = torch.load(initial, map_location="cpu", weights_only=True)
+    state.update(boundary="complete-episode", updates=1, episode_cursor=1)
+    return state
+
+
+def write_snapshot_fields(root, state, name="synthetic-completion-fields"):
+    import torch
+    path = Path(root) / (name + ".weights")
+    torch.save(state, path)
+    return path, hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 class PeriodRuntimeGuardTests(unittest.TestCase):
@@ -193,6 +220,88 @@ class PeriodRuntimeGuardTests(unittest.TestCase):
             self.assets.bind_rule_opponent(self.profile, "unknown-driver", driver_version="unimplemented-provider")
         with self.assertRaises(ContractError):
             self.assets.bind_rule_opponent(self.profile, "promoted", source="user_provided")
+
+    def test_snapshot_contract_keeps_source_separate_from_target_and_rebinds_actor(self):
+        import torch
+        from ygo_kito.opponent_pool import PublicSnapshotPolicy
+        state = synthetic_snapshot_fields(self.root, self.receipt, self.profile)
+        path, checksum = write_snapshot_fields(self.root, state)
+        rng = torch.get_rng_state().clone()
+        frozen = self.assets.bind_snapshot_opponent(self.profile, "unit-snapshot", path, checksum, state["model_sha256"],
+            model_source="untrained-unit-fields-only-not-native-training", migration="explicit-inference-migration")
+        self.assertIsInstance(frozen, FrozenOpponent)
+        self.assertIsInstance(frozen.policy, PublicSnapshotPolicy)
+        self.assertTrue(torch.equal(rng, torch.get_rng_state()))
+        self.assertEqual(frozen.binding["controller"], "local_snapshot")
+        self.assertIsNone(frozen.model_provenance["source_period_context"])
+        self.assertEqual(frozen.model_provenance["target_period_context"], self.assets.period_context)
+        self.assertFalse(frozen.model_provenance["historical_training_verified"])
+        for name in ("profile", "registry", "model_provenance", "checkpoint", "optimizer", "game_seeds"):
+            self.assertNotIn(name, vars(frozen.policy))
+        edited = DeckParts((2,) + self.deck.main[1:])
+        rebound = frozen.rebind(edited, "train")
+        self.assertEqual(rebound.binding["model_sha256"], frozen.binding["model_sha256"])
+        self.assertEqual(opponent_identity(rebound.binding), opponent_identity(frozen.binding))
+        self.assertNotEqual(rebound.binding["own_deck_sha256"], frozen.binding["own_deck_sha256"])
+        self.assertEqual(rebound.model_provenance["source_profile_sha256"], frozen.model_provenance["source_profile_sha256"])
+        self.assertEqual(rebound.model_provenance["target_profile_sha256"], digest(rebound.profile))
+        rebound.assert_runtime(self.root, rebound.profile, 0)
+
+    def test_snapshot_requires_complete_cpu_resource_vocabulary_and_model_binding(self):
+        state = synthetic_snapshot_fields(self.root, self.receipt, self.profile)
+        for mutation in ("initial", "updates", "cursor", "resources", "feature", "vocabulary", "model", "source-profile", "device"):
+            bad = deepcopy(state)
+            if mutation == "initial": bad["boundary"] = "initial"
+            elif mutation == "updates": bad["updates"] = 0
+            elif mutation == "cursor": bad["episode_cursor"] = 2
+            elif mutation == "resources": bad["binding"]["resources"]["cards"] = "0" * 64
+            elif mutation == "feature": bad["binding"]["feature_version"] = "unmatched"
+            elif mutation == "vocabulary": bad["card_ids"].pop()
+            elif mutation == "model": bad["model_sha256"] = "0" * 64
+            elif mutation == "source-profile": bad["binding"]["profile_sha256"] = "unknown"
+            else: bad["execution"]["device"] = "cuda:0"
+            path, checksum = write_snapshot_fields(self.root, bad, mutation)
+            with self.subTest(mutation=mutation), self.assertRaises(ContractError):
+                self.assets.bind_snapshot_opponent(self.profile, "bad-snapshot", path, checksum, state["model_sha256"],
+                    model_source="untrained-unit-fields-only", migration="explicit-inference-migration")
+        path, checksum = write_snapshot_fields(self.root, state)
+        with self.assertRaisesRegex(ContractError, "same-period snapshot"):
+            self.assets.bind_snapshot_opponent(self.profile, "not-period-trained", path, checksum, state["model_sha256"],
+                model_source="untrained-unit-fields-only", migration="same-period-inference")
+        state["binding"].update(period_context=deepcopy(self.assets.period_context), versions=deepcopy(self.assets.environment["versions"]))
+        path, checksum = write_snapshot_fields(self.root, state, "explicit-period-fields")
+        frozen = self.assets.bind_snapshot_opponent(self.profile, "exact-period-fields", path, checksum, state["model_sha256"],
+            model_source="untrained-unit-fields-only", migration="same-period-inference")
+        self.assertEqual(frozen.model_provenance["source_period_context"], self.assets.period_context)
+
+    def test_snapshot_file_model_provenance_and_vocabulary_remain_frozen(self):
+        import torch
+        state = synthetic_snapshot_fields(self.root, self.receipt, self.profile)
+        path, checksum = write_snapshot_fields(self.root, state)
+        frozen = self.assets.bind_snapshot_opponent(self.profile, "sealed-unit-snapshot", path, checksum, state["model_sha256"],
+            model_source="untrained-unit-fields-only", migration="explicit-inference-migration")
+        original = path.read_bytes()
+        try:
+            path.write_bytes(original + b" ")
+            with self.assertRaisesRegex(ContractError, "artifact changed"):
+                frozen.assert_runtime(self.root, self.profile, 0)
+        finally:
+            path.write_bytes(original)
+        frozen.model_provenance["historical_training_verified"] = True
+        with self.assertRaisesRegex(ContractError, "provenance changed"):
+            self.assets.assert_integrity(physical=False)
+        frozen.model_provenance["historical_training_verified"] = False
+        parameter = next(frozen.policy.model.parameters())
+        before = parameter.detach().clone()
+        try:
+            with torch.no_grad(): parameter.add_(1.)
+            with self.assertRaisesRegex(ContractError, "model/provenance changed"):
+                self.assets.assert_integrity(physical=False)
+        finally:
+            with torch.no_grad(): parameter.copy_(before)
+        frozen.policy.encoder.index[1] = 99
+        with self.assertRaisesRegex(ContractError, "model/provenance changed"):
+            frozen.assert_runtime(self.root, self.profile, 0)
 
     def test_actor_rebind_changes_own_profile_and_preserves_actual_opponent_identity(self):
         original = self.assets.bind_rule_opponent(self.profile, "baseline")

@@ -95,6 +95,48 @@ class TrainingInputTests(unittest.TestCase):
         with self.assertRaisesRegex(ContractError, "missing"):
             load_training_inputs(intake, empty, self.root, runtime_assets={})
 
+    def test_explicit_selected_period_loads_without_future_data_and_cannot_access_unselected_periods(self):
+        for period in ("2022-10", "2026-10"):
+            env = self.intake["environments"][period]
+            env.update(release_cutoff=None, catalog=None, releases=None, banlist=None)
+            spec = self.policy["periods"][period]
+            spec["versions"] = None
+            for part in spec["partitions"].values(): part.update(opponents=None, seeds=None, policy_seed=None)
+        for slot in self.intake["slots"][1:3]: slot["deck"] = None
+        # Only three actual opponent slots are needed by this explicit course;
+        # the complete-plan path must still demand all eleven received lists.
+        self.policy["periods"]["2022-07"]["partitions"]["train"]["opponents"] = [self.binding("2022-07", 1)]
+        for slot in self.intake["slots"][4:9]: slot.update(deck=None, periods=None, controller=None)
+        self.assertEqual(self.compile()["status"], "pending_input")
+        self.policy["periods"].pop("2022-10")
+        self.policy["periods"].pop("2026-10")
+        compiled = compile_training_inputs(self.intake, self.policy, self.root, selected_period="2022-07")
+        self.assertEqual(compiled["scope"], "selected-period")
+        self.assertEqual(set(compiled["periods"]), {"2022-07"})
+        self.assertEqual(compiled["unselected_periods"]["2026-10"]["status"], "unselected_not_validated")
+        self.assertFalse(compiled["formal_training_ready"])
+        assets = SyntheticPeriodAssets("2022-07", compiled["periods"]["2022-07"], self.intake, self.root)
+        loaded = load_training_inputs(self.intake, self.policy, self.root, runtime_assets={"2022-07": assets}, selected_period="2022-07")
+        self.assertEqual(loaded.for_runner("2022-07", "train")["period_context"]["period_id"], "2022-07")
+        with self.assertRaisesRegex(ContractError, "not selected"):
+            loaded.for_runner("2026-10", "train")
+        task, _ = fixture_assets()
+        with self.assertRaisesRegex(ContractError, "not selected"):
+            loaded.require_task("2026-10", task)
+
+    def test_selected_period_preserves_seed_and_actual_opponent_partition_isolation(self):
+        spec = self.policy["periods"]["2022-07"]
+        spec["partitions"]["validation"]["seeds"] = spec["partitions"]["train"]["seeds"]
+        with self.assertRaisesRegex(ContractError, "seed crosses"):
+            compile_training_inputs(self.intake, self.policy, self.root, selected_period="2022-07")
+        spec["partitions"]["validation"]["seeds"] = [1101, 1102]
+        self.intake["slots"][9]["controller"]["driver_version"] = "synthetic-driver-1"
+        renamed = self.binding("2022-07", 7)
+        renamed["binding"]["driver_implementation_sha256"] = spec["partitions"]["train"]["opponents"][0]["binding"]["driver_implementation_sha256"]
+        spec["partitions"]["validation"]["opponents"] = [renamed]
+        with self.assertRaisesRegex(ContractError, "same actual opponent"):
+            compile_training_inputs(self.intake, self.policy, self.root, selected_period="2022-07")
+
     def test_real_profile_dtos_and_existing_group_extraction_consume_loaded_period_inputs(self):
         loaded = self.load()
         for period in PERIODS:

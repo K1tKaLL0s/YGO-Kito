@@ -2,15 +2,17 @@
 
 `training_input.py` 连接用户 [3＋8 收件](deck-intake.md) 与已有 profile、对手绑定和 `DataIndex`。它提供实际可加载的数据对象，不另建采样器、训练器或恢复架构，不生成监督/对局，不启动原生核心或 provider。
 
-没有 `period_inputs` 时，既有 `semantic_curriculum.inputs` 继续接受原 `engineering-custom` 课程并现场登记工程本地规则对手，group runner 沿用原固定 task/profile 路径。新增的显式宿主路径会重新加载完整 3＋8 收件、分期资源与真实规则对手，保留截止并核对课程和采样种子。普通 `BuildAssets` 仍不能通过改 period 名称或清空截止获得三期资格。
+没有 `period_inputs` 时，既有 `semantic_curriculum.inputs` 继续接受原 `engineering-custom` 课程并现场登记工程本地规则对手，group runner 沿用原固定 task/profile 路径。新增的显式宿主路径按 scope 加载资料：默认 `whole-plan` 要求完整 3＋8/三期，显式 `selected-period` 只消费所选期的实际主槽/对手、资源与已实现驱动，保留截止并核对课程和采样种子。普通 `BuildAssets` 仍不能通过改 period 名称或清空截止获得三期资格。
 
 ## 显式输入
 
-`configs/user-training-input-template-v1.json` 是空白策略模板。每期显式指定一个主卡组槽、实际六项 `Versions`、已有 adapter revision，以及 `train/validation/final_eval` 各自的对手、游戏 seeds 和 policy RNG seed。三个主槽、八个对手槽必须都被明确使用，不默认划分比例或种子，不通过槽位改名制造独立终验。
+`configs/user-training-input-template-v1.json` 是空白策略模板。默认 whole-plan 每期显式指定一个主卡组槽、实际六项 `Versions`、已有 adapter revision，以及 `train/validation/final_eval` 各自的对手、游戏 seeds 和 policy RNG seed。完整计划要求三个主槽、八个对手槽都被明确使用；selected-period 只要求该期实际用到的槽和三个分区，不据此宣称完整计划齐备。不默认划分比例或种子，不通过槽位改名制造独立终验。
 
 每个对手条目为 `{slot_id, binding}`。`binding` 使用现有 `FrozenOpponent.binding` 完整格式：牌表内容、驱动实现摘要/版本、快照模型摘要及双方实际 profile 绑定。它必须与收件牌表、控制方和当期归属相符。用户输入与合成契约输入通过策略的 `source` 分开，不能将 `engineering_fixture` 绑定放进 `user_supplied` 配置。
 
-`compile_training_inputs(intake, policy, workspace)` 会重新检查三期来源文件和 11 份资料。缺任何资源/截止/分区/版本只返回 `pending_input`；矛盾或泄漏直接拒绝。编译结果保留每期完整截止和三源摘要，`formal_training_ready` 保持 false。
+默认 whole-plan 的 `compile_training_inputs(intake, policy, workspace)` 会重新检查三期来源文件和 11 份资料。缺任何资源/截止/分区/版本只返回 `pending_input`；矛盾或泄漏直接拒绝。编译结果保留每期完整截止和三源摘要，`formal_training_ready` 保持 false。
+
+显式传入 `selected_period="2022-07"` 时只编译该期主槽及各分区实际选用的对手、来源、截止与版本；不要求未来期已经选日期或已经收到其他主槽。manifest 标记 `scope="selected-period"`，未选期为 `unselected_not_validated`，仍不表示完整计划就绪。`load_training_inputs(..., runtime_assets={"2022-07": actual_runtime}, selected_period="2022-07")` 要求 runtime 键集精确等于该 scope，访问未选择期通过 ContractError 拒绝。省略参数继续要求完整三期 3＋8；全计划收件/登记不会部分放行。
 
 隔离沿用现有 `opponent_identity`：同一排序牌表内容＋驱动实现/版本＋模型快照不得跨 train/validation/final_eval，改 opponent ID 或调整牌序无效。物理版本相同的游戏种子不能跨目的重用，card_pool 显示标签不改变此规则。DataIndex 后续在真实数据入库时还会重新检查，编译阶段不造空 episode 占位。
 
@@ -44,6 +46,6 @@ group runner 的显式 `period_inputs` 描述符由 [period_host](period-runtime
 
 ## 外部依赖与测试证据
 
-现有普通 `BuildAssets` 没有历史 `period_context`，会被此加载器拒绝。新增 `PeriodBuildAssets/PeriodNativeEngine` 实际核对锁定物理资产，并显式使用所选禁限节、发行允许池和保留截止的环境；宿主 loader 只接入实际已有规则 baseline。真正历史来源、旧裁定/勘误与具体驱动资格仍须验证。合成兼容对象仅存在于测试，生产没有 fallback；用户牌表、来源/截止日期及外部模型资格也不能由模板填充。
+现有普通 `BuildAssets` 没有历史 `period_context`，会被此加载器拒绝。新增 `PeriodBuildAssets/PeriodNativeEngine` 实际核对锁定物理资产，并显式使用所选禁限节、发行允许池和保留截止的环境；宿主 loader 接入已有规则 baseline，以及明确 artifact/model SHA、来源和推理迁移的 `local_snapshot/frozen-duel-greedy-v1`。bot/external_llm 未接实际传输时仍拒绝，不回退为本地模型。真正历史来源、旧裁定/勘误与具体驱动资格仍须验证。合成兼容对象仅存在于测试，生产没有 fallback；用户牌表、来源/截止日期及外部模型资格也不能由模板填充。
 
 安全测试命令：`PYTHONPATH=src .cache/ci-cpu-venv/bin/python -m unittest tests.test_training_input tests.test_period_runtime tests.test_period_host -v`。测试使用明示合成文件/runtime，真实调用旧 profile DTO、group 输入检查和 DataIndex 数据集冻结，验证缺资源关闭、跨期/跨目的隔离及拒绝当前环境冒充；不加载规则核心、不造训练 episode、不运行缓冲故障测试或外部 API。单独的真实资源模块验证宿主和 group 输入、精确采样种子、两个真实规则对手的轮换、分期正常条件目标；它没有运行完整分期 group 训练或作历史规则认证。

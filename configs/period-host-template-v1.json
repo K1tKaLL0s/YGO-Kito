@@ -1,5 +1,6 @@
 {
   "schema_version": 1,
+  "scope": "selected-period",
   "intake": "configs/user-deck-intake-template-v1.json",
   "policy": "configs/user-training-input-template-v1.json",
   "period_id": null,

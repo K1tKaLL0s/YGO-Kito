@@ -21,6 +21,7 @@ from ygo_kito.training_input import _profile
 from ygo_kito.validation import ContractError
 from tests import test_deck_intake as intake_fixtures
 from tests.test_construction_logic import fixture_assets
+from tests.test_period_runtime import synthetic_snapshot_fields, write_snapshot_fields
 
 
 class PeriodHostTests(unittest.TestCase):
@@ -97,6 +98,73 @@ class PeriodHostTests(unittest.TestCase):
         self.assertEqual(actual.binding, selection["opponent_binding"])
         self.assertIs(host.assets, selection["assets"])
         self.assertIsNotNone(host.assets.environment["release_cutoff"])
+
+    def configure_snapshot_fields(self):
+        first_profile = self.policy["periods"]["2022-07"]["partitions"]["train"]["opponents"][0]["binding"]
+        actor = DeckParts.from_dict(self.intake["slots"][0]["deck"]["content"])
+        other = DeckParts.from_dict(self.intake["slots"][3]["deck"]["content"])
+        profile = _profile(actor, other, 5)
+        state = synthetic_snapshot_fields(self.root, self.receipt, profile)
+        path, checksum = write_snapshot_fields(self.root, state)
+        controller = {"controller": "local_snapshot", "provider": None, "model": state["model_sha256"],
+                      "driver_version": "frozen-duel-greedy-v1"}
+        self.intake["slots"][3]["controller"] = controller
+        self.descriptor["snapshots"] = {}
+        for period in PERIODS:
+            assets = PeriodBuildAssets(self.root, period, self.intake["environments"][period], self.root, evidence_source="engineering_fixture")
+            phase = self.policy["periods"][period]
+            actor = DeckParts.from_dict(next(s for s in self.intake["slots"] if s["slot_id"] == phase["main_slot"])["deck"]["content"])
+            profile = _profile(actor, other, 5)
+            frozen = assets.bind_snapshot_opponent(profile, first_profile["opponent_id"], path, checksum, state["model_sha256"],
+                model_source="untrained-unit-fields-only-not-native-evidence", migration="explicit-inference-migration")
+            phase["partitions"]["train"]["opponents"][0]["binding"] = deepcopy(frozen.binding)
+            self.descriptor["snapshots"][period] = {"opponent-01": {"path": str(path.relative_to(self.root)), "sha256": checksum,
+                "model_source": frozen.model_provenance["model_source"], "migration": "explicit-inference-migration"}}
+        self.save()
+        return path
+
+    def test_host_loads_snapshot_with_exact_binding_and_rechecks_file_and_model_seals(self):
+        import torch
+        path = self.configure_snapshot_fields()
+        with period_host_operation():
+            host = load_period_host(self.recipe, workspace=self.root)
+            selected = host.for_runner("train")
+            frozen = host.opponent_for(selected["opponent_binding"], selected["profile"])
+            self.assertEqual(frozen.binding["controller"], "local_snapshot")
+            self.assertFalse(frozen.model_provenance["historical_training_verified"])
+            self.assertIs(load_period_host(self.recipe, workspace=self.root), host)
+        original = path.read_bytes()
+        try:
+            with self.assertRaisesRegex(ContractError, "source bytes changed"):
+                with period_host_operation():
+                    load_period_host(self.recipe, workspace=self.root)
+                    path.write_bytes(original + b"\n")
+                    assert_period_hosts_unchanged()
+        finally:
+            path.write_bytes(original)
+        with self.assertRaisesRegex(ContractError, "model/provenance changed"):
+            with period_host_operation():
+                host = load_period_host(self.recipe, workspace=self.root)
+                selected = host.for_runner("train")
+                model = host.opponent_for(selected["opponent_binding"], selected["profile"]).policy.model
+                with torch.no_grad(): next(model.parameters()).add_(1.)
+                assert_period_hosts_unchanged()
+
+    def test_host_snapshot_artifact_and_migration_must_be_explicit_and_inside_workspace(self):
+        self.configure_snapshot_fields()
+        descriptor = deepcopy(self.descriptor)
+        for mutation in ("missing", "outside", "model-source", "same-period", "unknown-driver"):
+            self.descriptor = deepcopy(descriptor)
+            self.intake["slots"][3]["controller"]["driver_version"] = "frozen-duel-greedy-v1"
+            spec = self.descriptor["snapshots"]["2022-07"]["opponent-01"]
+            if mutation == "missing": del self.descriptor["snapshots"]["2022-07"]["opponent-01"]
+            elif mutation == "outside": spec["path"] = "../outside.weights"
+            elif mutation == "model-source": spec["model_source"] = "unbound source label"
+            elif mutation == "same-period": spec["migration"] = "same-period-inference"
+            else: self.intake["slots"][3]["controller"]["driver_version"] = "unimplemented-snapshot"
+            self.save()
+            with self.subTest(mutation=mutation), self.assertRaises(ContractError):
+                load_period_host(self.recipe, workspace=self.root)
 
     def test_group_period_inputs_require_indexed_course_and_exact_seed_schedule(self):
         from ygo_kito import group_runner
@@ -257,6 +325,29 @@ class PeriodHostTests(unittest.TestCase):
             with self.assertRaisesRegex(ContractError, "incomplete"):
                 load_period_host(self.recipe, workspace=self.root)
             ctor.assert_not_called()
+
+    def test_selected_host_only_loads_current_period_and_leaves_future_cutoff_pending(self):
+        for period in ("2022-10", "2026-10"):
+            self.intake["environments"][period].update(release_cutoff=None, catalog=None, releases=None, banlist=None)
+            self.policy["periods"][period]["versions"] = None
+            for part in self.policy["periods"][period]["partitions"].values(): part.update(opponents=None, seeds=None, policy_seed=None)
+        for slot in self.intake["slots"][1:3]: slot["deck"] = None
+        self.descriptor.update(scope="selected-period", native_roots={"2022-07": "."})
+        self.save()
+        with period_host_operation(), patch("ygo_kito.period_host.PeriodBuildAssets", wraps=PeriodBuildAssets) as constructor:
+            host = load_period_host(self.recipe, workspace=self.root)
+            self.assertEqual(constructor.call_count, 1)
+            self.assertEqual(set(host.loaded.assets), {"2022-07"})
+            self.assertIs(load_period_host(self.recipe, workspace=self.root), host)
+            self.assertFalse(host.loaded.manifest["formal_training_ready"])
+            self.assertEqual(host.for_runner("train")["period_context"]["period_id"], "2022-07")
+            with self.assertRaisesRegex(ContractError, "not selected"):
+                host.loaded.for_runner("2026-10", "train")
+        self.descriptor.pop("scope")
+        self.descriptor["native_roots"] = {p: "." for p in PERIODS}
+        self.save()
+        with self.assertRaisesRegex(ContractError, "incomplete"):
+            load_period_host(self.recipe, workspace=self.root)
 
     def test_descriptor_cannot_change_to_an_outside_runtime_or_data_path(self):
         for field in ("intake", "policy", "native_roots"):

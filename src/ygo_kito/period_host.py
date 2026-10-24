@@ -14,8 +14,9 @@ import hashlib
 from pathlib import Path
 
 from .build_contracts import digest
-from .deck_intake import PERIODS, validate_intake
-from .period_runtime import PeriodBuildAssets
+from .deck_intake import PERIODS, SLOTS, validate_intake
+from .opponent_pool import SNAPSHOT_DRIVER
+from .period_runtime import PeriodBuildAssets, _sha256
 from .training_input import LoadedTrainingInputs, compile_training_inputs, load_training_inputs, validate_policy
 from .validation import ContractError, fields, integer, member, read_json, text
 
@@ -94,7 +95,7 @@ class _OperationHost:
         host.loaded._check_manifest()
         if (host.loaded.manifest["binding_sha256"] != self.manifest_sha256 or
                 host.descriptor_sha256 != self.descriptor_sha256 or host.period_id != self.period_id or
-                set(host.loaded.assets) != set(PERIODS)):
+                set(host.loaded.assets) != {row[0] for row in self.runtime_seals}):
             raise ContractError("period host memory binding changed during operation")
         for period, identity, root, workspace, receipt in self.runtime_seals:
             assets = host.loaded.assets[period]
@@ -155,43 +156,71 @@ def load_period_host(recipe, *, workspace=ROOT):
     if not path.is_relative_to(workspace / "configs"):
         raise ContractError("period input descriptor must stay in repository configs")
     descriptor_sources = _source_snapshot(workspace, [reference])
-    descriptor = fields(read_json(path), {"schema_version", "intake", "policy", "period_id", "native_roots"})
+    descriptor = fields(read_json(path), {"schema_version", "intake", "policy", "period_id", "native_roots"}, {"snapshots", "scope"})
     integer(descriptor["schema_version"], "period host schema", 1, 1)
     member(descriptor["period_id"], "selected training period", PERIODS)
-    roots = fields(descriptor["native_roots"], set(PERIODS))
+    scope = descriptor.get("scope", "whole-plan")
+    member(scope, "period host loading scope", ("whole-plan", "selected-period"))
+    selected_period = descriptor["period_id"] if scope == "selected-period" else None
+    selected_periods = (selected_period,) if selected_period is not None else PERIODS
+    roots = fields(descriptor["native_roots"], set(selected_periods), set(PERIODS) - set(selected_periods))
     # Resolve every host path before reading any model/data/resource content.
     intake_path, policy_path = (_inside(workspace, descriptor[key]) for key in ("intake", "policy"))
-    native_roots = {p: _inside(workspace, value) for p, value in roots.items()}
+    native_roots = {p: _inside(workspace, roots[p]) for p in selected_periods}
     if intake_path.suffix != ".json" or policy_path.suffix != ".json":
         raise ContractError("period intake and policy must be explicit JSON files")
     input_sources = _source_snapshot(workspace, [descriptor["intake"], descriptor["policy"]])
     intake = validate_intake(read_json(intake_path))
-    policy = validate_policy(read_json(policy_path))
+    policy = validate_policy(read_json(policy_path), selected_period=selected_period)
     references = []
-    for environment in intake["environments"].values():
+    snapshots = fields(descriptor.get("snapshots", {}), set(), set(PERIODS))
+    for period in selected_periods:
+        assignments = snapshots.get(period, {})
+        for slot_id, snapshot in fields(assignments, set(), set(SLOTS[3:])).items():
+            fields(snapshot, {"path", "sha256", "model_source", "migration"})
+            _inside(workspace, snapshot["path"])
+            _sha256(snapshot["sha256"], "host snapshot artifact")
+            text(snapshot["model_source"], "host snapshot model source")
+            member(snapshot["migration"], "host snapshot inference migration", ("same-period-inference", "explicit-inference-migration"))
+            references.append(snapshot["path"])
+    for period in selected_periods:
+        environment = intake["environments"][period]
         references.extend(artifact["path"] for artifact in (environment[key] for key in ("catalog", "releases", "banlist"))
                           if artifact is not None)
     sources = (*descriptor_sources, *input_sources, *_source_snapshot(workspace, references))
-    compiled = compile_training_inputs(intake, policy, workspace)
+    compiled = compile_training_inputs(intake, policy, workspace, selected_period=selected_period)
     if compiled["status"] != "compiled_not_runtime_validated":
         raise ContractError("period host input data is incomplete; no runtime or default roster was created")
     source = "engineering_fixture" if policy["source"] == "synthetic_contract_test" else "user_supplied"
     assets = {p: PeriodBuildAssets(native_roots[p], p, intake["environments"][p], workspace,
-                adapter_revision=policy["periods"][p]["adapter_revision"], evidence_source=source) for p in PERIODS}
+                adapter_revision=policy["periods"][p]["adapter_revision"], evidence_source=source) for p in selected_periods}
     slots = {s["slot_id"]: s for s in intake["slots"]}
-    for period in PERIODS:
+    used_snapshots = set()
+    for period in selected_periods:
         for purpose, partition in policy["periods"][period]["partitions"].items():
             profiles = compiled["periods"][period]["partitions"][purpose]["profiles"]
             for entry, profile in zip(partition["opponents"], profiles):
                 controller = slots[entry["slot_id"]]["controller"]
-                if controller["controller"] != "rule_baseline":
-                    raise ContractError("period host needs an implemented driver; external/bot/snapshot input is not a rule baseline")
                 expected = entry["binding"]
-                actual = assets[period].bind_rule_opponent(profile, expected["opponent_id"],
-                    driver_version=controller["driver_version"], source=expected["source"])
+                if controller["controller"] == "rule_baseline":
+                    actual = assets[period].bind_rule_opponent(profile, expected["opponent_id"],
+                        driver_version=controller["driver_version"], source=expected["source"])
+                elif controller["controller"] == "local_snapshot" and controller["driver_version"] == SNAPSHOT_DRIVER:
+                    snapshot = snapshots.get(period, {}).get(entry["slot_id"])
+                    if snapshot is None:
+                        raise ContractError("period local snapshot requires its explicit host artifact/source/migration")
+                    used_snapshots.add((period, entry["slot_id"]))
+                    actual = assets[period].bind_snapshot_opponent(profile, expected["opponent_id"], _inside(workspace, snapshot["path"]),
+                        snapshot["sha256"], controller["model"], model_source=snapshot["model_source"], migration=snapshot["migration"],
+                        source=expected["source"])
+                else:
+                    raise ContractError("period bot/external provider requires an implemented legal-action transport")
                 if actual.binding != expected:
-                    raise ContractError("period host actual rule driver binding differs from the frozen input evidence")
-    loaded = load_training_inputs(intake, policy, workspace, runtime_assets=assets)
+                    kind = "snapshot" if controller["controller"] == "local_snapshot" else "rule"
+                    raise ContractError("period host actual " + kind + " driver binding differs from the frozen input evidence")
+    if used_snapshots != {(p, slot) for p in selected_periods for slot in snapshots.get(p, {})}:
+        raise ContractError("period host snapshot artifacts must correspond exactly to configured local snapshot slots")
+    loaded = load_training_inputs(intake, policy, workspace, runtime_assets=assets, selected_period=selected_period)
     host = PeriodHost(loaded, descriptor["period_id"], digest(deepcopy(descriptor)))
     entry = _OperationHost(host, workspace, sources, loaded.manifest["binding_sha256"], host.descriptor_sha256, host.period_id,
         tuple((p, id(a), str(a.root), str(a.workspace), digest(a.receipt)) for p, a in sorted(assets.items())))

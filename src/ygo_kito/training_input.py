@@ -8,7 +8,7 @@ today's BuildAssets cannot acquire historical validity by changing a label.
 from copy import deepcopy
 from dataclasses import dataclass
 
-from .agent_registry import RUNTIME_POOLS, identifier
+from .agent_registry import RUNTIME_POOLS, identifier, parse_ydk
 from .build_contracts import DeckParts, digest
 from .contracts import Versions
 from .data_isolation import DataIndex, PURPOSES, opponent_identity
@@ -38,12 +38,15 @@ def _profile(main, other, revision):
     return profile
 
 
-def validate_policy(value):
+def validate_policy(value, *, selected_period=None):
     d = fields(value, {"schema_version", "training_input_id", "source", "periods"})
     integer(d["schema_version"], "training input schema", 1, 1)
     identifier(d["training_input_id"])
     member(d["source"], "training input source", ("user_supplied", "synthetic_contract_test"))
-    for period, spec in fields(d["periods"], set(PERIODS)).items():
+    required = set(PERIODS) if selected_period is None else {member(selected_period, "selected training period", PERIODS)}
+    for period, spec in fields(d["periods"], required, set(PERIODS) - required).items():
+        if selected_period is not None and period != selected_period:
+            continue
         fields(spec, {"main_slot", "versions", "adapter_revision", "partitions"})
         if spec["main_slot"] not in SLOTS[:3]:
             raise ContractError("each period requires an explicit main-deck slot")
@@ -106,14 +109,60 @@ def _binding(raw, slot, main, profile, *, source):
     return deepcopy(raw)
 
 
-def compile_training_inputs(intake, policy, workspace):
+def _selected_intake(intake, policy, workspace, period):
+    """Read only one declared period; never manufacture a complete 3+8 plan."""
+    from pathlib import Path
+    evidence, parsed = _environment(Path(workspace).resolve(), period, intake["environments"][period])
+    if evidence["status"] == "invalid":
+        raise ContractError("selected period listing evidence is invalid: " + "; ".join(evidence["unmet"]))
+    unmet = [] if parsed is not None else [period + ": selected period listing evidence is incomplete"]
+    spec = policy["periods"][period]
+    selected = {spec["main_slot"]}
+    for partition in spec["partitions"].values():
+        if partition["opponents"] is not None:
+            selected.update(entry["slot_id"] for entry in partition["opponents"])
+    slots = []
+    for raw in intake["slots"]:
+        if raw["slot_id"] not in selected:
+            continue
+        if period not in (raw["periods"] or []):
+            unmet.append(raw["slot_id"] + ": selected period assignment is missing")
+        controller = raw["controller"]
+        if raw["slot_id"].startswith("opponent-"):
+            needed = (("provider", "model", "driver_version") if controller is not None and controller["controller"] == "external_llm"
+                      else ("model", "driver_version") if controller is not None and controller["controller"] == "local_snapshot"
+                      else ("driver_version",))
+            if controller is None or any(controller[key] is None for key in needed):
+                unmet.append(raw["slot_id"] + ": selected opponent controller is incomplete")
+        if raw["deck"] is None:
+            unmet.append(raw["slot_id"] + ": selected deck is missing")
+            continue
+        listing = raw["deck"]
+        deck = parse_ydk(listing["content"]) if listing["format"] == "ydk" else listing["content"]
+        if parsed is not None:
+            rows, limits, allowed = parsed
+            validate_deck_parts(deck, rows, limits, allowed=allowed)
+        slots.append({"slot_id": raw["slot_id"], "periods": raw["periods"] or [], "deck": deck,
+                      "deck_sha256": digest(deck), "controller": controller})
+    return {"slots": slots, "environments": {period: evidence}}, unmet
+
+
+def compile_training_inputs(intake, policy, workspace, *, selected_period=None):
     """Compile genuine supplied lists and bindings; blanks produce a closed plan."""
-    intake, policy = validate_intake(intake), validate_policy(policy)
-    prepared = prepare_intake(intake, workspace)
-    unmet = []
-    if not prepared["complete_user_input"]:
-        unmet.append("complete eleven-deck intake and three independent historical evidence sets are required")
-    for period, spec in policy["periods"].items():
+    intake, policy = validate_intake(intake), validate_policy(policy, selected_period=selected_period)
+    if selected_period is None:
+        selected_periods = PERIODS
+        prepared = prepare_intake(intake, workspace)
+        unmet = ([] if prepared["complete_user_input"] else
+                 ["complete eleven-deck intake and three independent historical evidence sets are required"])
+    else:
+        member(selected_period, "selected training period", PERIODS)
+        selected_periods = (selected_period,)
+        prepared, unmet = _selected_intake(intake, policy, workspace, selected_period)
+    scope = ({} if selected_period is None else {"scope": "selected-period", "selected_period": selected_period,
+        "unselected_periods": {p: {"status": "unselected_not_validated"} for p in PERIODS if p != selected_period}})
+    for period in selected_periods:
+        spec = policy["periods"][period]
         if spec["versions"] is None:
             unmet.append(period + ": explicit actual runtime versions missing")
         for purpose, part in spec["partitions"].items():
@@ -122,10 +171,10 @@ def compile_training_inputs(intake, policy, workspace):
                     unmet.append(period + "/" + purpose + ": missing " + key)
     if unmet:
         return {"status": "pending_input", "unmet": unmet, "input_source": policy["source"],
-                "intake_sha256": digest(intake), "policy_sha256": digest(policy), "formal_training_ready": False}
+                "intake_sha256": digest(intake), "policy_sha256": digest(policy), "formal_training_ready": False, **scope}
     slots = {s["slot_id"]: s for s in prepared["slots"]}
     periods, opponents_seen, seeds_seen, used_slots, used_main_slots = {}, {}, {}, set(), set()
-    for period in PERIODS:
+    for period in selected_periods:
         spec, evidence = policy["periods"][period], prepared["environments"][period]
         versions = Versions.from_dict(spec["versions"])
         if versions.cards != evidence["artifacts"]["catalog"]["sha256"] or versions.banlist != (
@@ -175,13 +224,13 @@ def compile_training_inputs(intake, policy, workspace):
                 "opponent_bindings": bindings, "seeds": part["seeds"], "policy_seed": part["policy_seed"],
                 "dataset_spec": dataset}
         periods[period] = {"context": context, "versions": deepcopy(spec["versions"]), "partitions": partitions}
-    if used_slots != set(SLOTS[3:]):
+    if selected_period is None and used_slots != set(SLOTS[3:]):
         raise ContractError("training inputs must explicitly account for all eight received opponent slots")
-    if used_main_slots != set(SLOTS[:3]):
+    if selected_period is None and used_main_slots != set(SLOTS[:3]):
         raise ContractError("training inputs must explicitly account for all three received main-deck slots")
     result = {"status": "compiled_not_runtime_validated", "training_input_id": policy["training_input_id"],
         "input_source": policy["source"], "intake_sha256": digest(intake), "policy_sha256": digest(policy),
-        "periods": periods, "runtime_loaded": False, "formal_training_ready": False, "native_executed": False}
+        "periods": periods, "runtime_loaded": False, "formal_training_ready": False, "native_executed": False, **scope}
     result["binding_sha256"] = digest(result)
     return result
 
@@ -196,11 +245,15 @@ class LoadedTrainingInputs:
         expected = value.pop("binding_sha256", None)
         if expected != digest(value):
             raise ContractError("loaded training input manifest was changed after validation")
+        if set(self.assets) != set(self.manifest["periods"]):
+            raise ContractError("loaded period assets differ from the compiled input scope")
 
     def for_runner(self, period, purpose, *, episode_cursor=0):
         """Return existing runner-compatible DTOs for one explicit sampling slot."""
         self._check_manifest()
         member(period, "training period", PERIODS)
+        if period not in self.manifest["periods"]:
+            raise ContractError("training period was not selected or loaded")
         member(purpose, "training partition", PURPOSES)
         spec = self.manifest["periods"][period]["partitions"][purpose]
         integer(episode_cursor, "partition episode cursor", 0, len(spec["seeds"]) - 1)
@@ -231,26 +284,29 @@ class LoadedTrainingInputs:
         if not isinstance(task, BuildTask):
             raise ContractError("existing typed construction task required")
         member(period, "training period", PERIODS)
+        if period not in self.manifest["periods"]:
+            raise ContractError("construction period was not selected or loaded")
         if task.environment.get("release_cutoff") != self.manifest["periods"][period]["context"]["release_cutoff"]:
             raise ContractError("construction task does not preserve the explicit historical cutoff")
         self.assets[period].check_task(task)
         return task
 
 
-def load_training_inputs(intake, policy, workspace, *, runtime_assets):
+def load_training_inputs(intake, policy, workspace, *, runtime_assets, selected_period=None):
     """Load real period-aware assets; absent or today's unscoped assets fail closed.
 
     The host implements assert_training_opponent(binding, profile) against its
     actual frozen driver/registry. Merely putting a hash in configuration cannot
     enable a driver. No bundled synthetic implementation satisfies production.
     """
-    manifest = compile_training_inputs(intake, policy, workspace)
+    manifest = compile_training_inputs(intake, policy, workspace, selected_period=selected_period)
     if manifest["status"] != "compiled_not_runtime_validated":
         raise ContractError("training input loading blocked by missing user/environment/partition data")
-    if not isinstance(runtime_assets, dict) or set(runtime_assets) != set(PERIODS):
-        raise ContractError("three actual period-aware host runtimes are required")
+    if not isinstance(runtime_assets, dict) or set(runtime_assets) != set(manifest["periods"]):
+        raise ContractError("three actual period-aware host runtimes are required" if selected_period is None else
+                            "actual period-aware host runtimes must exactly match the compiled period scope")
     from pathlib import Path
-    for period in PERIODS:
+    for period in manifest["periods"]:
         assets = runtime_assets[period]
         check_physical = getattr(assets, "assert_integrity", None)
         if callable(check_physical):

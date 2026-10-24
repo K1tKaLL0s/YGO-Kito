@@ -7,8 +7,10 @@ context vary. Native ABI/response handling stays in the existing adapter.
 
 from copy import deepcopy
 from dataclasses import asdict, replace
+import hashlib
 import inspect
 from pathlib import Path
+import pickle
 
 from .agent_registry import RUNTIME_POOLS, identifier
 from .build_contracts import DeckParts, digest
@@ -19,8 +21,29 @@ from .deck_profile import validate_deck_parts, validate_profile
 from .effect_duel import choose_effect_duel_action
 from .native import NativeNormalEngine
 from .native_assets import verify_resources
-from .opponent_pool import FrozenOpponent, LOCAL_DRIVERS, PublicRulePolicy
-from .validation import ContractError, fields, integer, member
+from .opponent_pool import FrozenOpponent, LOCAL_DRIVERS, SNAPSHOT_DRIVER, PublicRulePolicy, PublicSnapshotPolicy
+from .validation import ContractError, fields, integer, member, text
+
+
+def _sha256(value, label):
+    if not isinstance(value, str) or len(value) != 64 or any(c not in "0123456789abcdef" for c in value):
+        raise ContractError(label + " requires a lowercase SHA-256")
+
+
+def _period_binding(assets, profile, opponent_id, seat, driver_version, source, controller, implementation, model_sha256=None, provenance=None):
+    record = {"opponent_id": opponent_id, "environment_id": assets.environment["environment_id"], "controller": controller,
+              "driver_version": driver_version, "source": source, "period_context": assets.period_context}
+    if provenance is not None:
+        record["model_provenance"] = provenance
+    def deck(player):
+        return {"main": profile["decks"][player], "extra": profile.get("extras", [[], []])[player],
+                "side": profile.get("sides", [[], []])[player]}
+    other, own = deck(seat), deck(1 - seat)
+    return {"schema_version": 1, "opponent_id": opponent_id, "environment_id": assets.environment["environment_id"],
+        "registered_record_sha256": digest(record), "opponent_deck_sha256": digest(other), "own_deck_sha256": digest(own),
+        "profile_sha256": digest(profile), "driver_version": driver_version, "driver_implementation_sha256": implementation,
+        "source": source, "controller": controller, "strength_qualified": False, "external_provider_verified": False,
+        "model_sha256": model_sha256, "opponent_deck_content_sha256": digest({z: sorted(cards) for z, cards in other.items()})}
 
 
 class PeriodBuildAssets(BuildAssets):
@@ -85,6 +108,9 @@ class PeriodBuildAssets(BuildAssets):
                        "adapter_revision": self.adapter_revision, "evidence_source": self.evidence_source})
         if (seal != self._period_seal or digest({c: self.rows[c] for c in sorted(self.allowed_card_ids)}) != self._row_seal):
             raise ContractError("period runtime resources/context changed after binding")
+        for opponent in getattr(self, "_opponents", {}).values():
+            if isinstance(opponent, PeriodSnapshotOpponent):
+                opponent.assert_snapshot_integrity(check_file=physical)
         if not physical:
             return
         if verify_resources(self.root) != self.receipt:
@@ -144,11 +170,20 @@ class PeriodBuildAssets(BuildAssets):
         self._opponents[digest(opponent.binding)] = opponent
         return opponent
 
+    def bind_snapshot_opponent(self, profile, opponent_id, checkpoint, checkpoint_sha256, model_sha256, *,
+                               model_source, migration, seat=1, source=None):
+        self.assert_integrity(physical=False)
+        source = source or ("engineering_fixture" if self.evidence_source == "engineering_fixture" else "user_provided")
+        opponent = PeriodSnapshotOpponent(self, profile, opponent_id, seat, source, checkpoint, checkpoint_sha256,
+                                          model_sha256, model_source, migration)
+        self._opponents[digest(opponent.binding)] = opponent
+        return opponent
+
     def assert_training_opponent(self, binding, profile):
         self.assert_integrity(physical=False)
         opponent = self._opponents.get(digest(binding))
         if opponent is None or opponent.binding != binding:
-            raise ContractError("no actual period rule opponent matches the supplied frozen binding")
+            raise ContractError("no actual period opponent matches the supplied frozen binding")
         opponent.assert_runtime(self.root, profile, 1 - opponent.seat, _verify_physical=False)
 
     def opponent_for(self, binding, profile):
@@ -174,6 +209,10 @@ class PeriodBuildAssets(BuildAssets):
             raise ContractError("the bound profile revision cannot carry an edited extra deck")
         elif "sides" in profile or actor_deck.side:
             profile.setdefault("sides", [[], []])[actor] = list(actor_deck.side)
+        if isinstance(previous, PeriodSnapshotOpponent):
+            return self.bind_snapshot_opponent(profile, binding["opponent_id"], previous._checkpoint_reference,
+                previous._checkpoint_sha256, previous.binding["model_sha256"], seat=previous.seat, source=binding["source"],
+                model_source=previous.model_provenance["model_source"], migration=previous.model_provenance["migration"])
         return self.bind_rule_opponent(profile, binding["opponent_id"], seat=previous.seat,
             driver_version=binding["driver_version"], source=binding["source"])
 
@@ -218,18 +257,8 @@ class PeriodRuleOpponent(FrozenOpponent):
         facts = {code: {"type": row["type"], "level": row["level"] & 255, "attack": row["atk"], "defense": row["def"]}
                  for code, row in assets.rows.items()}
         self.policy = PublicRulePolicy(driver_version, seat, self.versions, facts)
-        record = {"opponent_id": opponent_id, "environment_id": assets.environment["environment_id"], "controller": "rule_baseline",
-                  "driver_version": driver_version, "source": source, "period_context": assets.period_context}
-        def deck(player):
-            return {"main": self.profile["decks"][player], "extra": self.profile.get("extras", [[], []])[player],
-                    "side": self.profile.get("sides", [[], []])[player]}
-        other, own = deck(seat), deck(1 - seat)
-        self.binding = {"schema_version": 1, "opponent_id": opponent_id, "environment_id": assets.environment["environment_id"],
-            "registered_record_sha256": digest(record), "opponent_deck_sha256": digest(other), "own_deck_sha256": digest(own),
-            "profile_sha256": digest(self.profile), "driver_version": driver_version,
-            "driver_implementation_sha256": digest(inspect.getsource(PublicRulePolicy) + inspect.getsource(choose_effect_duel_action)),
-            "source": source, "controller": "rule_baseline", "strength_qualified": False, "external_provider_verified": False,
-            "model_sha256": None, "opponent_deck_content_sha256": digest({z: sorted(cards) for z, cards in other.items()})}
+        self.binding = _period_binding(assets, self.profile, opponent_id, seat, driver_version, source, "rule_baseline",
+            digest(inspect.getsource(PublicRulePolicy) + inspect.getsource(choose_effect_duel_action)))
         self._binding_sha256 = digest(self.binding)
         self.historical_rules_verified = False
         self.official_sources_verified = False
@@ -247,3 +276,130 @@ class PeriodRuleOpponent(FrozenOpponent):
                 digest(self.binding) != self._binding_sha256 or digest(profile) != self.binding["profile_sha256"] or
                 self.versions != Versions.from_dict(self.assets.environment["versions"])):
             raise ContractError("period opponent deck/driver/seat/runtime changed after freezing")
+
+
+class PeriodSnapshotOpponent(PeriodRuleOpponent):
+    """Frozen project CPU policy, with explicit source and inference migration.
+
+    The source checkpoint remains unchanged. Its training profile/context is
+    distinct from the current frozen match, including after an actor rebind.
+    No optimizer, training seeds, artifact paths or provenance enter the policy.
+    """
+
+    def __init__(self, assets, profile, opponent_id, seat, source, checkpoint, checkpoint_sha256, model_sha256, model_source, migration):
+        import torch
+        from .cpu_training import config_from_dict
+        from .device import checkpoint_execution
+        from .duel_model import FEATURE_VERSION
+        identifier(opponent_id)
+        integer(seat, "period opponent seat", 0, 1)
+        member(source, "period opponent source", ("user_provided", "external_submission", "engineering_fixture"))
+        if assets.evidence_source == "engineering_fixture" and source != "engineering_fixture":
+            raise ContractError("engineering period evidence cannot be promoted to user-supplied data")
+        text(model_source, "snapshot model source")
+        if len(model_source) > 512:
+            raise ContractError("snapshot model source exceeds its metadata bound")
+        member(migration, "snapshot inference migration", ("same-period-inference", "explicit-inference-migration"))
+        _sha256(checkpoint_sha256, "snapshot artifact")
+        _sha256(model_sha256, "snapshot model")
+        self.assets, self.seat, self.profile = assets, seat, assets.validate_profile(profile)
+        self._profile = self.profile
+        self.versions = Versions.from_dict(assets.environment["versions"])
+        reference = Path(checkpoint)
+        self._checkpoint_reference = reference if reference.is_absolute() else assets.workspace / reference
+        self._checkpoint = self._checkpoint_reference.resolve()
+        self._checkpoint_sha256 = checkpoint_sha256
+        self._snapshot_location_sha256 = digest([str(self._checkpoint_reference), str(self._checkpoint), checkpoint_sha256])
+        if not self._checkpoint.is_relative_to(assets.workspace) or not self._checkpoint.is_file():
+            raise ContractError("snapshot must be an explicit local workspace artifact")
+        try:
+            raw = self._checkpoint.read_bytes()
+        except OSError as error:
+            raise ContractError("snapshot artifact cannot be read") from error
+        if hashlib.sha256(raw).hexdigest() != checkpoint_sha256:
+            raise ContractError("snapshot artifact checksum differs")
+        try:
+            state = torch.load(self._checkpoint, map_location="cpu", weights_only=True)
+            fields(state, {"schema_version", "role", "boundary", "config", "binding", "card_ids", "vocab_sha256", "model",
+                "optimizer", "scheduler", "updates", "episode_cursor", "model_sha256", "rng"}, {"execution", "device_rng"})
+            checkpoint_execution(state, requested="cpu")
+            binding = fields(state["binding"], {"feature_version", "resources", "source_commits", "profile_sha256"},
+                {"python_implementation_sha256", "python", "torch", "registered_opponent_pool", "period_context", "versions"})
+            _sha256(binding["profile_sha256"], "source snapshot profile")
+            if (type(state["schema_version"]) is not int or state["schema_version"] != 1 or state["role"] != "duel" or
+                    state["boundary"] != "complete-episode" or binding["feature_version"] != FEATURE_VERSION or
+                    binding["resources"] != assets.receipt["resources"] or binding["source_commits"] != assets.receipt["source_commits"] or
+                    state["model_sha256"] != model_sha256):
+                raise ContractError("snapshot is not a compatible completed CPU duel checkpoint")
+            config = config_from_dict(state["config"])
+            integer(state["updates"], "snapshot updates", 1, len(config.game_seeds))
+            integer(state["episode_cursor"], "snapshot completed cursor", state["updates"], state["updates"])
+            if not assets.allowed_card_ids <= set(state["card_ids"]):
+                raise ContractError("snapshot vocabulary does not cover the explicit period card pool")
+            source_context, source_versions = binding.get("period_context"), binding.get("versions")
+            if (source_context is None) != (source_versions is None):
+                raise ContractError("snapshot source period context and versions must be bound together")
+            if source_context is not None:
+                fields(source_context, {"period_id", "release_cutoff", "catalog_sha256", "release_manifest_sha256", "banlist_sha256", "banlist_section"})
+                member(source_context["period_id"], "snapshot source period", PERIODS)
+                _date(source_context["release_cutoff"], "snapshot source cutoff")
+                source_v = Versions.from_dict(source_versions)
+                text(source_context["banlist_section"], "snapshot source banlist section")
+                for key in ("catalog_sha256", "release_manifest_sha256", "banlist_sha256"):
+                    _sha256(source_context[key], "source period " + key)
+                if (source_context["catalog_sha256"] != binding["resources"]["cards"] or
+                        source_context["banlist_sha256"] != binding["resources"]["banlist"] or
+                        source_v.core != binding["source_commits"]["core"] or source_v.scripts != binding["resources"]["scripts"] or
+                        source_v.protocol != binding["resources"]["client_protocol"] or source_v.cards != binding["resources"]["cards"] or source_v.banlist !=
+                        source_context["banlist_section"] + ":" + binding["resources"]["banlist"]):
+                    raise ContractError("snapshot source period resource versions differ")
+            if migration == "same-period-inference" and (source_context != assets.period_context or source_versions != assets.environment["versions"]):
+                raise ContractError("same-period snapshot requires its exact source period/cutoff/versions")
+            self.policy = PublicSnapshotPolicy(seat, self.versions, state)
+        except ContractError:
+            raise
+        except (OSError, EOFError, pickle.UnpicklingError, KeyError, TypeError, ValueError, RuntimeError) as error:
+            raise ContractError("snapshot artifact/model state is incompatible") from error
+        self.model_provenance = {"model_source": model_source, "migration": migration,
+            "artifact_sha256": checkpoint_sha256, "source_binding_sha256": digest(binding),
+            "source_profile_sha256": binding["profile_sha256"], "source_period_context": deepcopy(source_context),
+            "source_versions": deepcopy(source_versions), "target_period_context": deepcopy(assets.period_context),
+            "target_profile_sha256": digest(self.profile), "vocab_sha256": state["vocab_sha256"],
+            "model_config_sha256": digest(state["config"]["model"]),
+            "feature_version": binding["feature_version"], "completed_boundary": state["boundary"], "completed_updates": state["updates"],
+            "historical_training_verified": False, "strength_qualified": False}
+        self._provenance_sha256 = digest(self.model_provenance)
+        self.binding = _period_binding(assets, self.profile, opponent_id, seat, SNAPSHOT_DRIVER, source, "local_snapshot",
+            digest(inspect.getsource(PublicSnapshotPolicy)), model_sha256, self.model_provenance)
+        self._binding_sha256 = digest(self.binding)
+        self.historical_rules_verified = False
+        self.official_sources_verified = False
+        self.assert_snapshot_integrity()
+
+    def assert_snapshot_integrity(self, *, check_file=True):
+        from .duel_model import parameter_digest
+        if (digest(self.model_provenance) != self._provenance_sha256 or
+                digest(self.binding) != self._binding_sha256 or digest(self.profile) != self.binding["profile_sha256"] or
+                digest([str(self._checkpoint_reference), str(self._checkpoint), self._checkpoint_sha256]) != self._snapshot_location_sha256 or
+                parameter_digest(self.policy.model) != self.binding["model_sha256"] or
+                self.policy.model_sha256 != self.binding["model_sha256"] or self.policy.model.training or
+                any(p.requires_grad for p in self.policy.model.parameters()) or
+                self.policy.seat != self.seat or self.policy.versions != self.versions or
+                self.policy.encoder.vocab_sha256 != self.model_provenance["vocab_sha256"] or
+                digest(list(self.policy.encoder.card_ids)) != self.model_provenance["vocab_sha256"] or
+                self.policy.encoder.index != {c: i + 1 for i, c in enumerate(self.policy.encoder.card_ids)} or
+                digest(asdict(self.policy.encoder.config)) != self.model_provenance["model_config_sha256"] or
+                digest(asdict(self.policy.model.config)) != self.model_provenance["model_config_sha256"]):
+            raise ContractError("frozen period snapshot model/provenance changed")
+        if check_file:
+            try:
+                checksum = hashlib.sha256(self._checkpoint.read_bytes()).hexdigest()
+            except OSError as error:
+                raise ContractError("frozen period snapshot artifact is unavailable") from error
+            if (self._checkpoint_reference.resolve() != self._checkpoint or
+                    not self._checkpoint.is_relative_to(self.assets.workspace) or checksum != self._checkpoint_sha256):
+                raise ContractError("frozen period snapshot artifact changed")
+
+    def assert_runtime(self, root, profile, actor_seat, *, _verify_physical=True):
+        super().assert_runtime(root, profile, actor_seat, _verify_physical=_verify_physical)
+        self.assert_snapshot_integrity()

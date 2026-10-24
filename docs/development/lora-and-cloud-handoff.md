@@ -48,12 +48,12 @@ AdapterSession.set_enabled(False)用于暂时停用，实测输出精确回到�
 
 ## 无凭据CPU预检与正式训练计划
 
-    .venv/bin/python -m ygo_kito training-preflight \
+    PYTHONPATH=src .venv/bin/python -m ygo_kito training-preflight \
       --root .cache --plan configs/training-plan-v1.json
 
 预检实际执行CPU张量前向/反向、临时SQLite事务回滚、固定原生资产哈希核对，并报告Python/工具链存在性、CPU/磁盘、CodeBuddy可执行文件是否存在。没有凭据读取、登录、CLI/SDK调用、网络请求或资源启动；资产校验本身不冒充真实对局。缺资产时输出对应健康检查失败、退出2，不创建假训练或下载资源。
 
-CPU预检成功退出0，仅表示这些本地检查通过。formal_training.ready始终false，本命令不验证/放行G-01/G-02/P-01等完整门槛。正式计划保存既定100 GPU实例小时上限，初始5/25/25/20/10/15分配；机型、GPU数、价格/币种、API费用上限和三期数据清单保持待定，paid_execution_authorized=false。将此字段改true会被当前规划接口拒绝，而不是绕过授权。
+CPU预检成功退出0，仅表示这些本地检查通过。formal_training.ready始终false，本命令不验证/放行G-01/G-02等正式训练门槛。PC产品P-01已归阶段3，真实provider是可选路径，不作为非LLM基线前置；阶段划分以[当前交接](training-handoff.md)为准。正式计划保存既定100 GPU实例小时上限，初始5/25/25/20/10/15分配；机型、GPU数、价格/币种、API费用上限和三期数据清单保持待定，paid_execution_authorized=false。将此字段改true会被当前规划接口拒绝，而不是绕过授权。
 
 到新环境后先使用已审查源码、固定依赖/引擎锁和明确准备步骤恢复资源，再运行预检。历史checkpoint需使用其绑定的源码/资源，不能修改摘要来强行加载。当前缓存权重路径只是本云端位置；没有宣称已传输到腾讯云或提供用户下载链接。
 
@@ -78,10 +78,10 @@ usage.record字段为event_id、stage_id、gpu_count、wall_seconds、activity�
 接手顺序：
 
 1. 在目标环境只读核查codebuddy -V/-h、实际可用模型与配额/计费。当前没有可用模型ID，不填写猜测的DeepSeek版本，不自动切换独立API或付费后备端点。
-2. 阅读统一稿、MASTER-CHECKLIST及本批报告，确认工作分支和实际head。先运行CPU预检/测试，保留学生ZIP/TODO；每批更新稳定ID及证据，普通向前提交至PR #1，不合并/强推。
+2. 阅读统一稿、MASTER-CHECKLIST及当前training-handoff，确认工作分支和实际head。先运行CPU预检/测试，保留学生ZIP/TODO；当前整合候选在PR #3，依赖PR #1→#2→#3，普通向前提交，不合并/强推。
 3. 编码agent可在明确授权仓库内改代码/测试，但不获得云采购、账户权限或重置卡操作。监控使用固定monitor工具，确定性摘要不必每次调用LLM；受限CPU训练须宿主显式开启已实现的本地后端，通用/云训练与SDK实际权限回调仍待验证。
 4. 对手agent用独立固定opponent会话，只取得该席位合法观察及state_version/action_id提交工具；不给Bash、文件、进程、manager/trainer/统筹台账。SDK工具白名单和OS/进程隔离须实际验证，不能仅凭--role宣称安全隔离完成。
 5. 用户工程完成后提供3＋8套，由我们导入/检查/绑定三期卡池禁表并分配，8套拟交DeepSeek；当前未收到、不伪造、也不阻塞工程。真实模型/合法性/超时回退/费用与强度分别核验，未通过前不将注册对手算作training_ready。
 6. 主动盘点已有机器人实际支持/可用性/卡表适配/强度，对照三期历史环境覆盖后建议补充主题及优先级；文件存在不是可用证据。保留无外部API的基础对手路径。
 
-剩余20%时保存停止，不使用重置卡；当前工具没有实时额度读数，必须由经核实的宿主/人工读数驱动，不能把预算台账当额度监控器。未过PC/数据/模型门槛、缺具体采购授权时不启动腾讯云或付费训练。外部真实联调、PC兼容/压力与正式迁移验收明确留后，不扩本轮为PC应用。
+剩余20%时保存停止，不使用重置卡；当前工具没有实时额度读数，必须由经核实的宿主/人工读数驱动，不能把预算台账当额度监控器。相应训练数据/模型/硬件门槛未过或缺具体采购执行授权时不启动腾讯云或付费训练。PC产品属于阶段3，外部provider仅为可选专属路径，不阻塞非LLM基线；不扩本轮为PC应用。

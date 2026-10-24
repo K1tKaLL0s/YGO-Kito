@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "kind": "actual-period-local-snapshot-engineering",
+  "scope": {
+    "period_id": "2022-10",
+    "period_context": {
+      "period_id": "2022-10",
+      "release_cutoff": "2022-12-31",
+      "catalog_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+      "release_manifest_sha256": "0caa25c659455d1b49aa9c5b9686fbb5e734aee2bba8c9d8cde78578e280676b",
+      "banlist_sha256": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+      "banlist_section": "2022.10"
+    },
+    "versions": {
+      "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+      "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0",
+      "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+      "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+      "card_pool": "native-private-knowledge-v5",
+      "banlist": "2022.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769"
+    },
+    "resources": {
+      "library": "b33b0fb302e24e4757532f224f04aec21e4b16153979b112923c6f746b2e531f",
+      "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+      "banlist": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+      "core_api": "cb7b33d709791e86be0b821152c1ca34c2a2c72847c3603b4a07826c88b802af",
+      "core_constants": "2c78c4c7c92306cd76f09cc111c28e6604e0e3d4fc16252ec31e8cb8d1493e17",
+      "card_data_abi": "754c750eb26e81eba44de3253c056a89de364f942ec5cd63ecd9d9791acff45e",
+      "client_config": "07f92954941343d33f38eae3986997cc620d595301e67adb9e473bfa3c254d0c",
+      "client_protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+      "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+    },
+    "profile_sha256": "061aeeb75d560ed6fac7d49651b955e444912175c7e31d237b9d59361c430ab7",
+    "own_deck_sha256": "b40a3ec0c952d53ee9423f0ffd4af088cacf1a20e8d4041851db240cfbf2d791",
+    "opponent_deck_sha256": "5c931bb9a9376aa57b24e08ae9f459f675131ee62c6601dd783f819b448957e8",
+    "model_sha256": "44e318f4563cc13c15dce1ebb7d9c0966a2beb1fcb5c0ee05164418d39b732e7",
+    "driver_version": "frozen-duel-greedy-v1",
+    "driver_implementation_sha256": "24da6ea422e8529f020f3890ee408d976c11c6f51af8c3f297a316b75d2a7234",
+    "controller": "local_snapshot"
+  },
+  "source_component": {
+    "group_checkpoint_sha256": "ac8f1a048a9cf9b01a5f544944b5fa4663338aa54f00a7688f121ef99ad21863",
+    "name": "components.duel",
+    "source_group_boundary": "complete-workflow-stage",
+    "completed_boundary": "complete-episode",
+    "model_sha256": "44e318f4563cc13c15dce1ebb7d9c0966a2beb1fcb5c0ee05164418d39b732e7",
+    "completed_updates": 1,
+    "updated_base_component": true,
+    "lora_snapshot": false,
+    "extracted_artifact_sha256": "951be213cda7473c7faf02c41e94b8206e85911fe8ee56a8c3b4b53aa7a70f5e"
+  },
+  "passed": {
+    "normal_sampling": true,
+    "natural_terminal": true,
+    "private_replay": true,
+    "weights_frozen": true,
+    "source_checkpoint_restore": true,
+    "host_reload_binding": true,
+    "actor_rebind": true
+  },
+  "training_updates_this_check": 0,
+  "historical_training_verified": false,
+  "historical_rules_verified": false,
+  "strength_qualified": false,
+  "applies_to_matrix_rows": [],
+  "native_executed": true,
+  "fault_injection_performed": false,
+  "summary_sha256": "be52f08dcdc146825958cf95ff7051385e7d88d5bda1a740cbd0f6b2288620f5"
+}

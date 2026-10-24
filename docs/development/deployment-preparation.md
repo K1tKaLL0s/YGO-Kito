@@ -44,7 +44,7 @@ CPU锁现已包含 SciPy 1.16.3，覆盖旧 schema4 空表求解所需依赖。�
 ```bash
 mkdir -p .cache
 cp configs/deployment-host-template-v1.json .cache/deployment-host.json
-python scripts/deployment_prepare.py preflight \
+.venv/bin/python scripts/deployment_prepare.py preflight \
   --config .cache/deployment-host.json \
   --output .cache/deployment-preflight.json
 ```
