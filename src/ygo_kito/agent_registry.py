@@ -3,6 +3,7 @@
 from datetime import date
 import hashlib
 import json
+from contextlib import closing
 from pathlib import Path
 import re
 import sqlite3
@@ -49,7 +50,7 @@ class OpponentRegistry:
         if path.is_symlink():
             raise ContractError("registry symlinks are unsupported")
         self.path = path
-        with sqlite3.connect(path) as db:
+        with closing(sqlite3.connect(path)) as db, db:
             app = db.execute("PRAGMA application_id").fetchone()[0]
             tables = db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
             if tables and app != APPLICATION_ID:
@@ -66,7 +67,7 @@ class OpponentRegistry:
         if self._rows is None:
             receipt = verify_resources(self.native_root)
             source = self.native_root / "engine-src"
-            with sqlite3.connect((source / "database/locales/zh-CN/cards.cdb").as_uri() + "?mode=ro", uri=True) as db:
+            with closing(sqlite3.connect((source / "database/locales/zh-CN/cards.cdb").as_uri() + "?mode=ro", uri=True)) as db, db:
                 db.row_factory = sqlite3.Row
                 self._rows = {r["id"]: dict(r) for r in db.execute("SELECT * FROM datas")}
             self._limits = banlist_limits(source / "client/lflist.conf")
@@ -76,7 +77,7 @@ class OpponentRegistry:
 
     def get(self, kind, record_id):
         identifier(record_id)
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             row = db.execute("SELECT payload FROM records WHERE kind=? AND id=?", (kind, record_id)).fetchone()
         if row is None:
             raise ContractError("registered resource not found")
@@ -85,7 +86,7 @@ class OpponentRegistry:
     def put(self, kind, record_id, payload):
         identifier(record_id)
         raw = canonical_json(payload)
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             row = db.execute("SELECT payload FROM records WHERE kind=? AND id=?", (kind, record_id)).fetchone()
             if row and row[0] != raw:
                 raise ContractError("registered resource conflict; use a new version ID")
@@ -93,7 +94,7 @@ class OpponentRegistry:
         return payload
 
     def records(self, kind):
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             return [json.loads(r[0]) for r in db.execute("SELECT payload FROM records WHERE kind=? ORDER BY id", (kind,))]
 
     def environment(self, value):
@@ -177,12 +178,12 @@ class OpponentRegistry:
                 "opponent": opponent, "versions": environment["versions"], "actor_seat": seat, "training_ready": False}
 
     def audit(self, kind, value):
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             db.execute("INSERT INTO audit(kind,payload) VALUES(?,?)", (kind, canonical_json(value)))
 
     def control_once(self, request_id, value, execute):
         fingerprint = hashlib.sha256(canonical_json(value).encode()).hexdigest()
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             row = db.execute("SELECT fingerprint,result FROM controls WHERE id=?", (request_id,)).fetchone()
             if row:
                 if row[0] != fingerprint:
@@ -197,13 +198,13 @@ class OpponentRegistry:
         except Exception:
             self.audit("control-outcome-uncertain", {"request_id": request_id})
             return {"execution": "uncertain", "retry_allowed": False}
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             db.execute("UPDATE controls SET result=? WHERE id=?", (canonical_json(result), request_id))
         return result
 
     def cached_control(self, request_id, value):
         fingerprint = hashlib.sha256(canonical_json(value).encode()).hexdigest()
-        with sqlite3.connect(self.path) as db:
+        with closing(sqlite3.connect(self.path)) as db, db:
             row = db.execute("SELECT fingerprint,result FROM controls WHERE id=?", (request_id,)).fetchone()
         if row is None:
             return None
