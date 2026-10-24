@@ -28,7 +28,7 @@
 
 - [x] **MP-01 已完成** PR1@6549717、DP草稿PR2@a7085e2及构筑9958769的依赖/历史核实与隔离普通合并。native.py/guard成对保留DP原字节，原作者分支未覆盖。[整合报告](../reports/2026-10-24-merge-preparation.md)
 - [x] **MP-02 已完成** 最终实现ca85329安全CPU白名单188/188、完整源码status/help及stdio启动、DP参考客户端到实际manager构筑后端；修复长驻旧证据和空checkpoint错误闭合，独立复验通过。原生故障模块整组未运行，真实外部provider未验。[证据](../reports/2026-10-24-merge-prep-evidence/results.json)
-- [ ] **MP-03 部分完成** 可审查远端整合草稿与合并确认。推荐PR1→PR2→本整合候选，retarget需复核diff；CI无可用通过证据且补查check-runs为Forbidden，不当作通过。本轮不合并/不自动合并，父任务确认后再推进。[接续说明](../development/generic-agent-integration.md)
+- [ ] **MP-03 部分完成** 远端整合候选已推送129baa4，但创建草稿PR被自动审批拒绝，查询确认无新PR；最新发布授权与旧边界冲突已报告，停止该动作，不改工具绕过。本地补存[发布阻碍](../reports/2026-10-24-merge-publication-state.md)。推荐PR1→PR2→整合候选，retarget需复核diff；CI无通过证据且check-runs补查Forbidden。本轮不合并/不自动合并，父任务确认后再推进。[接续说明](../development/generic-agent-integration.md)
 
 - [x] **S0-01 已完成** 设计兼容核对。验收：原定稿继续继承、最新明确更新优先，模型角色/LoRA/手机范围无倒退。证据：[阶段记录][phase1]。
 - [x] **S0-02 已完成** 云端真实可执行。验收：仓库路径/SHA、Python/工具链、文件/SQLite 基础命令有本次实际结果。证据：[启动实证][m0]。
