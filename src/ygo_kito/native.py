@@ -19,6 +19,7 @@ from .contracts import ActionSelection, CardView, DecisionRequest, LegalAction, 
 from .engine import EngineUnavailable
 from .native_assets import LOCK_PATH, verify_resources
 from .native_protocol import NativeError, Reader, decode_prompt, decode_deck_choices
+from .native_response_guard import build_response_buffer
 from .validation import ContractError, integer
 
 _ACTIVE = threading.Lock()  # The upstream callback registry is process-global.
@@ -630,8 +631,10 @@ class NativeNormalEngine:
         self.pending = None
         self._responses = {}
         if isinstance(response, bytes):
-            buffer = (C.c_uint8 * 64)()
-            buffer[:len(response)] = response
+            # The pinned core reads a fixed 256-byte record from this pointer
+            # regardless of how short the encoded selection is; the guard owns
+            # both sizes so no call site has to. Kept alive across the call.
+            buffer = build_response_buffer(response)
             self.lib.set_responseb(self.handle, buffer)
         else:
             self.lib.set_responsei(self.handle, response)

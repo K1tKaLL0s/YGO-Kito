@@ -24,7 +24,10 @@ class CodeBuddyCLIAdapter:
         ids = strings(d["checklist_ids"], "checklist IDs")
         if not ids:
             raise ContractError("handoff requires checklist IDs")
-        known = set(re.findall(r"\*\*([A-Z][A-Z0-9]*-\d+) ", (self.workspace / "docs/plans/MASTER-CHECKLIST.md").read_text()))
+        # encoding is explicit: the platform default is not UTF-8 everywhere, and a
+        # host whose default codec is not UTF-8 cannot read this checklist at all.
+        known = set(re.findall(r"\*\*([A-Z][A-Z0-9]*-\d+) ",
+                               (self.workspace / "docs/plans/MASTER-CHECKLIST.md").read_text(encoding="utf-8")))
         if set(ids) - known:
             raise ContractError("unknown checklist ID")
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}", d["model"]):
