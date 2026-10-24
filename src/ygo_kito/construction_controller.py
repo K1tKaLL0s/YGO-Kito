@@ -32,6 +32,9 @@ class ConstructionController:
         if previous is not None and previous!=requirements:
             raise ContractError("requested logic features changed; explicitly revise the user request")
         session.logic_requirements_sha256=requirements
+        # A long-lived host can reuse the same model adapter across requests.
+        # Only include model selections actually made in this invocation.
+        self.graph_adapter.last_selection.clear()
         context={"goal_valid":False,"card_list_valid":False,"has_forecast":False,
             "warning":any(f["source"]=="duel" for f in session.feedback),"rebuild_required":False,
             "operation_error":False,"system_error":False,"remaining_tasks":2,"completed_matches":0,

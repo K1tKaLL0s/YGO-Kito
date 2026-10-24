@@ -209,6 +209,7 @@ def parser():
         agent.add_argument("--model", default="unverified")
         agent.add_argument("--local-cpu-control", action="store_true", help="trusted host opt-in for prepared, bounded local CPU workers only")
         agent.add_argument("--local-training-config", type=Path, help="trusted host CPU round recipe; requires trainer role and explicit local control")
+        agent.add_argument("--construction-config", type=Path, help="trusted manager-only local construction model/data configuration; no training or native RPC")
     return result
 
 
@@ -504,6 +505,13 @@ def main(argv=None) -> int:
             case "agent-serve" | "agent-call":
                 from .agent_bridge import AgentBridge, serve_bridge
                 backend = None
+                construction_backend = None
+                if args.construction_config is not None:
+                    if args.role != "manager":
+                        raise ContractError("construction host configuration requires manager role")
+                    from .construction_service import HostConstructionBackend
+                    construction_backend = HostConstructionBackend.from_config(
+                        Path(__file__).resolve().parents[2], args.root, read_json(args.construction_config))
                 if args.local_training_config is not None and not args.local_cpu_control:
                     raise ContractError("local training configuration requires explicit local CPU control")
                 if args.local_cpu_control:
@@ -516,7 +524,7 @@ def main(argv=None) -> int:
                     role=args.role, seat=args.seat, profile=read_json(args.profile) if args.profile is not None else None,
                     seed=args.seed, decision_timeout=args.decision_timeout, opponent_id=args.opponent_id,
                     own_deck_id=args.own_deck_id, controller_source=args.controller_source, provider=args.provider, model=args.model,
-                    training_backend=backend)
+                    training_backend=backend, construction_backend=construction_backend)
                 if args.command == "agent-serve":
                     return serve_bridge(bridge, sys.stdin, sys.stdout)
                 try:
