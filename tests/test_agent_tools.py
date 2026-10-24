@@ -5,6 +5,7 @@ import io
 import json
 from pathlib import Path
 import sqlite3
+import subprocess
 import tempfile
 import unittest
 
@@ -133,15 +134,39 @@ class AgentContractTests(unittest.TestCase):
         self.assertEqual(backend.calls, 2)
 
     def test_coding_handoff_is_prepared_only_with_explicit_model_and_work_branch(self):
-        adapter = CodeBuddyCLIAdapter(ROOT)
+        # The host must have a work branch; the test runner may legitimately be
+        # a detached PR merge checkout or main. Exercise a real, isolated Git
+        # fixture rather than depending on the checkout that runs this test.
+        repository = self.state / "coding-fixture"
+        repository.mkdir()
+        def git(*args):
+            return subprocess.run(["git", "-c", "core.hooksPath=/dev/null", "-c", "commit.gpgsign=false",
+                "-c", "user.name=Local Contract Fixture", "-c", "user.email=fixture@example.invalid",
+                *args], cwd=repository, check=True, capture_output=True, text=True)
+        git("init")
+        git("checkout", "-b", "fixture-work")
+        checklist = repository / "docs/plans/MASTER-CHECKLIST.md"
+        checklist.parent.mkdir(parents=True)
+        checklist.write_text("- [x] **EA-01 已完成** 仅本地契约夹具。\n", encoding="utf-8")
+        git("add", "docs/plans/MASTER-CHECKLIST.md")
+        git("commit", "-m", "Initialize local handoff contract fixture")
+        adapter = CodeBuddyCLIAdapter(repository)
         r = adapter.prepare({"task_id": "fixture-task", "checklist_ids": ["EA-01"], "goal": "--not-an-option", "model": "explicit-target-model"})
         self.assertFalse(r["executed"])
         self.assertFalse(r["model_verified"])
+        self.assertEqual(r["branch"], "fixture-work")
         self.assertTrue(r["suggested_argv"][-1].startswith("{"))
         self.assertIn("20 percent", " ".join(r["constraints"]))
         self.assertIn("no credential or permission changes", r["constraints"])
         with self.assertRaises(ContractError):
             adapter.prepare({"task_id": "x", "checklist_ids": ["EA-01"], "goal": "fix", "model": "--skip-permissions"})
+        request = {"task_id": "x", "checklist_ids": ["EA-01"], "goal": "fixture", "model": "explicit-model"}
+        git("checkout", "--detach", "HEAD")
+        with self.assertRaisesRegex(ContractError, "work branch"):
+            adapter.prepare(request)
+        git("checkout", "-b", "main")
+        with self.assertRaisesRegex(ContractError, "work branch"):
+            adapter.prepare(request)
 
     def test_json_lines_reject_duplicate_keys_without_executing_request(self):
         b = self.bridge()
