@@ -110,14 +110,55 @@ def validate_intake(value):
     return parse_json(canonical_json(d))
 
 
+def read_listing_catalog(workspace, artifact):
+    """Read the pinned public listing fields without loading a rule engine."""
+    catalog, _ = _artifact(Path(workspace).resolve(), artifact)
+    with closing(sqlite3.connect(catalog.as_uri() + "?mode=ro", uri=True)) as db:
+        db.row_factory = sqlite3.Row
+        rows = {r["id"]: dict(r) for r in db.execute("SELECT id,alias,ot,type FROM datas")}
+    for row in rows.values():
+        integer(row["id"], "catalog card ID", 1, 2**32 - 1)
+        for key in ("alias", "ot", "type"):
+            integer(row[key], "catalog " + key, 0, 2**32 - 1)
+    return rows
+
+
+def read_selected_banlist(workspace, artifact, section):
+    """Keep the intake's strict selected-section gate around the legacy reader."""
+    text(section, "explicit banlist section")
+    banlist, raw = _artifact(Path(workspace).resolve(), artifact)
+    active, occurrences, seen_limits = False, 0, set()
+    for line in raw.decode("utf-8-sig").splitlines():
+        if line.startswith("!"):
+            active = line[1:].strip() == section
+            occurrences += int(active)
+        elif active and line.strip() and not line.lstrip().startswith("#"):
+            parts = line.split()
+            if (line != line.lstrip() or len(parts) < 2 or
+                    any(not part.isascii() or not part.isdecimal() for part in parts[:2]) or
+                    (len(parts) > 2 and not parts[2].startswith(("#", "--")))):
+                raise ContractError("malformed entry in selected historical banlist section")
+            code, limit = map(int, parts[:2])
+            integer(code, "banlist card ID", 1, 2**32 - 1)
+            integer(limit, "banlist card limit", 0, 3)
+            if code in seen_limits:
+                raise ContractError("duplicate card entry in selected banlist section")
+            seen_limits.add(code)
+    if occurrences != 1:
+        raise ContractError("exactly one explicit historical banlist section required")
+    limits = banlist_limits(banlist, section=section)
+    for code, limit in limits.items():
+        integer(code, "banlist card ID", 1, 2**32 - 1)
+        integer(limit, "banlist card limit", 0, 3)
+    return limits
+
+
 def _environment(workspace, period, env):
     missing = [key for key in ("release_cutoff", "catalog", "releases", "banlist") if env[key] is None]
     if missing:
         return {"status": "pending", "unmet": ["missing " + key for key in missing]}, None
     try:
-        catalog, _ = _artifact(workspace, env["catalog"])
         _, raw_releases = _artifact(workspace, env["releases"])
-        banlist, banlist_raw = _artifact(workspace, env["banlist"])
         release = fields(parse_json(raw_releases.decode("utf-8")), {"schema_version", "period_id", "release_cutoff", "cards"})
         integer(release["schema_version"], "release manifest schema", 1, 1)
         if release["period_id"] != period or release["release_cutoff"] != env["release_cutoff"]:
@@ -132,36 +173,8 @@ def _environment(workspace, period, env):
             seen.add(card["card_id"])
             if _date(card["ocg_release_date"], "OCG release date") <= cutoff:
                 allowed.add(card["card_id"])
-        with closing(sqlite3.connect(catalog.as_uri() + "?mode=ro", uri=True)) as db:
-            db.row_factory = sqlite3.Row
-            rows = {r["id"]: dict(r) for r in db.execute("SELECT id,alias,ot,type FROM datas")}
-        for row in rows.values():
-            integer(row["id"], "catalog card ID", 1, 2**32 - 1)
-            for key in ("alias", "ot", "type"):
-                integer(row[key], "catalog " + key, 0, 2**32 - 1)
-        active, occurrences, seen_limits = False, 0, set()
-        for line in banlist_raw.decode("utf-8-sig").splitlines():
-            if line.startswith("!"):
-                active = line[1:].strip() == env["banlist_section"]
-                occurrences += int(active)
-            elif active and line.strip() and not line.lstrip().startswith("#"):
-                parts = line.split()
-                if (line != line.lstrip() or len(parts) < 2 or
-                        any(not part.isascii() or not part.isdecimal() for part in parts[:2]) or
-                        (len(parts) > 2 and not parts[2].startswith(("#", "--")))):
-                    raise ContractError("malformed entry in selected historical banlist section")
-                code, limit = map(int, parts[:2])
-                integer(code, "banlist card ID", 1, 2**32 - 1)
-                integer(limit, "banlist card limit", 0, 3)
-                if code in seen_limits:
-                    raise ContractError("duplicate card entry in selected banlist section")
-                seen_limits.add(code)
-        if occurrences != 1:
-            raise ContractError("exactly one explicit historical banlist section required")
-        limits = banlist_limits(banlist, section=env["banlist_section"])
-        for code, limit in limits.items():
-            integer(code, "banlist card ID", 1, 2**32 - 1)
-            integer(limit, "banlist card limit", 0, 3)
+        rows = read_listing_catalog(workspace, env["catalog"])
+        limits = read_selected_banlist(workspace, env["banlist"], env["banlist_section"])
         if not allowed or not allowed <= rows.keys():
             raise ContractError("release manifest is empty or contains cards absent from its catalog")
     except OSError:

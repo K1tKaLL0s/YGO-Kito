@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "kind": "static-windbot-period-coverage-summary",
+  "source_pin": "ab963c1cb9776bea4262ae1bba38f541ec70e357",
+  "matrix_sha256": "baaa9505b407eefc098b2f109bd52e386be9a1526873811fe58b3995a6696da6",
+  "matrix_artifact_sha256": "56e62132eb8ce41b34aab9359ac1ef8ddfc278b70d4e1fcb60389549e46923ba",
+  "listing_audit_artifact_sha256": "1e26b2105fc2f3fcdda006cf56a665d801d7ff19b5df247faacac47fb02eeb69",
+  "driver_inventory_sha256": "6779aaf029752d20d9574d64cd275c8666c2b8cebb7f14645f2e668f1ea9e267",
+  "period_ids": [
+    "2022-07",
+    "2022-10",
+    "2026-10"
+  ],
+  "pinned_source_samples": 6,
+  "source_driver_records": 64,
+  "driver_modes": {
+    "deck_executor": 63,
+    "external_policy_only": 1
+  },
+  "rows": 1152,
+  "listing_status_rows": {
+    "unverified": 576,
+    "rejected": 192,
+    "blocked": 384
+  },
+  "driver_execution_rows": {
+    "not_run": 1152
+  },
+  "normal_operational_rows": 0,
+  "operation_qualified_rows": 0,
+  "strength_qualified_rows": 0,
+  "local_operational_references": [],
+  "native_executed": false,
+  "third_party_code_executed": false,
+  "provider_connected": false,
+  "historical_rules_verified": false,
+  "formal_training_ready": false,
+  "full_matrix_local_path": ".cache/static-windbot-coverage/report.json",
+  "note": "Full Cartesian static inventory. No source executor was built, connected or qualified; listing results do not establish historical rules or strength."
+}

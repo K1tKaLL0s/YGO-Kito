@@ -38,11 +38,20 @@ OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 .venv/bin/python scripts/check_merge_candida
 
 ## 3. 牌表、时期与资源准备
 
-用户的三套主构筑、八套对手构筑尚未提供；使用 `configs/user-deck-intake-template-v1.json` 登记空编号与待补项，按 [卡组收件说明](deck-intake.md) 进行检查。三期为 2022-07、2022-10、2026-10；禁表时期和发行截止日分别配置。模板不猜截止，不含“正式”测试牌表。
+用户的三套主构筑、八套对手构筑尚未提供；使用 `configs/user-deck-intake-template-v1.json` 登记空编号与待补项，按 [卡组收件说明](deck-intake.md) 进行检查。三期为 2022-07、2022-10、2026-10；禁表时期和发行截止日分别配置。已确认截止为2022-09-30、2022-12-31，2026截止保留null，不能按月份猜测。模板不含“正式”测试牌表。
 
 每期必须提供固定卡库、发行日期证据、指定节禁表、哈希与来源，且各牌表明确环境。缺失时只返回 pending/blockers，不产出可训练配置。结构合法不等于历史卡池/禁表/规则适用，也不等于对手有合格强度。三期静态预检成功后生成的配置仍不能绕过原生 runtime 兼容检查或准入为正式训练。
 
 原生运行需要 `configs/native-sources.lock.json` 所列版本和 `engine-build/receipt.json` 对应的完整 source/library/cards/scripts/banlist。本云端这些普通工程资源已恢复且正常运行通过；源码包不包含它们，目标主机仍须明确准备并核对，不把旧路径存在当作已传输。现有 lock 是工程 smoke 组合，不是三期历史数据或 PC 兼容锁。[时期 runtime](period-runtime.md) 保留截止、发行允许池和所选禁限节，不能认证旧裁定/勘误或官方来源。
+
+在允许联网构建该锁定组合的Linux主机上，先具备系统Git和C++17的`g++`，再显式执行既有准备脚本。脚本获取lock列明的源码并本地编译，不下载可执行文件；已有库默认拒绝覆盖。以下普通检查不运行故障实验：
+
+```bash
+PYTHONPATH=src .venv/bin/python scripts/prepare_native_engine.py --root .cache
+PYTHONPATH=src .venv/bin/python -m ygo_kito native-smoke --root .cache --seed 7
+```
+
+已有数据可先按[来源索引审计](historical-listing-audit.md)生成逐期报告；未知发行日期不放行。若仅一期资料齐备，可明确配置`scope: "selected-period"`运行其工程课程，未选时期保持未验证且不能调用；不必先补齐未来2026。完整3＋8收件仍用默认whole-plan严格模式。冻结模型的来源/推理迁移和[第三方桥接准备](static-windbot-bridge.md)各自保留资格边界，后者不是非LLM基线依赖。
 
 ## 4. Agent 启动、任务控制与恢复
 

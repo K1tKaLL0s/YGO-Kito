@@ -1,0 +1,909 @@
+{
+  "schema_version": 1,
+  "kind": "static-foreign-source-inventory-not-an-executable-opponent-pool",
+  "repository": "mellfy-puppy/ygo-tools-for-dsh",
+  "commit": "ab963c1cb9776bea4262ae1bba38f541ec70e357",
+  "source_url": "https://github.com/mellfy-puppy/ygo-tools-for-dsh/tree/ab963c1cb9776bea4262ae1bba38f541ec70e357/skill/resources/ygopro2-bridge/windbot/source/",
+  "executor_files": 64,
+  "sample_ydk_files": 62,
+  "protocol": "ygoagentskill-external-policy-v1",
+  "build_conditions": {
+    "target_framework": ".NET Framework 4.8",
+    "platform": "x86",
+    "ExternalPolicyOnly": "true compiles only YGOFTKExternalExecutor; otherwise Decks/*.cs; no build performed"
+  },
+  "drivers": [
+    {
+      "driver_id": "Albaz",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/AlbazExecutor.cs",
+      "git_blob_sha1": "3483497556d745f853963479f1483eb7c79e6e1c",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Albaz.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Altergeist",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/AltergeistExecutor.cs",
+      "git_blob_sha1": "bd320cfc07324158a156345077bdcb65cd6c9397",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Altergeist.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Apophis",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/ApophisExecutor.cs",
+      "git_blob_sha1": "1535dd3980f50a14ff2d2419c2588a7e65577f27",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Apophis.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Archfiend",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/ArchfiendExecutor.cs",
+      "git_blob_sha1": "732b63cec0fc834536d057fb96f403547b75018e",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Archfiend.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "BE2025",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/BE2025Executor.cs",
+      "git_blob_sha1": "f6f053c358ee3966862c3af85038cb4811763dbe",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_BE2025.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Blackwing",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/BlackwingExecutor.cs",
+      "git_blob_sha1": "4aa2d6c08c85f5695ebe97d405144f2dcbbed91a",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Blackwing.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "BlueEyes",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/BlueEyesExecutor.cs",
+      "git_blob_sha1": "2f0847da1c8e75e4f4c5aed0a0869b785bf0a5e7",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_BlueEyes.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "BlueEyesMaxDragon",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/BlueEyesMaxDragonExecutor.cs",
+      "git_blob_sha1": "6b26c1aa736b208e1a30bb93c1dd14eefb7c030b",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_BlueEyesMaxDragon.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Brave",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/BraveExecutor.cs",
+      "git_blob_sha1": "8a04acc65f9f5b51935e9d58e717147ca4c6c98a",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Brave.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Burn",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/BurnExecutor.cs",
+      "git_blob_sha1": "6e4cdaf6e85f331645555b446a6d99e11e868d9a",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Burn.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "ChainBurn",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/ChainBurnExecutor.cs",
+      "git_blob_sha1": "3d106268730fca7213130cf1d9ae03141281d9de",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_ChainBurn.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "CyberDragon",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/CyberDragonExecutor.cs",
+      "git_blob_sha1": "cd1c0eadab0da057b9270a7faf3d9e479741a57e",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_CyberDragon.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "DarkMagician",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/DarkMagicianExecutor.cs",
+      "git_blob_sha1": "0e988e4f207a87f3f5160a869d1ce1d914be27e5",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_DarkMagician.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "DoEveryThing",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/DoEveryThingExecutor.cs",
+      "git_blob_sha1": "86998077bfe54638caf3204b1a6082792d257fc7",
+      "mode": "deck_executor",
+      "paired_sample_paths": [],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Dogmatika",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/DogmatikaExecutor.cs",
+      "git_blob_sha1": "967c9a17ccfa7a002d0298b6342a0a40a54c0019",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Dogmatika.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Dragun",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/DragunExecutor.cs",
+      "git_blob_sha1": "1cfbbc62dcb8a470a80187c4ce1d0a7f6451e773",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Dragun.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Dragunity",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/DragunityExecutor.cs",
+      "git_blob_sha1": "0c65e32fdc6381f7b557240b4db3d67a853c67ef",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Dragunity.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Evilswarm",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/EvilswarmExecutor.cs",
+      "git_blob_sha1": "48ad37c53c99e5acdf4f474438f7c4cd54760c1c",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Evilswarm.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Exosister",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/ExosisterExecutor.cs",
+      "git_blob_sha1": "7bde02bcfbe705d15b4c641d74ccb6427afa9a07",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Exosister.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "FamiliarPossessed",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/FamiliarPossessedExecutor.cs",
+      "git_blob_sha1": "525e994181725b0aa3469a99c1f5bff65f14cc29",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_FamiliarPossessed.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Frog",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/FrogExecutor.cs",
+      "git_blob_sha1": "49667fa6565f8821950967092419d5a52e92b6df",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Frog.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Gravekeeper",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/GravekeeperExecutor.cs",
+      "git_blob_sha1": "084c676874b1e497e0de4918ad35427aa25a5e35",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Gravekeeper.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Graydle",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/GraydleExecutor.cs",
+      "git_blob_sha1": "e82d27a4c7242bf93d24ab0d1f9850a901307945",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Graydle.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "GrenMajuThunderBoarder",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/GrenMajuThunderBoarderExecutor.cs",
+      "git_blob_sha1": "c3be275579bce255636a8b14c7b80a50be90c687",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_GrenMajuThunderBoarder.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Horus",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/HorusExecutor.cs",
+      "git_blob_sha1": "1a6644b734b74b0a00c897f5443868cc900fdc3b",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Horus.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Kashtira",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/KashtiraExecutor.cs",
+      "git_blob_sha1": "4fffac153f18e0362f1ae6adacd8609c4a8963d1",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Kashtira.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Labrynth",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/LabrynthExecutor.cs",
+      "git_blob_sha1": "436bca64c5757cba2192c15c41c0c322cd093cbb",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Labrynth.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Level8",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/Level8Executor.cs",
+      "git_blob_sha1": "be5d60b84a6e295517742b1b6a0d3621d4e8a9d2",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Level8.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Lightsworn",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/LightswornExecutor.cs",
+      "git_blob_sha1": "8340d5a675bb3469c4279f0def7bf9af4aef0360",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Lightsworn.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "LightswornShaddoldinosour",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/LightswornShaddoldinosourExecutor.cs",
+      "git_blob_sha1": "9b91d735b48f5b2a02df5d7cd6334c7d68474af0",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_LightswornShaddoldinosour.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Lucky",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/LuckyExecutor.cs",
+      "git_blob_sha1": "d4674542072084d181f580fdcbb496b2be5134d2",
+      "mode": "deck_executor",
+      "paired_sample_paths": [],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Maliss",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/MalissExecutor.cs",
+      "git_blob_sha1": "75132c7a2e8e7c0dfefb98b845afc977243b4671",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Maliss.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "MalissOCG",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/MalissOCGExecutor.cs",
+      "git_blob_sha1": "335f6d6dc3fbc36f3bff239e07dbfa57264e8619",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_MalissOCG.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "MathMech",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/MathMechExecutor.cs",
+      "git_blob_sha1": "c797a0c837e7f181889c3eaec4e389b6c88ad1eb",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Mathmech.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "MokeyMokey",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/MokeyMokeyExecutor.cs",
+      "git_blob_sha1": "8acc20b9d2cee92407b7e22c2bc2e7760ff2f40c",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_MokeyMokey.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "MokeyMokeyKing",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/MokeyMokeyKingExecutor.cs",
+      "git_blob_sha1": "7fb164140c4c1c960bad182e9b33c0e7a23b2dc3",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_MokeyMokeyKing.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Neko",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/NekoExecutor.cs",
+      "git_blob_sha1": "a6a62b80651e6734f72349b1ea3d325309985f7c",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Neko.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Nekroz",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/NekrozExecutor.cs",
+      "git_blob_sha1": "f74af9d8d205faef92f1caa893ba0d2e261dba7f",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Nekroz.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "OldSchool",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/OldSchoolExecutor.cs",
+      "git_blob_sha1": "bc62aa3751c7e4b332cf9e8becd621673aef1bf6",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_OldSchool.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Orcust",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/OrcustExecutor.cs",
+      "git_blob_sha1": "e202dd8a9dfa31dc7dc34a00d5c313919f95e5cc",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Orcust.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Phantasm",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/PhantasmExecutor.cs",
+      "git_blob_sha1": "8d0ada70f1b8c68eacdd61adde7301d9cf3edcbd",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Phantasm.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "PureWinds",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/PureWindsExecutor.cs",
+      "git_blob_sha1": "63776671aa863584df88741016f0f4a5bd24404e",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_PureWinds.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Qliphort",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/QliphortExecutor.cs",
+      "git_blob_sha1": "483d2dc1a1f8381f7a292c237520aa08498703fb",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Qliphort.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Rainbow",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/RainbowExecutor.cs",
+      "git_blob_sha1": "03de70b470ce4eaacad783700bf5fc500a4b33c7",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Rainbow.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Rank5",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/Rank5Executor.cs",
+      "git_blob_sha1": "f3c721701a6ea062bdc07b7574d4ef42ec985c3d",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Rank5.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Ryzeal",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/RyzealExecutor.cs",
+      "git_blob_sha1": "8dc0dcf0ee51cbe1330cb883532eebaf47f1c301",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Ryzeal.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "ST1732",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/ST1732Executor.cs",
+      "git_blob_sha1": "92e052d2e02da952413b3ed5fd13cfba89eb4571",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_ST1732.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "SacredBeast",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/SacredBeastExecutor.cs",
+      "git_blob_sha1": "ea7be744e8c581749f34e3bebf7d9a4575b367b9",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_SacredBeast.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Salamangreat",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/SalamangreatExecutor.cs",
+      "git_blob_sha1": "995b463acdb716cfcc77be95ebd92e0596cac92e",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Salamangreat.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "SkyStriker",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/SkyStrikerExecutor.cs",
+      "git_blob_sha1": "41a916a30489fa2af72b8eac15c41ef6d937b29e",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_SkyStriker.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "SuperheavySamurai",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/SuperheavySamuraiExecutor.cs",
+      "git_blob_sha1": "252401e20a485bd4cea6f7046d743d81ebb74e40",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_SuperheavySamurai.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Swordsoul",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/SwordsoulExecutor.cs",
+      "git_blob_sha1": "553d402fdcbef6de256e68052bdb6fbb8eb0dbb8",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Swordsoul.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Tearlaments",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/TearlamentsExecutor.cs",
+      "git_blob_sha1": "75af177087c66fe73411c1586a42d48be5450bfe",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Tearlaments.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "ThunderDragon",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/ThunderDragonExecutor.cs",
+      "git_blob_sha1": "1634f130a83eee0fa5af6fc14146929d8392fc77",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_ThunderDragon.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "TimeThief",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/TimeThiefExecutor.cs",
+      "git_blob_sha1": "b0426ec6b40c778e9b5de9a1dcec0b8505ea1825",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Timethief.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "ToadallyAwesome",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/ToadallyAwesomeExecutor.cs",
+      "git_blob_sha1": "a043e89c13ff9d4737095ea828c03db77565bdff",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_ToadallyAwesome.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Trickstar",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/TrickstarExecutor.cs",
+      "git_blob_sha1": "34370ba10dc26b31032304c28ec4602bbff14303",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Trickstar.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Witchcraft",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/WitchcraftExecutor.cs",
+      "git_blob_sha1": "8c2c8faee64dec3b47909eec54dfe422a81f5e3c",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Witchcraft.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "YGOFTKExternal",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/YGOFTKExternalExecutor.cs",
+      "git_blob_sha1": "bac80552920f33ece817cd50fa87010d244d112a",
+      "mode": "external_policy_only",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_YGOFTK.ydk"
+      ],
+      "pairing_evidence": "read Deck attribute explicitly maps AI_YGOFTK",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Yosenju",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/YosenjuExecutor.cs",
+      "git_blob_sha1": "b58247e5575bb4ec36506a8f9b9390bc420881c8",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Yosenju.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Yubel",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/YubelExecutor.cs",
+      "git_blob_sha1": "81b5fa92070aeb521744f4deb31cbec4338d20eb",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Yubel.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Zefra",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/ZefraExecutor.cs",
+      "git_blob_sha1": "2a90d5d9f60d62287d506b9225c72b567542d2e3",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Zefra.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "ZexalWeapons",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/ZexalWeaponsExecutor.cs",
+      "git_blob_sha1": "aea55b2e313fc5d0a2b81e886888be5b3b8308c6",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_ZexalWeapons.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    },
+    {
+      "driver_id": "Zoodiac",
+      "source_path": "skill/resources/ygopro2-bridge/windbot/source/Game/AI/Decks/ZoodiacExecutor.cs",
+      "git_blob_sha1": "81d3e5f56332a9ecd01ccdb246663c99428912ad",
+      "mode": "deck_executor",
+      "paired_sample_paths": [
+        "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Zoodiac.ydk"
+      ],
+      "pairing_evidence": "case-insensitive basename inventory only; registration not verified",
+      "runtime_built": false,
+      "connected_to_project_core": false,
+      "historical_qualified": false,
+      "strength_qualified": false
+    }
+  ]
+}
