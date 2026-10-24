@@ -1,0 +1,33 @@
+{
+  "implementation_commit": "6d23fc9",
+  "rejected_fixture": {
+    "reason": "no strict preference comparison; no invented optimizer label",
+    "published_updates": 0,
+    "source": "explicit engineering fixture"
+  },
+  "corrected_fixture": {
+    "train_preference_pairs": [
+      [
+        30,
+        16
+      ],
+      [
+        30,
+        16
+      ]
+    ],
+    "validation_preference_pairs": [
+      [
+        31,
+        16
+      ],
+      [
+        31,
+        16
+      ]
+    ],
+    "source": "explicit engineering counts, not strength targets"
+  },
+  "later_full_period_tests_passed": 3,
+  "production_supervision_gate_relaxed": false
+}

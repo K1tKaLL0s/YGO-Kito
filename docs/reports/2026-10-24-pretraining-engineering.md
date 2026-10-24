@@ -56,3 +56,11 @@ DP原生响应/ABI和guard保留，唯一native扩展为两处禁表读取调用
 普通/分期完整group回执分别为[group](2026-10-24-pretraining-evidence/group-normal-proof.json)与[period](2026-10-24-pretraining-evidence/period-group-normal-proof.json)，无私有selection key或raw trace；[启动与资源清点](2026-10-24-pretraining-evidence/handoff-verified.json)是只读清点，不能覆盖真实引擎测试结论。
 
 首轮失败保留在[历史收据](2026-10-24-pretraining-evidence/initial-normal-results.json)：先为测试annotations缺失，随后重复资料加载使运行在153.549秒按原预算预留正常停止（0已发布更新）。单次操作复用并加出版前完整门禁后，prepare CPU降至14.571秒并完成周期；其间另一次严格偏好门禁拒绝无差异的工程样例，已改成明确对比偏好，而非放松生产检查。没有把失败删除或换成模拟成功。
+
+## 最终可交接包与主机预检
+
+最终源码包为`.cache/ygo-training-source-59dd60b.tar.gz`，来源59dd60b7c4081c4bf54e53b716abfe307cabf922，255文件、623594字节，SHA256 `ae154ea20975b89134b113322c563e2f304dc402418018707cf8ec5cbff3c96f`。[逐项包回执](2026-10-24-pretraining-evidence/source-bundle.json)。包已在无.git目录从/tmp执行完整311/311（25.785秒），[归档回执](2026-10-24-pretraining-evidence/archive-results.json)的tested_head为null、source_archive_commit另列；生产源码摘要与Git检出一致。后续本报告/CI证据提交不改变包内源码文件；不要把包来源提交说成最新PR head。
+
+[当前真实CPU主机静态预检](2026-10-24-pretraining-evidence/cpu-deployment-proof.json)退出0，来源actual_host：4个cgroup可用核、16GiB内存上限、约30.5GB可用磁盘、CPU Torch实际依赖/资源哈希均匹配。所用1核/128MiB/16MiB阈值只是明示的最小工程预检，不是正式课程容量推荐。未填的[GPU配置模板](2026-10-24-pretraining-evidence/gpu-template-blockers.json)按预期退出2：本机无CUDA、CPU wheel不能作GPU锁，目标硬件/参数尚缺；未自动回退、采购或启动GPU。两份报告均formal_training_ready=false，静态报告不反序列化权重或加载核心。
+
+腾讯接续顺序：取得已核对源码/包→按哈希锁建CPU环境并运行安全检查→按lock准备/验普通native资源→填写收件/分区/period host和真实task→实际目标PC兼容→目标GPU锁/主机静态预检→获准2A小试及恢复/吞吐记录→冻结三期正式课程。具体命令和恢复协议在包内training-handoff/period-runtime/deployment-preparation，无厂商SDK或本机路径依赖。正式牌表到达后仍须验证所需机制与驱动；遇unsupported要明示并适配，不能以本轮通常怪兽/有界超量通过预先保证珠泪全机制。
