@@ -9,6 +9,8 @@ provider、腾讯云实例均**未验证**，见 §9。
 
 **集成与启动前提。** 本说明中的 CLI 命令需在完整项目中执行。独立交付中的 `_work/` 仅为审查与选定测试准备的局部源码副本，不含 `src/ygo_kito/cli.py`、`src/ygo_kito/__main__.py`，不能直接按独立安装包启动。应用原生响应修复时，`native.py` 与新增 `native_response_guard.py` 必须作为同一组集成；守卫依赖项目现有的 `native_protocol.NativeError`，无需新增第三方依赖。
 
+**当前整合接续。** DP `a7085e2` 与构筑 `9958769` 已在 `codex/integration-merge-prep` 保留历史整合；最新 manager 构筑入口见 §11，[合并准备报告](../reports/2026-10-24-merge-preparation.md)区分本地CPU证据、历史DP结果与CI。先读仓库 `AGENTS.md`。当前不运行原生故障复现或未筛选测试发现。
+
 ## 1. 宿主需要什么能力
 
 | 能力 | 说明 | 缺失后果 |
@@ -65,10 +67,10 @@ provider、腾讯云实例均**未验证**，见 §9。
 |---|---|---|
 | `monitor` | `capabilities`, `runs.list`, `runs.read`, `runs.metrics`, `checkpoints.read`, `opponents.summary` | 6 |
 | `trainer` | monitor 全部 + `training.prepare`, `training.recover`, `training.control` | 9 |
-| `manager` | monitor 全部 + `environment.runtime`, `environment.register`, `deck.import`, `deck.read`, `opponent.register`, `coding.prepare_handoff` | 12 |
+| `manager` | monitor 全部 + `environment.runtime`, `environment.register`, `deck.import`, `deck.read`, `opponent.register`, `coding.prepare_handoff`, `construction.plan`, `construction.run` | 14 |
 | `opponent` | `capabilities` + `duel.open`, `duel.next`, `duel.status`, `duel.submit_action`, `duel.close`, `cards.lookup` | 7 |
 
-去重合计 **21 个方法**（`capabilities` 四个角色都有，只算一次）。
+去重合计 **23 个方法**（`capabilities` 四个角色都有，只算一次）。
 
 要点：
 
@@ -265,3 +267,57 @@ client.training_control("run-a", "pause", expected_revision=7, request_id="ctl-p
 4. 腾讯云部署、计费停机确认、吞吐与硬件压力。
 5. 3 套主构筑与 8 套对手构筑（尚未提供，接口已预留，未虚构内容）。
 6. 2026 期卡池截止日（未冻结）。
+
+## 11. 构筑逻辑、分类器与本地 Agent 的实际接续
+
+现在可用的调用链是 **DP `Client` → JSON Lines/Loopback → `AgentBridge` manager → `HostConstructionBackend` → 已有分类器/构筑控制器/统筹网络**。这证明本地协议和CPU代码组合，不证明CodeBuddy、DeepSeek、DSH等实际外部模型已经连接。
+
+完整云端检出的最小启动：
+
+```bash
+cd /workspace/YGO-Kito-construction
+PYTHONPATH=src /workspace/YGO-Kito/.venv/bin/python -m ygo_kito status
+PYTHONPATH=src /workspace/YGO-Kito/.venv/bin/python -m ygo_kito agent-serve \
+  --role manager --state-root .cache/agent --root .cache \
+  --construction-config path/to/approved-host-config.json
+```
+
+`status`退出0只表示程序能启动；当前一般引擎仍 `ready:false`。不带 `--construction-config` 也可启动，构筑RPC明确 `CONSTRUCTION_BACKEND_NOT_CONFIGURED`。不要以 `_work` 目录或关闭本机的路径替代完整检出。
+
+宿主配置严格为：
+
+```json
+{
+  "intent_model": ".cache/approved/intent.json",
+  "binding_data": ".cache/approved/binding.json",
+  "logic_checkpoint": ".cache/approved/graph.weights"
+}
+```
+
+前两项必需，最后一项可省略。所有文件路径解析后必须在workspace内，含symlink解析；它们由宿主选择，RPC不能改。分类器加载失败明确报错；卡库/审核表延迟到run才加载，缺资源仍可plan。图checkpoint省略时为明示的随机初始化评分器，不冒充正式权重；已有checkpoint要求任务/图词表/特征绑定一致。工程拟合样例只用于代码验证，接续Agent不应自动训练替代正式模型。
+
+```python
+from ygo_kito.agent_driver import Client, StreamTransport
+client = Client(StreamTransport(proc.stdout, proc.stdin))
+caps = client.capabilities()
+if caps.get("construction_backend_configured"):
+    plan = client.call("construction.plan", {"request": "以堆墓为构筑目标"})
+```
+
+`construction.plan`仅接收 `request`，返回真实模型分数、拒判理由和阶段路由。未训练、低置信或OOV保留第一阶段，不用词典固定分数替代模型。
+
+`construction.run`必需字段为 `request / task / required_tags`；可选 `base / scopes / feedback`。其中task为现有BuildTask DTO，required_tags是基本标签数组，base是main/extra/side牌表，scopes为有来源的字段/种族范围，feedback为source/message数组。数据结构见[构筑说明](construction-logic.md)。请求不接受文件路径、模型选择、训练、native开关或凭据。
+
+当前RPC固定 `verifier=None / coordinator host=None`：实际图候选/两角色评分/目录绑定/统筹网络可以运行，**不执行原生核验、不提交统筹账本任务、不启动训练/API**。返回 `engine_validation_not_run / construction_unresolved` 时要保留未满足项；不能当合法CB或完整构筑交付。完整资源缺失报 `CONSTRUCTION_RESOURCES_UNAVAILABLE`；空/坏图checkpoint也报资源错误，进程仍可继续plan。monitor/trainer/opponent不能调用两个构筑方法。
+
+同一任务复用已加载评分模型，每RPC建立新的目标会话并清理本轮选择证据；不会把上一请求的优化结果混进失败的新请求。该推理RPC没有训练控制幂等事务的含义；DP原有 `training.control` ID去重仍只按原控制协议处理。
+
+后续编程Agent先读取：`AGENTS.md`、MASTER中CL-00/MP条目、当前合并报告及source commit。用 `coding.prepare_handoff` 可以生成带明确模型ID的接续包，但 `executed:false / model_verified:false`，准备包不会执行外部CLI。选定宿主、真实provider配置和相应授权仍是外部依赖。
+
+本候选安全验证入口：
+
+```bash
+OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 /workspace/YGO-Kito/.venv/bin/python scripts/check_merge_candidate.py
+```
+
+脚本只运行明确白名单；`tests.test_native_response_buffer`整组和真实integration_tests不在本轮执行范围。**不要改成全量discovery来获取“全绿”**。旧checkpoint的源码摘要会因新增模块/换行变化而失配；保留旧提交复现，不取消摘要门禁。
