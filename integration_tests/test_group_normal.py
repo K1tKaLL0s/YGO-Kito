@@ -107,7 +107,10 @@ class NormalPeriodGroupWorkerTests(NormalGroupWorkerTests):
                 "preferences": [{"id": "explicit-engineering-preference", "zones": ["main"],
                     "predicate": {"field": "card_ids", "value": [codes[-1]]}, "weight": 1}]},
             "sizes": {"main": 40, "extra": 0, "side": 0}, "pool": codes,
-            "requirements": [], "annotations": [], "source": "engineering_fixture", "candidate_budget": 4}
+            "requirements": [], "annotations": [{"tag": "engineering·explicit-counts", "layer": "engineering_goal",
+                "subject": "self", "source": "explicit-synthetic-period-worker-fixture",
+                "condition": "test dates and constraints, not user decks or historical qualification"}],
+            "source": "engineering_fixture", "candidate_budget": 4}
         heldout = deepcopy(task)
         heldout["task_id"] = "period-worker-validation"
         heldout["goal"]["constraints"][1].update(minimum=1, maximum=3)

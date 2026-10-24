@@ -1,0 +1,211 @@
+{
+  "normal_native_and_period": {
+    "tested_head": "879d196ad6eb5ef19701843f78c7ba1770df4903",
+    "implementation_sha256": "5b97e93460e3ee2c8b45687649187b3f2c5859d9abca0f74089df48f56bcf067",
+    "log_sha256": "40225e6641a61c6b89e0eceabd466b6e3dbdb6d2c3f2772b2c08e5b5446a9f7d",
+    "test_names": [
+      [
+        "test_cli_uses_real_engine_in_child_process",
+        "integration_tests.test_native_engine.RealNativeEngineTests.test_cli_uses_real_engine_in_child_process"
+      ],
+      [
+        "test_closed_engine_selection_cannot_be_reused_in_fresh_instance",
+        "integration_tests.test_native_engine.RealNativeEngineTests.test_closed_engine_selection_cannot_be_reused_in_fresh_instance"
+      ],
+      [
+        "test_real_observation_and_stale_duplicate_or_invented_responses",
+        "integration_tests.test_native_engine.RealNativeEngineTests.test_real_observation_and_stale_duplicate_or_invented_responses"
+      ],
+      [
+        "test_real_pool_limits_and_single_process_lifecycle",
+        "integration_tests.test_native_engine.RealNativeEngineTests.test_real_pool_limits_and_single_process_lifecycle"
+      ],
+      [
+        "test_real_summon_repeats_from_seed_with_database_and_upstream_scripts",
+        "integration_tests.test_native_engine.RealNativeEngineTests.test_real_summon_repeats_from_seed_with_database_and_upstream_scripts"
+      ],
+      [
+        "test_both_players_receive_only_own_hand_and_public_state_until_terminal",
+        "integration_tests.test_normal_duel.RealNormalDuelTests.test_both_players_receive_only_own_hand_and_public_state_until_terminal"
+      ],
+      [
+        "test_budget_abort_is_not_a_fabricated_win",
+        "integration_tests.test_normal_duel.RealNormalDuelTests.test_budget_abort_is_not_a_fabricated_win"
+      ],
+      [
+        "test_modified_or_truncated_replay_is_rejected_by_real_execution",
+        "integration_tests.test_normal_duel.RealNormalDuelTests.test_modified_or_truncated_replay_is_rejected_by_real_execution"
+      ],
+      [
+        "test_real_game_reaches_native_win_and_replays_all_events_and_responses",
+        "integration_tests.test_normal_duel.RealNormalDuelTests.test_real_game_reaches_native_win_and_replays_all_events_and_responses"
+      ],
+      [
+        "test_real_set_card_is_hidden_from_next_player",
+        "integration_tests.test_normal_duel.RealNormalDuelTests.test_real_set_card_is_hidden_from_next_player"
+      ],
+      [
+        "test_current_illegal_action_uses_legal_fallback_but_old_window_cannot_advance",
+        "integration_tests.test_agent_duel.RealAgentDuelTests.test_current_illegal_action_uses_legal_fallback_but_old_window_cannot_advance"
+      ],
+      [
+        "test_deadline_poll_applies_real_legal_fallback_without_an_external_call",
+        "integration_tests.test_agent_duel.RealAgentDuelTests.test_deadline_poll_applies_real_legal_fallback_without_an_external_call"
+      ],
+      [
+        "test_eof_closes_actual_native_engine_and_cli_transport_has_no_extra_stdout",
+        "integration_tests.test_agent_duel.RealAgentDuelTests.test_eof_closes_actual_native_engine_and_cli_transport_has_no_extra_stdout"
+      ],
+      [
+        "test_opponent_only_sees_own_legal_requests_and_can_complete_real_game",
+        "integration_tests.test_agent_duel.RealAgentDuelTests.test_opponent_only_sees_own_legal_requests_and_can_complete_real_game"
+      ],
+      [
+        "test_role_seat_and_raw_response_overrides_are_rejected",
+        "integration_tests.test_agent_duel.RealAgentDuelTests.test_role_seat_and_raw_response_overrides_are_rejected"
+      ],
+      [
+        "test_stdio_deadline_progresses_while_external_client_sends_nothing",
+        "integration_tests.test_agent_duel.RealAgentDuelTests.test_stdio_deadline_progresses_while_external_client_sends_nothing"
+      ],
+      [
+        "test_actual_actor_rebind_keeps_engine_profile_and_frozen_driver_consistent",
+        "integration_tests.test_period_runtime.RealPeriodRuntimeTests.test_actual_actor_rebind_keeps_engine_profile_and_frozen_driver_consistent"
+      ],
+      [
+        "test_actual_group_period_inputs_and_conditional_normal_goal_use_same_runtime",
+        "integration_tests.test_period_runtime.RealPeriodRuntimeTests.test_actual_group_period_inputs_and_conditional_normal_goal_use_same_runtime"
+      ],
+      [
+        "test_actual_period_private_v5_discovery_and_exact_keyed_replay",
+        "integration_tests.test_period_runtime.RealPeriodRuntimeTests.test_actual_period_private_v5_discovery_and_exact_keyed_replay"
+      ],
+      [
+        "test_actual_period_registered_baseline_terminal_trace_replays_with_factory",
+        "integration_tests.test_period_runtime.RealPeriodRuntimeTests.test_actual_period_registered_baseline_terminal_trace_replays_with_factory"
+      ],
+      [
+        "test_actual_repository_host_descriptor_recreates_frozen_baseline_inputs",
+        "integration_tests.test_period_runtime.RealPeriodRuntimeTests.test_actual_repository_host_descriptor_recreates_frozen_baseline_inputs"
+      ],
+      [
+        "test_actual_three_period_assets_and_baselines_load_existing_training_profiles_and_index",
+        "integration_tests.test_period_runtime.RealPeriodRuntimeTests.test_actual_three_period_assets_and_baselines_load_existing_training_profiles_and_index"
+      ],
+      [
+        "test_real_legal_summon_uses_selected_historical_section_and_visible_baselines",
+        "integration_tests.test_period_runtime.RealPeriodRuntimeTests.test_real_legal_summon_uses_selected_historical_section_and_visible_baselines"
+      ]
+    ],
+    "tests_run": 23,
+    "elapsed_seconds": 100.837,
+    "success": true,
+    "scope": "explicit engineering fixtures, actual native core, CPU only",
+    "fault_injection_performed": false
+  },
+  "training_recovery": {
+    "tested_head": "879d196ad6eb5ef19701843f78c7ba1770df4903",
+    "implementation_sha256": "5b97e93460e3ee2c8b45687649187b3f2c5859d9abca0f74089df48f56bcf067",
+    "log_sha256": "7501cd0ae9b28a5a6a1a674b785997bacab9fcae20255f1da4abc81efba46bd1",
+    "test_names": [
+      [
+        "test_real_terminal_games_produce_nonzero_policy_and_parameter_updates",
+        "integration_tests.test_cpu_training.RealCpuTrainingTests.test_real_terminal_games_produce_nonzero_policy_and_parameter_updates"
+      ],
+      [
+        "test_actual_recovery_restores_optimizer_scheduler_rng_cursor_and_next_trajectory",
+        "integration_tests.test_cpu_training.RealCpuTrainingTests.test_actual_recovery_restores_optimizer_scheduler_rng_cursor_and_next_trajectory"
+      ],
+      [
+        "test_real_metrics_and_checkpoint_are_readable_through_existing_monitor_tools",
+        "integration_tests.test_cpu_training.RealCpuTrainingTests.test_real_metrics_and_checkpoint_are_readable_through_existing_monitor_tools"
+      ],
+      [
+        "test_same_run_or_checkpoint_cannot_overwrite_saved_evidence",
+        "integration_tests.test_cpu_training.RealCpuTrainingTests.test_same_run_or_checkpoint_cannot_overwrite_saved_evidence"
+      ],
+      [
+        "test_only_fresh_actor_seat_samples_can_update_and_old_rollout_is_rejected",
+        "integration_tests.test_cpu_training.RealCpuTrainingTests.test_only_fresh_actor_seat_samples_can_update_and_old_rollout_is_rejected"
+      ],
+      [
+        "test_both_independent_transformers_have_real_nonzero_supervised_updates",
+        "integration_tests.test_build_training.RealBuildingCpuTests.test_both_independent_transformers_have_real_nonzero_supervised_updates"
+      ],
+      [
+        "test_checkpoint_restores_each_optimizer_scheduler_rng_and_actual_next_update",
+        "integration_tests.test_build_training.RealBuildingCpuTests.test_checkpoint_restores_each_optimizer_scheduler_rng_and_actual_next_update"
+      ],
+      [
+        "test_goal_optimizer_goal_optimizer_preserves_actual_goals_and_verifiable_changes",
+        "integration_tests.test_build_training.RealBuildingCpuTests.test_goal_optimizer_goal_optimizer_preserves_actual_goals_and_verifiable_changes"
+      ],
+      [
+        "test_three_transformers_and_advisory_coordinator_complete_an_actual_native_workflow",
+        "integration_tests.test_model_group.RealModelGroupTests.test_three_transformers_and_advisory_coordinator_complete_an_actual_native_workflow"
+      ],
+      [
+        "test_forecast_is_registered_before_allocating_and_reporting_versioned_duel",
+        "integration_tests.test_model_group.RealModelGroupTests.test_forecast_is_registered_before_allocating_and_reporting_versioned_duel"
+      ],
+      [
+        "test_full_group_checkpoint_restores_four_models_optimizers_rng_job_and_sqlite",
+        "integration_tests.test_model_group.RealModelGroupTests.test_full_group_checkpoint_restores_four_models_optimizers_rng_job_and_sqlite"
+      ],
+      [
+        "test_actual_adapter_updates_and_base_freezing_in_all_roles",
+        "integration_tests.test_lora_group.LoraGroupIntegrationTests.test_actual_adapter_updates_and_base_freezing_in_all_roles"
+      ],
+      [
+        "test_adapter_versions_reach_real_construction_and_native_job",
+        "integration_tests.test_lora_group.LoraGroupIntegrationTests.test_adapter_versions_reach_real_construction_and_native_job"
+      ],
+      [
+        "test_disable_and_unload_recover_exact_base_outputs_and_weights",
+        "integration_tests.test_lora_group.LoraGroupIntegrationTests.test_disable_and_unload_recover_exact_base_outputs_and_weights"
+      ],
+      [
+        "test_exported_adapters_actually_load_onto_restored_base_models",
+        "integration_tests.test_lora_group.LoraGroupIntegrationTests.test_exported_adapters_actually_load_onto_restored_base_models"
+      ]
+    ],
+    "tests_run": 15,
+    "elapsed_seconds": 85.052,
+    "success": true,
+    "scope": "explicit engineering fixtures, actual native core, CPU only",
+    "fault_injection_performed": false
+  },
+  "ordinary_group_and_fixture_error": {
+    "tested_head": "879d196ad6eb5ef19701843f78c7ba1770df4903",
+    "implementation_sha256": "5b97e93460e3ee2c8b45687649187b3f2c5859d9abca0f74089df48f56bcf067",
+    "log_sha256": "0a6b3a892178d7a96a27dca36d17f6b3f3cd9591d027745fa9175589e27fe55f",
+    "test_names": [
+      [
+        "test_all_four_actual_models_adapt_and_reach_normal_frozen_evaluation",
+        "integration_tests.test_group_normal.NormalGroupWorkerTests.test_all_four_actual_models_adapt_and_reach_normal_frozen_evaluation"
+      ],
+      [
+        "test_final_registered_checkpoint_restores_models_optimizers_rng_and_cursor",
+        "integration_tests.test_group_normal.NormalGroupWorkerTests.test_final_registered_checkpoint_restores_models_optimizers_rng_and_cursor"
+      ]
+    ],
+    "tests_run": 2,
+    "elapsed_seconds": 68.527,
+    "success": false,
+    "scope": "explicit engineering fixtures, actual native core, CPU only",
+    "fault_injection_performed": false,
+    "diagnosis": "ordinary group 2 tests passed; period test fixture lacked mandatory annotations, corrected before rerun"
+  },
+  "period_group_metadata_deadline": {
+    "tested_head": "879d196ad6eb5ef19701843f78c7ba1770df4903",
+    "implementation_sha256": "5b97e93460e3ee2c8b45687649187b3f2c5859d9abca0f74089df48f56bcf067",
+    "log_sha256": "bb0c1e71ccbe9cdc07312846bd86df65346a3781dc930b503aae23f0702d3759",
+    "test_names": [],
+    "tests_run": 0,
+    "elapsed_seconds": 244.928,
+    "success": false,
+    "scope": "explicit engineering fixtures, actual native core, CPU only",
+    "fault_injection_performed": false,
+    "diagnosis": "normal wall_budget_reserve_reached stop at 153.549 active seconds under the unchanged 180-second limit: setup CPU65.566s plus worker CPU87.945s; repeated metadata parsing; bootstrap, zero published updates; no injected interruption or budget override"
+  }
+}
