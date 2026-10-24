@@ -9,7 +9,9 @@ import datetime
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
+import platform
 import subprocess
 import sys
 import time
@@ -25,6 +27,8 @@ MODULES=(
     "tests.test_combined_goals","tests.test_cli","tests.test_agent_contract",
     "tests.test_model_group_invariants","tests.test_training_checkpoint_contract",
     "tests.test_agent_tools","tests.test_construction_service","tests.test_integration_startup",
+    "tests.test_training_handoff",
+    "tests.test_agent_lifecycle","tests.test_construction_scenarios","tests.test_deck_intake",
 )
 DP_HEAD="a7085e23a74fb04bff571c1c679e0097dd1ae430"
 
@@ -33,7 +37,19 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output",type=Path,default=ROOT/".cache/merge-check")
     args=parser.parse_args()
+    args.output=args.output.resolve()
     args.output.mkdir(parents=True,exist_ok=True)
+    # Several older contract fixtures intentionally use repository-relative
+    # configuration paths. Make invocation independent of the caller's cwd.
+    os.chdir(ROOT)
+    try:
+        import torch
+        import numpy
+    except ModuleNotFoundError as error:
+        raise SystemExit("Required CPU test dependency missing: "+str(error)) from error
+    if torch.version.cuda is not None or torch.version.hip is not None:
+        raise SystemExit("This check requires the CPU-only PyTorch build")
+    dependencies={"python":platform.python_version(),"torch":torch.__version__,"numpy":numpy.__version__}
     native_pair={}
     for name in ("src/ygo_kito/native.py","src/ygo_kito/native_response_guard.py"):
         original=subprocess.check_output(["git","show",DP_HEAD+":"+name],cwd=ROOT)
@@ -46,16 +62,29 @@ def main():
         source.update(path.name.encode()+b"\0"+hashlib.sha256(path.read_bytes()).digest())
     started=datetime.datetime.now(datetime.timezone.utc).isoformat()
     stream=io.StringIO();suite=unittest.defaultTestLoader.loadTestsFromNames(MODULES)
-    before=time.monotonic();result=unittest.TextTestRunner(stream=stream,verbosity=2).run(suite)
+    before=time.monotonic();cpu_before=time.process_time()
+    result=unittest.TextTestRunner(stream=stream,verbosity=2).run(suite)
     elapsed=time.monotonic()-before
+    resources={"test_wall_seconds":elapsed,"process_cpu_seconds":time.process_time()-cpu_before,
+        "process_peak_rss_bytes":None,"gpu_memory_bytes":None,"game_samples_per_second":None,
+        "scope":"test runner parent process; subprocess CPU/RSS not aggregated; no game throughput measured"}
+    try:
+        import resource
+        peak=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        resources["process_peak_rss_bytes"]=peak if sys.platform=="darwin" else peak*1024
+    except ImportError:
+        pass
     raw=stream.getvalue();(args.output/"tests.log").write_text(raw,encoding="utf-8")
     by_module=Counter()
     for line in raw.splitlines():
         if line.startswith("test_") and " (tests." in line:
             by_module[line.split(" (")[1].split(".")[1]]+=1
+    success=result.wasSuccessful() and not result.skipped
     receipt={"started_utc":started,"tested_head":subprocess.check_output(["git","rev-parse","HEAD"],cwd=ROOT,text=True).strip(),
         "implementation_sha256":source.hexdigest(),"tests_run":result.testsRun,"failures":len(result.failures),
-        "errors":len(result.errors),"skipped":len(result.skipped),"success":result.wasSuccessful(),
+        "errors":len(result.errors),"skipped":len(result.skipped),"success":success,
+        "dependencies":dependencies,"skipped_tests":[{"test":str(test),"reason":reason} for test,reason in result.skipped],
+        "resources":resources,
         "elapsed_seconds":elapsed,"by_module":dict(by_module),"dp_native_pair":native_pair,
         "excluded_modules":["tests.test_native_response_buffer","integration_tests"],
         "exclusion_reason":"No native execution, fault reproduction, unscreened discovery, or external provider calls authorized in this run.",
@@ -63,7 +92,7 @@ def main():
         "native_executed":False,"external_provider_verified":False,"ci_verified":False}
     (args.output/"results.json").write_text(json.dumps(receipt,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     print(json.dumps(receipt,ensure_ascii=False))
-    return 0 if result.wasSuccessful() else 1
+    return 0 if success else 1
 
 
 if __name__=="__main__":

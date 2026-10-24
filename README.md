@@ -10,6 +10,8 @@
 
 **当前云端整合候选：[PR合并准备与Agent接续](docs/reports/2026-10-24-merge-preparation.md)。** 保留PR1、DP草稿PR2及构筑工作历史；完整源码安全CPU白名单188项通过，manager构筑RPC与真实stdio启动已测。未运行原生故障/真实核心，CI未确认，不合并或自动合并。通用接续先读[AGENTS.md](AGENTS.md)和[Agent说明](docs/development/generic-agent-integration.md)。
 
+**继续工程准备：[安全CPU CI](docs/development/safe-cpu-ci.md)、[3＋8牌表收件](docs/development/deck-intake.md)、[完整源码训练交接](docs/development/training-handoff.md)。** 已建立[草稿PR #3](https://github.com/K1tKaLL0s/YGO-Kito/pull/3)，依赖#1→#2→#3。最新测试/CI与剩余依赖统一见[继续工程报告](docs/reports/2026-10-24-engineering-continuation.md)；原188项是历史整合基线，不代替新提交检查。
+
 **2026-10-24 独立新增：[构筑逻辑与非 LLM 入口](docs/development/construction-logic.md)。** 已补齐实际轻量可训练分类器、现有目标/优化模型的图候选选择与偏好训练、目录卡绑定及既有统筹连接。图由程序枚举、模型评分；小合成训练只验证代码，正式泛化和任意图合法 CB 未验，见[当前清单](docs/reports/2026-10-24-construction-trainable.md)。
 
 - 模型组：决斗模型＋构筑目标/优化两个子模型，由轻量统筹模型和确定性程序包裹；三个执行模型独立小 Transformer，共享数据规范，不强制共享权重。
@@ -43,7 +45,7 @@
 
 ```bash
 cd /workspace/YGO-Kito
-PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
+OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 .venv/bin/python scripts/check_merge_candidate.py
 PYTHONPATH=src .venv/bin/python -m ygo_kito --config configs/cpu.toml status
 ```
 

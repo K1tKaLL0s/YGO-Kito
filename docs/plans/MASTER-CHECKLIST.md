@@ -1,6 +1,8 @@
 # YGO-Kito 总工作清单
 
-更新日期：2026-10-24（新增 CL-00、MP合并准备，既有记录保留）。依据[统一开发说明 1.1 及构筑逻辑补充][spec]和其继承的原定稿；本表是持续进度索引，不改变设计、验收目标或执行授权。[第一阶段详细清单][phase1]与历史报告继续保留。
+更新日期：2026-10-24（新增 EP继续工程准备，CL/MP及既有记录保留）。依据[统一开发说明 1.1 及构筑逻辑补充][spec]和其继承的原定稿；本表是持续进度索引，不改变设计、验收目标或执行授权。[第一阶段详细清单][phase1]与历史报告继续保留。
+
+最新工程接续为[PR #3](https://github.com/K1tKaLL0s/YGO-Kito/pull/3)，见[继续工程报告](../reports/2026-10-24-engineering-continuation.md)和下列EP条目。旧批次“未发布/拒绝”保留历史语境，不覆盖已解除的发布授权；PR均未合并。当前环境缺锁定规则资源，不能把此前云端历史引擎结果说成此检出已可运行。
 
 当前入口：[构筑语义/数据隔离/可执行对手][foundation]；此前[合法私有记忆/盖放宿主v5][knowledge]、[不透明选择/完整候选策略v4][private]、[公开历史v3][history]及[四模型交替/冻结评估][group-runner]保留。云端 `/workspace/YGO-Kito` 已有真实引擎、四网络/LoRA和JSON受控CPU后端。本批R10-09完成固定版本MSG18分类/真实MSG24多区，MG01-02/MO03-02/D08-01/T07-01完成下述有界验收；同源168单元/163完整集成无跳过、独立CPU命令退出0，收据见[报告][foundation]。私有轨迹/索引/权重留云端，仓库只公开投影/摘要。**完整阶段1仍未交付**，不以切片数替代完成。PR发布不等于合并，本机未据此同步。
 
@@ -22,13 +24,21 @@
 
 最新合并准备补充：用户已授权发布可审查草稿候选，仍禁止合并/自动合并；旧批次的“不推送”只记录当时边界。
 
-- [ ] **CL-00 部分完成** 构筑逻辑与入口的可调用 CPU 工程已完成，并补齐 CL11-A 可训练线性分类器、CL11-B 现有双构筑模型的图编码/候选选择/偏好训练恢复、CL11-C 实际目录卡绑定及既有统筹网络/账本连接。图由程序枚举、模型评分；未训练入口拒判，词命中不证明卡效。小合成训练/整链通过，正式权重/分类校准、真实原生端到端/任意图合法CB与能力泛化仍未验。本任务独立于原生故障修复/导出/预算，不推送或合并。证据：[当前清单](../reports/2026-10-24-construction-trainable.md)、[使用说明](../development/construction-logic.md)；首次CL01–CL13框架状态见[历史报告](../reports/2026-10-24-construction-logic.md)。
+- [ ] **CL-00 部分完成** 构筑逻辑与入口的可调用 CPU 工程已完成，并补齐 CL11-A 可训练线性分类器、CL11-B 现有双构筑模型的图编码/候选选择/偏好训练恢复、CL11-C 实际目录卡绑定及既有统筹网络/账本连接。图由程序枚举、模型评分；未训练入口拒判，词命中不证明卡效。小合成训练/整链通过，正式权重/分类校准、真实原生端到端/任意图合法CB与能力泛化仍未验。本任务独立于原生故障修复/导出/预算，当前已按新授权发布草稿PR3，不合并。证据：[当前清单](../reports/2026-10-24-construction-trainable.md)、[使用说明](../development/construction-logic.md)；首次CL01–CL13框架状态见[历史报告](../reports/2026-10-24-construction-logic.md)。
+
+## 2026-10-24：继续工程准备
+
+- [ ] **EP-01 部分完成** 新增只读权限GitHub Actions、Python3.12/CPU Torch全哈希依赖锁、明确白名单与零skip门禁、完整项目启动/接口检查及简单资源收据。锁环境已实际重建；远端CI结论须发布后读取，不用本地结果冒充。[CI说明](../development/safe-cpu-ci.md)
+- [x] **EP-02 已完成** 厂商无关Agent生命周期新增5项fixture工程测试：真实JSON Lines管道prepare/start/checkpoint/pause/resume/stop、跨连接重试去重、stale/uncertain/rejected、failed恢复后resume。复用现有Client/Bridge/SQLite，不调用外部provider或真实训练，prepare不冒称有control去重语义。[测试](../../tests/test_agent_lifecycle.py)
+- [ ] **EP-03 部分完成** 3主＋8对手编号及三期显式收件/历史列表证据预检。卡库/发行截止/禁表/控制方缺失时闭合，测试样例不当用户数据；真实用户牌表、数据来源与可运行课程待交付。[收件说明](../development/deck-intake.md)
+- [x] **EP-04 已完成** 完整源码CPU交接工程准备：哈希锁安装、固定启动、资源缺口报告、既有checkpoint只读字节检查和恢复命令/日志/硬件指标说明；坏或空制品拒绝，无检查点unknown。GPU课程吞吐/真实引擎/PC/模型能力另验，本项不授权训练。[训练交接](../development/training-handoff.md)
+- [x] **EP-05 已完成** 新增6项开放主题/双主轴/否定组合/混合歧义/低置信及多轮反馈重构测试，保留第一阶段和目标→优化，积木身份与粗连接分开。规则/DTO场景和真实未训练分类器分别测试，不把fixture当模型泛化。[测试](../../tests/test_construction_scenarios.py)
 
 ## 0：设计、环境和学习分工
 
 - [x] **MP-01 已完成** PR1@6549717、DP草稿PR2@a7085e2及构筑9958769的依赖/历史核实与隔离普通合并。native.py/guard成对保留DP原字节，原作者分支未覆盖。[整合报告](../reports/2026-10-24-merge-preparation.md)
 - [x] **MP-02 已完成** 最终实现ca85329安全CPU白名单188/188、完整源码status/help及stdio启动、DP参考客户端到实际manager构筑后端；修复长驻旧证据和空checkpoint错误闭合，独立复验通过。原生故障模块整组未运行，真实外部provider未验。[证据](../reports/2026-10-24-merge-prep-evidence/results.json)
-- [ ] **MP-03 部分完成** 远端整合候选已推送129baa4，但创建草稿PR被自动审批拒绝，查询确认无新PR；最新发布授权与旧边界冲突已报告，停止该动作，不改工具绕过。本地补存[发布阻碍](../reports/2026-10-24-merge-publication-state.md)。推荐PR1→PR2→整合候选，retarget需复核diff；CI无通过证据且check-runs补查Forbidden。本轮不合并/不自动合并，父任务确认后再推进。[接续说明](../development/generic-agent-integration.md)
+- [ ] **MP-03 部分完成** 新的明确用户授权后，仅重试一次成功建立[草稿PR3](https://github.com/K1tKaLL0s/YGO-Kito/pull/3)，初始head129baa4、base为DP分支；后续EP增量沿用同一PR。首次审批阻碍与解除见[发布历史](../reports/2026-10-24-merge-publication-state.md)。推荐PR1→PR2→PR3，retarget需复核diff；CI状态单列，本轮不合并/不自动合并。[接续说明](../development/generic-agent-integration.md)
 
 - [x] **S0-01 已完成** 设计兼容核对。验收：原定稿继续继承、最新明确更新优先，模型角色/LoRA/手机范围无倒退。证据：[阶段记录][phase1]。
 - [x] **S0-02 已完成** 云端真实可执行。验收：仓库路径/SHA、Python/工具链、文件/SQLite 基础命令有本次实际结果。证据：[启动实证][m0]。

@@ -268,6 +268,8 @@ client.training_control("run-a", "pause", expected_revision=7, request_id="ctl-p
 5. 3 套主构筑与 8 套对手构筑（尚未提供，接口已预留，未虚构内容）。
 6. 2026 期卡池截止日（未冻结）。
 
+补充收件入口：`deck_intake.py` 与[3＋8收件说明](deck-intake.md)对三个时期分别核对显式截止、供给的卡库/发行清单/指定禁表节并保留编号映射，补足§7所列历史输入预检缺口。它只写独立不可运行的准备记录，不替换现有`deck.import`或关闭其runtime门禁；缺用户数据不制造成功。完整源码依赖、恢复与资源采集见[训练交接](training-handoff.md)，安全白名单与远端Actions见[CPU CI](safe-cpu-ci.md)。
+
 ## 11. 构筑逻辑、分类器与本地 Agent 的实际接续
 
 现在可用的调用链是 **DP `Client` → JSON Lines/Loopback → `AgentBridge` manager → `HostConstructionBackend` → 已有分类器/构筑控制器/统筹网络**。这证明本地协议和CPU代码组合，不证明CodeBuddy、DeepSeek、DSH等实际外部模型已经连接。
