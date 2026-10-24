@@ -34,6 +34,8 @@
 - [x] **EP-04 已完成** 完整源码CPU交接工程准备：哈希锁安装、固定启动、资源缺口报告、既有checkpoint只读字节检查和恢复命令/日志/硬件指标说明；坏或空制品拒绝，无检查点unknown。GPU课程吞吐/真实引擎/PC/模型能力另验，本项不授权训练。[训练交接](../development/training-handoff.md)
 - [x] **EP-05 已完成** 新增6项开放主题/双主轴/否定组合/混合歧义/低置信及多轮反馈重构测试，保留第一阶段和目标→优化，积木身份与粗连接分开。规则/DTO场景和真实未训练分类器分别测试，不把fixture当模型泛化。[测试](../../tests/test_construction_scenarios.py)
 
+EP远端验收：ca6ed9c的[Actions 40134675481](https://github.com/K1tKaLL0s/YGO-Kito/actions/runs/40134675481)已completed/success，实际217/217、0失败/错误/跳过；[平台状态与聚合回执](../reports/2026-10-24-continuation-evidence/ci-passed-run.json)保留源码摘要/依赖/边界。首轮CI错误及修正证据保留，不用本地通过覆盖失败。后续文档提交不改变受测源码，最新head检查仍见PR3。
+
 ## 0：设计、环境和学习分工
 
 - [x] **MP-01 已完成** PR1@6549717、DP草稿PR2@a7085e2及构筑9958769的依赖/历史核实与隔离普通合并。native.py/guard成对保留DP原字节，原作者分支未覆盖。[整合报告](../reports/2026-10-24-merge-preparation.md)

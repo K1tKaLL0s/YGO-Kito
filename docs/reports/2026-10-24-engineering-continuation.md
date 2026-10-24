@@ -46,6 +46,8 @@ OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 PYTHONHASHSEED=0 \
 
 首轮artifact12576881086的connector下载动作生成了临时文件引用，但云端读取该ZIP时HTTP代理隧道返回403 Forbidden，未取得ZIP字节；停止该读取，不换工具重试。其job日志与聚合JSON已成功读取，足以区分CI失败/修正和本地通过；完整首轮逐项artifact只可由有权限的仓库界面另查。此访问失败不是原生故障操作或审批解除。
 
+**第二轮远端CI已通过**：[Actions 40134675481](https://github.com/K1tKaLL0s/YGO-Kito/actions/runs/40134675481)，head为ca6ed9c9843563cd6d3a3adc569736dcb51327a0；workflow/job均completed/success，安装、217项测试和artifact上传均成功。实际217/217、0 failure/error/skip、11.621秒，Python3.12.14/Torch2.9.1+cpu/NumPy2.3.5；源码摘要和DP双文件一致。[持久回执](2026-10-24-continuation-evidence/ci-passed-run.json)由平台状态及job日志聚合JSON交叉读取，未依赖受403影响的ZIP下载。runner受测HEAD为平台临时PR合并检出2f9c3b7，不表示PR已合并。此后提交仅记录文档/收据；最新head状态仍以PR实际检查为准。
+
 未新增付费服务/账户/SDK/权限；GitHub包含分钟和计费状态未读取，不能保证任何runner分钟免费。只上传7天测试日志与聚合JSON，不上传模型、数据库、用户牌表或私有轨迹。整个`tests.test_native_response_buffer`、真实`integration_tests`、原生加载、故障注入/崩溃复现及未筛选discovery均未运行，排除项不计通过或skip。未恢复此前受限任务。
 
 ## 仅剩本轮准备之外的资料与目标环境验收
