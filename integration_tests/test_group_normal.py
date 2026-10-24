@@ -105,7 +105,7 @@ class NormalPeriodGroupWorkerTests(NormalGroupWorkerTests):
                 {"id": "normal-count", "zones": ["main"], "predicate": {"field": "type_all", "value": 17}, "minimum": 40, "maximum": 40},
                 {"id": "heldout-card", "zones": ["main"], "predicate": {"field": "card_ids", "value": [codes[0]]}, "minimum": 0, "maximum": 0}],
                 "preferences": [{"id": "explicit-engineering-preference", "zones": ["main"],
-                    "predicate": {"field": "card_ids", "value": [codes[-1]]}, "weight": 1}]},
+                    "predicate": {"field": "card_ids", "value": codes[:30]}, "weight": 1}]},
             "sizes": {"main": 40, "extra": 0, "side": 0}, "pool": codes,
             "requirements": [], "annotations": [{"tag": "engineering·explicit-counts", "layer": "engineering_goal",
                 "subject": "self", "source": "explicit-synthetic-period-worker-fixture",
