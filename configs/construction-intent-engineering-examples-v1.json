@@ -1,0 +1,20 @@
+[
+  {"text":"用珠泪构筑","label":"narrow"},
+  {"text":"植物族卡组","label":"narrow"},
+  {"text":"龙族除外卡组","label":"narrow"},
+  {"text":"以月辉字段构筑","label":"narrow"},
+  {"text":"Runick deck","label":"narrow"},
+  {"text":"plants for milling","label":"narrow"},
+  {"text":"我要堆墓","label":"broad"},
+  {"text":"只想除外","label":"broad"},
+  {"text":"堆墓为主，珠泪可选","label":"broad"},
+  {"text":"不要珠泪和神碑，只要堆墓","label":"broad"},
+  {"text":"milling, e.g. Runick","label":"broad"},
+  {"text":"banishing deck","label":"broad"},
+  {"text":"植物或者堆墓","label":"ambiguous"},
+  {"text":"植物族或者龙族堆墓","label":"ambiguous"},
+  {"text":"珠泪和神碑二选一","label":"ambiguous"},
+  {"text":"星织加堆墓","label":"ambiguous"},
+  {"text":"不知道做什么","label":"ambiguous"},
+  {"text":"either plants or milling","label":"ambiguous"}
+]

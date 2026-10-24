@@ -8,7 +8,7 @@
 
 **持续进度入口：[总工作清单 MASTER-CHECKLIST](docs/plans/MASTER-CHECKLIST.md)。** 每批完成后同步稳定任务 ID、状态和证据，符合验收条件才勾选；部分完成保持未勾选。该表索引全阶段进度，保留[第一阶段详细清单](docs/plans/2026-10-22-phase-1-cpu-checklist.md)，不替代统一规范。PR 已发布不表示已合并。
 
-**2026-10-24 独立新增：[构筑逻辑与非 LLM 入口](docs/development/construction-logic.md)。** 先形成可修订轻量图，狭义主题才筛主轴，广义直接进入卡文填卡；已有模型/合法性接口复用。工程分类器与图提供者接口未训练，任意图合法 CB 未验，见[本轮清单](docs/reports/2026-10-24-construction-logic.md)。
+**2026-10-24 独立新增：[构筑逻辑与非 LLM 入口](docs/development/construction-logic.md)。** 已补齐实际轻量可训练分类器、现有目标/优化模型的图候选选择与偏好训练、目录卡绑定及既有统筹连接。图由程序枚举、模型评分；小合成训练只验证代码，正式泛化和任意图合法 CB 未验，见[当前清单](docs/reports/2026-10-24-construction-trainable.md)。
 
 - 模型组：决斗模型＋构筑目标/优化两个子模型，由轻量统筹模型和确定性程序包裹；三个执行模型独立小 Transformer，共享数据规范，不强制共享权重。
 - 先训练基本模型组，LLM 后置且非必需。**LoRA 是基模后的常规持续适配路线**，不是旧文所说的完全可不开展。

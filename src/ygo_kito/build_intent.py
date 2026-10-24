@@ -170,7 +170,7 @@ def _explicit_unknowns(segment):
     return found
 
 
-def classify_build_intent(request, lexicon=None):
+def classify_build_intent(request, lexicon=None, classifier=None):
     """Classify the requested main-axis scope without calling any model/API.
 
     A narrow axis plus a mechanism ("植物堆墓") remains narrow. Mechanisms with
@@ -178,6 +178,11 @@ def classify_build_intent(request, lexicon=None):
     stays ambiguous. Unknown names need an explicit theme/race/field slot or an
     extended lexicon; this function never invents card metadata for them.
     """
+    if classifier is not None:
+        from .intent_model import LinearIntentClassifier
+        if not isinstance(classifier, LinearIntentClassifier):
+            raise ContractError("typed trainable intent classifier required")
+        return classifier.predict(request, lexicon=lexicon)
     if not isinstance(request, str) or not request.strip() or len(request) > 4096:
         raise ContractError("building request must contain 1..4096 characters")
     if lexicon is None:

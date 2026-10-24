@@ -1,0 +1,74 @@
+{
+  "started_utc": "2026-10-24T17:43:39.186133+00:00",
+  "tests_run": 104,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "success": true,
+  "classifier_synthetic_fit": {
+    "source": "synthetic_engineering",
+    "examples_sha256": "689e863c53be306b89ea8fcfbb6a24ed0931b603e7948ba4ec81b6a654e13348",
+    "example_count": 18,
+    "label_counts": {
+      "narrow": 6,
+      "broad": 6,
+      "ambiguous": 6
+    },
+    "optimizer_steps": 180,
+    "learning_rate": 3.0,
+    "initial_loss": 1.0986122886681098,
+    "final_loss": 0.038450102668885835,
+    "evaluation_scope": "CPU implementation validation only",
+    "model_sha256": "178cb7d917b42173474d518230df0a9821cdb20d0a720cf9557c7f38a4b737ef",
+    "vocabulary_size": 301,
+    "generalization_verified": false
+  },
+  "graph_synthetic_preferences": [
+    {
+      "role": "build_goal",
+      "first": {
+        "role": "build_goal",
+        "source": "synthetic_code_path_only",
+        "loss": 1.951073408126831,
+        "before_sha256": "bf804879320fc1e7297f031d1c3272dd223d199203f4f0b34b5526825344b4ae",
+        "after_sha256": "601a1b96d3a9f5cf2cdcbc0736233a59a5b50d11d853d71cb1cbf22a3e9e3bb2",
+        "graph_updates": 1,
+        "ability_verified": false
+      },
+      "fourth": {
+        "role": "build_goal",
+        "source": "synthetic_code_path_only",
+        "loss": 1.9333232641220093,
+        "before_sha256": "e0368f5f45b1d5d16ee66d932a0351ed7cbcd6be24a2f11bf2e51be76bd1556e",
+        "after_sha256": "b3f7933115cc3769bfeed50f75122a46a32b8b890d3b269b9708a9492289511c",
+        "graph_updates": 4,
+        "ability_verified": false
+      },
+      "source": "synthetic_code_path_only"
+    },
+    {
+      "role": "build_optimizer",
+      "first": {
+        "role": "build_optimizer",
+        "source": "synthetic_code_path_only",
+        "loss": 1.9470782279968262,
+        "before_sha256": "12d5e68487edfd8c5e6290c2c2e3d4f4196a8fdaf79ba0768c9781dcf5ad7118",
+        "after_sha256": "bac187e954adc8d0a5f2861255bfa153b79c195ebd2a778e1135ce3c69fd0743",
+        "graph_updates": 1,
+        "ability_verified": false
+      },
+      "fourth": {
+        "role": "build_optimizer",
+        "source": "synthetic_code_path_only",
+        "loss": 1.9338988065719604,
+        "before_sha256": "9b85bd691518313a738c2494a443e139270a9b42ffc4485f4d293fdbe4d2106b",
+        "after_sha256": "dfcf5b3e639b3d02c2e1fc2165b520fd01656e7b2381a19d19be8ed84aa01193",
+        "graph_updates": 4,
+        "ability_verified": false
+      },
+      "source": "synthetic_code_path_only"
+    }
+  ],
+  "native_executed": false,
+  "generalization_verified": false
+}

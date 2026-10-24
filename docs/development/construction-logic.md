@@ -1,6 +1,6 @@
 # 构筑逻辑与非 LLM 入口
 
-2026-10-24；独立新增工程实现，基线为远端 `codex/phase-1-cpu-foundation` 的 `6549717`。本次不承接原生崩溃/缓冲区修复、导出或预算工作。
+2026-10-24；独立新增工程实现，基线为远端 `codex/phase-1-cpu-foundation` 的 `6549717`。首次框架提交 `5d4336b` 后继续补齐可训练/实际调用实现，见[当前增量报告](../reports/2026-10-24-construction-trainable.md)。本次不承接原生崩溃/缓冲区修复、导出或预算工作。
 
 ## 三阶段
 
@@ -18,11 +18,19 @@
 
 `logic_cycle` 调用已有目标、优化角色的图提议提供者；`construction_cycle` 将每个角色的阶段 1/2/3 串成 **目标→优化**，下一次调用继续循环并承接反馈。每次填卡失败都留下未满足项。新图未通过时，返回的旧候选携带原图和原验证范围，不能用它证明新图。
 
-本变更**没有新增模型，也没有训练图生成/图绑定权重**。图提议者和具体卡绑定者是可注入接口；缺少时返回 `graph_provider_unavailable / binding_provider_unavailable`，不会用规则图模板伪装模型已学会。示例 JSON 是明示工程示意。两个已有 `BuildRanker` 通过旧 `BuildEncoder.batch` 复用；没有提供模型时仅采用标记 `engineering_order_untrained` 的候选次序。
+现在提供具体实现：`LogicCodec` 无卡 ID 编码/解码图，`rule_graph_candidates` 按明确请求的基本标签枚举有界粗图，`LogicModelAdapter` 用现有目标/优化 **同一组 BuildRanker 对象和优化器**评分选择。图特征进入已有 numeric/kind/position 投影，卡 ID 槽保持 0，没有把标签索引冒充旧卡嵌入，也没有另造大网络。`train_preference` 真实执行图偏好损失、反向传播和优化；独立图 checkpoint 绑定特征版本、词典、原任务和旧卡词表，可保存模型/Adam状态并连续恢复。原四模型 checkpoint 不被静默迁移。
+
+候选由程序枚举、模型选择；不声称神经网络自由生成任意图。图词表中的标签作为本次明确请求的必要特征钉住；运行时改词表拒绝，绑定器会在可达分支并集中覆盖这些标签，但标签覆盖仍不证明效果实际执行。示例 JSON 仍是工程示意，不是训练成果。
+
+`CatalogBindingAdapter` 是实际目录绑定者：读取现有候选牌表的卡文/属性，对种族/字段做真实公开属性匹配，按来源绑定审核记录支持功能标签，选择可达路径并给出节点→卡绑定。功能关键词只召回，未知卡效仍返回 `unknown`。不存在虚构的自动卡文理解器。
+
+`ConstructionController` 直接组合上述模型适配和绑定器，真实调用既有 `CoordinatorTrainer.advice`。有已核验候选和真实源 ledger 时，经旧 `Coordinator` 的 `handoff.submit` 及 `route_with_model` 写入托付、取得规则权威路由并记录实际网络建议。无托付时只运行预构筑聚合上下文的建议，不假装已完成账本/决斗循环。
 
 ## 入口分类器
 
-`build_intent.py` 的 `classify_build_intent` 用可扩领域词典、词边界、显式词槽、否定作用域、主轴/外挂角色及组合/替代意图特征分类。它是非 LLM、未训练的工程文本分类器；置信为未校准的路由分，不是统计准确率。只靠某主题词出现不会直接决定路由。
+`intent_model.py` 的 `LinearIntentClassifier` 是实际可训练的 CPU 线性 softmax 分类器：字符 ngram、英文词及词典/作用域辅助特征经归一化后学习权重；`fit / predict / save / load` 均已实现。预测输出实际模型分数、margin、词汇覆盖和模型摘要，置信/差距/覆盖不足拒判；无模型或未训练一律 `ambiguous`。新 CLI 和会话都走此模型路径。旧 `build_intent.py` 规则判别仅作辅助实体/作用域特征及兼容函数，其固定规则置信不进入模型预测。
+
+小合成拟合仅检验实现，未证明生产语义泛化或置信校准。下表描述路由意图；只有实际模型接受该类别且主题事实已明确时才进入相应阶段，不能当作任意表述的能力成绩。
 
 | 请求 | 路由 |
 | --- | --- |
@@ -62,8 +70,18 @@ PYTHONPATH=src /workspace/YGO-Kito/.venv/bin/python -m ygo_kito construction-pla
   --logic configs/construction-logic-example-v1.json
 ```
 
-该命令不加载 Torch、不访问卡库、不执行引擎。图结构通过不代表能填卡。
+该命令不加载 Torch、不访问卡库、不执行引擎。未提供 `--intent-model` 时会拒判并只保留第一阶段；图结构通过不代表能填卡。可显式拟合工程样本并加载（输出须选未存在路径）：
 
-`construction-fill-check` 接受 `--request --task --logic --proposal`，可提供 `--scopes --reviews --lexicon --root`。默认不会执行引擎；显式 `--verify-existing-goal` 才调用现有支持接口。CLI 返回 JSON 中的 `status / unmet / graph_execution_verified` 必须一起判断，退出 0 只表示请求已正常处理。
+```bash
+PYTHONPATH=src /workspace/YGO-Kito/.venv/bin/python -m ygo_kito construction-intent-fit \
+  --input configs/construction-intent-engineering-examples-v1.json \
+  --output /tmp/ygo-intent-engineering.json --epochs 180 --learning-rate 3
+PYTHONPATH=src /workspace/YGO-Kito/.venv/bin/python -m ygo_kito construction-plan \
+  --request '我要堆墓' --intent-model /tmp/ygo-intent-engineering.json
+```
 
-工程测试使用合成卡库和明确标记的评审/验证夹具，真实运行现有卡表校验和两个独立评分器前向。已有纯计数目标接口实际运行且不声称效果执行。正常路线核验适配的委托关系用 mock 验证；本轮未执行原生引擎、付费训练、外部 API 或任意故障注入。复现命令与完成/未完成清单见[本轮报告](../reports/2026-10-24-construction-logic.md)。
+`construction-fill-check` 接受 `--request --task --logic --proposal`，可提供 `--intent-model --scopes --reviews --lexicon --root`。默认不会执行引擎；显式 `--verify-existing-goal` 才调用现有支持接口。CLI 返回 JSON 中的 `status / unmet / graph_execution_verified` 必须一起判断，退出 0 只表示请求已正常处理。
+
+`construction-run --request TEXT --task TASK --intent-model MODEL --required-tags TAGS --binding-data DATA` 执行真实图选择和绑定；TAGS是基本标签数组，不是用户手写整张图。`--logic-checkpoint`可加载图偏好训练权重；不提供则两个现有小模型随机初始化、图训练计数为0。`--base`可给已有合法牌表，用旧有界编辑路径；无base的schema4从零生成仍需要旧模块的可选SciPy依赖。绑定数据是 `CatalogBindingAdapter.to_dict()` 格式的事实映射、来源绑定审核和召回词。显式 `--verify-existing-goal --candidate-id ID --state-root DIR` 才启用具体目标核验及既有统筹账本托付。
+
+工程测试使用明示合成卡库/审核数据，实际运行分类拟合、两模型图偏好更新/恢复、图选择、目录绑定、旧填卡评分、计数目标接口及既有统筹网络/SQLite账本，整链没有图/绑定 provider 夹具。本轮未执行原生引擎、正式训练、外部 API 或任意故障注入。复现命令与完成/未完成清单见[当前报告](../reports/2026-10-24-construction-trainable.md)；[首次框架报告](../reports/2026-10-24-construction-logic.md)保留历史范围。

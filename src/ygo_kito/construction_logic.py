@@ -215,7 +215,7 @@ def select_main_axes(task, assets, classification, scopes=()):
     if (not isinstance(scopes, tuple) or any(not isinstance(s, ThemeScope) for s in scopes)
             or len({s.term for s in scopes}) != len(scopes)):
         raise ContractError("distinct typed theme scopes required")
-    if set(s.term for s in scopes) != set(classification.narrow_terms):
+    if not classification.narrow_terms or set(s.term for s in scopes) != set(classification.narrow_terms):
         return {"status": "unresolved_theme_facts", "axes": [],
                 "unmet": ["supply sourced setcode/race facts for every requested narrow axis"]}
     assets.check_task(task)
@@ -232,7 +232,7 @@ class ConstructionSession:
     proposals; absence is reported rather than filled with rule-made templates.
     """
 
-    def __init__(self, request, task, *, lexicon=None):
+    def __init__(self, request, task, *, lexicon=None, classifier=None):
         from .build_contracts import BuildTask
         from .build_intent import classify_build_intent
         short(request, "user request", 4096)
@@ -242,7 +242,9 @@ class ConstructionSession:
         self._task = task.to_dict()
         self.task_sha256 = task.sha256
         self.goal_sha256 = digest({"request": request, "task": self._task})
-        self.classification = classify_build_intent(request, lexicon)
+        from .intent_model import LinearIntentClassifier
+        self.classification = classify_build_intent(request, lexicon,
+            classifier=classifier if classifier is not None else LinearIntentClassifier(lexicon=lexicon))
         self.logic = None
         self.history = []
         self.feedback = []
@@ -310,4 +312,5 @@ class ConstructionSession:
         self.check_goal()
         return parse_json(canonical_json({"request": self.request, "task": self.task.to_dict(),
             "goal_sha256": self.goal_sha256, "classification": self.classification.to_dict(),
-            "logic": self.logic.to_dict() if self.logic else None, "history": self.history, "feedback": self.feedback}))
+            "logic": self.logic.to_dict() if self.logic else None, "history": self.history, "feedback": self.feedback,
+            "logic_requirements_sha256":getattr(self,"logic_requirements_sha256",None)}))

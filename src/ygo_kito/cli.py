@@ -30,6 +30,14 @@ def parser():
     logic_plan.add_argument("--request", required=True)
     logic_plan.add_argument("--logic", type=Path)
     logic_plan.add_argument("--lexicon", type=Path)
+    logic_plan.add_argument("--intent-model", type=Path)
+    intent_train = sub.add_parser("construction-intent-fit", help="explicit small CPU synthetic classifier fit; no generalization claim")
+    intent_train.add_argument("--input", type=Path, required=True)
+    intent_train.add_argument("--output", type=Path, required=True)
+    intent_train.add_argument("--lexicon", type=Path)
+    intent_train.add_argument("--feature-config", type=Path)
+    intent_train.add_argument("--epochs", type=int, default=120)
+    intent_train.add_argument("--learning-rate", type=float, default=1.)
     logic_fill = sub.add_parser("construction-fill-check", help="source-bound text/list checks; existing goal verification is explicit")
     logic_fill.add_argument("--request", required=True)
     logic_fill.add_argument("--task", type=Path, required=True)
@@ -38,8 +46,21 @@ def parser():
     logic_fill.add_argument("--reviews", type=Path)
     logic_fill.add_argument("--scopes", type=Path)
     logic_fill.add_argument("--lexicon", type=Path)
+    logic_fill.add_argument("--intent-model", type=Path)
     logic_fill.add_argument("--root", type=Path, default=Path(".cache"))
     logic_fill.add_argument("--verify-existing-goal", action="store_true", help="invoke the existing supported goal interface; does not verify arbitrary graph edges")
+    logic_run = sub.add_parser("construction-run", help="actual existing role-model graph selection, catalog binding and coordinator connection")
+    for name in ("task", "intent-model", "required-tags", "binding-data"):
+        logic_run.add_argument("--"+name,type=Path,required=True)
+    logic_run.add_argument("--request",required=True)
+    logic_run.add_argument("--scopes",type=Path)
+    logic_run.add_argument("--logic-checkpoint",type=Path)
+    logic_run.add_argument("--base",type=Path,help="existing legal list; permits bounded semantic edits without optional MILP")
+    logic_run.add_argument("--root",type=Path,default=Path(".cache"))
+    logic_run.add_argument("--state-root",type=Path,default=Path(".cache/construction"))
+    logic_run.add_argument("--candidate-id")
+    logic_run.add_argument("--parent-candidate-id")
+    logic_run.add_argument("--verify-existing-goal",action="store_true")
     action = sub.add_parser("action-check")
     action.add_argument("request", type=Path)
     action.add_argument("selection", type=Path)
@@ -196,24 +217,38 @@ def main(argv=None) -> int:
     try:
         config = load_config(args.config)
         match args.command:
+            case "construction-intent-fit":
+                from .build_intent import DEFAULT_LEXICON, DomainLexicon
+                from .intent_model import IntentFeatureConfig, LinearIntentClassifier
+                lexicon = DEFAULT_LEXICON.extended(*DomainLexicon.from_dict(read_json(args.lexicon)).terms) if args.lexicon else None
+                feature_config = IntentFeatureConfig.from_dict(read_json(args.feature_config)) if args.feature_config else None
+                model = LinearIntentClassifier(lexicon,feature_config)
+                output = model.fit(read_json(args.input),epochs=args.epochs,learning_rate=args.learning_rate)
+                model.save(args.output)
+                output.update(model_sha256=model.sha256,checkpoint=str(args.output),generalization_verified=False)
             case "construction-plan":
                 from .build_intent import DEFAULT_LEXICON, DomainLexicon, classify_build_intent
+                from .intent_model import LinearIntentClassifier
                 from .construction_logic import ConstructionLogic, stage_route
-                intent = classify_build_intent(args.request, DEFAULT_LEXICON.extended(*DomainLexicon.from_dict(read_json(args.lexicon)).terms) if args.lexicon else None)
+                lexicon = DEFAULT_LEXICON.extended(*DomainLexicon.from_dict(read_json(args.lexicon)).terms) if args.lexicon else None
+                classifier = LinearIntentClassifier.load(args.intent_model,lexicon=lexicon) if args.intent_model else LinearIntentClassifier(lexicon)
+                intent = classify_build_intent(args.request, lexicon, classifier=classifier)
                 output = {"classification": intent.to_dict(), "route": stage_route(intent),
-                          "training_status": "engineering_untrained", "graph_execution_verified": False}
+                          "training_status": intent.classifier_status, "graph_execution_verified": False}
                 if args.logic:
                     graph = ConstructionLogic.from_dict(read_json(args.logic))
                     output.update(logic=graph.to_dict(), logic_sha256=graph.sha256, graph_structure_valid=True)
             case "construction-fill-check":
                 from .build_intent import DEFAULT_LEXICON, DomainLexicon
-                from .build_contracts import BuildTask
+                from .intent_model import LinearIntentClassifier
+                from .build_contracts import BuildTask, DeckParts
                 from .build_pipeline import BuildAssets
                 from .construction_logic import ConstructionLogic, ConstructionSession, ThemeScope
                 from .construction_fill import FillProposal, NodeTextReview, evaluate_fill, existing_goal_verifier
                 from .validation import array
-                session = ConstructionSession(args.request, BuildTask.from_dict(read_json(args.task)),
-                    lexicon=DEFAULT_LEXICON.extended(*DomainLexicon.from_dict(read_json(args.lexicon)).terms) if args.lexicon else None)
+                lexicon = DEFAULT_LEXICON.extended(*DomainLexicon.from_dict(read_json(args.lexicon)).terms) if args.lexicon else None
+                classifier = LinearIntentClassifier.load(args.intent_model,lexicon=lexicon) if args.intent_model else LinearIntentClassifier(lexicon)
+                session = ConstructionSession(args.request, BuildTask.from_dict(read_json(args.task)),lexicon=lexicon,classifier=classifier)
                 session.submit_logic(ConstructionLogic.from_dict(read_json(args.logic)), role="user", reason="explicit CLI logic input")
                 reviews = [NodeTextReview.from_dict(r) for r in array(read_json(args.reviews), "text reviews")] if args.reviews else []
                 if len({r.node_id for r in reviews}) != len(reviews):
@@ -227,6 +262,36 @@ def main(argv=None) -> int:
                     scopes=scopes, text_reviewer=reviewer if reviews else None,
                     verifier=existing_goal_verifier if args.verify_existing_goal else None)
                 output["classification"] = session.classification.to_dict()
+            case "construction-run":
+                from .build_contracts import BuildTask, DeckParts
+                from .build_pipeline import BuildAssets
+                from .build_training import BuildTrainer, BuildTrainingConfig
+                from .construction_logic import ConstructionSession, LogicTag, ThemeScope
+                from .construction_model import LogicCodec, LogicModelAdapter
+                from .construction_binding import CatalogBindingAdapter
+                from .construction_controller import ConstructionController
+                from .construction_fill import existing_goal_verifier
+                from .coordinator import Coordinator
+                from .coordinator_model import CoordinatorTrainer
+                from .coord_contracts import FeedbackPolicy
+                from .intent_model import LinearIntentClassifier
+                from .validation import array
+                if args.verify_existing_goal and not args.candidate_id:
+                    raise ContractError("explicit candidate ID is required before verified coordinator handoff")
+                task=BuildTask.from_dict(read_json(args.task));assets=BuildAssets(args.root)
+                builder=BuildTrainer(task,assets,BuildTrainingConfig())
+                codec=LogicCodec(tuple(LogicTag.from_dict(t) for t in array(read_json(args.required_tags),"requested logic tags")))
+                graph_adapter=LogicModelAdapter.from_builder(builder,codec)
+                if args.logic_checkpoint:graph_adapter.load(args.logic_checkpoint)
+                binding_adapter=CatalogBindingAdapter.from_dict(assets,read_json(args.binding_data))
+                session=ConstructionSession(args.request,task,classifier=LinearIntentClassifier.load(args.intent_model))
+                host=Coordinator(args.state_root / "coordinator.sqlite3",FeedbackPolicy(),role="coordinator",
+                    source="real_engine",assets=assets,create=True) if args.verify_existing_goal else None
+                controller=ConstructionController(graph_adapter,binding_adapter,CoordinatorTrainer(),host=host)
+                scopes=tuple(ThemeScope.from_dict(s) for s in array(read_json(args.scopes),"scopes")) if args.scopes else ()
+                output=controller.run(session,scopes=scopes,base=DeckParts.from_dict(read_json(args.base)) if args.base else None,candidate_id=args.candidate_id,
+                    parent_candidate_id=args.parent_candidate_id,verifier=existing_goal_verifier if args.verify_existing_goal else None)
+                output["classification"]=session.classification.to_dict()
             case "catalog-recall":
                 from .build_contracts import BuildTask
                 from .build_pipeline import BuildAssets

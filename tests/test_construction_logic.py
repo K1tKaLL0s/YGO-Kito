@@ -22,6 +22,24 @@ from ygo_kito.validation import ContractError
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def fixture_session(request, task, **kwargs):
+    return ConstructionSession(request, task, classifier=fixture_classifier(), **kwargs)
+
+
+from functools import lru_cache
+
+
+@lru_cache(maxsize=1)
+def fixture_classifier():
+    from ygo_kito.intent_model import LinearIntentClassifier
+    rows = [("narrow", "植物族堆墓"), ("narrow", "植物堆墓"), ("narrow", "星河织梦主题"),
+            ("broad", "堆墓"), ("broad", "不要珠泪，只要堆墓"), ("broad", "我要堆墓"),
+            ("ambiguous", "植物还是堆墓"), ("ambiguous", "未知裸名"), ("ambiguous", "植物族或者龙族堆墓")]
+    model = LinearIntentClassifier()
+    model.fit([{"text":text,"label":label} for label,text in rows],epochs=160,learning_rate=3.)
+    return model
+
+
 def fixture_assets():
     raw = json.loads((ROOT / "configs/build-engineering-v1.json").read_text())
     raw["pool"] = list(range(1, 19))
@@ -102,7 +120,7 @@ class LogicGraphTests(unittest.TestCase):
 
     def test_feedback_and_complete_reconstruction_keep_goal_and_lineage(self):
         task, _ = fixture_assets()
-        session = ConstructionSession("堆墓", task)
+        session = fixture_session("堆墓", task)
         session.submit_logic(example_graph(), role="build_goal", reason="candidate")
         original = session.goal_sha256
         session.record_feedback("duel", "current path failed; try another resource")
@@ -121,7 +139,7 @@ class LogicGraphTests(unittest.TestCase):
 
     def test_target_optimizer_cycle_has_no_rule_template_or_training_claim(self):
         task, _ = fixture_assets()
-        session = ConstructionSession("堆墓", task)
+        session = fixture_session("堆墓", task)
         self.assertEqual(session.logic_cycle({})["status"], "graph_provider_unavailable")
         calls = []
         def propose(context):
@@ -150,7 +168,7 @@ class LogicGraphTests(unittest.TestCase):
 class ConcreteFillTests(unittest.TestCase):
     def setUp(self):
         self.task, self.assets = fixture_assets()
-        self.session = ConstructionSession("堆墓", self.task)
+        self.session = fixture_session("堆墓", self.task)
         self.session.submit_logic(example_graph(), role="build_goal", reason="synthetic candidate")
         self.deck = goal_candidates(self.task, self.assets)[0]
         self.proposal = binding(self.session.logic, self.task, self.deck)
@@ -277,7 +295,7 @@ class ConcreteFillTests(unittest.TestCase):
              "minimum": 40, "maximum": 40}], "preferences": []}
         raw["environment"]["versions"]["card_pool"] = "native-private-knowledge-v5"
         task = BuildTask.from_dict(raw)
-        session = ConstructionSession("堆墓", task)
+        session = fixture_session("堆墓", task)
         session.submit_logic(example_graph(), role="user", reason="count-only engineering fixture")
         out = evaluate_fill(session, self.assets, binding(session.logic, task, self.deck), text_reviewer=text_review)
         self.assertEqual(out["status"], "list_constraints_verified_logic_unproven")
@@ -290,7 +308,7 @@ class ConcreteFillTests(unittest.TestCase):
             calls.append(context)
             graph = example_graph() if context["logic"] is None else revise_logic(ConstructionLogic.from_dict(context["logic"]))
             return {"logic": graph.to_dict(), "reason": "synthetic role proposal"}
-        session = ConstructionSession("堆墓", self.task)
+        session = fixture_session("堆墓", self.task)
         providers = {role: provider for role in ("build_goal", "build_optimizer")}
         out = construction_cycle(session, self.assets, providers, binding_provider=binding,
                                  text_reviewer=text_review, verifier=goal_proof)
@@ -308,7 +326,7 @@ class ConcreteFillTests(unittest.TestCase):
         def provider(context):
             graph = example_graph() if context["logic"] is None else revise_logic(ConstructionLogic.from_dict(context["logic"]))
             return {"logic": graph.to_dict(), "reason": "synthetic revision"}
-        session = ConstructionSession("堆墓", self.task)
+        session = fixture_session("堆墓", self.task)
         def review(node, cards):
             answer = text_review(node, cards)
             return replace(answer, status="unsatisfied", note="new graph cannot be filled") if session.logic.revision else answer

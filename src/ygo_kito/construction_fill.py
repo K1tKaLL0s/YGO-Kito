@@ -254,8 +254,8 @@ def fill_with_existing(session, assets, *, role="build_goal", base=None, models=
                        binding_provider=None, text_reviewer=None, scopes=(), verifier=existing_goal_verifier):
     """Reuse existing fill/quantity generation and independent model ranking.
 
-    A binding provider adapts actual fill candidates to the abstract graph. This
-    change supplies no graph-generation/binding weights and does not train them.
+    Concrete CatalogBindingAdapter/LogicModelAdapter implementations can supply
+    the providers. This fill function performs selection/checks, not training.
     """
     from .build_pipeline import edit_candidates, goal_candidates
     member(role, "fill role", ("build_goal", "build_optimizer"))
@@ -270,8 +270,13 @@ def fill_with_existing(session, assets, *, role="build_goal", base=None, models=
         return {"status": axes["status"], "stage_2": axes, "best_deck": None}
     if role == "build_optimizer" and base is None:
         raise ContractError("optimizer filling requires an existing concrete deck")
-    candidates = (goal_candidates(task, assets, base) if role == "build_goal"
-                  else edit_candidates(task, assets, base, require_edit=True))
+    if role == "build_goal" and base is not None and task.goal["kind"] == "deck_constraints" and assets.accepts(task,base):
+        # Existing valid lists can start from bounded old edits without requiring
+        # the optional MILP solver used for construction from an empty list.
+        candidates = edit_candidates(task,assets,base)
+    else:
+        candidates = (goal_candidates(task, assets, base) if role == "build_goal"
+                      else edit_candidates(task, assets, base, require_edit=True))
     scores, ranking = [0.] * len(candidates), "engineering_order_untrained"
     if models is not None:
         if encoder is None or role not in models:
@@ -286,7 +291,12 @@ def fill_with_existing(session, assets, *, role="build_goal", base=None, models=
         ranking = "existing_role_model_uncalibrated"
     results = []
     for index in sorted(range(len(candidates)), key=lambda i: -scores[i]):
-        proposal = binding_provider(session.logic, task, candidates[index])
+        try:
+            proposal = binding_provider(session.logic, task, candidates[index])
+        except ContractError as error:
+            session.record_feedback("fill", "graph binding failed: " + str(error))
+            results.append({"status":"binding_unmatched","unmet":[str(error)],"best_deck":None})
+            continue
         if not isinstance(proposal, FillProposal) or proposal.deck != candidates[index]:
             raise ContractError("binding provider must preserve the generated candidate and quantities")
         result = evaluate_fill(session, assets, proposal, scopes=scopes, text_reviewer=text_reviewer, verifier=verifier)
@@ -338,4 +348,4 @@ def construction_cycle(session, assets, providers, *, scopes=(), base=None, mode
     return {"status": "task_checked_candidate" if best else "construction_unresolved", "phases": phases,
             "best": best, "latest_logic_sha256": session.logic.sha256 if session.logic else None,
             "goal_sha256": session.goal_sha256, "graph_execution_verified": False,
-            "training_status": "engineering_integration_no_graph_training"}
+            "training_status": "no_training_performed_by_this_cycle"}
