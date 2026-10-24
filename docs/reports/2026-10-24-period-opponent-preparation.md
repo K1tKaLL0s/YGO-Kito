@@ -27,11 +27,17 @@
 
 ## 本批检查与待更新证据
 
-来源/旧收件24项、纯DTO桥接13项、宿主/输入/runtime44项针对CPU检查通过；另有只读独立审阅和6项选期边界检查通过。新增正常引擎`integration_tests.test_period_snapshot` **4/4通过，36.365秒**：两期分别用设计截止09-30/12-31完成自然终局/精确分期重放、模型词表重载、宿主重载、actor重绑和Torch RNG隔离。本批没有训练更新或跨源码训练恢复，历史/强度标记false。
+来源/旧收件24项、纯DTO桥接13项、宿主/输入/runtime44项及最终58项兼容检查通过；另有只读独立审阅和6项选期边界检查通过。这些分组互相重叠，不累加为总数。新增正常引擎`integration_tests.test_period_snapshot` **4/4通过，36.365秒**：两期分别用设计截止09-30/12-31完成自然终局/精确分期重放、模型词表重载、宿主重载、actor重绑和Torch RNG隔离。本批没有训练更新或跨源码训练恢复，历史/强度标记false。
 
 两份公开聚合证明和首次失败保存在[证据目录](2026-10-24-period-opponent-evidence)。scope逐项与实际host描述、intake/policy、来源文件字节及native收据独立重核后，将两个本地模型证据单列加入矩阵；1152条第三方行仍未运行。模型参数SHA为44e318f4563cc13c15dce1ebb7d9c0966a2beb1fcb5c0ee05164418d39b732e7，来源group制品ac8f1a048a9cf9b01a5f544944b5fa4663338aa54f00a7688f121ef99ad21863中的实际更新1步base组件；不是最新LoRA或成熟bot。
 
-最终安全白名单、源码包与CI结果在收尾后按真实收据补入本节。
+提交0c7b5377faea866ab27d378d4f7676a472cb4df7上的最终[安全CPU白名单](2026-10-24-period-opponent-evidence/cpu-results.json) **352/352通过，0失败/错误/跳过，27.583秒**；源码干净，生产源码SHA256为49164dc339c9e4702c6f8d406076e94a2d2b762b4a361d9d7beed7266cc6de35。父进程CPU11.935秒、峰RSS392638464字节，子进程不聚合；未测GPU或对局吞吐。DP guard及唯一可逆native禁表hook保持。正常测试在提交前的同一源码执行，提交后没有改生产源码；其CPU秒/RSS未采集并保留null。
+
+[完整项目启动清点](2026-10-24-period-opponent-evidence/handoff.json)的status/help均退出0，耗时0.218/0.270秒，实际锁定资源文件哈希匹配；该命令不加载native或启动训练，engine_ready_reported仍不能替代上述实际引擎证明。
+
+新[源码包回执](2026-10-24-period-opponent-evidence/source-bundle.json)：`.cache/ygo-training-source-0c7b537.tar.gz`，来源0c7b537，271文件/667901字节，SHA256为8e7f4061025070e0104901f786857db5e37cfee057bef1e2aad89ae581beb314。它包含本批新模块、样例索引和自包含交接，替代旧59dd60b包；不含native资源、权重/恢复目录、私有轨迹或凭据。解到独立无.git目录后，从/tmp校验完整manifest、固定DP guard/hook、导入新增模块，并通过9项来源上下文/完整启动测试；[归档回执](2026-10-24-period-opponent-evidence/archive-results.json)tested_head=null、source_archive_commit另列，没有重复跑352项或把归档来源当本地Git证明。
+
+远端CI须以实际平台运行结果为准，本地通过不等于CI。后续证据提交只改reports，包内源码仍逐字匹配0c7b537；最终PR head与包来源分别报告。
 
 首次未训练actor对冻结模型的CpuTrainer有界采样未能终局，0更新，没有记为通过。100步合法聚合诊断显示模型有正常召唤/pass而非持续shuffle，callback_errors=0；弱actor的失败不能推断驱动不兼容。后续正常检查使用已有PublicRulePolicy作actor、同一已更新base作冻结对手，保留原上限和模型；仍不评估其强度。失败证据不删除。
 

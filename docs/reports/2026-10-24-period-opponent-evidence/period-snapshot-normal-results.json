@@ -1,0 +1,26 @@
+{
+  "tests_run": 4,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0,
+  "unittest_elapsed_seconds": 36.365,
+  "normal_terminal_duels": 2,
+  "private_replay_runs": 2,
+  "actor_rebind_openings": 2,
+  "actor": "pre-existing PublicRulePolicy visible-effects-first-v1",
+  "opponent": "same frozen updated base duel component; frozen-duel-greedy-v1",
+  "training_updates_this_check": 0,
+  "training_checkpoint_recovery_verified": false,
+  "log": "period-snapshot-normal-tests.log",
+  "period_proofs": [
+    "period-snapshot-2022-07-proof.json",
+    "period-snapshot-2022-10-proof.json"
+  ],
+  "initial_failed_attempt": "period-snapshot-initial-failure.json",
+  "schema_version": 1,
+  "log_origin": "returned execution-tool output transcribed after run; no tests rerun for logging",
+  "process_cpu_seconds": null,
+  "peak_rss_bytes": null,
+  "resource_measurement": "CPU time and peak RSS were not collected for these invocations",
+  "log_sha256": "a731f7bbcff8343cbcbd476164a1c5c7ab8e0fbfd8a6d0e7780055cf5cee3ded"
+}

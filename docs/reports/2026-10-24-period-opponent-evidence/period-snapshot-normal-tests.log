@@ -1,0 +1,12 @@
+Origin: complete unittest stdout/stderr transcribed from the returned execution-tool output after this run; no test rerun.
+Command: OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 PYTHONPATH=src .cache/ci-cpu-venv/bin/python -m unittest integration_tests.test_period_snapshot -v
+
+test_actual_snapshot_normal_sample_and_exact_period_replay_without_updates (integration_tests.test_period_snapshot.RealOctoberPeriodSnapshotTests.test_actual_snapshot_normal_sample_and_exact_period_replay_without_updates) ... ok
+test_actual_source_model_reload_and_actor_rebind_keep_frozen_identity (integration_tests.test_period_snapshot.RealOctoberPeriodSnapshotTests.test_actual_source_model_reload_and_actor_rebind_keep_frozen_identity) ... ok
+test_actual_snapshot_normal_sample_and_exact_period_replay_without_updates (integration_tests.test_period_snapshot.RealPeriodSnapshotTests.test_actual_snapshot_normal_sample_and_exact_period_replay_without_updates) ... ok
+test_actual_source_model_reload_and_actor_rebind_keep_frozen_identity (integration_tests.test_period_snapshot.RealPeriodSnapshotTests.test_actual_source_model_reload_and_actor_rebind_keep_frozen_identity) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 36.365s
+
+OK

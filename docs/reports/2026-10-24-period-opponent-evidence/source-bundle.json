@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "source_commit": "0c7b5377faea866ab27d378d4f7676a472cb4df7",
+  "bundle_local_path": ".cache/ygo-training-source-0c7b537.tar.gz",
+  "bundle_sha256": "8e7f4061025070e0104901f786857db5e37cfee057bef1e2aad89ae581beb314",
+  "bundle_bytes": 667901,
+  "files": 271,
+  "verified": true,
+  "runtime_assets_included": false,
+  "checkpoints_included": false,
+  "credentials_included": false,
+  "training_started": false
+}

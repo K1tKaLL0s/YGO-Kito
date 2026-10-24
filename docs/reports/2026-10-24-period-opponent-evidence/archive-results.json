@@ -1,0 +1,36 @@
+{
+  "checkout_kind": "source_archive",
+  "tested_head": null,
+  "source_archive_commit": "0c7b5377faea866ab27d378d4f7676a472cb4df7",
+  "manifest_verified": true,
+  "files": 271,
+  "new_modules_imported": true,
+  "source_membership_sha256": "dd16852f621acac6cfb6e2f0d90380e3ae3b000f60ade126f8f84c71a43a678f",
+  "tests_run": 9,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "success": true,
+  "elapsed_seconds": 0.8333659919990168,
+  "dp_native_pair": {
+    "src/ygo_kito/native.py": {
+      "sha256": "3cecd36295b1e13b97617ac31862fa2d07a61e1c5e11c554dc475caa3ad4bbeb",
+      "dp_baseline_sha256": "0a2f40c99e3e14bb1eb0446c89c8b80175cd6f1893c8207ee8496deb6725139e",
+      "matches_dp_commit": null,
+      "matches_pinned_dp_sha256": false,
+      "matches_reviewed_period_hook": true,
+      "comparison_source": "pinned-dp-sha256-without-git"
+    },
+    "src/ygo_kito/native_response_guard.py": {
+      "sha256": "685846435d4f951324f36a04ff49ea67c4d70c2d4b2c974963e12a4a9e8df64b",
+      "dp_baseline_sha256": "685846435d4f951324f36a04ff49ea67c4d70c2d4b2c974963e12a4a9e8df64b",
+      "matches_dp_commit": null,
+      "matches_pinned_dp_sha256": true,
+      "matches_reviewed_period_hook": false,
+      "comparison_source": "pinned-dp-sha256-without-git"
+    }
+  },
+  "full_352_suite_rerun": false,
+  "native_executed": false,
+  "external_provider_called": false
+}
