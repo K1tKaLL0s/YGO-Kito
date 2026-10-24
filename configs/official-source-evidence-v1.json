@@ -10,8 +10,9 @@
       "verified_scope": "effective date and announced changes; not the complete accumulated list",
       "full_official_machine_list_verified": false,
       "community_candidate_section": "2022.7",
-      "release_cutoff": null,
-      "official_release_manifest": null
+      "release_cutoff": "2022-09-30",
+      "official_release_manifest": null,
+      "release_cutoff_basis": "confirmed project design section 7; not card release evidence"
     },
     "2022-10": {
       "banlist_effective": "2022-10-01",
@@ -20,8 +21,9 @@
       "verified_scope": "effective date and announced changes; not the complete accumulated list",
       "full_official_machine_list_verified": false,
       "community_candidate_section": "2022.10",
-      "release_cutoff": null,
-      "official_release_manifest": null
+      "release_cutoff": "2022-12-31",
+      "official_release_manifest": null,
+      "release_cutoff_basis": "confirmed project design section 7; not card release evidence"
     },
     "2026-10": {
       "banlist_effective": "2026-10-01",

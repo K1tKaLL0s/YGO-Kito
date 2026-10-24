@@ -174,8 +174,7 @@ provider、腾讯云实例均**未验证**，见 §9。普通真实核心已在�
 - `authority` ∈ `custom | community | official`。
 - 返回值含 `validation`、`runtime_compatible`、`historical_rules_verified`（恒 `false`）。
   只有与运行时资源完全一致的 `custom` 环境才可能 `runtime_compatible: true`。
-- 旧设计提到的 2022-07→2022-09-30、2022-10→2022-12-31 两个截止日**未经本轮核对**，
-  属待用户确认资料，不得当作既成事实写入代码。
+- 已确认设计§7规定2022-07→2022-09-30、2022-10→2022-12-31，收件模板现显式保留这两个实验截止；不能把未核实逐卡发行来源误写成用户尚未决定日期。2026-10具体日期仍待选择，历史收件中的null保持pending。
 
 ### 7.2 导入卡组
 

@@ -12,3 +12,5 @@
 - 旧 checkpoint 绑定源码/数据摘要。新增文件或换行改变后不能绕过绑定来恢复；保留原版本复现或另行明确迁移。
 - 更新 MASTER-CHECKLIST 和当前证据，分别报告本地测试、CI、外部模型与真实引擎。没有 CI 记录不能记为通过。额度须当前实际核实，不能沿用历史值；≤20%保存停止，不使用重置卡。
 - 后续工程先看 `docs/development/safe-cpu-ci.md`、`training-handoff.md`、`deck-intake.md`。CPU CI使用`requirements/ci-cpu.txt`哈希锁；缺依赖或任何skip均失败。3＋8模板为空收件槽，历史发行截止逐期显式填写，不能用月份或旧说明自动推断。`deck_intake`记录不是可训练运行配方。
+
+- 阶段划分按最新澄清：云端headless规则兼容/数据隔离/实际GPU与恢复检查属于训练；PC产品/客户端互操作归阶段3，LLM/provider仅可选，不阻塞本地基线。两个历史设计截止显式为2022-09-30、2022-12-31；2026截止未定必须fail closed。

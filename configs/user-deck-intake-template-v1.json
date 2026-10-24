@@ -3,7 +3,7 @@
   "intake_id": "user-three-main-eight-opponent-v1",
   "environments": {
     "2022-07": {
-      "release_cutoff": null,
+      "release_cutoff": "2022-09-30",
       "banlist_effective": "2022-07-01",
       "banlist_section": "2022.7",
       "catalog": null,
@@ -11,7 +11,7 @@
       "banlist": null
     },
     "2022-10": {
-      "release_cutoff": null,
+      "release_cutoff": "2022-12-31",
       "banlist_effective": "2022-10-01",
       "banlist_section": "2022.10",
       "catalog": null,

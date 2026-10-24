@@ -4,7 +4,7 @@
 
 `configs/user-deck-intake-template-v1.json` 固定 `main-01`～`main-03` 与 `opponent-01`～`opponent-08`。主卡组模板按三个时期各列一份；实际牌表均为 `null`。八个对手的时期归属为 `null`，只保留用户已确认的 `preferred_provider: DeepSeek` 用途，实际 controller/model/driver 尚未配置。偏好不代表连接、操作能力或训练就绪。
 
-三环境为 `2022-07`、`2022-10`、`2026-10`。所有 `release_cutoff` 均留空，必须按实际来源显式填写 ISO 日期；月份不充当卡池截止日，也不依据旧设计表自动冻结日期。所选禁限节通过 `banlist_section` 明确指定，`banlist_effective` 绑定所属月份第一日。节名可根据真实文件修改，模板节名没有官方来源认证含义。
+三环境为 `2022-07`、`2022-10`、`2026-10`。前两期 `release_cutoff` 已依确认设计§7显式填写 `2022-09-30`、`2022-12-31`；这只是实验范围决定，不是发行资料已核实。2026-10仍为null，须另选具体ISO日期；缺失时保持pending，不用表生效日、当前日或月末代填。月份不充当卡池截止日。所选禁限节通过 `banlist_section` 明确指定，`banlist_effective` 绑定所属月份第一日。节名可根据真实文件修改，模板节名没有官方来源认证含义。
 
 ## 输入与检查
 

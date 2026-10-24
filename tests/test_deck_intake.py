@@ -67,7 +67,9 @@ class DeckIntakeTests(unittest.TestCase):
         self.assertTrue(all("deck" not in s for s in out["slots"]))
         self.assertTrue(all(s["preferred_provider"] == "DeepSeek" and s["controller"] is None for s in out["slots"][3:]))
         self.assertFalse(out["native_executed"])
-        self.assertTrue(all(e["release_cutoff"] is None for e in self.template["environments"].values()))
+        self.assertEqual(self.template["environments"]["2022-07"]["release_cutoff"], "2022-09-30")
+        self.assertEqual(self.template["environments"]["2022-10"]["release_cutoff"], "2022-12-31")
+        self.assertIsNone(self.template["environments"]["2026-10"]["release_cutoff"])
 
     def test_three_supplied_environments_and_all_assignments_check_lists_without_runtime_promotion(self):
         self.config["slots"].reverse()

@@ -10,7 +10,7 @@ import tempfile
 
 from .build_contracts import digest
 from .engine import EngineUnavailable
-from .training_plan import validate_plan
+from .training_plan import validate_plan, required_training_gates
 from .validation import ContractError
 
 
@@ -58,7 +58,8 @@ def cpu_preflight(root, plan):
                                "sdk_execution_verified": False,
                                "model_or_quota_checked": False, "credentials_read": False, "provider_called": False},
             "formal_training": {"ready": False, "gate_verification": "not_implemented_by_cpu_health_check",
-                                "required_evidence": plan["required_gates"], "paid_execution_authorized": False,
+                                "required_evidence": required_training_gates(plan), "paid_execution_authorized": False,
+                                "pc_product_required": False, "external_llm_required": False,
                                 "resource_launch_implemented": False, "machine_selected": plan["machine_type"] is not None,
                                 "instance_price_known": plan["instance_price_per_hour"] is not None,
                                 "external_api_cap_known": plan["external_api_amount_limit"] is not None,

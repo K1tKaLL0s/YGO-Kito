@@ -29,14 +29,14 @@ DP原生响应/ABI和guard保留，唯一native扩展为两处禁表读取调用
 | 用户卡组 | 11份真实主/额外/副卡与目标，逐期归属；空收件模板不造牌表 |
 | 历史和官方资料 | 三期明确发行截止、逐卡OCG发行证据、官方完整累计禁表/旧文本/裁定及使用权；当前固定社区禁表含2022.7/2022.10/2026.10，但不等于官方全表核对 |
 | 原始资料访问 | 云端shell对官方日文OCG禁表HTML的HTTPS GET实际被代理403拒绝，下载已停止，未改工具绕过。网页已读的日期不扩大为全表认证；正常native没有这个拦截 |
-| 合格对手/外部模型 | 已有规则baseline可执行，强度未资格化；真实provider配置、获准费用/额度、8套由DeepSeek驱动的实联尚缺。厂商无关stdio已实测，不把fixture称接通 |
+| 对手覆盖/可选外部模型 | 本地规则和冻结模型基线不依赖LLM；正式代表性需逐期牌表/驱动资格。DeepSeek专属路径才需真实provider，未接通不阻塞本地基线；分期snapshot与纯DTO桥接准备另见本轮增量 |
 | 腾讯云硬件 | 现有获准实例、CUDA/驱动/依赖锁、实机吞吐/显存/数值/恢复及计费停机确认；当前仅CPU环境，未采购或启动GPU |
-| PC门槛 | 既定目标YGOPro/萌卡分支动作/连锁/标准回放对照需目标客户端；内部JSON精确重放不能代替 |
+| PC产品/客户端互操作 | 后续阶段3核对目标客户端动作/连锁/标准回放与本地性能；不作为基础腾讯云headless训练前置 |
 | 正式学习与统计 | 模型规模/课程配比/阈值经实际2A小试冻结、分类校准及独立能力/BO3/LoRA迁移验收；工程参数更新、几局胜负不是能力证明 |
 
 官方日期核验只包括：[2022年7月公告](https://yu-gi-oh.jp/news/oid-1313/)明确2022-07-01生效、[2022年10月公告](https://yu-gi-oh.jp/news/oid-1388/)明确2022-10-01生效、[官方日文OCG页面](https://www.db.yugioh-card.com/yugiohdb/forbidden_limited.action?request_locale=ja)显示2026/10/01。两份历史公告是变更公告，不是完整累计列表。逐项状态在[机器可读来源记录](../../configs/official-source-evidence-v1.json)。
 
-因此不能宣称“只剩用户卡组即可正式付费开训”。已完成的是可复验的云端工程准备；G-01/G-02/P-01/B-02整体门槛保持未通过。后续Agent从[训练交接](../development/training-handoff.md)、[分期宿主](../development/period-runtime.md)、[部署说明](../development/deployment-preparation.md)与总清单接手，保留全部绑定，不通过改环境名/null截止/删除receipt消除缺项。
+因此不能宣称“只剩用户卡组即可正式付费开训”。已完成的是可复验的云端工程准备；G-01/G-02/B-02整体正式训练目标保持未通过；P-01另属阶段3。后续Agent从[训练交接](../development/training-handoff.md)、[分期宿主](../development/period-runtime.md)、[部署说明](../development/deployment-preparation.md)与总清单接手，保留全部绑定，不通过改环境名/null截止/删除receipt消除缺项。
 
 当前工具没有即时额度读取能力；不沿用旧73%为当前值，交父任务核实。达到20%保存停止，不使用重置卡。
 
@@ -63,6 +63,8 @@ DP原生响应/ABI和guard保留，唯一native扩展为两处禁表读取调用
 
 [当前真实CPU主机静态预检](2026-10-24-pretraining-evidence/cpu-deployment-proof.json)退出0，来源actual_host：4个cgroup可用核、16GiB内存上限、约30.5GB可用磁盘、CPU Torch实际依赖/资源哈希均匹配。所用1核/128MiB/16MiB阈值只是明示的最小工程预检，不是正式课程容量推荐。未填的[GPU配置模板](2026-10-24-pretraining-evidence/gpu-template-blockers.json)按预期退出2：本机无CUDA、CPU wheel不能作GPU锁，目标硬件/参数尚缺；未自动回退、采购或启动GPU。两份报告均formal_training_ready=false，静态报告不反序列化权重或加载核心。
 
-腾讯接续顺序：取得已核对源码/包→按哈希锁建CPU环境并运行安全检查→按lock准备/验普通native资源→填写收件/分区/period host和真实task→实际目标PC兼容→目标GPU锁/主机静态预检→获准2A小试及恢复/吞吐记录→冻结三期正式课程。具体命令和恢复协议在包内training-handoff/period-runtime/deployment-preparation，无厂商SDK或本机路径依赖。正式牌表到达后仍须验证所需机制与驱动；遇unsupported要明示并适配，不能以本轮通常怪兽/有界超量通过预先保证珠泪全机制。
+腾讯接续顺序：取得已核对源码/包→按哈希锁建CPU环境并运行安全检查→按lock准备/验普通native资源→填写收件/分区/period host和真实task→目标GPU锁/主机静态预检→获准2A小试及恢复/吞吐记录→冻结三期正式课程。具体命令和恢复协议在包内training-handoff/period-runtime/deployment-preparation，无厂商SDK或本机路径依赖。正式牌表到达后仍须验证所需机制与驱动；遇unsupported要明示并适配，不能以本轮通常怪兽/有界超量通过预先保证珠泪全机制。
 
 [平台CI与原始聚合收据](2026-10-24-pretraining-evidence/ci-da0130b.json)保留PR head与临时受测提交的区别；源码摘要ae247a5b与本地/归档一致。后续证据提交的最新head检查仍须另读平台，不能只凭此历史运行声称所有后续head通过。
+
+阶段澄清：此前将PC和provider一概并列为开训阻碍过宽，现按最新授权修正。PC产品/标准客户端互操作后置，LLM非必需；2A可用明确合法工程数据做硬件/吞吐小试，2B正式分期课程才需对应历史资料/牌表/驱动。两个2022设计截止不是待用户选择，2026具体截止仍须选择。当前源包59dd60b是前批快照；本轮新增源码完成后另生成新包，不能把旧包称作含有本轮新代码。

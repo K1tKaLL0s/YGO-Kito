@@ -88,8 +88,8 @@ PYTHONPATH=src .venv/bin/python -m ygo_kito agent-serve \
 
 它只启动受控协议宿主；由 `Client` 的 prepare/状态检查/start 请求实际启动有界 worker。`--local-cpu-control` 保留原开关名，stage2 group 的完整宿主 recipe 现在可选 `execution:{schema_version:1,device:"cuda:0",dtype:"float32"}` 与实际 `allocated_gpu_count`，再用同一 `--local-training-config` 指定。旧 standalone CPU工具未全部扩为GPU。GPU配方必须另冻结目标环境锁；缺CUDA拒绝，无隐式CPU回退。完整示例与恢复步骤见 [training-handoff](training-handoff.md)。
 
-正式三期配方不能直接复用两周期工程样例：先准备真实[训练输入](training-input.md)和[时期宿主](period-runtime.md)，以及目标/验证任务、对手资格、隔离种子、官方来源/旧规则与PC门槛。用户3＋8牌表仍待接收，但不是仅剩依赖。实例/付款授权、GPU运行验收与吞吐、真实provider资格和正式独立能力评测也分别待核实。
+正式三期配方不能直接复用两周期工程样例：先准备真实[训练输入](training-input.md)和[时期宿主](period-runtime.md)，以及目标/验证任务、可执行对手、隔离种子和相应时期的官方来源/旧规则范围。用户3＋8牌表仍待接收，但不是仅剩依赖。实例/执行授权、GPU运行与吞吐恢复待目标主机核实。2A可先用合法工程数据；正式能力评测另验。PC产品/客户端互操作后置，真实provider仅在选择其可选对手/辅助路径时核实，不阻塞本地规则/冻结模型基线。
 
-退出0表示包生成/包完整性核验成功，或所有**静态部署检查**通过；预检有 blockers 退出2并保留 JSON。报告始终 `formal_training_ready:false`、`training_started:false`。阶段门槛、三期数据、合法对手、PC、真实 GPU 执行与正式训练授权由上层独立汇总，不能把 `deployment_checks_passed:true` 升格成这些结论。
+退出0表示包生成/包完整性核验成功，或所有**静态部署检查**通过；预检有 blockers 退出2并保留 JSON。报告始终 `formal_training_ready:false`、`training_started:false`。阶段门槛、相应数据、合法对手、真实GPU执行与训练授权由上层独立汇总；PC产品不列为基础训练前置，不能把 `deployment_checks_passed:true` 升格成这些结论。
 
 本脚本没有腾讯云 SDK 或价格假设。是否已获准运行、机型/采购/费用、设备数量、依赖许可、停云计费、实际 provider、Codex 当前额度都须从各自真实来源核实。已有本地停止不代表计费停止；不新增精密预算系统。
