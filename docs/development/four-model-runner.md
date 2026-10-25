@@ -47,11 +47,16 @@ flowchart LR
 | wall_seconds | 初始化＋各worker活动段累计上限；默认180秒，不是Codex额度，也不是云实例停止计费条件 |
 | bootstrap_seed / train / validation | 基模冒烟、适配采样、验证种子互斥；验证保留不同真实驱动/牌表变体 |
 | task / adapters | 宿主指定仓库configs内JSON；任务、数据和适配配置摘要冻结，四角色模板按周期数派生各自最大更新数 |
+| coordinator_supervision（可选） | 宿主指定 `configs/...json` 聚合监督；内容摘要绑定恢复，bootstrap 与后续统筹 LoRA 使用同一份标签 |
 | metrics.steps / committed_stages | 阶段提交数量；两周期完成为13，不冒充13次参数更新 |
 | metrics.optimizer_updates | 实际已提交参数更新；默认基模4＋适配8＝12 |
 | episodes / validation_episodes | 默认每运行3场已提交训练（含bootstrap）和2场已提交冻结验证 |
 
 默认种子bootstrap1724、适配1725/1726、验证1001724。train/validation按完整本席位轨迹分别落盘，种子/审计不进入DTO；隐藏身份/攻防为空或省略。固定验证种子跨周期复用，不称独立终验集。构筑训练数据仍是工程样例，不是用户未来3＋8套牌表。
+
+不提供 `coordinator_supervision` 时仍使用 `synthetic_rule_imitation_and_probability_anchors`，包括显式时期配方；时期数据不会自动变成统筹监督。显式文件可采用 `host_logged_supervision_v1`：顶层为 `source/records/real_win_rate_supervision:false/sha256`（`sha256` 是 records 的规范 JSON 摘要），每行包含现有公开聚合 `context`、`route_label`、可空 `forecast_target` 和 `provenance`（`dataset_id/record_id/source/evidence_sha256`）。缺失 forecast 标签只训练路由，不补造概率锚点，也不更新 forecast_head 的适配参数。默认统筹适配目标仍为 encoder 和 route_head；需要直接适配 forecast_head 时由宿主明确列入 adapters 配置。
+
+更新记录明确监督来源、摘要、forecast 标注行数，保留 `supervision_evidence_verified:false / real_win_rate_supervision:false / calibration:pending`。程序校验结构与摘要，不能凭来源字符串或哈希证明标签真实、胜率校准或调度质量；小合成日志的 CPU 损失/恢复测试只证明工程接线。文件内容改变后原恢复绑定拒绝，不能绕过旧源码/资源门禁。
 
 ## 检查点、恢复和预算
 

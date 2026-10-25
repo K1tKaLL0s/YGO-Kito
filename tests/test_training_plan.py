@@ -4,7 +4,7 @@ import sqlite3
 import tempfile
 import unittest
 
-from ygo_kito.training_plan import BudgetBook, validate_plan
+from ygo_kito.training_plan import BudgetBook, validate_plan, required_training_gates, LEGACY_GATES
 from ygo_kito.validation import ContractError, read_json
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,6 +31,18 @@ class TrainingPlanTests(unittest.TestCase):
         self.assertEqual(p["stop_remaining_quota_percent"], 20)
         self.assertIsNone(p["machine_type"])
         self.assertTrue(all(v is None for v in p["environment_artifacts"].values()))
+        self.assertNotIn("P-01", p["required_gates"])
+        self.assertEqual(required_training_gates(p), p["required_gates"])
+
+    def test_old_plan_keeps_its_identity_without_requiring_a_pc_product(self):
+        legacy = dict(self.plan, plan_id="three-environments-v1", required_gates=list(LEGACY_GATES))
+        self.assertEqual(validate_plan(legacy), legacy)
+        self.assertNotIn("P-01", required_training_gates(legacy))
+        # Reading old metadata must not rewrite an existing ledger's hash.
+        path = Path(self.tmp.name) / "old-plan.sqlite3"
+        old = BudgetBook(path, legacy, role="trainer", source="synthetic_contract_test", create=True)
+        self.assertEqual(old.status()["events"], 0)
+        self.assertEqual(old.plan, legacy)
 
     def test_setup_download_idle_and_failed_multi_gpu_time_all_count(self):
         activities = (("setup", "completed", 2, 1800), ("download", "failed", 1, 3600),

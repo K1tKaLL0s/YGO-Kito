@@ -4,10 +4,12 @@
 不绑定 CodeBuddy、DeepSeek、DSH 或任何 SDK。CodeBuddy 只作为仓库内已有的一个具体适配
 示例出现在 `coding_agent.py`，不是运行依赖。
 
-**接口存在不等于已接通。** 本文标注的"已核实"指源码与独立测试层面；实际宿主、真实
-provider、腾讯云实例均**未验证**，见 §9。
+**接口存在不等于已接通。** 本地参考宿主和完整项目 stdio 已实测；真实外部
+provider、腾讯云实例均**未验证**，见 §9。普通真实核心已在当前云端重新构建并跑通合法对局、精确回放及正常接口回归，见[当前诊断](../reports/2026-10-24-native-current-diagnosis.md)。这些结果没有把 fixture 客户端变成真实外部模型，也不改变下文 RPC 的固定权限。
 
 **集成与启动前提。** 本说明中的 CLI 命令需在完整项目中执行。独立交付中的 `_work/` 仅为审查与选定测试准备的局部源码副本，不含 `src/ygo_kito/cli.py`、`src/ygo_kito/__main__.py`，不能直接按独立安装包启动。应用原生响应修复时，`native.py` 与新增 `native_response_guard.py` 必须作为同一组集成；守卫依赖项目现有的 `native_protocol.NativeError`，无需新增第三方依赖。
+
+**当前整合接续。** DP `a7085e2` 与构筑 `9958769` 已在 `codex/integration-merge-prep` 保留历史整合；最新 manager 构筑入口见 §11，[合并准备报告](../reports/2026-10-24-merge-preparation.md)区分本地CPU证据、历史DP结果与CI。先读仓库 `AGENTS.md`。当前不运行原生故障复现或未筛选测试发现。
 
 ## 1. 宿主需要什么能力
 
@@ -65,10 +67,10 @@ provider、腾讯云实例均**未验证**，见 §9。
 |---|---|---|
 | `monitor` | `capabilities`, `runs.list`, `runs.read`, `runs.metrics`, `checkpoints.read`, `opponents.summary` | 6 |
 | `trainer` | monitor 全部 + `training.prepare`, `training.recover`, `training.control` | 9 |
-| `manager` | monitor 全部 + `environment.runtime`, `environment.register`, `deck.import`, `deck.read`, `opponent.register`, `coding.prepare_handoff` | 12 |
+| `manager` | monitor 全部 + `environment.runtime`, `environment.register`, `deck.import`, `deck.read`, `opponent.register`, `coding.prepare_handoff`, `construction.plan`, `construction.run` | 14 |
 | `opponent` | `capabilities` + `duel.open`, `duel.next`, `duel.status`, `duel.submit_action`, `duel.close`, `cards.lookup` | 7 |
 
-去重合计 **21 个方法**（`capabilities` 四个角色都有，只算一次）。
+去重合计 **23 个方法**（`capabilities` 四个角色都有，只算一次）。
 
 要点：
 
@@ -168,12 +170,11 @@ provider、腾讯云实例均**未验证**，见 §9。
 ```
 
 - `release_cutoff` 为 ISO 日期或 `null`。**`null` 当前语义是"当前/未限定"，不是"未知"**。
-  2026 期截止日未冻结时，请注册为待定并**不要**填入猜测日期。
+  2026期已选2026-11-01，但日期已选不等于最终卡池已冻结；不能用null或猜测发行记录规避准入。
 - `authority` ∈ `custom | community | official`。
 - 返回值含 `validation`、`runtime_compatible`、`historical_rules_verified`（恒 `false`）。
   只有与运行时资源完全一致的 `custom` 环境才可能 `runtime_compatible: true`。
-- 旧设计提到的 2022-07→2022-09-30、2022-10→2022-12-31 两个截止日**未经本轮核对**，
-  属待用户确认资料，不得当作既成事实写入代码。
+- 已确认设计§7规定2022-07→2022-09-30、2022-10→2022-12-31；2026-10现已选2026-11-01，含日本当地（JST）当日正式OCG发售，禁表仍2026-10-01/2026.10。截至2026-10-25仅date_selected，11月1日JST当日及之后仍须按实际正式发行和可信来源核对最终池，未知保持pending。不能把未核实逐卡发行来源误写成用户尚未决定日期；历史收件中的null保留原有语境。
 
 ### 7.2 导入卡组
 
@@ -193,13 +194,15 @@ provider、腾讯云实例均**未验证**，见 §9。
 - **幂等/冲突**：同 `deck_id` + 同内容可重放；同 `deck_id` + 不同内容 →
   `registered resource conflict; use a new version ID`。不会静默覆盖。
 
-### 7.3 已知不足（本轮未改）
+### 7.3 旧 registry RPC 的范围
+
+以下只描述`deck.import`兼容路径，不是当前分期训练收件/宿主的状态。正式来源、发行允许池和时期绑定使用[训练收件](deck-intake.md)、[训练输入](training-input.md)及[分期宿主](period-runtime.md)；该RPC不能把登记成功提升为历史训练资格。
 
 - 只保存解析后的卡表与规范化哈希，**不保存 `.ydk` 原文**，牌表原始字节/注释/顺序会丢。
 - 内容哈希不是记录键，无版本链、无法按哈希去重。
-- 无命名"时期"概念；三期仅是训练预算阶段名，未与卡池/禁表/截止日绑定。
+- 该旧RPC不消费命名时期与发行manifest；三期实际来源绑定由独立训练输入完成。
 - 未区分"结构合法"与"该期卡池合法"：`allowed` 池参数从未由导入路径传入。
-- 禁限表分区在 `native.banlist_limits` 内固定为 `2026.10`。
+- 该旧RPC仍使用`native.banlist_limits`的默认2026.10；分期宿主另行严格选节，不借此默认值验证历史牌表。
 
 ## 8. 对手席位（`opponent`）
 
@@ -259,9 +262,67 @@ client.training_control("run-a", "pause", expected_revision=7, request_id="ctl-p
 
 ## 10. 仍依赖真实宿主或资源的项目（未验证，勿视为通过）
 
+以下按各自阶段接续，不是当前软件开发完成的共同前置。当前交付可调用代码、资源导入、训练入口和恢复交接；用户提供卡组后进入腾讯云第二阶段，安装GPU锁并进行实机检查、调优、训练及能力验收。PC归阶段3；真实provider只影响选择它的可选路径。
+
 1. 任一实际编程 Agent 宿主（CodeBuddy/DSH/其他）的端到端调用与权限隔离。
 2. `duel.*` 全链路：需完整原生资源；含 `STALE_STATE`、超时回退的真实引擎路径。
 3. 真实 `deck.import`：需 `cards.cdb` 与 `lflist.conf`。
 4. 腾讯云部署、计费停机确认、吞吐与硬件压力。
 5. 3 套主构筑与 8 套对手构筑（尚未提供，接口已预留，未虚构内容）。
-6. 2026 期卡池截止日（未冻结）。
+6. 2026期截止已选2026-11-01（含JST当日正式OCG发售），最终卡池仍待到日及来源核验；不是等待用户重新选日期。
+
+补充收件入口：`deck_intake.py` 与[3＋8收件说明](deck-intake.md)对三个时期分别核对显式截止、供给的卡库/发行清单/指定禁表节并保留编号映射，补足§7所列历史输入预检缺口。它只写独立不可运行的准备记录，不替换现有`deck.import`或关闭其runtime门禁；缺用户数据不制造成功。完整源码依赖、恢复与资源采集见[训练交接](training-handoff.md)，安全白名单与远端Actions见[CPU CI](safe-cpu-ci.md)。
+
+## 11. 构筑逻辑、分类器与本地 Agent 的实际接续
+
+现在可用的调用链是 **DP `Client` → JSON Lines/Loopback → `AgentBridge` manager → `HostConstructionBackend` → 已有分类器/构筑控制器/统筹网络**。这证明本地协议和CPU代码组合，不证明CodeBuddy、DeepSeek、DSH等实际外部模型已经连接。
+
+完整云端检出的最小启动：
+
+```bash
+cd /workspace/YGO-Kito-construction
+PYTHONPATH=src /workspace/YGO-Kito/.venv/bin/python -m ygo_kito status
+PYTHONPATH=src /workspace/YGO-Kito/.venv/bin/python -m ygo_kito agent-serve \
+  --role manager --state-root .cache/agent --root .cache \
+  --construction-config path/to/approved-host-config.json
+```
+
+`status`退出0只表示程序能启动；当前一般引擎仍 `ready:false`。不带 `--construction-config` 也可启动，构筑RPC明确 `CONSTRUCTION_BACKEND_NOT_CONFIGURED`。不要以 `_work` 目录或关闭本机的路径替代完整检出。
+
+宿主配置严格为：
+
+```json
+{
+  "intent_model": ".cache/approved/intent.json",
+  "binding_data": ".cache/approved/binding.json",
+  "logic_checkpoint": ".cache/approved/graph.weights"
+}
+```
+
+前两项必需，最后一项可省略。所有文件路径解析后必须在workspace内，含symlink解析；它们由宿主选择，RPC不能改。分类器加载失败明确报错；卡库/审核表延迟到run才加载，缺资源仍可plan。图checkpoint省略时为明示的随机初始化评分器，不冒充正式权重；已有checkpoint要求任务/图词表/特征绑定一致。工程拟合样例只用于代码验证，接续Agent不应自动训练替代正式模型。
+
+```python
+from ygo_kito.agent_driver import Client, StreamTransport
+client = Client(StreamTransport(proc.stdout, proc.stdin))
+caps = client.capabilities()
+if caps.get("construction_backend_configured"):
+    plan = client.call("construction.plan", {"request": "以堆墓为构筑目标"})
+```
+
+`construction.plan`仅接收 `request`，返回真实模型分数、拒判理由和阶段路由。未训练、低置信或OOV保留第一阶段，不用词典固定分数替代模型。
+
+`construction.run`必需字段为 `request / task / required_tags`；可选 `base / scopes / feedback`。其中task为现有BuildTask DTO，required_tags是基本标签数组，base是main/extra/side牌表，scopes为有来源的字段/种族范围，feedback为source/message数组。数据结构见[构筑说明](construction-logic.md)。请求不接受文件路径、模型选择、训练、native开关或凭据。
+
+当前RPC固定 `verifier=None / coordinator host=None`：实际图候选/两角色评分/目录绑定/统筹网络可以运行，**不执行原生核验、不提交统筹账本任务、不启动训练/API**。返回 `engine_validation_not_run / construction_unresolved` 时要保留未满足项；不能当合法CB或完整构筑交付。完整资源缺失报 `CONSTRUCTION_RESOURCES_UNAVAILABLE`；空/坏图checkpoint也报资源错误，进程仍可继续plan。monitor/trainer/opponent不能调用两个构筑方法。
+
+同一任务复用已加载评分模型，每RPC建立新的目标会话并清理本轮选择证据；不会把上一请求的优化结果混进失败的新请求。该推理RPC没有训练控制幂等事务的含义；DP原有 `training.control` ID去重仍只按原控制协议处理。
+
+后续编程Agent先读取：`AGENTS.md`、MASTER中CL-00/MP条目、当前合并报告及source commit。用 `coding.prepare_handoff` 可以生成带明确模型ID的接续包，但 `executed:false / model_verified:false`，准备包不会执行外部CLI。选定宿主、真实provider配置和相应授权仍是外部依赖。
+
+本候选安全验证入口：
+
+```bash
+OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 /workspace/YGO-Kito/.venv/bin/python scripts/check_merge_candidate.py
+```
+
+脚本只运行明确白名单；`tests.test_native_response_buffer`整组和真实integration_tests不在本轮执行范围。**不要改成全量discovery来获取“全绿”**。旧checkpoint的源码摘要会因新增模块/换行变化而失配；保留旧提交复现，不取消摘要门禁。

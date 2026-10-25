@@ -1,0 +1,57 @@
+{
+  "scope": "current-pinned-core-period-adapter-engineering-only",
+  "native_executed": true,
+  "historical_rules_verified": false,
+  "official_sources_verified": false,
+  "user_decks_received": false,
+  "completed_proofs": [
+    {
+      "operation": "actual-actor-rebind-native-open",
+      "period_label": "2026-10",
+      "historical_rules_verified": false
+    },
+    {
+      "operation": "actual-period-group-inputs-and-conditional-normal-goal",
+      "period_label": "2022-10",
+      "goal_status": "verified_success",
+      "bootstrap_seed": 2001,
+      "adaptation_seeds": [
+        2002
+      ],
+      "two_actual_opponents_selected": true,
+      "training_updates": 0,
+      "historical_rules_verified": false
+    },
+    {
+      "operation": "actual-period-v5-discovery-keyed-replay",
+      "period_label": "2026-10",
+      "goal_status": "verified_success",
+      "branches_executed": 8,
+      "historical_rules_verified": false
+    },
+    {
+      "operation": "actual-period-baseline-terminal-private-replay",
+      "period_label": "2022-07",
+      "responses": 244,
+      "natural_terminal": true,
+      "training_updates": 0,
+      "historical_rules_verified": false
+    },
+    {
+      "operation": "actual-repository-host-input-load",
+      "period_label": "2022-10",
+      "historical_rules_verified": false
+    },
+    {
+      "operation": "actual-assets-baseline-loader-index",
+      "datasets": 9,
+      "training_episodes": 0
+    },
+    {
+      "operation": "native-legal-normal-summon",
+      "period_label": "2022-07",
+      "responses": 4,
+      "historical_rules_verified": false
+    }
+  ]
+}

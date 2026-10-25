@@ -81,7 +81,9 @@ class FrozenOpponent:
             from .validation import fields,integer
             from .cpu_training import config_from_dict
             fields(state,{'schema_version','role','boundary','config','binding','card_ids','vocab_sha256','model','optimizer','scheduler',
-                          'updates','episode_cursor','model_sha256','rng'})
+                          'updates','episode_cursor','model_sha256','rng'}, {'execution','device_rng'})
+            from .device import checkpoint_execution
+            checkpoint_execution(state, requested='cpu')  # No implicit CUDA-to-CPU inference migration.
             fields(state['binding'],{'feature_version','resources','source_commits'},
                    {'profile_sha256','python_implementation_sha256','python','torch','registered_opponent_pool'})
             receipt=verify_resources(registry.native_root)
@@ -131,7 +133,7 @@ class FrozenOpponentPool:
                 'opponents':[o.binding for o in self.opponents],'formal_training_ready':False,'strength_qualified':False}
 
 
-def replay_private(root,trace):
+def replay_private(root,trace,*,engine_factory=None):
     from dataclasses import asdict
     from pathlib import Path
     from .native import NativeNormalEngine,NativeError
@@ -140,7 +142,9 @@ def replay_private(root,trace):
     fields(trace,{'schema_version','kind','name','profile','seed_audit_only','selection_key_audit_only','resources','responses',
                   'events','outcome','final_observations','result','opponent_binding'})
     if trace['kind']!='registered-opponent-private-replay-v1':raise ContractError('unknown registered replay format')
-    with NativeNormalEngine(Path(root),scenario='effect-duel',deck_profile=trace['profile'],seed=trace['seed_audit_only'],
+    factory=NativeNormalEngine if engine_factory is None else engine_factory
+    if not callable(factory):raise ContractError('trusted private replay engine factory must be callable')
+    with factory(Path(root),scenario='effect-duel',deck_profile=trace['profile'],seed=trace['seed_audit_only'],
                             selection_key=trace['selection_key_audit_only']) as engine:
         if engine.receipt!=trace['resources']:raise ContractError('registered replay resource versions differ')
         req=engine.next_decision()

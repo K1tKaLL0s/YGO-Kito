@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "kind": "maintained-bot-current-preparation-and-runtime-boundary",
+  "source_lock_sha256": "d54f892a52a0770e60c64a842b13b412cd778a5ac2887815850ad7eae96c153b",
+  "inventory_sha256": "c405d35aac9aad63f3d5bb94dc6bc355abb0b9c328691d16355f52243d0a71a1",
+  "scope": {
+    "source_origins": 220,
+    "byte_groups": 81,
+    "desktop_origins": 147,
+    "desktop_byte_groups": 80,
+    "library_origins": 73,
+    "library_only_byte_groups": [
+      {
+        "source_id": "library",
+        "source_path": "libWindbot/Game/AI/Decks/Monarch506Executor.cs",
+        "class_name": "Monarch506Executor",
+        "deck_name": "Monarch506",
+        "deck_file": "AI_Monarch506",
+        "git_blob_sha1": "01014fb8f0df311df31f45d9f812446fa832e57e",
+        "sha256": "347fa5ee60bb88455528bd835fc513e7eb55acc15d35e55039869039efadbeb9",
+        "bot_id": "9f5fcd8ce3a186c33c2eb9a82af7e31ba1edc89d344285408af63a912a0d5e64"
+      }
+    ]
+  },
+  "inputs": {
+    "verified_files": 829,
+    "original_text_source_files": 815,
+    "added_passive_build_resource_paths": 14,
+    "actual_unique_build_resource_gets": 6,
+    "complete_bundle_sha256": "a40a54efb0a4a3d6283013ec0f9f0bf6808f4eaef66a8a812238a0433e3ad5be",
+    "complete_bundle_total_payload_bytes": 30626860,
+    "archive_local_path": ".cache/bot-source-review/complete-bot-build-inputs-v2.tar.gz",
+    "full_fetch_829_real_network_run": false
+  },
+  "prepared_plans": {
+    "ice": {
+      "expected_executors": 73,
+      "plan_sha256": "12b401a3a21b2981f3c88c79885207f1f457c315321fe3d7f5d781559eb287b1",
+      "audit_source_sha256": "2c2c6b3abc10e4743f3bc6f700862623ef04eefc1966d9be2f8fa71bd704e8e2",
+      "cross_source_decks": [
+        {
+          "executor": "WindBot.Game.AI.Decks.DoEverythingExecutor",
+          "deck_name": "Test",
+          "selected_deck_source_id": "pure",
+          "selected_deck_path": ".cache/bot-source-review/purerosefallen--windbot/source/Decks/AI_Test.ydk",
+          "sha256": "98761787341c70f3f8a42e647f485ccf8871c9d5f570eea22dd69d7870ac386d"
+        },
+        {
+          "executor": "WindBot.Game.AI.Decks.LuckyExecutor",
+          "deck_name": "Lucky",
+          "selected_deck_source_id": "pure",
+          "selected_deck_path": ".cache/bot-source-review/purerosefallen--windbot/source/Decks/AI_Test.ydk",
+          "sha256": "98761787341c70f3f8a42e647f485ccf8871c9d5f570eea22dd69d7870ac386d"
+        }
+      ],
+      "prepared": true,
+      "executed": false
+    },
+    "pure": {
+      "expected_executors": 74,
+      "plan_sha256": "f2c948de61c519afb1ac4fbefd297b9d8df47f1f0097ff93ac480f77a15057fe",
+      "audit_source_sha256": "2c2c6b3abc10e4743f3bc6f700862623ef04eefc1966d9be2f8fa71bd704e8e2",
+      "cross_source_decks": [
+        {
+          "executor": "WindBot.Game.AI.Decks.OldSchoolExecutor",
+          "deck_name": "OldSchool",
+          "selected_deck_source_id": "ice",
+          "selected_deck_path": ".cache/bot-source-review/IceYGO--windbot/source/Decks/AI_OldSchool.ydk",
+          "sha256": "1b1f411fcfc7d187c7478855ee7c8e462dc03d33065b2fabb706756b22e84469"
+        }
+      ],
+      "prepared": true,
+      "executed": false
+    }
+  },
+  "cpu_check": {
+    "command": "PYTHONPATH=src OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 .cache/ci-cpu-venv/bin/python -m unittest tests.test_bot_deployment tests.test_bot_build_audit",
+    "passed": 25,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 0.421,
+    "scope": "own Python source/bundle/fetch/registry/build-plan contracts; injected process/opener fixtures are not real C# evidence"
+  },
+  "code_prepared": [
+    "fixed normal-GET fetch; no redirects/retries/alternate host",
+    "829-member offline bundle/install/full static discovery",
+    "full fixed desktop build and exact 73/74 reflection/resource/constructor checker",
+    "audited registry to unique windbot_session and WindBotOpponent; period context/rebind sealed",
+    "full Python projection/room/registry/audit module hashes plus assembly/source/CDB/YDK/toolchain seals"
+  ],
+  "static_harness_corrections": [
+    "Pure GameClient explicitly (info,null); Ice (info), matching exact fixed constructor signatures.",
+    "Config.Load(empty string[]) initializes pinned config caches before constructors; no file/network option."
+  ],
+  "actual_third_party": {
+    "csharp_compiles": 0,
+    "assembly_reflection_loads": 0,
+    "executor_constructions": 0,
+    "normal_duels": 0,
+    "runtime_loaded": false,
+    "normal_duel_verified": false,
+    "training_connected": false,
+    "strength_verified": false,
+    "history_verified": false
+  },
+  "blocker": {
+    "status": "blocked_external_environment_dependency",
+    "reference": "docs/reports/2026-10-25-bot-toolchain-block.json",
+    "reasons": [
+      "system mono-devel installation failed with uid1000/no sudo/dpkg lock EACCES",
+      "configured signed snapshot.debian.org APT indexes denied HTTP403 by proxy"
+    ],
+    "retry_or_alternate_attempted_after_denial": false,
+    "remaining": "Real approved desktop builds, exact constructors/resources and bounded C# loopback proofs require allowed environment with approved toolchain. Additional exact library-only Monarch506 variant requires confirmed scope and distinct typed manifest first."
+  },
+  "historical_receipts_preserved": [
+    "docs/reports/2026-10-25-bot-source-preparation.json",
+    "docs/reports/2026-10-25-bot-build-run-approval-packet.json"
+  ],
+  "no_claims": [
+    "byte identity implies runtime equivalence",
+    "all 81 groups have approved unmodified desktop origin",
+    "Python normal projection proof is C# duel evidence",
+    "static inventory or constructors establish history/strength"
+  ]
+}

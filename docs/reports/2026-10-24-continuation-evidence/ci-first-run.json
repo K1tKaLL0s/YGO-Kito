@@ -1,0 +1,81 @@
+{
+  "run_id": 40134446833,
+  "head_commit": "043c5bcee0e2a41edd666da73f1d2771f28ba0dc",
+  "run_url": "https://github.com/K1tKaLL0s/YGO-Kito/actions/runs/40134446833",
+  "job_id": 120992880023,
+  "job_conclusion": "failure",
+  "source": "aggregate JSON read from GitHub job logs",
+  "receipt": {
+    "started_utc": "2026-10-24T21:30:21.871361+00:00",
+    "tested_head": "acf387fd2a54039c7d607dc3e0832b5aad5d4449",
+    "implementation_sha256": "6af98ff7450fd16236dc64dbd3c96e7629f57731bfaad9f573c2cc380418a47c",
+    "tests_run": 217,
+    "failures": 0,
+    "errors": 1,
+    "skipped": 0,
+    "success": false,
+    "dependencies": {
+      "python": "3.12.14",
+      "torch": "2.9.1+cpu",
+      "numpy": "2.3.5"
+    },
+    "skipped_tests": [],
+    "resources": {
+      "test_wall_seconds": 12.636575886999992,
+      "process_cpu_seconds": 1.881317937,
+      "process_peak_rss_bytes": 316837888,
+      "gpu_memory_bytes": null,
+      "game_samples_per_second": null,
+      "scope": "test runner parent process; subprocess CPU/RSS not aggregated; no game throughput measured"
+    },
+    "elapsed_seconds": 12.636575886999992,
+    "by_module": {
+      "test_intent_model": 8,
+      "test_construction_model": 9,
+      "test_construction_binding": 10,
+      "test_construction_logic": 20,
+      "test_construction_cli": 6,
+      "test_build_intent": 11,
+      "test_build_contracts": 7,
+      "test_build_semantics": 7,
+      "test_catalog_discovery": 2,
+      "test_combined_goals": 2,
+      "test_cli": 22,
+      "test_agent_contract": 38,
+      "test_model_group_invariants": 10,
+      "test_training_checkpoint_contract": 14,
+      "test_agent_tools": 10,
+      "test_construction_service": 9,
+      "test_integration_startup": 3,
+      "test_training_handoff": 6,
+      "test_agent_lifecycle": 5,
+      "test_construction_scenarios": 6,
+      "test_deck_intake": 12
+    },
+    "dp_native_pair": {
+      "src/ygo_kito/native.py": {
+        "sha256": "0a2f40c99e3e14bb1eb0446c89c8b80175cd6f1893c8207ee8496deb6725139e",
+        "matches_dp_commit": true
+      },
+      "src/ygo_kito/native_response_guard.py": {
+        "sha256": "685846435d4f951324f36a04ff49ea67c4d70c2d4b2c974963e12a4a9e8df64b",
+        "matches_dp_commit": true
+      }
+    },
+    "excluded_modules": [
+      "tests.test_native_response_buffer",
+      "integration_tests"
+    ],
+    "exclusion_reason": "No native execution, fault reproduction, unscreened discovery, or external provider calls authorized in this run.",
+    "evidence_scope": "local CPU contracts and explicitly synthetic model/composition tests",
+    "native_executed": false,
+    "external_provider_verified": false,
+    "ci_verified": false
+  },
+  "artifact_download": {
+    "artifact_id": 12576881086,
+    "connector_result": "temporary file reference generated",
+    "cloud_http_result": "403 Forbidden at proxy tunnel; no ZIP bytes read",
+    "retry_performed": false
+  }
+}

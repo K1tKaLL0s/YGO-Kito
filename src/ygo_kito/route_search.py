@@ -8,6 +8,7 @@ from collections import Counter
 from dataclasses import asdict
 import json
 import math
+import secrets
 import time
 
 from .build_contracts import digest
@@ -106,6 +107,8 @@ def discover_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budg
         return {"status": "unsupported_route", "card_list_legal": True,
                 "unmet": ["goal kind and card type differ"], "core_attempts": []}
     started, trials, branches, failures = time.monotonic(), [], 0, []
+    from .extra_routes import goal_profile_for
+    selection_key = secrets.token_hex(16) if goal_profile_for(assets,deck).get("adapter_revision") in (4,5) else None
     required = Counter(task.goal["starting_conditions"]["requires_opening_hand"])
     seeds = tuple(dict.fromkeys((7, 24, 1724, *range(64))))[:attempts]
     for seed in seeds:
@@ -116,7 +119,8 @@ def discover_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budg
             audit, sums, intents = [], [], []
             activated=set()
             try:
-                with NativeNormalEngine(assets.root, scenario="effect-duel", deck_profile=profile_for(deck), seed=seed) as engine:
+                from .extra_routes import engine_for_goal
+                with engine_for_goal(assets,deck,seed,selection_key=selection_key) as engine:
                     req = engine.next_decision()
                     opening = Counter(c.card_id for c in engine._observation(0).cards if c.zone == "hand")
                     present = all(opening[c] >= n for c, n in required.items())
@@ -169,6 +173,7 @@ def discover_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budg
                                         "material_preference": "public-fact-ranked", "sum_choices": sums,
                                         "final_observation": json.loads(canonical_json(asdict(own))),
                                         "core_event_audit_not_policy_input": list(engine.events), "versions": task.environment["versions"],
+                                        **({"private_selection_key_audit_only":selection_key} if selection_key is not None else {}),
                                         "exploration": {"branches_executed": branches, "branch_budget": branch_budget,
                                                         "discovered_intents": intents, "prewritten_route_supplied": False,
                                                         "failed_branches": failures,
@@ -189,7 +194,7 @@ def replay_discovered_goal(task, deck, assets, proof,*,required_activations=(),r
     fields(proof, {"status", "card_list_legal", "task_sha256", "deck_sha256", "starting_condition", "random_dependency",
                    "core_attempts", "responses", "core_event_kinds", "trajectory_sha256", "elapsed_seconds", "unmet", "route_evidence"})
     evidence = fields(proof["route_evidence"], {"driver", "opponent", "conditional_only", "material_preference", "sum_choices",
-        "final_observation", "core_event_audit_not_policy_input", "versions", "exploration"})
+        "final_observation", "core_event_audit_not_policy_input", "versions", "exploration"}, {"private_selection_key_audit_only"})
     exploration = fields(evidence["exploration"], {"branches_executed", "branch_budget", "discovered_intents", "prewritten_route_supplied", "failed_branches"},{'required_activations','required_chain_resolutions'})
     integer(exploration["branch_budget"], "replay branch budget", 1, 64)
     integer(exploration["branches_executed"], "replay branch count", 1, exploration["branch_budget"])
@@ -209,7 +214,9 @@ def replay_discovered_goal(task, deck, assets, proof,*,required_activations=(),r
     integer(len(attempts), "discovered attempt count", 1, 64)
     seed = proof["core_attempts"][-1]["seed_audit_only"]
     integer(seed, "replay audit seed", 0, 2**32 - 8)
-    with NativeNormalEngine(assets.root, scenario="effect-duel", deck_profile=profile_for(deck), seed=seed) as engine:
+    from .extra_routes import engine_for_goal, route_selection_key
+    selection_key=route_selection_key(assets,deck,evidence)
+    with engine_for_goal(assets,deck,seed,selection_key=selection_key) as engine:
         req = engine.next_decision()
         opening = Counter(c.card_id for c in engine._observation(0).cards if c.zone == "hand")
         if any(opening[c] < n for c, n in Counter(task.goal["starting_conditions"]["requires_opening_hand"]).items()):

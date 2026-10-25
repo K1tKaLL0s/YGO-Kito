@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "checked_at_utc": "2026-10-25T06:52:57Z",
+  "authorization": "User approved signed Debian Mono installation, full pinned Ice/Pure compilation and bounded 127.0.0.1 verification; no Android/public-host execution",
+  "source_commits": {
+    "IceYGO/windbot": "dec0535f8669dca01457a898890a968139711b19",
+    "purerosefallen/windbot": "1b8f89537afe930ce96d2fc8d57b0e91b1f96457"
+  },
+  "environment": {"os": "Debian 13 trixie", "uid": 1000, "sudo_available": false},
+  "attempts": [
+    {
+      "action": "apt-get install --no-install-recommends mono-devel",
+      "target": "system package installation",
+      "outcome": "failed",
+      "reason": "Permission denied reading configured APT fragment and opening /var/lib/dpkg/lock-frontend; current account is not root",
+      "approval_rejected": false,
+      "installation_succeeded": false
+    },
+    {
+      "action": "APT update with workspace-owned state/cache directories, default configured sources and signature verification retained; retries disabled",
+      "target": [
+        "https://snapshot.debian.org/archive/debian/20260925T181338Z/dists/trixie/InRelease",
+        "https://snapshot.debian.org/archive/debian/20260925T181338Z/dists/trixie-updates/InRelease",
+        "https://snapshot.debian.org/archive/debian-security/20260925T181338Z/dists/trixie-security/InRelease"
+      ],
+      "outcome": "denied_by_network_proxy",
+      "reason": "HTTP/1.1 403 Forbidden returned by the configured proxy for all three InRelease requests",
+      "apt_exit_code": 0,
+      "apt_exit_code_is_success_evidence": false,
+      "downloaded_package_indexes": 0,
+      "local_log": ".cache/mono-toolchain/apt-update.log",
+      "log_timestamp_utc": "2026-10-25T06:52:52Z",
+      "approval_rejected": false,
+      "retry_after_observed_denial": false,
+      "alternative_mirror_proxy_or_tool_attempted_after_denial": false
+    }
+  ],
+  "status": "blocked_external_environment_dependency",
+  "mono_installed": false,
+  "csharp_compiled": false,
+  "third_party_runtime_loaded": false,
+  "windbot_normal_duel_verified": false,
+  "merge_gate_closed": false,
+  "independent_work_continues": ["fixed source/resource deployment", "legal seat transport and response validation", "CPU protocol tests", "self-contained build and handoff instructions"],
+  "required_resolution": "A permitted environment with the approved Mono toolchain already available or accessible signed package sources and installation rights; do not bypass this environment's HTTP rejection"
+}

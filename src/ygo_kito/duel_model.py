@@ -12,6 +12,7 @@ import torch
 from torch import nn
 
 from .contracts import DecisionRequest
+from .device import model_device, move_batch
 from .validation import ContractError, canonical_json, integer
 
 KINDS = ("summon", "special_summon", "set", "activate", "attack", "select", "order", "number", "position", "yes", "no", "pass")
@@ -168,7 +169,7 @@ class PlayerEncoder:
                 "action_numbers": torch.tensor(action_numbers, dtype=torch.float32),
                 "pointers": torch.tensor(pointers, dtype=torch.float32)}
 
-    def batch(self, requests, *, pad_actions_to=None):
+    def batch(self, requests, *, pad_actions_to=None, device=None):
         if not requests:
             raise ContractError("empty policy batch")
         encoded = [self.encode(r) for r in requests]
@@ -187,7 +188,7 @@ class PlayerEncoder:
             b["actions"][i, :a], b["action_numbers"][i, :a] = e["actions"], e["action_numbers"]
             b["pointers"][i, :a, :n] = e["pointers"]
             b["context_mask"][i, :n], b["action_mask"][i, :a] = True, True
-        return b
+        return move_batch(b, device) if device is not None else b
 
 
 class DuelActorCritic(nn.Module):
@@ -208,14 +209,15 @@ class DuelActorCritic(nn.Module):
         self.value_head = nn.Sequential(nn.Linear(w, w), nn.Tanh(), nn.Linear(w, 1))
 
     def forward(self, batch):
-        if batch["state"].device.type != "cpu" or not batch["action_mask"].any(dim=1).all():
+        batch = move_batch(batch, model_device(self))
+        if not batch["action_mask"].any(dim=1).all():
             raise ContractError("CPU policy requires at least one legal action per row")
         tokens, actions = batch["tokens"], batch["actions"]
         x = self.card_project(self.card(tokens[..., 0])) + self.token_numbers(batch["numbers"])
         for i, embedding in enumerate(self.token_embeddings):
             x = x + embedding(tokens[..., i + 1])
         x[:, 0] = x[:, 0] + self.state_project(batch["state"])
-        x = x + self.positions(torch.arange(x.shape[1]))[None]
+        x = x + self.positions(torch.arange(x.shape[1], device=x.device))[None]
         x = self.encoder(self.input_norm(x), src_key_padding_mask=~batch["context_mask"])
         state = x[:, 0]
         a = torch.bmm(batch["pointers"], x) + self.action_numbers(batch["action_numbers"])

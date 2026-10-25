@@ -1,0 +1,41 @@
+{
+  "packet": {
+    "archive_sha256": "24368f4b7899daf9d2cd1e87bd58500bbc0362c8c94d2f77a083bc9fd1bae39e",
+    "source_files": 815,
+    "inventory_sha256": "d72ad7ff39a541f1ecacc8eea7a7f4544beba937813dd6bc98da95ae04b82348",
+    "runtime_ready": false
+  },
+  "verified": {
+    "verified_source_files": 815,
+    "source_lock_sha256": "9a4aaa5948292d4e2f1b99df1b72dfa4cd53808c702c494aecd80ecedbd631b6",
+    "inventory_sha256": "d72ad7ff39a541f1ecacc8eea7a7f4544beba937813dd6bc98da95ae04b82348",
+    "runtime_ready": false
+  },
+  "third_party_install_executed": false,
+  "third_party_build_executed": false,
+  "third_party_runtime_executed": false,
+  "schema_version": 1,
+  "kind": "maintained-bot-source-engineering-proof",
+  "source_counts": {
+    "ice": {
+      "executor_files": 73,
+      "ydk_files": 71
+    },
+    "pure": {
+      "executor_files": 74,
+      "ydk_files": 73
+    },
+    "library": {
+      "executor_files": 73,
+      "ydk_files": 0
+    },
+    "mobile-config": {
+      "executor_files": 0,
+      "ydk_files": 0
+    }
+  },
+  "origin_records": 220,
+  "byte_identical_implementation_groups": 81,
+  "bot_conf_records": 211,
+  "note": "Actual fixed-source reads and source packet checks; real source installation/build/runtime not executed. Installer/registry tests use inert synthetic fixtures."
+}

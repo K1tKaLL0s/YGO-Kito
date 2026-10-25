@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "intake_id": "user-three-main-eight-opponent-v1",
+  "environments": {
+    "2022-07": {
+      "release_cutoff": "2022-09-30",
+      "banlist_effective": "2022-07-01",
+      "banlist_section": "2022.7",
+      "catalog": null,
+      "releases": null,
+      "banlist": null
+    },
+    "2022-10": {
+      "release_cutoff": "2022-12-31",
+      "banlist_effective": "2022-10-01",
+      "banlist_section": "2022.10",
+      "catalog": null,
+      "releases": null,
+      "banlist": null
+    },
+    "2026-10": {
+      "release_cutoff": "2026-11-01",
+      "banlist_effective": "2026-10-01",
+      "banlist_section": "2026.10",
+      "catalog": null,
+      "releases": null,
+      "banlist": null
+    }
+  },
+  "slots": [
+    {
+      "slot_id": "main-01",
+      "periods": [
+        "2022-07"
+      ],
+      "deck": null,
+      "preferred_provider": null,
+      "controller": null
+    },
+    {
+      "slot_id": "main-02",
+      "periods": [
+        "2022-10"
+      ],
+      "deck": null,
+      "preferred_provider": null,
+      "controller": null
+    },
+    {
+      "slot_id": "main-03",
+      "periods": [
+        "2026-10"
+      ],
+      "deck": null,
+      "preferred_provider": null,
+      "controller": null
+    },
+    {
+      "slot_id": "opponent-01",
+      "periods": null,
+      "deck": null,
+      "preferred_provider": "DeepSeek",
+      "controller": null
+    },
+    {
+      "slot_id": "opponent-02",
+      "periods": null,
+      "deck": null,
+      "preferred_provider": "DeepSeek",
+      "controller": null
+    },
+    {
+      "slot_id": "opponent-03",
+      "periods": null,
+      "deck": null,
+      "preferred_provider": "DeepSeek",
+      "controller": null
+    },
+    {
+      "slot_id": "opponent-04",
+      "periods": null,
+      "deck": null,
+      "preferred_provider": "DeepSeek",
+      "controller": null
+    },
+    {
+      "slot_id": "opponent-05",
+      "periods": null,
+      "deck": null,
+      "preferred_provider": "DeepSeek",
+      "controller": null
+    },
+    {
+      "slot_id": "opponent-06",
+      "periods": null,
+      "deck": null,
+      "preferred_provider": "DeepSeek",
+      "controller": null
+    },
+    {
+      "slot_id": "opponent-07",
+      "periods": null,
+      "deck": null,
+      "preferred_provider": "DeepSeek",
+      "controller": null
+    },
+    {
+      "slot_id": "opponent-08",
+      "periods": null,
+      "deck": null,
+      "preferred_provider": "DeepSeek",
+      "controller": null
+    }
+  ]
+}

@@ -1,0 +1,195 @@
+{
+  "scope": "own CPU-updated source to fresh engineering GroupState; no new training",
+  "source_artifact_sha256": "ac8f1a048a9cf9b01a5f544944b5fa4663338aa54f00a7688f121ef99ad21863",
+  "source_context": {
+    "banlist_section": "2022.10",
+    "banlist_sha256": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+    "catalog_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+    "period_id": "2022-10",
+    "release_cutoff": "2022-10-01",
+    "release_manifest_sha256": "78251cddabe90985693668f722bd301606803bd5bd36425d7e4ebd442bc2afc8"
+  },
+  "source_cursor": {
+    "cycle": 1,
+    "phase": "done",
+    "committed_stages": 7
+  },
+  "target_new_run_updates": 0,
+  "initialization_provenance": {
+    "schema_version": 1,
+    "kind": "explicit-group-weight-initialization-not-resume",
+    "weights": "effective",
+    "source_checkpoint": ".cache/group-initialization-delivery-mlgc2oza/source-copy.weights",
+    "source_artifact_sha256": "ac8f1a048a9cf9b01a5f544944b5fa4663338aa54f00a7688f121ef99ad21863",
+    "source_binding_sha256": "14edbc0adb57e71a38b503cc47b6b119727c089b1ea5463231687351f87a7643",
+    "source_binding": {
+      "adapters_config_sha256": "4683f1d52300670aed692d2c756816b5ecf3f30cbf2176377ba54f7b70cad5ae",
+      "construction_curriculum_sha256": "5d60180b42ff763bcd6130f7e2d8fc581adcf4ea89331934caa20ce1e9124387",
+      "feature_version": "legal-player-dto-v5-private-knowledge-hierarchy",
+      "feedback_policy_sha256": "18e104d570dabc84bdb1959e1f287b38e1cb8c6c412c780ab1727a25bf1be3e5",
+      "period_context": {
+        "banlist_section": "2022.10",
+        "banlist_sha256": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+        "catalog_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+        "period_id": "2022-10",
+        "release_cutoff": "2022-10-01",
+        "release_manifest_sha256": "78251cddabe90985693668f722bd301606803bd5bd36425d7e4ebd442bc2afc8"
+      },
+      "period_input_sha256": "643ecacdbbf89e675457cbe3cdcbd082757580dd9b6839f924502d4f2a394356",
+      "profile_sha256": "3078375e21dce57d1784b05b23f59442b2844a02d2f4fbb18b5dbbaabb877df7",
+      "python": "3.12.14",
+      "python_implementation_sha256": "ae247a5b656d972c55db2fa69df60838e2faf5286d813bc28ff13f4fa7f79b09",
+      "resources": {
+        "banlist": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+        "card_data_abi": "754c750eb26e81eba44de3253c056a89de364f942ec5cd63ecd9d9791acff45e",
+        "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+        "client_config": "07f92954941343d33f38eae3986997cc620d595301e67adb9e473bfa3c254d0c",
+        "client_protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+        "core_api": "cb7b33d709791e86be0b821152c1ca34c2a2c72847c3603b4a07826c88b802af",
+        "core_constants": "2c78c4c7c92306cd76f09cc111c28e6604e0e3d4fc16252ec31e8cb8d1493e17",
+        "library": "b33b0fb302e24e4757532f224f04aec21e4b16153979b112923c6f746b2e531f",
+        "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+      },
+      "runner_recipe_sha256": "2587b15fd9a8bf66d8ca3365e019435e22e673436abc918c138a3dab7f43c879",
+      "source_commits": {
+        "client": "0d76e26b30c5ddb0273ee746459506c5719fddb6",
+        "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+        "database": "217ae165c1886af2fc36b823fc08f9fc3ec13185",
+        "lua": "6e22fedb74cf0c9b6656e9fce8b7331db847c605",
+        "scripts": "b83db1cc3f512d3bec2faafb9ecf199143332be1"
+      },
+      "task_sha256": "7fe498fb57fc8b7a711cd4978931354857a6fd044183f636acbc611cea772cc5",
+      "torch": "2.9.1+cpu",
+      "validation_profile_sha256": "061aeeb75d560ed6fac7d49651b955e444912175c7e31d237b9d59361c430ab7",
+      "workflow": "four-model-alternating-v1"
+    },
+    "source_period_context": {
+      "banlist_section": "2022.10",
+      "banlist_sha256": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+      "catalog_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+      "period_id": "2022-10",
+      "release_cutoff": "2022-10-01",
+      "release_manifest_sha256": "78251cddabe90985693668f722bd301606803bd5bd36425d7e4ebd442bc2afc8"
+    },
+    "source_cursor": {
+      "cycle": 1,
+      "phase": "done",
+      "committed_stages": 7
+    },
+    "source_task_sha256": "7fe498fb57fc8b7a711cd4978931354857a6fd044183f636acbc611cea772cc5",
+    "target_task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+    "target_binding_sha256": "85af565c62d5cdffc308dad5bf2800b07b2b1204f596fe60afbf4129717724b1",
+    "target_period_context": null,
+    "roles": {
+      "build_goal": {
+        "feature_version": "build-task-catalog-candidate-v5-combined-native-objectives",
+        "source_base_sha256": "f400879338d55a41dc296e5d38ab4b9a7b9972c009a927d5bbb53b513b529543",
+        "source_adapter_sha256": "5c2147d3fd6425027527f951b0a1cd419a31cb0e1771b30b16e6fdcc5843555f",
+        "target_before_sha256": "492db3ca1c0fdbee29dcd0c695eee565d4cc2f54e13ed04ca6b901fbade5c7ea",
+        "target_after_sha256": "5905bb6dc408b63830a90e9f041226b57f5ec0b45416fc44b9608780da1efac7",
+        "vocabulary_mapping": {
+          "cards": {
+            "source_count": 60,
+            "target_count": 17,
+            "copied": 16,
+            "new_kept_initialized": 1,
+            "source_only_dropped": 44,
+            "padding_kept_initialized": true
+          },
+          "annotations": {
+            "source_count": 1,
+            "target_count": 3,
+            "copied": 0,
+            "new_kept_initialized": 3,
+            "source_only_dropped": 1,
+            "padding_kept_initialized": true
+          }
+        }
+      },
+      "build_optimizer": {
+        "feature_version": "build-task-catalog-candidate-v5-combined-native-objectives",
+        "source_base_sha256": "50dff85bfeb1d26f0dc7ed334f18c159ee71cf7667d8f449bdb8e4b9c590a682",
+        "source_adapter_sha256": "03f7f28d6bb9997291ea6425f68927fec8ee0a07f1b22e9125f4350506d7a5ca",
+        "target_before_sha256": "de7ed8e993909d752c56d4e4acbb952a76e66d5b8cdd944d01779e16ee8d4867",
+        "target_after_sha256": "f77c18de32d1173d3eb32e93921aa541acc78fa76be21c58837f3fad4eca0afc",
+        "vocabulary_mapping": {
+          "cards": {
+            "source_count": 60,
+            "target_count": 17,
+            "copied": 16,
+            "new_kept_initialized": 1,
+            "source_only_dropped": 44,
+            "padding_kept_initialized": true
+          },
+          "annotations": {
+            "source_count": 1,
+            "target_count": 3,
+            "copied": 0,
+            "new_kept_initialized": 3,
+            "source_only_dropped": 1,
+            "padding_kept_initialized": true
+          }
+        }
+      },
+      "duel": {
+        "feature_version": "legal-player-dto-v5-private-knowledge-hierarchy",
+        "source_base_sha256": "44e318f4563cc13c15dce1ebb7d9c0966a2beb1fcb5c0ee05164418d39b732e7",
+        "source_adapter_sha256": "bfc74ba7305e9eb1801d342f2068849dab233929c85a98a0bb55cd74ea763c6c",
+        "target_before_sha256": "92184ca639355259a66a4c52b593be7142159146313ca48113199f5e1556a520",
+        "target_after_sha256": "f8c11606f27a468fac60b692f95e59ab8f2fc5d63ea9c57165d86b82e6449b58",
+        "vocabulary_mapping": {
+          "cards": {
+            "source_count": 15071,
+            "target_count": 15071,
+            "copied": 15071,
+            "new_kept_initialized": 0,
+            "source_only_dropped": 0,
+            "padding_kept_initialized": true
+          }
+        }
+      },
+      "coordinator": {
+        "feature_version": "coordinator-aggregate-context-v1",
+        "source_base_sha256": "8e12f1061e417cfbc8f04919b2f5d4174500cd23e58c30b9e1e22f7677aa5521",
+        "source_adapter_sha256": "9e80ca4c98f83e21f9cf834c3808a1060ae6d85a187c569563e4a21214827e25",
+        "target_before_sha256": "520901ebacd95b64910225969a3204fbcabbc7a488bb7153a92563fd904a2168",
+        "target_after_sha256": "f91e1365781d0c3ffa229515fc9e8bba11f297c02294356414a7ae4cfdb53b08",
+        "vocabulary_mapping": {}
+      }
+    },
+    "source_execution": {
+      "schema_version": 1,
+      "device": "cpu",
+      "dtype": "float32"
+    },
+    "target_execution": {
+      "schema_version": 1,
+      "device": "cpu",
+      "dtype": "float32"
+    },
+    "materialization": "cpu-fp32-base-plus-saved-lora",
+    "optimizer_state_inherited": false,
+    "rng_state_inherited": false,
+    "data_or_ledger_inherited": false,
+    "historical_training_verified": false,
+    "ability_verified": false
+  },
+  "group_state_constructed": true,
+  "group_checkpoint_saved": true,
+  "source_copy_removed_before_restore": true,
+  "original_source_unchanged": true,
+  "restore_model_and_provenance_equal": true,
+  "model_sha256": {
+    "build_goal": "5905bb6dc408b63830a90e9f041226b57f5ec0b45416fc44b9608780da1efac7",
+    "build_optimizer": "f77c18de32d1173d3eb32e93921aa541acc78fa76be21c58837f3fad4eca0afc",
+    "duel": "f8c11606f27a468fac60b692f95e59ab8f2fc5d63ea9c57165d86b82e6449b58",
+    "coordinator": "f91e1365781d0c3ffa229515fc9e8bba11f297c02294356414a7ae4cfdb53b08"
+  },
+  "native_executed": false,
+  "new_training_executed": false,
+  "final_pool_verified": false,
+  "note": "Restore was performed with the preserved target recipe/spec; source artifact is unnecessary, target configuration remains required.",
+  "recorded_utc": "2026-10-25T09:15:33.346235+00:00",
+  "tested_code_commit": "bc7b8b8d0475406f5d93480986b849b45dea53d0",
+  "same_final_python_source_tree_sha256": "d19a310867616257ead51d8bea2cdb146687dd2b5b6aa22603f18d6ce56a27bd"
+}

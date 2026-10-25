@@ -1,7 +1,8 @@
 """Four-role CPU alternation with complete stage transactions and frozen eval.
 
 Base warmup precedes LoRA; construction uses the existing conditional-route /
-weak-proxy supervision, and the learned coordinator remains synthetic/advisory.
+weak-proxy supervision; coordinator labels are explicit engineering/host data
+and its learned predictions remain advisory and uncalibrated.
 """
 
 from contextlib import ExitStack, closing
@@ -18,13 +19,37 @@ from uuid import uuid4
 
 from .build_contracts import BuildTask, DeckParts, digest
 from .validation import ContractError, canonical_json, fields, integer, read_json
+from .period_host import host_operation, assert_period_hosts_unchanged
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = "four-model-alternating-v1"
 PHASES = ("build_goal", "build_optimizer", "duel_train", "coordinator_train", "evaluate", "feedback")
 ROLE_PHASE = {"build_goal": 0, "build_optimizer": 1, "duel": 2, "coordinator": 3}
 EXTRA_FIELDS = {"workflow", "task", "adapters", "bootstrap_seed", "stages_per_worker"}
-OPTIONAL_FIELDS = {"construction_curriculum"}
+OPTIONAL_FIELDS = {"construction_curriculum", "execution", "allocated_gpu_count", "period_inputs", "coordinator_supervision", "initialize_from"}
+
+
+def period_host(recipe):
+    if "period_inputs" not in recipe:return None
+    from .period_host import load_period_host
+    return load_period_host(recipe,workspace=ROOT)
+
+
+@host_operation
+def runtime_assets(recipe, root):
+    host=period_host(recipe)
+    if host is None:
+        from .build_pipeline import BuildAssets
+        return BuildAssets(root)
+    if host.assets.root!=Path(root).resolve():
+        raise ContractError("host period root differs from the explicitly selected native root")
+    return host.assets
+
+
+def execution_device(recipe):
+    """Trusted host recipe selects numerical execution without launching resources."""
+    from .device import checkpoint_device
+    return checkpoint_device(recipe.get("execution"))
 
 
 def config_path(value):
@@ -36,12 +61,65 @@ def config_path(value):
     return path
 
 
+def coordinator_supervision(recipe):
+    """Load host-selected aggregate labels; never infer labels from a period."""
+    from .coordinator_model import engineering_examples, supervision_rows
+    examples = (read_json(config_path(recipe["coordinator_supervision"]))
+                if "coordinator_supervision" in recipe else engineering_examples())
+    supervision_rows(examples)
+    return examples
+
+
+def coordinator_supervision_report(examples):
+    from .coordinator_model import supervision_rows
+    rows, synthetic = supervision_rows(examples)
+    return {"supervision_source": examples["source"], "supervision_sha256": examples["sha256"],
+            "forecast_supervised_rows": sum(row["synthetic_probability_anchor" if synthetic else "forecast_target"] is not None
+                                             for row in rows),
+            "supervision_evidence_verified": False, "real_win_rate_supervision": False, "calibration": "pending"}
+
+
+def initialization_spec(recipe):
+    """Host-only explicit new-run weight transfer, separate from restore."""
+    if "initialize_from" not in recipe:
+        return None
+    from .group_initialization import validate_initialization_spec
+    return validate_initialization_spec(read_json(config_path(recipe["initialize_from"])))
+
+
+def check_initialization_provenance(recipe, provenance, binding):
+    """Resume validates the recorded transfer, without reimporting its source."""
+    spec = initialization_spec(recipe)
+    if spec is None:
+        if provenance is not None:
+            raise ContractError("group checkpoint has unexpected initialization provenance")
+        return
+    if not isinstance(provenance, dict):
+        raise ContractError("initialized group checkpoint lacks its source provenance")
+    if (provenance.get("schema_version") != 1 or
+            provenance.get("kind") != "explicit-group-weight-initialization-not-resume" or
+            provenance.get("weights") != spec["weights"] or
+            provenance.get("source_artifact_sha256") != spec["sha256"] or
+            provenance.get("source_binding_sha256") != spec["source_binding_sha256"] or
+            digest(provenance.get("source_binding")) != spec["source_binding_sha256"] or
+            provenance.get("target_binding_sha256") != digest(binding) or
+            provenance.get("target_task_sha256") != binding["task_sha256"] or
+            provenance.get("target_period_context") != binding.get("period_context") or
+            any(provenance.get(key) is not False for key in
+                ("optimizer_state_inherited", "rng_state_inherited", "data_or_ledger_inherited",
+                 "historical_training_verified", "ability_verified"))):
+        raise ContractError("group checkpoint initialization provenance differs from its source/target binding")
+
+
 def validate_recipe(value):
     from .training_runner import validate_recipe as validate_duel
     fields(value, {"schema_version", "max_updates", "validate_every", "checkpoint_every", "wall_seconds", "cpu_config",
                    "train", "validation"} | EXTRA_FIELDS, OPTIONAL_FIELDS)
     if value["workflow"] != WORKFLOW:
         raise ContractError("unsupported group workflow")
+    device=execution_device(value)
+    allocated=value.get("allocated_gpu_count",0)
+    integer(allocated,"host allocated GPU count",1 if device.type=="cuda" else 0,8 if device.type=="cuda" else 0)
     validate_duel({k: v for k, v in value.items() if k not in EXTRA_FIELDS | OPTIONAL_FIELDS})
     integer(value["max_updates"], "group cycles", 1, 10000)
     integer(value["stages_per_worker"], "worker stage budget", 1, 60001)
@@ -55,19 +133,43 @@ def validate_recipe(value):
         config_path(value[key])
     if "construction_curriculum" in value:
         config_path(value["construction_curriculum"])
+    if "period_inputs" in value:config_path(value["period_inputs"])
+    initialization_spec(value)
+    coordinator_supervision(value)
     if value["cpu_config"].get("actor_seat", 0) != 0:
         raise ContractError("conditional group curriculum currently binds actor seat zero")
     return json.loads(canonical_json(value))
 
 
+@host_operation
 def inputs(recipe):
     from .training_runner import recipe_inputs
     from .lora import AdapterConfig, ROLES
-    profiles, config = recipe_inputs({k: v for k, v in recipe.items() if k not in EXTRA_FIELDS | OPTIONAL_FIELDS})
+    coordinator_supervision(recipe)
+    host=period_host(recipe)
+    if host is None:
+        profiles, config = recipe_inputs({k: v for k, v in recipe.items() if k not in EXTRA_FIELDS | OPTIONAL_FIELDS})
+    else:
+        from .cpu_training import config_from_dict
+        parts=host.loaded.manifest["periods"][host.period_id]["partitions"]
+        seeds=[recipe["train"]["seed_start"]+recipe["train"]["seed_stride"]*i for i in range(recipe["max_updates"])]
+        if (parts["train"]["seeds"]!=[recipe["bootstrap_seed"],*seeds]
+                or parts["validation"]["seeds"]!=recipe["validation"]["seeds"]
+                or parts["validation"]["policy_seed"]!=recipe["validation"]["policy_seed"]):
+            raise ContractError("period sampling policy differs from the checkpointed group seed schedule")
+        cfg=dict(recipe["cpu_config"])
+        if "policy_seed" in cfg and cfg["policy_seed"]!=parts["train"]["policy_seed"]:
+            raise ContractError("period policy RNG seed differs from the explicit model configuration")
+        cfg.update(policy_seed=parts["train"]["policy_seed"],game_seeds=seeds)
+        config=config_from_dict(cfg)
+        profiles={purpose:host.for_runner(purpose)["profile"] for purpose in ("train","validation")}
     task = BuildTask.from_dict(read_json(config_path(recipe["task"])))
+    if host is not None:host.require_task(task)
     from .construction_curriculum import inputs as curriculum_inputs
-    curriculum_inputs(recipe, task)
+    curriculum_inputs(recipe, task, period_host=host)
     from .semantic_curriculum import configured
+    if host is not None and not configured(recipe):
+        raise ContractError('period group training requires its indexed semantic curriculum and actual opponent data admission')
     if task.goal['kind']=='deck_constraints' and not configured(recipe):
         raise ContractError('schema4 group training requires its indexed semantic curriculum')
     lora = read_json(config_path(recipe["adapters"]))
@@ -80,16 +182,27 @@ def inputs(recipe):
     return profiles, config, task, lora, {c.role: c for c in configs}
 
 
+@host_operation
 def binding_for(root, row):
     from .cpu_training import resource_binding
     recipe = validate_recipe(row["recipe"])
+    host=period_host(recipe)
     profiles, cfg, task, lora, _ = inputs(recipe)
     if (profiles["train"] != row["profile"] or profiles["validation"] != row["validation_profile"]
             or digest(asdict(cfg)) != digest(row["config"]) or task.to_dict() != row["task"]):
         raise ContractError("group recipe/task/profile changed")
     from .construction_curriculum import inputs as curriculum_inputs
-    curriculum = curriculum_inputs(recipe, task)
+    curriculum = curriculum_inputs(recipe, task, period_host=host)
     extra = {} if curriculum is None else {"construction_curriculum_sha256": curriculum["binding_sha256"]}
+    if "coordinator_supervision" in recipe:
+        examples = coordinator_supervision(recipe)
+        extra.update(coordinator_supervision_sha256=digest(examples), coordinator_supervision_source=examples["source"])
+    initialization = initialization_spec(recipe)
+    if initialization is not None:
+        extra["initialization_spec_sha256"] = digest(initialization)
+    if host is not None:
+        extra.update(period_input_sha256=host.loaded.manifest["binding_sha256"],
+                     period_context=host.assets.period_context)
     return dict(resource_binding(Path(root), profiles["train"]), workflow=WORKFLOW, runner_recipe_sha256=digest(recipe),
                 validation_profile_sha256=digest(profiles["validation"]), task_sha256=task.sha256,
                 adapters_config_sha256=digest(lora), feedback_policy_sha256=digest(row["feedback_policy"]), **extra)
@@ -173,15 +286,24 @@ class GroupState:
         from .coord_contracts import FeedbackPolicy
         from .local_training import run_path
         self.assets, self.row, self.state_root = assets, row, Path(state_root)
+        self.device = execution_device(row["recipe"])
         self.task = BuildTask.from_dict(row["task"])
-        self.builder = BuildTrainer(self.task, assets, BuildTrainingConfig())
-        self.duel = CpuTrainer(config_from_dict(dict(row["recipe"]["cpu_config"], game_seeds=[row["recipe"]["bootstrap_seed"]])),
-                               sorted(c for c in assets.rows if 0 < c < 2**32))
-        self.coordinator = CoordinatorTrainer()
+        self.builder = BuildTrainer(self.task, assets, BuildTrainingConfig(), device=self.device)
+        _, declared_duel, _, _, _ = inputs(row["recipe"])
+        self.duel = CpuTrainer(replace(declared_duel,game_seeds=(row["recipe"]["bootstrap_seed"],)),
+                               sorted(c for c in assets.rows if 0 < c < 2**32), device=self.device)
+        self.coordinator = CoordinatorTrainer(device=self.device)
+        self.coordinator_examples = coordinator_supervision(row["recipe"])
+        self.initialization_provenance = None
+        initialization = initialization_spec(row["recipe"])
+        if initialization is not None:
+            from .group_initialization import initialize_group_weights
+            self.initialization_provenance = initialize_group_weights(self.builder, self.duel, self.coordinator,
+                workspace=ROOT, spec=initialization, target_binding=row["binding"])
         self.sessions, self.data = None, None
         self.construction_state = None
         self.data_index = None
-        self.policy_rng = torch.Generator(device="cpu").manual_seed(self.duel.config.policy_seed + 10)
+        self.policy_rng = torch.Generator(device="cpu").manual_seed(self.duel.config.policy_seed + (0 if "period_inputs" in row["recipe"] else 10))
         self.cycle, self.phase, self.updates = 0, "bootstrap", 0
         self.consumed, self.events, self.data_marks, self.evaluations = [], [], [], []
         self.deck, self.candidate_id, self.forecast_id, self.last_feedback = None, None, None, None
@@ -206,12 +328,15 @@ class GroupState:
         features = duel_features if role == "duel" else coordinator_features if role == "coordinator" else build_features
         cfg = configs[role]
         model = self.models()[role]
-        return {"schema_version": 1, "kind": "lora-linear-cpu-v1", "config": cfg.to_dict(),
+        from .device import execution_metadata
+        return {"schema_version": 1, "kind": "lora-linear-cpu-v1" if self.device.type == "cpu" else "lora-linear-device-v2",
+                **({"execution": execution_metadata(self.device)} if self.device.type == "cuda" else {}), "config": cfg.to_dict(),
                 "binding": {"base_version": lora["base_version"], "feature_version": features,
                             "context_sha256": digest({"runner": self.row["binding"], "supervision": self.data["supervision_sha256"]})},
                 "base_sha256": parameter_digest(model),
                 "target_shapes": {name: list(model.get_submodule(name).weight.shape) for name in cfg.targets}}
 
+    @host_operation
     def attach(self):
         from .lora import AdapterConfig, AdapterSession
         expected = {r: self.expected_adapter(r) for r in self.models()}
@@ -283,6 +408,7 @@ class GroupState:
 
     def training_fingerprint(self):
         import torch
+        from .device import capture_device_rng
         return tree_digest({"models": {r: m.state_dict() for r, m in self.models().items()},
                             "base_optimizers": {r: o.state_dict() for r, o in self.builder.optimizers.items()},
                             "duel_optimizer": self.duel.optimizer.state_dict(), "coordinator_optimizer": self.coordinator.optimizer.state_dict(),
@@ -292,12 +418,20 @@ class GroupState:
                             "policy_rng": self.policy_rng.get_state(), "torch_rng": torch.get_rng_state(),
                             "python_rng": random.getstate(), "build_batch_rng": self.builder.batch_rng.get_state(),
                             "base_duel_policy_rng": self.duel.policy_rng.get_state(), "base_duel_batch_rng": self.duel.batch_rng.get_state(),
-                            "coord_batch_rng": self.coordinator.batch_rng.get_state(), "cursor": self.cursor()})
+                            "coord_batch_rng": self.coordinator.batch_rng.get_state(), "cursor": self.cursor(),
+                            "execution_rng": capture_device_rng(self.device)})
 
+    @host_operation
     def save_to(self, path):
         import torch
+        from .device import execution_metadata, capture_device_rng
         from .build_training import save_checkpoint as save_build, binding_for as build_binding
         from .cpu_training import save_checkpoint as save_duel, resource_binding
+        if binding_for(self.assets.root, self.row) != self.row["binding"]:
+            raise ContractError("group save implementation/resources changed")
+        if "period_inputs" in self.row["recipe"]:
+            self.assets.assert_integrity(physical=False)
+        check_initialization_provenance(self.row["recipe"], getattr(self, "initialization_provenance", None), self.row["binding"])
         self.validate_cursor()
         with self.host._db() as db:
             if db.execute("SELECT COUNT(*) FROM jobs WHERE state IN ('pending','leased')").fetchone()[0]:
@@ -317,6 +451,7 @@ class GroupState:
                 source.backup(destination)
             ledger_bytes = backup.read_bytes()
             state = {"schema_version": 1, "boundary": "complete-workflow-stage", "binding": self.row["binding"],
+                     "execution": execution_metadata(self.device), "device_rng": capture_device_rng(self.device),
                      "components": components, "adapters": None if self.sessions is None else {r: s.state() for r, s in self.sessions.items()},
                      "cursor": self.cursor(), "consumed": self.consumed, "events": self.events, "data": self.data,
                      "data_marks": self.data_marks, "evaluations": self.evaluations, "deck": self.deck,
@@ -327,13 +462,18 @@ class GroupState:
                      "global_rng": {"torch": torch.get_rng_state(), "python": random.getstate()}}
             if "construction_curriculum" in self.row["recipe"]:
                 state["construction_state"] = self.construction_state
+            if self.initialization_provenance is not None:
+                state["initialization_provenance"] = copy.deepcopy(self.initialization_provenance)
             from .semantic_curriculum import configured,snapshot_index
             if configured(self.row['recipe']):state['data_index_snapshot']=snapshot_index(self)
+            assert_period_hosts_unchanged()
             with path.open("xb") as output:
                 torch.save(state, output)
                 output.flush(); os.fsync(output.fileno())
+            assert_period_hosts_unchanged()
 
     @classmethod
+    @host_operation
     def restore(cls, path, state_root, row, assets):
         import torch
         from .build_training import load_checkpoint as load_build, binding_for as build_binding, validate_supervision
@@ -345,18 +485,23 @@ class GroupState:
         from .local_training import run_path
         from .training_runner import read_artifact, validate_shard, opponent_binding
         state = torch.load(path, weights_only=True, map_location="cpu")
+        from .device import checkpoint_execution, restore_device_rng
+        device = checkpoint_execution(state, execution_device(row["recipe"]))
         from .semantic_curriculum import configured,restore_index
         semantic=configured(row['recipe'])
         fields(state, {"schema_version", "boundary", "binding", "components", "adapters", "cursor", "consumed", "events", "data", "data_marks", "evaluations",
                        "deck", "candidate_id", "forecast_id", "last_feedback", "ledger_bytes", "ledger_sha256", "ledger_state_sha256", "policy_rng", "global_rng", "budget_snapshot"}
                | ({"construction_state"} if "construction_curriculum" in row["recipe"] else set())
-               | ({'data_index_snapshot'} if semantic else set()))
+               | ({'data_index_snapshot'} if semantic else set()), {"execution", "device_rng", "initialization_provenance"})
         if (state["schema_version"] != 1 or state["boundary"] != "complete-workflow-stage" or state["binding"] != row["binding"]
                 or binding_for(assets.root, row) != row["binding"] or hashlib.sha256(state["ledger_bytes"]).hexdigest() != state["ledger_sha256"]):
             raise ContractError("group checkpoint boundary/version/ledger differs")
+        check_initialization_provenance(row["recipe"], state.get("initialization_provenance"), row["binding"])
         validate_budget(state["budget_snapshot"], row)  # Never restore/replace newer accounting from model state.
         obj = cls.__new__(cls)
         obj.assets, obj.row, obj.state_root = assets, row, Path(state_root)
+        obj.device = device
+        obj.initialization_provenance = copy.deepcopy(state.get("initialization_provenance"))
         obj.task, obj.data = BuildTask.from_dict(row["task"]), state["data"]
         obj.construction_state = state.get("construction_state")
         obj.data_index=None
@@ -369,12 +514,13 @@ class GroupState:
             for role in ("build", "duel"):
                 with (directory / (role + ".weights")).open("xb") as output:
                     torch.save(state["components"][role], output)
-            obj.builder = load_build(directory / "build.weights", assets, build_binding(obj.task, assets, expected_data), allow_initial=True)
-            obj.duel = load_duel(directory / "duel.weights", resource_binding(assets.root, row["profile"]), allow_initial=True)
-        expected_cpu = config_from_dict(dict(row["recipe"]["cpu_config"], game_seeds=[row["recipe"]["bootstrap_seed"]]))
+            obj.builder = load_build(directory / "build.weights", assets, build_binding(obj.task, assets, expected_data), allow_initial=True, device=device)
+            obj.duel = load_duel(directory / "duel.weights", resource_binding(assets.root, row["profile"]), allow_initial=True, device=device)
+        expected_cpu = replace(inputs(row["recipe"])[1],game_seeds=(row["recipe"]["bootstrap_seed"],))
         if asdict(obj.duel.config) != asdict(expected_cpu):
             raise ContractError("group base duel configuration differs")
-        obj.coordinator = CoordinatorTrainer.restore(state["components"]["coordinator"])
+        obj.coordinator = CoordinatorTrainer.restore(state["components"]["coordinator"], device=device)
+        obj.coordinator_examples = coordinator_supervision(row["recipe"])
         expected = {r: obj.expected_adapter(r) for r in obj.models()} if state["adapters"] is not None else None
         if expected is not None and set(state["adapters"]) != set(expected):
             raise ContractError("group checkpoint must include all four adapters")
@@ -403,6 +549,8 @@ class GroupState:
             validate_shard(read_artifact(run, mark["artifact"]), obj.duel, purpose=mark["partition"], version=mark["policy_version"],
                            policy_sha256=mark["policy_sha256"], opponent_sha256=opponent_binding(row, "train" if mark["partition"] == "train" else "validation"))
         torch.set_rng_state(state["global_rng"]["torch"])
+        if "device_rng" in state:
+            restore_device_rng(state["device_rng"], device)
         random.setstate(state["global_rng"]["python"])
         return obj
 
@@ -416,6 +564,7 @@ def snapshot(state):
                         "cycles_completed": state.cycle, "committed_stages": state.updates}}
 
 
+@host_operation
 def prepare(backend, run_id, wall_limit_seconds):
     import time
     from .agent_registry import identifier
@@ -429,7 +578,7 @@ def prepare(backend, run_id, wall_limit_seconds):
     started, cpu = time.monotonic(), time.process_time()
     recipe = validate_recipe(backend.recipe)
     profiles, cfg, task, _, _ = inputs(recipe)
-    assets = BuildAssets(backend.native_root)
+    assets = runtime_assets(recipe,backend.native_root)
     assets.check_task(task)
     directory = run_path(backend.state_root, run_id)
     if directory.exists():
@@ -451,21 +600,25 @@ def prepare(backend, run_id, wall_limit_seconds):
     state = GroupState(backend.state_root, row, assets)
     initial = snapshot(state)
     row.update(model_versions=initial["model_versions"], metrics=dict(initial["metrics"], unmeasured_worker_segments=0))
+    assert_period_hosts_unchanged()
     receipt = write_checkpoint(state, backend.state_root, row)
     row["checkpoint_ids"] = [receipt["checkpoint_id"]]
     row["active_seconds"] = time.monotonic() - started
     row["metrics"]["setup_process_cpu_seconds"] = time.process_time() - cpu
-    row["usage_outbox"].append({"payload": {"event_id": "setup-" + digest(run_id)[:40], "stage_id": "throughput-small-train", "gpu_count": 0,
+    row["usage_outbox"].append({"payload": {"event_id": "setup-" + digest(run_id)[:40], "stage_id": "throughput-small-train", "gpu_count": recipe.get("allocated_gpu_count",0),
         "wall_seconds": max(.001, row["active_seconds"]), "activity": "setup", "outcome": "completed", "amount": None, "currency": None},
         "measurement": "measured_host_setup", "exported": False})
     row["history"].append({"event": "prepared_four_initial_models", "optimizer_updates": 0, "checkpoint_id": receipt["checkpoint_id"]})
+    assert_period_hosts_unchanged()
     RunReporter(backend.state_root).publish(snapshot_for(row))
     with closing(_connect(backend.state_root)) as db, db:
+        assert_period_hosts_unchanged()
         db.execute("INSERT INTO runs VALUES(?,?)", (run_id, canonical_json(row)))
     sync_usage(backend.state_root, run_id)
     return backend.status(run_id)
 
 
+@host_operation
 def verified(state_root, row):
     from .agent_monitor import RunMonitor
     from .build_pipeline import BuildAssets
@@ -475,7 +628,7 @@ def verified(state_root, row):
     latest = row["checkpoint_ids"][-1]
     receipt = RunMonitor(state_root).checkpoint(row["run_id"], latest)
     state = GroupState.restore(run_path(state_root, row["run_id"]) / "checkpoints" / (latest + ".weights"),
-                               state_root, row, BuildAssets(Path(row["native_root"])))
+                               state_root, row, runtime_assets(row["recipe"],Path(row["native_root"])))
     if state.updates != receipt["step"] or state.updates != row["metrics"]["steps"] or len(row["rounds"]) != state.updates:
         raise ContractError("group checkpoint differs from committed stage journal")
     if state.updates:
@@ -557,6 +710,36 @@ def actor_profile(profile, deck):
     return result
 
 
+def _scheduled_validation_cursor(partition, opponent):
+    """Resolve a leased opponent by identity, independently of scope ordering."""
+    from .data_isolation import opponent_identity
+    fields(opponent, {"opponent_id", "deck_sha256", "driver_sha256", "weight"})
+    matches, identities = [], set()
+    # A binding beyond the declared seed count has no sampling weight and
+    # cannot be selected through this partition's for_runner contract.
+    for cursor, binding in enumerate(partition["opponent_bindings"][:len(partition["seeds"])]):
+        identity = opponent_identity(binding)
+        if identity in identities:
+            raise ContractError("validation partition repeats one actual opponent identity")
+        identities.add(identity)
+        if (binding["opponent_id"] == opponent["opponent_id"] and
+                binding["opponent_deck_sha256"] == opponent["deck_sha256"] and identity == opponent["driver_sha256"]):
+            matches.append(cursor)
+    if len(matches) != 1:
+        raise ContractError("scheduled validation opponent has no unique binding in this period partition")
+    return matches[0]
+
+
+def _validation_job_purpose(candidate, route):
+    if route["action"] not in ("register_forecast", "build_goal", "build_optimizer"):
+        raise ContractError("rule coordinator did not grant versioned forecast stage")
+    if not route["context"]["rebuild_required"]:
+        return "engineering_validation"
+    if candidate["parent_candidate_id"] is None or route.get("rebuild_validation_eligible") is not True:
+        raise ContractError("mandatory reconstruction requires a changed child candidate before validation")
+    return "rebuild_validation"
+
+
 def evaluate(state, generation):
     from .model_group import call, route_with_model
     from .coordinator import Coordinator
@@ -573,9 +756,9 @@ def evaluate(state, generation):
         state.candidate_id = candidate["candidate_id"]
     else:
         state.candidate_id = same["candidate_id"]
+        candidate = same
     route, advice = route_with_model(state.host, state.coordinator, state.candidate_id, None, 1)
-    if route["action"] not in ("register_forecast", "build_goal"):
-        raise ContractError("rule coordinator did not grant versioned forecast stage")
+    job_purpose = _validation_job_purpose(candidate, route)
     # Mandatory rebuild is enforced again by job.schedule; a same-deck rename
     # cannot clear its root lineage, warning or required reconstruction.
     state.forecast_id = f"cycle-{state.cycle + 1}-forecast"
@@ -585,21 +768,44 @@ def evaluate(state, generation):
              "opponents": [{"opponent_id": "held-out-visible-engineering", "deck_sha256": digest(profile_deck(profile, 1).to_dict()),
                             "driver_sha256": opponent_binding(state.row, "validation"), "weight": 1.}],
              "initiative_weights": [1., 0.], "unit": "BO1", "prediction_target": "win_rate", "versions": state.task.environment["versions"]}
+    host=period_host(state.row["recipe"])
+    if host is not None:
+        from collections import Counter
+        from .data_isolation import opponent_identity
+        part=host.loaded.manifest["periods"][host.period_id]["partitions"]["validation"]
+        counts=Counter(i%len(part["opponent_bindings"]) for i in range(len(part["seeds"])))
+        scope["opponents"]=[{"opponent_id":part["opponent_bindings"][i]["opponent_id"],
+             "deck_sha256":part["opponent_bindings"][i]["opponent_deck_sha256"],
+             "driver_sha256":opponent_identity(part["opponent_bindings"][i]),"weight":n/len(part["seeds"])}
+             for i,n in sorted(counts.items())]
     forecast = call(state.host, "forecast.register", {"forecast_id": state.forecast_id, "candidate_id": state.candidate_id,
         "probability": advice["probability"], "origin_role": "coordinator", "model_sha256": state.versions()["coordinator"], "calibration": "pending", "scope": scope})
+    scope = forecast["scope"]  # The ledger normalizes opponent ordering and weights.
     worker = Coordinator(state.host.path, state.host.policy, role="duel_worker", source="real_engine", assets=state.assets)
     results = []
     for index, seed in enumerate(state.row["recipe"]["validation"]["seeds"]):
         job_id = f"cycle-{state.cycle + 1}-evaluation-{index}"
-        call(state.host, "job.schedule", {"job_id": job_id, "forecast_id": state.forecast_id, "seed": seed, "purpose": "engineering_validation"})
+        call(state.host, "job.schedule", {"job_id": job_id, "forecast_id": state.forecast_id, "seed": seed, "purpose": job_purpose})
         job = call(worker, "job.claim", {"job_id": job_id, "worker_id": "cpu-group-evaluator"})
         if job["scope"] != scope or job["actor_seat"] != 0 or job["deck"] != state.deck or job["seed"] != seed:
             raise ContractError("group frozen job/version/deck/seed differs")
         actual_profile = actor_profile(profile, deck)
         from .semantic_curriculum import configured,opponent as semantic_opponent
-        adapter=semantic_opponent(state,actual_profile,'validation') if configured(state.row['recipe']) else None
+        opponent_cursor = index
+        if host is not None:
+            if seed != part["seeds"][index] or state.row["recipe"]["validation"]["policy_seed"] != part["policy_seed"]:
+                raise ContractError("scheduled validation seed/policy differs from its period partition")
+            opponent_cursor = _scheduled_validation_cursor(part, job["opponent"])
+        elif job["opponent"] != scope["opponents"][0]:
+            raise ContractError("scheduled validation opponent differs from its actual fixed driver")
+        adapter=semantic_opponent(state,actual_profile,'validation',episode_cursor=opponent_cursor) if configured(state.row['recipe']) else None
+        if host is not None:
+            if (adapter is None or adapter.binding["opponent_id"] != job["opponent"]["opponent_id"] or
+                    digest(profile_deck(adapter.profile, 1).to_dict()) != job["opponent"]["deck_sha256"] or
+                    opponent_identity(adapter.binding) != job["opponent"]["driver_sha256"]):
+                raise ContractError("actual validation adapter differs from the leased opponent")
         episode = sampler(state).sample_episode(state.assets.root, adapter.profile if adapter else actual_profile, purpose="validation", seed=seed,
-            policy_seed=state.row["recipe"]["validation"]["policy_seed"], opponent=state.row["recipe"]["validation"]["opponent"],opponent_adapter=adapter)
+            policy_seed=state.row["recipe"]["validation"]["policy_seed"], opponent=state.row["recipe"]["validation"]["opponent"],opponent_adapter=adapter,engine_factory=getattr(state.assets,"engine_factory",None))
         record_episode(state, episode, generation)
         winner = episode["summary"]["outcome"]["winner"]
         result = {"result_id": job_id + "-result", "job_id": job_id, "worker_id": "cpu-group-evaluator", "forecast_id": state.forecast_id,
@@ -608,7 +814,7 @@ def evaluate(state, generation):
             "diagnosis": "unknown" if winner == 1 else "none"}
         status = call(worker, "results.append", {"results": [result]})
         entry = {"cycle": state.cycle + 1, "result": result, "duel": without_timing(episode["summary"]),
-                 "actor_deck_sha256": digest(state.deck), "opponent_binding_sha256": opponent_binding(state.row, "validation")}
+                 "actor_deck_sha256": digest(state.deck), "opponent_binding_sha256": digest(adapter.binding) if adapter is not None else opponent_binding(state.row, "validation")}
         state.evaluations.append(entry)
         results.append(entry)
     construction_validation = None
@@ -622,13 +828,14 @@ def evaluate(state, generation):
             **({"construction_validation": construction_validation} if construction_validation is not None else {})}
 
 
+@host_operation
 def execute_stage(state, generation):
     from .construction_curriculum import initialize, consume, alternate as alternate_curriculum
     from .lora_group import construction_loss, coordinator_loss, ppo_inputs, ppo_loss
-    from .coordinator_model import engineering_examples
     from .build_pipeline import alternate_build
     from .model_group import route_with_model
     from .semantic_curriculum import configured,admission,opponent as semantic_opponent,ingest_episode
+    period_host(state.row["recipe"])
     semantic=configured(state.row['recipe'])
     if state.event_id() in state.consumed:
         raise ContractError("cannot execute an already committed group stage")
@@ -638,15 +845,16 @@ def execute_stage(state, generation):
         for role in ("build_goal", "build_optimizer"):
             consume(state, role)
         adapter=semantic_opponent(state,state.row['profile'],'train') if semantic else None
-        episode = state.duel.sample_episode(state.assets.root, adapter.profile if adapter else state.row["profile"], opponent=state.row["recipe"]["train"]["opponent"],opponent_adapter=adapter)
+        episode = state.duel.sample_episode(state.assets.root, adapter.profile if adapter else state.row["profile"], opponent=state.row["recipe"]["train"]["opponent"],opponent_adapter=adapter,engine_factory=getattr(state.assets,"engine_factory",None))
         record_episode(state, episode, generation)
         updates.append(dict(state.duel.update(episode), role="duel"))
-        updates.append(dict(state.coordinator.step(engineering_examples()), role="coordinator"))
+        updates.append(dict(state.coordinator.step(state.coordinator_examples), role="coordinator"))
         state.attach()
         return {"kind": "real-four-base-warmup", "updates": updates, "duel": without_timing(episode["summary"]),
                 "supervision_source": {"building": state.data["source"],
                     "optimization": "explicit-catalog-preference-not-strength" if semantic else "frozen-real-rule-driver-pair" if state.construction_state is not None else "printed-attack-weak-proxy",
-                    "coordinator": "synthetic-rule-and-probability-anchors"}}
+                    "coordinator": state.coordinator_examples["source"]},
+                "coordinator_supervision": coordinator_supervision_report(state.coordinator_examples)}
     if state.phase in ("build_goal", "build_optimizer"):
         role = state.phase
         update = state.sessions[role].step(construction_loss(role, state.sessions[role], state.builder, state.task, state.data,
@@ -667,7 +875,7 @@ def execute_stage(state, generation):
         current = sampler(state)
         profile = actor_profile(state.row["profile"], DeckParts.from_dict(state.deck))
         adapter=semantic_opponent(state,profile,'train') if semantic else None
-        episode = current.sample_episode(state.assets.root, adapter.profile if adapter else profile, opponent=state.row["recipe"]["train"]["opponent"],opponent_adapter=adapter)
+        episode = current.sample_episode(state.assets.root, adapter.profile if adapter else profile, opponent=state.row["recipe"]["train"]["opponent"],opponent_adapter=adapter,engine_factory=getattr(state.assets,"engine_factory",None))
         if episode["purpose"] != "train" or episode["policy_version"] != state.sessions["duel"].updates:
             raise ContractError("group PPO requires this phase's fresh on-policy episode")
         if semantic:ingest_episode(state,episode)
@@ -677,9 +885,9 @@ def execute_stage(state, generation):
         return {"kind": "live-core-single-epoch-ppo-adapter", "update": update, "duel": without_timing(episode["summary"]),
                 "actor_deck_sha256": digest(state.deck), "batch_samples": values["samples"]}
     if state.phase == "coordinator_train":
-        update = state.sessions["coordinator"].step(coordinator_loss(state.sessions["coordinator"]))
-        return {"kind": "synthetic-advisory-coordinator-update", "update": update,
-                "supervision_source": "synthetic-rule-and-probability-anchors", "rule_authority": True}
+        update = state.sessions["coordinator"].step(coordinator_loss(state.sessions["coordinator"], state.coordinator_examples))
+        return {"kind": "advisory-coordinator-update", "update": update,
+                **coordinator_supervision_report(state.coordinator_examples), "rule_authority": True}
     if state.phase == "evaluate":
         return evaluate(state, generation)
     if state.phase == "feedback":
@@ -746,6 +954,42 @@ def reconcile(state_root, row, previous):
     return {"event": "adopted_verified_group_stage", "manifest": manifest}
 
 
+@host_operation
+def _stage_transaction(state, state_root, run_id, generation, row, reporter):
+    """One freshly checked input snapshot through the durable stage commit."""
+    from .local_training import _connect, get_row, put_row, write_checkpoint, run_path
+    from .training_runner import atomic_json
+    host=period_host(row["recipe"])
+    if host is not None:
+        if (state.assets.root != host.assets.root or state.assets.workspace != host.assets.workspace or
+                state.assets.period_context != host.assets.period_context or state.assets.receipt != host.assets.receipt):
+            raise ContractError("group stage period assets changed after restore")
+        state.assets.assert_integrity(physical=False)
+    if binding_for(state.assets.root, row) != row["binding"]:
+        raise ContractError("group stage implementation/resources changed")
+    before_cursor = state.cursor()
+    payload = execute_stage(state, generation)
+    state.advance(payload)
+    assert_period_hosts_unchanged()
+    receipt = write_checkpoint(state, state_root, row)
+    manifest = {"schema_version": 1, "binding_sha256": digest(row["binding"]), "checkpoint_id": receipt["checkpoint_id"],
+                "previous_cursor": before_cursor, "event": state.events[-1], "snapshot": snapshot(state),
+                "scheduled_checkpoint": before_cursor["phase"] == "feedback" and
+                    (state.cycle % row["recipe"]["checkpoint_every"] == 0 or state.phase == "done")}
+    assert_period_hosts_unchanged()
+    atomic_json(run_path(state_root, run_id) / "stages" / f"step-{state.updates}.json", manifest)
+    with closing(_connect(state_root)) as db, db:
+        db.execute("BEGIN IMMEDIATE")
+        row = get_row(db, run_id)
+        commit(row, manifest)
+        resources = reporter.resources()
+        row["metrics"].update(process_cpu_seconds=row["completed_worker_cpu_seconds"] + resources["process_cpu_seconds"],
+            process_peak_rss_bytes=max(row["metrics"].get("process_peak_rss_bytes", 0), resources.get("process_peak_rss_bytes", 0)))
+        row.update(phase="checkpoint_boundary", revision=row["revision"] + 1)
+        assert_period_hosts_unchanged()
+        put_row(db, row)
+
+
 def worker(state_root, run_id, generation, reporter):
     from .local_training import _connect, get_row, put_row, elapsed, write_checkpoint, run_path
     from .training_runner import atomic_json
@@ -770,7 +1014,6 @@ def worker(state_root, run_id, generation, reporter):
                        state.duel.config.episode_seconds + 3 if state.phase == "duel_train" else 33 if state.phase in ("build_goal", "build_optimizer") else 3)
             if "construction_curriculum" in row["recipe"]:
                 from .construction_curriculum import inputs as curriculum_inputs
-                comparison_seconds = curriculum_inputs(row["recipe"], state.task)["config"].get("comparison_seconds",0.)
                 from .semantic_curriculum import configured
                 if configured(row['recipe']):
                     # Count constraints use one 30s inner alternation, not four
@@ -780,12 +1023,14 @@ def worker(state_root, run_id, generation, reporter):
                     reserve={'bootstrap':90 if combined else 60,'build_goal':35 if combined else 10,'build_optimizer':35,
                              'duel_train':state.duel.config.episode_seconds+5,
                              'evaluate':state.duel.config.episode_seconds*len(row['recipe']['validation']['seeds'])+10}.get(state.phase,3)
-                elif state.phase == "bootstrap":
-                    reserve += comparison_seconds + 60  # comparison plus two bounded goal proofs
-                elif state.phase == "evaluate":
-                    reserve += comparison_seconds
-                elif state.phase == "build_optimizer":
-                    reserve = 4 * 30 + 3  # four independently bounded goal revalidations
+                else:
+                    comparison_seconds = curriculum_inputs(row["recipe"], state.task)["config"].get("comparison_seconds",0.)
+                    if state.phase == "bootstrap":
+                        reserve += comparison_seconds + 60  # comparison plus two bounded goal proofs
+                    elif state.phase == "evaluate":
+                        reserve += comparison_seconds
+                    elif state.phase == "build_optimizer":
+                        reserve = 4 * 30 + 3  # four independently bounded goal revalidations
             if row["wall_limit_seconds"] - elapsed(row) <= reserve:
                 row.update(desired="stopped", reason="wall_budget_reserve_reached")
                 put_row(db, row)
@@ -795,23 +1040,6 @@ def worker(state_root, run_id, generation, reporter):
             row["history"].append({"event": "group_stage_attempt", "event_id": state.event_id(), "generation": generation,
                                    "committed_stages_before": state.updates, "model_versions": state.versions()})
             put_row(db, row)
-        before_cursor = state.cursor()
-        payload = execute_stage(state, generation)
-        state.advance(payload)
-        receipt = write_checkpoint(state, state_root, row)
-        manifest = {"schema_version": 1, "binding_sha256": digest(row["binding"]), "checkpoint_id": receipt["checkpoint_id"],
-                    "previous_cursor": before_cursor, "event": state.events[-1], "snapshot": snapshot(state),
-                    "scheduled_checkpoint": before_cursor["phase"] == "feedback" and
-                        (state.cycle % row["recipe"]["checkpoint_every"] == 0 or state.phase == "done")}
-        atomic_json(run_path(state_root, run_id) / "stages" / f"step-{state.updates}.json", manifest)
-        with closing(_connect(state_root)) as db, db:
-            db.execute("BEGIN IMMEDIATE")
-            row = get_row(db, run_id)
-            commit(row, manifest)
-            resources = reporter.resources()
-            row["metrics"].update(process_cpu_seconds=row["completed_worker_cpu_seconds"] + resources["process_cpu_seconds"],
-                process_peak_rss_bytes=max(row["metrics"].get("process_peak_rss_bytes", 0), resources.get("process_peak_rss_bytes", 0)))
-            row.update(phase="checkpoint_boundary", revision=row["revision"] + 1)
-            put_row(db, row)
+        _stage_transaction(state, state_root, run_id, generation, row, reporter)
         segment_stages += 1
     return state.phase == "done"

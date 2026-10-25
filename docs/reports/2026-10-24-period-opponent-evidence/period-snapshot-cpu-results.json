@@ -1,0 +1,33 @@
+{
+  "earlier_core_validation": {
+    "tests_run": 44,
+    "unittest_elapsed_seconds": 9.693,
+    "modules": [
+      "tests.test_period_runtime",
+      "tests.test_period_host",
+      "tests.test_training_input"
+    ]
+  },
+  "final_validation": {
+    "tests_run": 58,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "unittest_elapsed_seconds": 17.477,
+    "modules": [
+      "tests.test_period_runtime",
+      "tests.test_period_host",
+      "tests.test_training_input",
+      "tests.test_group_runner",
+      "tests.test_build_semantics",
+      "tests.test_construction_curriculum"
+    ]
+  },
+  "log": "period-snapshot-cpu-tests.log",
+  "schema_version": 1,
+  "log_origin": "returned execution-tool output transcribed after run; no tests rerun for logging",
+  "process_cpu_seconds": null,
+  "peak_rss_bytes": null,
+  "resource_measurement": "CPU time and peak RSS were not collected for these invocations",
+  "log_sha256": "2b63f5a49b4897008ab415f52ab8ff40ca22e9da27c53a4ffd9947d84a8f0a30"
+}

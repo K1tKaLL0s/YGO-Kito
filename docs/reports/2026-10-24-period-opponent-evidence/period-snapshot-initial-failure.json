@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "kind": "normal-snapshot-attempt-failure",
+  "status": "bounded_cpu_sampler_exhausted",
+  "source_model_sha256": "44e318f4563cc13c15dce1ebb7d9c0966a2beb1fcb5c0ee05164418d39b732e7",
+  "actor": "untrained-current-CPU-engineering-reference",
+  "target_period": "2022-07",
+  "actual_engineering_cutoff": "2022-07-01",
+  "test_elapsed_seconds": 16.763,
+  "tests_run": 0,
+  "setup_errors": 1,
+  "natural_terminal_verified": false,
+  "training_updates_this_check": 0,
+  "fault_injection_performed": false,
+  "note": "CpuTrainer rejected exhaustion without terminal reward/update; preserved failure, subsequent normal check uses the pre-existing PublicRulePolicy actor without changing model choice."
+}

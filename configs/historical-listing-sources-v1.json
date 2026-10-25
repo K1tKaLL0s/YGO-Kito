@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "kind": "historical-listing-source-index-v1",
+  "sources": {
+    "pinned-catalog": {
+      "kind": "catalog",
+      "dataset_kind": "community_current_catalog_not_historical_pool",
+      "artifact": {
+        "path": ".cache/engine-src/database/locales/zh-CN/cards.cdb",
+        "sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+        "source": "https://github.com/mycard/ygopro-database/blob/217ae165c1886af2fc36b823fc08f9fc3ec13185/locales/zh-CN/cards.cdb"
+      },
+      "origin": {
+        "repository": "mycard/ygopro-database",
+        "commit": "217ae165c1886af2fc36b823fc08f9fc3ec13185",
+        "path": "locales/zh-CN/cards.cdb",
+        "url": "https://github.com/mycard/ygopro-database/blob/217ae165c1886af2fc36b823fc08f9fc3ec13185/locales/zh-CN/cards.cdb",
+        "git_blob_sha1": null
+      }
+    },
+    "pinned-community-banlist": {
+      "kind": "banlist",
+      "dataset_kind": "community_selected_sections_not_official_full_table",
+      "artifact": {
+        "path": ".cache/engine-src/client/lflist.conf",
+        "sha256": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+        "source": "https://github.com/mycard/ygopro/blob/0d76e26b30c5ddb0273ee746459506c5719fddb6/lflist.conf"
+      },
+      "origin": {
+        "repository": "mycard/ygopro",
+        "commit": "0d76e26b30c5ddb0273ee746459506c5719fddb6",
+        "path": "lflist.conf",
+        "url": "https://github.com/mycard/ygopro/blob/0d76e26b30c5ddb0273ee746459506c5719fddb6/lflist.conf",
+        "git_blob_sha1": null
+      }
+    },
+    "engineering-train": {
+      "kind": "profile",
+      "dataset_kind": "repository_engineering_sample_not_user_deck",
+      "artifact": {
+        "path": "configs/effect-duel-v1.json",
+        "sha256": "1e3f0240f0315ad7bb52a7499a68079d396ecc5e66b488d18c9d7c32d0b16e79",
+        "source": "https://github.com/K1tKaLL0s/YGO-Kito/blob/d60b6633f24cf5cb4f73d4bb567eae16ed7d4404/configs/effect-duel-v1.json"
+      },
+      "origin": {
+        "repository": "K1tKaLL0s/YGO-Kito",
+        "commit": "d60b6633f24cf5cb4f73d4bb567eae16ed7d4404",
+        "path": "configs/effect-duel-v1.json",
+        "url": "https://github.com/K1tKaLL0s/YGO-Kito/blob/d60b6633f24cf5cb4f73d4bb567eae16ed7d4404/configs/effect-duel-v1.json",
+        "git_blob_sha1": null
+      }
+    },
+    "engineering-validation": {
+      "kind": "profile",
+      "dataset_kind": "repository_engineering_sample_not_user_deck",
+      "artifact": {
+        "path": "configs/effect-duel-validation-v1.json",
+        "sha256": "8eff261cdb2b409ba54716df4a0f83447e279636944fb71a8e315a8001dec754",
+        "source": "https://github.com/K1tKaLL0s/YGO-Kito/blob/d60b6633f24cf5cb4f73d4bb567eae16ed7d4404/configs/effect-duel-validation-v1.json"
+      },
+      "origin": {
+        "repository": "K1tKaLL0s/YGO-Kito",
+        "commit": "d60b6633f24cf5cb4f73d4bb567eae16ed7d4404",
+        "path": "configs/effect-duel-validation-v1.json",
+        "url": "https://github.com/K1tKaLL0s/YGO-Kito/blob/d60b6633f24cf5cb4f73d4bb567eae16ed7d4404/configs/effect-duel-validation-v1.json",
+        "git_blob_sha1": null
+      }
+    },
+    "windbot-tearlaments": {
+      "kind": "ydk",
+      "dataset_kind": "third_party_sample_not_user_deck",
+      "artifact": {
+        "path": "configs/third-party/windbot/AI_Tearlaments.ydk.txt",
+        "sha256": "26708d4b1cf6b95fc1ebf5985b6782097cd8143a225f57541d8d556f6ee971a5",
+        "source": "https://github.com/mellfy-puppy/ygo-tools-for-dsh/blob/ab963c1cb9776bea4262ae1bba38f541ec70e357/skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Tearlaments.ydk"
+      },
+      "origin": {
+        "repository": "mellfy-puppy/ygo-tools-for-dsh",
+        "commit": "ab963c1cb9776bea4262ae1bba38f541ec70e357",
+        "path": "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Tearlaments.ydk",
+        "url": "https://github.com/mellfy-puppy/ygo-tools-for-dsh/blob/ab963c1cb9776bea4262ae1bba38f541ec70e357/skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Tearlaments.ydk",
+        "git_blob_sha1": "24f66068c328dd3b1a7dd53755e2305f8600f3d9"
+      }
+    },
+    "windbot-albaz": {
+      "kind": "ydk",
+      "dataset_kind": "third_party_sample_not_user_deck",
+      "artifact": {
+        "path": "configs/third-party/windbot/AI_Albaz.ydk.txt",
+        "sha256": "18bb3aa3dc7fff106b73387a480bd773e82e5ddd2b26b583b2439a7011b724ab",
+        "source": "https://github.com/mellfy-puppy/ygo-tools-for-dsh/blob/ab963c1cb9776bea4262ae1bba38f541ec70e357/skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Albaz.ydk"
+      },
+      "origin": {
+        "repository": "mellfy-puppy/ygo-tools-for-dsh",
+        "commit": "ab963c1cb9776bea4262ae1bba38f541ec70e357",
+        "path": "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Albaz.ydk",
+        "url": "https://github.com/mellfy-puppy/ygo-tools-for-dsh/blob/ab963c1cb9776bea4262ae1bba38f541ec70e357/skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Albaz.ydk",
+        "git_blob_sha1": "19a1b0bff3a7855fc7da9179107c270d9186dbfd"
+      }
+    },
+    "windbot-labrynth": {
+      "kind": "ydk",
+      "dataset_kind": "third_party_sample_not_user_deck",
+      "artifact": {
+        "path": "configs/third-party/windbot/AI_Labrynth.ydk.txt",
+        "sha256": "aa720ac94d98056dffb7302869ac3cd66b9b01e9b7ff45c2aa27f132586eefa1",
+        "source": "https://github.com/mellfy-puppy/ygo-tools-for-dsh/blob/ab963c1cb9776bea4262ae1bba38f541ec70e357/skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Labrynth.ydk"
+      },
+      "origin": {
+        "repository": "mellfy-puppy/ygo-tools-for-dsh",
+        "commit": "ab963c1cb9776bea4262ae1bba38f541ec70e357",
+        "path": "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Labrynth.ydk",
+        "url": "https://github.com/mellfy-puppy/ygo-tools-for-dsh/blob/ab963c1cb9776bea4262ae1bba38f541ec70e357/skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Labrynth.ydk",
+        "git_blob_sha1": "d5bcea3793588a0da2b5c39f54649bc5abfe2683"
+      }
+    },
+    "windbot-horus": {
+      "kind": "ydk",
+      "dataset_kind": "third_party_sample_not_user_deck",
+      "artifact": {
+        "path": "configs/third-party/windbot/AI_Horus.ydk.txt",
+        "sha256": "167fc981e831aa5b61b5bf21b233e905adeaa540682907119a73316b92bcbdb6",
+        "source": "https://github.com/mellfy-puppy/ygo-tools-for-dsh/blob/ab963c1cb9776bea4262ae1bba38f541ec70e357/skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Horus.ydk"
+      },
+      "origin": {
+        "repository": "mellfy-puppy/ygo-tools-for-dsh",
+        "commit": "ab963c1cb9776bea4262ae1bba38f541ec70e357",
+        "path": "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Horus.ydk",
+        "url": "https://github.com/mellfy-puppy/ygo-tools-for-dsh/blob/ab963c1cb9776bea4262ae1bba38f541ec70e357/skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Horus.ydk",
+        "git_blob_sha1": "7fe7633fbd6937fd390e187498363e6bcbe6115c"
+      }
+    },
+    "windbot-swordsoul": {
+      "kind": "ydk",
+      "dataset_kind": "third_party_sample_not_user_deck",
+      "artifact": {
+        "path": "configs/third-party/windbot/AI_Swordsoul.ydk.txt",
+        "sha256": "da70d0cd0a5cb54b0633118cff5d720926367f4363efcdfa987aa7a11b6c29b5",
+        "source": "https://github.com/mellfy-puppy/ygo-tools-for-dsh/blob/ab963c1cb9776bea4262ae1bba38f541ec70e357/skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Swordsoul.ydk"
+      },
+      "origin": {
+        "repository": "mellfy-puppy/ygo-tools-for-dsh",
+        "commit": "ab963c1cb9776bea4262ae1bba38f541ec70e357",
+        "path": "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Swordsoul.ydk",
+        "url": "https://github.com/mellfy-puppy/ygo-tools-for-dsh/blob/ab963c1cb9776bea4262ae1bba38f541ec70e357/skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Swordsoul.ydk",
+        "git_blob_sha1": "2adb8e2aee2726917c35ae3e5ff4c3485bc5dd96"
+      }
+    },
+    "windbot-kashtira": {
+      "kind": "ydk",
+      "dataset_kind": "third_party_sample_not_user_deck",
+      "artifact": {
+        "path": "configs/third-party/windbot/AI_Kashtira.ydk.txt",
+        "sha256": "467e21e3646ca8f6eb6b8a8846a36b6ea4fbe7b71866b5633c6f376ed9a437a1",
+        "source": "https://github.com/mellfy-puppy/ygo-tools-for-dsh/blob/ab963c1cb9776bea4262ae1bba38f541ec70e357/skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Kashtira.ydk"
+      },
+      "origin": {
+        "repository": "mellfy-puppy/ygo-tools-for-dsh",
+        "commit": "ab963c1cb9776bea4262ae1bba38f541ec70e357",
+        "path": "skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Kashtira.ydk",
+        "url": "https://github.com/mellfy-puppy/ygo-tools-for-dsh/blob/ab963c1cb9776bea4262ae1bba38f541ec70e357/skill/resources/ygopro2-bridge/windbot/source/Decks/AI_Kashtira.ydk",
+        "git_blob_sha1": "04015c692199a50bf35f2aeb6c26ba1641aa6a8a"
+      }
+    }
+  },
+  "periods": {
+    "2022-07": {
+      "release_cutoff": "2022-09-30",
+      "banlist_effective": "2022-07-01",
+      "banlist_section": "2022.7",
+      "catalog_source": "pinned-catalog",
+      "banlist_source": "pinned-community-banlist",
+      "release_source": null
+    },
+    "2022-10": {
+      "release_cutoff": "2022-12-31",
+      "banlist_effective": "2022-10-01",
+      "banlist_section": "2022.10",
+      "catalog_source": "pinned-catalog",
+      "banlist_source": "pinned-community-banlist",
+      "release_source": null
+    },
+    "2026-10": {
+      "release_cutoff": "2026-11-01",
+      "banlist_effective": "2026-10-01",
+      "banlist_section": "2026.10",
+      "catalog_source": "pinned-catalog",
+      "banlist_source": "pinned-community-banlist",
+      "release_source": null
+    }
+  },
+  "samples": [
+    {
+      "sample_id": "engineering-train-seat-0",
+      "source_id": "engineering-train",
+      "profile_seat": 0
+    },
+    {
+      "sample_id": "engineering-validation-seat-0",
+      "source_id": "engineering-validation",
+      "profile_seat": 0
+    },
+    {
+      "sample_id": "windbot-tearlaments",
+      "source_id": "windbot-tearlaments",
+      "profile_seat": null
+    },
+    {
+      "sample_id": "windbot-albaz",
+      "source_id": "windbot-albaz",
+      "profile_seat": null
+    },
+    {
+      "sample_id": "windbot-labrynth",
+      "source_id": "windbot-labrynth",
+      "profile_seat": null
+    },
+    {
+      "sample_id": "windbot-horus",
+      "source_id": "windbot-horus",
+      "profile_seat": null
+    },
+    {
+      "sample_id": "windbot-swordsoul",
+      "source_id": "windbot-swordsoul",
+      "profile_seat": null
+    },
+    {
+      "sample_id": "windbot-kashtira",
+      "source_id": "windbot-kashtira",
+      "profile_seat": null
+    }
+  ]
+}

@@ -7,6 +7,7 @@ from collections import Counter
 from dataclasses import asdict
 import json
 import math
+import secrets
 import time
 
 from .build_contracts import digest
@@ -71,6 +72,41 @@ def profile_for(deck, *, opponent=None):
             "extras": [list(deck.extra), list(opponent.extra)], "sides": [list(deck.side), list(opponent.side)]}
 
 
+def goal_profile_for(assets, deck):
+    profile=profile_for(deck)
+    if hasattr(assets,"adapt_goal_profile"):profile=assets.adapt_goal_profile(profile)
+    return profile
+
+
+def validate_goal_selection_key(profile, selection_key, *, required=False):
+    private = profile.get("adapter_revision") in (4, 5)
+    if selection_key is None:
+        if private and required:
+            raise ContractError("private route replay requires its audit selection key")
+        return
+    if not private:
+        raise ContractError("route audit selection key requires a private adapter")
+    try:
+        if not isinstance(selection_key, str) or len(selection_key) != 32 or len(bytes.fromhex(selection_key)) != 16:
+            raise ValueError()
+    except ValueError as error:
+        raise ContractError("invalid private route audit selection key") from error
+
+
+def route_selection_key(assets, deck, evidence):
+    """Validate private audit framing before opening a replay engine."""
+    key = evidence.get("private_selection_key_audit_only")
+    validate_goal_selection_key(goal_profile_for(assets, deck), key, required=True)
+    return key
+
+
+def engine_for_goal(assets,deck,seed,*,selection_key=None):
+    profile=goal_profile_for(assets,deck)
+    validate_goal_selection_key(profile, selection_key)
+    options = {"selection_key": selection_key} if selection_key is not None else {}
+    return getattr(assets,"engine_factory",NativeNormalEngine)(assets.root,scenario="effect-duel",deck_profile=profile,seed=seed,**options)
+
+
 def verify_extra_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budget=100, material_preference="first"):
     integer(attempts, "extra route attempts", 0, 64)
     integer(decision_budget, "extra route decision budget", 1, 100)
@@ -85,12 +121,13 @@ def verify_extra_goal(task, deck, assets, *, seconds=10., attempts=16, decision_
     started, trials = time.monotonic(), []
     required = Counter(task.goal["starting_conditions"]["requires_opening_hand"])
     last_unmet = "conditional route not found within the declared search budget; not impossibility"
+    selection_key = secrets.token_hex(16) if goal_profile_for(assets,deck).get("adapter_revision") in (4,5) else None
     for seed in tuple(dict.fromkeys((7, 24, 1724, *range(64))))[:attempts]:
         if time.monotonic() - started >= seconds:
             break
         audit, sums = [], []
         driver = RouteDriver(task.goal["route"], material_preference=material_preference)
-        with NativeNormalEngine(assets.root, scenario="effect-duel", deck_profile=profile_for(deck), seed=seed) as engine:
+        with engine_for_goal(assets,deck,seed,selection_key=selection_key) as engine:
             request = engine.next_decision()
             own = engine._observation(0)
             opening = Counter(c.card_id for c in own.cards if c.zone == "hand")
@@ -129,5 +166,6 @@ def verify_extra_goal(task, deck, assets, *, seconds=10., attempts=16, decision_
                             "route_evidence": {"driver": driver.version, "opponent": "neutral-pass-engineering-only",
                                                "conditional_only": True, "material_preference": material_preference,
                                                "sum_choices": sums, "final_observation": json.loads(canonical_json(asdict(own))),
-                                               "core_event_audit_not_policy_input": list(engine.events), "versions": task.environment["versions"]}}
+                                               "core_event_audit_not_policy_input": list(engine.events), "versions": task.environment["versions"],
+                                               **({"private_selection_key_audit_only":selection_key} if selection_key is not None else {})}}
     return {"status": "not_found_within_budget", "card_list_legal": True, "core_attempts": trials, "unmet": [last_unmet]}

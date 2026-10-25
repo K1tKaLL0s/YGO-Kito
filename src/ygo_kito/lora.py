@@ -17,6 +17,8 @@ from torch.nn.utils import parametrize
 from .agent_registry import identifier
 from .build_contracts import digest
 from .duel_model import parameter_digest
+from .device import (model_device, execution_metadata, checkpoint_execution, optimizer_to,
+                     capture_device_rng, restore_device_rng)
 from .validation import ContractError, fields, integer
 
 ROLES = ("duel", "build_goal", "build_optimizer", "coordinator")
@@ -70,8 +72,8 @@ class AdapterConfig:
 class LowRankWeight(nn.Module):
     def __init__(self, weight, config):
         super().__init__()
-        self.a = nn.Parameter(torch.empty(config.rank, weight.shape[1], dtype=weight.dtype))
-        self.b = nn.Parameter(torch.zeros(weight.shape[0], config.rank, dtype=weight.dtype))
+        self.a = nn.Parameter(torch.empty(config.rank, weight.shape[1], dtype=weight.dtype, device=weight.device))
+        self.b = nn.Parameter(torch.zeros(weight.shape[0], config.rank, dtype=weight.dtype, device=weight.device))
         nn.init.kaiming_uniform_(self.a, a=math.sqrt(5))
         self.scale, self.enabled = config.alpha / config.rank, True
 
@@ -91,8 +93,9 @@ class AdapterSession:
         sha256(binding["context_sha256"])
         if any(parametrize.is_parametrized(m) for m in model.modules()):
             raise ContractError("adapter stacking/replacement unsupported; unload explicitly")
-        if any(p.device.type != "cpu" or p.dtype != torch.float32 for p in model.parameters()):
-            raise ContractError("this adapter implementation requires CPU float32 bases")
+        self.device = model_device(model)
+        if any(p.dtype != torch.float32 for p in model.parameters()):
+            raise ContractError("this adapter implementation requires float32 bases")
         targets = {}
         for name in config.targets:
             try:
@@ -114,8 +117,11 @@ class AdapterSession:
         for p in self.base_parameters.values():
             p.requires_grad_(False)
             p.grad = None
-        with torch.random.fork_rng(devices=[]):
-            torch.manual_seed(config.seed)
+        with torch.random.fork_rng(devices=[self.device.index] if self.device.type == "cuda" else []):
+            torch.random.default_generator.manual_seed(config.seed)
+            if self.device.type == "cuda":
+                with torch.cuda.device(self.device):
+                    torch.cuda.manual_seed(config.seed)
             for name, layer in targets.items():
                 delta = LowRankWeight(layer.weight, config)
                 parametrize.register_parametrization(layer, "weight", delta)
@@ -133,7 +139,8 @@ class AdapterSession:
         return {name + "." + k: p for name, d in self.deltas.items() for k, p in d.named_parameters()}
 
     def compatibility(self):
-        return {"schema_version": 1, "kind": "lora-linear-cpu-v1", "config": self.config.to_dict(),
+        return {"schema_version": 1, "kind": "lora-linear-cpu-v1" if self.device.type == "cpu" else "lora-linear-device-v2", "config": self.config.to_dict(),
+                **({"execution": execution_metadata(self.device)} if self.device.type == "cuda" else {}),
                 "binding": self.binding, "base_sha256": self.base_sha256,
                 "target_shapes": {n: list(self.layers[n].parametrizations.weight.original.shape) for n in self.layers}}
 
@@ -185,7 +192,7 @@ class AdapterSession:
     def step(self, loss):
         if self.detached or not self.enabled or self.updates >= self.config.max_updates:
             raise ContractError("adapter inactive or update budget exhausted")
-        if not isinstance(loss, torch.Tensor) or loss.device.type != "cpu" or loss.ndim != 0 or not loss.requires_grad or not torch.isfinite(loss):
+        if not isinstance(loss, torch.Tensor) or loss.device != self.device or loss.ndim != 0 or not loss.requires_grad or not torch.isfinite(loss):
             raise ContractError("adapter requires a finite scalar loss")
         self.verify_base()
         before = {n: p.detach().clone() for n, p in self.weights().items()}
@@ -211,6 +218,7 @@ class AdapterSession:
     def state(self):
         self.verify_base()
         return {"compatibility": self.compatibility(), "enabled": self.enabled,
+                "execution": execution_metadata(self.device), "device_rng": capture_device_rng(self.device),
                 "weights": {n: p.detach().clone() for n, p in self.weights().items()},
                 "weights_sha256": tensor_digest(self.weights()), "optimizer": self.optimizer.state_dict(),
                 "scheduler": self.scheduler.state_dict(), "rng": self.rng.get_state(), "updates": self.updates}
@@ -228,12 +236,15 @@ class AdapterSession:
 
     @classmethod
     def restore(cls, model, state, expected_compatibility):
-        fields(state, {"compatibility", "enabled", "weights", "weights_sha256", "optimizer", "scheduler", "rng", "updates"})
+        fields(state, {"compatibility", "enabled", "weights", "weights_sha256", "optimizer", "scheduler", "rng", "updates"}, {"execution", "device_rng"})
         if state["compatibility"] != expected_compatibility or type(state["enabled"]) is not bool:
             raise ContractError("adapter role/base/version/context/targets differ")
-        meta = fields(state["compatibility"], {"schema_version", "kind", "config", "binding", "base_sha256", "target_shapes"})
+        meta = fields(state["compatibility"], {"schema_version", "kind", "config", "binding", "base_sha256", "target_shapes"}, {"execution"})
         integer(meta["schema_version"], "adapter schema", 1, 1)
-        if meta["kind"] != "lora-linear-cpu-v1" or parameter_digest(model) != meta["base_sha256"]:
+        device = checkpoint_execution(state, model_device(model))
+        expected_kind = "lora-linear-cpu-v1" if device.type == "cpu" else "lora-linear-device-v2"
+        if (meta["kind"] != expected_kind or (device.type == "cuda" and meta.get("execution") != execution_metadata(device))
+                or parameter_digest(model) != meta["base_sha256"]):
             raise ContractError("adapter requires its exact unmodified base")
         cfg = AdapterConfig.from_dict(meta["config"])
         integer(state["updates"], "adapter restored updates", 0, cfg.max_updates)
@@ -250,10 +261,12 @@ class AdapterSession:
             for name, p in session.weights().items():
                 p.data.copy_(state["weights"][name])
             session.optimizer.load_state_dict(state["optimizer"])
+            optimizer_to(session.optimizer, session.device)
             session.scheduler.load_state_dict(state["scheduler"])
             session.rng.set_state(state["rng"])
             session.updates = state["updates"]
             session.set_enabled(state["enabled"])
+            if "device_rng" in state: restore_device_rng(state["device_rng"], session.device)
         except Exception:
             session.unload()
             raise

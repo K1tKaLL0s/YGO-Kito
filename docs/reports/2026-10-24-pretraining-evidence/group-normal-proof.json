@@ -1,0 +1,42 @@
+{
+  "scope": "real-core-positive-four-role-worker-and-checkpoint",
+  "state": "completed",
+  "cursor": {
+    "cycle": 1,
+    "phase": "done",
+    "committed_stages": 7
+  },
+  "metrics": {
+    "committed_stages": 7,
+    "cycles_completed": 1,
+    "episodes": 2,
+    "loss": 2.028813123703003,
+    "optimizer_updates": 8,
+    "process_cpu_seconds": 41.940612156,
+    "process_peak_rss_bytes": 433577984,
+    "setup_process_cpu_seconds": 3.883425934,
+    "steps": 7,
+    "unmeasured_worker_segments": 0,
+    "usage_segments": 2,
+    "usage_wall_seconds": 45.937198490999435,
+    "validation_episodes": 1
+  },
+  "execution": {
+    "device": "cpu",
+    "dtype": "float32",
+    "schema_version": 1
+  },
+  "role_adapter_updates": {
+    "build_goal": 1,
+    "build_optimizer": 1,
+    "duel": 1,
+    "coordinator": 1
+  },
+  "training_state_sha256": "6be0678344e576a477342e57e072be4e27a4e830a641544ca87489687af08655",
+  "frozen_evaluations": 1,
+  "fault_injection_performed": false,
+  "user_decks_received": false,
+  "competitive_ability_validated": false,
+  "gpu_execution_validated": false,
+  "period_inputs_used": false
+}

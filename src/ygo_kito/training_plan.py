@@ -19,7 +19,8 @@ from .validation import ContractError, canonical_json, fields, integer
 APPLICATION_ID = 0x59474247
 STAGES = ("throughput-small-train", "ocg-2022-07", "ocg-2022-10", "ocg-2026-10",
           "lora-final-evaluation", "failure-revalidation-reserve")
-GATES = ("G-01", "G-02", "P-01", "Q-02", "Q-03", "Q-04", "Q-05")
+GATES = ("G-01", "G-02", "Q-02", "Q-03", "Q-04", "Q-05")
+LEGACY_GATES = ("G-01", "G-02", "P-01", "Q-02", "Q-03", "Q-04", "Q-05")
 SOURCES = ("synthetic_contract_test", "host_reported_unverified")
 ACTIVITIES = ("setup", "download", "train", "evaluate", "idle", "checkpoint", "awaiting_stop_confirmation")
 
@@ -59,7 +60,8 @@ def validate_plan(value):
         limits[row["stage_id"]] = Decimal(str(row["gpu_hours"]))
     if sum(limits.values()) > Decimal(str(value["gpu_hours_limit"])):
         raise ContractError("stage budgets exceed the total cap")
-    if value["roles"] != ["duel", "build_goal", "build_optimizer", "coordinator"] or value["required_gates"] != list(GATES):
+    if (value["roles"] != ["duel", "build_goal", "build_optimizer", "coordinator"] or
+            value["required_gates"] not in (list(GATES), list(LEGACY_GATES))):
         raise ContractError("model roles and required gates cannot be omitted")
     integer(value["stop_remaining_quota_percent"], "quota stop threshold", 20, 20)
     if value["machine_type"] is not None:
@@ -82,6 +84,15 @@ def validate_plan(value):
             if not isinstance(artifact["evidence_path"], str) or not artifact["evidence_path"]:
                 raise ContractError("environment evidence path required")
     return json.loads(canonical_json(value))
+
+
+def required_training_gates(plan):
+    """Preserve old plan bytes while interpreting PC product checks as stage 3.
+
+    This is planning metadata, not launch permission. Core/rule compatibility
+    stays under G-01; external LLM availability is not a baseline prerequisite.
+    """
+    return [gate for gate in validate_plan(plan)["required_gates"] if gate != "P-01"]
 
 
 class BudgetBook:

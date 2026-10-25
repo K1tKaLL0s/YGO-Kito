@@ -26,7 +26,7 @@ from .validation import ContractError, array, canonical_json, fields, integer, m
 READ = {"capabilities", "runs.list", "runs.read", "runs.metrics", "checkpoints.read", "opponents.summary"}
 DUEL = {"duel.open", "duel.next", "duel.status", "duel.submit_action", "duel.close", "cards.lookup"}
 ROLES = {"monitor": READ, "trainer": READ | {"training.prepare", "training.recover", "training.control"},
-         "manager": READ | {"environment.runtime", "environment.register", "deck.import", "deck.read", "opponent.register", "coding.prepare_handoff"},
+         "manager": READ | {"environment.runtime", "environment.register", "deck.import", "deck.read", "opponent.register", "coding.prepare_handoff", "construction.plan", "construction.run"},
          "opponent": {"capabilities"} | DUEL}
 
 
@@ -45,7 +45,7 @@ class AgentBridge:
     def __init__(self, workspace, state_root, native_root, *, role="monitor", seat=1, profile=None, seed=7,
                  training_backend=None, decision_timeout=30, max_decisions=3000, clock=time.monotonic,
                  controller_source="unverified_external", provider="unverified", model="unverified",
-                 opponent_id=None, own_deck_id=None):
+                 opponent_id=None, own_deck_id=None, construction_backend=None):
         member(role, "agent role", tuple(ROLES))
         integer(seat, "opponent seat", 0, 1)
         integer(max_decisions, "decision limit", 1, 10000)
@@ -58,6 +58,11 @@ class AgentBridge:
         self.coding = CodeBuddyCLIAdapter(self.workspace)
         self.role, self.seat, self.profile, self.seed = role, seat, profile, seed
         self.backend, self.clock, self.timeout, self.max_decisions = training_backend, clock, decision_timeout, max_decisions
+        if construction_backend is not None:
+            from .construction_service import HostConstructionBackend
+            if not isinstance(construction_backend, HostConstructionBackend):
+                raise ContractError("typed host construction backend required")
+        self.construction_backend = construction_backend
         self.provenance = {"controller_source": controller_source, "provider": text(provider, "provider"),
                            "model": text(model, "model"), "provider_verified": False}
         self.bound_versions = None
@@ -103,8 +108,18 @@ class AgentBridge:
             fields(params, set())
             return {"api": "ygo-kito-local-json-v1", "transport": "json-lines-not-mcp", "role": self.role,
                     "methods": sorted(ROLES[self.role]), "training_backend_configured": self.backend is not None,
+                    "construction_backend_configured": self.construction_backend is not None,
                     "provider_connected": False, "model_verified": False, "provider_invocation_implemented": False,
                     "cloud_resource_control_implemented": False}
+        if method in ("construction.plan", "construction.run"):
+            if self.construction_backend is None:
+                raise ApiError("CONSTRUCTION_BACKEND_NOT_CONFIGURED", "explicit host construction backend required; no operation executed")
+            from .construction_service import ConstructionUnavailable
+            try:
+                return (self.construction_backend.plan(params) if method == "construction.plan"
+                        else self.construction_backend.run(params))
+            except ConstructionUnavailable as error:
+                raise ApiError("CONSTRUCTION_RESOURCES_UNAVAILABLE", str(error)) from error
         if method == "runs.list":
             fields(params, set())
             return self.monitor.runs()

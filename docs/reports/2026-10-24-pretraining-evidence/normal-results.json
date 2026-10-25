@@ -1,0 +1,101 @@
+{
+  "native": {
+    "tested_head": "6d23fc93cff7afce91aebf03422a2e7937c92460",
+    "implementation_sha256": "ae247a5b656d972c55db2fa69df60838e2faf5286d813bc28ff13f4fa7f79b09",
+    "tests_run": 23,
+    "elapsed_seconds": 125.055,
+    "success": true,
+    "log_sha256": "35c09d50498b1baedf206be4de4aee1c452d919de4b47b05efbf22e45a5fca4e",
+    "test_ids": [
+      "integration_tests.test_native_engine.RealNativeEngineTests.test_cli_uses_real_engine_in_child_process",
+      "integration_tests.test_native_engine.RealNativeEngineTests.test_closed_engine_selection_cannot_be_reused_in_fresh_instance",
+      "integration_tests.test_native_engine.RealNativeEngineTests.test_real_observation_and_stale_duplicate_or_invented_responses",
+      "integration_tests.test_native_engine.RealNativeEngineTests.test_real_pool_limits_and_single_process_lifecycle",
+      "integration_tests.test_native_engine.RealNativeEngineTests.test_real_summon_repeats_from_seed_with_database_and_upstream_scripts",
+      "integration_tests.test_normal_duel.RealNormalDuelTests.test_both_players_receive_only_own_hand_and_public_state_until_terminal",
+      "integration_tests.test_normal_duel.RealNormalDuelTests.test_budget_abort_is_not_a_fabricated_win",
+      "integration_tests.test_normal_duel.RealNormalDuelTests.test_modified_or_truncated_replay_is_rejected_by_real_execution",
+      "integration_tests.test_normal_duel.RealNormalDuelTests.test_real_game_reaches_native_win_and_replays_all_events_and_responses",
+      "integration_tests.test_normal_duel.RealNormalDuelTests.test_real_set_card_is_hidden_from_next_player",
+      "integration_tests.test_agent_duel.RealAgentDuelTests.test_current_illegal_action_uses_legal_fallback_but_old_window_cannot_advance",
+      "integration_tests.test_agent_duel.RealAgentDuelTests.test_deadline_poll_applies_real_legal_fallback_without_an_external_call",
+      "integration_tests.test_agent_duel.RealAgentDuelTests.test_eof_closes_actual_native_engine_and_cli_transport_has_no_extra_stdout",
+      "integration_tests.test_agent_duel.RealAgentDuelTests.test_opponent_only_sees_own_legal_requests_and_can_complete_real_game",
+      "integration_tests.test_agent_duel.RealAgentDuelTests.test_role_seat_and_raw_response_overrides_are_rejected",
+      "integration_tests.test_agent_duel.RealAgentDuelTests.test_stdio_deadline_progresses_while_external_client_sends_nothing",
+      "integration_tests.test_period_runtime.RealPeriodRuntimeTests.test_actual_actor_rebind_keeps_engine_profile_and_frozen_driver_consistent",
+      "integration_tests.test_period_runtime.RealPeriodRuntimeTests.test_actual_group_period_inputs_and_conditional_normal_goal_use_same_runtime",
+      "integration_tests.test_period_runtime.RealPeriodRuntimeTests.test_actual_period_private_v5_discovery_and_exact_keyed_replay",
+      "integration_tests.test_period_runtime.RealPeriodRuntimeTests.test_actual_period_registered_baseline_terminal_trace_replays_with_factory",
+      "integration_tests.test_period_runtime.RealPeriodRuntimeTests.test_actual_repository_host_descriptor_recreates_frozen_baseline_inputs",
+      "integration_tests.test_period_runtime.RealPeriodRuntimeTests.test_actual_three_period_assets_and_baselines_load_existing_training_profiles_and_index",
+      "integration_tests.test_period_runtime.RealPeriodRuntimeTests.test_real_legal_summon_uses_selected_historical_section_and_visible_baselines"
+    ],
+    "skipped": 0,
+    "fault_injection_performed": false,
+    "external_provider_called": false,
+    "gpu_execution_validated": false
+  },
+  "training_recovery": {
+    "tested_head": "6d23fc93cff7afce91aebf03422a2e7937c92460",
+    "implementation_sha256": "ae247a5b656d972c55db2fa69df60838e2faf5286d813bc28ff13f4fa7f79b09",
+    "tests_run": 15,
+    "elapsed_seconds": 97.962,
+    "success": true,
+    "log_sha256": "899a46ea7e7b7e5f412fabe94ba87efc90e12c0e0fff5ccb02817c104fdf7a14",
+    "test_ids": [
+      "integration_tests.test_cpu_training.RealCpuTrainingTests.test_real_terminal_games_produce_nonzero_policy_and_parameter_updates",
+      "integration_tests.test_cpu_training.RealCpuTrainingTests.test_actual_recovery_restores_optimizer_scheduler_rng_cursor_and_next_trajectory",
+      "integration_tests.test_cpu_training.RealCpuTrainingTests.test_real_metrics_and_checkpoint_are_readable_through_existing_monitor_tools",
+      "integration_tests.test_cpu_training.RealCpuTrainingTests.test_same_run_or_checkpoint_cannot_overwrite_saved_evidence",
+      "integration_tests.test_cpu_training.RealCpuTrainingTests.test_only_fresh_actor_seat_samples_can_update_and_old_rollout_is_rejected",
+      "integration_tests.test_build_training.RealBuildingCpuTests.test_both_independent_transformers_have_real_nonzero_supervised_updates",
+      "integration_tests.test_build_training.RealBuildingCpuTests.test_checkpoint_restores_each_optimizer_scheduler_rng_and_actual_next_update",
+      "integration_tests.test_build_training.RealBuildingCpuTests.test_goal_optimizer_goal_optimizer_preserves_actual_goals_and_verifiable_changes",
+      "integration_tests.test_model_group.RealModelGroupTests.test_three_transformers_and_advisory_coordinator_complete_an_actual_native_workflow",
+      "integration_tests.test_model_group.RealModelGroupTests.test_forecast_is_registered_before_allocating_and_reporting_versioned_duel",
+      "integration_tests.test_model_group.RealModelGroupTests.test_full_group_checkpoint_restores_four_models_optimizers_rng_job_and_sqlite",
+      "integration_tests.test_lora_group.LoraGroupIntegrationTests.test_actual_adapter_updates_and_base_freezing_in_all_roles",
+      "integration_tests.test_lora_group.LoraGroupIntegrationTests.test_adapter_versions_reach_real_construction_and_native_job",
+      "integration_tests.test_lora_group.LoraGroupIntegrationTests.test_disable_and_unload_recover_exact_base_outputs_and_weights",
+      "integration_tests.test_lora_group.LoraGroupIntegrationTests.test_exported_adapters_actually_load_onto_restored_base_models"
+    ],
+    "skipped": 0,
+    "fault_injection_performed": false,
+    "external_provider_called": false,
+    "gpu_execution_validated": false
+  },
+  "ordinary_group": {
+    "tested_head": "82fdfde1499e95fdb3eebc83544ee895a271a3e2",
+    "implementation_sha256": "ae247a5b656d972c55db2fa69df60838e2faf5286d813bc28ff13f4fa7f79b09",
+    "tests_run": 2,
+    "elapsed_seconds": 59.534,
+    "success": true,
+    "log_sha256": "9328f83709b1e0a121207b0dd48cd4508caa97043aa9658f396c85ea3fd32b83",
+    "test_ids": [
+      "integration_tests.test_group_normal.NormalGroupWorkerTests.test_all_four_actual_models_adapt_and_reach_normal_frozen_evaluation",
+      "integration_tests.test_group_normal.NormalGroupWorkerTests.test_final_registered_checkpoint_restores_models_optimizers_rng_and_cursor"
+    ],
+    "skipped": 0,
+    "fault_injection_performed": false,
+    "external_provider_called": false,
+    "gpu_execution_validated": false
+  },
+  "period_group": {
+    "tested_head": "82fdfde1499e95fdb3eebc83544ee895a271a3e2",
+    "implementation_sha256": "ae247a5b656d972c55db2fa69df60838e2faf5286d813bc28ff13f4fa7f79b09",
+    "tests_run": 3,
+    "elapsed_seconds": 169.47,
+    "success": true,
+    "log_sha256": "e66905a03e7b127023e3720bed41f2293e337350e650c8c003b2e1977631f25d",
+    "test_ids": [
+      "integration_tests.test_group_normal.NormalPeriodGroupWorkerTests.test_all_four_actual_models_adapt_and_reach_normal_frozen_evaluation",
+      "integration_tests.test_group_normal.NormalPeriodGroupWorkerTests.test_final_registered_checkpoint_restores_models_optimizers_rng_and_cursor",
+      "integration_tests.test_group_normal.NormalPeriodGroupWorkerTests.test_period_index_and_actual_opponents_remain_bound_after_restore"
+    ],
+    "skipped": 0,
+    "fault_injection_performed": false,
+    "external_provider_called": false,
+    "gpu_execution_validated": false
+  }
+}

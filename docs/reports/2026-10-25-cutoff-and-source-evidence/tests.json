@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "scope": "targeted CPU unit/contract tests with synthetic data and internal date-boundary clock patches",
+  "tests_run": 91,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "elapsed_seconds": 9.408,
+  "by_module": {
+    "test_deck_intake": 17,
+    "test_historical_listing": 14,
+    "test_external_policy_bridge": 13,
+    "test_period_runtime": 16,
+    "test_training_input": 14,
+    "test_period_host": 17
+  },
+  "log_sha256": "923eb3e5ab4ec5b977df56c7f804c81478bb727f3e3d24d28181ba68c5352ac9",
+  "native_executed": false,
+  "training_executed": false,
+  "external_provider_called": false,
+  "gpu_validation_phase": "stage2_training",
+  "gpu_checks_block_software_completion": false,
+  "review_followups": [
+    "cross-Japan-date immutable intake identity preserved, including old stored record format",
+    "Token and non-OCG cards never marked available"
+  ]
+}

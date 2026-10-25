@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "training_input_id": "user-three-period-inputs-v1",
+  "source": "user_supplied",
+  "periods": {
+    "2022-07": {
+      "main_slot": "main-01",
+      "versions": null,
+      "adapter_revision": 5,
+      "partitions": {
+        "train": {
+          "opponents": null,
+          "seeds": null,
+          "policy_seed": null
+        },
+        "validation": {
+          "opponents": null,
+          "seeds": null,
+          "policy_seed": null
+        },
+        "final_eval": {
+          "opponents": null,
+          "seeds": null,
+          "policy_seed": null
+        }
+      }
+    },
+    "2022-10": {
+      "main_slot": "main-02",
+      "versions": null,
+      "adapter_revision": 5,
+      "partitions": {
+        "train": {
+          "opponents": null,
+          "seeds": null,
+          "policy_seed": null
+        },
+        "validation": {
+          "opponents": null,
+          "seeds": null,
+          "policy_seed": null
+        },
+        "final_eval": {
+          "opponents": null,
+          "seeds": null,
+          "policy_seed": null
+        }
+      }
+    },
+    "2026-10": {
+      "main_slot": "main-03",
+      "versions": null,
+      "adapter_revision": 5,
+      "partitions": {
+        "train": {
+          "opponents": null,
+          "seeds": null,
+          "policy_seed": null
+        },
+        "validation": {
+          "opponents": null,
+          "seeds": null,
+          "policy_seed": null
+        },
+        "final_eval": {
+          "opponents": null,
+          "seeds": null,
+          "policy_seed": null
+        }
+      }
+    }
+  }
+}

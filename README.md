@@ -8,11 +8,17 @@
 
 **持续进度入口：[总工作清单 MASTER-CHECKLIST](docs/plans/MASTER-CHECKLIST.md)。** 每批完成后同步稳定任务 ID、状态和证据，符合验收条件才勾选；部分完成保持未勾选。该表索引全阶段进度，保留[第一阶段详细清单](docs/plans/2026-10-22-phase-1-cpu-checklist.md)，不替代统一规范。PR 已发布不表示已合并。
 
+**当前云端整合候选：[PR #3](https://github.com/K1tKaLL0s/YGO-Kito/pull/3)。** 保留PR1、DP草稿PR2及构筑工作历史。用户已授权设计复核、必要修正和最终CI通过后依次合入main；新增完整机器人运行范围尚未闭合时不先行合并。[本轮续作](docs/reports/2026-10-25-bot-gap-continuation.md)补齐私有对象／公开历史连续性、精确Monarch506变体、构建诊断与全量资格入口；最终测试与CI按对应提交回执核对，不沿用539368b的462项成绩。C#工具安装受系统权限和配置签名源代理403阻碍，未编译或运行WindBot；这些环境阻碍没有用于停止独立软件工作。通用接续先读[AGENTS.md](AGENTS.md)和[Agent说明](docs/development/generic-agent-integration.md)。
+
+**继续工程准备：[安全CPU CI](docs/development/safe-cpu-ci.md)、[3＋8牌表收件](docs/development/deck-intake.md)、[完整源码训练交接](docs/development/training-handoff.md)。** 已建立[草稿PR #3](https://github.com/K1tKaLL0s/YGO-Kito/pull/3)，依赖#1→#2→#3。最新测试/CI与剩余依赖统一见[继续工程报告](docs/reports/2026-10-24-engineering-continuation.md)；原188项是历史整合基线，不代替新提交检查。
+
+**2026-10-24 独立新增：[构筑逻辑与非 LLM 入口](docs/development/construction-logic.md)。** 已补齐实际轻量可训练分类器、现有目标/优化模型的图候选选择与偏好训练、目录卡绑定及既有统筹连接。图由程序枚举、模型评分；小合成训练只验证代码，正式泛化和任意图合法 CB 未验，见[当前清单](docs/reports/2026-10-24-construction-trainable.md)。
+
 - 模型组：决斗模型＋构筑目标/优化两个子模型，由轻量统筹模型和确定性程序包裹；三个执行模型独立小 Transformer，共享数据规范，不强制共享权重。
 - 先训练基本模型组，LLM 后置且非必需。**LoRA 是基模后的常规持续适配路线**，不是旧文所说的完全可不开展。
 - 开发使用云端 Codex，训练计划使用腾讯云；约 100h 总上限，初始分配 5/25/25/20/10/15 小时，按吞吐实测调整，不保证达标、不自动授权付费或训练。
 - 珠泪哀歌三期课程：2022 年 7 月、2022 年 10 月、2026 年 10 月；目标→改进循环、合法可见信息、独立 BO3 与跨牌组迁移验收。
-- 第一阶段真实规则核心，第二阶段训练前验证 PC YGOPro／萌卡兼容。**手机端及 YGOMobile 暂移出本期范围**；云端训练与 PC 推理/微调的硬件压力仍必须记录。
+- 第一阶段交付可用代码、真实规则适配、资源导入、训练入口、恢复与交接；用户提供卡组后进入腾讯云第二阶段。GPU依赖安装、实测、调优与能力验收属于训练阶段，PC产品/客户端互操作归阶段3。**手机端及 YGOMobile 暂移出本期范围**。
 - 构筑预测与实战反馈：百场内明显落后预警、千场内明显落后强制重构；具体统计阈值实施前冻结。
 
 当前已有CPU骨架、固定上游源码构建的core、限定真实终局/重放，以及四个独立网络原型。历史v3完整公开卡库的决斗Transformer为266,018参数；v4匿名/卡名原型配置见[历史报告](docs/reports/2026-10-23-private-hierarchy-v4.md)，当前私有记忆特征已升v5，旧权重不静默兼容。原构筑词表的目标/优化各17,729参数，64卡工程词表各18,417参数；统筹MLP648参数。词表和实验大小不是最终容量冻结。已串通构筑托付、版本预测、冻结策略验证、回收及恢复；规则控制最终行为，统筹学习原型仍为明示合成监督。
@@ -39,7 +45,7 @@
 
 ```bash
 cd /workspace/YGO-Kito
-PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
+OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 .venv/bin/python scripts/check_merge_candidate.py
 PYTHONPATH=src .venv/bin/python -m ygo_kito --config configs/cpu.toml status
 ```
 

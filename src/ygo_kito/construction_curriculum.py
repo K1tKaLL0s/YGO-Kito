@@ -10,13 +10,13 @@ from .validation import ContractError, array, fields, integer, read_json
 FIELD = "construction_curriculum"
 
 
-def inputs(recipe, task):
+def inputs(recipe, task, *, period_host=None):
     from .group_runner import config_path
     if FIELD not in recipe:
         return None
     config = read_json(config_path(recipe[FIELD]))
     from .semantic_curriculum import COURSE,inputs as semantic_inputs
-    if config.get('source')==COURSE:return semantic_inputs(recipe,task)
+    if config.get('source')==COURSE:return semantic_inputs(recipe,task,period_host=period_host)
     fields(config, {"schema_version", "source", "train", "validation", "comparison_seconds"})
     integer(config["schema_version"], "construction schema", 1, 1)
     if config["source"] != "explicit-frozen-real-comparison-engineering-v1":

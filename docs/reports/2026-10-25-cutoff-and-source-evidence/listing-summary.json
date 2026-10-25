@@ -1,0 +1,418 @@
+{
+  "schema_version": 1,
+  "full_audit_local_path": ".cache/cutoff-20261101-listing/report.json",
+  "full_audit_sha256": "4ec8c6317dca1b46b67a7a57ef97bb2086fb65c6c4b368446799fc3e5ab3f686",
+  "index_sha256": "a01480406edf5b74a82ea6c5f58941c872c995448948af6eb91ea3cd92e90125",
+  "periods": {
+    "2022-07": {
+      "release_cutoff": "2022-09-30",
+      "banlist_effective": "2022-07-01",
+      "banlist_section": "2022.7",
+      "sources": {
+        "catalog_source": {
+          "source_id": "pinned-catalog",
+          "source_pin": "217ae165c1886af2fc36b823fc08f9fc3ec13185",
+          "source_path": "locales/zh-CN/cards.cdb",
+          "source_url": "https://github.com/mycard/ygopro-database/blob/217ae165c1886af2fc36b823fc08f9fc3ec13185/locales/zh-CN/cards.cdb",
+          "artifact_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "git_blob_sha1": null,
+          "local_path": ".cache/engine-src/database/locales/zh-CN/cards.cdb",
+          "data_license_verified": false,
+          "status": "artifact_checked_not_official_authenticated"
+        },
+        "banlist_source": {
+          "source_id": "pinned-community-banlist",
+          "source_pin": "0d76e26b30c5ddb0273ee746459506c5719fddb6",
+          "source_path": "lflist.conf",
+          "source_url": "https://github.com/mycard/ygopro/blob/0d76e26b30c5ddb0273ee746459506c5719fddb6/lflist.conf",
+          "artifact_sha256": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+          "git_blob_sha1": null,
+          "local_path": ".cache/engine-src/client/lflist.conf",
+          "data_license_verified": false,
+          "status": "artifact_checked_not_official_authenticated"
+        },
+        "release_source": {
+          "status": "not_supplied"
+        }
+      },
+      "unmet": [
+        "release source not supplied"
+      ],
+      "cutoff_timing": {
+        "release_cutoff": "2022-09-30",
+        "timezone": "Asia/Tokyo",
+        "inclusive": true,
+        "as_of_date": "2026-10-25",
+        "cutoff_selected": true,
+        "cutoff_reached": true,
+        "final_card_pool_verified": false,
+        "status": "cutoff_reached_requires_resource_verification"
+      }
+    },
+    "2022-10": {
+      "release_cutoff": "2022-12-31",
+      "banlist_effective": "2022-10-01",
+      "banlist_section": "2022.10",
+      "sources": {
+        "catalog_source": {
+          "source_id": "pinned-catalog",
+          "source_pin": "217ae165c1886af2fc36b823fc08f9fc3ec13185",
+          "source_path": "locales/zh-CN/cards.cdb",
+          "source_url": "https://github.com/mycard/ygopro-database/blob/217ae165c1886af2fc36b823fc08f9fc3ec13185/locales/zh-CN/cards.cdb",
+          "artifact_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "git_blob_sha1": null,
+          "local_path": ".cache/engine-src/database/locales/zh-CN/cards.cdb",
+          "data_license_verified": false,
+          "status": "artifact_checked_not_official_authenticated"
+        },
+        "banlist_source": {
+          "source_id": "pinned-community-banlist",
+          "source_pin": "0d76e26b30c5ddb0273ee746459506c5719fddb6",
+          "source_path": "lflist.conf",
+          "source_url": "https://github.com/mycard/ygopro/blob/0d76e26b30c5ddb0273ee746459506c5719fddb6/lflist.conf",
+          "artifact_sha256": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+          "git_blob_sha1": null,
+          "local_path": ".cache/engine-src/client/lflist.conf",
+          "data_license_verified": false,
+          "status": "artifact_checked_not_official_authenticated"
+        },
+        "release_source": {
+          "status": "not_supplied"
+        }
+      },
+      "unmet": [
+        "release source not supplied"
+      ],
+      "cutoff_timing": {
+        "release_cutoff": "2022-12-31",
+        "timezone": "Asia/Tokyo",
+        "inclusive": true,
+        "as_of_date": "2026-10-25",
+        "cutoff_selected": true,
+        "cutoff_reached": true,
+        "final_card_pool_verified": false,
+        "status": "cutoff_reached_requires_resource_verification"
+      }
+    },
+    "2026-10": {
+      "release_cutoff": "2026-11-01",
+      "banlist_effective": "2026-10-01",
+      "banlist_section": "2026.10",
+      "sources": {
+        "catalog_source": {
+          "source_id": "pinned-catalog",
+          "source_pin": "217ae165c1886af2fc36b823fc08f9fc3ec13185",
+          "source_path": "locales/zh-CN/cards.cdb",
+          "source_url": "https://github.com/mycard/ygopro-database/blob/217ae165c1886af2fc36b823fc08f9fc3ec13185/locales/zh-CN/cards.cdb",
+          "artifact_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "git_blob_sha1": null,
+          "local_path": ".cache/engine-src/database/locales/zh-CN/cards.cdb",
+          "data_license_verified": false,
+          "status": "artifact_checked_not_official_authenticated"
+        },
+        "banlist_source": {
+          "source_id": "pinned-community-banlist",
+          "source_pin": "0d76e26b30c5ddb0273ee746459506c5719fddb6",
+          "source_path": "lflist.conf",
+          "source_url": "https://github.com/mycard/ygopro/blob/0d76e26b30c5ddb0273ee746459506c5719fddb6/lflist.conf",
+          "artifact_sha256": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+          "git_blob_sha1": null,
+          "local_path": ".cache/engine-src/client/lflist.conf",
+          "data_license_verified": false,
+          "status": "artifact_checked_not_official_authenticated"
+        },
+        "release_source": {
+          "status": "not_supplied"
+        }
+      },
+      "unmet": [
+        "release source not supplied",
+        "selected OCG cutoff has not arrived in Asia/Tokyo; staging only"
+      ],
+      "cutoff_timing": {
+        "release_cutoff": "2026-11-01",
+        "timezone": "Asia/Tokyo",
+        "inclusive": true,
+        "as_of_date": "2026-10-25",
+        "cutoff_selected": true,
+        "cutoff_reached": false,
+        "final_card_pool_verified": false,
+        "status": "awaiting_cutoff_date"
+      }
+    }
+  },
+  "samples": [
+    {
+      "sample_id": "engineering-train-seat-0",
+      "checks": [
+        {
+          "period_id": "2022-07",
+          "status": "unverified",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "checked_under_selected_community_section",
+          "release_status": "unknown_release_dates",
+          "unknown_release_count": 25,
+          "available_cards": 0
+        },
+        {
+          "period_id": "2022-10",
+          "status": "unverified",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "checked_under_selected_community_section",
+          "release_status": "unknown_release_dates",
+          "unknown_release_count": 25,
+          "available_cards": 0
+        },
+        {
+          "period_id": "2026-10",
+          "status": "blocked_future_cutoff_staging_only",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "checked_under_selected_community_section",
+          "release_status": "future_cutoff_staging_only",
+          "unknown_release_count": 25,
+          "available_cards": 0
+        }
+      ]
+    },
+    {
+      "sample_id": "engineering-validation-seat-0",
+      "checks": [
+        {
+          "period_id": "2022-07",
+          "status": "unverified",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "checked_under_selected_community_section",
+          "release_status": "unknown_release_dates",
+          "unknown_release_count": 24,
+          "available_cards": 0
+        },
+        {
+          "period_id": "2022-10",
+          "status": "unverified",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "checked_under_selected_community_section",
+          "release_status": "unknown_release_dates",
+          "unknown_release_count": 24,
+          "available_cards": 0
+        },
+        {
+          "period_id": "2026-10",
+          "status": "blocked_future_cutoff_staging_only",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "checked_under_selected_community_section",
+          "release_status": "future_cutoff_staging_only",
+          "unknown_release_count": 24,
+          "available_cards": 0
+        }
+      ]
+    },
+    {
+      "sample_id": "windbot-tearlaments",
+      "checks": [
+        {
+          "period_id": "2022-07",
+          "status": "unverified",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "checked_under_selected_community_section",
+          "release_status": "unknown_release_dates",
+          "unknown_release_count": 32,
+          "available_cards": 0
+        },
+        {
+          "period_id": "2022-10",
+          "status": "rejected",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "rejected",
+          "release_status": "unknown_release_dates",
+          "unknown_release_count": 32,
+          "available_cards": 0
+        },
+        {
+          "period_id": "2026-10",
+          "status": "blocked_future_cutoff_staging_only",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "rejected",
+          "release_status": "future_cutoff_staging_only",
+          "unknown_release_count": 32,
+          "available_cards": 0
+        }
+      ]
+    },
+    {
+      "sample_id": "windbot-albaz",
+      "checks": [
+        {
+          "period_id": "2022-07",
+          "status": "rejected",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "rejected",
+          "release_status": "unknown_release_dates",
+          "unknown_release_count": 46,
+          "available_cards": 0
+        },
+        {
+          "period_id": "2022-10",
+          "status": "rejected",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "rejected",
+          "release_status": "unknown_release_dates",
+          "unknown_release_count": 46,
+          "available_cards": 0
+        },
+        {
+          "period_id": "2026-10",
+          "status": "blocked_future_cutoff_staging_only",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "rejected",
+          "release_status": "future_cutoff_staging_only",
+          "unknown_release_count": 46,
+          "available_cards": 0
+        }
+      ]
+    },
+    {
+      "sample_id": "windbot-labrynth",
+      "checks": [
+        {
+          "period_id": "2022-07",
+          "status": "unverified",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "checked_under_selected_community_section",
+          "release_status": "unknown_release_dates",
+          "unknown_release_count": 28,
+          "available_cards": 0
+        },
+        {
+          "period_id": "2022-10",
+          "status": "unverified",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "checked_under_selected_community_section",
+          "release_status": "unknown_release_dates",
+          "unknown_release_count": 28,
+          "available_cards": 0
+        },
+        {
+          "period_id": "2026-10",
+          "status": "blocked_future_cutoff_staging_only",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "rejected",
+          "release_status": "future_cutoff_staging_only",
+          "unknown_release_count": 28,
+          "available_cards": 0
+        }
+      ]
+    },
+    {
+      "sample_id": "windbot-horus",
+      "checks": [
+        {
+          "period_id": "2022-07",
+          "status": "unverified",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "checked_under_selected_community_section",
+          "release_status": "unknown_release_dates",
+          "unknown_release_count": 20,
+          "available_cards": 0
+        },
+        {
+          "period_id": "2022-10",
+          "status": "unverified",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "checked_under_selected_community_section",
+          "release_status": "unknown_release_dates",
+          "unknown_release_count": 20,
+          "available_cards": 0
+        },
+        {
+          "period_id": "2026-10",
+          "status": "blocked_future_cutoff_staging_only",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "checked_under_selected_community_section",
+          "release_status": "future_cutoff_staging_only",
+          "unknown_release_count": 20,
+          "available_cards": 0
+        }
+      ]
+    },
+    {
+      "sample_id": "windbot-swordsoul",
+      "checks": [
+        {
+          "period_id": "2022-07",
+          "status": "unverified",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "checked_under_selected_community_section",
+          "release_status": "unknown_release_dates",
+          "unknown_release_count": 30,
+          "available_cards": 0
+        },
+        {
+          "period_id": "2022-10",
+          "status": "unverified",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "checked_under_selected_community_section",
+          "release_status": "unknown_release_dates",
+          "unknown_release_count": 30,
+          "available_cards": 0
+        },
+        {
+          "period_id": "2026-10",
+          "status": "blocked_future_cutoff_staging_only",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "rejected",
+          "release_status": "future_cutoff_staging_only",
+          "unknown_release_count": 30,
+          "available_cards": 0
+        }
+      ]
+    },
+    {
+      "sample_id": "windbot-kashtira",
+      "checks": [
+        {
+          "period_id": "2022-07",
+          "status": "unverified",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "checked_under_selected_community_section",
+          "release_status": "unknown_release_dates",
+          "unknown_release_count": 31,
+          "available_cards": 0
+        },
+        {
+          "period_id": "2022-10",
+          "status": "unverified",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "checked_under_selected_community_section",
+          "release_status": "unknown_release_dates",
+          "unknown_release_count": 31,
+          "available_cards": 0
+        },
+        {
+          "period_id": "2026-10",
+          "status": "blocked_future_cutoff_staging_only",
+          "structure": "valid_under_pinned_catalog_and_standard_copy_limit",
+          "banlist_status": "rejected",
+          "release_status": "future_cutoff_staging_only",
+          "unknown_release_count": 31,
+          "available_cards": 0
+        }
+      ]
+    }
+  ],
+  "native_executed": false,
+  "historical_rules_verified": false,
+  "formal_training_ready": false,
+  "coverage": {
+    "matrix_sha256": "f198c23aa8104718de6890a1826520c1c499088fc6c5a5a64eb7e1dcf35e0a14",
+    "rows": 1152,
+    "listing_status_counts": {
+      "unverified": 576,
+      "rejected": 192,
+      "blocked": 384
+    },
+    "foreign_drivers_executed": 0,
+    "native_executed": false,
+    "local_operational_references": [],
+    "note": "Metadata projection only. Earlier actual Python snapshot proofs remain unchanged in their original report."
+  }
+}

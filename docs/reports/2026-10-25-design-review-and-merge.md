@@ -1,0 +1,40 @@
+# 已确认设计复核与条件合并接续
+
+用户已授权在必要设计落实、最终CI通过且没有未审阻塞后，按PR #1→#2→#3合入main。2026-10-25本轮实际起点为main@8914e8055d45f3825fc56f67141750bd5067c2aa，PR1@654971726c96469069a623c7bd366370b9b3a896、PR2@a7085e23a74fb04bff571c1c679e0097dd1ae430、PR3@9be766876a26c1b5692c87c196bf98b007c9051d；三个PR均open/mergeable，PR2/3为draft，审查线程为空。起点和授权不等于实际合并，本批尚未合并任何PR。
+
+## 独立审查与实际修正
+
+[构筑审查](2026-10-25-construction-design-review.md)核实际图/标签、粗连接、狭义路由、可训练非LLM分类/拒判、原双模型评分/训练、卡文绑定拒绝与统筹/manager连接，20项针对CPU通过；不以mock或小样本成绩代替核心实现。[Agent/数据与机器人复核](2026-10-25-agent-data-and-bot-review.md)另核通用接口、3＋8、分期、隔离与恢复，74项针对CPU通过，区分本地真实对局、fixture和仅源码。以上分组重叠，不累加成统一总数。
+
+[模型组审查](2026-10-25-model-design-review.md)与[独立验收](2026-10-25-independent-software-acceptance.md)发现并推动修正真实接线问题：
+
+1. 分期验证原来按局序取对手，但统筹按规范化scope抽样；现按实际租用的id/牌表/驱动身份找到真实adapter，核精确scope、游戏seed和policy_seed，实际记录不再错配。
+2. 预警后已有优化候选的route=build_optimizer不应被runner当异常中止；现允许其继续预测与验证，仍拒诊断/停止等不相符路径。
+3. 强制重构不能仅以“候选曾有parent”为依据。新候选记录host-owned的当前全部mandatory forecast锚点，验证须确在这些告警后产生且改卡；当前失败牌表不能改parent/环境/驱动冒充重构。旧告警/预测/计数不清除，也不要求构筑永久新颖。独立公开dispatch复核了两次mandatory共250个合成结果与新旧子候选；它们是账本契约，不是实战胜率。
+4. 原主模型没有跨期权重初始化入口。新增[显式初始化](../development/group-initialization.md)，复用原四角色，按稳定卡ID/注释身份映射并显式选择有效LoRA或base；新run不继承源优化器、RNG、数据或账本。旧restore门禁不放松。
+
+跨期模块8项与宿主声明3项CPU检查通过；另以真实已更新组工件构造新GroupState、保存、删除source临时副本并恢复，四角色参数与provenance相同、新run更新0、原source不变。独立验收者用weights_only读取实际保存工件核对四hash与bootstrap零游标。源是旧工程期上下文，不声称未来或正式历史池；没有新训练或native。聚合回执附本报告同名前缀evidence目录。
+
+## 新增完整机器人部署范围
+
+用户本轮追加：部署需包含已明确维护范围内全部现有bots，不能只盘点旧dsh副本。现固定IceYGO/purerosefallen/libWindbot及YGOMobile配置四源，先完成815文件源码准备，专项批准后又实际取得14份被动构建资源并核原Git blob/长度/SHA；[当前完整包为829成员](../development/maintained-bot-deployment.md)。73/74/73个Executor文件，220条来源、81组字节身份、144条YDK路径、211配置别名完整保留，字节相同不声称运行等价。147条桌面来源覆盖80/81字节组，library独有Monarch506变体另列方案而非静默省略。
+
+根MIT及原依赖声明保留；GPL移动端只含LICENSE和bot.conf资料，不整搬客户端。Horus是旧黑炎龙Lv6/Lv8；ChaosRitual为光与暗之仪式，Elfnote为耀圣，不能据旧副本没有文件否定整个生态，也不把纯轴存在当巳剑混轴更强的证明。未替用户填正式八套牌表。
+
+新增范围**尚未全部完成，当前不能执行条件合并**。539368b已补实际LAN房间、合法席位事件/查询/提示投影、全构建审计门禁、registry→分期宿主→采样器及重绑，具体支持路径有正常真实core实证；原native/guard未改。来源替身回调、实现摘要漏helper、私有alias和子进程退出边界已独立修验。仍缺工具可用环境中的完整C#编译、逐名加载/构造及逐bot正常对局，部分不能精确投影路径显式拒绝，详见[最新交付](2026-10-25-bot-delivery-and-blockers.md)。没有以泛化占位、ExternalPolicyOnly或Python peer代替真实Executor。
+
+[专项审批packet](2026-10-25-bot-build-run-approval-packet.json)已获用户明确批准：签名Debian Mono工具安装、固定Ice/Pure完整构建及仅127.0.0.1有界验证。实际系统安装因uid1000无sudo、dpkg目录权限不足失败；保留默认签名/来源而改用工作区APT缓存读取配置的Debian snapshot索引，三个InRelease均于06:52:52 UTC被代理HTTP403拒绝。APT退出0仍伴随全部索引失败，不能记为安装成功。已停止该网络路径，不更换镜像/代理/工具绕过；不是自动审批拒绝，也不是仍在等用户授权。详见[精确阻碍回执](2026-10-25-bot-toolchain-block.json)。Mono/MSBuild/xbuild/dotnet仍无，完整C#编译、真实机器人加载与对局未执行；继续独立资源部署和安全桥接实现。lib Android PostBuild、公网Test1和付费调用仍不在授权范围。
+
+## 合并检查与接续
+
+GPU安装、性能调优、能力训练归第二阶段；PC/可选LLM/DP另取历史全库不作为新软件合并门槛。这里暂停来自新增机器人真实软件接线与专项执行边界，不能将其改称缺GPU或仅缺权重。
+
+闭合后先核最终头提交与CI，再逐项检查有无他人新增变更；PR1合main后，将PR2明确retarget main、复核diff并以expected_head_sha合并；PR3同样retarget main，确认最终tree包含全部差异后合并。保留原作者commit和分支，不强推/删分支/自动合并/部署。若具体动作被审批拒绝，只停止该动作并准确报告。
+
+6ec5a2521d014ac4516c4b160df16d9874e5a591已推送同一PR3分支，本地408/408明确CPU白名单通过（0失败/错误/跳过，26.94秒）；其源码摘要及初始化实际宿主收据保存在同名前缀evidence目录。该结果不覆盖后续新增桥接代码或第三方运行；远端CI另按真实收据更新，不能引用9be7668的362项替代本批检查。
+
+后续代码539368b4f024d5f349e94a974dca2bb6910f74f4统一462/462 CPU通过、无skip，29.40秒，implementation SHA987676c4c6b44fc21d529f331d9d06bb75f5c012e1ceaa0ed0b8205a8f7b8304；当前源又实际完成一次四角色初始化/保存/删临时source后恢复，新run更新0，未采样/训练。正常core投影与检索XYZ为独立两项真实用例，均未运行C#。[当前收据](2026-10-25-bot-delivery-evidence/local-cpu.json)与远端CI/源码包分别保存，不互相替代。
+
+卡库交父任务DP采集使用[现有严格格式与审计命令](../development/card-data-collection-contract.md)，不是新schema或已取得全库的宣称。
+
+本云端没有实时Codex用量读取工具。父任务于2026-10-25 07:03:58 UTC实际读取官方页：每周剩余94%、6天23小时后重置，账户已恢复周期且未使用重置卡；这是该时刻的读数，不当作持续实时值。仍以实际剩余≤20%保存停止。

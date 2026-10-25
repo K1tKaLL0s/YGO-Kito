@@ -1,0 +1,14 @@
+{
+  "verified": true,
+  "source_commit": "59dd60b7c4081c4bf54e53b716abfe307cabf922",
+  "files": 255,
+  "bundle_sha256": "ae154ea20975b89134b113322c563e2f304dc402418018707cf8ec5cbff3c96f",
+  "note": "Integrity only; an unsigned hash does not authenticate a publisher or establish training readiness.",
+  "bundle_path": ".cache/ygo-training-source-59dd60b.tar.gz",
+  "bundle_bytes": 623594,
+  "installed_source": ".cache/training-source-59dd60b-unpacked",
+  "git_metadata_present": false,
+  "verification_extracted": false,
+  "installed_for_cpu_tests": true,
+  "archive_tests_passed": 311
+}

@@ -1,0 +1,38 @@
+# 机器人部署缺口续作
+
+本轮接续 `26a39f8`，继续完成不依赖 Mono 的实际软件缺口。没有重复被拒绝的 APT 请求，没有修改 native 绑定或 DP guard，没有执行第三方 C#、付费调用或合并。原有 [539368b 交付报告](2026-10-25-bot-delivery-and-blockers.md)保留其当时边界；当前以本文、最终提交和对应 CI 为准。
+
+## 实际代码变化
+
+- 合法观察连续性：私有确认只用本席 `PrivateReveal`，公开确认绑定本帧未消费的公开历史事件及当时的独立 LAN 槽；严格区分公开区域序号和手牌／额外的私有序号。未知对象移动或洗牌前完整擦除客户端旧属性；不靠猜测隐藏身份修补关联。
+- 按固定 core、客户端及 WindBot 源码补齐事件布局、35 旧墓地分类、36 无序公开槽、提示接收者和 70 连续可见 Type。已有 XYZ 正向检查曾发现具体回归，已修复并保留失败收据；不把安全拒绝写成该路线已通过。固定 core 不发送的 legacy95、仅允许场上对象的55不另设软件门槛。
+- library 独有 Monarch506 字节变体已有独立完整 Pure overlay、双 MIT 声明、精确替换 manifest、包安装／核验、74 类完整构建计划和 registry／分期宿主接线。原 Ice73、Pure74 保留。准备成功不表示该额外变体已获准执行或已经加载。
+- 构建审计提供结构化阶段、固定 argv、退出／超时、直接子进程回收、日志路径和摘要。实际进程启动而结果不明记为 unknown；日志丢失也保留原失败阶段。没有失败后重试或替换工具。
+- 新增全量配套牌表资格计划与显式真实执行入口：预先独占并落盘报告，生产入口只接真实 registry／托管房间，不接受 fixture 回调。秒数同时进入 C# 会话 watchdog；宿主逐决策检查，不声称能硬中断 native 调用。只有真实终局且 bot 至少一次合法选择才可记该行对局通过。
+- 对手身份现在封印整个 Python 包的路径及内容，文件新增、删除或修改均失效；不是只保护四个 codec 文件。检查点及原有数据／牌表／C# 工具封印继续保留。
+
+实现和调用命令见 [完整来源部署](../development/maintained-bot-deployment.md)、[资格检查](../development/bot-qualification.md)、[合法投影](../development/windbot-projection.md)。独立审查记录见[软件验收](2026-10-25-independent-software-acceptance.md)；模拟进程和 socket 测试均明确标识。
+
+## 全量覆盖与资源
+
+固定来源仍为 Ice `dec0535f`、Pure `1b8f8953`、library `4d8cae5f` 及 mobile 配置 `6207d220`；829 成员、220 条来源、81 个字节组、144 条 YDK 路径和211配置别名全部保留。原始完整惰性包 SHA256 为 `a40a54efb0a4a3d6283013ec0f9f0bf6808f4eaef66a8a812238a0433e3ad5be`。当前独立 overlay 包 SHA256 为 `179d5f93abf2fbb74170c9e2e55220b8ca46bb44b261620ebb0c61ff90640d45`。包字节核验不是发布者签名或运行验收；源码交付含正常锁定 fetch 和离线安装命令，不依赖此云端缓存。
+
+实际只读矩阵保存于 [普通来源](2026-10-25-bot-gap-evidence/current-listing-plan.json)和[含精确变体](2026-10-25-bot-gap-evidence/variant-listing-plan.json)。147 条原桌面候选中44份原 YDK符合锁定工程2026.10列表、103份因张数／限额拒绝；精确变体为148候选、44合法／104拒绝。220条来源均未删除。该结果只描述原配牌表和当前工程列表，不表示103个策略损坏，也不认证历史发行、历史禁表、正式3＋8牌表或强度；不能自动改牌或切换到另一 bot。
+
+## 证据分层
+
+代码提交 `bc7b8b8d0475406f5d93480986b849b45dea53d0` 的统一 CPU 白名单 **517／517 通过，0失败／错误／跳过，36.024秒**，含完整项目启动和接口契约，[逐模块计数](2026-10-25-bot-gap-evidence/local-cpu-results.json)及[逐测试结果](2026-10-25-bot-gap-evidence/local-cpu-tests.log)已保存。运行时受选源码干净；CI 折叠摘要为 `b5df411ad5545c989efc13267b8719a2f160cd61a0aa6c40ece77da3cbc5a3cd`，95文件路径→SHA map 摘要为 `d19a310867616257ead51d8bea2cdb146687dd2b5b6aa22603f18d6ce56a27bd`，两者算法不同。原 guard 字节与 DP 相同，native 仅保留此前逐字可逆核验的历史禁表 hook，本轮均未改动。CPU 没有调用 native、第三方 C# 或外部 provider。
+
+同一代码下，自有已保存工程权重实际完成四角色初始化、保存、删除源副本后的恢复，模型与来源标记一致，原始源文件未变，新更新数为0；[恢复摘要](2026-10-25-bot-gap-evidence/group-initialization-summary.json)单列。不是正式训练恢复或能力验收；后续恢复仍须保留目标 recipe／spec。
+
+普通真实 core 的正常终局、检索→XYZ、两条私有确认及公开历史确认机制另存[最终正常投影收据](2026-10-25-windbot-projection-evidence/public-confirmation-and-final-mechanisms.json)，[此前四机制](2026-10-25-windbot-projection-evidence/private-continuity-and-normal.json)保留其旧源码版本。以每次完整源码 map 和结果为准，保留先前尝试；机制成功不冒称自然终局。该测试使用已批准的锁定资源和原 submit／guard，不做故障注入，不执行 C#，不更新模型。四角色恢复仅证明自有工程权重继承、保存与恢复，不证明正式训练能力、历史卡池或胜率。
+
+## 当前精确阻碍
+
+用户已经批准原始 Ice／Pure 完整构建及有界 localhost 验证。当前失败不是仍等这项批准：uid1000 无 sudo，系统安装打不开 `/var/lib/dpkg/lock-frontend`；配置的签名 Debian snapshot 三项索引被 HTTP 代理403拒绝，索引下载为0。原回执见[工具链阻碍](2026-10-25-bot-toolchain-block.json)。本轮[只读重查](2026-10-25-existing-toolchain-recheck.json)仍无 Mono、mcs、MSBuild／xbuild、dotnet 或已安装包，没有可调用的环境管理员设置接口。没有重试该网络路径、换源／代理、改权限或以其他工具绕过。
+
+恢复的最小条件是平台／管理员在**同一执行环境**预置获准的 Mono runtime、C# compiler、MSBuild 或兼容 xbuild、.NET4.8 引用程序集与系统 SQLite，或者修复正常安装权限及原配置签名源访问。然后才可执行已经准备的完整构建、逐名反射／构造以及精确 bot／牌表的 localhost 正常对局。额外 library overlay 的实际执行范围须单独确认；本轮仅准备，没有扩张原批准。当前实际 C# 编译、加载、构造和正常对局仍为 **0**，因此新增“全部维护范围机器人可运行”尚未验收，**不执行条件合并**。
+
+仍拒绝缺少合法来源的旧／混合私区确认、同缓冲重复35而无中间公开墓地证据、70 overlay 临时对象不保留 Type、以及缺合法当前／连续历史 Type 的 handler。具体信息或固定消费者能力不足，不用隐藏查询和暗牌原顺序补猜，也不声称全卡池兼容。后续实际 C# 正常资格运行须记录每行失败，不能用这些声明静默跳过机器人。
+
+上述环境依赖不能扩大为所有开发停止，也不能据 CPU 数量高提前验收机器人。正式用户3＋8卡组、DP历史全库和2026-11-01到日的最终发行核查另行交接；GPU安装、吞吐调优、正式训练及能力验收属于第二阶段，PC产品属第三阶段，LLM可选。本轮不把它们增设为软件门槛。额度在本环境不可实时读取；父任务最后实读的94%仅代表2026-10-25 07:03:58 UTC，不能当当前值，≤20%仍保存停止。

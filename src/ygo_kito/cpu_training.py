@@ -28,6 +28,8 @@ from .native import NativeError, NativeNormalEngine
 from .native_assets import verify_resources
 from .normal_duel import request_digest
 from .hierarchical_policy import score_requests, sample_index, validate_receipt
+from .device import (resolve_device, execution_metadata, checkpoint_device, optimizer_to,
+                     capture_device_rng, restore_device_rng, checkpoint_execution)
 from .validation import ContractError, canonical_json, fields, integer
 
 
@@ -113,13 +115,14 @@ def cpu_name():
 
 
 class CpuTrainer:
-    def __init__(self, config, card_ids):
+    def __init__(self, config, card_ids, *, device="cpu"):
+        self.device = resolve_device(device)
         torch.set_num_threads(1)
         torch.use_deterministic_algorithms(True)
         torch.manual_seed(config.model_seed)
         random.seed(config.model_seed)
         self.config, self.encoder = config, PlayerEncoder(card_ids, config.model)
-        self.model = DuelActorCritic(config.model, len(card_ids)).to("cpu")
+        self.model = DuelActorCritic(config.model, len(card_ids)).to(self.device)
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=config.learning_rate, weight_decay=0., foreach=False, fused=False)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=1, gamma=config.lr_decay)
         self.policy_rng = torch.Generator(device="cpu").manual_seed(config.policy_seed)
@@ -128,7 +131,7 @@ class CpuTrainer:
         self._pending_episode_digest=None
 
     def sample_episode(self, root, profile, *, purpose="train", seed=None,
-                       policy_seed=None, opponent="visible-effects-first-v1",opponent_adapter=None):
+                       policy_seed=None, opponent="visible-effects-first-v1",opponent_adapter=None,engine_factory=None):
         if purpose not in ("train", "validation","final_eval") or opponent not in ("visible-effects-first-v1", "visible-effects-last-option-v1"):
             raise ContractError("unsupported sample purpose or fixed opponent")
         if opponent_adapter is not None:
@@ -161,7 +164,14 @@ class CpuTrainer:
         if profile.get('adapter_revision') in (4,5):
             words=torch.randint(0,2**63-1,(2,),generator=sampler_rng).tolist()
             selection_key=b''.join(w.to_bytes(8,'big') for w in words).hex()
-        with NativeNormalEngine(root, scenario="effect-duel", deck_profile=profile, seed=seed,selection_key=selection_key) as engine:
+        factory=NativeNormalEngine if engine_factory is None else engine_factory
+        if not callable(factory):raise ContractError("trusted engine factory must be callable")
+        if opponent_adapter is not None:
+            from .windbot_projection import WindBotOpponent
+            if isinstance(opponent_adapter, WindBotOpponent):
+                from functools import partial
+                factory = partial(opponent_adapter.managed_engine_factory, factory)
+        with factory(root, scenario="effect-duel", deck_profile=profile, seed=seed,selection_key=selection_key) as engine:
             facts = public_card_facts(root)
             driver,assigned=(None,())
             if curriculum is not None:
@@ -179,7 +189,7 @@ class CpuTrainer:
                         index, hierarchy = sample_index(logits[0],generator=sampler_rng,max_actions=cfg.model.max_actions)
                     action = request.actions[index]
                     steps.append({"request": request, "action_index": index,
-                                  "old_log_prob": float(distribution.log_prob(torch.tensor([index]))[0]),
+                                  "old_log_prob": float(distribution.log_prob(torch.tensor([index], device=logits.device))[0]),
                                   "old_value": float(values[0]), "reward": 0., "hierarchy": hierarchy})
                     latencies.append((time.perf_counter() - tick) * 1000)
                 else:
@@ -256,9 +266,9 @@ class CpuTrainer:
         returns = advantages + old_values
         indices = torch.randperm(len(steps), generator=self.batch_rng)[:cfg.batch_size]
         chosen = [steps[i] for i in indices.tolist()]
-        actions = torch.tensor([s["action_index"] for s in chosen])
-        old_log_probs = torch.tensor([s["old_log_prob"] for s in chosen])
-        advantage = advantages[indices]
+        actions = torch.tensor([s["action_index"] for s in chosen], device=self.device)
+        old_log_probs = torch.tensor([s["old_log_prob"] for s in chosen], device=self.device)
+        advantage = advantages[indices].to(self.device)
         # Centering a single real decision would erase its entire reward
         # signal. Keep that raw advantage; multi-sample PPO retains scaling.
         if advantage.numel() > 1:
@@ -268,7 +278,7 @@ class CpuTrainer:
         dist = Categorical(logits=logits)
         ratio = (dist.log_prob(actions) - old_log_probs).exp()
         policy_loss = -torch.minimum(ratio * advantage, ratio.clamp(1 - cfg.clip_ratio, 1 + cfg.clip_ratio) * advantage).mean()
-        value_loss = ((values - returns[indices]) ** 2).mean()
+        value_loss = ((values - returns[indices].to(self.device)) ** 2).mean()
         entropy = dist.entropy().mean()
         loss = policy_loss + cfg.value_weight * value_loss - cfg.entropy_weight * entropy
         if not torch.isfinite(loss):
@@ -302,6 +312,7 @@ def save_checkpoint(trainer, directory, checkpoint_id, binding, *, allow_initial
     path = directory / f"{checkpoint_id}.weights"
     state = {"schema_version": 1, "role": "duel", "boundary": "initial" if initial else "complete-episode", "config": asdict(trainer.config),
              "binding": binding, "card_ids": list(trainer.encoder.card_ids), "vocab_sha256": trainer.encoder.vocab_sha256,
+             "execution": execution_metadata(trainer.device), "device_rng": capture_device_rng(trainer.device),
              "model": trainer.model.state_dict(), "optimizer": trainer.optimizer.state_dict(), "scheduler": trainer.scheduler.state_dict(),
              "updates": trainer.updates, "episode_cursor": trainer.episode_cursor, "model_sha256": parameter_digest(trainer.model),
              "rng": {"torch": torch.get_rng_state(), "policy": trainer.policy_rng.get_state(),
@@ -314,9 +325,9 @@ def save_checkpoint(trainer, directory, checkpoint_id, binding, *, allow_initial
     return path
 
 
-def load_checkpoint(path, expected_binding, *, allow_initial=False):
+def load_checkpoint(path, expected_binding, *, allow_initial=False, device=None):
     state = torch.load(path, map_location="cpu", weights_only=True)
-    fields(state, {"schema_version", "role", "boundary", "config", "binding", "card_ids", "vocab_sha256", "model", "optimizer", "scheduler", "updates", "episode_cursor", "model_sha256", "rng"})
+    fields(state, {"schema_version", "role", "boundary", "config", "binding", "card_ids", "vocab_sha256", "model", "optimizer", "scheduler", "updates", "episode_cursor", "model_sha256", "rng"}, {"execution", "device_rng"})
     initial = allow_initial is True and state["boundary"] == "initial" and state["updates"] == state["episode_cursor"] == 0
     if type(state["schema_version"]) is not int or state["schema_version"] != 1 or state["role"] != "duel" or (state["boundary"] != "complete-episode" and not initial) or state["binding"] != expected_binding:
         raise ContractError("checkpoint schema/boundary/resources differ")
@@ -325,9 +336,10 @@ def load_checkpoint(path, expected_binding, *, allow_initial=False):
     integer(state["episode_cursor"], "checkpoint episode cursor", 0 if initial else 1, len(config.game_seeds))
     if state["episode_cursor"] != state["updates"]:
         raise ContractError("checkpoint cursor/update boundary differs")
-    trainer = CpuTrainer(config, state["card_ids"])
+    trainer = CpuTrainer(config, state["card_ids"], device=checkpoint_execution(state, device))
     trainer.model.load_state_dict(state["model"], strict=True)
     trainer.optimizer.load_state_dict(state["optimizer"])
+    optimizer_to(trainer.optimizer, trainer.device)
     trainer.scheduler.load_state_dict(state["scheduler"])
     if trainer.encoder.vocab_sha256 != state["vocab_sha256"] or parameter_digest(trainer.model) != state["model_sha256"]:
         raise ContractError("checkpoint model/vocabulary checksum differs")
@@ -336,6 +348,7 @@ def load_checkpoint(path, expected_binding, *, allow_initial=False):
     trainer.policy_rng.set_state(state["rng"]["policy"])
     trainer.batch_rng.set_state(state["rng"]["batch"])
     random.setstate(state["rng"]["python"])
+    if "device_rng" in state: restore_device_rng(state["device_rng"], trainer.device)
     return trainer
 
 

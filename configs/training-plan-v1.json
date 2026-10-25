@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "plan_id": "three-environments-v1",
+  "plan_id": "three-environments-v2",
   "provider": "tencent",
   "billing_unit": "gpu_instance_hours",
   "gpu_hours_limit": 100.0,
@@ -21,7 +21,7 @@
   "external_api_amount_limit": null,
   "paid_execution_authorized": false,
   "calibration": "pending",
-  "required_gates": ["G-01","G-02","P-01","Q-02","Q-03","Q-04","Q-05"],
+  "required_gates": ["G-01","G-02","Q-02","Q-03","Q-04","Q-05"],
   "environment_artifacts": {
     "ocg-2022-07": null,
     "ocg-2022-10": null,

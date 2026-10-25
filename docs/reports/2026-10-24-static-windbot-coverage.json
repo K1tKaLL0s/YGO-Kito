@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "kind": "static-windbot-period-coverage-summary",
+  "source_pin": "ab963c1cb9776bea4262ae1bba38f541ec70e357",
+  "matrix_sha256": "1c3a2dabe4811b2deb356150a49cb7593b91f2f8cc70df6a812d7e6f08fd56fb",
+  "matrix_artifact_sha256": "7fd1a076a13f09de566b7ec06550c0c031708f5f7d6e8ca7c4bd302bc9aaec43",
+  "listing_audit_artifact_sha256": "1e26b2105fc2f3fcdda006cf56a665d801d7ff19b5df247faacac47fb02eeb69",
+  "driver_inventory_sha256": "6779aaf029752d20d9574d64cd275c8666c2b8cebb7f14645f2e668f1ea9e267",
+  "period_ids": [
+    "2022-07",
+    "2022-10",
+    "2026-10"
+  ],
+  "pinned_source_samples": 6,
+  "source_driver_records": 64,
+  "driver_modes": {
+    "deck_executor": 63,
+    "external_policy_only": 1
+  },
+  "rows": 1152,
+  "listing_status_rows": {
+    "unverified": 576,
+    "rejected": 192,
+    "blocked": 384
+  },
+  "driver_execution_rows": {
+    "not_run": 1152
+  },
+  "normal_operational_rows": 0,
+  "operation_qualified_rows": 0,
+  "strength_qualified_rows": 0,
+  "local_operational_references": [
+    {
+      "scope": {
+        "period_id": "2022-07",
+        "period_context": {
+          "period_id": "2022-07",
+          "release_cutoff": "2022-09-30",
+          "catalog_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "release_manifest_sha256": "ce5887e62b3ed5f07201383d0e0560cca1d8f8d2b8a14a7d0c1f3e87f511e3bd",
+          "banlist_sha256": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+          "banlist_section": "2022.7"
+        },
+        "versions": {
+          "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+          "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0",
+          "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+          "card_pool": "native-private-knowledge-v5",
+          "banlist": "2022.7:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769"
+        },
+        "resources": {
+          "library": "b33b0fb302e24e4757532f224f04aec21e4b16153979b112923c6f746b2e531f",
+          "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "banlist": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+          "core_api": "cb7b33d709791e86be0b821152c1ca34c2a2c72847c3603b4a07826c88b802af",
+          "core_constants": "2c78c4c7c92306cd76f09cc111c28e6604e0e3d4fc16252ec31e8cb8d1493e17",
+          "card_data_abi": "754c750eb26e81eba44de3253c056a89de364f942ec5cd63ecd9d9791acff45e",
+          "client_config": "07f92954941343d33f38eae3986997cc620d595301e67adb9e473bfa3c254d0c",
+          "client_protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+          "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+        },
+        "profile_sha256": "8359b6ed83f74e32e01628f02de53ad2484f1260298a429b97de3f3c5a522e8c",
+        "own_deck_sha256": "1a4b99d0cb5c01f4a5f5d7d8a536a4bf9e038f259e0276e24de4b145e9d91b85",
+        "opponent_deck_sha256": "5c931bb9a9376aa57b24e08ae9f459f675131ee62c6601dd783f819b448957e8",
+        "model_sha256": "44e318f4563cc13c15dce1ebb7d9c0966a2beb1fcb5c0ee05164418d39b732e7",
+        "driver_version": "frozen-duel-greedy-v1",
+        "driver_implementation_sha256": "24da6ea422e8529f020f3890ee408d976c11c6f51af8c3f297a316b75d2a7234",
+        "controller": "local_snapshot"
+      },
+      "scope_sha256": "d6a46ec5af148385932a6d9c52b4fd3aca807ed854cba738c842c99f28a2a3c3",
+      "proof_sha256": "5ada001eafdaca49e22730db7a03d40191db3f0e039b07bfd834aae1f2c934f0",
+      "source_component": {
+        "group_checkpoint_sha256": "ac8f1a048a9cf9b01a5f544944b5fa4663338aa54f00a7688f121ef99ad21863",
+        "name": "components.duel",
+        "source_group_boundary": "complete-workflow-stage",
+        "completed_boundary": "complete-episode",
+        "model_sha256": "44e318f4563cc13c15dce1ebb7d9c0966a2beb1fcb5c0ee05164418d39b732e7",
+        "completed_updates": 1,
+        "updated_base_component": true,
+        "lora_snapshot": false,
+        "extracted_artifact_sha256": "951be213cda7473c7faf02c41e94b8206e85911fe8ee56a8c3b4b53aa7a70f5e"
+      },
+      "normal_operational": true,
+      "model_role": "opponent",
+      "historical_training_verified": false,
+      "historical_rules_verified": false,
+      "strength_qualified": false,
+      "training_checkpoint_recovery_verified": false,
+      "applies_to_matrix_rows": [],
+      "validation_scope": "trusted-summary-hash-and-exact-scope-only-not-replayed-by-this-module"
+    },
+    {
+      "scope": {
+        "period_id": "2022-10",
+        "period_context": {
+          "period_id": "2022-10",
+          "release_cutoff": "2022-12-31",
+          "catalog_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "release_manifest_sha256": "0caa25c659455d1b49aa9c5b9686fbb5e734aee2bba8c9d8cde78578e280676b",
+          "banlist_sha256": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+          "banlist_section": "2022.10"
+        },
+        "versions": {
+          "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+          "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0",
+          "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+          "card_pool": "native-private-knowledge-v5",
+          "banlist": "2022.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769"
+        },
+        "resources": {
+          "library": "b33b0fb302e24e4757532f224f04aec21e4b16153979b112923c6f746b2e531f",
+          "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "banlist": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+          "core_api": "cb7b33d709791e86be0b821152c1ca34c2a2c72847c3603b4a07826c88b802af",
+          "core_constants": "2c78c4c7c92306cd76f09cc111c28e6604e0e3d4fc16252ec31e8cb8d1493e17",
+          "card_data_abi": "754c750eb26e81eba44de3253c056a89de364f942ec5cd63ecd9d9791acff45e",
+          "client_config": "07f92954941343d33f38eae3986997cc620d595301e67adb9e473bfa3c254d0c",
+          "client_protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+          "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+        },
+        "profile_sha256": "061aeeb75d560ed6fac7d49651b955e444912175c7e31d237b9d59361c430ab7",
+        "own_deck_sha256": "b40a3ec0c952d53ee9423f0ffd4af088cacf1a20e8d4041851db240cfbf2d791",
+        "opponent_deck_sha256": "5c931bb9a9376aa57b24e08ae9f459f675131ee62c6601dd783f819b448957e8",
+        "model_sha256": "44e318f4563cc13c15dce1ebb7d9c0966a2beb1fcb5c0ee05164418d39b732e7",
+        "driver_version": "frozen-duel-greedy-v1",
+        "driver_implementation_sha256": "24da6ea422e8529f020f3890ee408d976c11c6f51af8c3f297a316b75d2a7234",
+        "controller": "local_snapshot"
+      },
+      "scope_sha256": "63956efd54bf6cc745b39df2df2173d6832feb4f0e6be0ddc1d054f52c79fe65",
+      "proof_sha256": "be52f08dcdc146825958cf95ff7051385e7d88d5bda1a740cbd0f6b2288620f5",
+      "source_component": {
+        "group_checkpoint_sha256": "ac8f1a048a9cf9b01a5f544944b5fa4663338aa54f00a7688f121ef99ad21863",
+        "name": "components.duel",
+        "source_group_boundary": "complete-workflow-stage",
+        "completed_boundary": "complete-episode",
+        "model_sha256": "44e318f4563cc13c15dce1ebb7d9c0966a2beb1fcb5c0ee05164418d39b732e7",
+        "completed_updates": 1,
+        "updated_base_component": true,
+        "lora_snapshot": false,
+        "extracted_artifact_sha256": "951be213cda7473c7faf02c41e94b8206e85911fe8ee56a8c3b4b53aa7a70f5e"
+      },
+      "normal_operational": true,
+      "model_role": "opponent",
+      "historical_training_verified": false,
+      "historical_rules_verified": false,
+      "strength_qualified": false,
+      "training_checkpoint_recovery_verified": false,
+      "applies_to_matrix_rows": [],
+      "validation_scope": "trusted-summary-hash-and-exact-scope-only-not-replayed-by-this-module"
+    }
+  ],
+  "native_executed": false,
+  "third_party_code_executed": false,
+  "provider_connected": false,
+  "historical_rules_verified": false,
+  "formal_training_ready": false,
+  "full_matrix_local_path": ".cache/static-windbot-coverage/report.json",
+  "note": "1152 foreign source rows remain not_run and unqualified. Two separately bound project Python snapshot references passed normal engineering checks; they apply to no foreign rows."
+}
