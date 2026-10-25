@@ -95,10 +95,8 @@
     "stage1_results_are_stage2_acceptance": false
   },
   "runtime_gaps": [
-    "autonomous theme/task admission into the existing fixed-task group runner",
-    "real BO3 match state, loser starting-order choice and between-game siding",
-    "actual-small-game starting-order acceptance evidence wired to frozen evaluation",
-    "formal runner integration of completed-match quantity gates",
-    "actual target-device group/LoRA and BO3 pilot coverage"
+    "actual target-device group/LoRA and BO3 execution evidence is not supplied by CPU fixture checks",
+    "historical near-50-percent tolerance and confidence decision protocol remain unconfirmed",
+    "legacy 200 external plus 200 mirror evaluation mapping to autonomous themes remains explicit and pending"
   ]
 }

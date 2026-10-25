@@ -1,5 +1,7 @@
 # YGO-Kito
 
+本轮新增[实际自主课程与 BO3 入口](docs/development/scenario-course-runner.md)：复用四模型与有效 LoRA，提供目录候选／模型选择、构筑逻辑及 CB 核验、合法换备、逐小局更新、完整场计数、冻结评估和自包含恢复。当前仅 CPU 机制测试通过，不代表真实机器人模型路径、GPU 速度或训练能力已经验收；起始权重、资源与真实计时须显式提供。草稿 [PR #4](https://github.com/K1tKaLL0s/YGO-Kito/pull/4) 不自动合并或训练。
+
 游戏王 AI 项目的私密设计、资料与 CPU 基础开发仓库。
 
 ## 当前开发入口
