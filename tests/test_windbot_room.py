@@ -319,6 +319,67 @@ class WindBotWindowTests(unittest.TestCase):
         with self.assertRaisesRegex(ContractError, "publicly bounded"):
             game_message(WindBotMessage(7, dict(facts, sequence=32, cards=[unknown_record(32)])), window)
 
+    def test_position_change_scalar_previous_does_not_break_nonfield_queries_or_redaction(self):
+        request = legal_request()
+        position = WindBotMessage(53, {"card_id": 123, "player": 0, "location": 4,
+            "sequence": 0, "previous": 1, "current": 4})
+        window = self.window(request, frame_for(request, messages=(position,)))
+        self.assertEqual(game_message(position, window), packet(1, bytes((53,)) + struct.pack('<I', 123) + bytes((0, 4, 0, 1, 4))))
+        for invalid in ([1], float('nan')):
+            with self.subTest(invalid_previous=invalid), self.assertRaises(ContractError):
+                game_message(WindBotMessage(53, dict(position.fields, previous=invalid)), window)
+        for location in (1, 2):
+            with self.subTest(location=location):
+                self.assertTrue(game_message(WindBotMessage(7, {"player": 1, "location": location,
+                    "sequence": 0, "cards": [{"sequence": 0}]}), window))
+                self.assertTrue(game_message(WindBotMessage(7, {"player": 1, "location": location,
+                    "sequence": 0, "cards": [unknown_record(0)], "redact": True}), window))
+
+    def test_mixed_move_and_position_change_only_move_expands_old_vector(self):
+        request = legal_request()
+        position = WindBotMessage(53, {"card_id": 0, "player": 1, "location": 4,
+            "sequence": 0, "previous": 8, "current": 1})
+        for location in (1, 2):
+            departure = WindBotMessage(50, {"card_id": 0, "previous": (1, location, 0, 0),
+                "current": (1, 16, 0, 1), "reason": 0})
+            window = self.window(request, frame_for(request, messages=(departure, position)))
+            count = request.observation.deck_counts[1] if location == 1 else request.observation.hand_counts[1]
+            def reset(sequence):
+                return game_message(WindBotMessage(7, {"player": 1, "location": location,
+                    "sequence": sequence, "cards": [unknown_record(sequence)], "redact": True}), window)
+            with self.subTest(location=location):
+                self.assertTrue(reset(count))  # Exactly the one public MSG50 departure.
+                with self.assertRaisesRegex(ContractError, 'publicly bounded'):
+                    reset(count + 1)
+
+    def test_malformed_move_previous_scalar_is_contract_error_during_vector_validation(self):
+        request = legal_request()
+        malformed = WindBotMessage(50, {"card_id": 0, "previous": 8,
+            "current": (1, 16, 0, 1), "reason": 0})
+        window = self.window(request, frame_for(request, messages=(malformed,)))
+        with self.assertRaises(ContractError):
+            game_message(malformed, window)
+        with self.assertRaises(ContractError):
+            game_message(WindBotMessage(7, {"player": 1, "location": 2, "sequence": 0,
+                "cards": [unknown_record(0)], "redact": True}), window)
+
+    def test_position_change_does_not_remove_swap_public_union_bound(self):
+        raw = request_dict(legal_request())
+        raw['observation']['deck_counts'][1] = 2
+        raw['observation']['cards'] += [{"ref": f"grave-position-{i}", "owner": 1, "controller": 1,
+            "zone": "graveyard", "visibility": "public", "card_id": 123} for i in range(30)]
+        request = DecisionRequest.from_dict(raw)
+        messages = (WindBotMessage(35, {"player": 1, "old_grave_types": []}),
+            WindBotMessage(53, {"card_id": 0, "player": 1, "location": 4,
+                "sequence": 0, "previous": 8, "current": 1}))
+        window = self.window(request, frame_for(request, messages=messages))
+        def reset(sequence):
+            return game_message(WindBotMessage(7, {"player": 1, "location": 1, "sequence": sequence,
+                "cards": [unknown_record(sequence)], "redact": True}), window)
+        self.assertTrue(reset(31))
+        with self.assertRaisesRegex(ContractError, 'publicly bounded'):
+            reset(32)
+
     def test_public_top_confirmations_keep_multisets_without_original_positions(self):
         raw = request_dict(legal_request())
         for kind in (30, 42):
