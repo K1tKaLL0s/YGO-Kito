@@ -9,9 +9,10 @@ import subprocess
 import tempfile
 
 from .build_contracts import digest
+from .deck_intake import cutoff_timing, validate_intake
 from .engine import EngineUnavailable
 from .training_plan import validate_plan, required_training_gates
-from .validation import ContractError
+from .validation import ContractError, read_json
 
 
 def cpu_preflight(root, plan):
@@ -45,6 +46,7 @@ def cpu_preflight(root, plan):
     except (ContractError, EngineUnavailable, NativeError, OSError, sqlite3.Error):
         checks["locked_native_assets"] = {"passed": False, "reason": "locked native assets unavailable or incompatible"}
     repository = Path(__file__).resolve().parents[2]
+    declared_periods = validate_intake(read_json(repository / "configs/user-deck-intake-template-v1.json"))["environments"]
     commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repository, capture_output=True, text=True, check=False)
     disk = shutil.disk_usage(repository)
     return {"schema_version": 1, "ok": all(c["passed"] for c in checks.values()), "scope": "credential-free-local-cpu-preflight",
@@ -60,6 +62,11 @@ def cpu_preflight(root, plan):
             "formal_training": {"ready": False, "gate_verification": "not_implemented_by_cpu_health_check",
                                 "required_evidence": required_training_gates(plan), "paid_execution_authorized": False,
                                 "pc_product_required": False, "external_llm_required": False,
+                                "gpu_validation_phase": "stage2_training",
+                                "gpu_checks_block_software_completion": False,
+                                "declared_period_cutoffs": {period: {**cutoff_timing(env["release_cutoff"]),
+                                    "banlist_effective": env["banlist_effective"], "banlist_section": env["banlist_section"]}
+                                    for period, env in declared_periods.items()},
                                 "resource_launch_implemented": False, "machine_selected": plan["machine_type"] is not None,
                                 "instance_price_known": plan["instance_price_per_hour"] is not None,
                                 "external_api_cap_known": plan["external_api_amount_limit"] is not None,

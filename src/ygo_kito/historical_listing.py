@@ -11,7 +11,7 @@ import sqlite3
 from .agent_registry import identifier, parse_ydk
 from .build_contracts import digest
 from .deck_intake import (PERIODS, _artifact, _date, _sha, read_listing_catalog,
-                          read_selected_banlist)
+                          read_selected_banlist, cutoff_timing)
 from .deck_profile import validate_deck_parts, validate_profile
 from .validation import ContractError, array, canonical_json, fields, integer, member, parse_json, text
 
@@ -132,7 +132,8 @@ def _sample_deck(source, raw, sample):
 
 def _period_sources(index, workspace, loaded, period, env):
     report, result = {"release_cutoff": env["release_cutoff"], "banlist_effective": env["banlist_effective"],
-                      "banlist_section": env["banlist_section"], "sources": {}, "unmet": []}, {}
+                      "banlist_section": env["banlist_section"], "sources": {}, "unmet": [],
+                      "cutoff_timing": cutoff_timing(env["release_cutoff"])}, {}
     for key in ("catalog_source", "banlist_source", "release_source"):
         source_id = env[key]
         if source_id is None:
@@ -155,6 +156,8 @@ def _period_sources(index, workspace, loaded, period, env):
                 "source_id": source_id, "reason": str(error) if isinstance(error, ContractError) else "source artifact unavailable or malformed"}
             report["unmet"].append(key + " unavailable or invalid")
     if env["release_cutoff"] is None: report["unmet"].append("release cutoff not supplied")
+    elif not report["cutoff_timing"]["cutoff_reached"]:
+        report["unmet"].append("selected OCG cutoff has not arrived in Asia/Tokyo; staging only")
     return report, result
 
 
@@ -189,11 +192,14 @@ def _check_deck(index, period, env, assets, deck, source_id, locations):
     banlist = {"status": "rejected" if violations else "unverified_source_unavailable" if limits is None or rows is None
                else "unverified_unknown_catalog_cards" if unknown else "checked_under_selected_community_section",
                "violations": violations}
-    unknown_release, after_cutoff, card_rows = [], [], []
+    unknown_release, after_cutoff, not_yet_released, card_rows = [], [], [], []
+    timing = cutoff_timing(env["release_cutoff"])
+    today = _date(timing["as_of_date"], "current Japan date")
     cutoff = _date(env["release_cutoff"], "explicit release cutoff") if env["release_cutoff"] is not None else None
     for code in sorted(counts):
         row = {"card_id": code, "count": counts[code], "zones": {zone: deck[zone].count(code) for zone in deck},
-               "catalog_status": "known_in_pinned_catalog" if rows is not None and code in rows else "unknown_in_catalog"}
+               "catalog_status": "known_in_pinned_catalog" if rows is not None and code in rows else "unknown_in_catalog",
+               "available_in_period": False, "released_as_of_jst": False}
         row["deck_evidence"] = dict(source_reference(source_id, index["sources"][source_id]),
                                     occurrences=locations[code], card_effects_inferred=False)
         if rows is not None and code in rows:
@@ -204,22 +210,38 @@ def _check_deck(index, period, env, assets, deck, source_id, locations):
         else:
             row["release_evidence"] = _evidence(index, env["release_source"], entry)
             row["ocg_release_date"] = entry["ocg_release_date"]
-            if cutoff is None: row["release_status"] = "cutoff_unspecified"
-            elif _date(entry["ocg_release_date"], "OCG release date") > cutoff:
-                after_cutoff.append(code); row["release_status"] = "after_cutoff"
-            else: row["release_status"] = "within_cutoff_under_supplied_evidence"
+            released = _date(entry["ocg_release_date"], "OCG release date")
+            row["released_as_of_jst"] = released <= today
+            if cutoff is not None and released > cutoff:
+                after_cutoff.append(code)
+            if released > today:
+                not_yet_released.append(code)
+                row["release_status"] = "not_yet_released_staging_only"
+            elif cutoff is None: row["release_status"] = "cutoff_unspecified"
+            elif released > cutoff:
+                row["release_status"] = "after_cutoff"
+            else:
+                row["release_status"] = ("within_cutoff_under_supplied_evidence" if timing["cutoff_reached"]
+                                         else "candidate_within_future_cutoff_staging_only")
+                row["available_in_period"] = (timing["cutoff_reached"] and rows is not None and code in rows
+                    and bool(rows[code]["ot"] & 1) and not bool(rows[code]["type"] & 0x4000)
+                    and limits is not None and limits.get(rows[code]["alias"] or code, 3) > 0)
         card_rows.append(row)
-    release_report = {"status": "cutoff_unspecified" if cutoff is None else "after_cutoff_cards" if after_cutoff
+    release_report = {"status": "cutoff_unspecified" if cutoff is None else "not_yet_released_cards" if not_yet_released
+                      else "future_cutoff_staging_only" if not timing["cutoff_reached"]
+                      else "after_cutoff_cards" if after_cutoff
                       else "unknown_release_dates" if unknown_release else "checked_under_supplied_release_listing",
-                      "unknown_card_ids": unknown_release, "after_cutoff_card_ids": after_cutoff}
+                      "unknown_card_ids": unknown_release, "after_cutoff_card_ids": after_cutoff,
+                      "not_yet_released_card_ids": not_yet_released}
     rejected = bool(violations or after_cutoff or structure["status"] == "rejected")
-    checked = (not rejected and not unknown and cutoff is not None and not unknown_release
+    checked = (not rejected and not unknown and timing["cutoff_reached"] and not unknown_release and not not_yet_released
                and structure["status"] == "valid_under_pinned_catalog_and_standard_copy_limit"
                and banlist["status"] == "checked_under_selected_community_section")
     return {"period_id": period, "structure": structure, "catalog_unknown_card_ids": unknown,
-            "release": release_report, "banlist": banlist, "rows": card_rows,
-            "historical_listing_status": "blocked_cutoff_unspecified" if cutoff is None else "rejected" if rejected
-                                         else "checked_under_supplied_evidence" if checked else "unverified",
+            "release": release_report, "banlist": banlist, "rows": card_rows, "cutoff_timing": timing,
+            "historical_listing_status": "blocked_cutoff_unspecified" if cutoff is None else
+                                         "blocked_future_cutoff_staging_only" if not timing["cutoff_reached"] else
+                                         "rejected" if rejected else "checked_under_supplied_evidence" if checked else "unverified",
             "historical_rules_verified": False, "official_sources_verified": False}
 
 

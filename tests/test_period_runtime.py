@@ -1,6 +1,7 @@
 """Period input guards with synthetic files; this module never loads a core."""
 
 from copy import deepcopy
+from datetime import datetime, timezone
 import json
 import hashlib
 from pathlib import Path
@@ -10,6 +11,7 @@ from unittest.mock import patch
 
 from ygo_kito.build_contracts import BuildTask, DeckParts, digest
 from ygo_kito.data_isolation import opponent_identity
+from ygo_kito.deck_intake import _environment
 from ygo_kito.opponent_pool import FrozenOpponent
 from ygo_kito.period_runtime import PeriodBuildAssets, PeriodNativeEngine
 from ygo_kito.validation import ContractError
@@ -90,6 +92,40 @@ class PeriodRuntimeGuardTests(unittest.TestCase):
         self.receipt["resources"]["cards"] = "0" * 64
         with self.assertRaisesRegex(ContractError, "actual pinned native resources"):
             PeriodBuildAssets(self.root, "2022-07", self.env, self.root)
+
+    def test_future_cutoff_is_pending_before_base_assets_or_native_are_opened(self):
+        env = deepcopy(self.env)
+        env.update(release_cutoff="2026-11-01", banlist_effective="2026-10-01", banlist_section="2026.10")
+        release_path = self.root / env["releases"]["path"]
+        release = json.loads(release_path.read_text(encoding="utf-8"))
+        release.update(period_id="2026-10", release_cutoff=env["release_cutoff"])
+        release_path.write_text(json.dumps(release), encoding="utf-8")
+        env["releases"]["sha256"] = hashlib.sha256(release_path.read_bytes()).hexdigest()
+        with patch("ygo_kito.deck_intake.datetime") as clock, \
+                patch("ygo_kito.period_runtime.BuildAssets.__init__", side_effect=AssertionError("must not read base assets")) as base, \
+                patch("ygo_kito.period_runtime.NativeNormalEngine.__init__", side_effect=AssertionError("must not open native")) as native:
+            clock.now.side_effect = lambda zone: datetime(2026, 10, 25, tzinfo=timezone.utc).astimezone(zone)
+            receipt, parsed = _environment(self.root, "2026-10", env)
+            self.assertIsNone(parsed)
+            self.assertEqual(receipt["status"], "pending")
+            self.assertFalse(receipt["cutoff_timing"]["cutoff_reached"])
+            with self.assertRaisesRegex(ContractError, "evidence is incomplete or invalid"):
+                PeriodBuildAssets(self.root, "2026-10", env, self.root, evidence_source="engineering_fixture")
+            base.assert_not_called()
+            native.assert_not_called()
+
+    def test_memory_integrity_rechecks_japan_date_without_physical_or_native_access(self):
+        with patch("ygo_kito.deck_intake.datetime") as clock, \
+                patch("ygo_kito.period_runtime.verify_resources", side_effect=AssertionError("must not read physical assets")) as physical, \
+                patch("ygo_kito.period_runtime.NativeNormalEngine.__init__", side_effect=AssertionError("must not open native")) as native:
+            # The object is already bound to an inclusive 2022-09-30 cutoff.
+            clock.now.side_effect = lambda zone: datetime(2022, 9, 29, tzinfo=timezone.utc).astimezone(zone)
+            with self.assertRaisesRegex(ContractError, "cutoff has not arrived in Asia/Tokyo"):
+                self.assets.assert_integrity(physical=False)
+            clock.now.side_effect = lambda zone: datetime(2022, 9, 30, tzinfo=timezone.utc).astimezone(zone)
+            self.assets.assert_integrity(physical=False)
+            physical.assert_not_called()
+            native.assert_not_called()
 
     def test_bad_profile_is_rejected_before_parent_loads_a_core(self):
         profile = deepcopy(self.profile)

@@ -5,7 +5,8 @@ This is preparation, not a historical rule engine or provider registration:
 all reports remain runtime/training-unready and no current assets fill gaps.
 """
 
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from contextlib import closing
 import hashlib
@@ -31,6 +32,23 @@ def _date(value, label):
     if result.isoformat() != value:
         raise ContractError(label + " requires YYYY-MM-DD")
     return result
+
+
+def cutoff_timing(value):
+    """A selected inclusive OCG date is not a verified, released card pool.
+
+    Read the host clock in Japan, independently of the host's local timezone.
+    There is deliberately no caller-provided date override in intake/runtime.
+    Announcements and public card text are staging data, not release evidence.
+    """
+    today = datetime.now(ZoneInfo("Asia/Tokyo")).date()
+    cutoff = _date(value, "release cutoff") if value is not None else None
+    reached = cutoff is not None and cutoff <= today
+    return {"release_cutoff": value, "timezone": "Asia/Tokyo", "inclusive": True,
+            "as_of_date": today.isoformat(), "cutoff_selected": cutoff is not None,
+            "cutoff_reached": reached, "final_card_pool_verified": False,
+            "status": "cutoff_not_selected" if cutoff is None else
+                      "cutoff_reached_requires_resource_verification" if reached else "awaiting_cutoff_date"}
 
 
 def _sha(value):
@@ -154,9 +172,13 @@ def read_selected_banlist(workspace, artifact, section):
 
 
 def _environment(workspace, period, env):
+    timing = cutoff_timing(env["release_cutoff"])
     missing = [key for key in ("release_cutoff", "catalog", "releases", "banlist") if env[key] is None]
-    if missing:
-        return {"status": "pending", "unmet": ["missing " + key for key in missing]}, None
+    unmet = ["missing " + key for key in missing]
+    if timing["cutoff_selected"] and not timing["cutoff_reached"]:
+        unmet.append("selected OCG cutoff has not arrived in Asia/Tokyo; final pool remains pending")
+    if unmet:
+        return {"status": "pending", "period_id": period, "cutoff_timing": timing, "unmet": unmet}, None
     try:
         _, raw_releases = _artifact(workspace, env["releases"])
         release = fields(parse_json(raw_releases.decode("utf-8")), {"schema_version", "period_id", "release_cutoff", "cards"})
@@ -184,6 +206,7 @@ def _environment(workspace, period, env):
         return {"status": "invalid", "unmet": [str(error) if isinstance(error, ContractError) else "historical artifact format is invalid"]}, None
     receipt = {"status": "supplied_listing_evidence_checked", "period_id": period,
         "release_cutoff": env["release_cutoff"], "banlist_effective": env["banlist_effective"],
+        "cutoff_timing": timing,
         "banlist_section": env["banlist_section"], "artifacts": {k: env[k] for k in ("catalog", "releases", "banlist")},
         "official_sources_verified": False, "historical_rules_verified": False, "runtime_compatible": False}
     return receipt, (rows, limits, allowed)
@@ -251,5 +274,9 @@ def store_intake(registry, value, workspace):
     prepared = prepare_intake(value, workspace)
     if not prepared["complete_user_input"]:
         raise ContractError("all eleven decks, controller assignments and three historical evidence sets are required before registry storage")
+    # Recheck the current clock before every write, but retain the original
+    # immutable record format. A new calendar day is not a new intake version.
+    for environment in prepared["environments"].values():
+        environment.pop("cutoff_timing", None)
     registry.put("deck_intake", prepared["intake_id"], prepared)
     return prepared

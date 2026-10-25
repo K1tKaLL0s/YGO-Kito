@@ -48,6 +48,8 @@ AdapterSession.set_enabled(False)用于暂时停用，实测输出精确回到�
 
 ## 无凭据CPU预检与正式训练计划
 
+本节是第二阶段训练接续说明。当前软件交付目标为可调用代码、资源整理导入、训练入口、恢复与交接；用户提供卡组后进入腾讯云阶段，再安装目标GPU锁、完成实机检查并开展调优、训练和能力验收。这些实测不是当前开发完成前置，不能以尚未训练为由否定软件交付。
+
     PYTHONPATH=src .venv/bin/python -m ygo_kito training-preflight \
       --root .cache --plan configs/training-plan-v1.json
 

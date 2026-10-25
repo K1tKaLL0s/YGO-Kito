@@ -16,7 +16,7 @@ from .agent_registry import RUNTIME_POOLS, identifier
 from .build_contracts import DeckParts, digest
 from .build_pipeline import BuildAssets
 from .contracts import Versions
-from .deck_intake import PERIODS, _date, _environment
+from .deck_intake import PERIODS, _date, _environment, cutoff_timing
 from .deck_profile import validate_deck_parts, validate_profile
 from .effect_duel import choose_effect_duel_action
 from .native import NativeNormalEngine
@@ -101,6 +101,8 @@ class PeriodBuildAssets(BuildAssets):
         return deepcopy(self.environment)
 
     def assert_integrity(self, *, physical=True):
+        if not cutoff_timing(self._environment_input["release_cutoff"])["cutoff_reached"]:
+            raise ContractError("selected OCG cutoff has not arrived in Asia/Tokyo")
         if digest(self._environment_input) != self._environment_input_sha256:
             raise ContractError("period source configuration changed after binding")
         seal = digest({"context": self.period_context, "environment": self.environment,

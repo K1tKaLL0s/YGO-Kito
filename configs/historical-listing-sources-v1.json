@@ -181,7 +181,7 @@
       "release_source": null
     },
     "2026-10": {
-      "release_cutoff": null,
+      "release_cutoff": "2026-11-01",
       "banlist_effective": "2026-10-01",
       "banlist_section": "2026.10",
       "catalog_source": "pinned-catalog",

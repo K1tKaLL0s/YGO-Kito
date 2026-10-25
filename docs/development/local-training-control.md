@@ -4,6 +4,8 @@
 
 [交付表与证据](../reports/2026-10-23-engineering-delivery.md)按统一说明区分已完成的最小工程链、后续必需工程、能力验收和外部依赖。**本命令成功不代表完整阶段1A/1B或正式训练通过**；输出保留full_phase_1_delivered=false、formal_training_ready=false。
 
+当前软件开发完成按可调用代码、资源整理导入、训练入口与恢复交接验收；用户提供卡组后进入腾讯云第二阶段。GPU锁安装、实机性能调优、正式训练及能力验收属于第二阶段，不是当前开发前置；此前将它们混作软件开发阻碍的表述有误。PC产品与可选provider也不阻塞本地非LLM基线。
+
 ## 一条命令重现本轮支持范围
 
     .venv/bin/python -m ygo_kito engineering-acceptance \

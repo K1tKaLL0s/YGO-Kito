@@ -4,7 +4,7 @@
 
 `configs/user-deck-intake-template-v1.json` 固定 `main-01`～`main-03` 与 `opponent-01`～`opponent-08`。主卡组模板按三个时期各列一份；实际牌表均为 `null`。八个对手的时期归属为 `null`，只保留用户已确认的 `preferred_provider: DeepSeek` 用途，实际 controller/model/driver 尚未配置。偏好不代表连接、操作能力或训练就绪。
 
-三环境为 `2022-07`、`2022-10`、`2026-10`。前两期 `release_cutoff` 已依确认设计§7显式填写 `2022-09-30`、`2022-12-31`；这只是实验范围决定，不是发行资料已核实。2026-10仍为null，须另选具体ISO日期；缺失时保持pending，不用表生效日、当前日或月末代填。月份不充当卡池截止日。所选禁限节通过 `banlist_section` 明确指定，`banlist_effective` 绑定所属月份第一日。节名可根据真实文件修改，模板节名没有官方来源认证含义。
+三环境为 `2022-07`、`2022-10`、`2026-10`。前两期 `release_cutoff` 已依确认设计§7显式填写 `2022-09-30`、`2022-12-31`。用户于2026-10-25确认第三期截止为 `2026-11-01`，包含日本当地（JST）当日正式OCG发售；禁表仍为2026-10-01生效的 `2026.10` 节。这些是实验范围决定，不是发行资料已核实。截至10月25日，第三期只有日期已选（`date_selected`），最终卡池尚未到日/未核，不能据此放行。11月1日JST当日及之后须按实际正式发行记录逐卡补齐出处、日期、文件摘要并重验牌表，再冻结最终允许池；未知记录仍pending，不用预告、合成日期或月份代填。所选禁限节通过 `banlist_section` 明确指定；节名和模板日期没有官方来源认证含义。旧收件/测试中的null保留其原有语境，不追写成当时已选择11月1日。
 
 ## 输入与检查
 
@@ -15,6 +15,8 @@
 - `catalog`：只读 SQLite `cards.cdb`，使用已有 `datas` 表的 `id/alias/ot/type`。
 - `banlist`：现有 `lflist.conf` 格式。复用 `native.banlist_limits(path, section=...)` 读取显式所选节，不启动引擎。此前置检查拒绝选中节中的缩进数字行、未知正文、缺数量、非法数量、重复卡号及重复同名节，避免被旧解析器静默忽略；空行与 `#` 注释允许，卡号/数量后可跟 `#` 或 `--` 注释。
 - `releases`：JSON `{schema_version: 1, period_id, release_cutoff, cards}`。每项 `cards` 为 `{card_id, ocg_release_date}`；日期明确到日。清单的时期和截止日必须与环境一致。仅明确列出且 OCG 发行日期不晚于截止日的卡号进入允许卡池，缺发行资料的卡不会默认放行。
+
+可信社区资料可用于开发与交叉核验，正式准入须保留可追溯的发行和禁表依据，未知与官方核验状态分别记录；不把取得官方原HTML作为唯一资料路径。已公开未发售卡效可另存staging，但 `announcement/public_text` 不等于正式OCG `release_date/available_in_period`，不得提前放行，也不以合成日期填补发行证据。
 
 `prepare_intake(config, workspace)` 对每份牌表的所有显式时期归属分别调用现有 `validate_deck_parts`，核对 OCG 身份、区域、Token、张数以及主/额外/副卡合计别名禁限。跨时期复用牌表必须逐项通过，不能用另一时期的通过结果替代。输出包含固定 3＋8 映射、环境证据、控制方和未满足项；`training_configuration` 标明只是输入映射，不是可执行训练配方。
 

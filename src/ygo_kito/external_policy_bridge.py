@@ -196,6 +196,7 @@ def coverage_from_listing_audit(audit, drivers):
     samples, checks = [], []
     statuses = {name: name for name in ("unverified", "blocked", "rejected", "checked_under_supplied_evidence")}
     statuses["blocked_cutoff_unspecified"] = "blocked"
+    statuses["blocked_future_cutoff_staging_only"] = "blocked"
     for sample in array(audit.get("samples"), "source-audited samples"):
         if sample.get("dataset_kind") != "third_party_sample_not_user_deck":
             continue

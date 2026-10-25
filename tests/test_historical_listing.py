@@ -1,6 +1,7 @@
 """Static synthetic listing evidence and pinned third-party text; no engine."""
 from contextlib import redirect_stdout
 from copy import deepcopy
+from datetime import datetime, timezone
 import hashlib
 import io
 import json
@@ -8,6 +9,7 @@ from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from ygo_kito.build_contracts import digest
 from ygo_kito.deck_intake import PERIODS
@@ -105,6 +107,30 @@ class HistoricalListingTests(unittest.TestCase):
         self.assertEqual(check["release"]["unknown_card_ids"], [20])
         self.assertEqual(check["historical_listing_status"], "unverified")
 
+    def test_announced_future_dates_are_staging_even_inside_selected_cutoff(self):
+        self.index["periods"]["2026-10"]["release_cutoff"] = "2026-11-01"
+        dates = {code: "2020-01-01" for code in range(1, 21)}
+        dates[20] = "2026-11-01"; dates[19] = "2026-11-02"; dates.pop(18)
+        self.releases("2026-10", dates=dates)
+        with patch("ygo_kito.deck_intake.datetime") as clock:
+            clock.now.side_effect = lambda zone: datetime(2026, 10, 25, tzinfo=timezone.utc).astimezone(zone)
+            check = self.checks()["2026-10"]
+        self.assertEqual(check["historical_listing_status"], "blocked_future_cutoff_staging_only")
+        self.assertEqual(check["release"]["not_yet_released_card_ids"], [19, 20])
+        self.assertEqual(check["release"]["after_cutoff_card_ids"], [19])
+        self.assertEqual(check["release"]["unknown_card_ids"], [18])
+        self.assertTrue(all(row["available_in_period"] is False for row in check["rows"]))
+        self.assertEqual(check["banlist"]["status"], "rejected")
+        with patch("ygo_kito.deck_intake.datetime") as clock:
+            clock.now.side_effect = lambda zone: datetime(2026, 10, 31, 15, tzinfo=timezone.utc).astimezone(zone)
+            check = self.checks()["2026-10"]
+        rows = {row["card_id"]: row for row in check["rows"]}
+        self.assertTrue(rows[20]["available_in_period"])
+        self.assertFalse(rows[19]["available_in_period"])
+        self.assertFalse(rows[18]["available_in_period"])
+        self.assertFalse(rows[1]["available_in_period"])  # Selected October section bans this card.
+        self.assertFalse(check["cutoff_timing"]["final_card_pool_verified"])
+
     def test_complete_supplied_evidence_is_only_listing_check_not_official_or_rules(self):
         self.releases()
         check = self.checks()["2022-07"]
@@ -114,6 +140,20 @@ class HistoricalListingTests(unittest.TestCase):
         self.index["periods"]["2022-07"]["release_cutoff"] = "2022-07-01"
         self.assertEqual(self.report()["periods"]["2022-07"]["sources"]["release_source"]["status"], "invalid")
         self.assertEqual(self.checks()["2022-07"]["historical_listing_status"], "unverified")
+
+    def test_token_or_non_ocg_row_is_never_marked_available_in_a_period(self):
+        self.releases()
+        for replacement in (23, 20):
+            if replacement == 20:
+                with sqlite3.connect(self.catalog) as db:
+                    db.execute("UPDATE datas SET ot=2 WHERE id=20")
+                self.refresh("catalog", self.catalog)
+            deck = deepcopy(self.deck); deck["main"][-1] = replacement
+            self.write_deck(deck); self.refresh("sample", self.ydk)
+            check = self.checks()["2022-07"]
+            row = next(r for r in check["rows"] if r["card_id"] == replacement)
+            self.assertEqual(check["structure"]["status"], "rejected")
+            self.assertFalse(row["available_in_period"])
 
     def test_three_selected_sections_and_combined_alias_limits_are_independent(self):
         checks = self.checks()
@@ -186,7 +226,8 @@ class HistoricalListingTests(unittest.TestCase):
             self.assertEqual(source["origin"]["commit"], "ab963c1cb9776bea4262ae1bba38f541ec70e357")
             self.assertEqual(hashlib.sha256(raw).hexdigest(), source["artifact"]["sha256"])
             self.assertEqual(hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest(), source["origin"]["git_blob_sha1"])
-        self.assertIsNone(index["periods"]["2026-10"]["release_cutoff"])
+        self.assertEqual(index["periods"]["2026-10"]["release_cutoff"], "2026-11-01")
+        self.assertEqual(index["periods"]["2026-10"]["banlist_section"], "2026.10")
         self.assertTrue(all(env["release_source"] is None for env in index["periods"].values()))
 
     def test_script_writes_only_report_and_explains_static_completion_not_qualification(self):

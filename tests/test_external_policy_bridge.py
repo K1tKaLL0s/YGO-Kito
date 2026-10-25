@@ -190,14 +190,18 @@ class StaticCoverageMatrixTests(unittest.TestCase):
                 "checks": [{"period_id": p, "historical_listing_status": "blocked_cutoff_unspecified" if p == "2026-10" else "unverified"}
                            for p in periods]})
         audit["samples"].append({"dataset_kind": "engineering_fixture_not_user_deck"})
-        matrix = coverage_from_listing_audit(audit, drivers)
-        self.assertEqual(len(matrix["samples"]), 2)
-        self.assertEqual(len(matrix["rows"]), 12)
-        current_rows = [row for row in matrix["rows"] if row["period_id"] == "2026-10"]
-        self.assertTrue(all(row["listing"]["status"] == "blocked" for row in current_rows))
-        self.assertTrue(all(row["listing"]["source_status"] == "blocked_cutoff_unspecified" for row in current_rows))
-        self.assertTrue(all(not row["strength_qualified"] for row in matrix["rows"]))
-        self.assertIn("listing_audit_sha256", matrix)
+        for blocked in ("blocked_cutoff_unspecified", "blocked_future_cutoff_staging_only"):
+            for sample in audit["samples"]:
+                for check in sample.get("checks", []):
+                    if check["period_id"] == "2026-10": check["historical_listing_status"] = blocked
+            matrix = coverage_from_listing_audit(audit, drivers)
+            self.assertEqual(len(matrix["samples"]), 2)
+            self.assertEqual(len(matrix["rows"]), 12)
+            current_rows = [row for row in matrix["rows"] if row["period_id"] == "2026-10"]
+            self.assertTrue(all(row["listing"]["status"] == "blocked" for row in current_rows))
+            self.assertTrue(all(row["listing"]["source_status"] == blocked for row in current_rows))
+            self.assertTrue(all(not row["strength_qualified"] for row in matrix["rows"]))
+            self.assertIn("listing_audit_sha256", matrix)
 
     def local_proof_fixture(self, period):
         # Explicit trusted-producer summary fixture, not an actual native run.

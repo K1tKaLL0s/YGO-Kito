@@ -32,8 +32,23 @@
       "verified_scope": "OCG Japanese rendered page explicitly updated 2026/10/01, not TCG",
       "full_official_machine_list_verified": false,
       "community_candidate_section": "2026.10",
-      "release_cutoff": null,
-      "official_release_manifest": null
+      "release_cutoff": "2026-11-01",
+      "official_release_manifest": null,
+      "release_cutoff_basis": "user confirmed on 2026-10-25; inclusive Japan-local formal OCG releases; not evidence of a verified final pool",
+      "release_cutoff_timezone": "Asia/Tokyo",
+      "release_cutoff_inclusive": true,
+      "cutoff_selection_confirmed_date_utc": "2026-10-25",
+      "final_card_pool_verified": false,
+      "final_resource_review": {
+        "not_before_japan_date": "2026-11-01",
+        "status": "pending_cutoff_date_and_actual_release_source_check",
+        "requirements": [
+          "confirm actual formal OCG release dates; announcements or public card text alone are staging only",
+          "review release manifest/catalog hashes and applicable October 2026 banlist; do not substitute a future banlist",
+          "retain unknown or delayed releases as unavailable; freeze a new resource snapshot only after verification"
+        ],
+        "scheduled_task_created": false
+      }
     }
   },
   "raw_official_database_download": {
@@ -43,5 +58,30 @@
     "retry_performed": false
   },
   "historical_rules_verified": false,
-  "formal_training_ready": false
+  "formal_training_ready": false,
+  "source_policy": "Reliable community sources may support development and cross-checks; preserve provenance and uncertainty. Missing official raw HTML alone is not a software-completion blocker.",
+  "cutoff_updated_date_utc": "2026-10-25",
+  "community_supplements": [
+    {
+      "source_name": "百鸽",
+      "site_url": "https://ygocdb.com/",
+      "source_kind": "community_aggregation_not_official_service",
+      "observed_date_utc": "2026-10-25",
+      "review_report": "docs/reports/2026-10-25-baige-source-review.md",
+      "observed_urls": [
+        "https://ygocdb.com/about",
+        "https://ygocdb.com/api",
+        "https://ygocdb.com/packs",
+        "https://ygocdb.com/card/80565021",
+        "https://ygocdb.com/card/101306082"
+      ],
+      "verified_scope": "public HTML and API documentation; region-specific examples only",
+      "json_bodies_verified": false,
+      "full_database_acquired": false,
+      "historical_banlists_verified": false,
+      "runtime_release_manifest": null,
+      "public_text_implies_ocg_release": false,
+      "announcement_candidates": "staging_only_until_actual_OCG_release_date_and_source_checks"
+    }
+  ]
 }

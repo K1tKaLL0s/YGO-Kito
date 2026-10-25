@@ -1,15 +1,17 @@
 """Historical intake uses synthetic files and listing checks, no native calls."""
 
 from copy import deepcopy
+from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from ygo_kito.agent_registry import OpponentRegistry
-from ygo_kito.deck_intake import PERIODS, SLOTS, prepare_intake, store_intake, validate_intake
+from ygo_kito.deck_intake import PERIODS, SLOTS, _environment, cutoff_timing, prepare_intake, store_intake, validate_intake
 from ygo_kito.validation import ContractError
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -69,7 +71,88 @@ class DeckIntakeTests(unittest.TestCase):
         self.assertFalse(out["native_executed"])
         self.assertEqual(self.template["environments"]["2022-07"]["release_cutoff"], "2022-09-30")
         self.assertEqual(self.template["environments"]["2022-10"]["release_cutoff"], "2022-12-31")
-        self.assertIsNone(self.template["environments"]["2026-10"]["release_cutoff"])
+        self.assertEqual(self.template["environments"]["2026-10"]["release_cutoff"], "2026-11-01")
+        self.assertEqual(self.template["environments"]["2026-10"]["banlist_effective"], "2026-10-01")
+        self.assertEqual(self.template["environments"]["2026-10"]["banlist_section"], "2026.10")
+
+    def test_cutoff_is_inclusive_in_japan_and_does_not_claim_a_final_verified_pool(self):
+        for moment, reached, day in ((datetime(2026, 10, 31, 14, 59, 59, tzinfo=timezone.utc), False, "2026-10-31"),
+                                    (datetime(2026, 10, 31, 15, tzinfo=timezone.utc), True, "2026-11-01")):
+            with self.subTest(moment=moment), patch("ygo_kito.deck_intake.datetime") as clock:
+                clock.now.side_effect = lambda zone: moment.astimezone(zone)
+                state = cutoff_timing("2026-11-01")
+                self.assertEqual(state["as_of_date"], day)
+                self.assertEqual(state["cutoff_reached"], reached)
+                self.assertEqual(state["timezone"], "Asia/Tokyo")
+                self.assertTrue(state["inclusive"])
+                self.assertFalse(state["final_card_pool_verified"])
+
+    def test_future_cutoff_with_complete_files_stays_pending_and_cannot_be_registered(self):
+        env = self.config["environments"]["2026-10"]
+        env["release_cutoff"] = "2026-11-01"
+        self.alter_release("2026-10", lambda data: data.update(release_cutoff="2026-11-01"))
+        with patch("ygo_kito.deck_intake.datetime") as clock:
+            clock.now.side_effect = lambda zone: datetime(2026, 10, 25, tzinfo=timezone.utc).astimezone(zone)
+            receipt, parsed = _environment(self.root, "2026-10", env)
+            self.assertIsNone(parsed)
+            self.assertEqual(receipt["status"], "pending")
+            self.assertEqual(receipt["cutoff_timing"]["status"], "awaiting_cutoff_date")
+            self.assertFalse(self.prepare()["complete_user_input"])
+            registry = OpponentRegistry(self.root / "future-state", self.root / "no-runtime")
+            with self.assertRaises(ContractError): store_intake(registry, self.config, self.root)
+            self.assertEqual(registry.records("deck_intake"), [])
+
+    def test_cutoff_day_still_checks_release_records_sources_and_october_banlist(self):
+        env = self.config["environments"]["2026-10"]
+        env["release_cutoff"] = "2026-11-01"
+        def update(data):
+            data["release_cutoff"] = "2026-11-01"
+            data["cards"][19]["ocg_release_date"] = "2026-11-01"
+            data["cards"][18]["ocg_release_date"] = "2026-11-02"
+        self.alter_release("2026-10", update)
+        with patch("ygo_kito.deck_intake.datetime") as clock:
+            clock.now.side_effect = lambda zone: datetime(2026, 10, 31, 15, tzinfo=timezone.utc).astimezone(zone)
+            receipt, (_, limits, allowed) = _environment(self.root, "2026-10", env)
+            self.assertIn(20, allowed)
+            self.assertNotIn(19, allowed)
+            self.assertEqual(limits[1], 2)
+            self.assertEqual(receipt["banlist_section"], "2026.10")
+            self.assertFalse(receipt["cutoff_timing"]["final_card_pool_verified"])
+            env["releases"]["sha256"] = "0" * 64
+            self.assertEqual(_environment(self.root, "2026-10", env)[0]["status"], "invalid")
+            env["releases"] = None
+            self.assertEqual(_environment(self.root, "2026-10", env)[0]["status"], "pending")
+
+    def test_preflight_reports_selected_future_cutoff_without_a_gpu_development_gate(self):
+        from ygo_kito.training_preflight import cpu_preflight
+        with patch("ygo_kito.deck_intake.datetime") as clock:
+            clock.now.side_effect = lambda zone: datetime(2026, 10, 25, tzinfo=timezone.utc).astimezone(zone)
+            report = cpu_preflight(self.root / "no-native-resources", json.loads((ROOT / "configs/training-plan-v1.json").read_text()))
+        formal = report["formal_training"]
+        current = formal["declared_period_cutoffs"]["2026-10"]
+        self.assertEqual(current["release_cutoff"], "2026-11-01")
+        self.assertEqual(current["banlist_effective"], "2026-10-01")
+        self.assertEqual(current["banlist_section"], "2026.10")
+        self.assertTrue(current["cutoff_selected"])
+        self.assertFalse(current["cutoff_reached"])
+        self.assertFalse(current["final_card_pool_verified"])
+        self.assertEqual(formal["gpu_validation_phase"], "stage2_training")
+        self.assertFalse(formal["gpu_checks_block_software_completion"])
+        self.assertFalse(formal["paid_execution_authorized"])
+        self.assertFalse(formal["ready"])
+
+    def test_same_intake_keeps_legacy_immutable_identity_across_japan_dates(self):
+        registry = OpponentRegistry(self.root / "cross-day-state", self.root / "no-runtime")
+        with patch("ygo_kito.deck_intake.datetime") as clock:
+            clock.now.side_effect = lambda zone: datetime(2026, 10, 25, tzinfo=timezone.utc).astimezone(zone)
+            legacy = self.prepare()
+            for environment in legacy["environments"].values(): environment.pop("cutoff_timing")
+            registry.put("deck_intake", self.config["intake_id"], legacy)
+            self.assertEqual(store_intake(registry, self.config, self.root), legacy)
+            clock.now.side_effect = lambda zone: datetime(2026, 10, 26, tzinfo=timezone.utc).astimezone(zone)
+            self.assertEqual(store_intake(registry, self.config, self.root), legacy)
+            self.assertEqual(len(registry.records("deck_intake")), 1)
+            self.assertEqual(self.prepare()["environments"]["2026-10"]["cutoff_timing"]["as_of_date"], "2026-10-26")
 
     def test_three_supplied_environments_and_all_assignments_check_lists_without_runtime_promotion(self):
         self.config["slots"].reverse()

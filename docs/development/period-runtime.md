@@ -50,7 +50,7 @@ group recipe 可显式加入 `period_inputs: "configs/具体描述符.json"`，�
 
 描述符可选 `snapshots: {"2022-07": {"opponent-07": {"path": ".cache/明确模型.weights", "sha256": "实际文件摘要", "model_source": "可追溯的本项目模型来源", "migration": "explicit-inference-migration"}}}`。每个条目必须对应实际 `local_snapshot` 槽；controller.model 仍是模型参数 SHA，文件 SHA 不替代模型 SHA。缺条目、未绑定来源、路径越界、未知 driver 或未使用条目均拒绝。
 
-`load_period_host(recipe)` 仅在选项不存在时返回 None。描述符缺 `scope` 时沿用 `whole-plan`：完整编译三期 3＋8，逐期构造实际资产和规则/冻结模型对手，再精确核对分区 binding。显式 `scope: "selected-period"` 时只核 descriptor.period_id 的主槽、实际各分区对手、来源/截止/版本和实际 root/snapshot；其他期保持 `unselected_not_validated`，`formal_training_ready=false`。未选择的 2026 截止可以保留 null，不阻止已齐 2022 的单期工程运行；请求未选期会明确拒绝。整计划收件/登记要求没有因此改变，也不将缺资料自动补成当前环境。
+`load_period_host(recipe)` 仅在选项不存在时返回 None。描述符缺 `scope` 时沿用 `whole-plan`：完整编译三期 3＋8，逐期构造实际资产和规则/冻结模型对手，再精确核对分区 binding。显式 `scope: "selected-period"` 时只核 descriptor.period_id 的主槽、实际各分区对手、来源/截止/版本和实际 root/snapshot；其他期保持 `unselected_not_validated`，`formal_training_ready=false`。2026期截止现已选2026-11-01（含JST当日正式OCG发售），禁表仍2026-10-01/2026.10；截至2026-10-25仅date_selected，最终卡池未到日/未核。未选期缺资料不阻止已齐2022的单期工程运行，请求未选期会明确拒绝。整计划收件/登记要求没有因此改变，也不将缺资料自动补成当前环境。
 
 它返回 `host.loaded/period_id/assets/for_runner/require_task/opponent_for/rebind_actor`，不启动 core 或 worker。
 
@@ -70,4 +70,4 @@ group recipe 可显式加入 `period_inputs: "configs/具体描述符.json"`，�
 
 工程日期清单和当前 core 的成功调用不能认证历史发行事实、旧裁定/勘误、时期规则或驱动强度。正式三期资料、用户卡组、provider 资格和独立能力验收仍是不同事项；所有历史/官方资格标记仍 false。
 
-冻结模型的独立正常检查为 `PYTHONPATH=src .cache/ci-cpu-venv/bin/python -m unittest integration_tests.test_period_snapshot -v`。它只提取本项目已经完成更新的 group `components.duel`，保留原制品和来源 SHA；这是保存时暂停 adapter 的已更新 base 组件，不称最新 LoRA。先前未训练 CPU actor 的有界采样耗尽作为失败保留，不宣称终局；新增检查固定已有 `PublicRulePolicy` 做 actor、同一冻结模型做 opponent，不替换模型决策。两期分别绑定 2022-09-30 和 2022-12-31 的明确工程发行清单，2026 保持 null/未选择。实际自然终局后使用同一分期 factory 重放，并核对模型/词表重载、actor 重绑与 RNG 隔离。它不按旧 implementation binding 恢复训练器。聚合结果分别写 `.cache/pretraining-engine/period-snapshot-2022-07-proof.json` 和 `period-snapshot-2022-10-proof.json`，私有轨迹和提取模型另留当前云端缓存，不投影为 WindBot 运行资格。
+冻结模型的独立正常检查为 `PYTHONPATH=src .cache/ci-cpu-venv/bin/python -m unittest integration_tests.test_period_snapshot -v`。它只提取本项目已经完成更新的 group `components.duel`，保留原制品和来源 SHA；这是保存时暂停 adapter 的已更新 base 组件，不称最新 LoRA。先前未训练 CPU actor 的有界采样耗尽作为失败保留，不宣称终局；该轮检查固定已有 `PublicRulePolicy` 做 actor、同一冻结模型做 opponent，不替换模型决策。两期分别绑定 2022-09-30 和 2022-12-31 的明确工程发行清单，该轮夹具中2026保持null/未选择，不改写成当时已选11月1日。实际自然终局后使用同一分期 factory 重放，并核对模型/词表重载、actor 重绑与 RNG 隔离。它不按旧 implementation binding 恢复训练器。聚合结果分别写 `.cache/pretraining-engine/period-snapshot-2022-07-proof.json` 和 `period-snapshot-2022-10-proof.json`，私有轨迹和提取模型另留当前云端缓存，不投影为 WindBot 运行资格。

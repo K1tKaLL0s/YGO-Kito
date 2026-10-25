@@ -5,9 +5,12 @@ fabricated. The synthetic runtime implements only the host input contract.
 """
 
 from copy import deepcopy
+from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 from ygo_kito.build_contracts import DeckParts, digest
 from ygo_kito.contracts import Versions
@@ -94,6 +97,35 @@ class TrainingInputTests(unittest.TestCase):
         self.assertFalse(compiled["formal_training_ready"])
         with self.assertRaisesRegex(ContractError, "missing"):
             load_training_inputs(intake, empty, self.root, runtime_assets={})
+
+    def test_future_selected_period_blocks_whole_plan_but_not_selected_history(self):
+        env = self.intake["environments"]["2026-10"]
+        self.assertEqual(env["release_cutoff"], "2026-10-24")  # Existing engineering fixture, not the selected final pool.
+        env["release_cutoff"] = "2026-11-01"
+        release_path = self.root / env["releases"]["path"]
+        release = json.loads(release_path.read_text(encoding="utf-8"))
+        release["release_cutoff"] = env["release_cutoff"]
+        release_path.write_text(json.dumps(release), encoding="utf-8")
+        env["releases"]["sha256"] = hashlib.sha256(release_path.read_bytes()).hexdigest()
+        with patch("ygo_kito.deck_intake.datetime") as clock:
+            clock.now.side_effect = lambda zone: datetime(2026, 10, 25, tzinfo=timezone.utc).astimezone(zone)
+            selected_future = compile_training_inputs(self.intake, self.policy, self.root, selected_period="2026-10")
+            whole_plan = self.compile()
+            for result in (selected_future, whole_plan):
+                self.assertEqual(result["status"], "pending_input")
+                self.assertFalse(result["formal_training_ready"])
+                self.assertNotIn("periods", result)
+            selected_history = compile_training_inputs(self.intake, self.policy, self.root, selected_period="2022-07")
+            self.assertEqual(selected_history["status"], "compiled_not_runtime_validated")
+            self.assertEqual(set(selected_history["periods"]), {"2022-07"})
+            self.assertEqual(selected_history["unselected_periods"]["2026-10"]["status"], "unselected_not_validated")
+            self.assertFalse(selected_history["formal_training_ready"])
+            # Date arrival removes only the temporal obstacle; these remain
+            # synthetic supplied-listing inputs, without formal qualification.
+            clock.now.side_effect = lambda zone: datetime(2026, 11, 1, tzinfo=timezone.utc).astimezone(zone)
+            for result in (self.compile(), compile_training_inputs(self.intake, self.policy, self.root, selected_period="2026-10")):
+                self.assertEqual(result["status"], "compiled_not_runtime_validated")
+                self.assertFalse(result["formal_training_ready"])
 
     def test_explicit_selected_period_loads_without_future_data_and_cannot_access_unselected_periods(self):
         for period in ("2022-10", "2026-10"):

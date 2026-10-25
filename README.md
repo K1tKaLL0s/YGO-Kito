@@ -8,7 +8,7 @@
 
 **持续进度入口：[总工作清单 MASTER-CHECKLIST](docs/plans/MASTER-CHECKLIST.md)。** 每批完成后同步稳定任务 ID、状态和证据，符合验收条件才勾选；部分完成保持未勾选。该表索引全阶段进度，保留[第一阶段详细清单](docs/plans/2026-10-22-phase-1-cpu-checklist.md)，不替代统一规范。PR 已发布不表示已合并。
 
-**当前云端整合候选：[PR合并准备与Agent接续](docs/reports/2026-10-24-merge-preparation.md)。** 保留PR1、DP草稿PR2及构筑工作历史；完整源码安全CPU白名单188项通过，manager构筑RPC与真实stdio启动已测。未运行原生故障/真实核心，CI未确认，不合并或自动合并。通用接续先读[AGENTS.md](AGENTS.md)和[Agent说明](docs/development/generic-agent-integration.md)。
+**当前云端整合候选：[PR #3](https://github.com/K1tKaLL0s/YGO-Kito/pull/3)。** 保留PR1、DP草稿PR2及构筑工作历史，不合并或自动合并。此前59dfda0已有352项安全CPU与远端CI通过，并有单列正常真实引擎/重放证据；本次日期与来源变更见[最新接续](docs/reports/2026-10-25-cutoff-and-source-update.md)。旧188项是历史基线。通用接续先读[AGENTS.md](AGENTS.md)和[Agent说明](docs/development/generic-agent-integration.md)。
 
 **继续工程准备：[安全CPU CI](docs/development/safe-cpu-ci.md)、[3＋8牌表收件](docs/development/deck-intake.md)、[完整源码训练交接](docs/development/training-handoff.md)。** 已建立[草稿PR #3](https://github.com/K1tKaLL0s/YGO-Kito/pull/3)，依赖#1→#2→#3。最新测试/CI与剩余依赖统一见[继续工程报告](docs/reports/2026-10-24-engineering-continuation.md)；原188项是历史整合基线，不代替新提交检查。
 
@@ -18,7 +18,7 @@
 - 先训练基本模型组，LLM 后置且非必需。**LoRA 是基模后的常规持续适配路线**，不是旧文所说的完全可不开展。
 - 开发使用云端 Codex，训练计划使用腾讯云；约 100h 总上限，初始分配 5/25/25/20/10/15 小时，按吞吐实测调整，不保证达标、不自动授权付费或训练。
 - 珠泪哀歌三期课程：2022 年 7 月、2022 年 10 月、2026 年 10 月；目标→改进循环、合法可见信息、独立 BO3 与跨牌组迁移验收。
-- 第一阶段真实规则核心，第二阶段训练前验证 PC YGOPro／萌卡兼容。**手机端及 YGOMobile 暂移出本期范围**；云端训练与 PC 推理/微调的硬件压力仍必须记录。
+- 第一阶段交付可用代码、真实规则适配、资源导入、训练入口、恢复与交接；用户提供卡组后进入腾讯云第二阶段。GPU依赖安装、实测、调优与能力验收属于训练阶段，PC产品/客户端互操作归阶段3。**手机端及 YGOMobile 暂移出本期范围**。
 - 构筑预测与实战反馈：百场内明显落后预警、千场内明显落后强制重构；具体统计阈值实施前冻结。
 
 当前已有CPU骨架、固定上游源码构建的core、限定真实终局/重放，以及四个独立网络原型。历史v3完整公开卡库的决斗Transformer为266,018参数；v4匿名/卡名原型配置见[历史报告](docs/reports/2026-10-23-private-hierarchy-v4.md)，当前私有记忆特征已升v5，旧权重不静默兼容。原构筑词表的目标/优化各17,729参数，64卡工程词表各18,417参数；统筹MLP648参数。词表和实验大小不是最终容量冻结。已串通构筑托付、版本预测、冻结策略验证、回收及恢复；规则控制最终行为，统筹学习原型仍为明示合成监督。

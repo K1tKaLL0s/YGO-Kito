@@ -12,7 +12,7 @@
 
 默认 whole-plan 的 `compile_training_inputs(intake, policy, workspace)` 会重新检查三期来源文件和 11 份资料。缺任何资源/截止/分区/版本只返回 `pending_input`；矛盾或泄漏直接拒绝。编译结果保留每期完整截止和三源摘要，`formal_training_ready` 保持 false。
 
-显式传入 `selected_period="2022-07"` 时只编译该期主槽及各分区实际选用的对手、来源、截止与版本；不要求未来期已经选日期或已经收到其他主槽。manifest 标记 `scope="selected-period"`，未选期为 `unselected_not_validated`，仍不表示完整计划就绪。`load_training_inputs(..., runtime_assets={"2022-07": actual_runtime}, selected_period="2022-07")` 要求 runtime 键集精确等于该 scope，访问未选择期通过 ContractError 拒绝。省略参数继续要求完整三期 3＋8；全计划收件/登记不会部分放行。
+显式传入 `selected_period="2022-07"` 时只编译该期主槽及各分区实际选用的对手、来源、截止与版本；不要求其他期卡池已经核验或已经收到其他主槽。manifest 标记 `scope="selected-period"`，未选期为 `unselected_not_validated`，仍不表示完整计划就绪。`load_training_inputs(..., runtime_assets={"2022-07": actual_runtime}, selected_period="2022-07")` 要求 runtime 键集精确等于该 scope，访问未选择期通过 ContractError 拒绝。省略参数继续要求完整三期 3＋8；全计划收件/登记不会部分放行。2026期已选2026-11-01截止（含JST当日正式OCG发售），禁表仍2026-10-01/2026.10；截至2026-10-25最终池仍待到日及来源核验，不阻塞未选择它的2022单期工程运行。
 
 隔离沿用现有 `opponent_identity`：同一排序牌表内容＋驱动实现/版本＋模型快照不得跨 train/validation/final_eval，改 opponent ID 或调整牌序无效。物理版本相同的游戏种子不能跨目的重用，card_pool 显示标签不改变此规则。DataIndex 后续在真实数据入库时还会重新检查，编译阶段不造空 episode 占位。
 
