@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "kind": "existing-toolchain-readonly-recheck",
+  "recorded_at_utc": "2026-10-25T08:38:18.060120+00:00",
+  "uid": 1000,
+  "tools": {
+    "mono": null,
+    "mono-sgen": null,
+    "mcs": null,
+    "csc": null,
+    "msbuild": null,
+    "xbuild": null,
+    "dotnet": null,
+    "sudo": null
+  },
+  "usual_runtime_paths": {
+    "/usr/lib/mono": false,
+    "/usr/share/dotnet": false,
+    "/opt/dotnet": false
+  },
+  "dpkg_query_observation": {
+    "mono-runtime": "no packages found",
+    "mono-devel": "no packages found",
+    "mono-xbuild": "no packages found",
+    "dotnet-sdk-8.0": "no packages found"
+  },
+  "prior_configured_apt_http403_retried": false,
+  "installation_retried": false,
+  "permissions_or_sources_changed": false,
+  "preinstalled_unrelated_wasm_assets_used_as_toolchain": false,
+  "actual_csharp_execution": false,
+  "available_environment_management": "No callable environment-admin/UID/package-setup tool; selected environment wait/read/ordinary exec only",
+  "minimal_recovery": "Platform or administrator must pre-provision the approved Mono runtime/C# compiler/MSBuild-or-compatible-xbuild, .NET4.8 reference assemblies and system SQLite in this same environment, or restore normal installation rights and the configured signed-source access. Existing user approval remains valid; this agent does not change permissions or retry/bypass the rejected source."
+}

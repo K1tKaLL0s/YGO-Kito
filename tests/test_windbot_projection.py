@@ -24,6 +24,9 @@ def card(code=1,p=0,z=4,s=0,extra=None):
 def idle():return bytes((11,0,0,0,0,0,0,0,1,1,0))
 def draw(p,codes):return bytes((90,p,len(codes)))+b''.join(u32(c) for c in codes)
 def move(code,a,b):return bytes((50,))+u32(code)+bytes(a)+bytes(b)+u32(0)
+def public_confirmation(ref,cards,player=0):
+    return dict(event_id=ref,kind='reveal',card_ids=[c[0] for c in cards],details=dict(message=31,player=player,
+        locations=[dict(controller=p,zone=z,**({'sequence':s} if s is not None else {})) for _,p,z,s in cards]))
 
 
 class ScalarLibrary:
@@ -109,14 +112,17 @@ class WindBotProjectionTests(unittest.TestCase):
             self.assertTrue(j.failed)
             with self.assertRaises(WindBotUnsupported):j.consume(b'')
 
-    def test_unregistered_locations_and_hidden_identified_hand_removal_rejected(self):
+    def test_unregistered_locations_fail_and_hidden_hand_removal_redacts_first(self):
         for wire in (move(3,(1,64,2,8),(1,4,0,1)),
                      move(3,(0,4,0,1),(0,130,0,0))):
             j=ProjectionJournal(0,deck_counts=(40,40))
             with self.assertRaises(WindBotUnsupported):j.consume(wire)
         j=ProjectionJournal(0,deck_counts=(40,40))
+        j.consume(move(3,(1,1,0,8),(1,16,0,0)))
         j.consume(move(3,(1,16,0,0),(1,2,0,8)))
-        with self.assertRaises(WindBotUnsupported):j.consume(move(0,(1,2,0,8),(1,8,0,8)))
+        j.consume(move(0,(1,2,0,8),(1,8,0,8)))
+        self.assertEqual([m.kind for m in j.messages][-2:],[7,50])
+        self.assertTrue(j.messages[-2].fields['redact'])
 
     def test_frame_queries_visible_only_and_carries_all_dynamic_scalars(self):
         engine,req=fixture_engine()
@@ -388,6 +394,7 @@ class WindBotProjectionTests(unittest.TestCase):
         data['observation']['hand_counts'][1]=3;data['observation']['deck_counts'][1]=37
         data['observation']['cards'].append(dict(ref='p1.hand.0',owner=1,controller=1,
             zone='hand',visibility='public',card_id=1))
+        data['observation']['public_history'].append(public_confirmation('public-hand-current',[(1,1,'hand',None)]))
         j=ProjectionJournal(0,deck_counts=(40,40))
         j.consume(draw(0,(1,))+draw(1,(888888888,777777777,666666666)))
         j.consume(bytes((31,0,0,1))+card(1,1,2,0)+idle())
@@ -439,6 +446,247 @@ class WindBotProjectionTests(unittest.TestCase):
             j.consume(bytes((31,0,0,2))+b''.join(card(code,1,2,s) for code,s in rows))
             outputs.append(j.messages[-1].fields)
         self.assertEqual(*outputs)
+
+    def test_private_deck_confirm_uses_dto_multiset_and_existing_local_pool(self):
+        engine,req=fixture_engine();data=json.loads(json.dumps(req.to_dict()))
+        data['private_reveals']=[dict(ref='private-reveal-0',observer=0,message=31,cards=[
+            dict(card_id=2,controller=1,zone='deck'),dict(card_id=1,controller=1,zone='deck')])]
+        req=DecisionRequest.from_dict(data);engine.pending=req
+        engine._transport.consume(bytes((31,0,0,2))+card(2,1,1,35)+card(1,1,1,12))
+        frame=transport_frame(engine,req,state_version='private-multiset')
+        event=next(m for m in frame.messages if m.kind==31)
+        self.assertEqual([(c['card_id'],c['sequence']) for c in event.fields['cards']],[(1,0),(2,1)])
+        self.assertEqual(event.fields['knowledge_ref'],'private-reveal-0')
+        window=WindBotWindow(req,frame,observer=0,deadline=20,clock=lambda:1)
+        self.assertTrue(all(game_message(m,window) for m in frame.messages))
+        self.assertEqual(len(engine.lib.queries),1)
+
+    def test_private_confirmation_for_other_seat_retains_no_identity_or_alias(self):
+        j=ProjectionJournal(0,deck_counts=(40,40))
+        j.consume(bytes((31,1,0,1))+card(987654321,0,1,33))
+        self.assertEqual(len(j.messages),1);self.assertNotIn('987654321',repr(j.__dict__))
+        self.assertEqual(j.private_counter,0)
+
+    def test_private_confirmation_alias_is_erased_before_blind_draw(self):
+        engine,req=fixture_engine();data=json.loads(json.dumps(req.to_dict()))
+        data['private_reveals']=[dict(ref='private-reveal-0',observer=0,message=31,cards=[dict(card_id=1,controller=1,zone='deck')])]
+        data['observation']['hand_counts'][1]=2;data['observation']['deck_counts'][1]=38
+        req=DecisionRequest.from_dict(data);engine.pending=req
+        j=engine._transport
+        j.consume(bytes((31,0,0,1))+card(1,1,1,12)+draw(1,(888888888,)))
+        frame=transport_frame(engine,req,state_version='private-blind-draw')
+        confirm=next(i for i,m in enumerate(frame.messages) if m.kind==31)
+        draw_index=max(i for i,m in enumerate(frame.messages) if m.kind==90)
+        redactions=[m for m in frame.messages[confirm+1:draw_index] if m.kind==7 and m.fields.get('redact')]
+        self.assertEqual(len(redactions),39)
+        self.assertTrue(all(m.fields['cards'][0]['code']==0 and m.fields['cards'][0]['type']==0 for m in redactions))
+        window=WindBotWindow(req,frame,observer=0,deadline=20,clock=lambda:1)
+        self.assertTrue(all(game_message(m,window) for m in frame.messages))
+        self.assertNotIn('888888888',repr(frame))
+
+    def test_identified_hidden_hand_and_extra_removal_clear_complete_old_state(self):
+        for zone in (2,64):
+            j=ProjectionJournal(0,deck_counts=(40,40),extra_counts=(0,2 if zone==64 else 0))
+            if zone==2:j.consume(draw(1,(111111111,222222222)))
+            aliases=j.aliases[(1,zone)];aliases.index(0,known=1)
+            if zone==64:
+                aliases.index(0,position=1)
+                j.consume(bytes((53,))+u32(1)+bytes((1,64,0,1,8)))
+            j.consume(move(999999999,(1,zone,0,8),(1,8,0,8)))
+            resets=[m for m in j.messages if m.kind==7 and m.fields.get('redact')]
+            self.assertEqual(len(resets),2)
+            self.assertEqual(j.messages[-1].fields['previous'][2],1)
+            self.assertEqual(j.messages[-1].fields['card_id'],0)
+            for message in resets:
+                record=message.fields['cards'][0]
+                self.assertEqual(record['targets'],[]);self.assertEqual(record['overlay'],[])
+                self.assertEqual(record['equip'],(0,0,0,0));self.assertEqual(record['attack'],0)
+            self.assertNotIn('999999999',repr(j.__dict__))
+
+    def test_extra_shuffle_forgets_bound_anonymous_objects_before_codec(self):
+        engine,req=fixture_engine();j=engine._transport
+        j.extra_counts[1]=2;j.aliases[(1,64)]=_Aliases(2)
+        j.aliases[(1,64)].index(0,lock=True)
+        j.consume(bytes((39,1,2))+u32(111111111)+u32(222222222))
+        frame=transport_frame(engine,req,state_version='bound-extra-shuffle')
+        self.assertFalse(j.aliases[(1,64)].locked)
+        reset_indices=[i for i,m in enumerate(frame.messages) if m.kind==7 and m.fields.get('redact')]
+        shuffle=next(i for i,m in enumerate(frame.messages) if m.kind==39)
+        self.assertTrue(reset_indices and max(reset_indices)<shuffle)
+        # Add legal opaque extra placeholders to establish its public count.
+        data=json.loads(json.dumps(req.to_dict()))
+        data['observation']['cards'] += [dict(ref=f'p1.extra.hidden-{i}',owner=None,controller=1,zone='extra',visibility='hidden',card_id=None,position=8) for i in range(2)]
+        current=DecisionRequest.from_dict(data)
+        from dataclasses import replace as replacement
+        frame=replacement(frame,request_sha256=digest(current.to_dict()))
+        window=WindBotWindow(current,frame,observer=0,deadline=20,clock=lambda:1)
+        self.assertTrue(all(game_message(m,window) for m in frame.messages))
+
+    def test_private_chain_trigger_rank_is_zero_and_public_type_precedes_callback(self):
+        engine,req=fixture_engine();j=engine._transport;j.card_types[1]=17
+        wire=bytes((70,))+u32(1)+bytes((1,2,0,8))+bytes((1,2,37))+u32(1234)+bytes((1,))
+        j.consume(wire)
+        frame=transport_frame(engine,req,state_version='private-chain')
+        event=next(m for m in frame.messages if m.kind==70)
+        self.assertEqual(event.fields['chain_location'],(1,2,0));self.assertEqual(event.fields['card_type'],17)
+        data=json.loads(json.dumps(req.to_dict()))
+        data['observation']['public_history'].append(dict(event_id='chain-public',kind='activate',card_ids=[1],
+            details={'message':70,'player':1,'link':1,'description':1234}))
+        current=DecisionRequest.from_dict(data)
+        from dataclasses import replace as replacement
+        frame=replacement(frame,request_sha256=digest(current.to_dict()))
+        window=WindBotWindow(current,frame,observer=0,deadline=20,clock=lambda:1)
+        encoded=game_message(event,window)
+        self.assertEqual(encoded[3],7)  # a CODE|TYPE query packet precedes MSG70
+
+    def test_new_grave_handler_uses_real_visible_type_before_chain_callback(self):
+        engine,req=fixture_engine();j=engine._transport;j.card_types[1]=2  # printed != current fixture type17
+        j.consume(move(1,(1,1,10,8),(1,16,0,1)))
+        j.consume(bytes((70,))+u32(1)+bytes((1,16,0,1,1,2,33))+u32(1234)+bytes((1,)))
+        data=json.loads(json.dumps(req.to_dict()));data['observation']['deck_counts'][1]-=1
+        data['observation']['cards'].append(dict(ref='p1.graveyard.0',owner=1,controller=1,zone='graveyard',visibility='public',card_id=1))
+        data['observation']['public_history'].append(dict(event_id='grave-chain',kind='activate',card_ids=[1],details={'message':70,'player':1}))
+        req=DecisionRequest.from_dict(data);engine.pending=req;engine._count=lambda p,z:int((p,z)==(1,16))
+        frame=transport_frame(engine,req,state_version='dynamic-grave-handler')
+        index=next(i for i,m in enumerate(frame.messages) if m.kind==70)
+        self.assertEqual(frame.messages[index-1].kind,7)
+        self.assertEqual(frame.messages[index-1].fields['cards'][0]['type'],17)
+        window=WindBotWindow(req,frame,observer=0,deadline=20,clock=lambda:1)
+        self.assertTrue(all(game_message(m,window) for m in frame.messages))
+        # A past origin whose current public slot no longer identifies that card
+        # cannot borrow printed type to fill the missing dynamic observation.
+        engine,req=fixture_engine();engine._transport.card_types[1]=17
+        engine._transport.consume(bytes((70,))+u32(1)+bytes((1,16,0,1,1,2,33))+u32(1234)+bytes((1,)))
+        with self.assertRaises(WindBotUnsupported):transport_frame(engine,req,state_version='missing-handler')
+
+    def test_hand_shuffle_clears_complete_old_metadata_before_new_ids(self):
+        engine,req=fixture_engine();j=engine._transport
+        j.aliases[(1,2)].index(0,known=1)
+        j.consume(bytes((33,1,1))+u32(987654321))
+        frame=transport_frame(engine,req,state_version='known-hand-shuffle')
+        index=next(i for i,m in enumerate(frame.messages) if m.kind==33)
+        self.assertTrue(frame.messages[index-1].fields['redact'])
+        window=WindBotWindow(req,frame,observer=0,deadline=20,clock=lambda:1)
+        self.assertTrue(all(game_message(m,window) for m in frame.messages))
+        self.assertNotIn('987654321',repr(frame))
+
+    def test_set_shuffle_redacts_whole_objects_without_hidden_destination_mapping(self):
+        engine,req=fixture_engine();j=engine._transport
+        j.consume(bytes((36,8,2))+bytes((1,8,1,8,1,8,0,8))+bytes((1,8,4,8,1,8,3,8)))
+        frame=transport_frame(engine,req,state_version='set-shuffle')
+        event=next(m for m in frame.messages if m.kind==36)
+        self.assertEqual(event.fields['slots'],[(1,8,0,8),(1,8,1,8)])
+        resets=[m for m in frame.messages if m.kind==7 and m.fields.get('redact')]
+        self.assertEqual(len(resets),2)
+        self.assertTrue(all(m.fields['cards'][0]['type']==0 for m in resets))
+        window=WindBotWindow(req,frame,observer=0,deadline=20,clock=lambda:1)
+        self.assertTrue(all(game_message(m,window) for m in frame.messages))
+
+    def test_swap_uses_pinned_base_types_and_redacts_old_deck_before_shrinking(self):
+        engine,req=fixture_engine();j=engine._transport;j.card_types.update({1:17,2:0x800021})
+        j.consume(move(2,(1,1,10,8),(1,16,0,1))+move(1,(1,1,12,8),(1,16,1,1)))
+        old_deck=j.deck_counts[1]
+        j.consume(bytes((35,1,32,1)))
+        data=json.loads(json.dumps(req.to_dict()));data['observation']['deck_counts'][1]=1
+        data['observation']['cards'] += [dict(ref=f'p1.graveyard.{i}',owner=1,controller=1,
+            zone='graveyard',visibility='public',card_id=1) for i in range(old_deck)]
+        data['observation']['cards'].append(dict(ref='p1.extra.hidden-0',owner=None,controller=1,
+            zone='extra',visibility='hidden',card_id=None,position=8))
+        data['observation']['public_history'].append(dict(event_id='public-old-grave',kind='move',card_ids=[2,1],
+            details={'message':50,'locations':[dict(controller=1,zone='graveyard',sequence=0),dict(controller=1,zone='graveyard',sequence=1)]}))
+        req=DecisionRequest.from_dict(data);engine.pending=req;engine._count=lambda p,z:old_deck if (p,z)==(1,16) else 0
+        frame=transport_frame(engine,req,state_version='public-deck-grave-swap')
+        event=next(m for m in frame.messages if m.kind==35)
+        self.assertEqual(event.fields['old_grave_types'],[dict(sequence=0,card_id=2,type=0x800021),dict(sequence=1,card_id=1,type=17)])
+        self.assertEqual(j.extra_counts[1],1);self.assertEqual(j.deck_counts[1],1)
+        window=WindBotWindow(req,frame,observer=0,deadline=20,clock=lambda:1)
+        encoded=game_message(event,window)
+        self.assertEqual(encoded[3],7)  # base CODE|TYPE refresh precedes swap
+        self.assertTrue(all(game_message(m,window) for m in frame.messages))
+
+    def test_all_hint_types_obey_pinned_server_recipient_not_player_field(self):
+        for hint in range(1,13):
+            for player in (0,1):
+                for observer in (0,1):
+                    j=ProjectionJournal(observer,deck_counts=(40,40))
+                    j.consume(bytes((2,hint,player))+u32(987654321))
+                    expected=hint in (10,11) or hint in (1,2,3,5) and observer==player or hint in (4,6,7,8,9) and observer==1-player
+                    with self.subTest(hint=hint,player=player,observer=observer):
+                        self.assertEqual(len(j.messages),1+int(expected))
+                        if expected:self.assertEqual(j.messages[-1].fields['player'],player)
+                        else:self.assertNotIn('987654321',repr(j.__dict__))
+
+    def test_chain_before_cost_move_keeps_uninterrupted_last_visible_dynamic_type(self):
+        for invalidate in (False,True):
+            engine,req=fixture_engine();data=json.loads(json.dumps(req.to_dict()))
+            data['observation']['cards'].append(dict(ref='p0.monster.0',owner=0,controller=0,
+                zone='monster',visibility='public',card_id=1,position=1))
+            first=DecisionRequest.from_dict(data);engine.pending=first
+            before=transport_frame(engine,first,state_version='before-cost')
+            engine._transport.card_types[1]=2  # never substitute printed type for query's actual17
+            if invalidate:engine._transport.consume(bytes((41,))+struct.pack('<H',4))
+            engine._transport.consume(bytes((70,))+u32(1)+bytes((0,4,0,1,0,4,0))+u32(1234)+bytes((1,)))
+            engine._transport.consume(move(1,(0,4,0,1),(0,16,0,5)))
+            data['decision_id']='after-cost';data['observation']['cards']=[c for c in data['observation']['cards'] if c['ref']!='p0.monster.0']
+            data['observation']['cards'].append(dict(ref='p0.graveyard.0',owner=0,controller=0,
+                zone='graveyard',visibility='public',card_id=1))
+            data['observation']['public_history'].append(dict(event_id='public-chain-before-cost',kind='activate',
+                card_ids=[1],details={'message':70,'player':0}))
+            current=DecisionRequest.from_dict(data);engine.pending=current;engine._count=lambda p,z:int((p,z)==(0,16))
+            if invalidate:
+                with self.assertRaises(WindBotUnsupported):transport_frame(engine,current,state_version='invalid-history')
+                continue
+            after=transport_frame(engine,current,state_version='after-cost')
+            evidence=after.prompt_facts['last_visible_type'][0]
+            self.assertEqual(evidence['type'],17);self.assertEqual(evidence['source_request_sha256'],before.request_sha256)
+            self.assertEqual(evidence['source'],'last_legal_visible_query')
+            self.assertEqual(next(m.fields['card_type'] for m in after.messages if m.kind==70),17)
+            window=WindBotWindow(current,after,observer=0,deadline=20,clock=lambda:1)
+            self.assertTrue(all(game_message(m,window) for m in after.messages))
+
+    def test_public_confirmation_history_binds_old_alias_after_hidden_move(self):
+        engine,req=fixture_engine();data=json.loads(json.dumps(req.to_dict()))
+        data['observation']['hand_counts'][1]=0
+        data['observation']['public_history'].append(public_confirmation('old-hand-confirm',[(1,1,'hand',None)]))
+        engine._transport.consume(bytes((31,0,0,1))+card(1,1,2,0)+move(987654321,(1,2,0,8),(1,8,0,8)))
+        req=DecisionRequest.from_dict(data);engine.pending=req
+        frame=transport_frame(engine,req,state_version='old-confirmed-object')
+        index=next(i for i,m in enumerate(frame.messages) if m.kind==31)
+        event=frame.messages[index]
+        self.assertEqual(event.fields['public_ref'],'old-hand-confirm')
+        self.assertEqual(frame.prompt_facts['public_confirmations'],{'old-hand-confirm':{'message_index':index}})
+        self.assertFalse(any(s.controller==1 and s.location==2 for s in frame.slots))
+        window=WindBotWindow(req,frame,observer=0,deadline=20,clock=lambda:1)
+        self.assertTrue(all(game_message(m,window) for m in frame.messages))
+        self.assertNotIn('987654321',repr(frame))
+        with self.assertRaises(ContractError):game_message(event,window)
+
+    def test_public_confirmation_requires_fresh_history_and_unchanged_prefix(self):
+        engine,req=fixture_engine()
+        engine._transport.consume(bytes((31,0,0,1))+card(1,1,2,0))
+        with self.assertRaises(WindBotUnsupported):transport_frame(engine,req,state_version='missing-public-proof')
+        for altered in (False,True):
+            engine,req=fixture_engine();data=json.loads(json.dumps(req.to_dict()))
+            data['observation']['public_history'].append(public_confirmation('one-time-ref',[(1,1,'hand',None)]))
+            req=DecisionRequest.from_dict(data);engine.pending=req
+            engine._transport.consume(bytes((31,0,0,1))+card(1,1,2,0))
+            transport_frame(engine,req,state_version='first-public-proof')
+            data['decision_id']='next-public-window'
+            if altered:data['observation']['public_history'][0]['event_id']='rewritten-prefix'
+            current=DecisionRequest.from_dict(data);engine.pending=current
+            engine._transport.consume(bytes((31,0,0,1))+card(1,1,2,0))
+            with self.assertRaises(WindBotUnsupported):transport_frame(engine,current,state_version='stale-public-proof')
+
+    def test_equal_public_confirmations_consume_distinct_broadcast_refs(self):
+        engine,req=fixture_engine();data=json.loads(json.dumps(req.to_dict()))
+        data['observation']['public_history'] += [public_confirmation(name,[(1,1,'hand',None)]) for name in ('same-a','same-b')]
+        req=DecisionRequest.from_dict(data);engine.pending=req
+        engine._transport.consume((bytes((31,0,0,1))+card(1,1,2,0))*2)
+        frame=transport_frame(engine,req,state_version='two-equal-broadcasts')
+        refs=[m.fields['public_ref'] for m in frame.messages if m.kind==31]
+        self.assertEqual(refs,['same-a','same-b'])
+        window=WindBotWindow(req,frame,observer=0,deadline=20,clock=lambda:1)
+        self.assertTrue(all(game_message(m,window) for m in frame.messages))
 
 
 if __name__=='__main__':unittest.main()

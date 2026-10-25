@@ -542,7 +542,7 @@ class BotSourceRegistry:
     def training_adapter(self, executor_id, *, source_id=None, native_root=None, profile=None, seat=1,
                          versions=None, environment_id=None, opponent_id=None, source="user_provided",
                          build_audit_path=None, build_audit_sha256=None, mono=None,
-                         workspace=None, period_context=None):
+                         workspace=None, period_context=None, variant_root=None, session_seconds=None):
         """Build the actual managed-room adapter only after a complete real audit.
 
         Source registration remains independent of this gate. The default room
@@ -558,7 +558,10 @@ class BotSourceRegistry:
         from .windbot_projection import WindBotOpponent
         from .windbot_room import WindBotRoom, windbot_session
         from contextlib import contextmanager
-        import inspect
+        from .implementation_identity import source_tree_snapshot, assert_source_tree
+        session_seconds = 120 if session_seconds is None else session_seconds
+        if type(session_seconds) not in (int, float) or not math.isfinite(session_seconds) or not 0 < session_seconds <= 300:
+            raise ContractError("explicit bot session limit must be finite and within (0, 300] seconds")
         self.statuses()
         matches = [r for r in self.inventory["origins"] if r["bot_id"] == executor_id or
                    (r["source_id"] == source_id and r["class_name"] == executor_id)]
@@ -581,18 +584,31 @@ class BotSourceRegistry:
         if file_sha(audit_path) != build_audit_sha256:
             raise ContractError("build audit file checksum differs")
         audit = json.loads(audit_path.read_text(encoding="utf-8"))
+        runtime_source = self.root / source_id
+        variant = None
+        if variant_root is not None:
+            from .bot_overlay import runtime_overlay_identity
+            if source_id != "pure":
+                raise ContractError("the exact desktop overlay has a Pure base only")
+            runtime_source = Path(variant_root).resolve(strict=True)
+            if not runtime_source.is_relative_to(workspace) or not runtime_source.is_dir():
+                raise ContractError("variant tree must remain inside the explicit workspace")
+            variant = runtime_overlay_identity(self.lock, runtime_source)
         fields(audit, {"schema_version", "kind", "source_id", "repository", "commit", "source_lock_sha256",
             "inventory_sha256", "assembly_path", "assembly_sha256", "source_root", "source_roots",
             "audit_source_sha256", "audit_output_path", "audit_output_sha256", "toolchain", "cards",
             "expected_bots", "evidence_source", "runtime_loaded", "constructors_verified", "audit",
-            "normal_duel_verified", "strength_verified", "history_verified", "training_connected"})
-        if (audit.get("schema_version") != 1 or audit.get("kind") != "complete-desktop-bot-build-audit" or
+            "normal_duel_verified", "strength_verified", "history_verified", "training_connected"} |
+            ({"variant"} if variant is not None else set()))
+        expected_kind = "complete-desktop-bot-overlay-build-audit" if variant is not None else "complete-desktop-bot-build-audit"
+        if (type(audit.get("schema_version")) is not int or audit.get("schema_version") != 1 or audit.get("kind") != expected_kind or
                 audit.get("source_id") != source_id or (audit.get("repository"), audit.get("commit")) != PINS[source_id] or
                 audit.get("evidence_source") != "actual_complete_assembly_audit" or audit.get("runtime_loaded") is not True or
                 audit.get("constructors_verified") is not True or audit.get("source_lock_sha256") != digest(self.lock) or
                 audit.get("inventory_sha256") != self.inventory["inventory_sha256"] or
                 any(audit[k] is not False for k in ("normal_duel_verified", "strength_verified", "history_verified", "training_connected")) or
-                Path(audit.get("source_root", "")).resolve() != self.root / source_id or
+                Path(audit.get("source_root", "")).resolve() != runtime_source or
+                (variant is not None and audit.get("variant") != variant) or
                 audit.get("audit_source_sha256") != file_sha(Path(__file__).resolve().parents[2] / "scripts/BotAssemblyAudit.cs")):
             raise ContractError("real complete assembly audit does not match this exact source registry")
         fields(audit["cards"], {"path", "sha256"})
@@ -643,29 +659,34 @@ class BotSourceRegistry:
         record = {"bot_id": definition["bot_id"], "source_id": source_id, "source_lock_sha256": digest(self.lock),
             "audit_sha256": build_audit_sha256, "assembly_sha256": audit["assembly_sha256"], "cards": audit["cards"],
             "period_context": deepcopy(period_context), "environment_id": environment_id,
-            "profile_sha256": digest(profile), "versions": asdict(versions), "toolchain": tools}
-        implementation_paths = [Path(__file__).resolve(), Path(inspect.getfile(WindBotOpponent)).resolve(),
-            Path(inspect.getfile(WindBotRoom)).resolve(), Path(inspect.getfile(validate_audit_result)).resolve()]
-        implementation_files = {str(path): file_sha(path) for path in implementation_paths}
-        implementation_digest = {Path(path).name: sha for path, sha in implementation_files.items()}
+            "profile_sha256": digest(profile), "versions": asdict(versions), "toolchain": tools,
+            "session_seconds": session_seconds}
+        if variant is not None:
+            record["variant"] = variant
+        implementation_root = Path(__file__).resolve().parent
+        implementation_digest = source_tree_snapshot(implementation_root)
         binding = {"schema_version": 1, "opponent_id": opponent_id, "environment_id": environment_id,
             "registered_record_sha256": digest(record), "opponent_deck_sha256": digest(other.to_dict()),
             "own_deck_sha256": digest(own.to_dict()), "profile_sha256": digest(profile),
-            "driver_version": "windbot-" + source_id + "-" + definition["bot_id"][:24],
+            "driver_version": ("windbot-" + source_id + "-" + definition["bot_id"][:24] if variant is None else
+                               "windbot-pure-overlay-" + digest({"variant": variant, "bot_id": definition["bot_id"]})[:24]),
             "driver_implementation_sha256": digest({"source": definition["sha256"], "assembly": audit["assembly_sha256"],
-                "python_modules": implementation_digest}),
+                "python_modules": implementation_digest, **({"variant": variant} if variant is not None else {})}),
             "source": source, "controller": "bot", "strength_qualified": False, "external_provider_verified": False,
             "model_sha256": None, "opponent_deck_content_sha256": digest({k: sorted(v) for k, v in other.to_dict().items()})}
         seals = {str(audit_path): build_audit_sha256, str(assembly): audit["assembly_sha256"],
                  str(database): audit["cards"]["sha256"], str(audit_output): audit["audit_output_sha256"],
-                 **tool_seals, **implementation_files}
+                 **tool_seals}
         for bot in expected_bots: seals[bot["selected_deck"]["path"]] = bot["selected_deck"]["sha256"]
         active = {}
         lock_seal = digest(self.lock)
         def validator():
+            assert_source_tree(implementation_root, implementation_digest)
             if digest(self.lock) != lock_seal:
                 raise ContractError("bot source lock changed after runtime binding")
             self.statuses()
+            if variant is not None and runtime_overlay_identity(self.lock, runtime_source) != variant:
+                raise ContractError("exact desktop overlay changed after runtime binding")
             for path, sha in {**seals, **active}.items():
                 if not Path(path).is_file() or file_sha(path) != sha:
                     raise ContractError("actual bot source/audit/assembly/catalog/YDK/tool state changed")
@@ -684,17 +705,17 @@ class BotSourceRegistry:
                 for f in component["files"]:
                     if f["path"].startswith("Dialogs/"):
                         target = directory / f["path"]; target.parent.mkdir(parents=True, exist_ok=True)
-                        shutil.copyfile(self.root / source_id / f["path"], target)
+                        shutil.copyfile(runtime_source / f["path"], target)
                     elif f["path"].startswith("ThirdParty/sqlite/"):
                         target = directory / f["path"].removeprefix("ThirdParty/sqlite/")
-                        target.parent.mkdir(parents=True, exist_ok=True); shutil.copyfile(self.root / source_id / f["path"], target)
-                shutil.copyfile(self.root / source_id / "App.config", directory / "WindBot.exe.config")
+                        target.parent.mkdir(parents=True, exist_ok=True); shutil.copyfile(runtime_source / f["path"], target)
+                shutil.copyfile(runtime_source / "App.config", directory / "WindBot.exe.config")
                 active.update({str(p): file_sha(p) for p in directory.rglob("*") if p.is_file()})
                 try:
                     with windbot_session(other, observer=seat, duel_rule=5, mono=executable,
                             executable=deployed["executable"], database=deployed["database"], deck_file=deployed["deck_file"],
                             executor=definition["deck_name"], allowed_executors={b["deck_name"] for b in expected_bots},
-                            working_directory=directory,
+                            working_directory=directory, wall_seconds=session_seconds,
                             expected_sha256={"mono": seals[str(executable)], **{k: file_sha(p) for k, p in deployed.items()}}) as room:
                         yield room
                 finally:
@@ -704,7 +725,8 @@ class BotSourceRegistry:
         adapter.rebind = lambda new_profile: self.training_adapter(executor_id, source_id=source_id, native_root=native_root,
             profile=new_profile, seat=seat, versions=versions, environment_id=environment_id, opponent_id=opponent_id,
             source=source, build_audit_path=audit_path, build_audit_sha256=build_audit_sha256, mono=executable,
-            workspace=workspace, period_context=period_context)
+            workspace=workspace, period_context=period_context, variant_root=runtime_source if variant is not None else None,
+            session_seconds=session_seconds)
         return adapter
 
 

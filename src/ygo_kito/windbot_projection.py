@@ -5,6 +5,7 @@ It parses each already returned bounded message once, retaining named legal fact
 only. Unsupported history fails closed; this is not a general LAN/core adapter.
 """
 from copy import deepcopy
+from collections import Counter
 from contextlib import contextmanager
 import ctypes
 from pathlib import Path
@@ -26,6 +27,15 @@ _SCALARS = ((1,"code"),(2,"position"),(4,"alias"),(8,"type"),(16,"level"),
             (0x80000,"status"),(0x200000,"lscale"),(0x400000,"rscale"),
             (0x800000,"link"))
 _FLAGS = sum(bit for bit,_ in _SCALARS)
+_HISTORY_ZONES={"hand":2,"monster":4,"spell_trap":8,"graveyard":16,"banished":32,"extra":64}
+_ZERO_SCALARS=('code','alias','type','level','rank','attribute','race','attack','defense',
+               'base_attack','base_defense','status','lscale','rscale','link','link_marker')
+
+
+def _unknown_record(sequence):
+    """Client-cache unknown sentinels, never claimed as real zero card stats."""
+    return dict(sequence=sequence,**{key:0 for key in _ZERO_SCALARS},equip=(0,0,0,0),
+                targets=[],overlay=[],counters=[])
 
 
 def _public(slot):
@@ -44,14 +54,18 @@ class _Aliases:
     def __init__(self,count=0,*,own=False):
         self.own=own;self.serial=count
         self.native=list(range(count));self.local=list(range(count));self.known={};self.locked=set()
+        self.faceup=set()
 
-    def index(self,native,*,known=None,lock=False):
+    def index(self,native,*,known=None,lock=False,position=None):
         if not 0<=native<len(self.native):raise WindBotUnsupported('alias source is outside its tracked vector')
         token=self.native[native]
         already_locked=token in self.locked
         if known is not None and not self.own and token not in self.known and token not in self.locked:
             self.index(native,lock=True);token=self.native[native]
         if known is not None:self.known[token]=known
+        if position is not None:
+            self.faceup.discard(token)
+            if position&5:self.faceup.add(token)
         if known is not None and not lock and not already_locked:self.locked.discard(token)
         if not self.own and lock and token not in self.known and token not in self.locked:
             candidate=next((t for t in reversed(self.local) if t not in self.known and t not in self.locked),None)
@@ -69,14 +83,23 @@ class _Aliases:
         seq=self.index(native,lock=not public)
         token=self.native.pop(native);self.local.remove(token)
         self.known.pop(token,None);self.locked.discard(token)
+        self.faceup.discard(token)
         return seq
 
-    def insert(self,native,*,known=None):
+    def insert(self,native,*,known=None,position=8):
         if not 0<=native<=len(self.native):raise WindBotUnsupported('alias insertion is outside its vector')
         token=self.serial;self.serial+=1;self.native.insert(native,token)
         self.local.insert(native if self.own else len(self.local),token)
         if known is not None:self.known[token]=known
+        if position&5:self.faceup.add(token)
         return self.local.index(token)
+
+    def forget(self,local_indices=None):
+        tokens=set(self.local if local_indices is None else (self.local[i] for i in local_indices))
+        for token in tokens:self.known.pop(token,None);self.locked.discard(token)
+        native_indices=[i for i,t in enumerate(self.native) if t in tokens]
+        local_tokens=[t for t in self.local if t in tokens]
+        for i,t in zip(native_indices,local_tokens):self.native[i]=t
 
     def shuffle(self,codes,*,full):
         if full:
@@ -92,9 +115,12 @@ class _Aliases:
                     if c&0x80000000:self.known[t]=c&0x7fffffff
                 self.local=sorted(self.native,key=lambda t:(t in self.known,self.known.get(t,0),t))
         else:
-            # Extra shuffle changes only facedown entries. A locked unknown
-            # material host cannot be silently reassociated across that shuffle.
-            if self.locked:raise WindBotUnsupported('extra shuffle with a bound anonymous object is unsupported')
+            if len(codes)!=len(self.native):raise WindBotUnsupported('extra shuffle count differs from tracked vector')
+            hidden=[i for i,t in enumerate(self.local) if t not in self.faceup]
+            self.forget(hidden)
+            if self.own:
+                for i,token in enumerate(self.native):
+                    if token not in self.faceup:self.known[token]=codes[i]&0x7fffffff
         return tuple(self.known.get(t,0) for t in self.local)
 
 
@@ -105,7 +131,7 @@ class ProjectionJournal:
     Published identities get local aliases; hidden removals after identification
     fail when they would need information absent from the legal player contract.
     """
-    def __init__(self, observer, *, deck_counts, extra_counts=(0,0)):
+    def __init__(self, observer, *, deck_counts, extra_counts=(0,0),card_types=None):
         integer(observer,"projection observer",0,1)
         if len(deck_counts)!=2 or len(extra_counts)!=2:
             raise ContractError("two initial deck/extra counts required")
@@ -113,6 +139,14 @@ class ProjectionJournal:
         self.deck_counts=[integer(n,"initial deck count",40,60) for n in deck_counts]
         self.extra_counts=[integer(n,"initial extra count",0,15) for n in extra_counts]
         self.hand_counts=[0,0]
+        self.deck_pools=[[0]*n for n in self.deck_counts]
+        self.deck_dirty=[False,False]
+        self.graves=[[],[]]
+        self.card_types=dict(card_types or {})
+        self.visible_types={}
+        self.history_count=0;self.history_prefix_sha256=digest([])
+        self.public_confirmation_evidence={}
+        self.private_counter=0
         self.aliases={(p,z):_Aliases(0 if z==2 else self.extra_counts[p],own=p==observer)
                       for p in (0,1) for z in (2,64)}
         self.messages=[WindBotMessage(4,dict(player_type=observer,duel_rule=5,life_points=(8000,8000),
@@ -120,6 +154,46 @@ class ProjectionJournal:
         self.counters={}; self.targets={}; self.equips={}
         self.capture=None
         self.failed=False
+
+    def _redact(self,p,z,indices=None):
+        """Forget an uncertain object binding before any client Move/Draw uses it."""
+        count=self.deck_counts[p] if z==1 else 7 if z==4 else 8 if z==8 else len(self.aliases[(p,z)].local)
+        indices=list(range(count)) if indices is None else list(indices)
+        removed=set(indices)
+        def touches(slot):return slot[0]==p and slot[1]&127==z and slot[2] in removed
+        for source,targets in tuple(self.targets.items()):
+            remaining={t for t in targets if not touches(t)}
+            if remaining!=targets and not (source[0]==p and source[1]==z):
+                self._emit(7,player=source[0],location=source[1],sequence=source[2],
+                           cards=[dict(sequence=source[2],targets=sorted(remaining))])
+            if source[0]==p and source[1]==z:self.targets.pop(source,None)
+            else:self.targets[source]=remaining
+        for source,target in tuple(self.equips.items()):
+            if source[0]==p and source[1]==z:self.equips.pop(source,None)
+            elif touches(target):
+                self._emit(7,player=source[0],location=source[1],sequence=source[2],
+                           cards=[dict(sequence=source[2],equip=(0,0,0,0))])
+                del self.equips[source]
+        for index in indices:
+            self._emit(7,player=p,location=z,sequence=index,cards=[_unknown_record(index)],redact=True)
+        if z==1:self.deck_pools[p]=[0]*count;self.deck_dirty[p]=False
+        elif z in (2,64):self.aliases[(p,z)].forget(indices)
+        for key in tuple(self.counters):
+            if key[0]==p and key[1]==z and key[2] in removed:self.counters.pop(key,None)
+
+    def _deck_size(self,p,delta):
+        """Deck placeholder identity has no relation to the native deck order."""
+        if delta<0:
+            if not self.deck_pools[p]:raise WindBotUnsupported('empty local deck pool')
+            self.deck_pools[p].pop()
+        else:self.deck_pools[p].append(0)
+        self.deck_counts[p]+=delta
+
+    def _card_type(self,code):
+        value=self.card_types.get(code)
+        if type(value) is not int or not 0<=value<=0xffffffff:
+            raise WindBotUnsupported('published card lacks pinned immutable catalogue type')
+        return value
 
     def _emit(self,kind,**value):
         if len(self.messages)>=4000:
@@ -212,7 +286,8 @@ class ProjectionJournal:
         if k==2:
             hint,p,value=r.u8(),r.u8(),r.u32()
             if p not in (0,1):raise WindBotUnsupported("invalid hint recipient")
-            if p==self.observer or hint in (10,11):self._emit(k,hint=hint,player=p,value=value)
+            visible=hint in (10,11) or hint in (1,2,3,5) and p==self.observer or hint in (4,6,7,8,9) and 1-p==self.observer
+            if visible:self._emit(k,hint=hint,player=p,value=value)
         elif k==40:self._emit(k,player=r.u8())
         elif k==41:self._emit(k,phase=r.u16())
         elif k==5:self._emit(k,winner=r.u8(),reason=r.u8())
@@ -220,16 +295,27 @@ class ProjectionJournal:
             p,n=r.u8(),r.u8()
             if p not in (0,1) or n>self.deck_counts[p]:raise WindBotUnsupported("invalid draw counts")
             codes=tuple(r.u32() for _ in range(n))
+            if any(self.deck_pools[p]) or self.deck_dirty[p]:self._redact(p,1)
             for c in codes:
                 self.aliases[(p,2)].insert(self.hand_counts[p],known=c&0x7fffffff if p==self.observer or c&0x80000000 else None)
                 self.hand_counts[p]+=1
-            self.deck_counts[p]-=n
+                self._deck_size(p,-1)
             self._emit(k,player=p,card_ids=tuple(c if p==self.observer or c&0x80000000 else 0 for c in codes))
         elif k==50:
             code,a,b,reason=r.u32(),_slot(r.take(4)),_slot(r.take(4)),r.u32()
             if a[1]==b[1]==1:return
             public=_public(a) or _public(b)
             visible=public or a[0]==self.observer and a[1] not in (0,1) or b[0]==self.observer and b[1] not in (0,1)
+            for slot in (a,b):
+                if slot[1]==1 and (any(self.deck_pools[slot[0]]) or self.deck_dirty[slot[0]]):self._redact(slot[0],1)
+            # Current public identity can resolve a formerly known card without
+            # consulting its hidden native rank. Otherwise erase stale caches
+            # before selecting an anonymous source placeholder.
+            if a[1] in (2,64) and a[0]!=self.observer:
+                aliases=self.aliases[(a[0],a[1])]
+                if aliases.known:
+                    self._redact(a[0],a[1],None if a[1]==2 else
+                                 [i for i,t in enumerate(aliases.local) if t not in aliases.faceup])
             projected=[]
             for old,slot in ((True,a),(False,b)):
                 p,z,s,pos=slot
@@ -237,16 +323,23 @@ class ProjectionJournal:
                     if old and not 0<=s<self.hand_counts[p]:raise WindBotUnsupported("hand source differs from journal")
                     aliases=self.aliases[(p,z)]
                     if old:
-                        if p!=self.observer and aliases.known and not _public(slot):
-                            raise WindBotUnsupported('identified opponent hand continuity is ambiguous after hidden removal')
                         s=aliases.remove(s,public=_public(slot))
-                    else:s=aliases.insert(s,known=code if visible else None)
+                    else:s=aliases.insert(s,known=code if visible else None,position=pos)
                     self.hand_counts[p]+= -1 if old else 1
                 elif z==1:
-                    s=0;self.deck_counts[p]+= -1 if old else 1
+                    s=0;self._deck_size(p,-1 if old else 1)
+                    if not old:self.deck_dirty[p]=True
+                elif z==16:
+                    if old:
+                        if not 0<=s<len(self.graves[p]):raise WindBotUnsupported('grave move differs from public vector')
+                        previous=self.graves[p].pop(s)
+                        if previous and previous!=code:raise WindBotUnsupported('grave identity differs from published move')
+                    else:
+                        if not 0<=s<=len(self.graves[p]):raise WindBotUnsupported('grave destination differs from public vector')
+                        self.graves[p].insert(s,code)
                 elif z==64:
                     aliases=self.aliases[(p,z)]
-                    s=aliases.remove(s,public=_public(slot)) if old else aliases.insert(s,known=code if visible else None)
+                    s=aliases.remove(s,public=_public(slot)) if old else aliases.insert(s,known=code if visible else None,position=pos)
                     self.extra_counts[p]+= -1 if old else 1
                 elif z&128:
                     s=self._visible_slot(slot)[2]
@@ -270,14 +363,28 @@ class ProjectionJournal:
         elif k in (61,63,65,74,112,113,114):self._emit(k)
         elif k==53:
             code=r.u32();p,z,s,old,new=r.take(5)
+            if z in (2,64):self.aliases[(p,z)].index(s,position=new)
             slot=self._visible_slot((p,z,s,new))
             self._emit(k,card_id=code if p==self.observer or (old|new)&5 else 0,
                        player=p,location=z,sequence=slot[2],previous=old,current=new)
         elif k==70:
-            code,slot=r.u32(),self._visible_slot(r.take(4))
+            code,current=r.u32(),_slot(r.take(4))
+            cp,cz,cs,cpos=current
+            if cz in (2,64):
+                aliases=self.aliases[(cp,cz)]
+                cs=aliases.index(cs,known=code,lock=True,position=cpos)
+                slot=(cp,cz,cs,cpos)
+            elif cz==1:
+                self._redact(cp,1)
+                if not self.deck_pools[cp]:raise WindBotUnsupported('chain handler has no local deck placeholder')
+                self.deck_pools[cp][0]=code;slot=(cp,cz,0,cpos)
+            else:slot=self._visible_slot(current)
             p,z,s,description,link=r.u8(),r.u8(),r.u8(),r.u32(),r.u8()
-            if z in (1,2,64) and p!=self.observer:raise WindBotUnsupported("chain source needs unsupported private-zone aliases")
-            self._emit(k,card_id=code,slot=slot,chain_location=(p,z,0 if z==1 else s),description=description,link=link)
+            if p not in (0,1) or z not in (1,2,4,8,16,32,64):raise WindBotUnsupported('invalid chain trigger context')
+            # Fixed Ice/Pure read and discard these original location/sequence
+            # bytes; only controller is consumed. Never leak private trigger rank.
+            self._emit(k,card_id=code,card_type=self._card_type(code),slot=slot,
+                       chain_location=(p,z,0 if z in (1,2,64) else s),description=description,link=link)
         elif k in (71,72,73,75,76):self._emit(k,link=r.u8())
         elif k in (91,92,94,100):self._emit(k,player=r.u8(),amount=r.u32())
         elif k in (93,96,97):
@@ -296,30 +403,117 @@ class ProjectionJournal:
         elif k==32:
             p=r.u8()
             if p not in (0,1):raise WindBotUnsupported('invalid shuffle player')
+            if any(self.deck_pools[p]) or self.deck_dirty[p]:self._redact(p,1)
             self._emit(k,player=p)
         elif k in (33,39):
             p,count=r.u8(),r.u8();codes=tuple(r.u32() for _ in range(count))
             if p not in (0,1):raise WindBotUnsupported('invalid shuffle player')
             aliases=self.aliases[(p,2 if k==33 else 64)]
             if k==33:
+                self._redact(p,2)
                 local=aliases.shuffle(codes,full=True)
                 self._emit(k,player=p,card_ids=tuple(c&0x7fffffff for c in codes) if p==self.observer else local)
             else:
+                hidden=[i for i,t in enumerate(aliases.local) if t not in aliases.faceup]
+                if aliases.locked or any(t in aliases.known for t in (aliases.local[i] for i in hidden)):
+                    self._redact(p,64,hidden)
                 aliases.shuffle(codes,full=False)
-                self._emit(k,player=p,card_ids=tuple(c&0x7fffffff if p==self.observer else 0 for c in codes))
+                hidden_tokens=[t for t in aliases.local if t not in aliases.faceup]
+                self._emit(k,player=p,card_ids=tuple(aliases.known.get(t,0) if p==self.observer else 0 for t in hidden_tokens))
+        elif k==35:
+            p=r.u8()
+            if p not in (0,1):raise WindBotUnsupported('invalid swap player')
+            old_grave=list(self.graves[p]);old_deck=self.deck_counts[p]
+            if any(not c for c in old_grave):raise WindBotUnsupported('same-buffer repeated swap lacks published old-grave identities')
+            facts=[dict(sequence=i,card_id=c,type=self._card_type(c)) for i,c in enumerate(old_grave)]
+            self._redact(p,1)
+            extras=[c for c in old_grave if self._card_type(c)&(0x40|0x2000|0x800000|0x4000000)]
+            aliases=self.aliases[(p,64)]
+            insert_at=len(aliases.native)-len(aliases.faceup)
+            for c in extras:aliases.insert(insert_at,known=c,position=8);insert_at+=1
+            self.extra_counts[p]+=len(extras)
+            self.deck_counts[p]=len(old_grave)-len(extras)
+            self.deck_pools[p]=[0]*self.deck_counts[p];self.deck_dirty[p]=True
+            self.graves[p]=[0]*old_deck
+            self._emit(k,player=p,old_grave_types=facts)
+        elif k==36:
+            z,n=r.u8(),r.u8()
+            if z not in (4,8) or not 2<=n<=5:raise WindBotUnsupported('set shuffle exceeds fixed client bounds')
+            old=[_slot(r.take(4)) for _ in range(n)];r.take(4*n)
+            if len({s[:3] for s in old})!=n or len({s[0] for s in old})!=1 or any(s[1]!=z or s[2]>4 for s in old):
+                raise WindBotUnsupported('set shuffle source differs from fixed single-zone protocol')
+            for p in sorted({s[0] for s in old}):self._redact(p,z,[s[2] for s in old if s[0]==p])
+            self._emit(k,location=z,slots=sorted(old))
+        elif k==37:self._emit(k)
+        elif k in (30,42):
+            p,count=r.u8(),r.u8();codes=[]
+            for _ in range(count):codes.append(r.u32());r.take(3)
+            self._emit(k,player=p,card_ids=tuple(sorted(codes)))
+        elif k==38:
+            p,_offset,packed=r.u8(),r.u8(),r.u32()
+            self._emit(k,player=p,card_id=packed&0x7fffffff,faceup=bool(packed&0x80000000))
         elif k==31:
             viewer,skip,count=r.u8(),r.u8(),r.u8()
             cards=[];rows=[]
             for _ in range(count):
                 code,p,z,s=r.u32(),r.u8(),r.u8(),r.u8()
-                if not code or p not in (0,1) or z not in (2,4,8,16,32,64):
-                    raise WindBotUnsupported('private deck confirmation has no order-free exact LAN representation')
+                if not code or p not in (0,1) or z not in (1,2,4,8,16,32,64):
+                    raise WindBotUnsupported('invalid confirmation card')
                 rows.append((code,p,z,s))
+            if viewer not in (0,1) or skip not in (0,1):raise WindBotUnsupported('invalid public confirmation flags')
+            private=bool(rows and rows[0][2]==1)
+            if private:
+                if viewer!=self.observer:return  # no private codes/aliases retained for the other seat
+                if any(z!=1 for _,_,z,_ in rows):raise WindBotUnsupported('mixed private confirmation is absent from the legal DTO')
+                ref=f'private-reveal-{self.private_counter}';self.private_counter+=1
+                per_player=Counter()
+                for p in sorted({p for _,p,_,_ in rows}):self._redact(p,1)
+                for code,p,z,_native in sorted(rows,key=lambda row:(row[1],row[0])):
+                    seq=per_player[p];per_player[p]+=1
+                    if seq>=len(self.deck_pools[p]):raise WindBotUnsupported('private reveal exceeds local deck pool')
+                    self.deck_pools[p][seq]=code
+                    cards.append(dict(card_id=code,controller=p,location=1,sequence=seq))
+                self._emit(k,player=viewer,skip_panel=skip,cards=cards,knowledge_ref=ref)
+                return
             for code,p,z,s in sorted(rows,key=lambda row:(row[1],row[2],row[0])):
+                if z==1:raise WindBotUnsupported('mixed public deck confirmation needs an order-free public deck-pool contract')
                 if z in (2,64):s=self.aliases[(p,z)].index(s,known=code)
                 cards.append(dict(card_id=code,controller=p,location=z,sequence=s))
-            if viewer not in (0,1) or skip not in (0,1):raise WindBotUnsupported('invalid public confirmation flags')
+            self.public_confirmation_evidence[len(self.messages)]=Counter(
+                (code,p,z,s if z in (4,8,16,32) else None) for code,p,z,s in rows)
             self._emit(k,player=viewer,skip_panel=skip,cards=cards)
+        elif k==54:
+            r.u32();self._emit(k,slot=self._visible_slot(r.take(4)))
+        elif k==55:
+            c1,a,c2,b=r.u32(),_slot(r.take(4)),r.u32(),_slot(r.take(4))
+            if a[1] not in (4,8) or b[1] not in (4,8):
+                raise WindBotUnsupported('vector swap needs an explicit unordered-object transition')
+            self._emit(k,first_card_id=c1 if _public(a) or a[0]==self.observer else 0,first=a,
+                       second_card_id=c2 if _public(b) or b[0]==self.observer else 0,second=b)
+            for mapping in (self.counters,self.targets,self.equips):
+                av,bv=mapping.pop(a[:3],None),mapping.pop(b[:3],None)
+                if av is not None:mapping[b[:3]]=av
+                if bv is not None:mapping[a[:3]]=bv
+            def swapped(slot):return b if slot[:3]==a[:3] else a if slot[:3]==b[:3] else slot
+            for key,targets in self.targets.items():self.targets[key]={swapped(t) for t in targets}
+            for key,target in self.equips.items():self.equips[key]=swapped(target)
+        elif k==56:self._emit(k,mask=r.u32())
+        elif k in (81,83):
+            p=r.u8() if k==81 else None
+            slots=tuple(self._visible_slot(r.take(4)) for _ in range(r.u8()))
+            self._emit(k,**({'player':p} if k==81 else {}),slots=slots)
+        elif k==120:
+            code,slot=r.u32(),_slot(r.take(4))
+            if slot[0]==self.observer:self._emit(k,card_id=code,slot=self._visible_slot(slot))
+        elif k in (130,131):
+            p,n=r.u8(),r.u8();self._emit(k,player=p,values=tuple(r.u8() for _ in range(n)))
+        elif k==133:
+            values=r.u8();self._emit(k,values=(values&3,values>>2))
+        elif k==160:
+            slot,hint,value=self._visible_slot(r.take(4)),r.u8(),r.u32()
+            self._emit(k,slot=slot,hint=hint,value=value)
+        elif k==165:self._emit(k,player=r.u8(),hint=r.u8(),value=r.u32())
+        elif k==170:self._emit(k,card_id=r.u32())
         elif k==110:self._emit(k,first=self._visible_slot(r.take(4)),second=self._visible_slot(r.take(4)))
         elif k==111:
             a=self._visible_slot(r.take(4));aa,ad=struct.unpack('<ii',r.take(8));av=r.u8()
@@ -402,7 +596,8 @@ def install_projection(engine,*,observer):
     if engine.window or engine.pending is not None or engine.closed or hasattr(engine,'_transport'):
         raise WindBotUnsupported("projection must start before the first normal host decision")
     engine._transport=ProjectionJournal(observer,deck_counts=tuple(map(len,engine.player_decks)),
-                                      extra_counts=tuple(map(len,engine.player_extras)))
+                                      extra_counts=tuple(map(len,engine.player_extras)),
+                                      card_types={code:row['type'] for code,row in getattr(engine,'_rows',{}).items()})
     engine.lib=_ProjectionLibrary(engine.lib,engine._transport)
     engine._transport_sent=set()
     return engine
@@ -420,6 +615,32 @@ def transport_frame(self,request,*,state_version):
         raise WindBotUnsupported("transport prompt capture differs from the legal request")
     if tuple(journal.hand_counts)!=request.observation.hand_counts or tuple(journal.deck_counts)!=request.observation.deck_counts:
         raise WindBotUnsupported("continuous transport counts differ from legal observation")
+    history=request.to_dict()['observation']['public_history']
+    if len(history)<journal.history_count or digest(history[:journal.history_count])!=journal.history_prefix_sha256:
+        raise WindBotUnsupported('public history prefix changed after the preceding transport frame')
+    fresh_history=request.observation.public_history[journal.history_count:]
+    used_public_refs=set();public_refs={}
+    for index,message in enumerate(journal.messages):
+        if message.kind!=31 or message.fields.get('knowledge_ref') is not None:continue
+        expected=journal.public_confirmation_evidence.get(index)
+        matches=[]
+        for event in fresh_history:
+            if (event.event_id in used_public_refs or event.kind!='reveal' or event.details is None or event.details.message!=31
+                    or event.details.player!=message.fields['player'] or len(event.card_ids)!=len(event.details.locations)):
+                continue
+            actual=Counter((code,location.controller,_HISTORY_ZONES.get(location.zone),
+                            location.sequence if location.zone in ('monster','spell_trap','graveyard','banished') else None)
+                           for code,location in zip(event.card_ids,event.details.locations))
+            if actual==expected:matches.append(event)
+        if not matches:raise WindBotUnsupported('public confirmation lacks fresh unconsumed same-frame history evidence')
+        event=matches[0];used_public_refs.add(event.event_id);public_refs[index]=event.event_id
+    for message in journal.messages:
+        ref=message.fields.get('knowledge_ref') if message.kind==31 else None
+        if ref is not None:
+            matches=[v for v in request.private_reveals if v.ref==ref and v.observer==journal.observer]
+            actual=Counter((c['card_id'],c['controller'],'deck') for c in message.fields['cards'])
+            if len(matches)!=1 or actual!=Counter((c.card_id,c.controller,c.zone) for c in matches[0].cards):
+                raise WindBotUnsupported('private confirmation is absent from this legal DTO/evidence version')
     slots=[];grouped={};by_ref={};materials=[]
     extra_reverse={ref:(p,s) for (p,s),ref in getattr(self,"_extra_refs",{}).items()}
     for card in sorted(request.observation.cards,key=lambda c:(c.controller,c.zone,c.card_id or 0,c.ref)):
@@ -433,10 +654,17 @@ def transport_frame(self,request,*,state_version):
             except (ValueError,IndexError) as exc:raise WindBotUnsupported("card lacks exact visible location") from exc
         native_sequence=s
         if card.zone in ('hand','extra'):
-            s=journal.aliases[(p,_ZONES[card.zone])].index(s,known=card.card_id if card.visibility!='hidden' else None)
+            s=journal.aliases[(p,_ZONES[card.zone])].index(s,known=card.card_id if card.visibility!='hidden' else None,
+                                                       position=card.position)
         slot=WindBotSlot(card.ref,p,_ZONES[card.zone],s)
         slots.append(slot);by_ref[card.ref]=slot
         grouped.setdefault((p,slot.location),{})[s]=_query_visible(self,card,slot,journal,native_sequence=native_sequence)
+    for p in (0,1):
+        public_grave=[c for c in request.observation.cards if c.controller==p and c.zone=='graveyard']
+        if public_grave:
+            rows=sorted((int(c.ref.rsplit('.',1)[1]),c.card_id) for c in public_grave)
+            if [s for s,_ in rows]!=list(range(len(rows))):raise WindBotUnsupported('public grave slots are incomplete')
+            journal.graves[p]=[code for _,code in rows]
     reverse_material={ref:(p,z,s,sub) for (p,z,s,sub),ref in getattr(self,'_material_refs',{}).items()}
     for card in sorted(materials,key=lambda c:reverse_material.get(c.ref,(-1,-1,-1,-1))):
         if card.ref not in reverse_material or card.attached_to not in by_ref:
@@ -460,7 +688,36 @@ def transport_frame(self,request,*,state_version):
         ordinal=virtual_counts[group_key]
         if ordinal>255:raise WindBotUnsupported('window-local virtual choice exceeds LAN sequence')
         slots.append(WindBotSlot(choice.ref,p,z,ordinal));virtual_counts[group_key]+=1
-    messages=list(journal.messages)
+    messages=[];last_visible_type=[];cached_types=deepcopy(journal.visible_types)
+    for original_index,message in enumerate(journal.messages):
+        if original_index in public_refs:
+            message=WindBotMessage(message.kind,dict(message.fields,public_ref=public_refs[original_index]))
+        if message.kind==70:
+            d=deepcopy(message.fields);p,z,s,_=d['slot']
+            current=grouped.get((p,z),{}).get(s,{})
+            actual=current.get('type') if current.get('code')==d['card_id'] else None
+            if z in (4,8,16,32):
+                if actual is None:
+                    previous=cached_types.get((p,z,s))
+                    if previous is None or previous['card_id']!=d['card_id']:
+                        raise WindBotUnsupported('public chain handler has no current or uninterrupted last-visible same-slot type')
+                    actual=previous['type']
+                    last_visible_type.append(dict(message_index=len(messages),slot=d['slot'],
+                        card_id=d['card_id'],type=actual,source='last_legal_visible_query',
+                        source_request_sha256=previous['request_sha256']))
+                    # That persistent client object still has its last visible
+                    # Type here. A later MOVE has not executed yet; never apply
+                    # the final grave/hand state to the earlier chain callback.
+                else:
+                    messages.append(WindBotMessage(7,dict(player=p,location=z,sequence=s,
+                        cards=[dict(sequence=s,code=d['card_id'],type=actual)])))
+            if actual is not None:d['card_type']=actual
+            message=WindBotMessage(70,d)
+        messages.append(message)
+        if message.kind not in (2,70):
+            # Any intervening state event could affect Type without carrying a
+            # historical dynamic snapshot. Keep no unproved inference across it.
+            cached_types.clear()
     # All object creation events precede updates. Empty fixed field slots are
     # represented by a length-4 record; no query creates a missing object.
     for p in (0,1):
@@ -470,10 +727,20 @@ def transport_frame(self,request,*,state_version):
             records=[data.get(s,{"sequence":s}) for s in range(count)]
             messages.append(WindBotMessage(6,{"player":p,"location":z,"cards":records}))
     facts=deepcopy(journal.capture[2])
+    facts['public_history_range']={'start':journal.history_count,'end':len(history)}
+    confirmations={m.fields['public_ref']:{'message_index':i} for i,m in enumerate(messages)
+                   if m.kind==31 and m.fields.get('public_ref') is not None}
+    if confirmations:facts['public_confirmations']=confirmations
+    if last_visible_type:facts['last_visible_type']=last_visible_type
     action_ids={a.action_id for a in request.actions}
     for name in ("idle_set_modes","direct_attack","chain"):
         if set(facts.get(name,{}))-action_ids:raise WindBotUnsupported("captured prompt actions differ")
     frame=WindBotTransportFrame(journal.observer,key,state_version,tuple(messages),tuple(slots),facts)
+    journal.visible_types={(p,z,s):dict(card_id=record['code'],type=record['type'],request_sha256=key)
+        for (p,z),records in grouped.items() for s,record in records.items()
+        if record.get('code') and 'type' in record}
+    journal.history_count=len(history);journal.history_prefix_sha256=digest(history)
+    journal.public_confirmation_evidence.clear()
     self._transport_sent.add(key);journal.messages.clear()
     return frame
 

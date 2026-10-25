@@ -120,7 +120,7 @@ def _bot_specs(descriptor, workspace, selected_periods):
     for period in selected_periods:
         assignments = fields(bots.get(period, {}), set(), set(SLOTS[3:]))
         for spec in assignments.values():
-            fields(spec, {"source_id", "executor_id", "installed_root", "build_audit", "mono"})
+            fields(spec, {"source_id", "executor_id", "installed_root", "build_audit", "mono"}, {"variant_root"})
             member(spec["source_id"], "desktop WindBot source", ("ice", "pure"))
             text(spec["executor_id"], "exact pinned WindBot Executor identity")
             installed = _inside(workspace, spec["installed_root"])
@@ -131,6 +131,12 @@ def _bot_specs(descriptor, workspace, selected_periods):
             if not Path(spec["mono"]).is_absolute():
                 raise ContractError("host Mono executable requires an explicit absolute path")
             references.extend([audit["path"], str(installed / "bot-deployment-manifest.json")])
+            if "variant_root" in spec:
+                if spec["source_id"] != "pure":
+                    raise ContractError("exact desktop overlay requires its full Pure base")
+                variant = _inside(workspace, spec["variant_root"])
+                from .bot_overlay import MANIFEST
+                references.append(str(variant / MANIFEST))
     if any(bots.get(p) for p in selected_periods):
         references.append("configs/bot-sources-v1.json")
     return bots, references
@@ -251,7 +257,8 @@ def load_period_host(recipe, *, workspace=ROOT):
                     actual = assets[period].bind_bot_opponent(profile, expected["opponent_id"], bot_registries[key],
                         executor_id=spec["executor_id"], source_id=spec["source_id"],
                         build_audit_path=_inside(workspace, spec["build_audit"]["path"]),
-                        build_audit_sha256=spec["build_audit"]["sha256"], mono=spec["mono"], source=expected["source"])
+                        build_audit_sha256=spec["build_audit"]["sha256"], mono=spec["mono"], source=expected["source"],
+                        variant_root=_inside(workspace, spec["variant_root"]) if "variant_root" in spec else None)
                     used_bots.add((period, entry["slot_id"]))
                 else:
                     raise ContractError("period bot/external provider requires an implemented legal-action transport")

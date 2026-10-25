@@ -57,6 +57,8 @@ PYTHONPATH=src .venv/bin/python -m ygo_kito native-smoke --root .cache --seed 7
 
 本轮新增交付范围另要求[维护范围全部机器人](maintained-bot-deployment.md)，不能以旧dsh目录或少量示例替代。固定来源、许可证、全部Executor/配套牌表与可校验获取入口均在该说明；源码注册与真实C#加载/对局资格分开。当前云端已获限定第三方执行批准，但Mono安装被系统权限与签名源代理403阻断，未编译/运行WindBot；[精确回执](../reports/2026-10-25-bot-toolchain-block.json)不是继续等待用户授权。腾讯主机接续须先核自身工具/网络条件，不能绕过当前拒绝，也不把失败项静默省略。已有本地Python规则/冻结模型基线保持独立。
 
+后续软件接续已补[逐来源资格检查](bot-qualification.md)、独立Monarch506完整桌面变体及结构化构建失败记录。默认资格命令只读全部来源/原配牌表；真实审计/Mono具备后才显式正常运行，失败阶段、未知启动结果与原配YDK在所选工程禁表的拒绝分别显示，不等待正式3＋8也不编造它们。构建输出或资格报告路径须先可独占写入；既有报告不覆盖。驱动身份绑定完整递归Python源码树，新增/删除/改动helper都会使旧身份失效，原检查点和native/guard门禁未放松。
+
 历史全库另交DP采集时，使用[实际卡库、禁限和发行清单格式](card-data-collection-contract.md)，不更改训练schema或把公开未发售卡提前放行。跨期继承用[显式四角色权重初始化](group-initialization.md)，与同run完整恢复分开；不关闭旧绑定门禁。
 
 ## 4. Agent 启动、任务控制与恢复

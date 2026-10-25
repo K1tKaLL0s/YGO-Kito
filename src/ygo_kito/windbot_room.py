@@ -143,6 +143,7 @@ class WindBotWindow:
                     LOCATION[zone] if zone != "overlay" else slot.location & 0x7f):
                 raise ContractError("LAN slot changes a legal card's controller/zone")
         self.responses, self.selection_refs, self.sum_refs = {}, None, None
+        self._public_confirmations_used = set()
         self.message = self._prompt()
 
     def _card(self, ref, *, tail=False):
@@ -432,7 +433,66 @@ QUERY_SCALARS = (("code", 1), ("position", 2), ("alias", 4), ("type", 8), ("leve
     ("base_attack", 1024), ("base_defense", 2048))
 
 
-def _query_record(card, player, location, window):
+def _zone_count(window, player, location):
+    observation = window.request.observation
+    if location == 1:
+        return observation.deck_counts[player]
+    if location == 2:
+        return observation.hand_counts[player]
+    if location in (4, 8):
+        return 7 if location == 4 else 8
+    zone = {16: "graveyard", 32: "banished", 64: "extra"}.get(location)
+    if zone is None:
+        raise WindBotUnsupported("unknown public count location")
+    return sum(c.controller == player and c.zone == zone for c in observation.cards)
+
+
+def _local_vector_bound(window, player, location):
+    count = _zone_count(window, player, location)
+    swap_vector = location in (1, 16, 64) and any(m.kind == 35 and m.fields.get("player") == player
+                                                for m in window.frame.messages)
+    # A grave/deck exchange conserves this public union, including grave Extra
+    # cards returned to Extra. Its old deck may exceed the final deck count.
+    swapped_count = sum(_zone_count(window, player, z) for z in (1, 16, 64)) if swap_vector else 0
+    if location not in (4, 8):
+        for message in window.frame.messages:
+            d = message.fields
+            if message.kind == 50 and tuple(d.get("previous", ()))[:2] == (player, location):
+                count += 1
+            elif message.kind == 90 and location == 1 and d.get("player") == player:
+                count += len(d.get("card_ids", ()))
+            previous = tuple(d.get("previous", ()))
+            if swap_vector and message.kind == 50 and len(previous) == 4 and previous[0] == player and previous[1] in (1, 16, 64):
+                swapped_count += 1
+            elif swap_vector and message.kind == 90 and d.get("player") == player:
+                swapped_count += len(d.get("card_ids", ()))
+    return min(max(count, swapped_count), 256)
+
+
+def _redaction_record(card, player, location, window):
+    """Erase an anonymous client's stale facts, without asserting zero stats."""
+    scalar_names = {name for name, _ in QUERY_SCALARS} - {"position"}
+    scalar_names |= {"status", "lscale", "rscale", "link", "link_marker"}
+    fields(card, scalar_names | {"sequence", "equip", "targets", "overlay", "counters"})
+    sequence = integer(card["sequence"], "anonymous redaction slot", 0, 255)
+    if (any(type(card[key]) is not int or card[key] != 0 for key in scalar_names)
+            or card["equip"] not in ((0, 0, 0, 0), [0, 0, 0, 0])
+            or any(not isinstance(card[key], (list, tuple)) or card[key] for key in ("targets", "overlay", "counters"))):
+        raise ContractError("anonymous redaction requires complete zero/empty unknown sentinels")
+    # An erasure can precede a removal in this frame. Bound that old local
+    # vector with public counts and public event arities, never native indices.
+    if sequence >= _local_vector_bound(window, player, location):
+        raise ContractError("anonymous redaction exceeds the publicly bounded local vector")
+    flags = sum(flag for name, flag in QUERY_SCALARS if name != "position")
+    flags |= 0x4000 | 0x8000 | 0x10000 | 0x20000 | 0x80000 | 0x200000 | 0x400000 | 0x800000
+    # All included fields are four bytes; LINK has its extra marker word.
+    body = b"\0" * (4 * (len(scalar_names) + 4))
+    return _u32(8 + len(body)) + _u32(flags) + body
+
+
+def _query_record(card, player, location, window, *, redact=False):
+    if redact:
+        return _redaction_record(card, player, location, window)
     allowed = {name for name, _ in QUERY_SCALARS} | {"sequence", "equip", "targets", "overlay", "counters",
         "owner", "status", "lscale", "rscale", "link", "link_marker"}
     fields(card, {"sequence"}, allowed - {"sequence"})
@@ -498,11 +558,63 @@ def _query_record(card, player, location, window):
     return _u32(8 + len(body)) + _u32(flags) + body
 
 
+def _public_confirmation(message, window):
+    """Validate a past public 31 against this frame's fresh history interval."""
+    d, facts = message.fields, window.frame.prompt_facts
+    ref = text(d["public_ref"], "public confirmation history reference")
+    interval = fields(facts.get("public_history_range"), {"start", "end"})
+    history = window.request.observation.public_history
+    start = integer(interval["start"], "fresh public history start", 0, len(history))
+    end = integer(interval["end"], "fresh public history end", start, len(history))
+    if end != len(history):
+        raise ContractError("public confirmation history interval must end at this request")
+    proofs = facts.get("public_confirmations")
+    if not isinstance(proofs, dict) or ref not in proofs:
+        raise ContractError("public confirmation lacks its current frame binding")
+    proof = fields(proofs[ref], {"message_index"})
+    index = integer(proof["message_index"], "bound public confirmation message", 0, len(window.frame.messages) - 1)
+    bound = window.frame.messages[index]
+    if bound.kind != 31 or bound.fields != d:
+        raise ContractError("public confirmation does not match its exact frame message")
+    matches = [event for event in history[start:end] if event.event_id == ref]
+    if ref in window._public_confirmations_used or len(matches) != 1:
+        raise ContractError("public confirmation is old, repeated or absent from this frame's history")
+    event = matches[0]
+    if (event.kind != "reveal" or event.details is None or event.details.message != 31
+            or event.details.player != d["player"] or len(event.card_ids) != len(event.details.locations)):
+        raise ContractError("public confirmation requires its exact broadcast history record")
+    expected = Counter()
+    for code, place in zip(event.card_ids, event.details.locations):
+        if place.zone not in ("hand", "monster", "spell_trap", "graveyard", "banished", "extra"):
+            raise WindBotUnsupported("public historical confirmation requires a supported non-deck object")
+        expected[(code, place.controller, LOCATION[place.zone],
+                  None if place.zone in ("hand", "extra") else place.sequence)] += 1
+    actual = Counter()
+    seen = set()
+    for card in d["cards"]:
+        fields(card, {"card_id", "controller", "location", "sequence"})
+        player, zone, sequence = card["controller"], card["location"], card["sequence"]
+        integer(card["card_id"], "historical public identity", 1, 2**32 - 1)
+        integer(player, "historical local controller", 0, 1)
+        integer(zone, "historical local zone", 0, 255)
+        integer(sequence, "historical local sequence", 0, 255)
+        if zone not in (2, 4, 8, 16, 32, 64):
+            raise WindBotUnsupported("public historical confirmation requires a supported non-deck object")
+        if sequence >= _local_vector_bound(window, player, zone) or (player, zone, sequence) in seen:
+            raise ContractError("public confirmation exceeds its historical public local vector")
+        seen.add((player, zone, sequence))
+        actual[(card["card_id"], player, zone, None if zone in (2, 64) else sequence)] += 1
+    if actual != expected:
+        raise ContractError("public confirmation differs from its exact broadcast identity/location multiset")
+    window._public_confirmations_used.add(ref)
+
+
 def game_message(message, window):
     """Encode an explicit recipient-filtered host event, never an engine buffer."""
     if not isinstance(message, WindBotMessage):
         raise ContractError("typed recipient-filtered message required")
     k, d = message.kind, message.fields
+    prefix = b""
     if k == 4:
         fields(d, {"player_type", "duel_rule", "life_points", "deck_counts", "extra_counts"})
         if d["player_type"] != window.observer:
@@ -518,7 +630,7 @@ def game_message(message, window):
             integer(d["extra_counts"][p], "initial extra count", 0, 15)
         body += b"".join(_u16(d["deck_counts"][p]) + _u16(d["extra_counts"][p]) for p in (0, 1))
     elif k in (6, 7):
-        fields(d, {"player", "location", "cards"}, {"sequence"})
+        fields(d, {"player", "location", "cards"}, {"sequence", "redact"})
         integer(d["player"], "query player", 0, 1)
         if d["location"] not in (1, 2, 4, 8, 16, 32, 64):
             raise WindBotUnsupported("unsupported query location")
@@ -534,18 +646,39 @@ def game_message(message, window):
             raise ContractError("update-data requires every slot in sequence order")
         if k == 6 and d["location"] in (4, 8) and len(cards) != (7 if d["location"] == 4 else 8):
             raise ContractError("field update-data requires all fixed slots, including empty records")
-        body += b"".join(_query_record(c, d["player"], d["location"], window) for c in cards)
+        redact = d.get("redact", False)
+        if type(redact) is not bool or redact and k != 7:
+            raise ContractError("anonymous redaction requires a single exact update-card")
+        body += b"".join(_query_record(c, d["player"], d["location"], window, redact=redact) for c in cards)
     elif k == 2:
         fields(d, {"hint", "player", "value"})
-        if d["player"] != window.observer and d["hint"] not in (10, 11):
-            raise ContractError("another player's private hint cannot enter LAN")
+        player = integer(d["player"], "hint source player", 0, 1)
+        hint = integer(d["hint"], "routed hint type", 1, 11)
+        if not (hint in (10, 11) or hint in (1, 2, 3, 5) and player == window.observer
+                or hint in (4, 6, 7, 8, 9) and 1 - player == window.observer):
+            raise ContractError("private hint does not belong to the fixed LAN recipient")
         body = _u8(d["hint"]) + _u8(d["player"]) + _u32(d["value"])
     elif k == 5:
         fields(d, {"winner", "reason"})
         integer(d["winner"], "public winner", 0, 2)
         body = _u8(d["winner"]) + _u8(d["reason"])
+    elif k in (30, 42):
+        fields(d, {"player", "card_ids"})
+        integer(d["player"], "public confirmation player", 0, 1)
+        codes = d["card_ids"]
+        if (not isinstance(codes, (tuple, list)) or len(codes) > 128 or
+                any(type(c) is not int or not 1 <= c <= 2**32 - 1 for c in codes)):
+            raise ContractError("bounded public confirmation identities required")
+        if not any(e.details is not None and e.details.message == k and e.details.player == d["player"]
+                   and Counter(e.card_ids) == Counter(codes) for e in window.request.observation.public_history):
+            raise ContractError("public confirmation lacks its legal order-free history evidence")
+        # Fixed Ice/Pure intentionally have no handlers for these messages.
+        # Preserve only the broadcast identity multiset, never deck positions.
+        location = 1 if k == 30 else 64
+        body = _u8(d["player"]) + _u8(len(codes))
+        body += b"".join(_u32(c) + bytes((d["player"], location, 0)) for c in sorted(codes))
     elif k == 31:
-        fields(d, {"player", "skip_panel", "cards"})
+        fields(d, {"player", "skip_panel", "cards"}, {"knowledge_ref", "public_ref"})
         integer(d["player"], "confirm player", 0, 1)
         skip = d["skip_panel"]
         if type(skip) is bool:
@@ -554,10 +687,43 @@ def game_message(message, window):
         if not isinstance(d["cards"], (tuple, list)) or len(d["cards"]) > 128:
             raise ContractError("bounded public confirm-card facts required")
         body = _u8(d["player"]) + _u8(skip) + _u8(len(d["cards"]))
-        seen = set()
+        knowledge_ref = d.get("knowledge_ref")
+        public_ref = d.get("public_ref")
+        if public_ref is not None:
+            if knowledge_ref is not None:
+                raise ContractError("public and private confirmation proofs cannot be mixed")
+            _public_confirmation(message, window)
+        if knowledge_ref is not None:
+            text(knowledge_ref, "private confirmation knowledge reference")
+            for card in d["cards"]:
+                fields(card, {"card_id", "controller", "location", "sequence"})
+            reveals = [r for r in window.request.private_reveals if r.ref == knowledge_ref]
+            if d["player"] != window.observer or len(reveals) != 1:
+                raise ContractError("private confirmation is not bound to this observer's legal revelation")
+            expected = Counter((c.controller, LOCATION[c.zone], c.card_id) for c in reveals[0].cards)
+            actual = Counter((c.get("controller"), c.get("location"), c.get("card_id")) for c in d["cards"])
+            if actual != expected:
+                raise ContractError("private confirmation differs from its exact legal identity multiset")
+            if list(d["cards"]) != sorted(d["cards"], key=lambda c: (c["controller"], c["card_id"])):
+                raise ContractError("private confirmation must use canonical order-free local objects")
+        seen, local_counts = set(), Counter()
         for card in d["cards"]:
             fields(card, {"card_id", "controller", "location", "sequence"})
             address = (card["controller"], card["location"], card["sequence"])
+            if public_ref is not None:
+                body += _u32(card["card_id"]) + b"".join(_u8(v) for v in address)
+                continue
+            if knowledge_ref is not None:
+                integer(card["controller"], "private local controller", 0, 1)
+                sequence = integer(card["sequence"], "private local deck slot", 0, 255)
+                if (card["location"] != 1 or sequence >= _local_vector_bound(window, card["controller"], 1)
+                        or sequence != local_counts[card["controller"]]
+                        or address in seen):
+                    raise ContractError("private confirmation exceeds its public local deck vector")
+                local_counts[card["controller"]] += 1
+                seen.add(address)
+                body += _u32(card["card_id"]) + b"".join(_u8(v) for v in address)
+                continue
             if card["location"] not in (2, 4, 8, 16, 32, 64):
                 raise WindBotUnsupported("confirm-card deck order and unknown locations are unsupported")
             _wire_slot((*address, 0))
@@ -568,10 +734,61 @@ def game_message(message, window):
                 raise ContractError("confirm-card identity is not bound to its current legal visible slot")
             seen.add(address)
             body += _u32(card["card_id"]) + b"".join(_u8(v) for v in address)
-    elif k in (32, 35, 40):
+    elif k == 35:
+        fields(d, {"player", "old_grave_types"})
+        player, rows = integer(d["player"], "swap player", 0, 1), d["old_grave_types"]
+        if not isinstance(rows, (tuple, list)) or len(rows) > 128:
+            raise ContractError("swap requires the complete old public grave classification")
+        public_grave_ids = {c.card_id for c in window.request.observation.cards
+            if c.zone == "graveyard" and c.visibility == "public"}
+        public_grave_ids.update(code for event in window.request.observation.public_history
+            if event.details is not None and any(place.zone == "graveyard" for place in event.details.locations)
+            for code in event.card_ids)
+        for sequence, row in enumerate(rows):
+            fields(row, {"sequence", "card_id", "type"})
+            if (row["sequence"] != sequence or sequence >= _local_vector_bound(window, player, 16)
+                    or row["card_id"] not in public_grave_ids):
+                raise ContractError("swap classification differs from its ordered public grave evidence")
+            integer(row["type"], "catalog base type", 1, 2**32 - 1)
+            # The trusted projection binds this TYPE to the locked public CDB's
+            # immutable data.type, which the core uses to return Extra cards.
+            # SetId alone does not initialize ClientCard.Type; refresh before
+            # the pinned client's IsExtraCard bookkeeping, never after it.
+            record = _u32(16) + _u32(1 | 8) + _u32(row["card_id"]) + _u32(row["type"])
+            prefix += packet(STOC_GAME, bytes((7, player, 16, sequence)) + record)
+        body = _u8(player)
+    elif k in (32, 40):
         fields(d, {"player"})
         integer(d["player"], "public event player", 0, 1)
         body = _u8(d["player"])
+    elif k == 36:
+        fields(d, {"location", "slots"})
+        slots = d["slots"]
+        if (d["location"] not in (4, 8) or not isinstance(slots, (tuple, list))
+                or not 2 <= len(slots) <= 5):
+            raise ContractError("set shuffle requires two to five exact main-field slots")
+        for slot in slots:
+            _wire_slot(slot)
+            if slot[1] != d["location"] or slot[2] > 4 or slot[3] & 0x7f not in (2, 8):
+                raise ContractError("set shuffle has a different zone or a non-set/main-zone slot")
+        if len({s[0] for s in slots}) != 1 or len({tuple(s[:3]) for s in slots}) != len(slots):
+            raise ContractError("set shuffle cannot mix players or repeat public slots")
+        # Destination zero is the pinned client's explicit unknown mapping.
+        # Never forward a raw permutation or preserve its randomized list order.
+        body = _u8(d["location"]) + _u8(len(slots))
+        body += b"".join(_wire_slot(s) for s in sorted(slots)) + b"\0" * (4 * len(slots))
+    elif k == 37:
+        fields(d, set())
+        body = b""
+    elif k == 38:
+        fields(d, {"player", "card_id", "faceup"})
+        integer(d["player"], "public deck-top player", 0, 1)
+        integer(d["card_id"], "public deck-top identity", 1, 2**31 - 1)
+        if type(d["faceup"]) is not bool or not any(e.details is not None and e.details.message == 38
+                and e.details.player == d["player"] and d["card_id"] in e.card_ids
+                for e in window.request.observation.public_history):
+            raise ContractError("deck-top identity lacks its legal public history")
+        body = _u8(d["player"]) + b"\0" + _u32(d["card_id"] | (0x80000000 if d["faceup"] else 0))
     elif k == 41:
         fields(d, {"phase"})
         if d["phase"] not in (1, 2, 4, 8, 16, 32, 64, 128, 256, 512):
@@ -619,6 +836,19 @@ def game_message(message, window):
             raise ContractError("private opponent position-change identity cannot enter LAN")
         body = (_u32(d["card_id"]) + _wire_slot((d["player"], d["location"], d["sequence"], d["previous"]))
                 + _u8(d["current"]))
+    elif k == 54:
+        fields(d, {"slot"})
+        body = _u32(0) + _wire_slot(d["slot"])
+    elif k == 55:
+        fields(d, {"first_card_id", "first", "second_card_id", "second"})
+        body = b""
+        for code, slot in ((d["first_card_id"], d["first"]), (d["second_card_id"], d["second"])):
+            if code and slot[0] != window.observer and not _public_slot(slot):
+                raise ContractError("private opponent swap identity cannot enter LAN")
+            body += _u32(code) + _wire_slot(slot)
+    elif k == 56:
+        fields(d, {"mask"})
+        body = _u32(d["mask"])
     elif k in (60, 62, 64):
         fields(d, {"card_id", "slot"})
         _wire_slot(d["slot"])
@@ -629,7 +859,22 @@ def game_message(message, window):
         fields(d, set())
         body = b""
     elif k == 70:
-        fields(d, {"card_id", "slot", "chain_location", "description", "link"})
+        fields(d, {"card_id", "card_type", "slot", "chain_location", "description", "link"})
+        _wire_slot(d["slot"])
+        player, location, sequence, _ = d["slot"]
+        if location & 128 or location == 0 or sequence > 127:
+            raise WindBotUnsupported("chain handler requires a persistent supported LAN-local card object")
+        integer(d["card_type"], "public chain catalog base type", 1, 2**32 - 1)
+        if not any(e.details is not None and e.details.message == 70 and d["card_id"] in e.card_ids
+                   for e in window.request.observation.public_history):
+            raise ContractError("chain classification lacks its legal public activation identity")
+        # OnChaining invokes real Executor callbacks immediately. A newly
+        # published private-area identity has no initialized Type from SetId.
+        # Existing field/grave/banished objects may carry a dynamic Type, which
+        # a printed catalog classification must never overwrite.
+        if location in (1, 2, 64):
+            record = _u32(16) + _u32(1 | 8) + _u32(d["card_id"]) + _u32(d["card_type"])
+            prefix = packet(STOC_GAME, bytes((7, player, location, sequence)) + record)
         chain = d["chain_location"]
         if not isinstance(chain, (list, tuple)) or len(chain) != 3:
             raise ContractError("exact public chain trigger location required")
@@ -637,6 +882,14 @@ def game_message(message, window):
     elif k in (71, 72, 73, 75, 76):
         fields(d, {"link"})
         body = _u8(d["link"])
+    elif k in (81, 83):
+        fields(d, {"slots", "player"} if k == 81 else {"slots"})
+        if not isinstance(d["slots"], (tuple, list)) or len(d["slots"]) > 128:
+            raise ContractError("bounded recipient-filtered selected slots required")
+        body = _u8(d["player"]) if k == 81 else b""
+        if k == 81:
+            integer(d["player"], "public random player", 0, 1)
+        body += _u8(len(d["slots"])) + b"".join(_wire_slot(s) for s in d["slots"])
     elif k in (91, 92, 94, 100):
         fields(d, {"player", "amount"})
         body = _u8(d["player"]) + _u32(d["amount"])
@@ -651,9 +904,44 @@ def game_message(message, window):
     elif k in (101, 102):
         fields(d, {"counter_type", "player", "location", "sequence", "count"})
         body = _u16(d["counter_type"]) + bytes((d["player"], d["location"], d["sequence"])) + _u16(d["count"])
+    elif k == 95:
+        # Legacy LAN client support only: this locked core does not emit 95,
+        # and the current Native public-history consumer still rejects it.
+        fields(d, {"slot"})
+        body = _wire_slot(d["slot"])
+    elif k == 120:
+        fields(d, {"card_id", "slot"})
+        if d["slot"][0] != window.observer:
+            raise ContractError("another player's private missed effect cannot enter LAN")
+        body = _u32(d["card_id"]) + _wire_slot(d["slot"])
+    elif k in (130, 131):
+        fields(d, {"player", "values"})
+        integer(d["player"], "public random player", 0, 1)
+        if not isinstance(d["values"], (tuple, list)) or len(d["values"]) > 128:
+            raise ContractError("bounded public random outcomes required")
+        for value in d["values"]:
+            integer(value, "public random outcome", 0 if k == 130 else 1, 1 if k == 130 else 6)
+        body = _u8(d["player"]) + _u8(len(d["values"])) + bytes(d["values"])
+    elif k == 133:
+        fields(d, {"values"})
+        if not isinstance(d["values"], (tuple, list)) or len(d["values"]) != 2:
+            raise ContractError("exactly two public RPS outcomes required")
+        for value in d["values"]:
+            integer(value, "public RPS outcome", 1, 3)
+        body = _u8(d["values"][0] | (d["values"][1] << 2))
+    elif k == 160:
+        fields(d, {"slot", "hint", "value"})
+        body = _wire_slot(d["slot"]) + _u8(d["hint"]) + _u32(d["value"])
+    elif k == 165:
+        fields(d, {"player", "hint", "value"})
+        integer(d["player"], "public player-hint player", 0, 1)
+        body = _u8(d["player"]) + _u8(d["hint"]) + _u32(d["value"])
+    elif k == 170:
+        fields(d, {"card_id"})
+        body = _u32(d["card_id"])
     else:
         raise WindBotUnsupported("recipient-filtered event needs an exact codec: " + str(k))
-    return packet(STOC_GAME, _u8(k) + body)
+    return prefix + packet(STOC_GAME, _u8(k) + body)
 
 
 def _unicode_fixed(raw):
@@ -688,6 +976,7 @@ class WindBotRoom:
         self.process_outcome = None  # Set only by the owned session's exit/reap check.
         self._exchange = threading.Lock()
         self.seen_versions = set()
+        self._history_count, self._history_prefix_sha256 = 0, digest([])
         self.listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.listener.bind((host, 0))
         self.listener.listen(1)
@@ -803,6 +1092,17 @@ class WindBotRoom:
             deadline = min(self.room_deadline, self.clock() + self.timeout)
             window = WindBotWindow(request, frame, observer=self.observer, deadline=deadline, clock=self.clock)
             snapshot = window.frame
+            history = window.request.to_dict()["observation"]["public_history"]
+            if (len(history) < self._history_count or
+                    digest(history[:self._history_count]) != self._history_prefix_sha256):
+                raise ContractError("LAN public history prefix changed or was truncated")
+            interval = snapshot.prompt_facts.get("public_history_range")
+            if interval is not None:
+                fields(interval, {"start", "end"})
+                integer(interval["start"], "connection public history start", 0, len(history))
+                integer(interval["end"], "connection public history end", 0, len(history))
+                if interval["start"] != self._history_count or interval["end"] != len(history):
+                    raise ContractError("LAN public confirmation history does not belong to the new frame")
             starts = sum(m.kind == 4 for m in snapshot.messages)
             if starts != int(not self.started) or not self.started and (not snapshot.messages or snapshot.messages[0].kind != 4):
                 raise WindBotUnsupported("continuous LAN game requires exactly one initial Start")
@@ -821,7 +1121,9 @@ class WindBotRoom:
             kind, body = self._receive(deadline)
             if kind != CTOS_RESPONSE:
                 raise WindBotTransportError("only one current CTOS response is accepted")
-            return window.translate(body, request=request, state_version=frame.state_version)
+            action = window.translate(body, request=request, state_version=frame.state_version)
+            self._history_count, self._history_prefix_sha256 = len(history), digest(history)
+            return action
         except (OSError, ContractError, ValueError, TypeError, KeyError, IndexError, struct.error) as error:
             self.close()  # Never let a late reply enter a subsequent decision.
             if isinstance(error, ContractError):

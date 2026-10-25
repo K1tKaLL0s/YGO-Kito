@@ -15,7 +15,7 @@
 
 [全量静态inventory](../../configs/maintained-bot-inventory-v1.json)保留220条Executor来源，按源码字节分81组；同名不同实现不合并掉，字节相同也保留全部source/path/class/Deck属性和来源。资源包括144条YDK路径；lib自身没有YDK，跨源候选显式列出，相同名称的不同牌表版本需要宿主选定，不能默认替换。211条bot.conf配置记录保留原名称、参数、说明与flags，其中随机入口不冒充独立Executor。它们只是源码注册名/配置别名，不是已核历史主流或强度。
 
-Ice/Pure的147条桌面来源覆盖其中80个字节组；唯一仅library来源的组是`libWindbot/Game/AI/Decks/Monarch506Executor.cs`。与Pure同名文件实际仅一行配置初始化不同，但不能推导运行等价或已桌面覆盖。额外精确模块的独立桌面覆盖方案见[补充packet](../reports/2026-10-25-monarch506-overlay-approval-packet.json)，未改现有73/74份源码/计划，未执行Android或该额外移植。
+Ice/Pure的147条原始桌面来源覆盖其中80个字节组；唯一仅library来源的组是`libWindbot/Game/AI/Decks/Monarch506Executor.cs`。现有独立overlay入口保留完整Pure74类，只用该精确library文件替换同路径，并保留两份MIT声明；原始73/74来源不覆盖。真实源码已静态准备、验证和打包，尚未编译/加载。早先[补充packet](../reports/2026-10-25-monarch506-overlay-approval-packet.json)保留提案时状态，当前实现见下文与[本轮收据](../reports/2026-10-25-bot-overlay-and-build-diagnostics.json)，不将准备成功计作81组运行通过。
 
 HorusExecutor的实际CardId为旧黑炎龙Lv6/Lv8，不是现代荷鲁斯、荷鲁斯珠泪或巳剑混轴。ChaosRitual为光与暗之仪式，不是光暗龙；Elfnote对应耀圣。配置保留这些明确标签与排除项。纯轴候选可先作基准，战报或混轴存在不能证明优于纯轴；模块不填用户八个正式对手槽。
 
@@ -27,7 +27,7 @@ HorusExecutor的实际CardId为旧黑炎龙Lv6/Lv8，不是现代荷鲁斯、荷
 - `inventory(lock, roots)`核所有锁定文件字节、发现全部Deck属性/类、读取配置和build XML。锁中73/74/73文件数独立固定；缺/多Executor、未解析Deck、条件Compile或ExternalPolicyOnly裁剪均拒绝。三个实际csproj的完整Decks通配分别覆盖73/74/73，不能只构建外部策略代理。
 - `create_bundle/verify_bundle`生成确定性离线源码包，逐成员核对可信lock、SHA和Git blob身份；拒绝重复、额外、缺失、链接、越界和超限成员，重新静态发现核inventory摘要。verify会在临时目录写惰性源码用于静态检查，结束即清理，不执行源码。
 - `install_sources`只将已验证的惰性源码原字节写入全新目录，不覆盖、不编译、不启动。原LICENSE与源码头声明一起保留，文件无执行权限。
-- `BotSourceRegistry(lock, installed_root)`是typed全量源码注册表。`statuses/resolve`复核来源字节和内存封印；相同来源不靠重命名重复登记。`training_adapter`须精确选择Ice/Pure Executor并提供真实全量构建/资源/构造审计、固定CDB/YDK、Mono与源码身份；通过后返回`WindBotOpponent`，其唯一生产房间为`windbot_session`。没有可注入fixture替代真实房间的生产参数。当前没有实际审计，因此请求运行仍拒绝。
+- `BotSourceRegistry(lock, installed_root)`是typed全量源码注册表。`statuses/resolve`复核来源字节和内存封印；相同来源不靠重命名重复登记。`training_adapter`须精确选择Ice/Pure Executor并提供真实全量构建/资源/构造审计、固定CDB/YDK、Mono与源码身份；通过后返回`WindBotOpponent`，其唯一生产房间为`windbot_session`。`variant_root`显式选择独立overlay审计及身份，不能把原Pure成绩当作library版本。`session_seconds`默认120秒，显式值须有限且在(0,300]内，封印于注册记录并在重绑时保留；它约束自管C#房间生命周期，不是宿主native硬中断。没有可注入fixture替代真实房间的生产参数。当前没有实际审计，因此请求运行仍拒绝。
 
 状态分开记录：
 
@@ -86,7 +86,18 @@ python3.12 scripts/bot_deployment.py \
   --destination .cache/prepared-bot-sources
 python3.12 scripts/bot_deployment.py \
   registry --installed-root .cache/prepared-bot-sources
+python3.12 - <<'PY'
+import json
+from pathlib import Path
+root = Path('.cache/prepared-bot-sources').resolve(strict=True)
+roots = {key: str(root / key) for key in ('ice', 'pure', 'library', 'mobile-config')}
+with (root / 'roots.json').open('x', encoding='utf-8') as stream:
+    json.dump(roots, stream, indent=2)
+    stream.write('\n')
+PY
 ```
+
+后续构建、overlay、运行注册和资格检查统一使用这个安装目录；`fetch`目录只用于取得原字节和打包。审计绑定实际源码根，不能拿`fetched`根的审计交给`prepared`注册器。已有`roots.json`时核其四项绝对路径，不覆盖不同来源。
 
 本轮没有用fetch重复下载已有的815份源码；仅补资源时真实GET了6个唯一blob。fetch完整流程、拒绝/重定向/强hash/去重/临时树清理，以及安装器和typed加载有注入假opener和明示合成惰性C# fixture测试，不能称整个829文件网络流程已实测成功。源码包原有实际收据见[本次源码准备](../reports/2026-10-25-bot-source-preparation.json)；缓存中的源码和原始工具响应不是部署依赖或已运行机器人。
 
@@ -96,7 +107,7 @@ python3.12 scripts/bot_deployment.py \
 
 ```bash
 python3.12 scripts/bot_build_check.py \
-  --roots .cache/fetched-bot-sources/roots.json --source-id ice \
+  --roots .cache/prepared-bot-sources/roots.json --source-id ice \
   --cards-cdb /absolute/workspace/cards.cdb --cards-sha256 VERIFIED_CARD_DATABASE_SHA256 \
   --build-directory .cache/bot-build/ice --report .cache/ice-build-plan.json
 ```
@@ -107,7 +118,7 @@ python3.12 scripts/bot_build_check.py \
 
 ```bash
 python3.12 scripts/bot_build_check.py \
-  --roots .cache/fetched-bot-sources/roots.json --source-id ice \
+  --roots .cache/prepared-bot-sources/roots.json --source-id ice \
   --cards-cdb /absolute/workspace/cards.cdb --cards-sha256 VERIFIED_CARD_DATABASE_SHA256 \
   --build-directory .cache/bot-build/ice --report .cache/ice-build-audit.json \
   --execute --construct \
@@ -119,6 +130,36 @@ python3.12 scripts/bot_build_check.py \
 自有`BotAssemblyAudit.cs`逐名比较全部类型、Deck属性和资源。`--execute`不加`--construct`只加载程序集并检查元数据；加`--construct`还初始化配置/锁定CDB，验证每份YDK卡ID，构造每个精确Executor。Pure构造GameClient显式传其第二参数null；Ice按单参API。检查器不调用`GameClient.Start`、Android或公网入口。任一类缺失、额外、资源不符或构造失败均拒绝，不静默省略。审计记录原工具/程序集/输出哈希，当前**没有C#编译器语法或运行通过证据**。
 
 14份被动资源中的sqlite DLL为Windows PE。固定源码在Linux不走Win32 LoadLibrary分支，仍需要实际系统`libsqlite3`；文件下载不证明该依赖可加载。反射、构造通过也不证明正常对局或强度。
+
+构建失败抛`BuildAuditError(ContractError)`，结构化结果在`.report`；CLI同样写JSON并退出2。报告区分输入/预检、输出目录、完整程序构建、审计器编译、程序集输入、反射进程、审计结果和事后封印检查。每次尝试保留固定argv、工作目录、timeout、returncode、独立日志路径及哈希、是否启动和直接子进程回收结果；未执行步骤单列。报告不复制进程输出、私有牌表或凭据。`subprocess.run`正常返回/超时时可确认其直接子进程已回收，不声称清理任意后代；注入runner的reaped为unknown。实际审计进程已启动但无有效结果时`runtime_loaded:null`，保留unknown，不写成false；预检失败或fixture则false。没有失败后自动重试或换工具。
+
+## 精确Monarch506独立overlay
+
+固定Pure文件仅该构造赋值使用`UsePreErrataEffects`。显式配置true会令`!Config.GetBool(...)`为false，与library该行得到相同bool；默认配置false则不同。这是对该赋值的静态解释，不是源码字节相同或全局运行等价证明，不用它消掉library独有来源。
+
+`bot_overlay.py`以新目录保留完整Pure项目，替换精确library文件并附原MIT声明。manifest逐成员绑定两源pin、单文件替换、长度/SHA256/Git blob和全部74类计数。缺/多文件、别的修改、链接、篡改清单、已有目标都拒绝。离线包独立于原829包：后者仍用于原源/跨源YDK与正常注册；overlay只是另外的完整Pure变体，不覆盖原包。可直接运行：
+
+```bash
+python3.12 scripts/bot_overlay.py prepare \
+  --roots .cache/prepared-bot-sources/roots.json \
+  --destination .cache/monarch506-overlay
+python3.12 scripts/bot_overlay.py verify --root .cache/monarch506-overlay
+python3.12 scripts/bot_overlay.py bundle --root .cache/monarch506-overlay \
+  --archive .cache/monarch506-overlay.tar.gz
+python3.12 scripts/bot_overlay.py verify-bundle --archive .cache/monarch506-overlay.tar.gz
+python3.12 scripts/bot_overlay.py install --archive .cache/monarch506-overlay.tar.gz \
+  --destination .cache/monarch506-overlay-installed
+python3.12 scripts/bot_build_check.py \
+  --roots .cache/prepared-bot-sources/roots.json --source-id pure \
+  --variant-root .cache/monarch506-overlay-installed \
+  --cards-cdb /absolute/workspace/cards.cdb --cards-sha256 VERIFIED_CARD_DATABASE_SHA256 \
+  --build-directory .cache/bot-build/monarch506-overlay \
+  --report .cache/monarch506-overlay-plan.json
+```
+
+这些命令只做惰性源码准备。完整变体编译/审计代码也已实现：宿主在确认该精确额外变体的执行范围且有获准工具链后，显式选择`--variant-root`并增加上节`--execute --construct`及工具路径，使用全新report/build目录。当前专项批准只覆盖原始Ice/Pure；本轮没有实际执行该额外变体。它不编Android，也没有永久拒绝执行的占位。变体审计的kind、manifest/双源摘要、完整程序集身份独立；注册时须同时提供`variant_root`及匹配真实审计，不能混入普通Pure审计。实际审计缺失、fixture或源变化继续拒绝。
+
+本轮真实829输入已成功生成并验证384份资源加manifest的overlay包及74类计划。CPU只对注入runner和明示合成future-audit JSON验证执行/注册/重绑契约，没有C#结果；原始来源、旧提案与历史收据均保留。
 
 ## 当前运行接线与真实阻碍
 

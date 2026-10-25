@@ -222,15 +222,17 @@ def consume(engine, kind, r, audit):
     elif kind == 36:
         zone,count=r.u8(),r.u8()
         if zone not in (4,8) or count>7: raise NativeError("unsupported set shuffle")
-        # Hidden permutation: even though raw payload has both mappings,
-        # publish only the original publicly known slots, never destinations.
+        # libduel shuffles the card vector before emitting its old slots. Even
+        # their payload order can encode the private permutation. Publish only
+        # the canonical public set, never its order or destination mapping.
         old=tuple(r.take(4) for _ in range(count))
         r.take(4*count)
         engine._known_owners.clear()
         engine._overlay_owners.clear()
         from .private_knowledge import forget_material_associations
         forget_material_associations(engine)
-        emit(engine,"shuffle",kind,amount=count,locations=tuple(location(s) for s in old))
+        emit(engine,"shuffle",kind,amount=count,
+             locations=tuple(location(s) for s in sorted(old)))
     elif kind == 37:
         from .private_knowledge import forget_slots
         forget_slots(engine,zone=1)

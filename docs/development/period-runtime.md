@@ -84,6 +84,8 @@ group recipe 可显式加入 `period_inputs: "configs/具体描述符.json"`，�
 
 该字段加入原有完整period描述符，不是独立牌表或课程。对应收件slot必须明确 `controller:"bot"`、同一精确 `model:executor_id` 和实际factory返回的driver_version；policy绑定必须等于实际adapter.binding。`installed_root`、audit与固定lock均在workspace内，Mono是宿主明确的绝对工具路径。只支持获准的完整Ice/Pure桌面实现；lib/Android保持源码交付，不隐式运行。
 
+精确单文件Monarch506桌面变体可在Pure项明确加入`"variant_root": ".cache/monarch506-overlay"`，该目录manifest也进入宿主源快照；registry核完整独立变体/实际audit并把其身份纳入冻结binding，actor重绑保留同一variant。原普通描述符不变，库的Android工程仍不运行；当前仅实现/静态验证该独立路径，未实际编译或扩大本轮第三方执行范围。配套YDK只读及后续逐bot资格入口见[正常资格检查](bot-qualification.md)。
+
 `PeriodBuildAssets.bind_bot_opponent`调用完整 `BotSourceRegistry.training_adapter`，由真实源/程序集/卡库/YDK审计门禁建立 `WindBotOpponent`。`CpuTrainer.sample_episode`对该明确类型使用 `managed_engine_factory`：原PeriodNativeEngine保留日期/卡池检查、ABI与响应guard，附加宿主可见事实投影及本机房间；policy.choose只返回当前LegalAction。退出/异常关闭进程与连接。actor构筑修改后重新绑定实际profile与同一bot源码/审计，不能默默回退rule策略。
 
 没有真实完整构建审计或资源变化时拒绝；runtime构造通过、一次对局、历史合法与策略强度是不同状态。当前云端Mono安装因系统权限和配置签名源代理403失败，未执行C#；Python socket/host fixture或正常引擎投影测试不能填成WindBot已运行。未将GPU、PC或可选LLM加为软件门槛。

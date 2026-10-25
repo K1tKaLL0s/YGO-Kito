@@ -8,7 +8,7 @@
 
 **持续进度入口：[总工作清单 MASTER-CHECKLIST](docs/plans/MASTER-CHECKLIST.md)。** 每批完成后同步稳定任务 ID、状态和证据，符合验收条件才勾选；部分完成保持未勾选。该表索引全阶段进度，保留[第一阶段详细清单](docs/plans/2026-10-22-phase-1-cpu-checklist.md)，不替代统一规范。PR 已发布不表示已合并。
 
-**当前云端整合候选：[PR #3](https://github.com/K1tKaLL0s/YGO-Kito/pull/3)。** 保留PR1、DP草稿PR2及构筑工作历史。用户已授权设计复核、必要修正和最终CI通过后依次合入main；新增完整机器人运行范围尚未闭合时不先行合并。最新代码539368b的462项CPU检查、两项普通真实core投影及初始化恢复已通过；C#工具安装受系统权限和Debian索引代理403阻碍，未编译或运行WindBot，见[当前交付及准确阻碍](docs/reports/2026-10-25-bot-delivery-and-blockers.md)。远端CI/源码包单独按实际回执核对，不以历史成绩替代。通用接续先读[AGENTS.md](AGENTS.md)和[Agent说明](docs/development/generic-agent-integration.md)。
+**当前云端整合候选：[PR #3](https://github.com/K1tKaLL0s/YGO-Kito/pull/3)。** 保留PR1、DP草稿PR2及构筑工作历史。用户已授权设计复核、必要修正和最终CI通过后依次合入main；新增完整机器人运行范围尚未闭合时不先行合并。[本轮续作](docs/reports/2026-10-25-bot-gap-continuation.md)补齐私有对象／公开历史连续性、精确Monarch506变体、构建诊断与全量资格入口；最终测试与CI按对应提交回执核对，不沿用539368b的462项成绩。C#工具安装受系统权限和配置签名源代理403阻碍，未编译或运行WindBot；这些环境阻碍没有用于停止独立软件工作。通用接续先读[AGENTS.md](AGENTS.md)和[Agent说明](docs/development/generic-agent-integration.md)。
 
 **继续工程准备：[安全CPU CI](docs/development/safe-cpu-ci.md)、[3＋8牌表收件](docs/development/deck-intake.md)、[完整源码训练交接](docs/development/training-handoff.md)。** 已建立[草稿PR #3](https://github.com/K1tKaLL0s/YGO-Kito/pull/3)，依赖#1→#2→#3。最新测试/CI与剩余依赖统一见[继续工程报告](docs/reports/2026-10-24-engineering-continuation.md)；原188项是历史整合基线，不代替新提交检查。
 

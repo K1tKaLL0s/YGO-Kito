@@ -197,7 +197,7 @@ class PeriodBuildAssets(BuildAssets):
         return self._opponents[digest(binding)]
 
     def bind_bot_opponent(self, profile, opponent_id, registry, *, executor_id, source_id,
-                          build_audit_path, build_audit_sha256, mono, seat=1, source=None):
+                          build_audit_path, build_audit_sha256, mono, seat=1, source=None, variant_root=None):
         """Use the actual full-build registry adapter; missing audits stay closed."""
         from .bot_deployment import BotSourceRegistry
         if not isinstance(registry, BotSourceRegistry):
@@ -209,13 +209,13 @@ class PeriodBuildAssets(BuildAssets):
             profile=checked, seat=seat, versions=Versions.from_dict(self.environment["versions"]),
             environment_id=self.environment["environment_id"], opponent_id=opponent_id, source=source,
             build_audit_path=build_audit_path, build_audit_sha256=build_audit_sha256, mono=mono,
-            workspace=self.workspace, period_context=self.period_context)
+            workspace=self.workspace, period_context=self.period_context, variant_root=variant_root)
         opponent = registry.training_adapter(**options)
         identity = digest(opponent.binding)
         self._opponents[identity] = opponent
         self._bot_rebinders[identity] = lambda changed: self.bind_bot_opponent(changed, opponent_id, registry,
             executor_id=executor_id, source_id=source_id, build_audit_path=build_audit_path,
-            build_audit_sha256=build_audit_sha256, mono=mono, seat=seat, source=source)
+            build_audit_sha256=build_audit_sha256, mono=mono, seat=seat, source=source, variant_root=variant_root)
         return opponent
 
     def rebind_rule_opponent(self, binding, actor_deck, *, purpose=None):

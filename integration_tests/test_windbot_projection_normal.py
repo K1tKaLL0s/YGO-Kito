@@ -5,7 +5,6 @@ No C# process, training, fault injection or private response inspection occurs.
 """
 from collections import Counter
 from datetime import datetime,timezone
-import hashlib
 import json
 from pathlib import Path
 import time
@@ -20,7 +19,110 @@ from ygo_kito.windbot_room import WindBotWindow,game_message
 ROOT=Path(__file__).resolve().parents[1]
 
 
+def implementation_receipt():
+    from ygo_kito.implementation_identity import source_tree_snapshot
+    tree=source_tree_snapshot(ROOT/'src/ygo_kito')
+    return {'implementation_sha256':{name:tree[name] for name in
+        ('windbot_projection.py','windbot_room.py','native.py','native_response_guard.py')},
+        'python_source_tree_sha256':digest(tree),'python_source_tree':tree}
+
+
 class WindBotProjectionNormalTests(unittest.TestCase):
+    def test_existing_public_extra_confirmation_survives_immediate_shuffle(self):
+        from ygo_kito.protocol_cases import EngineeringDriver
+        case=json.loads((ROOT/'configs/protocol-history-engineering-v3.json').read_text())['cases']['confirm-extra']
+        attempted_at=datetime.now(timezone.utc);started=time.monotonic()
+        receipt={'schema_version':1,'kind':'existing-public-confirmation-history-host-positive-check',
+                 'case':'confirm-extra','attempted_at_utc':attempted_at.isoformat(),'profile_sha256':digest(case['profile']),
+                 'csharp_windbot_executed':False,'trained':False,'natural_terminal':False,
+                 'historical_qualified':False,'strength_qualified':False}
+        receipt.update(implementation_receipt())
+        frames=decisions=0;messages=Counter();proofs=0;shuffled=False
+        try:
+            with WindBotProjectionEngine(ROOT/'.cache',observer=0,scenario='effect-duel',
+                deck_profile=case['profile'],seed=case['seed_audit_only']) as engine:
+                receipt['resources']=engine.receipt;driver=EngineeringDriver(case,engine._rows,'first');req=engine.next_decision()
+                for _ in range(300):
+                    self.assertIsNotNone(req);self.assertLess(time.monotonic()-started,30)
+                    if req.observation.observer==0:
+                        frame=engine.transport_frame(req,state_version=f'public-confirm-extra-{frames}')
+                        window=WindBotWindow(req,frame,observer=0,deadline=time.monotonic()+10)
+                        for message in frame.messages:
+                            game_message(message,window);messages[message.kind]+=1
+                            proofs+=int(message.kind==31 and message.fields.get('public_ref') is not None)
+                        frames+=1
+                        if proofs>=2 and messages[39]>=2:
+                            self.assertFalse(any(c.card_id is not None for c in req.observation.cards
+                                                 if c.controller==1 and c.zone=='extra'))
+                            self.assertEqual(len(frame.prompt_facts.get('public_confirmations',{})),2)
+                            shuffled=True;break
+                    action=driver.choose(req)
+                    engine.submit(ActionSelection(req.context.run_id,req.duel_id,req.decision_id,action.action_id))
+                    decisions+=1;req=engine.next_decision()
+                else:self.fail('bounded existing public confirmation mechanism did not finish')
+                self.assertTrue(shuffled)
+                receipt.update(status='passed',public_confirmation_history_refs=proofs,
+                               current_opponent_extra_identity_hidden=True,immediate_shuffles_encoded=True,
+                               original_submit_guard_path=True)
+        except Exception as error:
+            receipt.update(status='failed_or_unsupported',error_type=type(error).__name__,error=str(error));raise
+        finally:
+            receipt.update(decisions=decisions,projected_frames=frames,projected_message_counts=dict(messages),
+                           elapsed_seconds=round(time.monotonic()-started,3))
+            directory=ROOT/'.cache/windbot-projection-normal';directory.mkdir(exist_ok=True)
+            filename='public-confirm-extra-attempt-'+attempted_at.strftime('%Y%m%dT%H%M%S%fZ')+'.json'
+            (directory/filename).write_text(json.dumps(receipt,ensure_ascii=False,indent=2)+'\n')
+
+    def test_existing_private_deck_confirmation_and_selection_mechanisms(self):
+        from ygo_kito.knowledge_cases import read_case
+        from ygo_kito.protocol_cases import EngineeringDriver
+        for name in ('crescent-private','rescue-confirmed'):
+            with self.subTest(case=name):self._private_case(name,read_case(name),EngineeringDriver)
+
+    def _private_case(self,name,case,driver_type):
+        attempted_at=datetime.now(timezone.utc);started=time.monotonic()
+        receipt={'schema_version':1,'kind':'existing-private-knowledge-host-projection-positive-check',
+                 'case':name,'attempted_at_utc':attempted_at.isoformat(),'profile_sha256':digest(case['profile']),
+                 'csharp_windbot_executed':False,'trained':False,'natural_terminal':False,
+                 'historical_qualified':False,'strength_qualified':False}
+        receipt.update(implementation_receipt())
+        frames=decisions=0;messages=Counter();prompts=Counter();confirmed=False;chosen=False;post=False
+        try:
+            with WindBotProjectionEngine(ROOT/'.cache',observer=1,scenario='effect-duel',
+                deck_profile=case['profile'],seed=case['seed_audit_only']) as engine:
+                receipt['resources']=engine.receipt;driver=driver_type(case,engine._rows,'first');req=engine.next_decision()
+                for _ in range(300):
+                    self.assertIsNotNone(req);self.assertLess(time.monotonic()-started,30)
+                    if req.observation.observer==1:
+                        frame=engine.transport_frame(req,state_version=f'{name}-{frames}')
+                        window=WindBotWindow(req,frame,observer=1,deadline=time.monotonic()+10)
+                        for message in frame.messages:
+                            game_message(message,window);messages[message.kind]+=1
+                            confirmed|=message.kind==31 and message.fields.get('knowledge_ref') is not None
+                        prompts[req.prompt.message]+=1;frames+=1
+                        if chosen:post=True;break
+                    action=driver.choose(req)
+                    if req.observation.observer==1 and req.prompt.message==15 and req.private_reveals:
+                        self.assertTrue(confirmed)
+                        if name=='crescent-private':self.assertTrue(all(c.card_id is None for c in req.selection_choices))
+                        else:self.assertTrue(all(c.card_id is not None and c.knowledge_ref for c in req.selection_choices))
+                        chosen=True
+                    engine.submit(ActionSelection(req.context.run_id,req.duel_id,req.decision_id,action.action_id))
+                    decisions+=1;req=engine.next_decision()
+                else:self.fail('bounded existing private mechanism did not complete')
+                self.assertTrue(confirmed and chosen and post)
+                receipt.update(status='passed',private_confirmation_projected=True,legal_selection_submitted=True,
+                               later_seat_request_encoded=True,original_submit_guard_path=True,
+                               complete_redactions=messages[7])
+        except Exception as error:
+            receipt.update(status='failed_or_unsupported',error_type=type(error).__name__,error=str(error));raise
+        finally:
+            receipt.update(decisions=decisions,projected_frames=frames,prompt_counts=dict(prompts),
+                           projected_message_counts=dict(messages),elapsed_seconds=round(time.monotonic()-started,3))
+            directory=ROOT/'.cache/windbot-projection-normal';directory.mkdir(exist_ok=True)
+            filename='private-'+name+'-attempt-'+attempted_at.strftime('%Y%m%dT%H%M%S%fZ')+'.json'
+            (directory/filename).write_text(json.dumps(receipt,ensure_ascii=False,indent=2)+'\n')
+
     def test_existing_rescue_cat_search_and_xyz_material_projection(self):
         from ygo_kito.extra_routes import RouteDriver,completed_special_summon
         raw=json.loads((ROOT/'configs/build-xyz-engineering-v2.json').read_text())
@@ -31,9 +133,8 @@ class WindBotProjectionNormalTests(unittest.TestCase):
                  'attempted_at_utc':attempted_at.isoformat(),'profile_sha256':digest(profile),
                  'csharp_windbot_executed':False,'trained':False,'natural_terminal':False,
                  'historical_qualified':False,'strength_qualified':False}
-        receipt['implementation_sha256']={name:hashlib.sha256((ROOT/'src/ygo_kito'/name).read_bytes()).hexdigest()
-            for name in ('windbot_projection.py','windbot_room.py','native.py','native_response_guard.py')}
-        frames=decisions=0;messages=Counter();prompts=Counter();virtual=False;overlays=False
+        receipt.update(implementation_receipt())
+        frames=decisions=0;messages=Counter();prompts=Counter();virtual=False;overlays=False;last_visible_types=0
         try:
             with WindBotProjectionEngine(ROOT/'.cache',observer=0,scenario='effect-duel',deck_profile=profile,seed=1) as engine:
                 receipt['resources']=engine.receipt;driver=RouteDriver(raw['goal']['route']);req=engine.next_decision()
@@ -41,6 +142,7 @@ class WindBotProjectionNormalTests(unittest.TestCase):
                     self.assertIsNotNone(req);self.assertLess(time.monotonic()-started,30)
                     if req.observation.observer==0:
                         frame=engine.transport_frame(req,state_version=f'existing-xyz-{frames}')
+                        last_visible_types+=len(frame.prompt_facts.get('last_visible_type',()))
                         window=WindBotWindow(req,frame,observer=0,deadline=time.monotonic()+10)
                         for message in frame.messages:
                             game_message(message,window);messages[message.kind]+=1
@@ -58,10 +160,12 @@ class WindBotProjectionNormalTests(unittest.TestCase):
                     decisions+=1;req=engine.next_decision()
                 else:self.fail('bounded existing XYZ route did not complete')
                 self.assertTrue(virtual);self.assertTrue(overlays)
+                self.assertGreater(last_visible_types,0)
                 self.assertEqual({c.card_id for c in own.cards if c.zone=='overlay'},{1761063,32269855})
                 self.assertEqual(messages[4],1)
                 receipt.update(status='passed',existing_route_completed=True,virtual_search_slots=True,
-                               public_overlay_projection=True,original_submit_guard_path=True)
+                               public_overlay_projection=True,original_submit_guard_path=True,
+                               uninterrupted_last_visible_type_used=last_visible_types)
         except Exception as error:
             receipt.update(status='failed_or_unsupported',error_type=type(error).__name__,error=str(error))
             raise
@@ -83,8 +187,7 @@ class WindBotProjectionNormalTests(unittest.TestCase):
                  'historical_qualified':False,'strength_qualified':False,'trained':False}
         attempted_at=datetime.now(timezone.utc)
         receipt['attempted_at_utc']=attempted_at.isoformat()
-        receipt['implementation_sha256']={name:hashlib.sha256((ROOT/'src/ygo_kito'/name).read_bytes()).hexdigest()
-            for name in ('windbot_projection.py','windbot_room.py','native.py','native_response_guard.py')}
+        receipt.update(implementation_receipt())
         frames=decisions=0;prompts=Counter();messages=Counter();started=time.monotonic()
         try:
             with WindBotProjectionEngine(ROOT/'.cache',observer=0,scenario='effect-duel',

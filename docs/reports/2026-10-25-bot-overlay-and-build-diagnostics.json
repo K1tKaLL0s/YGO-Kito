@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "kind": "exact-bot-overlay-and-build-diagnostic-engineering",
+  "base_source_commit": "26a39f8fcf4d69db9bb6c71442450ee475df7f94",
+  "variant": {
+    "variant_id": "pure-with-library-monarch506-exact-v1",
+    "manifest_sha256": "d9d9f78b2ba4ef5c0cc7520cf9d1d943b70784938542725fb8ae8a351c1723b4",
+    "manifest_file_sha256": "3b6bed728e1ae89bd84ce86e92172a16bab091212f6cbc2825c2c2ff6bc8f393",
+    "base": {
+      "repository": "purerosefallen/windbot",
+      "commit": "1b8f89537afe930ce96d2fc8d57b0e91b1f96457"
+    },
+    "donor": {
+      "repository": "mercury233/libWindbot",
+      "commit": "4d8cae5f08c8cd474fc65402bd163971d59bd3c8",
+      "path": "libWindbot/Game/AI/Decks/Monarch506Executor.cs"
+    },
+    "replacement": {
+      "path": "Game/AI/Decks/Monarch506Executor.cs",
+      "base_sha256": "c30c2ef5eafe9967260710ccf570e839cd713b491be3f32f9a81e67cda1e1e96",
+      "donor_sha256": "347fa5ee60bb88455528bd835fc513e7eb55acc15d35e55039869039efadbeb9"
+    }
+  },
+  "static_preparation": {
+    "archive_sha256": "179d5f93abf2fbb74170c9e2e55220b8ca46bb44b261620ebb0c61ff90640d45",
+    "files_excluding_manifest": 384,
+    "archive_local_path": ".cache/bot-source-review/monarch506-desktop-overlay-v1.tar.gz",
+    "plan_sha256": "f6b27d61b8c5a7c98b60b58e992cfb00cb9ac0f6427d903f09f1514ca419343c",
+    "expected_executors": 74,
+    "source_roots_unchanged": true,
+    "original_829_resource_package_unchanged": true,
+    "cross_source_ydk": [
+      {
+        "full_type": "WindBot.Game.AI.Decks.OldSchoolExecutor",
+        "deck_name": "OldSchool",
+        "deck_file": "AI_OldSchool",
+        "level": "Easy",
+        "selected_deck": {
+          "path": "/workspace/YGO-Kito-construction/.cache/bot-source-review/IceYGO--windbot/source/Decks/AI_OldSchool.ydk",
+          "sha256": "1b1f411fcfc7d187c7478855ee7c8e462dc03d33065b2fabb706756b22e84469"
+        },
+        "selected_deck_source_id": "ice"
+      }
+    ],
+    "network_requests_this_round": 0,
+    "compiled": false,
+    "runtime_loaded": false
+  },
+  "configuration_comparison": {
+    "key": "UsePreErrataEffects",
+    "explicit_pure_value": true,
+    "single_assignment_result": false,
+    "library_assignment_result": false,
+    "source_byte_equivalent": false,
+    "runtime_equivalence_verified": false,
+    "scope": "Static comparison of exact fixed files: every other byte is equal; only Monarch506 reads this key in the reviewed Pure tree."
+  },
+  "build_failure_api": {
+    "exception": "ygo_kito.bot_build_audit.BuildAuditError",
+    "structured_attribute": "report",
+    "stages": [
+      "prepare",
+      "report_setup",
+      "preflight",
+      "output_setup",
+      "desktop_build",
+      "audit_harness_compile",
+      "assembly_input",
+      "assembly_audit",
+      "audit_output_validation",
+      "post_audit_integrity"
+    ],
+    "process_fields": [
+      "argv",
+      "cwd",
+      "timeout_seconds",
+      "log_path",
+      "log_sha256",
+      "process_started",
+      "returncode",
+      "outcome",
+      "reaped",
+      "reaped_scope"
+    ],
+    "unknown_actual_load_is_null": true,
+    "fixture_reaped_is_null": true,
+    "reaped_scope": "direct child only; installed CPython subprocess.run timeout kill/wait code inspected",
+    "raw_process_output_or_private_deck_data_copied": false,
+    "automatic_retry_or_tool_fallback": false
+  },
+  "cpu_tests": {
+    "modules": [
+      "tests.test_bot_deployment",
+      "tests.test_bot_build_audit",
+      "tests.test_bot_overlay"
+    ],
+    "passed": 37,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 1.501,
+    "evidence_scope": "inert source/opener/process/audit-validator fixtures and one real existing OS false process; no Mono/C# or game native execution"
+  },
+  "implemented_execution_path": {
+    "explicit_variant_build_flag": "--variant-root",
+    "full_executor_build": 74,
+    "audit_kind": "complete-desktop-bot-overlay-build-audit",
+    "registry_optional_parameters": [
+      "variant_root",
+      "session_seconds"
+    ],
+    "unique_managed_room_factory": true,
+    "distinct_registered_record_and_driver_identity": true,
+    "session_default_seconds": 120,
+    "session_max_seconds": 300,
+    "rebind_preserves_variant_and_limit": true
+  },
+  "not_executed": {
+    "csharp_compile": true,
+    "csharp_reflection": true,
+    "third_party_constructor": true,
+    "third_party_normal_duel": true,
+    "variant_execute": true,
+    "android_build": true,
+    "paid_or_external_provider": true
+  },
+  "toolchain_status": {
+    "status": "still_blocked",
+    "existing_receipt": "docs/reports/2026-10-25-bot-toolchain-block.json",
+    "system_install_reason": "uid1000/no sudo/dpkg lock EACCES",
+    "configured_apt_reason": "proxy HTTP403",
+    "retried_or_alternate_source_attempted_this_round": false
+  },
+  "remaining_execution_scope": "Original exact Ice/Pure builds and loopback approval is recorded; actual extra library-file desktop variant execution is not included by assumption. Preparation and callable code implemented without running it.",
+  "strength_verified": false,
+  "history_verified": false,
+  "training_connected": false
+}

@@ -10,6 +10,7 @@ import threading
 import time
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
 
 from tests.fixtures import request as fixture_request
 from ygo_kito.build_contracts import DeckParts, digest
@@ -40,6 +41,12 @@ def request_dict(request):
 def start_message():
     return WindBotMessage(4, {"player_type": 0, "duel_rule": 5, "life_points": (8000, 8000),
         "deck_counts": (40, 40), "extra_counts": (0, 0)})
+
+
+def unknown_record(sequence):
+    record = {name: 0 for name in ("code", "alias", "type", "level", "rank", "attribute", "race",
+        "attack", "defense", "base_attack", "base_defense", "status", "lscale", "rscale", "link", "link_marker")}
+    return dict(record, sequence=sequence, equip=(0, 0, 0, 0), targets=[], overlay=[], counters=[])
 
 
 def exact(sock, count):
@@ -157,6 +164,22 @@ class WindBotWindowTests(unittest.TestCase):
         with self.assertRaises(ContractError):
             game_message(WindBotMessage(40, {"player": 0, "seed": 7}), window)
 
+    def test_hint_recipients_follow_the_locked_server_in_both_directions(self):
+        window = self.window()
+        for hint in range(1, 12):
+            for source in (0, 1):
+                allowed = hint in (10, 11) or hint in (1, 2, 3, 5) and source == 0 or hint in (4, 6, 7, 8, 9) and source == 1
+                facts = {"hint": hint, "player": source, "value": 123}
+                with self.subTest(hint=hint, source=source):
+                    if allowed:
+                        self.assertEqual(game_message(WindBotMessage(2, facts), window),
+                            packet(1, bytes((2, hint, source)) + struct.pack("<I", 123)))
+                    else:
+                        with self.assertRaisesRegex(ContractError, "fixed LAN recipient"):
+                            game_message(WindBotMessage(2, facts), window)
+        with self.assertRaises(ContractError):
+            game_message(WindBotMessage(2, {"hint": 12, "player": 0, "value": 123}), window)
+
     def test_confirm_cards_requires_current_visible_local_slots_and_never_deck_order(self):
         raw = request_dict(legal_request())
         raw["observation"]["cards"].append({"ref": "public-hand", "owner": 1,
@@ -177,6 +200,54 @@ class WindBotWindowTests(unittest.TestCase):
             game_message(WindBotMessage(31, {"player": 0, "skip_panel": False,
                 "cards": [dict(card, controller=0, location=1, sequence=0)]}), window)
 
+    def test_public_confirmation_can_precede_a_move_after_its_old_hand_object_disappears(self):
+        raw = request_dict(legal_request()); raw["observation"]["hand_counts"][1] = 0
+        raw["observation"]["public_history"].append({"event_id": "broadcast-confirm", "kind": "reveal",
+            "card_ids": [123], "details": {"message": 31, "player": 0,
+                "locations": [{"controller": 1, "zone": "hand"}]}})
+        request = DecisionRequest.from_dict(raw)
+        facts = {"player": 0, "skip_panel": False, "public_ref": "broadcast-confirm",
+            "cards": [{"card_id": 123, "controller": 1, "location": 2, "sequence": 0}]}
+        confirm = WindBotMessage(31, facts)
+        move = WindBotMessage(50, {"card_id": 123, "previous": (1, 2, 0, 0), "current": (1, 16, 0, 1), "reason": 0})
+        proof = {"public_history_range": {"start": 0, "end": len(request.observation.public_history)},
+            "public_confirmations": {"broadcast-confirm": {"message_index": 0}}}
+        def make_window(changed_facts=facts, changed_proof=proof):
+            return self.window(request, frame_for(request, messages=(WindBotMessage(31, changed_facts), move), facts=changed_proof))
+        window = make_window()
+        self.assertFalse(any(c.controller == 1 and c.zone == "hand" for c in request.observation.cards))
+        self.assertEqual(game_message(confirm, window)[3:], bytes((31, 0, 0, 1)) + struct.pack("<I", 123) + bytes((1, 2, 0)))
+        self.assertTrue(game_message(move, window))
+        with self.assertRaisesRegex(ContractError, "old, repeated"):
+            game_message(confirm, window)
+        for changed in (dict(facts, public_ref="not-this-frame"), dict(facts, player=1),
+                        dict(facts, cards=[dict(facts["cards"][0], card_id=999)]),
+                        dict(facts, cards=[dict(facts["cards"][0], sequence=1)])):
+            with self.subTest(changed=changed), self.assertRaises(ContractError):
+                game_message(WindBotMessage(31, changed), make_window(changed))
+        for changed in (dict(proof, public_history_range={"start": len(request.observation.public_history), "end": len(request.observation.public_history)}),
+                        dict(proof, public_confirmations={"broadcast-confirm": {"message_index": 1}})):
+            with self.subTest(changed=changed), self.assertRaises(ContractError):
+                game_message(confirm, make_window(changed_proof=changed))
+
+    def test_historical_public_field_sequence_is_exact_and_equal_content_needs_distinct_refs(self):
+        raw = request_dict(legal_request())
+        for ref in ("broadcast-a", "broadcast-b"):
+            raw["observation"]["public_history"].append({"event_id": ref, "kind": "reveal", "card_ids": [123],
+                "details": {"message": 31, "player": 0, "locations": [{"controller": 1, "zone": "monster", "sequence": 2}]}})
+        request = DecisionRequest.from_dict(raw)
+        messages = tuple(WindBotMessage(31, {"player": 0, "skip_panel": False, "public_ref": ref,
+            "cards": [{"card_id": 123, "controller": 1, "location": 4, "sequence": 2}]}) for ref in ("broadcast-a", "broadcast-b"))
+        facts = {"public_history_range": {"start": 1, "end": 3},
+            "public_confirmations": {m.fields["public_ref"]: {"message_index": i} for i, m in enumerate(messages)}}
+        window = self.window(request, frame_for(request, messages=messages, facts=facts))
+        self.assertTrue(game_message(messages[0], window)); self.assertTrue(game_message(messages[1], window))
+        changed = WindBotMessage(31, dict(messages[0].fields, cards=[dict(messages[0].fields["cards"][0], sequence=3)]))
+        window = self.window(request, frame_for(request, messages=(changed,), facts=dict(facts,
+            public_confirmations={"broadcast-a": {"message_index": 0}})))
+        with self.assertRaisesRegex(ContractError, "identity/location multiset"):
+            game_message(changed, window)
+
     def test_face_down_host_queries_only_admit_the_complete_public_material_list(self):
         raw = request_dict(legal_request())
         raw["observation"]["cards"] += [{"ref": "hidden-host", "owner": None, "controller": 1,
@@ -196,6 +267,167 @@ class WindBotWindowTests(unittest.TestCase):
                      {"sequence": 0, "overlay": [123], "code": 9}):
             with self.subTest(card=card), self.assertRaisesRegex(ContractError, "hidden"):
                 query(card)
+
+    def test_private_deck_confirmation_is_bound_to_an_exact_order_free_legal_revelation(self):
+        raw = request_dict(legal_request())
+        raw["private_reveals"] = [{"ref": "legal-past-confirmation", "observer": 0, "message": 31,
+            "cards": [{"card_id": code, "controller": 1, "zone": "deck"} for code in (123, 456)]}]
+        request = DecisionRequest.from_dict(raw)
+        window = self.window(request, frame_for(request))
+        rows = [dict(card_id=code, controller=1, location=1, sequence=i) for i, code in enumerate((123, 456))]
+        facts = {"player": 0, "skip_panel": True, "knowledge_ref": "legal-past-confirmation", "cards": rows}
+        encoded = game_message(WindBotMessage(31, facts), window)
+        self.assertEqual(encoded[3:7], bytes((31, 0, 1, 2)))
+        self.assertEqual(encoded[7:], struct.pack("<I", 123) + bytes((1, 1, 0)) + struct.pack("<I", 456) + bytes((1, 1, 1)))
+        for change in (dict(facts, player=1), dict(facts, knowledge_ref="unknown"),
+                       dict(facts, cards=rows[:1]), dict(facts, cards=list(reversed(rows))),
+                       dict(facts, cards=[dict(rows[0], sequence=38), rows[1]]),
+                       dict(facts, cards=[dict(rows[0], card_id=999), rows[1]])):
+            with self.subTest(change=change), self.assertRaises(ContractError):
+                game_message(WindBotMessage(31, change), window)
+
+    def test_unknown_reset_is_complete_zero_only_and_uses_public_old_vector_bounds(self):
+        request = legal_request()
+        departure = WindBotMessage(50, {"card_id": 0, "previous": (1, 2, 1, 0),
+            "current": (1, 16, 0, 1), "reason": 0})
+        window = self.window(request, frame_for(request, messages=(departure,)))
+        def query(record, **extra):
+            return game_message(WindBotMessage(7, dict(player=1, location=2, sequence=record["sequence"],
+                cards=[record], redact=True, **extra)), window)
+        reset = query(unknown_record(1))  # One card left; one public departure permits its old slot 1.
+        record_size, flags = struct.unpack_from("<II", reset, 7)
+        self.assertEqual(record_size, 88)
+        self.assertEqual(len(reset), record_size + 7)
+        self.assertFalse(flags & (2 | 0x40000))  # Neither private position nor invented ownership.
+        self.assertEqual(reset[15:], b"\0" * 80)
+        for record in (dict(unknown_record(1), attack=1), {"sequence": 1, "code": 0}, unknown_record(2),
+                       dict(unknown_record(1), targets=[(1, 4, 0, 0)])):
+            with self.subTest(record=record), self.assertRaises(ContractError):
+                query(record)
+        with self.assertRaisesRegex(ContractError, "single exact"):
+            game_message(WindBotMessage(6, {"player": 1, "location": 2, "cards": [unknown_record(0)], "redact": True}), window)
+
+    def test_swap_old_deck_reset_uses_public_conserved_zone_counts(self):
+        raw = request_dict(legal_request())
+        raw["observation"]["deck_counts"][1] = 2
+        raw["observation"]["cards"] += [{"ref": f"grave-{i}", "owner": 1, "controller": 1,
+            "zone": "graveyard", "visibility": "public", "card_id": 123} for i in range(30)]
+        request = DecisionRequest.from_dict(raw)
+        window = self.window(request, frame_for(request, messages=(WindBotMessage(35, {"player": 1, "old_grave_types": []}),)))
+        facts = dict(player=1, location=1, sequence=29, cards=[unknown_record(29)], redact=True)
+        self.assertTrue(game_message(WindBotMessage(7, facts), window))
+        with self.assertRaisesRegex(ContractError, "publicly bounded"):
+            game_message(WindBotMessage(7, dict(facts, sequence=32, cards=[unknown_record(32)])), window)
+
+    def test_public_top_confirmations_keep_multisets_without_original_positions(self):
+        raw = request_dict(legal_request())
+        for kind in (30, 42):
+            raw["observation"]["public_history"].append({"event_id": f"top-{kind}", "kind": "reveal",
+                "card_ids": [456, 123], "details": {"message": kind, "player": 1}})
+        raw["observation"]["public_history"].append({"event_id": "top-38", "kind": "reveal",
+            "card_ids": [123], "details": {"message": 38, "player": 1}})
+        request = DecisionRequest.from_dict(raw); window = self.window(request, frame_for(request))
+        for kind, zone in ((30, 1), (42, 64)):
+            first = game_message(WindBotMessage(kind, {"player": 1, "card_ids": [456, 123]}), window)
+            second = game_message(WindBotMessage(kind, {"player": 1, "card_ids": [123, 456]}), window)
+            self.assertEqual(first, second)
+            self.assertEqual(first[6:], struct.pack("<I", 123) + bytes((1, zone, 0)) + struct.pack("<I", 456) + bytes((1, zone, 0)))
+            with self.assertRaisesRegex(ContractError, "history evidence"):
+                game_message(WindBotMessage(kind, {"player": 1, "card_ids": [999]}), window)
+        top = game_message(WindBotMessage(38, {"player": 1, "card_id": 123, "faceup": True}), window)
+        self.assertEqual(top[4:], bytes((1, 0)) + struct.pack("<I", 123 | 0x80000000))
+        with self.assertRaises(ContractError):
+            game_message(WindBotMessage(38, {"player": 1, "card_id": 123, "faceup": True, "offset": 9}), window)
+
+    def test_set_shuffle_canonicalizes_old_slots_and_never_sends_hidden_permutation(self):
+        slots = [(1, 4, 3, 8), (1, 4, 1, 8)]
+        window = self.window()
+        first = game_message(WindBotMessage(36, {"location": 4, "slots": slots}), window)
+        self.assertEqual(first, game_message(WindBotMessage(36, {"location": 4, "slots": list(reversed(slots))}), window))
+        self.assertEqual(first[4:], bytes((4, 2, 1, 4, 1, 8, 1, 4, 3, 8)) + b"\0" * 8)
+        for change in (dict(location=4, slots=slots, destinations=list(reversed(slots))),
+                       dict(location=4, slots=[slots[0], (1, 4, 5, 8)]),
+                       dict(location=4, slots=[slots[0], (0, 4, 1, 8)]),
+                       dict(location=4, slots=[slots[0], (1, 4, 1, 1)]),
+                       dict(location=4, slots=slots * 3)):
+            with self.subTest(change=change), self.assertRaises(ContractError):
+                game_message(WindBotMessage(36, change), window)
+
+    def test_other_existing_native_events_have_exact_named_layouts(self):
+        a, b = (0, 4, 1, 1), (1, 4, 3, 4)
+        layouts = ((35, {"player": 1, "old_grave_types": []}, b"\1"), (37, {}, b""),
+            (54, {"slot": a}, b"\0" * 4 + bytes(a)),
+            (55, {"first_card_id": 123, "first": a, "second_card_id": 456, "second": b},
+                struct.pack("<I", 123) + bytes(a) + struct.pack("<I", 456) + bytes(b)),
+            (56, {"mask": 0x10001}, struct.pack("<I", 0x10001)),
+            (81, {"player": 0, "slots": [a, b]}, bytes((0, 2)) + bytes(a) + bytes(b)),
+            (83, {"slots": [a]}, bytes((1,)) + bytes(a)),
+            (95, {"slot": a}, bytes(a)),  # Legacy client codec, not a current core emitted event.
+            (120, {"card_id": 123, "slot": a}, struct.pack("<I", 123) + bytes(a)),
+            (130, {"player": 0, "values": [0, 1]}, bytes((0, 2, 0, 1))),
+            (131, {"player": 1, "values": [1, 6]}, bytes((1, 2, 1, 6))),
+            (133, {"values": [2, 3]}, bytes((14,))),
+            (160, {"slot": a, "hint": 2, "value": 123}, bytes(a) + b"\2" + struct.pack("<I", 123)),
+            (165, {"player": 1, "hint": 6, "value": 999}, bytes((1, 6)) + struct.pack("<I", 999)),
+            (170, {"card_id": 123}, struct.pack("<I", 123)))
+        for kind, facts, body in layouts:
+            with self.subTest(kind=kind):
+                self.assertEqual(game_message(WindBotMessage(kind, facts), self.window())[3:], bytes((kind,)) + body)
+        for kind, facts in ((120, {"card_id": 123, "slot": b}),
+                            (130, {"player": 1, "values": [2]}), (131, {"player": 1, "values": [0]}),
+                            (133, {"values": [0, 1]}),
+                            (55, {"first_card_id": 0, "first": a, "second_card_id": 999, "second": (1, 2, 0, 0)})):
+            with self.subTest(kind=kind), self.assertRaises(ContractError):
+                game_message(WindBotMessage(kind, facts), self.window())
+
+    def test_swap_refreshes_public_catalog_classification_before_client_bookkeeping(self):
+        raw = request_dict(legal_request())
+        raw["observation"]["public_history"].append({"event_id": "old-extra-to-grave", "kind": "move",
+            "card_ids": [123], "details": {"message": 50, "locations": [{"controller": 1, "zone": "graveyard", "sequence": 0}]}})
+        request = DecisionRequest.from_dict(raw)
+        facts = {"player": 1, "old_grave_types": [{"sequence": 0, "card_id": 123, "type": 0x800001}]}
+        window = self.window(request, frame_for(request, messages=(WindBotMessage(35, facts),)))
+        encoded = game_message(WindBotMessage(35, facts), window)
+        update_size = struct.unpack_from("<H", encoded)[0]
+        update, swap = encoded[:update_size + 2], encoded[update_size + 2:]
+        self.assertEqual(update, packet(1, bytes((7, 1, 16, 0)) + struct.pack("<IIII", 16, 9, 123, 0x800001)))
+        self.assertEqual(swap, packet(1, bytes((35, 1))))
+        with self.assertRaises(ContractError):
+            game_message(WindBotMessage(35, {"player": 1}), window)
+        for row in ({"sequence": 0, "card_id": 999, "type": 0x800001},
+                    {"sequence": 1, "card_id": 123, "type": 0x800001},
+                    {"sequence": 0, "card_id": 123, "type": 0}):
+            with self.subTest(row=row), self.assertRaises(ContractError):
+                game_message(WindBotMessage(35, {"player": 1, "old_grave_types": [row]}), window)
+
+    def test_first_public_activation_initializes_catalog_type_before_executor_callback(self):
+        raw = request_dict(legal_request())
+        raw["observation"]["public_history"].append({"event_id": "hand-trap-activation", "kind": "activate",
+            "card_ids": [1], "details": {"message": 70}})
+        request = DecisionRequest.from_dict(raw); window = self.window(request, frame_for(request))
+        facts = {"card_id": 1, "card_type": 17, "slot": (0, 2, 0, 0), "chain_location": (0, 2, 0),
+                 "description": 16, "link": 1}
+        encoded = game_message(WindBotMessage(70, facts), window)
+        update_size = struct.unpack_from("<H", encoded)[0]
+        self.assertEqual(encoded[:update_size + 2], packet(1, bytes((7, 0, 2, 0)) + struct.pack("<IIII", 16, 9, 1, 17)))
+        self.assertEqual(encoded[update_size + 2:], packet(1, bytes((70,)) + struct.pack("<I", 1)
+            + bytes((0, 2, 0, 0, 0, 2, 0)) + struct.pack("<I", 16) + b"\1"))
+        # A field trap monster may already have a legal dynamic monster Type;
+        # its printed trap Type must not replace that state before OnChaining.
+        field = game_message(WindBotMessage(70, dict(facts, card_type=4, slot=(0, 4, 0, 1))), window)
+        self.assertEqual(field[3], 70)
+        self.assertEqual(struct.unpack_from("<H", field)[0] + 2, len(field))
+        for change in (dict(facts, card_type=0), dict(facts, card_id=999)):
+            with self.subTest(change=change), self.assertRaises(ContractError):
+                game_message(WindBotMessage(70, change), window)
+        with self.assertRaisesRegex(WindBotUnsupported, "persistent"):
+            game_message(WindBotMessage(70, dict(facts, slot=(0, 132, 0, 0))), window)
+
+    def test_legacy_unequip_codec_does_not_claim_current_native_consumer_support(self):
+        from ygo_kito.native_protocol import NativeError, Reader
+        from ygo_kito.public_history import consume
+        with self.assertRaisesRegex(NativeError, "unsupported revision-3 native event 95"):
+            consume(SimpleNamespace(), 95, Reader(bytes((0, 8, 0, 0))), {})
 
     def test_exact_battle_layout_matches_the_fixed_client_reader(self):
         payload = game_message(WindBotMessage(111, {"attacker": (0, 4, 0, 1), "attacker_attack": 1000,
@@ -339,7 +571,7 @@ class WindBotLoopbackTests(unittest.TestCase):
                 room.accept()
             self.assertTrue(room.closed)
 
-    def start_peer(self, room, *, reply=struct.pack("<i", 0), wrong_deck=False, token=None, wait=0., duplicate=False):
+    def start_peer(self, room, *, reply=struct.pack("<i", 0), wrong_deck=False, token=None, wait=0., duplicate=False, hold=None):
         errors = []
         def peer():
             try:
@@ -359,6 +591,8 @@ class WindBotLoopbackTests(unittest.TestCase):
                     self.assertEqual(receive(sock)[1][0], 11)
                     if wait: time.sleep(wait)
                     sock.sendall(packet(1, reply) * (2 if duplicate else 1))
+                    if hold is not None:
+                        hold.wait(2.)
             except (EOFError, BrokenPipeError, ConnectionResetError):
                 pass  # Expected when the host rejects or times out a fixture.
             except BaseException as error:
@@ -404,6 +638,26 @@ class WindBotLoopbackTests(unittest.TestCase):
                 room.choose(request, frame_for(request, version="v2"))
             self.assertTrue(room.closed)
             thread.join(2.); self.assertEqual(errors, [])
+
+    def test_connection_history_range_cannot_replay_or_replace_a_consumed_prefix(self):
+        for mutation in ("replay-range", "changed-prefix", "truncated-prefix"):
+            hold = threading.Event()
+            with self.subTest(mutation=mutation), WindBotRoom(DeckParts(tuple([1] * 40)), observer=0, duel_rule=5, timeout=1.) as room:
+                thread, errors = self.start_peer(room, hold=hold)
+                try:
+                    room.accept(); request = legal_request()
+                    facts = {"public_history_range": {"start": 0, "end": 1}}
+                    room.choose(request, frame_for(request, messages=(start_message(),), facts=facts))
+                    raw = request_dict(request); raw["decision_id"] += "-next"
+                    if mutation == "changed-prefix": raw["observation"]["public_history"][0]["card_ids"] = [999]
+                    if mutation == "truncated-prefix": raw["observation"]["public_history"] = []
+                    next_request = DecisionRequest.from_dict(raw)
+                    with self.assertRaisesRegex(ContractError, "public (confirmation )?history"):
+                        room.choose(next_request, frame_for(next_request, version="v2", facts=facts))
+                    self.assertTrue(room.closed)
+                finally:
+                    hold.set(); thread.join(2.)
+                self.assertEqual(errors, [])
 
     def test_launcher_is_explicit_non_server_loopback_and_rejects_unknown_executor(self):
         with tempfile.TemporaryDirectory() as temporary, WindBotRoom(DeckParts(tuple([1] * 40)), observer=0, duel_rule=5) as room:

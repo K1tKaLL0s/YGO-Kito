@@ -13,7 +13,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-from ygo_kito.bot_build_audit import execute_plan, prepare_plan
+from ygo_kito.bot_build_audit import BuildAuditError, execute_plan, failure_report, prepare_plan, prepare_overlay_plan
 from ygo_kito.validation import ContractError
 
 
@@ -28,25 +28,39 @@ def main():
     p.add_argument("--report", type=Path, required=True)
     p.add_argument("--execute", action="store_true")
     p.add_argument("--construct", action="store_true")
+    p.add_argument("--variant-root", type=Path, help="explicit separately verified exact Monarch506 overlay; does not modify original pins")
+    p.add_argument("--timeout", type=float, default=180)
     for tool in ("mono", "compiler", "msbuild"): p.add_argument("--" + tool, type=Path)
     args = p.parse_args()
     try:
+        args.report.parent.mkdir(parents=True, exist_ok=True)
+        report_handle = args.report.open("x", encoding="utf-8")
+    except OSError:
+        print(json.dumps(failure_report("exclusive report destination unavailable; no build attempted", stage="report_setup")))
+        return 2
+    plan = None
+    try:
         lock = json.loads(args.lock.read_text(encoding="utf-8"))
-        plan = prepare_plan(lock, json.loads(args.roots.read_text()), args.source_id,
-                            args.cards_cdb, args.cards_sha256, args.build_directory)
+        roots = json.loads(args.roots.read_text())
+        if args.variant_root is not None:
+            if args.source_id != "pure":
+                raise ContractError("the exact overlay has an explicit Pure desktop base only")
+            plan = prepare_overlay_plan(lock, roots, args.variant_root, args.cards_cdb, args.cards_sha256, args.build_directory)
+        else:
+            plan = prepare_plan(lock, roots, args.source_id, args.cards_cdb, args.cards_sha256, args.build_directory)
         if not args.execute:
             result = plan
-        elif any(getattr(args, t) is None for t in ("mono", "compiler", "msbuild")):
-            raise ContractError("all explicit verified Mono/compiler/MSBuild paths are required; no execution")
         else:
             result = execute_plan(lock, plan, mono=args.mono, compiler=args.compiler, msbuild=args.msbuild,
-                                  construct=args.construct)
+                                  construct=args.construct, timeout=args.timeout)
         code = 0
+    except BuildAuditError as error:
+        result, code = error.report, 2
     except (ContractError, OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
-        result, code = {"error": str(error), "runtime_loaded": False, "training_connected": False}, 2
-    args.report.parent.mkdir(parents=True, exist_ok=True)
-    with args.report.open("x", encoding="utf-8") as handle:
-        json.dump(result, handle, ensure_ascii=False, indent=2); handle.write("\n")
+        message = str(error) if isinstance(error, ContractError) else "required input could not be read or parsed"
+        result, code = failure_report(message, plan=plan), 2
+    with report_handle:
+        json.dump(result, report_handle, ensure_ascii=False, indent=2); report_handle.write("\n")
     print(json.dumps({"report": str(args.report), "runtime_loaded": result.get("runtime_loaded", False), "exit_code": code}))
     return code
 
