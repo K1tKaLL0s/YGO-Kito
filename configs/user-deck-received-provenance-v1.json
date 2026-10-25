@@ -1,0 +1,416 @@
+{
+  "schema_version": 1,
+  "dataset_id": "received-user-decks-20261026-v1",
+  "intake_config": "configs/user-deck-intake-received-v1.json",
+  "publication_scope": "User-authorized numeric listings and anonymized source/edition descriptions only.",
+  "source_materialization": {
+    "original_attachment_bytes_materialized": false,
+    "original_attachment_bytes_sha256": null,
+    "representation": "Normalized JSON derived from user-image transcriptions, complete Library logical-text reads and exact authorized revisions; not original attachment bytes.",
+    "author_comments_published": false,
+    "private_source_identifiers_published": false
+  },
+  "activation": {
+    "training_enabled": false,
+    "formal_training_ready": false,
+    "controllers_configured": false,
+    "external_provider_verified": false,
+    "source_only_bots_are_runnable": false,
+    "full_per_card_release_manifest_verified": false,
+    "card_effects_verified": false,
+    "native_executed": false
+  },
+  "slots": [
+    {
+      "slot_id": "main-01",
+      "reference_id": "main-01-source-v1",
+      "reference_path": "configs/user-deck-references/main-01-source-v1.json",
+      "period_id": "2022-07",
+      "normalized_deck_sha256": "2520a0b227ec0b909c580fdb50da9d83a98fecf6bfeb0f0e28d1319951affc66",
+      "usage": "received_main_listing"
+    },
+    {
+      "slot_id": "main-02",
+      "reference_id": "main-02-source-v1",
+      "reference_path": "configs/user-deck-references/main-02-source-v1.json",
+      "period_id": "2022-10",
+      "normalized_deck_sha256": "b97fcaddcfae9665ef134356191558f7b6a68eda7e609f0b7f676328f6412bc4",
+      "usage": "received_main_listing"
+    },
+    {
+      "slot_id": "main-03",
+      "reference_id": "main-03-reference-v2",
+      "reference_path": "configs/user-deck-references/main-03-reference-v2.json",
+      "period_id": "2026-10",
+      "normalized_deck_sha256": "83a2d51e28ec0a4f1c669d4137465ec5f252486553024042d8803cce78c89374",
+      "usage": "optional_reference_for_autonomous_theme_selection"
+    },
+    {
+      "slot_id": "opponent-01",
+      "reference_id": "opponent-01-runick-source-v1",
+      "reference_path": "configs/user-deck-references/opponent-01-runick-source-v1.json",
+      "period_id": "2022-10",
+      "normalized_deck_sha256": "f04c604d47417c8ab4e32a9e9a3a410ea6f1518aaadd1c9b7b6485be32f1afb2",
+      "usage": "received_opponent_listing"
+    },
+    {
+      "slot_id": "opponent-02",
+      "reference_id": "opponent-02-floowandereeze-supplement-v2",
+      "reference_path": "configs/user-deck-references/opponent-02-floowandereeze-supplement-v2.json",
+      "period_id": "2022-10",
+      "normalized_deck_sha256": "6b90b40ee900d6bf7c5e1123a40bc4df2a483c3fec76fe104309559e4409f57f",
+      "usage": "received_opponent_listing"
+    },
+    {
+      "slot_id": "opponent-03",
+      "reference_id": "opponent-03-spright-source-v1",
+      "reference_path": "configs/user-deck-references/opponent-03-spright-source-v1.json",
+      "period_id": "2022-07",
+      "normalized_deck_sha256": "0612b84f7405ca496726107f93a5e9b3737f6efb7bef5e12e75f6f132ae32592",
+      "usage": "received_opponent_listing"
+    },
+    {
+      "slot_id": "opponent-04",
+      "reference_id": "opponent-04-moonglade-source-v1",
+      "reference_path": "configs/user-deck-references/opponent-04-moonglade-source-v1.json",
+      "period_id": "2026-10",
+      "normalized_deck_sha256": "1678960573b72f552a082f747f3f2771a78b2a03199b35549075929d4d15bbe6",
+      "usage": "received_opponent_listing"
+    },
+    {
+      "slot_id": "opponent-05",
+      "reference_id": "opponent-05-mitsurugi-revision-v2",
+      "reference_path": "configs/user-deck-references/opponent-05-mitsurugi-revision-v2.json",
+      "period_id": "2026-10",
+      "normalized_deck_sha256": "5e2531a0343a285261a29f484db864c419c070cc63e5974eed32d87eae384d33",
+      "usage": "received_opponent_listing"
+    },
+    {
+      "slot_id": "opponent-06",
+      "reference_id": "opponent-06-doom-z-art-source-v1",
+      "reference_path": "configs/user-deck-references/opponent-06-doom-z-art-source-v1.json",
+      "period_id": "2026-10",
+      "normalized_deck_sha256": "685db3e5f8f254d3319f325e4fa0c8ad39c82469e0f47180f4dab97c76d4be2f",
+      "usage": "received_opponent_listing"
+    }
+  ],
+  "unfilled_slots": [
+    "opponent-07",
+    "opponent-08"
+  ],
+  "modern_main_policy": {
+    "theme_selection": "autonomous",
+    "user_listing_role": "optional_reference",
+    "reference_is_exclusive_entry": false,
+    "missing_reference_ids_gate_other_themes": false
+  },
+  "editions": [
+    {
+      "reference_id": "main-01-source-v1",
+      "path": "configs/user-deck-references/main-01-source-v1.json",
+      "period_id": "2022-07",
+      "edition_status": "received_pending_resources_and_runtime",
+      "selected_slot": "main-01",
+      "counts": {
+        "main": 40,
+        "extra": 15,
+        "side": 15
+      },
+      "normalized_deck_sha256": "2520a0b227ec0b909c580fdb50da9d83a98fecf6bfeb0f0e28d1319951affc66"
+    },
+    {
+      "reference_id": "main-02-source-v1",
+      "path": "configs/user-deck-references/main-02-source-v1.json",
+      "period_id": "2022-10",
+      "edition_status": "received_pending_resources_and_runtime",
+      "selected_slot": "main-02",
+      "counts": {
+        "main": 40,
+        "extra": 15,
+        "side": 15
+      },
+      "normalized_deck_sha256": "b97fcaddcfae9665ef134356191558f7b6a68eda7e609f0b7f676328f6412bc4"
+    },
+    {
+      "reference_id": "main-03-reference-v1",
+      "path": "configs/user-deck-references/main-03-reference-v1.json",
+      "period_id": "2026-10",
+      "edition_status": "superseded_reference_only",
+      "selected_slot": null,
+      "counts": {
+        "main": 40,
+        "extra": 15,
+        "side": 15
+      },
+      "normalized_deck_sha256": "340dc6cc39e1e59605e4b8502a878f6f977a9df6fbd5a9f9303d6dac4de325d5"
+    },
+    {
+      "reference_id": "main-03-reference-v2",
+      "path": "configs/user-deck-references/main-03-reference-v2.json",
+      "period_id": "2026-10",
+      "edition_status": "optional_reference_only",
+      "selected_slot": "main-03",
+      "counts": {
+        "main": 40,
+        "extra": 15,
+        "side": 15
+      },
+      "normalized_deck_sha256": "83a2d51e28ec0a4f1c669d4137465ec5f252486553024042d8803cce78c89374"
+    },
+    {
+      "reference_id": "opponent-01-runick-source-v1",
+      "path": "configs/user-deck-references/opponent-01-runick-source-v1.json",
+      "period_id": "2022-10",
+      "edition_status": "received_pending_resources_and_runtime",
+      "selected_slot": "opponent-01",
+      "counts": {
+        "main": 40,
+        "extra": 15,
+        "side": 15
+      },
+      "normalized_deck_sha256": "f04c604d47417c8ab4e32a9e9a3a410ea6f1518aaadd1c9b7b6485be32f1afb2"
+    },
+    {
+      "reference_id": "opponent-02-floowandereeze-side0-v1",
+      "path": "configs/user-deck-references/opponent-02-floowandereeze-side0-v1.json",
+      "period_id": "2022-10",
+      "edition_status": "superseded_reference_only",
+      "selected_slot": null,
+      "counts": {
+        "main": 41,
+        "extra": 15,
+        "side": 0
+      },
+      "normalized_deck_sha256": "77fbdc8e737b9b344fd9f87f37effec9609c191fe3e81b71e1067d53f71c346d"
+    },
+    {
+      "reference_id": "opponent-02-floowandereeze-supplement-v2",
+      "path": "configs/user-deck-references/opponent-02-floowandereeze-supplement-v2.json",
+      "period_id": "2022-10",
+      "edition_status": "user_authorized_supplement_pending_resources_and_runtime",
+      "selected_slot": "opponent-02",
+      "counts": {
+        "main": 41,
+        "extra": 15,
+        "side": 15
+      },
+      "normalized_deck_sha256": "6b90b40ee900d6bf7c5e1123a40bc4df2a483c3fec76fe104309559e4409f57f"
+    },
+    {
+      "reference_id": "opponent-03-spright-source-v1",
+      "path": "configs/user-deck-references/opponent-03-spright-source-v1.json",
+      "period_id": "2022-07",
+      "edition_status": "received_pending_resources_and_runtime",
+      "selected_slot": "opponent-03",
+      "counts": {
+        "main": 41,
+        "extra": 15,
+        "side": 15
+      },
+      "normalized_deck_sha256": "0612b84f7405ca496726107f93a5e9b3737f6efb7bef5e12e75f6f132ae32592"
+    },
+    {
+      "reference_id": "opponent-04-moonglade-source-v1",
+      "path": "configs/user-deck-references/opponent-04-moonglade-source-v1.json",
+      "period_id": "2026-10",
+      "edition_status": "received_pending_resources_and_runtime",
+      "selected_slot": "opponent-04",
+      "counts": {
+        "main": 40,
+        "extra": 15,
+        "side": 15
+      },
+      "normalized_deck_sha256": "1678960573b72f552a082f747f3f2771a78b2a03199b35549075929d4d15bbe6"
+    },
+    {
+      "reference_id": "opponent-05-mitsurugi-quarantined-v1",
+      "path": "configs/user-deck-references/opponent-05-mitsurugi-quarantined-v1.json",
+      "period_id": "2026-10",
+      "edition_status": "quarantined_reference_only",
+      "selected_slot": null,
+      "counts": {
+        "main": 40,
+        "extra": 15,
+        "side": 15
+      },
+      "normalized_deck_sha256": "d0f4e5a19e9c5a26d43c1ca1b382c5a6697d18f9bc29fc2cae357e7797a66ee4"
+    },
+    {
+      "reference_id": "opponent-05-mitsurugi-revision-v2",
+      "path": "configs/user-deck-references/opponent-05-mitsurugi-revision-v2.json",
+      "period_id": "2026-10",
+      "edition_status": "user_authorized_revision_pending_resources_and_runtime",
+      "selected_slot": "opponent-05",
+      "counts": {
+        "main": 40,
+        "extra": 15,
+        "side": 15
+      },
+      "normalized_deck_sha256": "5e2531a0343a285261a29f484db864c419c070cc63e5974eed32d87eae384d33"
+    },
+    {
+      "reference_id": "opponent-06-doom-z-art-source-v1",
+      "path": "configs/user-deck-references/opponent-06-doom-z-art-source-v1.json",
+      "period_id": "2026-10",
+      "edition_status": "received_pending_resources_and_runtime",
+      "selected_slot": "opponent-06",
+      "counts": {
+        "main": 40,
+        "extra": 15,
+        "side": 15
+      },
+      "normalized_deck_sha256": "685db3e5f8f254d3319f325e4fa0c8ad39c82469e0f47180f4dab97c76d4be2f"
+    }
+  ],
+  "authorized_revisions": [
+    {
+      "revision_id": "main03-one-id-v2",
+      "source_reference": "main-03-reference-v1",
+      "selected_reference": "main-03-reference-v2",
+      "authorization": "Exact user-authorized substitution only.",
+      "changes": [
+        {
+          "zone": "extra",
+          "index_1based": 6,
+          "removed": 80843006,
+          "added": 11765832
+        }
+      ]
+    },
+    {
+      "revision_id": "floowandereeze-side-supplement-v2",
+      "source_reference": "opponent-02-floowandereeze-side0-v1",
+      "selected_reference": "opponent-02-floowandereeze-supplement-v2",
+      "authorization": "User-authorized Side Deck supplement.",
+      "main_and_extra_unchanged": true,
+      "original_side": [],
+      "supplemented_side": [
+        24508238,
+        24508238,
+        8267140,
+        8267140,
+        8267140,
+        54693926,
+        54693926,
+        54693926,
+        14532163,
+        14532163,
+        15693423,
+        15693423,
+        87639778,
+        87639778,
+        87639778
+      ]
+    },
+    {
+      "revision_id": "mitsurugi-exact-fifteen-v2",
+      "source_reference": "opponent-05-mitsurugi-quarantined-v1",
+      "selected_reference": "opponent-05-mitsurugi-revision-v2",
+      "authorization": "Exact user-authorized parent-reviewed revision; no additional construction edits.",
+      "change_count": 15,
+      "zone_change_counts": {
+        "main": 9,
+        "extra": 1,
+        "side": 5
+      },
+      "changes": [
+        {
+          "zone": "main",
+          "index_1based": 15,
+          "removed": 14558127,
+          "added": 10045474
+        },
+        {
+          "zone": "main",
+          "index_1based": 20,
+          "removed": 23434538,
+          "added": 84192580
+        },
+        {
+          "zone": "main",
+          "index_1based": 23,
+          "removed": 13048472,
+          "added": 18176525
+        },
+        {
+          "zone": "main",
+          "index_1based": 24,
+          "removed": 13048472,
+          "added": 18176525
+        },
+        {
+          "zone": "main",
+          "index_1based": 29,
+          "removed": 45171524,
+          "added": 40543231
+        },
+        {
+          "zone": "main",
+          "index_1based": 30,
+          "removed": 45171524,
+          "added": 49721684
+        },
+        {
+          "zone": "main",
+          "index_1based": 35,
+          "removed": 24224830,
+          "added": 65681983
+        },
+        {
+          "zone": "main",
+          "index_1based": 36,
+          "removed": 24224830,
+          "added": 10045474
+        },
+        {
+          "zone": "main",
+          "index_1based": 39,
+          "removed": 40366667,
+          "added": 10045474
+        },
+        {
+          "zone": "extra",
+          "index_1based": 12,
+          "removed": 90590303,
+          "added": 11398059
+        },
+        {
+          "zone": "side",
+          "index_1based": 5,
+          "removed": 94145021,
+          "added": 84192580
+        },
+        {
+          "zone": "side",
+          "index_1based": 6,
+          "removed": 94145021,
+          "added": 84192580
+        },
+        {
+          "zone": "side",
+          "index_1based": 10,
+          "removed": 91800273,
+          "added": 24508238
+        },
+        {
+          "zone": "side",
+          "index_1based": 12,
+          "removed": 41420027,
+          "added": 40605147
+        },
+        {
+          "zone": "side",
+          "index_1based": 13,
+          "removed": 41420027,
+          "added": 40605147
+        }
+      ],
+      "parent_official_review": {
+        "review_cutoff": "2026-10-25",
+        "banlist_url": "https://www.yugioh-card.com/japan/event/limitregulation/index.php?list=202610",
+        "scope": "Parent review of 2026.10 limits and added-card OCG release; not a full per-card release manifest or engine validation.",
+        "independently_repeated_here": false
+      }
+    }
+  ]
+}
