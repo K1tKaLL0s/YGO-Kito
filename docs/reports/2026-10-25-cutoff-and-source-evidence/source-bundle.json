@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "source_commit": "c6af3753d986e9c15b3a17a96747d060882664b6",
+  "local_path": ".cache/ygo-training-source-c6af375.tar.gz",
+  "bundle_sha256": "b683ae3a3315a110a620450f5da6dcf0a8f5074c0626a7871e23420d203b0cf0",
+  "bytes": 676640,
+  "files": 271,
+  "verified": true,
+  "workspace_file_mismatches": [],
+  "runtime_assets_included": false,
+  "checkpoints_included": false,
+  "credentials_included": false,
+  "training_started": false,
+  "note": "This replaces the old 0c7b537 source snapshot for the current cutoff software. Runtime resources and user decks remain separate."
+}
