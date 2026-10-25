@@ -1,0 +1,6 @@
+test_real_extra_host_material_history_never_exposes_extra_sequence_and_replays (integration_tests.test_protocol_history.RealXyzHistoryRevisionTests.test_real_extra_host_material_history_never_exposes_extra_sequence_and_replays) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 1.189s
+
+OK

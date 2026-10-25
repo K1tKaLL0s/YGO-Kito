@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "workflow": "four-model-alternating-v1",
+  "max_updates": 2,
+  "validate_every": 1,
+  "checkpoint_every": 1,
+  "wall_seconds": 180.0,
+  "cpu_config": {},
+  "task": "configs/build-engineering-v1.json",
+  "adapters": "configs/lora-engineering-v1.json",
+  "bootstrap_seed": 1724,
+  "stages_per_worker": 13,
+  "train": {
+    "profile": "configs/effect-duel-v1.json",
+    "opponent": "visible-effects-first-v1",
+    "seed_start": 1725,
+    "seed_stride": 1
+  },
+  "validation": {
+    "profile": "configs/effect-duel-validation-v1.json",
+    "opponent": "visible-effects-last-option-v1",
+    "seeds": [1001724],
+    "policy_seed": 100456
+  }
+}

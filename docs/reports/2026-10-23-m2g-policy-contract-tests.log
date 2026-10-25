@@ -1,0 +1,15 @@
+test_coding_handoff_is_prepared_only_with_explicit_model_and_work_branch (tests.test_agent_tools.AgentContractTests.test_coding_handoff_is_prepared_only_with_explicit_model_and_work_branch) ... ok
+test_control_revisions_idempotency_and_uncertain_result_do_not_retry (tests.test_agent_tools.AgentContractTests.test_control_revisions_idempotency_and_uncertain_result_do_not_retry) ... ok
+test_empty_monitor_has_no_fake_training_runs_or_provider_connection (tests.test_agent_tools.AgentContractTests.test_empty_monitor_has_no_fake_training_runs_or_provider_connection) ... ok
+test_fixed_roles_reject_control_decks_and_role_override (tests.test_agent_tools.AgentContractTests.test_fixed_roles_reject_control_decks_and_role_override) ... ok
+test_json_lines_reject_duplicate_keys_without_executing_request (tests.test_agent_tools.AgentContractTests.test_json_lines_reject_duplicate_keys_without_executing_request) ... ok
+test_monitor_reads_finite_metrics_and_rejects_hidden_or_malformed_fields (tests.test_agent_tools.AgentContractTests.test_monitor_reads_finite_metrics_and_rejects_hidden_or_malformed_fields) ... ok
+test_monitor_rejects_traversal_and_symlink_escape (tests.test_agent_tools.AgentContractTests.test_monitor_rejects_traversal_and_symlink_escape) ... ok
+test_registered_checkpoint_verifies_bytes_without_deserializing_weights (tests.test_agent_tools.AgentContractTests.test_registered_checkpoint_verifies_bytes_without_deserializing_weights) ... ok
+test_trainer_hook_collects_local_resources_and_atomically_publishes_validated_revision (tests.test_agent_tools.AgentContractTests.test_trainer_hook_collects_local_resources_and_atomically_publishes_validated_revision) ... ok
+test_training_control_without_backend_reports_not_executed (tests.test_agent_tools.AgentContractTests.test_training_control_without_backend_reports_not_executed) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.014s
+
+OK

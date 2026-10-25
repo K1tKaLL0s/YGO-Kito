@@ -1,10 +1,12 @@
 # YGO-Kito
 
-游戏王 AI 项目的私密设计、资料与开发规划仓库。
+游戏王 AI 项目的私密设计、资料与 CPU 基础开发仓库。
 
 ## 当前开发入口
 
 **请先阅读 [统一开发说明与训练交付计划（2026-10-22，UTC+8）](docs/plans/2026-10-22-unified-development-spec.md)。** 本文承接《游戏王AI项目设计定稿.docx》1.0（2026-10-19），合并本轮逐项确认；明确更新处以统一说明为准，未更新的原定稿意图继续保留。原件不是实现完成证明。
+
+**持续进度入口：[总工作清单 MASTER-CHECKLIST](docs/plans/MASTER-CHECKLIST.md)。** 每批完成后同步稳定任务 ID、状态和证据，符合验收条件才勾选；部分完成保持未勾选。该表索引全阶段进度，保留[第一阶段详细清单](docs/plans/2026-10-22-phase-1-cpu-checklist.md)，不替代统一规范。PR 已发布不表示已合并。
 
 - 模型组：决斗模型＋构筑目标/优化两个子模型，由轻量统筹模型和确定性程序包裹；三个执行模型独立小 Transformer，共享数据规范，不强制共享权重。
 - 先训练基本模型组，LLM 后置且非必需。**LoRA 是基模后的常规持续适配路线**，不是旧文所说的完全可不开展。
@@ -13,9 +15,59 @@
 - 第一阶段真实规则核心，第二阶段训练前验证 PC YGOPro／萌卡兼容。**手机端及 YGOMobile 暂移出本期范围**；云端训练与 PC 推理/微调的硬件压力仍必须记录。
 - 构筑预测与实战反馈：百场内明显落后预警、千场内明显落后强制重构；具体统计阈值实施前冻结。
 
-当前为设计整合，不表示代码已开发、训练已开始、性能已达标或离线本机已同步。具体版本、模型大小、超参数、兼容性和资源指标须实测。
+当前已有CPU骨架、固定上游源码构建的core、限定真实终局/重放，以及四个独立网络原型。历史v3完整公开卡库的决斗Transformer为266,018参数；v4匿名/卡名原型配置见[历史报告](docs/reports/2026-10-23-private-hierarchy-v4.md)，当前私有记忆特征已升v5，旧权重不静默兼容。原构筑词表的目标/优化各17,729参数，64卡工程词表各18,417参数；统筹MLP648参数。词表和实验大小不是最终容量冻结。已串通构筑托付、版本预测、冻结策略验证、回收及恢复；规则控制最终行为，统筹学习原型仍为明示合成监督。
+
+本轮已发布[schema4长周期/真实CB/索引恢复](docs/reports/2026-10-23-schema4-course-and-cb.md)：四模型/LoRA课程、组合目标与同阶段SQL快照的代码/config已在用户明确批准静态工程配置后保存到[bb50555](https://github.com/K1tKaLL0s/YGO-Kito/commit/bb50555136c8d7bf40b7626a68ffb698587177e7)。[命令和边界](docs/development/schema4-course-and-cb.md)对应云端40d3e65受测源码；总清单T06-03/MG03-03/D08-02已按有界验收勾选，PR未合并，正式1A/1B/PC仍未通过。完整私有对局轨迹仍只留云端。
+
+此前已发布[构筑语义、数据隔离与可执行对手](docs/reports/2026-10-23-semantic-indexed-opponents.md)新增schema4公开属性/主题计数约束与有限编辑、实际双构筑更新/恢复，及train/validation/final_eval索引准入。注册牌表含额外/副卡接真实核心，规则对手和冻结模型已实际对局/PPO/重放；不把注册或弱对手胜负当强度。固定源码MSG18多区无现成调用入口，版本限定分类与MSG24两种双区真实响应已闭合。[CPU命令](docs/development/semantic-indexed-opponents.md)仅导出共同公开历史/聚合证据，完整私有工件留云端。该发布版构筑特征为v4，旧权重不静默兼容；云端新特征版本及未发布状态见最新报告。
+
+此前[合法私有记忆/盖放宿主v5](docs/reports/2026-10-23-private-knowledge-v5.md)补齐选定隐藏卡组MSG26、对方卡组确认后/洗切后选择及盖放宿主公共素材/真实破坏；该源163单元/155集成和独立7轨迹重放通过。[原CPU入口](docs/development/private-knowledge-v5.md)保留私有边界证据；当批MSG18多区无真实用例，本批补版本分类，仍不假称真实18多区。
+
+此前[私有选择与完整候选分层v4](docs/reports/2026-10-23-private-hierarchy-v4.md)实现显式匿名／混合选择、全部14280合法卡名的神经分层决策及真实PPO/恢复；实际高位大数求和、控制交换和翻转召唤另有规则证据。[独立CPU入口](docs/development/private-selection-hierarchy.md)保存真实轨迹／收据，分开规范更新和恢复对照；完整回归与边界按源记录，不把工程前缀当模型能力。这些原v4缺口的选定真实机制由后续v5补齐，完整一般课程仍缺。
+
+此前[MSG23特殊求和与公开历史v3](docs/reports/2026-10-23-protocol-history-v3.md)已有真实mode1／双值、指示物分配、多区域、排序、宣言和猜拳，以及版本化共同公开历史。显式新版profile启用；旧轨迹保留，私有候选与牌序不进入共同历史。[原CPU入口](docs/development/protocol-history-v3.md)继续保留历史范围，不代表一般卡池或竞技能力通过。
+
+此前[MSG26、公开搜索与真实比较课程](docs/reports/2026-10-23-discovery-curriculum.md)已通过独立CPU命令：原生取消/增删/完成、无预写路线同调/超量探索与缺口扩池，真实比较源接四模型双周期，故障恢复与连续运行一致。[可重复入口](docs/development/discovery-curriculum.md)。这是有界工程证据，完整阶段/一般构筑/竞技能力仍待验。
+
+此前[额外/素材与实战纠偏增量](docs/reports/2026-10-23-extra-material-feedback.md)已有真实同调/超量路线、MSG23及公开素材/除外观察、完整终局与成对规则驱动实战数据的双模型更新/恢复；[一条非付费CPU命令](docs/development/extra-material-feedback.md)已实际退出0，墙钟48.19秒、峰值326.82MiB、20份工件回读通过。108项完整集成已过，最后缓存修正后121单元及其中14项集成复验通过；各源版本/日志分开列明。完整阶段与竞技能力未据此通过。
+
+此前[四模型交替CPU交付](docs/reports/2026-10-23-four-model-runner.md)已接成配置周期，含基模冒烟后冻结、LoRA适配、版本预测、冻结核心评估及规则反馈、真实崩溃/阶段预算恢复；默认课程仍明确用条件通常召唤/弱代理。新实战数据通过同一BuildTrainer显式接入，未静默替换课程。更广协议、一般组合发现/构筑能力、三期数据/合格对手及大规模课程仍缺。**full_phase_1_delivered及formal_training_ready仍false**；特征/源码更新后旧权重需原版本重现或显式迁移，原权重不覆写。无付费训练，云端开发不表示本机已同步。
+
+预测/统计配置仍待校准；25/125是完整工程配置在合成样例上的首次触发，没有缩小百/千场设计。LoRA工程正确性不证明迁移能力，PC门槛和标准回放未通过。
+
+运行与验收见 [CPU 骨架说明](docs/development/cpu-foundation.md)、[阶段任务清单](docs/plans/2026-10-22-phase-1-cpu-checklist.md)及[云端启动实证](docs/reports/2026-10-22-cloud-bootstrap.md)。本云端可执行：
+
+```bash
+cd /workspace/YGO-Kito
+PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
+PYTHONPATH=src .venv/bin/python -m ygo_kito --config configs/cpu.toml status
+```
+
+`duel-run` 仍拒绝一般对局；限定卡池的 [native-duel / native-replay](docs/development/normal-duel.md) 与原 [native-smoke](docs/development/native-smoke.md) 使用明确准备的真实资源。纯接口测试与合成夹具不计入真实引擎证据。原学习包保持不变，学生 TODO 与亲手新增测试仍由用户完成。
+
+[native-effects / native-effect-replay](docs/development/selected-effects.md) 覆盖两个固定真实脚本路线，并区分费用、对象、否定与处理；控制器重放轨迹不作为玩家公开历史或策略输入。
+
+[native-search / native-search-replay](docs/development/search-trigger.md) 覆盖合法卡组候选、选中后的公开确认、场上/卡组送墓诱发条件及同卡复活后的同回合次数限制；不向对手暴露未选候选或牌序。
+
+[M2e 次数与发动资格回归](docs/development/count-reset.md) 补充跨回合重置、两张同名副本共享次数，以及检索后发动封锁与未检索对照；卡片汽车·D 只验证发动资格，没有执行其解放费用、抽卡或结束阶段处理。
+
+[决斗模型CPU训练/恢复说明](docs/development/cpu-duel-training.md)提供明确的 `duel-train-cpu` 命令、工程配置和真实checkpoint/监控接口。只用既有云端CPU，不启动付费资源或外部API；模型权重在云端缓存保存，PR提交代码、原始指标和哈希。工程样例不替代用户牌组或独立能力验收。
+
+[构筑目标/优化CPU说明](docs/development/cpu-building.md)提供 `build-train-cpu`、`build-check`、主/额外/副卡DTO及目标→优化→目标→优化接口。目标模型使用真实条件路线/明确硬失败监督，优化模型仅以明示的弱代理比较作训练；当前17张工程pool不取代未来交叉检索，非空额外卡表合法不代表额外路线已接入。JSON输出已实际导入现有注册器，用户3＋8套仍待接收。
+
+[统筹与四模型闭环说明](docs/development/coordinator-model-group.md)提供 `model-group-cpu`、分权 `coordinator-call`、固定预测/谱系/单在途任务、预设百场/千场反馈及完整组checkpoint；合成统计与真实结果分账。
+
+[LoRA管理与腾讯云受限交接](docs/development/lora-and-cloud-handoff.md)提供 `lora-group-cpu`、`training-preflight`、`budget-call`，实际适配器/基模版本绑定、真实恢复和既定100h规划入口；CPU健康通过不放行正式门槛。CodeBuddy/DeepSeek真实联调、计费/停机核验和PC验证待验，不启动腾讯云或扩PC应用。
+
+[一条命令与本地训练控制](docs/development/local-training-control.md)提供 `engineering-acceptance`、`cpu-runner-acceptance` 和宿主 `--local-cpu-control --local-training-config configs/cpu-runner-v1.json`。示范会有意终止自己管理的worker并验证恢复；每个worker有内核墙钟期限，本地停止始终不证明腾讯云计费停止。
+
+[四模型交替指南](docs/development/four-model-runner.md)提供 `group-runner-acceptance`，宿主选择 `configs/group-runner-v1.json` 即可沿用同一JSON权限/控制入口；逐阶段保存四模型、全部优化器/适配器、调度/RNG/数据标记和累计预算，不自动续额。
 
 [2026-10-21 旧阶段计划](docs/plans/2026-10-21-development-and-training-budget.md) 与 [旧技术复核](docs/reviews/2026-10-21-technical-route-review.md) 保留决策历史，不再作为最新选型入口。尤其旧文的 LoRA 可选、移动端后续排期、预算未分配和架构待讨论表述，不覆盖统一说明。
+
+[M2f通用协议与完整效果对局](docs/reports/2026-10-23-general-protocol-m2f.md)新增效果描述、落点、选项/解放接口及4条40张工程效果牌组真实终局；[协议矩阵](docs/development/native-protocol-matrix.md)明确真实覆盖和拒绝范围。用户3＋8套卡组尚未接收，不阻塞工程样例验证。当前额度停止阈值为20%，替代旧5%。
+
+[外部 agent 接口与 CodeBuddy 接入指南](docs/development/external-agent-interface.md)提供分权本地JSON CLI、实际显式CPU控制、卡组/环境/对手池和真实核心单席位动作。**CodeBuddy/DeepSeek和云/通用训练后端尚未联调；当前本地CPU后端默认关闭，须宿主启用。** 用户3＋8套待接收，样例不替代；后续主动盘点实际机器人和三期历史覆盖，再建议补充主题。
 
 ## 现行文档
 
@@ -43,8 +95,8 @@
 ## 归档说明
 
 - [原件清单与 SHA-256](archive-manifest.json) 记录 11 份原件的来源 ID、字节数和哈希。
-- 练习包保持 ZIP 原样，已静态检查其中 6 个教学文件；本次未解包到项目目录，未执行脚本或测试。
-- 本次未开始开发、训练或下载模型；未收录密钥、账户配置、模型权重、大型数据或无关私人资料。未核实的 ygo_work_handoff.zip 未收录。
+- 练习包保持 ZIP 原样，原归档时已静态检查其中 6 个教学文件；本次工程测试独立于学生练习，不解包覆盖或代填学生 TODO。
+- 原件归档时未开始开发；现已有CPU骨架及自行初始化的决斗/构筑目标/优化/统筹原型工程更新，未启动付费训练或下载模型。仓库未收录密钥、账户配置、权重二进制、大型数据或无关私人资料；小型工程checkpoint在云端缓存保存。未核实的 ygo_work_handoff.zip 未收录。
 - 原件均保留在原来源；两个小幅修订版的字节和哈希不同，分别归档。
 - PDF 中原有的 C2PA Content Credentials 来源元数据保留在文件内。
 

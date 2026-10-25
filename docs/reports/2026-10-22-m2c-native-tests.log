@@ -1,0 +1,20 @@
+test_actual_counter_chain_retains_paid_cost_and_prevents_target_destruction (test_effect_cases.RealEffectCasesTests.test_actual_counter_chain_retains_paid_cost_and_prevents_target_destruction) ... ok
+test_actual_uncountered_resolution_destroys_both_selected_targets (test_effect_cases.RealEffectCasesTests.test_actual_uncountered_resolution_destroys_both_selected_targets) ... ok
+test_hidden_target_identity_and_private_prompt_data_are_not_in_player_view (test_effect_cases.RealEffectCasesTests.test_hidden_target_identity_and_private_prompt_data_are_not_in_player_view) ... ok
+test_observer_local_windows_do_not_encode_opponent_private_window_count (test_effect_cases.RealEffectCasesTests.test_observer_local_windows_do_not_encode_opponent_private_window_count) ... ok
+test_real_core_rejects_empty_discard_cost (test_effect_cases.RealEffectCasesTests.test_real_core_rejects_empty_discard_cost) ... ok
+test_real_response_replay_and_old_normal_replay_still_work (test_effect_cases.RealEffectCasesTests.test_real_response_replay_and_old_normal_replay_still_work) ... ok
+test_cli_uses_real_engine_in_child_process (test_native_engine.RealNativeEngineTests.test_cli_uses_real_engine_in_child_process) ... ok
+test_real_observation_and_stale_duplicate_or_invented_responses (test_native_engine.RealNativeEngineTests.test_real_observation_and_stale_duplicate_or_invented_responses) ... ok
+test_real_pool_limits_and_single_process_lifecycle (test_native_engine.RealNativeEngineTests.test_real_pool_limits_and_single_process_lifecycle) ... ok
+test_real_summon_repeats_from_seed_with_database_and_upstream_scripts (test_native_engine.RealNativeEngineTests.test_real_summon_repeats_from_seed_with_database_and_upstream_scripts) ... ok
+test_both_players_receive_only_own_hand_and_public_state_until_terminal (test_normal_duel.RealNormalDuelTests.test_both_players_receive_only_own_hand_and_public_state_until_terminal) ... ok
+test_budget_abort_is_not_a_fabricated_win (test_normal_duel.RealNormalDuelTests.test_budget_abort_is_not_a_fabricated_win) ... ok
+test_modified_or_truncated_replay_is_rejected_by_real_execution (test_normal_duel.RealNormalDuelTests.test_modified_or_truncated_replay_is_rejected_by_real_execution) ... ok
+test_real_game_reaches_native_win_and_replays_all_events_and_responses (test_normal_duel.RealNormalDuelTests.test_real_game_reaches_native_win_and_replays_all_events_and_responses) ... ok
+test_real_set_card_is_hidden_from_next_player (test_normal_duel.RealNormalDuelTests.test_real_set_card_is_hidden_from_next_player) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 13.554s
+
+OK

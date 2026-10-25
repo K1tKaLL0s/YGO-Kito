@@ -1,0 +1,36 @@
+[
+  {
+    "name": "unit",
+    "command": [
+      ".venv/bin/python",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests",
+      "-v"
+    ],
+    "source_commit": "20c9aa93fc417db831f3b953589ebf75a336f31d",
+    "started_utc": "2026-10-23T03:50:49.232895+00:00",
+    "exit_code": 0,
+    "wall_seconds": 12.011726290002116,
+    "log": "docs/reports/2026-10-23-discovery-unit-tests.log"
+  },
+  {
+    "name": "integration",
+    "command": [
+      ".venv/bin/python",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "integration_tests",
+      "-v"
+    ],
+    "source_commit": "20c9aa93fc417db831f3b953589ebf75a336f31d",
+    "started_utc": "2026-10-23T03:51:01.244952+00:00",
+    "exit_code": 1,
+    "wall_seconds": 539.5505810279938,
+    "log": "docs/reports/2026-10-23-discovery-integration-tests.log"
+  }
+]

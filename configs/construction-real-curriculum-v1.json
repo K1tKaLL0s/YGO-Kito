@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "source": "explicit-frozen-real-comparison-engineering-v1",
+  "train": "configs/build-real-feedback-v1.json",
+  "validation": "configs/build-real-feedback-validation-v1.json",
+  "comparison_seconds": 30
+}

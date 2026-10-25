@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ygo-kito"
+version = "0.1.0"
+description = "CPU infrastructure and contracts for YGO-Kito; real engine integration pending"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.optional-dependencies]
+semantic = ["scipy==1.16.3"]
+
+[project.scripts]
+ygo-kito = "ygo_kito.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

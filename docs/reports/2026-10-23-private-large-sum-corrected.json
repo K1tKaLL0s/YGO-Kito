@@ -1,0 +1,14 @@
+{
+  "kind": "real-engineering-seed-search-not-ability",
+  "success": true,
+  "elapsed_seconds": 0.5611620519994176,
+  "attempts": [
+    {
+      "seed": 3,
+      "sum_values": [
+        67200
+      ],
+      "success": true
+    }
+  ]
+}

@@ -1,0 +1,2229 @@
+{
+  "adapter_artifacts": {
+    "build_goal": {
+      "adapter_version": "7f85fb4a4bfba7298992f57776f833ac938612066ae8bfa48b66770ea8f7eb43",
+      "artifact_bytes": 25880,
+      "artifact_sha256": "4c0a6feb56127fe35ec68904544ba3f1148756defa4e5b6381ce78fe74845906",
+      "base_sha256": "0884c75cf8b84f3b37d3e6b869b61cca16e0806a1359d28affb7733b633e5600",
+      "contains_base_weights": false,
+      "updates": 2
+    },
+    "build_optimizer": {
+      "adapter_version": "61c14e00114dd0a85b436805ad90caf04c7beddc49480e4c0d466d129bd6fc58",
+      "artifact_bytes": 25944,
+      "artifact_sha256": "d0478448ebc3f0e749f18eab8c5b45874692f6b8c9cc65409cba922000e1889a",
+      "base_sha256": "cb7971bccc5040724c38b024ea1b7612452482c58b0e0a3728b45a7f9f4dcb23",
+      "contains_base_weights": false,
+      "updates": 2
+    },
+    "coordinator": {
+      "adapter_version": "ece430ca72bae6c4ec6f3a451c90142c3e2391994f72feb443e5dc065084ecb9",
+      "artifact_bytes": 17624,
+      "artifact_sha256": "6ef11065bc543cf04da18bee4b50eb5fcc580189c9033afd056ef4a8f4dc5145",
+      "base_sha256": "1eb31517925da3f4aa8f5362814592690c293b9dd0ef46b5288bd7a6b7c2ba4b",
+      "contains_base_weights": false,
+      "updates": 2
+    },
+    "duel": {
+      "adapter_version": "8518b99f4839a381f2c69d8aefb5b56881454e37f7e700d3498c632d7347e524",
+      "artifact_bytes": 32704,
+      "artifact_sha256": "288b8dee5111d9cf141bb295249ee0f3bd83357eaee16cbc173bd2afcb253a65",
+      "base_sha256": "ca1be5ab45563b0df8438bf5b7da821745b18d257ca837a29aa8ad3b1cfca51d",
+      "contains_base_weights": false,
+      "updates": 2
+    }
+  },
+  "adapter_compatibility": {
+    "build_goal": {
+      "base_sha256": "0884c75cf8b84f3b37d3e6b869b61cca16e0806a1359d28affb7733b633e5600",
+      "binding": {
+        "base_version": "cpu-engineering-v1",
+        "context_sha256": "c4b2623c432a98aba218d316044e75a69ba2e9066e97e1094826df1289d1a273",
+        "feature_version": "build-task-catalog-candidate-v1"
+      },
+      "config": {
+        "adapter_id": "goal-engineering-v1",
+        "alpha": 8.0,
+        "learning_rate": 0.003,
+        "max_updates": 2,
+        "rank": 4,
+        "role": "build_goal",
+        "seed": 991,
+        "targets": [
+          "encoder.layers.0.linear1",
+          "encoder.layers.0.linear2",
+          "head.0"
+        ]
+      },
+      "kind": "lora-linear-cpu-v1",
+      "schema_version": 1,
+      "target_shapes": {
+        "encoder.layers.0.linear1": [
+          64,
+          32
+        ],
+        "encoder.layers.0.linear2": [
+          32,
+          64
+        ],
+        "head.0": [
+          32,
+          32
+        ]
+      }
+    },
+    "build_optimizer": {
+      "base_sha256": "cb7971bccc5040724c38b024ea1b7612452482c58b0e0a3728b45a7f9f4dcb23",
+      "binding": {
+        "base_version": "cpu-engineering-v1",
+        "context_sha256": "c4b2623c432a98aba218d316044e75a69ba2e9066e97e1094826df1289d1a273",
+        "feature_version": "build-task-catalog-candidate-v1"
+      },
+      "config": {
+        "adapter_id": "optimizer-engineering-v1",
+        "alpha": 8.0,
+        "learning_rate": 0.003,
+        "max_updates": 2,
+        "rank": 4,
+        "role": "build_optimizer",
+        "seed": 1101,
+        "targets": [
+          "encoder.layers.0.linear1",
+          "encoder.layers.0.linear2",
+          "head.0"
+        ]
+      },
+      "kind": "lora-linear-cpu-v1",
+      "schema_version": 1,
+      "target_shapes": {
+        "encoder.layers.0.linear1": [
+          64,
+          32
+        ],
+        "encoder.layers.0.linear2": [
+          32,
+          64
+        ],
+        "head.0": [
+          32,
+          32
+        ]
+      }
+    },
+    "coordinator": {
+      "base_sha256": "1eb31517925da3f4aa8f5362814592690c293b9dd0ef46b5288bd7a6b7c2ba4b",
+      "binding": {
+        "base_version": "cpu-engineering-v1",
+        "context_sha256": "8ac0223fa7bf2ba23305a8d49275d0c3479218d2cdb5034817551cc70281e2c7",
+        "feature_version": "coordinator-aggregate-context-v1"
+      },
+      "config": {
+        "adapter_id": "coordinator-engineering-v1",
+        "alpha": 8.0,
+        "learning_rate": 0.003,
+        "max_updates": 2,
+        "rank": 4,
+        "role": "coordinator",
+        "seed": 1211,
+        "targets": [
+          "encoder.0",
+          "encoder.2",
+          "route_head"
+        ]
+      },
+      "kind": "lora-linear-cpu-v1",
+      "schema_version": 1,
+      "target_shapes": {
+        "encoder.0": [
+          16,
+          14
+        ],
+        "encoder.2": [
+          16,
+          16
+        ],
+        "route_head": [
+          7,
+          16
+        ]
+      }
+    },
+    "duel": {
+      "base_sha256": "ca1be5ab45563b0df8438bf5b7da821745b18d257ca837a29aa8ad3b1cfca51d",
+      "binding": {
+        "base_version": "cpu-engineering-v1",
+        "context_sha256": "39f436ff1bf1f279d163ed8786ca9a6d792a23e0b8db4a419a280946e8f855be",
+        "feature_version": "legal-player-dto-v1"
+      },
+      "config": {
+        "adapter_id": "duel-engineering-v1",
+        "alpha": 8.0,
+        "learning_rate": 0.003,
+        "max_updates": 2,
+        "rank": 4,
+        "role": "duel",
+        "seed": 881,
+        "targets": [
+          "encoder.layers.0.linear1",
+          "encoder.layers.0.linear2",
+          "policy_head.0",
+          "value_head.0"
+        ]
+      },
+      "kind": "lora-linear-cpu-v1",
+      "schema_version": 1,
+      "target_shapes": {
+        "encoder.layers.0.linear1": [
+          64,
+          32
+        ],
+        "encoder.layers.0.linear2": [
+          32,
+          64
+        ],
+        "policy_head.0": [
+          32,
+          64
+        ],
+        "value_head.0": [
+          32,
+          32
+        ]
+      }
+    }
+  },
+  "adapter_training_episodes": 1,
+  "adapter_versions": {
+    "build_goal": "7f85fb4a4bfba7298992f57776f833ac938612066ae8bfa48b66770ea8f7eb43",
+    "build_optimizer": "61c14e00114dd0a85b436805ad90caf04c7beddc49480e4c0d466d129bd6fc58",
+    "coordinator": "ece430ca72bae6c4ec6f3a451c90142c3e2391994f72feb443e5dc065084ecb9",
+    "duel": "8518b99f4839a381f2c69d8aefb5b56881454e37f7e700d3498c632d7347e524"
+  },
+  "base_proof": {
+    "canonical_optimizer_calls": 7,
+    "competitive_ability_validated": false,
+    "file_sha256": "916bff973d9200f1abbc5c06744d408f4360b5e241f46fa817ee2cb52c51d92a",
+    "model_hashes": {
+      "build_goal": "0884c75cf8b84f3b37d3e6b869b61cca16e0806a1359d28affb7733b633e5600",
+      "build_optimizer": "cb7971bccc5040724c38b024ea1b7612452482c58b0e0a3728b45a7f9f4dcb23",
+      "coordinator": "1eb31517925da3f4aa8f5362814592690c293b9dd0ef46b5288bd7a6b7c2ba4b",
+      "duel": "ca1be5ab45563b0df8438bf5b7da821745b18d257ca837a29aa8ad3b1cfca51d"
+    },
+    "physical_complete_games": 3,
+    "run_id": "m3d-lora-20261023-final-base"
+  },
+  "binding": {
+    "feedback_policy": {
+      "calibration": "pending",
+      "checkpoints": [
+        25,
+        50,
+        75,
+        100,
+        125,
+        250,
+        500,
+        750,
+        1000
+      ],
+      "draw_score": 0.0,
+      "family_alpha": 0.05,
+      "margin": 0.1,
+      "minimum_matches": 25,
+      "schema_version": 1
+    },
+    "implementation_sha256": "c373069f9fe1c627f11717822568957fd2a32d2e4cbc93403d505a35ed4d11d6",
+    "python": "3.12.14",
+    "resources": {
+      "banlist": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+      "card_data_abi": "754c750eb26e81eba44de3253c056a89de364f942ec5cd63ecd9d9791acff45e",
+      "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+      "client_config": "07f92954941343d33f38eae3986997cc620d595301e67adb9e473bfa3c254d0c",
+      "client_protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+      "core_api": "cb7b33d709791e86be0b821152c1ca34c2a2c72847c3603b4a07826c88b802af",
+      "core_constants": "2c78c4c7c92306cd76f09cc111c28e6604e0e3d4fc16252ec31e8cb8d1493e17",
+      "library": "b33b0fb302e24e4757532f224f04aec21e4b16153979b112923c6f746b2e531f",
+      "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+    },
+    "schema_version": 1,
+    "source_commits": {
+      "client": "0d76e26b30c5ddb0273ee746459506c5719fddb6",
+      "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+      "database": "217ae165c1886af2fc36b823fc08f9fc3ec13185",
+      "lua": "6e22fedb74cf0c9b6656e9fce8b7331db847c605",
+      "scripts": "b83db1cc3f512d3bec2faafb9ecf199143332be1"
+    },
+    "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+    "torch": "2.14.1+cpu"
+  },
+  "candidate_reused_from_base": true,
+  "canonical_adapter_evaluation_matches": 1,
+  "canonical_adapter_optimizer_calls": 8,
+  "canonical_all_optimizer_calls_including_base": 15,
+  "checkpoint": {
+    "artifact_bytes": 4080233,
+    "artifact_sha256": "7ec4c4fe035d83b2d4642ffc9dd034d3df21fcac065ae55cf9b43950cf656bd7",
+    "boundary": "pending-unclaimed-duel-job",
+    "ledger_sha256": "af852b108b5b5ae579b182866b1593accaea2563fd5629d922da4d5cafde1c84",
+    "ledger_state_sha256": "15c4a3162632367f82fded4c0e4f9314b423def9180ff7a44b0f39be5a9a16b2",
+    "path": "group-adapted-before-duel.weights"
+  },
+  "competitive_ability_validated": false,
+  "construction": {
+    "best_criterion": "engineering_mean_printed_attack_proxy_only",
+    "best_deck": {
+      "extra": [],
+      "main": [
+        32864,
+        32864,
+        549481,
+        732302,
+        732302,
+        732302,
+        756652,
+        756652,
+        756652,
+        1184620,
+        1184620,
+        1184620,
+        1761063,
+        1761063,
+        1761063,
+        1784619,
+        1784619,
+        1784619,
+        1929294,
+        1929294,
+        2118022,
+        2118022,
+        2311603,
+        2311603,
+        2311603,
+        2468169,
+        2468169,
+        2483611,
+        2483611,
+        2830619,
+        2830619,
+        2863439,
+        2863439,
+        2906250,
+        2906250,
+        2957055,
+        2957055,
+        69247929,
+        69247929,
+        69247929
+      ],
+      "side": [
+        2957055
+      ]
+    },
+    "competitive_ability_validated": false,
+    "failures": [],
+    "kind": "goal-optimizer-alternation",
+    "schema_version": 1,
+    "stage_budget": 4,
+    "stages": [
+      {
+        "candidate_count": 4,
+        "changes": [
+          {
+            "after": 2,
+            "before": 0,
+            "card_id": 32864,
+            "zone": "main"
+          },
+          {
+            "after": 2,
+            "before": 0,
+            "card_id": 549481,
+            "zone": "main"
+          },
+          {
+            "after": 3,
+            "before": 0,
+            "card_id": 732302,
+            "zone": "main"
+          },
+          {
+            "after": 3,
+            "before": 0,
+            "card_id": 756652,
+            "zone": "main"
+          },
+          {
+            "after": 3,
+            "before": 0,
+            "card_id": 1184620,
+            "zone": "main"
+          },
+          {
+            "after": 3,
+            "before": 0,
+            "card_id": 1761063,
+            "zone": "main"
+          },
+          {
+            "after": 3,
+            "before": 0,
+            "card_id": 1784619,
+            "zone": "main"
+          },
+          {
+            "after": 2,
+            "before": 0,
+            "card_id": 1929294,
+            "zone": "main"
+          },
+          {
+            "after": 2,
+            "before": 0,
+            "card_id": 2118022,
+            "zone": "main"
+          },
+          {
+            "after": 2,
+            "before": 0,
+            "card_id": 2311603,
+            "zone": "main"
+          },
+          {
+            "after": 2,
+            "before": 0,
+            "card_id": 2468169,
+            "zone": "main"
+          },
+          {
+            "after": 2,
+            "before": 0,
+            "card_id": 2483611,
+            "zone": "main"
+          },
+          {
+            "after": 2,
+            "before": 0,
+            "card_id": 2830619,
+            "zone": "main"
+          },
+          {
+            "after": 2,
+            "before": 0,
+            "card_id": 2863439,
+            "zone": "main"
+          },
+          {
+            "after": 2,
+            "before": 0,
+            "card_id": 2906250,
+            "zone": "main"
+          },
+          {
+            "after": 2,
+            "before": 0,
+            "card_id": 2957055,
+            "zone": "main"
+          },
+          {
+            "after": 3,
+            "before": 0,
+            "card_id": 69247929,
+            "zone": "main"
+          },
+          {
+            "after": 1,
+            "before": 0,
+            "card_id": 2957055,
+            "zone": "side"
+          }
+        ],
+        "deck": {
+          "extra": [],
+          "main": [
+            32864,
+            32864,
+            549481,
+            549481,
+            732302,
+            732302,
+            732302,
+            756652,
+            756652,
+            756652,
+            1184620,
+            1184620,
+            1184620,
+            1761063,
+            1761063,
+            1761063,
+            1784619,
+            1784619,
+            1784619,
+            1929294,
+            1929294,
+            2118022,
+            2118022,
+            2311603,
+            2311603,
+            2468169,
+            2468169,
+            2483611,
+            2483611,
+            2830619,
+            2830619,
+            2863439,
+            2863439,
+            2906250,
+            2906250,
+            2957055,
+            2957055,
+            69247929,
+            69247929,
+            69247929
+          ],
+          "side": [
+            2957055
+          ]
+        },
+        "elapsed_seconds": 1.2275371180003276,
+        "engineering_proxy": 1162.5,
+        "lora_version": "7f85fb4a4bfba7298992f57776f833ac938612066ae8bfa48b66770ea8f7eb43",
+        "model_score_uncalibrated": 0.02222602069377899,
+        "model_sha256": "d574e8b7e323262287817d4510cbc043c3370535ca6bfeaa50b88e9a7b48affc",
+        "role": "build_goal",
+        "stage": 0,
+        "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+        "uncertainty": "uncalibrated engineering prototype; construction quality unknown",
+        "validation": {
+          "card_list_legal": true,
+          "core_attempts": [
+            {
+              "declared_opening_condition_met": false,
+              "seed_audit_only": 7
+            },
+            {
+              "declared_opening_condition_met": true,
+              "seed_audit_only": 24
+            }
+          ],
+          "core_event_kinds": [
+            90,
+            90,
+            40,
+            41,
+            2,
+            41,
+            41,
+            11,
+            2,
+            18,
+            50,
+            60,
+            16,
+            16,
+            61,
+            16
+          ],
+          "deck_sha256": "07125042f4a2fa22dfabd690afc1a59aef6099d0f2788eb8f090f1d880cb3fd0",
+          "elapsed_seconds": 1.2240118909994635,
+          "random_dependency": "goal card must be in the actual opening hand",
+          "responses": [
+            {
+              "action_id": "choice-3",
+              "player": 0,
+              "request_sha256": "b9414a84e74c313dfd7aba00edcddc550cc18029f3166946cf391078c2f59b01"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 0,
+              "request_sha256": "734ee1d21fcb2c60014df7f58351f4f5bd0e04a02d6445ea3173bb0a1043956b"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 0,
+              "request_sha256": "12cf819ce561f03e4faa47a945fb128d08ba6f3e3a602e7ba87a61ccb2afb9b8"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 1,
+              "request_sha256": "e2b481f29428765fe915bd8764ff410a0eb662eed444fae5a35b6a21a7d7f4ec"
+            }
+          ],
+          "starting_condition": {
+            "player": 0,
+            "requires_opening_hand": [
+              69247929
+            ],
+            "turn": 1
+          },
+          "status": "verified_success",
+          "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+          "trajectory_sha256": "2c70922a22a07154ec0fa2ed0f20a9fe8100ac502d0015bacb6c960d7bb6b3de",
+          "unmet": []
+        },
+        "versions": {
+          "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+          "card_pool": "native-effect-duel-v1",
+          "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+          "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+          "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+        }
+      },
+      {
+        "candidate_count": 16,
+        "changes": [
+          {
+            "after": 1,
+            "before": 2,
+            "card_id": 549481,
+            "zone": "main"
+          },
+          {
+            "after": 3,
+            "before": 2,
+            "card_id": 2311603,
+            "zone": "main"
+          }
+        ],
+        "deck": {
+          "extra": [],
+          "main": [
+            32864,
+            32864,
+            549481,
+            732302,
+            732302,
+            732302,
+            756652,
+            756652,
+            756652,
+            1184620,
+            1184620,
+            1184620,
+            1761063,
+            1761063,
+            1761063,
+            1784619,
+            1784619,
+            1784619,
+            1929294,
+            1929294,
+            2118022,
+            2118022,
+            2311603,
+            2311603,
+            2311603,
+            2468169,
+            2468169,
+            2483611,
+            2483611,
+            2830619,
+            2830619,
+            2863439,
+            2863439,
+            2906250,
+            2906250,
+            2957055,
+            2957055,
+            69247929,
+            69247929,
+            69247929
+          ],
+          "side": [
+            2957055
+          ]
+        },
+        "elapsed_seconds": 2.4619002409999666,
+        "engineering_proxy": 1190.0,
+        "lora_version": "61c14e00114dd0a85b436805ad90caf04c7beddc49480e4c0d466d129bd6fc58",
+        "model_score_uncalibrated": -0.1631680279970169,
+        "model_sha256": "5424f08a197a4f75f4c6c29fad80a211fc027330052ffea6b263b31b4e04d9d9",
+        "role": "build_optimizer",
+        "stage": 1,
+        "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+        "uncertainty": "uncalibrated engineering prototype; construction quality unknown",
+        "validation": {
+          "card_list_legal": true,
+          "core_attempts": [
+            {
+              "declared_opening_condition_met": false,
+              "seed_audit_only": 7
+            },
+            {
+              "declared_opening_condition_met": true,
+              "seed_audit_only": 24
+            }
+          ],
+          "core_event_kinds": [
+            90,
+            90,
+            40,
+            41,
+            2,
+            41,
+            41,
+            11,
+            2,
+            18,
+            50,
+            60,
+            16,
+            16,
+            61,
+            16
+          ],
+          "deck_sha256": "29e92f47f2f3d35bc6d3d9b9dfb995b96cb0347d6566b2bdad27a6eeb759c0cb",
+          "elapsed_seconds": 1.2261969040009717,
+          "random_dependency": "goal card must be in the actual opening hand",
+          "responses": [
+            {
+              "action_id": "choice-3",
+              "player": 0,
+              "request_sha256": "b9e85c01a036edcc306b4b229894b5383c1f9addeb10901dda0d3678ddee8d93"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 0,
+              "request_sha256": "d41057d9909efad181133377c775ee7c48c2d368a44a480f9f5281a53d1c6a73"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 0,
+              "request_sha256": "a3561646826ce685d08d7455b94e44b842a8ad469761ebcd4d418b3730bb6f7f"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 1,
+              "request_sha256": "551cd518b0cac3dc5a5a225b6945c925a79f2696bef044373a125cbef897a28b"
+            }
+          ],
+          "starting_condition": {
+            "player": 0,
+            "requires_opening_hand": [
+              69247929
+            ],
+            "turn": 1
+          },
+          "status": "verified_success",
+          "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+          "trajectory_sha256": "789d0cdcc3542561feae0c5f95807dd5bcc2899fab729153e0d18ab6db22cd7a",
+          "unmet": []
+        },
+        "versions": {
+          "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+          "card_pool": "native-effect-duel-v1",
+          "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+          "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+          "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+        }
+      },
+      {
+        "candidate_count": 1,
+        "changes": [],
+        "deck": {
+          "extra": [],
+          "main": [
+            32864,
+            32864,
+            549481,
+            732302,
+            732302,
+            732302,
+            756652,
+            756652,
+            756652,
+            1184620,
+            1184620,
+            1184620,
+            1761063,
+            1761063,
+            1761063,
+            1784619,
+            1784619,
+            1784619,
+            1929294,
+            1929294,
+            2118022,
+            2118022,
+            2311603,
+            2311603,
+            2311603,
+            2468169,
+            2468169,
+            2483611,
+            2483611,
+            2830619,
+            2830619,
+            2863439,
+            2863439,
+            2906250,
+            2906250,
+            2957055,
+            2957055,
+            69247929,
+            69247929,
+            69247929
+          ],
+          "side": [
+            2957055
+          ]
+        },
+        "elapsed_seconds": 3.692590406000818,
+        "engineering_proxy": 1190.0,
+        "lora_version": "7f85fb4a4bfba7298992f57776f833ac938612066ae8bfa48b66770ea8f7eb43",
+        "model_score_uncalibrated": 0.019911885261535645,
+        "model_sha256": "d574e8b7e323262287817d4510cbc043c3370535ca6bfeaa50b88e9a7b48affc",
+        "role": "build_goal",
+        "stage": 2,
+        "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+        "uncertainty": "uncalibrated engineering prototype; construction quality unknown",
+        "validation": {
+          "card_list_legal": true,
+          "core_attempts": [
+            {
+              "declared_opening_condition_met": false,
+              "seed_audit_only": 7
+            },
+            {
+              "declared_opening_condition_met": true,
+              "seed_audit_only": 24
+            }
+          ],
+          "core_event_kinds": [
+            90,
+            90,
+            40,
+            41,
+            2,
+            41,
+            41,
+            11,
+            2,
+            18,
+            50,
+            60,
+            16,
+            16,
+            61,
+            16
+          ],
+          "deck_sha256": "29e92f47f2f3d35bc6d3d9b9dfb995b96cb0347d6566b2bdad27a6eeb759c0cb",
+          "elapsed_seconds": 1.227109704999748,
+          "random_dependency": "goal card must be in the actual opening hand",
+          "responses": [
+            {
+              "action_id": "choice-3",
+              "player": 0,
+              "request_sha256": "b9e85c01a036edcc306b4b229894b5383c1f9addeb10901dda0d3678ddee8d93"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 0,
+              "request_sha256": "d41057d9909efad181133377c775ee7c48c2d368a44a480f9f5281a53d1c6a73"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 0,
+              "request_sha256": "a3561646826ce685d08d7455b94e44b842a8ad469761ebcd4d418b3730bb6f7f"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 1,
+              "request_sha256": "551cd518b0cac3dc5a5a225b6945c925a79f2696bef044373a125cbef897a28b"
+            }
+          ],
+          "starting_condition": {
+            "player": 0,
+            "requires_opening_hand": [
+              69247929
+            ],
+            "turn": 1
+          },
+          "status": "verified_success",
+          "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+          "trajectory_sha256": "789d0cdcc3542561feae0c5f95807dd5bcc2899fab729153e0d18ab6db22cd7a",
+          "unmet": []
+        },
+        "versions": {
+          "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+          "card_pool": "native-effect-duel-v1",
+          "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+          "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+          "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+        }
+      },
+      {
+        "candidate_count": 16,
+        "changes": [
+          {
+            "after": 0,
+            "before": 1,
+            "card_id": 549481,
+            "zone": "main"
+          },
+          {
+            "after": 3,
+            "before": 2,
+            "card_id": 2830619,
+            "zone": "main"
+          }
+        ],
+        "deck": {
+          "extra": [],
+          "main": [
+            32864,
+            32864,
+            732302,
+            732302,
+            732302,
+            756652,
+            756652,
+            756652,
+            1184620,
+            1184620,
+            1184620,
+            1761063,
+            1761063,
+            1761063,
+            1784619,
+            1784619,
+            1784619,
+            1929294,
+            1929294,
+            2118022,
+            2118022,
+            2311603,
+            2311603,
+            2311603,
+            2468169,
+            2468169,
+            2483611,
+            2483611,
+            2830619,
+            2830619,
+            2830619,
+            2863439,
+            2863439,
+            2906250,
+            2906250,
+            2957055,
+            2957055,
+            69247929,
+            69247929,
+            69247929
+          ],
+          "side": [
+            2957055
+          ]
+        },
+        "elapsed_seconds": 4.929967688000033,
+        "engineering_proxy": 1187.5,
+        "lora_version": "61c14e00114dd0a85b436805ad90caf04c7beddc49480e4c0d466d129bd6fc58",
+        "model_score_uncalibrated": -0.16207383573055267,
+        "model_sha256": "5424f08a197a4f75f4c6c29fad80a211fc027330052ffea6b263b31b4e04d9d9",
+        "role": "build_optimizer",
+        "stage": 3,
+        "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+        "uncertainty": "uncalibrated engineering prototype; construction quality unknown",
+        "validation": {
+          "card_list_legal": true,
+          "core_attempts": [
+            {
+              "declared_opening_condition_met": false,
+              "seed_audit_only": 7
+            },
+            {
+              "declared_opening_condition_met": true,
+              "seed_audit_only": 24
+            }
+          ],
+          "core_event_kinds": [
+            90,
+            90,
+            40,
+            41,
+            2,
+            41,
+            41,
+            11,
+            2,
+            18,
+            50,
+            60,
+            16,
+            16,
+            61,
+            16
+          ],
+          "deck_sha256": "1e5e90cd70c7ada82e42f59064165a8b117e4b597e6f5613a29ae66c659f4e24",
+          "elapsed_seconds": 1.2291401760012377,
+          "random_dependency": "goal card must be in the actual opening hand",
+          "responses": [
+            {
+              "action_id": "choice-3",
+              "player": 0,
+              "request_sha256": "1f61e1a4cef0a1e0f14b5f47270d341b641683379d634faf84b101f5376e5430"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 0,
+              "request_sha256": "d5372990c6dd2b9273df741a9aa7ef6e637322c660c2b156b7f7303393eabe13"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 0,
+              "request_sha256": "5cc6d2ddf9a657188dd8e3476878677cf2a4cc51a7ce3c6966cafe6f4278ce91"
+            },
+            {
+              "action_id": "choice-0",
+              "player": 1,
+              "request_sha256": "b922a63bd645027f2918faf305e8bb45d463b4d2668ab7db14cc200654ce2876"
+            }
+          ],
+          "starting_condition": {
+            "player": 0,
+            "requires_opening_hand": [
+              69247929
+            ],
+            "turn": 1
+          },
+          "status": "verified_success",
+          "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+          "trajectory_sha256": "bfb268844b74495f953fc486e09937a13d5f43246af20435a72e5db952425c8a",
+          "unmet": []
+        },
+        "versions": {
+          "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+          "card_pool": "native-effect-duel-v1",
+          "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+          "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+          "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+        }
+      }
+    ],
+    "status": "verified_candidates",
+    "stop_reason": "stage_budget_reached",
+    "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+    "time_budget_seconds": 30.0,
+    "unmet": [
+      "competitive construction quality not evaluated"
+    ]
+  },
+  "contexts": {
+    "build_goal": {
+      "base_group_binding": {
+        "feedback_policy": {
+          "calibration": "pending",
+          "checkpoints": [
+            25,
+            50,
+            75,
+            100,
+            125,
+            250,
+            500,
+            750,
+            1000
+          ],
+          "draw_score": 0.0,
+          "family_alpha": 0.05,
+          "margin": 0.1,
+          "minimum_matches": 25,
+          "schema_version": 1
+        },
+        "implementation_sha256": "c373069f9fe1c627f11717822568957fd2a32d2e4cbc93403d505a35ed4d11d6",
+        "python": "3.12.14",
+        "resources": {
+          "banlist": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+          "card_data_abi": "754c750eb26e81eba44de3253c056a89de364f942ec5cd63ecd9d9791acff45e",
+          "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "client_config": "07f92954941343d33f38eae3986997cc620d595301e67adb9e473bfa3c254d0c",
+          "client_protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+          "core_api": "cb7b33d709791e86be0b821152c1ca34c2a2c72847c3603b4a07826c88b802af",
+          "core_constants": "2c78c4c7c92306cd76f09cc111c28e6604e0e3d4fc16252ec31e8cb8d1493e17",
+          "library": "b33b0fb302e24e4757532f224f04aec21e4b16153979b112923c6f746b2e531f",
+          "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+        },
+        "schema_version": 1,
+        "source_commits": {
+          "client": "0d76e26b30c5ddb0273ee746459506c5719fddb6",
+          "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+          "database": "217ae165c1886af2fc36b823fc08f9fc3ec13185",
+          "lua": "6e22fedb74cf0c9b6656e9fce8b7331db847c605",
+          "scripts": "b83db1cc3f512d3bec2faafb9ecf199143332be1"
+        },
+        "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+        "torch": "2.14.1+cpu"
+      },
+      "feature_version": "build-task-catalog-candidate-v1",
+      "lora_config_sha256": "4683f1d52300670aed692d2c756816b5ecf3f30cbf2176377ba54f7b70cad5ae",
+      "supervision_sha256": "2741c489a581512cac00def49648f608fe83ee9b1657437a91637a677566e983",
+      "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505"
+    },
+    "build_optimizer": {
+      "base_group_binding": {
+        "feedback_policy": {
+          "calibration": "pending",
+          "checkpoints": [
+            25,
+            50,
+            75,
+            100,
+            125,
+            250,
+            500,
+            750,
+            1000
+          ],
+          "draw_score": 0.0,
+          "family_alpha": 0.05,
+          "margin": 0.1,
+          "minimum_matches": 25,
+          "schema_version": 1
+        },
+        "implementation_sha256": "c373069f9fe1c627f11717822568957fd2a32d2e4cbc93403d505a35ed4d11d6",
+        "python": "3.12.14",
+        "resources": {
+          "banlist": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+          "card_data_abi": "754c750eb26e81eba44de3253c056a89de364f942ec5cd63ecd9d9791acff45e",
+          "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "client_config": "07f92954941343d33f38eae3986997cc620d595301e67adb9e473bfa3c254d0c",
+          "client_protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+          "core_api": "cb7b33d709791e86be0b821152c1ca34c2a2c72847c3603b4a07826c88b802af",
+          "core_constants": "2c78c4c7c92306cd76f09cc111c28e6604e0e3d4fc16252ec31e8cb8d1493e17",
+          "library": "b33b0fb302e24e4757532f224f04aec21e4b16153979b112923c6f746b2e531f",
+          "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+        },
+        "schema_version": 1,
+        "source_commits": {
+          "client": "0d76e26b30c5ddb0273ee746459506c5719fddb6",
+          "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+          "database": "217ae165c1886af2fc36b823fc08f9fc3ec13185",
+          "lua": "6e22fedb74cf0c9b6656e9fce8b7331db847c605",
+          "scripts": "b83db1cc3f512d3bec2faafb9ecf199143332be1"
+        },
+        "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+        "torch": "2.14.1+cpu"
+      },
+      "feature_version": "build-task-catalog-candidate-v1",
+      "lora_config_sha256": "4683f1d52300670aed692d2c756816b5ecf3f30cbf2176377ba54f7b70cad5ae",
+      "supervision_sha256": "2741c489a581512cac00def49648f608fe83ee9b1657437a91637a677566e983",
+      "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505"
+    },
+    "coordinator": {
+      "base_group_binding": {
+        "feedback_policy": {
+          "calibration": "pending",
+          "checkpoints": [
+            25,
+            50,
+            75,
+            100,
+            125,
+            250,
+            500,
+            750,
+            1000
+          ],
+          "draw_score": 0.0,
+          "family_alpha": 0.05,
+          "margin": 0.1,
+          "minimum_matches": 25,
+          "schema_version": 1
+        },
+        "implementation_sha256": "c373069f9fe1c627f11717822568957fd2a32d2e4cbc93403d505a35ed4d11d6",
+        "python": "3.12.14",
+        "resources": {
+          "banlist": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+          "card_data_abi": "754c750eb26e81eba44de3253c056a89de364f942ec5cd63ecd9d9791acff45e",
+          "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "client_config": "07f92954941343d33f38eae3986997cc620d595301e67adb9e473bfa3c254d0c",
+          "client_protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+          "core_api": "cb7b33d709791e86be0b821152c1ca34c2a2c72847c3603b4a07826c88b802af",
+          "core_constants": "2c78c4c7c92306cd76f09cc111c28e6604e0e3d4fc16252ec31e8cb8d1493e17",
+          "library": "b33b0fb302e24e4757532f224f04aec21e4b16153979b112923c6f746b2e531f",
+          "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+        },
+        "schema_version": 1,
+        "source_commits": {
+          "client": "0d76e26b30c5ddb0273ee746459506c5719fddb6",
+          "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+          "database": "217ae165c1886af2fc36b823fc08f9fc3ec13185",
+          "lua": "6e22fedb74cf0c9b6656e9fce8b7331db847c605",
+          "scripts": "b83db1cc3f512d3bec2faafb9ecf199143332be1"
+        },
+        "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+        "torch": "2.14.1+cpu"
+      },
+      "feature_version": "coordinator-aggregate-context-v1",
+      "lora_config_sha256": "4683f1d52300670aed692d2c756816b5ecf3f30cbf2176377ba54f7b70cad5ae",
+      "supervision_sha256": "2741c489a581512cac00def49648f608fe83ee9b1657437a91637a677566e983",
+      "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505"
+    },
+    "duel": {
+      "base_group_binding": {
+        "feedback_policy": {
+          "calibration": "pending",
+          "checkpoints": [
+            25,
+            50,
+            75,
+            100,
+            125,
+            250,
+            500,
+            750,
+            1000
+          ],
+          "draw_score": 0.0,
+          "family_alpha": 0.05,
+          "margin": 0.1,
+          "minimum_matches": 25,
+          "schema_version": 1
+        },
+        "implementation_sha256": "c373069f9fe1c627f11717822568957fd2a32d2e4cbc93403d505a35ed4d11d6",
+        "python": "3.12.14",
+        "resources": {
+          "banlist": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+          "card_data_abi": "754c750eb26e81eba44de3253c056a89de364f942ec5cd63ecd9d9791acff45e",
+          "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "client_config": "07f92954941343d33f38eae3986997cc620d595301e67adb9e473bfa3c254d0c",
+          "client_protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+          "core_api": "cb7b33d709791e86be0b821152c1ca34c2a2c72847c3603b4a07826c88b802af",
+          "core_constants": "2c78c4c7c92306cd76f09cc111c28e6604e0e3d4fc16252ec31e8cb8d1493e17",
+          "library": "b33b0fb302e24e4757532f224f04aec21e4b16153979b112923c6f746b2e531f",
+          "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+        },
+        "schema_version": 1,
+        "source_commits": {
+          "client": "0d76e26b30c5ddb0273ee746459506c5719fddb6",
+          "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+          "database": "217ae165c1886af2fc36b823fc08f9fc3ec13185",
+          "lua": "6e22fedb74cf0c9b6656e9fce8b7331db847c605",
+          "scripts": "b83db1cc3f512d3bec2faafb9ecf199143332be1"
+        },
+        "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505",
+        "torch": "2.14.1+cpu"
+      },
+      "feature_version": "legal-player-dto-v1",
+      "lora_config_sha256": "4683f1d52300670aed692d2c756816b5ecf3f30cbf2176377ba54f7b70cad5ae",
+      "supervision_sha256": "2741c489a581512cac00def49648f608fe83ee9b1657437a91637a677566e983",
+      "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505"
+    }
+  },
+  "cost": {
+    "cloud_development_cpu_cost": "not-exposed",
+    "external_api_calls": 0,
+    "new_paid_instances_started": 0
+  },
+  "evaluation": {
+    "actor_inference_ms": [
+      1.6987319995678263,
+      0.8982999988802476,
+      0.8937829989008605,
+      0.859181000123499,
+      0.8745739996811608,
+      0.8926509999582777,
+      0.9082850010599941,
+      0.9181490004266379,
+      0.9063720008271048,
+      0.9217349997925339,
+      1.236527999935788,
+      1.1796319995482918,
+      0.9177790016110521,
+      1.0275240001647035,
+      0.9588409993739333,
+      0.9806239995668875,
+      1.0686949990486028,
+      0.9702479983388912,
+      0.9293670009355992,
+      1.3862430005247006,
+      0.9659309998824028,
+      1.0472630001459038,
+      0.9721709993755212,
+      1.1515909991430817,
+      1.0593719998723827,
+      0.958108999839169,
+      0.9767479987203842,
+      0.9848699992289767,
+      0.9148949993686983,
+      0.9788009992917068,
+      0.9593310005584499,
+      0.9954359993571416,
+      0.9382090011058608,
+      0.9989709997171303,
+      0.9794510006031487,
+      1.0598720000416506,
+      0.9881549995043315,
+      0.9819950009841705,
+      0.9564669999235775,
+      0.9977390000130981,
+      0.9481039996899199,
+      0.9193809983116807,
+      0.9495369995420333,
+      0.9659019997343421,
+      1.0415950000606244,
+      0.9436680011276621,
+      1.1383909986761864,
+      0.9959460003301501,
+      0.9483249996264931,
+      0.9914189995470224,
+      1.0036780004156753,
+      1.0310689995094435,
+      0.9775590006029233,
+      1.0634080008458113,
+      1.0011539998231456,
+      0.9847700002865167,
+      1.0174079998250818,
+      0.9856709984887857,
+      1.1362570003257133,
+      0.9581300000718329,
+      0.9654609984863782,
+      1.110818999222829,
+      1.0776390008686576,
+      0.9933420005836524,
+      0.9603929993318161,
+      1.2054609996994259,
+      1.0541339997871546,
+      0.9589310011506313,
+      0.9882849990390241,
+      0.9822860010899603,
+      0.9931819986377377,
+      0.9767379997356329,
+      1.1655310008791275,
+      0.9630969998397632,
+      1.015585999994073,
+      0.9634769994590897,
+      1.1038489992643008,
+      0.9832080013438826,
+      0.953131999267498,
+      1.3200440007494763,
+      1.1272939991613384,
+      0.9386900001118192,
+      1.029787001243676,
+      0.9795019996090559,
+      0.9727710003062384,
+      0.978699999905075,
+      1.0108890000992687,
+      0.9804829987842822,
+      1.0102779997396283,
+      0.9732919988891808,
+      1.0705989989219233,
+      0.9401530005561654,
+      1.1345250004524132,
+      1.0382700002082856,
+      0.9712989995023236,
+      0.9828160000324715,
+      0.9676339996076422,
+      1.0255299985146848,
+      0.9840380007517524,
+      1.0111589999723947,
+      0.9546550008963095,
+      0.9496370003034826,
+      1.1089970012108097,
+      1.0718609992181882,
+      0.9761360015545506,
+      1.0047089999716263,
+      1.079592000678531,
+      0.9975690009014215,
+      1.017339000100037,
+      1.1492670000734506,
+      1.2305990003369516,
+      1.199792000988964,
+      0.9845089989539701,
+      1.0258309994242154,
+      1.0208639996562852,
+      1.2746459997288184,
+      1.0691759998735506,
+      1.015855999867199,
+      0.9870329995464999,
+      1.0975189998134738,
+      1.060292999682133,
+      1.0702079998736735,
+      1.030879000609275,
+      1.0135729989997344,
+      1.043307998770615,
+      1.03152999872691,
+      1.0061220000352478,
+      1.0177090007346123,
+      1.052039999194676,
+      1.0162469989154488,
+      1.0149850004381733,
+      1.060544000210939,
+      1.0190810007770779,
+      1.016656999127008,
+      1.0507379993214272,
+      1.0197520005021943,
+      1.0112899999512592,
+      1.0485550010344014,
+      1.018540000586654,
+      1.0031980000348995,
+      1.0393720003776252,
+      1.0080240008392138,
+      0.9953360004146816
+    ],
+    "duel": {
+      "actor_samples": 143,
+      "actor_seat": 0,
+      "native_decisions": 306,
+      "outcome": {
+        "reason_code": 1,
+        "winner": 1
+      },
+      "policy_sha256": "7dae61d5679a85f2ed4c945f95d4225eeef4382a20e5d4a703f98adb0c90b5f9",
+      "policy_version": 1,
+      "seed_audit_only": 24,
+      "source": "live-core-actor-seat",
+      "terminal_reward": -1.0,
+      "trajectory_sha256": "23efb9ac63f7ed4437752843ee16b99013ab9ca4057002a66e5d3f5b3d8b53e1",
+      "turns": 12
+    },
+    "ledger_state_sha256": "12cd027be7c6eb30687e9bd7eb189c1535fcb5ccccb4d1bcab2fb7c7836ed4a2",
+    "result": {
+      "audit_sha256": "23efb9ac63f7ed4437752843ee16b99013ab9ca4057002a66e5d3f5b3d8b53e1",
+      "candidate_id": "group-candidate",
+      "diagnosis": "unknown",
+      "forecast_id": "lora-forecast",
+      "job_id": "lora-evaluation",
+      "outcome": "loss",
+      "result_id": "lora-evaluation-result",
+      "scope_sha256": "41a904f6ad26d7c41b3cf185e1752d6012cc609b5b700c6b7bef4b8b3a134ae3",
+      "source": "real_engine",
+      "unit": "BO1",
+      "worker_id": "native-neural-evaluator"
+    },
+    "status": {
+      "alerts": [],
+      "calibration": "pending",
+      "checks": [],
+      "forecast": {
+        "calibration": "pending",
+        "candidate_id": "group-candidate",
+        "forecast_id": "lora-forecast",
+        "model_sha256": "b01bc551a0e475b9eb3367cb85c89c2a6fe9021e2705d08c3e4b4d17761bdf57",
+        "origin_role": "coordinator",
+        "policy": {
+          "calibration": "pending",
+          "checkpoints": [
+            25,
+            50,
+            75,
+            100,
+            125,
+            250,
+            500,
+            750,
+            1000
+          ],
+          "draw_score": 0.0,
+          "family_alpha": 0.05,
+          "margin": 0.1,
+          "minimum_matches": 25,
+          "schema_version": 1
+        },
+        "probability": 0.5088353157043457,
+        "scope": {
+          "actor_policy_sha256": "7dae61d5679a85f2ed4c945f95d4225eeef4382a20e5d4a703f98adb0c90b5f9",
+          "duel_lora": "8518b99f4839a381f2c69d8aefb5b56881454e37f7e700d3498c632d7347e524",
+          "initiative_weights": [
+            1.0,
+            0.0
+          ],
+          "opponents": [
+            {
+              "deck_sha256": "d07793a84067021e256298cfcce238336c6e43330a1d3eed0e32488e6a782f04",
+              "driver_sha256": "c373069f9fe1c627f11717822568957fd2a32d2e4cbc93403d505a35ed4d11d6",
+              "opponent_id": "fixed-rule-engineering",
+              "weight": 1.0
+            }
+          ],
+          "prediction_target": "win_rate",
+          "unit": "BO1",
+          "versions": {
+            "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+            "card_pool": "native-effect-duel-v1",
+            "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+            "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+            "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+            "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+          }
+        },
+        "source": "real_engine"
+      },
+      "forecast_ordinal": 2,
+      "mandatory_rebuild": false,
+      "matches": 1,
+      "observed_win_rate": 0.0,
+      "outcome_counts": {
+        "loss": 1
+      },
+      "scope_sha256": "41a904f6ad26d7c41b3cf185e1752d6012cc609b5b700c6b7bef4b8b3a134ae3",
+      "score_mean": 0.0,
+      "source": "real_engine",
+      "wins": 0
+    },
+    "stop_advice": {
+      "calibration": "pending",
+      "mode": "advisory_only",
+      "model_sha256": "b01bc551a0e475b9eb3367cb85c89c2a6fe9021e2705d08c3e4b4d17761bdf57",
+      "probability": 0.502446174621582,
+      "route": "build_optimizer"
+    },
+    "stop_route": {
+      "action": "stop",
+      "advisory": {
+        "calibration": "pending",
+        "model_sha256": "b01bc551a0e475b9eb3367cb85c89c2a6fe9021e2705d08c3e4b4d17761bdf57",
+        "route": "build_optimizer"
+      },
+      "candidate_id": "group-candidate",
+      "context": {
+        "card_list_valid": true,
+        "completed_matches": 1,
+        "forecast": 0.5088353157043457,
+        "goal_valid": true,
+        "has_forecast": true,
+        "operation_error": false,
+        "rebuild_required": false,
+        "remaining_tasks": 0,
+        "score_mean": 0.0,
+        "system_error": false,
+        "warning": false
+      },
+      "event": "route_decision",
+      "forecast_id": "lora-forecast",
+      "mode": "rule_authoritative",
+      "reason": "budget_exhausted; required rebuild stays queued",
+      "rebuild_required": false,
+      "source": "real_engine"
+    }
+  },
+  "forecast": {
+    "calibration": "pending",
+    "candidate_id": "group-candidate",
+    "forecast_id": "lora-forecast",
+    "model_sha256": "b01bc551a0e475b9eb3367cb85c89c2a6fe9021e2705d08c3e4b4d17761bdf57",
+    "origin_role": "coordinator",
+    "policy": {
+      "calibration": "pending",
+      "checkpoints": [
+        25,
+        50,
+        75,
+        100,
+        125,
+        250,
+        500,
+        750,
+        1000
+      ],
+      "draw_score": 0.0,
+      "family_alpha": 0.05,
+      "margin": 0.1,
+      "minimum_matches": 25,
+      "schema_version": 1
+    },
+    "probability": 0.5088353157043457,
+    "scope": {
+      "actor_policy_sha256": "7dae61d5679a85f2ed4c945f95d4225eeef4382a20e5d4a703f98adb0c90b5f9",
+      "duel_lora": "8518b99f4839a381f2c69d8aefb5b56881454e37f7e700d3498c632d7347e524",
+      "initiative_weights": [
+        1.0,
+        0.0
+      ],
+      "opponents": [
+        {
+          "deck_sha256": "d07793a84067021e256298cfcce238336c6e43330a1d3eed0e32488e6a782f04",
+          "driver_sha256": "c373069f9fe1c627f11717822568957fd2a32d2e4cbc93403d505a35ed4d11d6",
+          "opponent_id": "fixed-rule-engineering",
+          "weight": 1.0
+        }
+      ],
+      "prediction_target": "win_rate",
+      "unit": "BO1",
+      "versions": {
+        "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+        "card_pool": "native-effect-duel-v1",
+        "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+        "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+        "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+        "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+      }
+    },
+    "source": "real_engine"
+  },
+  "hardware": {
+    "cuda_build": null,
+    "device": "cpu",
+    "processor": "AMD EPYC 9V74 80-Core Processor",
+    "torch_threads": 1
+  },
+  "history": [
+    {
+      "candidate_id": "group-candidate",
+      "event": "handoff_accepted",
+      "root": "group-candidate",
+      "seq": 1,
+      "source": "real_engine"
+    },
+    {
+      "action": "register_forecast",
+      "advisory": null,
+      "candidate_id": "group-candidate",
+      "context": {
+        "card_list_valid": true,
+        "completed_matches": 0,
+        "forecast": null,
+        "goal_valid": true,
+        "has_forecast": false,
+        "operation_error": false,
+        "rebuild_required": false,
+        "remaining_tasks": 1,
+        "score_mean": null,
+        "system_error": false,
+        "warning": false
+      },
+      "event": "route_decision",
+      "forecast_id": null,
+      "mode": "rule_authoritative",
+      "reason": "register versioned prediction before validation games",
+      "rebuild_required": false,
+      "seq": 2,
+      "source": "real_engine"
+    },
+    {
+      "action": "register_forecast",
+      "advisory": {
+        "calibration": "pending",
+        "model_sha256": "1eb31517925da3f4aa8f5362814592690c293b9dd0ef46b5288bd7a6b7c2ba4b",
+        "route": "evaluate_duel"
+      },
+      "candidate_id": "group-candidate",
+      "context": {
+        "card_list_valid": true,
+        "completed_matches": 0,
+        "forecast": null,
+        "goal_valid": true,
+        "has_forecast": false,
+        "operation_error": false,
+        "rebuild_required": false,
+        "remaining_tasks": 1,
+        "score_mean": null,
+        "system_error": false,
+        "warning": false
+      },
+      "event": "route_decision",
+      "forecast_id": null,
+      "mode": "rule_authoritative",
+      "reason": "register versioned prediction before validation games",
+      "rebuild_required": false,
+      "seq": 3,
+      "source": "real_engine"
+    },
+    {
+      "event": "prediction_registered_before_games",
+      "forecast_id": "group-forecast",
+      "ordinal": 1,
+      "scope_sha256": "1b94cfe3d5c1bd2a280c5759d58bcc09e442feeb1b004ea861aa6eac61ef9a57",
+      "seq": 4,
+      "source": "real_engine"
+    },
+    {
+      "action": "evaluate_duel",
+      "advisory": null,
+      "candidate_id": "group-candidate",
+      "context": {
+        "card_list_valid": true,
+        "completed_matches": 0,
+        "forecast": 0.5086906552314758,
+        "goal_valid": true,
+        "has_forecast": true,
+        "operation_error": false,
+        "rebuild_required": false,
+        "remaining_tasks": 1,
+        "score_mean": null,
+        "system_error": false,
+        "warning": false
+      },
+      "event": "route_decision",
+      "forecast_id": "group-forecast",
+      "mode": "rule_authoritative",
+      "reason": "frozen scoped evaluation",
+      "rebuild_required": false,
+      "seq": 5,
+      "source": "real_engine"
+    },
+    {
+      "action": "evaluate_duel",
+      "advisory": {
+        "calibration": "pending",
+        "model_sha256": "1eb31517925da3f4aa8f5362814592690c293b9dd0ef46b5288bd7a6b7c2ba4b",
+        "route": "evaluate_duel"
+      },
+      "candidate_id": "group-candidate",
+      "context": {
+        "card_list_valid": true,
+        "completed_matches": 0,
+        "forecast": 0.5086906552314758,
+        "goal_valid": true,
+        "has_forecast": true,
+        "operation_error": false,
+        "rebuild_required": false,
+        "remaining_tasks": 1,
+        "score_mean": null,
+        "system_error": false,
+        "warning": false
+      },
+      "event": "route_decision",
+      "forecast_id": "group-forecast",
+      "mode": "rule_authoritative",
+      "reason": "frozen scoped evaluation",
+      "rebuild_required": false,
+      "seq": 6,
+      "source": "real_engine"
+    },
+    {
+      "event": "duel_job_allocated",
+      "forecast_id": "group-forecast",
+      "job_id": "group-evaluation",
+      "seq": 7,
+      "source": "real_engine"
+    },
+    {
+      "action": "stop",
+      "advisory": null,
+      "candidate_id": "group-candidate",
+      "context": {
+        "card_list_valid": true,
+        "completed_matches": 1,
+        "forecast": 0.5086906552314758,
+        "goal_valid": true,
+        "has_forecast": true,
+        "operation_error": false,
+        "rebuild_required": false,
+        "remaining_tasks": 0,
+        "score_mean": 0.0,
+        "system_error": false,
+        "warning": false
+      },
+      "event": "route_decision",
+      "forecast_id": "group-forecast",
+      "mode": "rule_authoritative",
+      "reason": "budget_exhausted; required rebuild stays queued",
+      "rebuild_required": false,
+      "seq": 8,
+      "source": "real_engine"
+    },
+    {
+      "action": "stop",
+      "advisory": {
+        "calibration": "pending",
+        "model_sha256": "1eb31517925da3f4aa8f5362814592690c293b9dd0ef46b5288bd7a6b7c2ba4b",
+        "route": "evaluate_duel"
+      },
+      "candidate_id": "group-candidate",
+      "context": {
+        "card_list_valid": true,
+        "completed_matches": 1,
+        "forecast": 0.5086906552314758,
+        "goal_valid": true,
+        "has_forecast": true,
+        "operation_error": false,
+        "rebuild_required": false,
+        "remaining_tasks": 0,
+        "score_mean": 0.0,
+        "system_error": false,
+        "warning": false
+      },
+      "event": "route_decision",
+      "forecast_id": "group-forecast",
+      "mode": "rule_authoritative",
+      "reason": "budget_exhausted; required rebuild stays queued",
+      "rebuild_required": false,
+      "seq": 9,
+      "source": "real_engine"
+    },
+    {
+      "action": "register_forecast",
+      "advisory": null,
+      "candidate_id": "group-candidate",
+      "context": {
+        "card_list_valid": true,
+        "completed_matches": 0,
+        "forecast": null,
+        "goal_valid": true,
+        "has_forecast": false,
+        "operation_error": false,
+        "rebuild_required": false,
+        "remaining_tasks": 1,
+        "score_mean": null,
+        "system_error": false,
+        "warning": false
+      },
+      "event": "route_decision",
+      "forecast_id": null,
+      "mode": "rule_authoritative",
+      "reason": "register versioned prediction before validation games",
+      "rebuild_required": false,
+      "seq": 10,
+      "source": "real_engine"
+    },
+    {
+      "action": "register_forecast",
+      "advisory": {
+        "calibration": "pending",
+        "model_sha256": "b01bc551a0e475b9eb3367cb85c89c2a6fe9021e2705d08c3e4b4d17761bdf57",
+        "route": "evaluate_duel"
+      },
+      "candidate_id": "group-candidate",
+      "context": {
+        "card_list_valid": true,
+        "completed_matches": 0,
+        "forecast": null,
+        "goal_valid": true,
+        "has_forecast": false,
+        "operation_error": false,
+        "rebuild_required": false,
+        "remaining_tasks": 1,
+        "score_mean": null,
+        "system_error": false,
+        "warning": false
+      },
+      "event": "route_decision",
+      "forecast_id": null,
+      "mode": "rule_authoritative",
+      "reason": "register versioned prediction before validation games",
+      "rebuild_required": false,
+      "seq": 11,
+      "source": "real_engine"
+    },
+    {
+      "event": "prediction_registered_before_games",
+      "forecast_id": "lora-forecast",
+      "ordinal": 2,
+      "scope_sha256": "41a904f6ad26d7c41b3cf185e1752d6012cc609b5b700c6b7bef4b8b3a134ae3",
+      "seq": 12,
+      "source": "real_engine"
+    },
+    {
+      "event": "duel_job_allocated",
+      "forecast_id": "lora-forecast",
+      "job_id": "lora-evaluation",
+      "seq": 13,
+      "source": "real_engine"
+    },
+    {
+      "action": "stop",
+      "advisory": null,
+      "candidate_id": "group-candidate",
+      "context": {
+        "card_list_valid": true,
+        "completed_matches": 1,
+        "forecast": 0.5088353157043457,
+        "goal_valid": true,
+        "has_forecast": true,
+        "operation_error": false,
+        "rebuild_required": false,
+        "remaining_tasks": 0,
+        "score_mean": 0.0,
+        "system_error": false,
+        "warning": false
+      },
+      "event": "route_decision",
+      "forecast_id": "lora-forecast",
+      "mode": "rule_authoritative",
+      "reason": "budget_exhausted; required rebuild stays queued",
+      "rebuild_required": false,
+      "seq": 14,
+      "source": "real_engine"
+    },
+    {
+      "action": "stop",
+      "advisory": {
+        "calibration": "pending",
+        "model_sha256": "b01bc551a0e475b9eb3367cb85c89c2a6fe9021e2705d08c3e4b4d17761bdf57",
+        "route": "build_optimizer"
+      },
+      "candidate_id": "group-candidate",
+      "context": {
+        "card_list_valid": true,
+        "completed_matches": 1,
+        "forecast": 0.5088353157043457,
+        "goal_valid": true,
+        "has_forecast": true,
+        "operation_error": false,
+        "rebuild_required": false,
+        "remaining_tasks": 0,
+        "score_mean": 0.0,
+        "system_error": false,
+        "warning": false
+      },
+      "event": "route_decision",
+      "forecast_id": "lora-forecast",
+      "mode": "rule_authoritative",
+      "reason": "budget_exhausted; required rebuild stays queued",
+      "rebuild_required": false,
+      "seq": 15,
+      "source": "real_engine"
+    }
+  ],
+  "job": {
+    "actor_seat": 0,
+    "candidate_id": "group-candidate",
+    "deck": {
+      "extra": [],
+      "main": [
+        32864,
+        32864,
+        549481,
+        732302,
+        732302,
+        732302,
+        756652,
+        756652,
+        756652,
+        1184620,
+        1184620,
+        1184620,
+        1761063,
+        1761063,
+        1761063,
+        1784619,
+        1784619,
+        1784619,
+        1929294,
+        1929294,
+        2118022,
+        2118022,
+        2311603,
+        2311603,
+        2311603,
+        2468169,
+        2468169,
+        2483611,
+        2483611,
+        2830619,
+        2830619,
+        2863439,
+        2863439,
+        2906250,
+        2906250,
+        2957055,
+        2957055,
+        69247929,
+        69247929,
+        69247929
+      ],
+      "side": [
+        2957055
+      ]
+    },
+    "forecast_id": "lora-forecast",
+    "job_id": "lora-evaluation",
+    "opponent": {
+      "deck_sha256": "d07793a84067021e256298cfcce238336c6e43330a1d3eed0e32488e6a782f04",
+      "driver_sha256": "c373069f9fe1c627f11717822568957fd2a32d2e4cbc93403d505a35ed4d11d6",
+      "opponent_id": "fixed-rule-engineering",
+      "weight": 1.0
+    },
+    "purpose": "engineering_validation",
+    "scope": {
+      "actor_policy_sha256": "7dae61d5679a85f2ed4c945f95d4225eeef4382a20e5d4a703f98adb0c90b5f9",
+      "duel_lora": "8518b99f4839a381f2c69d8aefb5b56881454e37f7e700d3498c632d7347e524",
+      "initiative_weights": [
+        1.0,
+        0.0
+      ],
+      "opponents": [
+        {
+          "deck_sha256": "d07793a84067021e256298cfcce238336c6e43330a1d3eed0e32488e6a782f04",
+          "driver_sha256": "c373069f9fe1c627f11717822568957fd2a32d2e4cbc93403d505a35ed4d11d6",
+          "opponent_id": "fixed-rule-engineering",
+          "weight": 1.0
+        }
+      ],
+      "prediction_target": "win_rate",
+      "unit": "BO1",
+      "versions": {
+        "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+        "card_pool": "native-effect-duel-v1",
+        "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+        "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+        "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+        "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+      }
+    },
+    "scope_sha256": "41a904f6ad26d7c41b3cf185e1752d6012cc609b5b700c6b7bef4b8b3a134ae3",
+    "seed": 24,
+    "source": "real_engine",
+    "task_sha256": "1b98ed42ba0c2af7fdfa4f13979c893cdc8229fa4a7085bc0e53e29876939505"
+  },
+  "lora_config": {
+    "adapters": [
+      {
+        "adapter_id": "duel-engineering-v1",
+        "alpha": 8.0,
+        "learning_rate": 0.003,
+        "max_updates": 2,
+        "rank": 4,
+        "role": "duel",
+        "seed": 881,
+        "targets": [
+          "encoder.layers.0.linear1",
+          "encoder.layers.0.linear2",
+          "policy_head.0",
+          "value_head.0"
+        ]
+      },
+      {
+        "adapter_id": "goal-engineering-v1",
+        "alpha": 8.0,
+        "learning_rate": 0.003,
+        "max_updates": 2,
+        "rank": 4,
+        "role": "build_goal",
+        "seed": 991,
+        "targets": [
+          "encoder.layers.0.linear1",
+          "encoder.layers.0.linear2",
+          "head.0"
+        ]
+      },
+      {
+        "adapter_id": "optimizer-engineering-v1",
+        "alpha": 8.0,
+        "learning_rate": 0.003,
+        "max_updates": 2,
+        "rank": 4,
+        "role": "build_optimizer",
+        "seed": 1101,
+        "targets": [
+          "encoder.layers.0.linear1",
+          "encoder.layers.0.linear2",
+          "head.0"
+        ]
+      },
+      {
+        "adapter_id": "coordinator-engineering-v1",
+        "alpha": 8.0,
+        "learning_rate": 0.003,
+        "max_updates": 2,
+        "rank": 4,
+        "role": "coordinator",
+        "seed": 1211,
+        "targets": [
+          "encoder.0",
+          "encoder.2",
+          "route_head"
+        ]
+      }
+    ],
+    "base_version": "cpu-engineering-v1",
+    "calibration": "pending",
+    "schema_version": 1,
+    "scope": "structural-engineering-not-transfer-ability"
+  },
+  "metrics": {
+    "elapsed_seconds": 28.788254437000433,
+    "episodes": 2,
+    "loss": 2.004986047744751,
+    "process_cpu_seconds": 28.693257494,
+    "process_peak_rss_bytes": 392056832,
+    "steps": 8
+  },
+  "ok": true,
+  "physical_complete_games_including_base_and_recovery": 6,
+  "prior_base_forecast_matches_preserved": 1,
+  "restore_verified": true,
+  "rollback": {
+    "build_goal": {
+      "active_output_changed": true,
+      "adapted_output_sha256": "8c302097a7e3fffb4c6c546d508b8aaab6968ab463de3832f96f32a6960ceebd",
+      "base_output_sha256": "6e5f43cfb180fd7c38c71adfa1e227a854a563fb7a71810612e9596692cc81fc",
+      "base_sha256": "0884c75cf8b84f3b37d3e6b869b61cca16e0806a1359d28affb7733b633e5600",
+      "disabled_output_sha256": "6e5f43cfb180fd7c38c71adfa1e227a854a563fb7a71810612e9596692cc81fc",
+      "exact_base_output_restore": true
+    },
+    "build_optimizer": {
+      "active_output_changed": true,
+      "adapted_output_sha256": "98b1b43f87e49018070fd1c5d6e9dcaadb16795ed3ca46e71f899cf3494ff0a7",
+      "base_output_sha256": "7d445c7146b660ae8dc6948fc2478dfbb285370698482a6d11655270825dd133",
+      "base_sha256": "cb7971bccc5040724c38b024ea1b7612452482c58b0e0a3728b45a7f9f4dcb23",
+      "disabled_output_sha256": "7d445c7146b660ae8dc6948fc2478dfbb285370698482a6d11655270825dd133",
+      "exact_base_output_restore": true
+    },
+    "coordinator": {
+      "active_output_changed": true,
+      "adapted_output_sha256": "6e88860fb7fb4af63480ae3173877e44ae7c1ff12ce2458e295085fa50d815e8",
+      "base_output_sha256": "b1336bc6ed90d1b68d7d8b5801035cae87a16592c443cf3d9850bbf5ae4aabeb",
+      "base_sha256": "1eb31517925da3f4aa8f5362814592690c293b9dd0ef46b5288bd7a6b7c2ba4b",
+      "disabled_output_sha256": "b1336bc6ed90d1b68d7d8b5801035cae87a16592c443cf3d9850bbf5ae4aabeb",
+      "exact_base_output_restore": true
+    },
+    "duel": {
+      "active_output_changed": true,
+      "adapted_output_sha256": "3bffa6afec9ac5a9776b5d9c746507d51ab18f0a623fa50e1278be070787f1a6",
+      "base_output_sha256": "84cc0c6a059db79da6c794decba82dd95f37de5f551b55fec094b71a64a0c2e5",
+      "base_sha256": "ca1be5ab45563b0df8438bf5b7da821745b18d257ca837a29aa8ad3b1cfca51d",
+      "disabled_output_sha256": "84cc0c6a059db79da6c794decba82dd95f37de5f551b55fec094b71a64a0c2e5",
+      "exact_base_output_restore": true
+    }
+  },
+  "schema_version": 1,
+  "scope": "structural-lora-four-role-engineering-not-transfer-ability",
+  "statistical_calibration": "pending",
+  "training_duel": {
+    "actor_samples": 442,
+    "actor_seat": 0,
+    "elapsed_seconds": 2.5676135840003553,
+    "native_decisions": 907,
+    "outcome": {
+      "reason_code": 1,
+      "winner": 1
+    },
+    "policy_sha256": "932f00f0134dae34e6efb88e92d8b9c5332ea23dc8effb2144b08849bc613643",
+    "policy_version": 1,
+    "seed_audit_only": 1724,
+    "source": "live-core-actor-seat",
+    "terminal_reward": -1.0,
+    "trajectory_sha256": "f13d2500de500eed9a7cd2a03c976db8cfed56d1b4df1dac09e3b1d78a24872e",
+    "turns": 42
+  },
+  "transfer_ability_validated": false,
+  "unloaded_base_hashes": {
+    "build_goal": "0884c75cf8b84f3b37d3e6b869b61cca16e0806a1359d28affb7733b633e5600",
+    "build_optimizer": "cb7971bccc5040724c38b024ea1b7612452482c58b0e0a3728b45a7f9f4dcb23",
+    "coordinator": "1eb31517925da3f4aa8f5362814592690c293b9dd0ef46b5288bd7a6b7c2ba4b",
+    "duel": "ca1be5ab45563b0df8438bf5b7da821745b18d257ca837a29aa8ad3b1cfca51d"
+  },
+  "updates": [
+    {
+      "adapter_delta_l2": 0.05869594741269971,
+      "adapter_version": "98bf84ee5a7fb868671cfc12bcee5a9f84a126ea88bbe1b8b4640046bd429d8c",
+      "base_gradients_present": false,
+      "base_parameter_elements_changed": 0,
+      "base_sha256_after": "0884c75cf8b84f3b37d3e6b869b61cca16e0806a1359d28affb7733b633e5600",
+      "base_sha256_before": "0884c75cf8b84f3b37d3e6b869b61cca16e0806a1359d28affb7733b633e5600",
+      "changed_adapter_elements": 384,
+      "gradient_norm_before_clip": 0.008009458892047405,
+      "loss": 0.692236065864563,
+      "optimizer_step": 1,
+      "role": "build_goal",
+      "trainable_adapter_parameters": 1024
+    },
+    {
+      "adapter_delta_l2": 0.057992932389116084,
+      "adapter_version": "60611055a14839024ae1ac3d7240acc69c3354dd8c62af0a0781ef9a2b9e29de",
+      "base_gradients_present": false,
+      "base_parameter_elements_changed": 0,
+      "base_sha256_after": "cb7971bccc5040724c38b024ea1b7612452482c58b0e0a3728b45a7f9f4dcb23",
+      "base_sha256_before": "cb7971bccc5040724c38b024ea1b7612452482c58b0e0a3728b45a7f9f4dcb23",
+      "changed_adapter_elements": 380,
+      "gradient_norm_before_clip": 0.0015106600476428866,
+      "loss": 0.6920565366744995,
+      "optimizer_step": 1,
+      "role": "build_optimizer",
+      "trainable_adapter_parameters": 1024
+    },
+    {
+      "adapter_delta_l2": 0.07468219652833716,
+      "adapter_version": "6044278409889520259a2e7ac06ad1be0f581d858e78da75287f9bf32244a40f",
+      "base_gradients_present": false,
+      "base_parameter_elements_changed": 0,
+      "base_sha256_after": "ca1be5ab45563b0df8438bf5b7da821745b18d257ca837a29aa8ad3b1cfca51d",
+      "base_sha256_before": "ca1be5ab45563b0df8438bf5b7da821745b18d257ca837a29aa8ad3b1cfca51d",
+      "batch_samples": 32,
+      "changed_adapter_elements": 620,
+      "epoch": 1,
+      "gradient_norm_before_clip": 0.10192131251096725,
+      "loss": -0.0020906657446175814,
+      "optimizer_step": 1,
+      "role": "duel",
+      "source": "live-core-ppo-adapter-epoch",
+      "total_epochs": 2,
+      "trainable_adapter_parameters": 1408,
+      "trajectory_sha256": "f13d2500de500eed9a7cd2a03c976db8cfed56d1b4df1dac09e3b1d78a24872e"
+    },
+    {
+      "adapter_delta_l2": 0.037469650631067365,
+      "adapter_version": "1ab72f8a7b43bc22f85e3c7ee505e678264da95b5e3cb6dfb0b9c39f63d8c1b1",
+      "base_gradients_present": false,
+      "base_parameter_elements_changed": 0,
+      "base_sha256_after": "1eb31517925da3f4aa8f5362814592690c293b9dd0ef46b5288bd7a6b7c2ba4b",
+      "base_sha256_before": "1eb31517925da3f4aa8f5362814592690c293b9dd0ef46b5288bd7a6b7c2ba4b",
+      "changed_adapter_elements": 156,
+      "gradient_norm_before_clip": 0.17543816566467285,
+      "loss": 2.009376287460327,
+      "optimizer_step": 1,
+      "role": "coordinator",
+      "source": "synthetic-rule-imitation-and-probability-anchors",
+      "trainable_adapter_parameters": 340
+    },
+    {
+      "adapter_delta_l2": 0.06294428504969607,
+      "adapter_version": "7f85fb4a4bfba7298992f57776f833ac938612066ae8bfa48b66770ea8f7eb43",
+      "base_gradients_present": false,
+      "base_parameter_elements_changed": 0,
+      "base_sha256_after": "0884c75cf8b84f3b37d3e6b869b61cca16e0806a1359d28affb7733b633e5600",
+      "base_sha256_before": "0884c75cf8b84f3b37d3e6b869b61cca16e0806a1359d28affb7733b633e5600",
+      "changed_adapter_elements": 768,
+      "gradient_norm_before_clip": 0.002350107068195939,
+      "loss": 0.6920568346977234,
+      "optimizer_step": 2,
+      "role": "build_goal",
+      "trainable_adapter_parameters": 1024
+    },
+    {
+      "adapter_delta_l2": 0.07114646150911845,
+      "adapter_version": "61c14e00114dd0a85b436805ad90caf04c7beddc49480e4c0d466d129bd6fc58",
+      "base_gradients_present": false,
+      "base_parameter_elements_changed": 0,
+      "base_sha256_after": "cb7971bccc5040724c38b024ea1b7612452482c58b0e0a3728b45a7f9f4dcb23",
+      "base_sha256_before": "cb7971bccc5040724c38b024ea1b7612452482c58b0e0a3728b45a7f9f4dcb23",
+      "changed_adapter_elements": 760,
+      "gradient_norm_before_clip": 0.0015477088745683432,
+      "loss": 0.6920055150985718,
+      "optimizer_step": 2,
+      "role": "build_optimizer",
+      "trainable_adapter_parameters": 1024
+    },
+    {
+      "adapter_delta_l2": 0.08006776111689609,
+      "adapter_version": "8518b99f4839a381f2c69d8aefb5b56881454e37f7e700d3498c632d7347e524",
+      "base_gradients_present": false,
+      "base_parameter_elements_changed": 0,
+      "base_sha256_after": "ca1be5ab45563b0df8438bf5b7da821745b18d257ca837a29aa8ad3b1cfca51d",
+      "base_sha256_before": "ca1be5ab45563b0df8438bf5b7da821745b18d257ca837a29aa8ad3b1cfca51d",
+      "batch_samples": 32,
+      "changed_adapter_elements": 1364,
+      "epoch": 2,
+      "gradient_norm_before_clip": 0.039959926158189774,
+      "loss": -0.003149628173559904,
+      "optimizer_step": 2,
+      "role": "duel",
+      "source": "live-core-ppo-adapter-epoch",
+      "total_epochs": 2,
+      "trainable_adapter_parameters": 1408,
+      "trajectory_sha256": "f13d2500de500eed9a7cd2a03c976db8cfed56d1b4df1dac09e3b1d78a24872e"
+    },
+    {
+      "adapter_delta_l2": 0.047498369945281664,
+      "adapter_version": "ece430ca72bae6c4ec6f3a451c90142c3e2391994f72feb443e5dc065084ecb9",
+      "base_gradients_present": false,
+      "base_parameter_elements_changed": 0,
+      "base_sha256_after": "1eb31517925da3f4aa8f5362814592690c293b9dd0ef46b5288bd7a6b7c2ba4b",
+      "base_sha256_before": "1eb31517925da3f4aa8f5362814592690c293b9dd0ef46b5288bd7a6b7c2ba4b",
+      "changed_adapter_elements": 340,
+      "gradient_norm_before_clip": 0.17385832965373993,
+      "loss": 2.004986047744751,
+      "optimizer_step": 2,
+      "role": "coordinator",
+      "source": "synthetic-rule-imitation-and-probability-anchors",
+      "trainable_adapter_parameters": 340
+    }
+  ]
+}

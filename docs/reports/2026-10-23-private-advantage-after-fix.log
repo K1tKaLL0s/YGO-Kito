@@ -1,0 +1,6 @@
+test_real_full_catalogue_hierarchy_updates_and_checkpoint_continuation_match (integration_tests.test_private_hierarchy.RealLargeActionLearningTests.test_real_full_catalogue_hierarchy_updates_and_checkpoint_continuation_match) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 5.085s
+
+OK

@@ -1,0 +1,62 @@
+{
+  "kind": "read-only-original-archive-byte-verification",
+  "checked": 11,
+  "all_match": true,
+  "files": [
+    {
+      "path": "docs/current/游戏王AI项目设计定稿.docx",
+      "bytes": 46669,
+      "sha256": "58d5e4d1e37993e5e90f3e935c4c20ae179cd19f9f5e6da7f743ab3271bf74df"
+    },
+    {
+      "path": "docs/learning/游戏王AI项目亲手实作手册.docx",
+      "bytes": 47278,
+      "sha256": "faa23237491b578389ae41ea8ee764b1cfad284a226d1c22fdf6dc666cac6927"
+    },
+    {
+      "path": "docs/learning/游戏王AI亲手练习包.zip",
+      "bytes": 4415,
+      "sha256": "4e2390210a8d019793a63407f6fba8447d5fc1943380ed32b700147c0a9f2937"
+    },
+    {
+      "path": "docs/reference/游戏王AI_技术选型调研_2026-10-18.docx",
+      "bytes": 53826,
+      "sha256": "da05079224ec7de4ca7a5446f72650099b9a752a6086f2a5a20eae4c216c3452"
+    },
+    {
+      "path": "docs/reference/游戏王AI_技术选型调研_2026-10-18.pdf",
+      "bytes": 667814,
+      "sha256": "b09323268e9eae04bbeab0783f133274383bad1e2498f1533e1a30daba762a9d"
+    },
+    {
+      "path": "docs/archive/YGO模型设计草案_小幅修订版(1).docx",
+      "bytes": 34426,
+      "sha256": "89a0f271b58e22d9a33fe38be1622b881100a613577ef57372f5971c8ae291ad"
+    },
+    {
+      "path": "docs/archive/YGO模型设计草案_小幅修订版.docx",
+      "bytes": 34384,
+      "sha256": "2a16571b5ecc764575b4fa7c1881d3a478ec3fff283272b72c599bda28fba775"
+    },
+    {
+      "path": "docs/archive/YGO模型设计草案.docx",
+      "bytes": 43526,
+      "sha256": "7673521dfabef77e49b411a089f3f949eabac1ba445ee423286b31870f5cc42f"
+    },
+    {
+      "path": "docs/reference/游戏王AI_现有技术与混合部署调研.pdf",
+      "bytes": 1910963,
+      "sha256": "af81f108ed6a535ec7f81a9c11237cf27c11b6cb14d5002d74d38b8347f88ee9"
+    },
+    {
+      "path": "docs/archive/标签驱动游戏王AI_设计草案.pdf",
+      "bytes": 1879234,
+      "sha256": "9a33dcdfcdd6f09e4acd2ca2437f3f1846b7e75e09a4ce0f1b208527ddc32d7e"
+    },
+    {
+      "path": "docs/reference/游戏王对战AI_项目核验与自建路线_2026-10-18.pdf",
+      "bytes": 1875576,
+      "sha256": "f56c5834e9bec11097b7ef549bd309fa6369a0f608aec66ca20c09d2df1b925b"
+    }
+  ]
+}

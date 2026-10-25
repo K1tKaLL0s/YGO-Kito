@@ -1,0 +1,1220 @@
+{
+  "kind": "real-engineering-seed-search-not-ability",
+  "success": false,
+  "elapsed_seconds": 90.28109646100347,
+  "attempts": [
+    {
+      "seed": 0,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 1,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 2,
+      "after_coin_attack": [
+        null,
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 3,
+      "after_coin_attack": [
+        3200
+      ],
+      "success": false
+    },
+    {
+      "seed": 4,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 5,
+      "after_coin_attack": [
+        1600
+      ],
+      "success": false
+    },
+    {
+      "seed": 6,
+      "after_coin_attack": [
+        400
+      ],
+      "success": false
+    },
+    {
+      "seed": 7,
+      "after_coin_attack": [
+        null,
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 8,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 9,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 10,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 11,
+      "after_coin_attack": [
+        null,
+        800
+      ],
+      "success": false
+    },
+    {
+      "seed": 12,
+      "after_coin_attack": [
+        null,
+        400
+      ],
+      "success": false
+    },
+    {
+      "seed": 13,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 14,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 15,
+      "after_coin_attack": [
+        null,
+        400
+      ],
+      "success": false
+    },
+    {
+      "seed": 16,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 17,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 18,
+      "after_coin_attack": [
+        null,
+        400
+      ],
+      "success": false
+    },
+    {
+      "seed": 19,
+      "after_coin_attack": [
+        null,
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 20,
+      "after_coin_attack": [
+        3200
+      ],
+      "success": false
+    },
+    {
+      "seed": 21,
+      "after_coin_attack": [
+        400
+      ],
+      "success": false
+    },
+    {
+      "seed": 22,
+      "after_coin_attack": [
+        800
+      ],
+      "success": false
+    },
+    {
+      "seed": 23,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 24,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 25,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 26,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 27,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 28,
+      "after_coin_attack": [
+        null,
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 29,
+      "after_coin_attack": [
+        null,
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 30,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 31,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 32,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 33,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 34,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 35,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 36,
+      "after_coin_attack": [
+        1600
+      ],
+      "success": false
+    },
+    {
+      "seed": 37,
+      "after_coin_attack": [
+        null,
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 38,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 39,
+      "after_coin_attack": [
+        400
+      ],
+      "success": false
+    },
+    {
+      "seed": 40,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 41,
+      "after_coin_attack": [
+        null,
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 42,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 43,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 44,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 45,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 46,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 47,
+      "after_coin_attack": [
+        null,
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 48,
+      "after_coin_attack": [
+        null,
+        null,
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 49,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 50,
+      "sum_values": [
+        6400
+      ],
+      "success": false
+    },
+    {
+      "seed": 51,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 52,
+      "after_coin_attack": [
+        1600
+      ],
+      "success": false
+    },
+    {
+      "seed": 53,
+      "after_coin_attack": [
+        400
+      ],
+      "success": false
+    },
+    {
+      "seed": 54,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 55,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 56,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 57,
+      "after_coin_attack": [
+        800
+      ],
+      "success": false
+    },
+    {
+      "seed": 58,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 59,
+      "after_coin_attack": [
+        400
+      ],
+      "success": false
+    },
+    {
+      "seed": 60,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 61,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 62,
+      "sum_values": [
+        12800
+      ],
+      "success": false
+    },
+    {
+      "seed": 63,
+      "after_coin_attack": [
+        null,
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 64,
+      "sum_values": [
+        12800
+      ],
+      "success": false
+    },
+    {
+      "seed": 65,
+      "after_coin_attack": [
+        null,
+        400
+      ],
+      "success": false
+    },
+    {
+      "seed": 66,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 67,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 68,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 69,
+      "after_coin_attack": [
+        800
+      ],
+      "success": false
+    },
+    {
+      "seed": 70,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 71,
+      "after_coin_attack": [
+        null,
+        800
+      ],
+      "success": false
+    },
+    {
+      "seed": 72,
+      "after_coin_attack": [
+        null,
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 73,
+      "after_coin_attack": [
+        800
+      ],
+      "success": false
+    },
+    {
+      "seed": 74,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 75,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 76,
+      "after_coin_attack": [
+        null,
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 77,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 78,
+      "after_coin_attack": [
+        null,
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 79,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 80,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 81,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 82,
+      "after_coin_attack": [
+        1600
+      ],
+      "success": false
+    },
+    {
+      "seed": 83,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 84,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 85,
+      "after_coin_attack": [
+        800
+      ],
+      "success": false
+    },
+    {
+      "seed": 86,
+      "after_coin_attack": [
+        400
+      ],
+      "success": false
+    },
+    {
+      "seed": 87,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 88,
+      "after_coin_attack": [
+        null,
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 89,
+      "after_coin_attack": [
+        400
+      ],
+      "success": false
+    },
+    {
+      "seed": 90,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 91,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 92,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 93,
+      "after_coin_attack": [
+        null,
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 94,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 95,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 96,
+      "after_coin_attack": [
+        3200
+      ],
+      "success": false
+    },
+    {
+      "seed": 97,
+      "after_coin_attack": [
+        null,
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 98,
+      "after_coin_attack": [
+        null,
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 99,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 100,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 101,
+      "after_coin_attack": [
+        null,
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 102,
+      "after_coin_attack": [
+        3200
+      ],
+      "success": false
+    },
+    {
+      "seed": 103,
+      "after_coin_attack": [
+        null,
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 104,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 105,
+      "after_coin_attack": [
+        null,
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 106,
+      "after_coin_attack": [
+        null,
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 107,
+      "after_coin_attack": [
+        400
+      ],
+      "success": false
+    },
+    {
+      "seed": 108,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 109,
+      "after_coin_attack": [
+        null,
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 110,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 111,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 112,
+      "after_coin_attack": [
+        400
+      ],
+      "success": false
+    },
+    {
+      "seed": 113,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 114,
+      "after_coin_attack": [
+        800
+      ],
+      "success": false
+    },
+    {
+      "seed": 115,
+      "after_coin_attack": [
+        800
+      ],
+      "success": false
+    },
+    {
+      "seed": 116,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 117,
+      "after_coin_attack": [
+        null,
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 118,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 119,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 120,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 121,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 122,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 123,
+      "after_coin_attack": [
+        null,
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 124,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 125,
+      "after_coin_attack": [
+        400
+      ],
+      "success": false
+    },
+    {
+      "seed": 126,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 127,
+      "after_coin_attack": [
+        null,
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 128,
+      "after_coin_attack": [
+        400
+      ],
+      "success": false
+    },
+    {
+      "seed": 129,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 130,
+      "after_coin_attack": [
+        null,
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 131,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 132,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 133,
+      "sum_values": [
+        6400
+      ],
+      "success": false
+    },
+    {
+      "seed": 134,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 135,
+      "after_coin_attack": [
+        400
+      ],
+      "success": false
+    },
+    {
+      "seed": 136,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 137,
+      "after_coin_attack": [
+        400
+      ],
+      "success": false
+    },
+    {
+      "seed": 138,
+      "sum_values": [
+        6400
+      ],
+      "success": false
+    },
+    {
+      "seed": 139,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 140,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 141,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 142,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 143,
+      "after_coin_attack": [
+        400
+      ],
+      "success": false
+    },
+    {
+      "seed": 144,
+      "after_coin_attack": [
+        null,
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 145,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 146,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 147,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 148,
+      "after_coin_attack": [
+        null,
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 149,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 150,
+      "after_coin_attack": [
+        400
+      ],
+      "success": false
+    },
+    {
+      "seed": 151,
+      "after_coin_attack": [
+        400
+      ],
+      "success": false
+    },
+    {
+      "seed": 152,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 153,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 154,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 155,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 156,
+      "after_coin_attack": [
+        null,
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 157,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 158,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 159,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 160,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 161,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 162,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 163,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 164,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 165,
+      "after_coin_attack": [
+        100
+      ],
+      "success": false
+    },
+    {
+      "seed": 166,
+      "after_coin_attack": [
+        200
+      ],
+      "success": false
+    },
+    {
+      "seed": 167,
+      "after_coin_attack": [
+        null,
+        3200
+      ],
+      "success": false
+    }
+  ]
+}

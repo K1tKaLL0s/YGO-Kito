@@ -1,0 +1,17 @@
+{
+  "command": [
+    ".venv/bin/python",
+    "-m",
+    "ygo_kito",
+    "private-knowledge-acceptance",
+    "--root",
+    ".cache",
+    "--output",
+    ".cache/knowledge-delivery-v2"
+  ],
+  "exit_code": 0,
+  "wall_seconds": 11.024724925002374,
+  "child_cpu_seconds": 11.286800999999999,
+  "child_peak_rss_kib": 235452,
+  "finished_utc": "2026-10-23T07:30:11.178638+00:00"
+}

@@ -1,0 +1,509 @@
+{
+  "timestamp_utc": "2026-10-22T21:58:34.026511+00:00",
+  "code_commit": "70ae30fe35bfe9b901ecf70c1ec7990bb9d227fb",
+  "unit_tests": {
+    "command": [
+      ".venv/bin/python",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests",
+      "-v"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 10.917809395999939,
+    "test_count": 105,
+    "skipped": false,
+    "timestamp_utc": "2026-10-22T21:53:15.868825+00:00"
+  },
+  "integration_tests": {
+    "command": [
+      ".venv/bin/python",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "integration_tests",
+      "-v"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 160.0061493230005,
+    "test_count": 75,
+    "skipped": false,
+    "timestamp_utc": "2026-10-22T21:55:44.970200+00:00"
+  },
+  "checks": [
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "engineering-acceptance",
+        "--root",
+        ".cache",
+        "--state-root",
+        ".cache/engineering-delivery",
+        "--run-id",
+        "delivery-20261023-v1"
+      ],
+      "exit_code": 0,
+      "wall_seconds_including_startup": 72.89891672700105,
+      "stderr": "",
+      "timestamp_utc": "2026-10-22T21:54:19.191957+00:00",
+      "stdout_sha256": "498874d8c8cb0b3e988368464165b2c65f184c3711f95c5e57bb683504137ed5",
+      "stdout_file": "2026-10-23-delivery-proof.json",
+      "formatted_stdout_sha256": "0790ea38c9b1be960252143929fb42130a79bf2ff4ec2812a636c5b34061efb7"
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "agent-call",
+        ".cache/delivery-capabilities.json",
+        "--state-root",
+        ".cache/engineering-delivery/runs/delivery-20261023-v1/local-control",
+        "--root",
+        ".cache",
+        "--role",
+        "trainer",
+        "--local-cpu-control"
+      ],
+      "input": {
+        "schema_version": 1,
+        "id": "delivery-caps",
+        "method": "capabilities",
+        "params": {}
+      },
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "wall_seconds": 0.07938655199905043,
+      "stdout": {
+        "id": "delivery-caps",
+        "ok": true,
+        "result": {
+          "api": "ygo-kito-local-json-v1",
+          "cloud_resource_control_implemented": false,
+          "methods": [
+            "capabilities",
+            "checkpoints.read",
+            "opponents.summary",
+            "runs.list",
+            "runs.metrics",
+            "runs.read",
+            "training.control",
+            "training.prepare",
+            "training.recover"
+          ],
+          "model_verified": false,
+          "provider_connected": false,
+          "provider_invocation_implemented": false,
+          "role": "trainer",
+          "training_backend_configured": true,
+          "transport": "json-lines-not-mcp"
+        },
+        "schema_version": 1
+      },
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "agent-call",
+        ".cache/delivery-read.json",
+        "--state-root",
+        ".cache/engineering-delivery/runs/delivery-20261023-v1/local-control",
+        "--root",
+        ".cache",
+        "--role",
+        "monitor"
+      ],
+      "input": {
+        "schema_version": 1,
+        "id": "delivery-read",
+        "method": "runs.read",
+        "params": {
+          "run_id": "controlled-duel"
+        }
+      },
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "wall_seconds": 0.07492025000101421,
+      "stdout": {
+        "id": "delivery-read",
+        "ok": true,
+        "result": {
+          "checkpoint_ids": [
+            "local-step-0",
+            "local-step-1",
+            "manual-a4a3e1b010d940ba",
+            "local-step-2"
+          ],
+          "metrics": {
+            "budget_seconds_remaining": 49.02168690200051,
+            "discarded_episodes": 1,
+            "elapsed_seconds": 10.97831309799949,
+            "episodes": 2,
+            "loss": 0.005954550113528967,
+            "process_cpu_seconds": 7.916684871999999,
+            "process_peak_rss_bytes": 403513344,
+            "recovery_count": 1,
+            "setup_process_cpu_seconds": 1.2070487050000018,
+            "steps": 2,
+            "time_limit_seconds": 60.0,
+            "unmeasured_worker_segments": 1
+          },
+          "model_versions": {
+            "duel": "bounded-local-cpu-prototype-v1"
+          },
+          "revision": 14,
+          "run_id": "controlled-duel",
+          "schema_version": 1,
+          "source": "trainer",
+          "state": "completed"
+        },
+        "schema_version": 1
+      },
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "agent-call",
+        ".cache/delivery-checkpoint.json",
+        "--state-root",
+        ".cache/engineering-delivery/runs/delivery-20261023-v1/local-control",
+        "--root",
+        ".cache",
+        "--role",
+        "monitor"
+      ],
+      "input": {
+        "schema_version": 1,
+        "id": "delivery-ck",
+        "method": "checkpoints.read",
+        "params": {
+          "run_id": "controlled-duel",
+          "checkpoint_id": "local-step-2"
+        }
+      },
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "wall_seconds": 0.09346321200064267,
+      "stdout": {
+        "id": "delivery-ck",
+        "ok": true,
+        "result": {
+          "artifact_bytes": 3333145,
+          "artifact_sha256": "0f8f42e54ad5430102a5eae22725be15f1163d1a3f4c52a5d0e815c8ad14a3df",
+          "checkpoint_id": "local-step-2",
+          "deserialized": false,
+          "integrity_verified": true,
+          "run_id": "controlled-duel",
+          "schema_version": 1,
+          "source": "trainer",
+          "step": 2
+        },
+        "schema_version": 1
+      },
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "agent-call",
+        ".cache/delivery-opponent-control-denied.json",
+        "--state-root",
+        ".cache/engineering-delivery/runs/delivery-20261023-v1/local-control",
+        "--root",
+        ".cache",
+        "--role",
+        "opponent"
+      ],
+      "input": {
+        "schema_version": 1,
+        "id": "delivery-denied",
+        "method": "training.control",
+        "params": {
+          "run_id": "controlled-duel",
+          "operation": "start",
+          "expected_revision": 0
+        }
+      },
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "wall_seconds": 0.06682240300142439,
+      "stdout": {
+        "error": {
+          "code": "PERMISSION_DENIED",
+          "message": "method unavailable to this fixed role"
+        },
+        "id": "delivery-denied",
+        "ok": false,
+        "schema_version": 1
+      },
+      "stderr": ""
+    }
+  ],
+  "managed_worker_exit_verification": [
+    {
+      "run_id": "controlled-duel",
+      "state": "completed",
+      "worker_alive": false
+    },
+    {
+      "run_id": "continuous-duel",
+      "state": "completed",
+      "worker_alive": false
+    },
+    {
+      "run_id": "stopped-duel",
+      "state": "stopped",
+      "worker_alive": false
+    },
+    {
+      "run_id": "wall-budget-duel",
+      "state": "stopped",
+      "worker_alive": false
+    },
+    {
+      "run_id": "wrong-version-duel",
+      "state": "created",
+      "worker_alive": false
+    }
+  ],
+  "artifact_cross_checks": {
+    "verified_artifacts": [
+      {
+        "scope": "managed-local-cpu",
+        "run_id": "controlled-duel",
+        "artifact_bytes": 1174806,
+        "artifact_sha256": "67407d0a63ac788970242a0be596e97ec67db0cd5341ed28cd707c7062607625",
+        "checkpoint_id": "local-step-0",
+        "schema_version": 1,
+        "step": 0,
+        "integrity_verified": true,
+        "deserialized": false,
+        "source": "trainer"
+      },
+      {
+        "scope": "managed-local-cpu",
+        "run_id": "controlled-duel",
+        "artifact_bytes": 3333145,
+        "artifact_sha256": "84d09b851294df97cdd1b66d2fd9796d778ac863626f793fe1a674963ed44a03",
+        "checkpoint_id": "local-step-1",
+        "schema_version": 1,
+        "step": 1,
+        "integrity_verified": true,
+        "deserialized": false,
+        "source": "trainer"
+      },
+      {
+        "scope": "managed-local-cpu",
+        "run_id": "controlled-duel",
+        "artifact_bytes": 3333145,
+        "artifact_sha256": "84d09b851294df97cdd1b66d2fd9796d778ac863626f793fe1a674963ed44a03",
+        "checkpoint_id": "manual-a4a3e1b010d940ba",
+        "schema_version": 1,
+        "step": 1,
+        "integrity_verified": true,
+        "deserialized": false,
+        "source": "trainer"
+      },
+      {
+        "scope": "managed-local-cpu",
+        "run_id": "controlled-duel",
+        "artifact_bytes": 3333145,
+        "artifact_sha256": "0f8f42e54ad5430102a5eae22725be15f1163d1a3f4c52a5d0e815c8ad14a3df",
+        "checkpoint_id": "local-step-2",
+        "schema_version": 1,
+        "step": 2,
+        "integrity_verified": true,
+        "deserialized": false,
+        "source": "trainer"
+      },
+      {
+        "scope": "managed-local-cpu",
+        "run_id": "continuous-duel",
+        "artifact_bytes": 1174806,
+        "artifact_sha256": "67407d0a63ac788970242a0be596e97ec67db0cd5341ed28cd707c7062607625",
+        "checkpoint_id": "local-step-0",
+        "schema_version": 1,
+        "step": 0,
+        "integrity_verified": true,
+        "deserialized": false,
+        "source": "trainer"
+      },
+      {
+        "scope": "managed-local-cpu",
+        "run_id": "continuous-duel",
+        "artifact_bytes": 3333145,
+        "artifact_sha256": "84d09b851294df97cdd1b66d2fd9796d778ac863626f793fe1a674963ed44a03",
+        "checkpoint_id": "local-step-1",
+        "schema_version": 1,
+        "step": 1,
+        "integrity_verified": true,
+        "deserialized": false,
+        "source": "trainer"
+      },
+      {
+        "scope": "managed-local-cpu",
+        "run_id": "continuous-duel",
+        "artifact_bytes": 3333145,
+        "artifact_sha256": "0f8f42e54ad5430102a5eae22725be15f1163d1a3f4c52a5d0e815c8ad14a3df",
+        "checkpoint_id": "local-step-2",
+        "schema_version": 1,
+        "step": 2,
+        "integrity_verified": true,
+        "deserialized": false,
+        "source": "trainer"
+      },
+      {
+        "scope": "lora-group",
+        "bytes": 4080233,
+        "sha256": "8e7bc6467e33ab5e76d421bf149c99b2329879d37397c950080f584fd71855d4",
+        "cloud_relative_path": ".cache/engineering-delivery/runs/delivery-20261023-v1-lora/checkpoints/group-adapted-before-duel.weights",
+        "verified": true
+      },
+      {
+        "scope": "build_goal",
+        "bytes": 25880,
+        "sha256": "057c09cb4117e76b8c588cde6adefd1371170d02c9277eb6a15bd6bafe0a3340",
+        "cloud_relative_path": ".cache/engineering-delivery/runs/delivery-20261023-v1-lora/adapters/build_goal.weights",
+        "verified": true
+      },
+      {
+        "scope": "build_optimizer",
+        "bytes": 25944,
+        "sha256": "0f19af3ad2b8bc884ea5df249f149d531977f90158e1d9aa5cceaba8e2356efc",
+        "cloud_relative_path": ".cache/engineering-delivery/runs/delivery-20261023-v1-lora/adapters/build_optimizer.weights",
+        "verified": true
+      },
+      {
+        "scope": "coordinator",
+        "bytes": 17624,
+        "sha256": "548d6b3dc0a65617a6047041d8d6349b6d25c240067ea81e2c6d4dbc1fb4e036",
+        "cloud_relative_path": ".cache/engineering-delivery/runs/delivery-20261023-v1-lora/adapters/coordinator.weights",
+        "verified": true
+      },
+      {
+        "scope": "duel",
+        "bytes": 32704,
+        "sha256": "48a2e577e061e67eed866f0bdb4281dd33a7ebbd58ffe68357dda07d804ee0f4",
+        "cloud_relative_path": ".cache/engineering-delivery/runs/delivery-20261023-v1-lora/adapters/duel.weights",
+        "verified": true
+      }
+    ],
+    "formatted_proof_sha256": "0790ea38c9b1be960252143929fb42130a79bf2ff4ec2812a636c5b34061efb7",
+    "cloud_proof_matches_cli_except_explicit_cli_deadline_field": true,
+    "implementation_sha256": "635b583eb87f9634bf85c2301ce4a2769fff2cbbc2cfc23b94bbf653c1f13346"
+  },
+  "original_archive_verification": {
+    "checked": 11,
+    "all_originals_unchanged": true,
+    "files": [
+      {
+        "path": "docs/current/游戏王AI项目设计定稿.docx",
+        "bytes": 46669,
+        "sha256": "58d5e4d1e37993e5e90f3e935c4c20ae179cd19f9f5e6da7f743ab3271bf74df",
+        "ok": true
+      },
+      {
+        "path": "docs/learning/游戏王AI项目亲手实作手册.docx",
+        "bytes": 47278,
+        "sha256": "faa23237491b578389ae41ea8ee764b1cfad284a226d1c22fdf6dc666cac6927",
+        "ok": true
+      },
+      {
+        "path": "docs/learning/游戏王AI亲手练习包.zip",
+        "bytes": 4415,
+        "sha256": "4e2390210a8d019793a63407f6fba8447d5fc1943380ed32b700147c0a9f2937",
+        "ok": true
+      },
+      {
+        "path": "docs/reference/游戏王AI_技术选型调研_2026-10-18.docx",
+        "bytes": 53826,
+        "sha256": "da05079224ec7de4ca7a5446f72650099b9a752a6086f2a5a20eae4c216c3452",
+        "ok": true
+      },
+      {
+        "path": "docs/reference/游戏王AI_技术选型调研_2026-10-18.pdf",
+        "bytes": 667814,
+        "sha256": "b09323268e9eae04bbeab0783f133274383bad1e2498f1533e1a30daba762a9d",
+        "ok": true
+      },
+      {
+        "path": "docs/archive/YGO模型设计草案_小幅修订版(1).docx",
+        "bytes": 34426,
+        "sha256": "89a0f271b58e22d9a33fe38be1622b881100a613577ef57372f5971c8ae291ad",
+        "ok": true
+      },
+      {
+        "path": "docs/archive/YGO模型设计草案_小幅修订版.docx",
+        "bytes": 34384,
+        "sha256": "2a16571b5ecc764575b4fa7c1881d3a478ec3fff283272b72c599bda28fba775",
+        "ok": true
+      },
+      {
+        "path": "docs/archive/YGO模型设计草案.docx",
+        "bytes": 43526,
+        "sha256": "7673521dfabef77e49b411a089f3f949eabac1ba445ee423286b31870f5cc42f",
+        "ok": true
+      },
+      {
+        "path": "docs/reference/游戏王AI_现有技术与混合部署调研.pdf",
+        "bytes": 1910963,
+        "sha256": "af81f108ed6a535ec7f81a9c11237cf27c11b6cb14d5002d74d38b8347f88ee9",
+        "ok": true
+      },
+      {
+        "path": "docs/archive/标签驱动游戏王AI_设计草案.pdf",
+        "bytes": 1879234,
+        "sha256": "9a33dcdfcdd6f09e4acd2ca2437f3f1846b7e75e09a4ce0f1b208527ddc32d7e",
+        "ok": true
+      },
+      {
+        "path": "docs/reference/游戏王对战AI_项目核验与自建路线_2026-10-18.pdf",
+        "bytes": 1875576,
+        "sha256": "f56c5834e9bec11097b7ef549bd309fa6369a0f608aec66ca20c09d2df1b925b",
+        "ok": true
+      }
+    ]
+  },
+  "resource_scope": {
+    "cli_wall_seconds_includes_startup": true,
+    "proof_process_cpu_seconds": "parent process only; child samples separately reported; interrupted segment may be unknown",
+    "proof_process_peak_rss_bytes": "parent process peak, not process-tree aggregate",
+    "aggregate_process_tree_peak_measured": false,
+    "cloud_billing_stopped": false,
+    "external_provider_calls": 0,
+    "paid_instances_started": 0
+  },
+  "source_reference": {
+    "posix_timers_and_default_signals": "https://docs.python.org/3.12/library/signal.html",
+    "quota_current_reading_available": false,
+    "quota_stop_remaining_percent": 20
+  },
+  "documentation_checks": {
+    "stable_ids": 127,
+    "states": {
+      "已完成": 46,
+      "部分完成": 37,
+      "未开始": 29,
+      "待定/依赖": 10,
+      "未通过": 5
+    },
+    "relative_links_checked": 110,
+    "broken_relative_links": 0,
+    "production_code_unchanged_since_tests": true,
+    "formal_ready_kept_false": true,
+    "full_phase_1_kept_unfinished": true
+  }
+}

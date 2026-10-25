@@ -1,0 +1,37 @@
+{
+  "scope": "only named CLI attempts, not whole-session or full-regression cost",
+  "attempts": [
+    {
+      "run_id": "discovery-curriculum-debug-v1",
+      "ok": false,
+      "reason": "failed run requires explicit recover before resume",
+      "stderr": "{\"error\":{\"code\":\"INVALID_INPUT\",\"message\":\"local CPU operation invalid for current state\"},\"ok\":false}",
+      "confirmed_committed_optimizer_calls": 6
+    },
+    {
+      "run_id": "discovery-curriculum-debug-v2",
+      "ok": false,
+      "reason": "raw random run_id in old v2 route receipt changed events/ledger digest",
+      "stderr": "{\"error\":{\"code\":\"INVALID_INPUT\",\"message\":\"real-curriculum recovery differs from continuous weights/optimizers/RNG/events/ledger\"},\"ok\":false}",
+      "confirmed_committed_optimizer_calls": 24
+    },
+    {
+      "run_id": "discovery-curriculum-20261023-v1",
+      "ok": true,
+      "source_commit": "20c9aa93fc417db831f3b953589ebf75a336f31d",
+      "final_source": false,
+      "confirmed_committed_optimizer_calls": 24
+    },
+    {
+      "run_id": "discovery-curriculum-20261023-v2",
+      "ok": true,
+      "source_commit": "84b8f5eac3f51f6bed84c5bfdc83a05fea2183a0",
+      "final_source": true,
+      "confirmed_committed_optimizer_calls": 24
+    }
+  ],
+  "uncommitted_sampling_completion_after_loss": "unknown; discarded and not counted as a completed sample",
+  "full_regression_training": "additional actual CPU training; not included above",
+  "gpu_hours": 0,
+  "cloud_billing_verified": false
+}

@@ -1,0 +1,14 @@
+{
+  "before": {
+    "kind": "synthetic-contract-probe-not-real-rule-evidence",
+    "source": "2a8571544b07aaee2812227b7f09d1e0e86b6051",
+    "unsupported_hidden_material_accepted": true,
+    "actual_engine_output": false
+  },
+  "after": {
+    "kind": "synthetic-contract-probe-not-real-rule-evidence",
+    "source": "0ffdf5656537977a5da1bdff093c8304efe23230",
+    "unsupported_hidden_material_accepted": false,
+    "actual_engine_output": false
+  }
+}

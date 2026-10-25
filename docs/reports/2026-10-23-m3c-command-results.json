@@ -1,0 +1,509 @@
+{
+  "timestamp_utc": "2026-10-22T20:53:40.729795+00:00",
+  "code_commit": "d96e3a5246f464a9a166cb9127639cac40ed073e",
+  "unit_tests": {
+    "command": [
+      ".venv/bin/python",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests",
+      "-v"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 7.106480141001157,
+    "test_count": 87,
+    "skipped": false
+  },
+  "integration_tests": {
+    "command": [
+      ".venv/bin/python",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "integration_tests",
+      "-v"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 83.25071304799894,
+    "test_count": 61,
+    "skipped": false
+  },
+  "environment": {
+    "logical_cpu_count": 5,
+    "cpu_affinity_count": 5
+  },
+  "checks": [
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "model-group-cpu",
+        "--root",
+        ".cache",
+        "--state-root",
+        ".cache/m3c-group-proof",
+        "--run-id",
+        "m3c-group-20261023-v1",
+        "--task",
+        "configs/build-engineering-v1.json",
+        "--feedback-policy",
+        "configs/coordinator-feedback-engineering.json"
+      ],
+      "exit_code": 0,
+      "wall_seconds_including_startup": 16.221293615000832,
+      "stderr": "",
+      "stdout_file": "2026-10-23-m3c-group-proof.json",
+      "stdout_sha256": "fb81f74efa7dafb52bd076a346d67f3b9c4746f0a9f4a6f48cb30cf70d580f30",
+      "formatted_stdout_file_sha256": "c7e2098fb851355d7f2831f6e8b8507a06033440b6ddb99079a3e08a9c6bcc8c"
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "coordinator-call",
+        ".cache/m3c-group-proof/read-forecast.json",
+        "--ledger",
+        ".cache/m3c-group-proof/runs/m3c-group-20261023-v1/coordinator.sqlite3",
+        "--role",
+        "monitor"
+      ],
+      "input": {
+        "schema_version": 1,
+        "id": "read-forecast",
+        "method": "forecast.read",
+        "params": {
+          "forecast_id": "group-forecast"
+        }
+      },
+      "exit_code": 0,
+      "stdout": {
+        "id": "read-forecast",
+        "ok": true,
+        "result": {
+          "alerts": [],
+          "calibration": "pending",
+          "checks": [],
+          "forecast": {
+            "calibration": "pending",
+            "candidate_id": "group-candidate",
+            "forecast_id": "group-forecast",
+            "model_sha256": "1eb31517925da3f4aa8f5362814592690c293b9dd0ef46b5288bd7a6b7c2ba4b",
+            "origin_role": "coordinator",
+            "policy": {
+              "calibration": "pending",
+              "checkpoints": [
+                25,
+                50,
+                75,
+                100,
+                125,
+                250,
+                500,
+                750,
+                1000
+              ],
+              "draw_score": 0.0,
+              "family_alpha": 0.05,
+              "margin": 0.1,
+              "minimum_matches": 25,
+              "schema_version": 1
+            },
+            "probability": 0.5086906552314758,
+            "scope": {
+              "actor_policy_sha256": "ca1be5ab45563b0df8438bf5b7da821745b18d257ca837a29aa8ad3b1cfca51d",
+              "duel_lora": null,
+              "initiative_weights": [
+                1.0,
+                0.0
+              ],
+              "opponents": [
+                {
+                  "deck_sha256": "d07793a84067021e256298cfcce238336c6e43330a1d3eed0e32488e6a782f04",
+                  "driver_sha256": "d04ae206f5bd46642acfddb59fc96906b08392247933d2e1f9994e91b9a32d38",
+                  "opponent_id": "fixed-rule-engineering",
+                  "weight": 1.0
+                }
+              ],
+              "prediction_target": "win_rate",
+              "unit": "BO1",
+              "versions": {
+                "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+                "card_pool": "native-effect-duel-v1",
+                "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+                "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+                "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+                "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+              }
+            },
+            "source": "real_engine"
+          },
+          "forecast_ordinal": 1,
+          "mandatory_rebuild": false,
+          "matches": 1,
+          "observed_win_rate": 0.0,
+          "outcome_counts": {
+            "loss": 1
+          },
+          "scope_sha256": "d6f348b241f5a7138470c420d40fc5772981dce544c7c66378efce5cf905b543",
+          "score_mean": 0.0,
+          "source": "real_engine",
+          "wins": 0
+        },
+        "schema_version": 1
+      },
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "coordinator-call",
+        ".cache/m3c-group-proof/read-history.json",
+        "--ledger",
+        ".cache/m3c-group-proof/runs/m3c-group-20261023-v1/coordinator.sqlite3",
+        "--role",
+        "monitor"
+      ],
+      "input": {
+        "schema_version": 1,
+        "id": "read-history",
+        "method": "history",
+        "params": {}
+      },
+      "exit_code": 0,
+      "stdout": {
+        "id": "read-history",
+        "ok": true,
+        "result": [
+          {
+            "candidate_id": "group-candidate",
+            "event": "handoff_accepted",
+            "root": "group-candidate",
+            "seq": 1,
+            "source": "real_engine"
+          },
+          {
+            "action": "register_forecast",
+            "advisory": null,
+            "candidate_id": "group-candidate",
+            "context": {
+              "card_list_valid": true,
+              "completed_matches": 0,
+              "forecast": null,
+              "goal_valid": true,
+              "has_forecast": false,
+              "operation_error": false,
+              "rebuild_required": false,
+              "remaining_tasks": 1,
+              "score_mean": null,
+              "system_error": false,
+              "warning": false
+            },
+            "event": "route_decision",
+            "forecast_id": null,
+            "mode": "rule_authoritative",
+            "reason": "register versioned prediction before validation games",
+            "rebuild_required": false,
+            "seq": 2,
+            "source": "real_engine"
+          },
+          {
+            "action": "register_forecast",
+            "advisory": {
+              "calibration": "pending",
+              "model_sha256": "1eb31517925da3f4aa8f5362814592690c293b9dd0ef46b5288bd7a6b7c2ba4b",
+              "route": "evaluate_duel"
+            },
+            "candidate_id": "group-candidate",
+            "context": {
+              "card_list_valid": true,
+              "completed_matches": 0,
+              "forecast": null,
+              "goal_valid": true,
+              "has_forecast": false,
+              "operation_error": false,
+              "rebuild_required": false,
+              "remaining_tasks": 1,
+              "score_mean": null,
+              "system_error": false,
+              "warning": false
+            },
+            "event": "route_decision",
+            "forecast_id": null,
+            "mode": "rule_authoritative",
+            "reason": "register versioned prediction before validation games",
+            "rebuild_required": false,
+            "seq": 3,
+            "source": "real_engine"
+          },
+          {
+            "event": "prediction_registered_before_games",
+            "forecast_id": "group-forecast",
+            "ordinal": 1,
+            "scope_sha256": "d6f348b241f5a7138470c420d40fc5772981dce544c7c66378efce5cf905b543",
+            "seq": 4,
+            "source": "real_engine"
+          },
+          {
+            "action": "evaluate_duel",
+            "advisory": null,
+            "candidate_id": "group-candidate",
+            "context": {
+              "card_list_valid": true,
+              "completed_matches": 0,
+              "forecast": 0.5086906552314758,
+              "goal_valid": true,
+              "has_forecast": true,
+              "operation_error": false,
+              "rebuild_required": false,
+              "remaining_tasks": 1,
+              "score_mean": null,
+              "system_error": false,
+              "warning": false
+            },
+            "event": "route_decision",
+            "forecast_id": "group-forecast",
+            "mode": "rule_authoritative",
+            "reason": "frozen scoped evaluation",
+            "rebuild_required": false,
+            "seq": 5,
+            "source": "real_engine"
+          },
+          {
+            "action": "evaluate_duel",
+            "advisory": {
+              "calibration": "pending",
+              "model_sha256": "1eb31517925da3f4aa8f5362814592690c293b9dd0ef46b5288bd7a6b7c2ba4b",
+              "route": "evaluate_duel"
+            },
+            "candidate_id": "group-candidate",
+            "context": {
+              "card_list_valid": true,
+              "completed_matches": 0,
+              "forecast": 0.5086906552314758,
+              "goal_valid": true,
+              "has_forecast": true,
+              "operation_error": false,
+              "rebuild_required": false,
+              "remaining_tasks": 1,
+              "score_mean": null,
+              "system_error": false,
+              "warning": false
+            },
+            "event": "route_decision",
+            "forecast_id": "group-forecast",
+            "mode": "rule_authoritative",
+            "reason": "frozen scoped evaluation",
+            "rebuild_required": false,
+            "seq": 6,
+            "source": "real_engine"
+          },
+          {
+            "event": "duel_job_allocated",
+            "forecast_id": "group-forecast",
+            "job_id": "group-evaluation",
+            "seq": 7,
+            "source": "real_engine"
+          },
+          {
+            "action": "stop",
+            "advisory": null,
+            "candidate_id": "group-candidate",
+            "context": {
+              "card_list_valid": true,
+              "completed_matches": 1,
+              "forecast": 0.5086906552314758,
+              "goal_valid": true,
+              "has_forecast": true,
+              "operation_error": false,
+              "rebuild_required": false,
+              "remaining_tasks": 0,
+              "score_mean": 0.0,
+              "system_error": false,
+              "warning": false
+            },
+            "event": "route_decision",
+            "forecast_id": "group-forecast",
+            "mode": "rule_authoritative",
+            "reason": "budget_exhausted; required rebuild stays queued",
+            "rebuild_required": false,
+            "seq": 8,
+            "source": "real_engine"
+          },
+          {
+            "action": "stop",
+            "advisory": {
+              "calibration": "pending",
+              "model_sha256": "1eb31517925da3f4aa8f5362814592690c293b9dd0ef46b5288bd7a6b7c2ba4b",
+              "route": "evaluate_duel"
+            },
+            "candidate_id": "group-candidate",
+            "context": {
+              "card_list_valid": true,
+              "completed_matches": 1,
+              "forecast": 0.5086906552314758,
+              "goal_valid": true,
+              "has_forecast": true,
+              "operation_error": false,
+              "rebuild_required": false,
+              "remaining_tasks": 0,
+              "score_mean": 0.0,
+              "system_error": false,
+              "warning": false
+            },
+            "event": "route_decision",
+            "forecast_id": "group-forecast",
+            "mode": "rule_authoritative",
+            "reason": "budget_exhausted; required rebuild stays queued",
+            "rebuild_required": false,
+            "seq": 9,
+            "source": "real_engine"
+          }
+        ],
+        "schema_version": 1
+      },
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "agent-call",
+        ".cache/m3c-group-proof/read-group-checkpoint.json",
+        "--state-root",
+        ".cache/m3c-group-proof",
+        "--role",
+        "monitor"
+      ],
+      "input": {
+        "schema_version": 1,
+        "id": "group-checkpoint",
+        "method": "checkpoints.read",
+        "params": {
+          "run_id": "m3c-group-20261023-v1",
+          "checkpoint_id": "group-before-duel"
+        }
+      },
+      "exit_code": 0,
+      "stdout": {
+        "id": "group-checkpoint",
+        "ok": true,
+        "result": {
+          "artifact_bytes": 3970881,
+          "artifact_sha256": "221342f7e5b55b3a6227391f28385d7fb0a7ac28621cecb5981c453c51c21279",
+          "checkpoint_id": "group-before-duel",
+          "deserialized": false,
+          "integrity_verified": true,
+          "run_id": "m3c-group-20261023-v1",
+          "schema_version": 1,
+          "source": "trainer",
+          "step": 7
+        },
+        "schema_version": 1
+      },
+      "stderr": ""
+    }
+  ],
+  "original_archive_verification": {
+    "checked": 11,
+    "all_originals_unchanged": true,
+    "files": [
+      {
+        "path": "docs/current/游戏王AI项目设计定稿.docx",
+        "bytes": 46669,
+        "sha256": "58d5e4d1e37993e5e90f3e935c4c20ae179cd19f9f5e6da7f743ab3271bf74df",
+        "ok": true
+      },
+      {
+        "path": "docs/learning/游戏王AI项目亲手实作手册.docx",
+        "bytes": 47278,
+        "sha256": "faa23237491b578389ae41ea8ee764b1cfad284a226d1c22fdf6dc666cac6927",
+        "ok": true
+      },
+      {
+        "path": "docs/learning/游戏王AI亲手练习包.zip",
+        "bytes": 4415,
+        "sha256": "4e2390210a8d019793a63407f6fba8447d5fc1943380ed32b700147c0a9f2937",
+        "ok": true
+      },
+      {
+        "path": "docs/reference/游戏王AI_技术选型调研_2026-10-18.docx",
+        "bytes": 53826,
+        "sha256": "da05079224ec7de4ca7a5446f72650099b9a752a6086f2a5a20eae4c216c3452",
+        "ok": true
+      },
+      {
+        "path": "docs/reference/游戏王AI_技术选型调研_2026-10-18.pdf",
+        "bytes": 667814,
+        "sha256": "b09323268e9eae04bbeab0783f133274383bad1e2498f1533e1a30daba762a9d",
+        "ok": true
+      },
+      {
+        "path": "docs/archive/YGO模型设计草案_小幅修订版(1).docx",
+        "bytes": 34426,
+        "sha256": "89a0f271b58e22d9a33fe38be1622b881100a613577ef57372f5971c8ae291ad",
+        "ok": true
+      },
+      {
+        "path": "docs/archive/YGO模型设计草案_小幅修订版.docx",
+        "bytes": 34384,
+        "sha256": "2a16571b5ecc764575b4fa7c1881d3a478ec3fff283272b72c599bda28fba775",
+        "ok": true
+      },
+      {
+        "path": "docs/archive/YGO模型设计草案.docx",
+        "bytes": 43526,
+        "sha256": "7673521dfabef77e49b411a089f3f949eabac1ba445ee423286b31870f5cc42f",
+        "ok": true
+      },
+      {
+        "path": "docs/reference/游戏王AI_现有技术与混合部署调研.pdf",
+        "bytes": 1910963,
+        "sha256": "af81f108ed6a535ec7f81a9c11237cf27c11b6cb14d5002d74d38b8347f88ee9",
+        "ok": true
+      },
+      {
+        "path": "docs/archive/标签驱动游戏王AI_设计草案.pdf",
+        "bytes": 1879234,
+        "sha256": "9a33dcdfcdd6f09e4acd2ca2437f3f1846b7e75e09a4ce0f1b208527ddc32d7e",
+        "ok": true
+      },
+      {
+        "path": "docs/reference/游戏王对战AI_项目核验与自建路线_2026-10-18.pdf",
+        "bytes": 1875576,
+        "sha256": "f56c5834e9bec11097b7ef549bd309fa6369a0f608aec66ca20c09d2df1b925b",
+        "ok": true
+      }
+    ]
+  },
+  "artifact_cross_checks": {
+    "code_implementation_sha256": "d04ae206f5bd46642acfddb59fc96906b08392247933d2e1f9994e91b9a32d38",
+    "checkpoint_exists_in_cloud": true,
+    "checkpoint_relative_path": ".cache/m3c-group-proof/runs/m3c-group-20261023-v1/checkpoints/group-before-duel.weights",
+    "checkpoint_bytes": 3970881,
+    "checkpoint_sha256": "221342f7e5b55b3a6227391f28385d7fb0a7ac28621cecb5981c453c51c21279",
+    "formatted_proof_sha256": "c7e2098fb851355d7f2831f6e8b8507a06033440b6ddb99079a3e08a9c6bcc8c",
+    "committed_proof_matches_cloud_run": true,
+    "raw_evidence_is_real_engine": true
+  },
+  "documentation_checks": {
+    "master_unique_ids": 121,
+    "master_states": {
+      "已完成": 39,
+      "部分完成": 36,
+      "未开始": 31,
+      "待定/依赖": 10,
+      "未通过": 5
+    },
+    "relative_links_checked": 82,
+    "missing_relative_links": 0,
+    "production_code_unchanged_since_test_commit": true
+  }
+}

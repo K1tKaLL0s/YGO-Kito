@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "max_updates": 4,
+  "validate_every": 2,
+  "checkpoint_every": 2,
+  "wall_seconds": 180.0,
+  "cpu_config": {},
+  "train": {
+    "profile": "configs/effect-duel-v1.json",
+    "opponent": "visible-effects-first-v1",
+    "seed_start": 1724,
+    "seed_stride": 1
+  },
+  "validation": {
+    "profile": "configs/effect-duel-validation-v1.json",
+    "opponent": "visible-effects-last-option-v1",
+    "seeds": [1001724],
+    "policy_seed": 100456
+  }
+}

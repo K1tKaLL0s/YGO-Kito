@@ -1,0 +1,34 @@
+test_banish_scripts_show_faceup_public_and_facedown_only_to_own_player (integration_tests.test_extra_materials.RealExtraMaterialTests.test_banish_scripts_show_faceup_public_and_facedown_only_to_own_player) ... ok
+test_hidden_opponent_extra_worlds_have_identical_requests_and_model_features (integration_tests.test_extra_materials.RealExtraMaterialTests.test_hidden_opponent_extra_worlds_have_identical_requests_and_model_features) ... ok
+test_illegal_id_preserves_sum_window_and_core_rejects_corrupted_sum_response (integration_tests.test_extra_materials.RealExtraMaterialTests.test_illegal_id_preserves_sum_window_and_core_rejects_corrupted_sum_response) ... ok
+test_real_sum_metadata_reaches_network_and_preserves_distinct_action_pointers (integration_tests.test_extra_materials.RealExtraMaterialTests.test_real_sum_metadata_reaches_network_and_preserves_distinct_action_pointers) ... ok
+test_real_xyz_material_hosts_and_actual_owners_match_both_views (integration_tests.test_extra_materials.RealExtraMaterialTests.test_real_xyz_material_hosts_and_actual_owners_match_both_views) ... ok
+test_two_real_sum_choices_consume_different_materials_and_replay_exactly (integration_tests.test_extra_materials.RealExtraMaterialTests.test_two_real_sum_choices_consume_different_materials_and_replay_exactly) ... ok
+test_unsearched_route_budget_is_unknown_and_binding_mismatch_fails (integration_tests.test_extra_materials.RealExtraMaterialTests.test_unsearched_route_budget_is_unknown_and_binding_mismatch_fails) ... ok
+setUpClass (integration_tests.test_real_build_feedback.RealBuildFeedbackTests) ... ERROR
+
+======================================================================
+ERROR: setUpClass (integration_tests.test_real_build_feedback.RealBuildFeedbackTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/integration_tests/test_real_build_feedback.py", line 32, in setUpClass
+    cls.proof = run_extra_feedback_acceptance(CACHE, cls.temp.name, "real-feedback-integration")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/extra_acceptance.py", line 105, in run_extra_feedback_acceptance
+    summary, trace = run_effect_duel(root, profile_for(deck), seed=proof["core_attempts"][-1]["seed_audit_only"],
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/effect_duel.py", line 159, in run_effect_duel
+    request = engine.next_decision()
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/native.py", line 522, in next_decision
+    swapped(self, reader)
+  File "/workspace/YGO-Kito/src/ygo_kito/extra_observation.py", line 120, in swapped
+    reader.take(16)
+  File "/workspace/YGO-Kito/src/ygo_kito/native_protocol.py", line 26, in take
+    raise NativeError("truncated native message")
+ygo_kito.native_protocol.NativeError: truncated native message
+
+----------------------------------------------------------------------
+Ran 7 tests in 20.470s
+
+FAILED (errors=1)

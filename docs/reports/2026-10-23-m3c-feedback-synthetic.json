@@ -1,0 +1,220 @@
+{
+  "source": "synthetic_contract_test",
+  "real_games_executed": 0,
+  "preleased_fixture_rows": 1000,
+  "scope": "feedback-contract-only-not-capability",
+  "status": {
+    "alerts": [
+      {
+        "kind": "reevaluate",
+        "n": 25,
+        "payload": {
+          "assumption": "independent bounded games with fixed scope/stable mean",
+          "calibration": "pending",
+          "forecast": 0.9,
+          "forecast_alpha": 0.025,
+          "low": true,
+          "margin": 0.1,
+          "matches": 25,
+          "per_look_alpha": 0.002777777777777778,
+          "score_mean": 0.0,
+          "source": "synthetic_contract_test",
+          "upper_bound": 0.34310651499061207
+        }
+      },
+      {
+        "kind": "mandatory_rebuild",
+        "n": 125,
+        "payload": {
+          "assumption": "independent bounded games with fixed scope/stable mean",
+          "calibration": "pending",
+          "forecast": 0.9,
+          "forecast_alpha": 0.025,
+          "low": true,
+          "margin": 0.1,
+          "matches": 125,
+          "per_look_alpha": 0.002777777777777778,
+          "score_mean": 0.0,
+          "source": "synthetic_contract_test",
+          "upper_bound": 0.15344189820841184
+        }
+      }
+    ],
+    "calibration": "pending",
+    "checks": [
+      {
+        "assumption": "independent bounded games with fixed scope/stable mean",
+        "calibration": "pending",
+        "forecast": 0.9,
+        "forecast_alpha": 0.025,
+        "low": true,
+        "margin": 0.1,
+        "matches": 25,
+        "per_look_alpha": 0.002777777777777778,
+        "score_mean": 0.0,
+        "upper_bound": 0.34310651499061207
+      },
+      {
+        "assumption": "independent bounded games with fixed scope/stable mean",
+        "calibration": "pending",
+        "forecast": 0.9,
+        "forecast_alpha": 0.025,
+        "low": true,
+        "margin": 0.1,
+        "matches": 50,
+        "per_look_alpha": 0.002777777777777778,
+        "score_mean": 0.0,
+        "upper_bound": 0.24261294341914563
+      },
+      {
+        "assumption": "independent bounded games with fixed scope/stable mean",
+        "calibration": "pending",
+        "forecast": 0.9,
+        "forecast_alpha": 0.025,
+        "low": true,
+        "margin": 0.1,
+        "matches": 75,
+        "per_look_alpha": 0.002777777777777778,
+        "score_mean": 0.0,
+        "upper_bound": 0.19809263879054426
+      },
+      {
+        "assumption": "independent bounded games with fixed scope/stable mean",
+        "calibration": "pending",
+        "forecast": 0.9,
+        "forecast_alpha": 0.025,
+        "low": true,
+        "margin": 0.1,
+        "matches": 100,
+        "per_look_alpha": 0.002777777777777778,
+        "score_mean": 0.0,
+        "upper_bound": 0.17155325749530603
+      },
+      {
+        "assumption": "independent bounded games with fixed scope/stable mean",
+        "calibration": "pending",
+        "forecast": 0.9,
+        "forecast_alpha": 0.025,
+        "low": true,
+        "margin": 0.1,
+        "matches": 125,
+        "per_look_alpha": 0.002777777777777778,
+        "score_mean": 0.0,
+        "upper_bound": 0.15344189820841184
+      },
+      {
+        "assumption": "independent bounded games with fixed scope/stable mean",
+        "calibration": "pending",
+        "forecast": 0.9,
+        "forecast_alpha": 0.025,
+        "low": true,
+        "margin": 0.1,
+        "matches": 250,
+        "per_look_alpha": 0.002777777777777778,
+        "score_mean": 0.0,
+        "upper_bound": 0.10849980674130397
+      },
+      {
+        "assumption": "independent bounded games with fixed scope/stable mean",
+        "calibration": "pending",
+        "forecast": 0.9,
+        "forecast_alpha": 0.025,
+        "low": true,
+        "margin": 0.1,
+        "matches": 500,
+        "per_look_alpha": 0.002777777777777778,
+        "score_mean": 0.0,
+        "upper_bound": 0.07672094910420592
+      },
+      {
+        "assumption": "independent bounded games with fixed scope/stable mean",
+        "calibration": "pending",
+        "forecast": 0.9,
+        "forecast_alpha": 0.025,
+        "low": true,
+        "margin": 0.1,
+        "matches": 750,
+        "per_look_alpha": 0.002777777777777778,
+        "score_mean": 0.0,
+        "upper_bound": 0.06264239262911422
+      },
+      {
+        "assumption": "independent bounded games with fixed scope/stable mean",
+        "calibration": "pending",
+        "forecast": 0.9,
+        "forecast_alpha": 0.025,
+        "low": true,
+        "margin": 0.1,
+        "matches": 1000,
+        "per_look_alpha": 0.002777777777777778,
+        "score_mean": 0.0,
+        "upper_bound": 0.05424990337065198
+      }
+    ],
+    "forecast": {
+      "calibration": "pending",
+      "candidate_id": "candidate",
+      "forecast_id": "forecast",
+      "model_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "origin_role": "coordinator",
+      "policy": {
+        "calibration": "pending",
+        "checkpoints": [
+          25,
+          50,
+          75,
+          100,
+          125,
+          250,
+          500,
+          750,
+          1000
+        ],
+        "draw_score": 0.0,
+        "family_alpha": 0.05,
+        "margin": 0.1,
+        "minimum_matches": 25,
+        "schema_version": 1
+      },
+      "probability": 0.9,
+      "scope": {
+        "actor_policy_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "duel_lora": null,
+        "initiative_weights": [
+          1.0,
+          0.0
+        ],
+        "opponents": [
+          {
+            "deck_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "driver_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+            "opponent_id": "fixture-rule",
+            "weight": 1.0
+          }
+        ],
+        "prediction_target": "win_rate",
+        "unit": "BO1",
+        "versions": {
+          "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+          "card_pool": "native-effect-duel-v1",
+          "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+          "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+          "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+        }
+      },
+      "source": "synthetic_contract_test"
+    },
+    "forecast_ordinal": 1,
+    "mandatory_rebuild": true,
+    "matches": 1000,
+    "observed_win_rate": 0.0,
+    "outcome_counts": {
+      "loss": 1000
+    },
+    "scope_sha256": "8dc129071f376d410602bdaa90324917daa4fb6834ca623db8123c5fca79358c",
+    "score_mean": 0.0,
+    "source": "synthetic_contract_test",
+    "wins": 0
+  }
+}

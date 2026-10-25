@@ -1,0 +1,11 @@
+schema_version = 1
+
+[storage]
+# Resolved relative to this file, independent of the shell's working directory.
+database = "../.cache/ygo-kito/index.sqlite3"
+
+[runtime]
+device = "cpu"
+
+[engine]
+backend = "unconfigured"

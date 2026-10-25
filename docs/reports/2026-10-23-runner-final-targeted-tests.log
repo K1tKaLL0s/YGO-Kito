@@ -1,0 +1,13 @@
+test_checkpoint_without_complete_round_is_quarantined_and_corrupt_data_is_rejected (integration_tests.test_training_runner.RealMultiroundRunnerTests.test_checkpoint_without_complete_round_is_quarantined_and_corrupt_data_is_rejected) ... ok
+test_complete_unregistered_round_is_adopted_with_its_actual_data_and_validation (integration_tests.test_training_runner.RealMultiroundRunnerTests.test_complete_unregistered_round_is_adopted_with_its_actual_data_and_validation) ... ok
+test_four_actual_updates_periodic_validation_and_checkpoint_scheduling (integration_tests.test_training_runner.RealMultiroundRunnerTests.test_four_actual_updates_periodic_validation_and_checkpoint_scheduling) ... ok
+test_pause_crash_resume_matches_continuous_including_validation (integration_tests.test_training_runner.RealMultiroundRunnerTests.test_pause_crash_resume_matches_continuous_including_validation) ... ok
+test_train_validation_seeds_opponent_versions_and_player_data_are_separate (integration_tests.test_training_runner.RealMultiroundRunnerTests.test_train_validation_seeds_opponent_versions_and_player_data_are_separate) ... ok
+test_unregistered_round_cannot_change_data_purpose_seed_or_opponent (integration_tests.test_training_runner.RealMultiroundRunnerTests.test_unregistered_round_cannot_change_data_purpose_seed_or_opponent) ... ok
+test_usage_reconciliation_never_recharges_a_segment_and_retries_are_counted (integration_tests.test_training_runner.RealMultiroundRunnerTests.test_usage_reconciliation_never_recharges_a_segment_and_retries_are_counted) ... ok
+test_validation_and_old_on_policy_shards_cannot_be_reused_for_update (integration_tests.test_training_runner.RealMultiroundRunnerTests.test_validation_and_old_on_policy_shards_cannot_be_reused_for_update) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 61.058s
+
+OK

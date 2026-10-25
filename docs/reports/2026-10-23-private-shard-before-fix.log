@@ -1,0 +1,18 @@
+test_shards_restore_complete_large_action_metadata_and_reject_tampering (tests.test_private_hierarchy.HierarchicalPolicyContracts.test_shards_restore_complete_large_action_metadata_and_reject_tampering) ... ERROR
+
+======================================================================
+ERROR: test_shards_restore_complete_large_action_metadata_and_reject_tampering (tests.test_private_hierarchy.HierarchicalPolicyContracts.test_shards_restore_complete_large_action_metadata_and_reject_tampering)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/tests/test_private_hierarchy.py", line 106, in test_shards_restore_complete_large_action_metadata_and_reject_tampering
+    validate_shard(shard,trainer,**kwargs)
+  File "/workspace/YGO-Kito/src/ygo_kito/training_runner.py", line 158, in validate_shard
+    fields(step, {"request", "action_index", "old_log_prob", "old_value", "reward"})
+  File "/workspace/YGO-Kito/src/ygo_kito/validation.py", line 19, in fields
+    raise ContractError("unexpected fields")
+ygo_kito.validation.ContractError: unexpected fields
+
+----------------------------------------------------------------------
+Ran 1 test in 0.013s
+
+FAILED (errors=1)

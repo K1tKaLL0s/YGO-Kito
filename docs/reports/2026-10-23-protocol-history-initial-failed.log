@@ -1,0 +1,275 @@
+test_actual_counter_allocations_remove_different_counter_and_replace_destruction (test_protocol_history.RealProtocolHistoryTests.test_actual_counter_allocations_remove_different_counter_and_replace_destruction) ... ERROR
+test_actual_declarations_pay_cost_then_apply_rule_resolution_and_equipment (test_protocol_history.RealProtocolHistoryTests.test_actual_declarations_pay_cost_then_apply_rule_resolution_and_equipment) ... ok
+test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) ... 
+  test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='sum-at-least') ... ERROR
+  test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='sum-dual') ... ERROR
+  test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='counter') ... ERROR
+  test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='sort') ... ERROR
+  test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='announcements') ... ERROR
+  test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='number-equip') ... ERROR
+  test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='move-zone') ... ERROR
+  test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='rps') ... ERROR
+  test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='disable-two') ... ERROR
+  test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='private-sort') ... ERROR
+  test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='confirm-extra') ... ERROR
+  test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='public-deck') ... ERROR
+test_native_rejects_corrupt_wire_for_each_supported_advanced_protocol (test_protocol_history.RealProtocolHistoryTests.test_native_rejects_corrupt_wire_for_each_supported_advanced_protocol) ... ok
+test_natural_terminal_has_complete_public_lp_battle_chain_and_result_history_and_replay (test_protocol_history.RealProtocolHistoryTests.test_natural_terminal_has_complete_public_lp_battle_chain_and_result_history_and_replay) ... ERROR
+test_private_deck_confirmation_is_not_public_but_extra_reveal_is_remembered_after_shuffle (test_protocol_history.RealProtocolHistoryTests.test_private_deck_confirmation_is_not_public_but_extra_reveal_is_remembered_after_shuffle) ... ok
+test_real_dual_synchro_level_uses_two_instead_of_one_and_triggers_actual_draw (test_protocol_history.RealProtocolHistoryTests.test_real_dual_synchro_level_uses_two_instead_of_one_and_triggers_actual_draw) ... ERROR
+test_real_minimal_at_least_has_two_distinct_accepted_returns_and_no_extra_removal (test_protocol_history.RealProtocolHistoryTests.test_real_minimal_at_least_has_two_distinct_accepted_returns_and_no_extra_removal) ... ERROR
+test_real_multi_zone_disable_agrees_with_core_field_mask (test_protocol_history.RealProtocolHistoryTests.test_real_multi_zone_disable_agrees_with_core_field_mask) ... ERROR
+test_real_rps_resolves_both_answers_and_banishes_the_losing_monster_facedown (test_protocol_history.RealProtocolHistoryTests.test_real_rps_resolves_both_answers_and_banishes_the_losing_monster_facedown) ... ok
+test_real_sorting_changes_next_actual_draw_without_publishing_top_order (test_protocol_history.RealProtocolHistoryTests.test_real_sorting_changes_next_actual_draw_without_publishing_top_order) ... ERROR
+test_rich_history_reaches_model_and_large_declaration_candidates_fail_closed (test_protocol_history.RealProtocolHistoryTests.test_rich_history_reaches_model_and_large_declaration_candidates_fail_closed) ... ERROR
+test_tampered_result_or_resource_cannot_replay_as_verified (test_protocol_history.RealProtocolHistoryTests.test_tampered_result_or_resource_cannot_replay_as_verified) ... ok
+
+======================================================================
+ERROR: test_actual_counter_allocations_remove_different_counter_and_replace_destruction (test_protocol_history.RealProtocolHistoryTests.test_actual_counter_allocations_remove_different_counter_and_replace_destruction)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/integration_tests/test_protocol_history.py", line 76, in test_actual_counter_allocations_remove_different_counter_and_replace_destruction
+    req=DecisionRequest.from_dict(trace['windows'][0]['request'])
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/contracts.py", line 487, in from_dict
+    RunContext.from_dict(d["context"]), d["duel_id"], d["decision_id"],
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/contracts.py", line 71, in from_dict
+    tuple(ModelVersion.from_dict(m) for m in array(d.get("models", []), "models")))
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/validation.py", line 43, in array
+    raise ContractError(f"{label} must be an array")
+ygo_kito.validation.ContractError: models must be an array
+
+======================================================================
+ERROR: test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='sum-at-least')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/integration_tests/test_protocol_history.py", line 37, in test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events
+    result,again=run_protocol_case(CACHE,name,replay=json.loads(json.dumps(trace)))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/protocol_cases.py", line 148, in run_protocol_case
+    raise NativeError("protocol replay events/history/result diverged")
+ygo_kito.native_protocol.NativeError: protocol replay events/history/result diverged
+
+======================================================================
+ERROR: test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='sum-dual')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/integration_tests/test_protocol_history.py", line 37, in test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events
+    result,again=run_protocol_case(CACHE,name,replay=json.loads(json.dumps(trace)))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/protocol_cases.py", line 148, in run_protocol_case
+    raise NativeError("protocol replay events/history/result diverged")
+ygo_kito.native_protocol.NativeError: protocol replay events/history/result diverged
+
+======================================================================
+ERROR: test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='counter')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/integration_tests/test_protocol_history.py", line 37, in test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events
+    result,again=run_protocol_case(CACHE,name,replay=json.loads(json.dumps(trace)))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/protocol_cases.py", line 148, in run_protocol_case
+    raise NativeError("protocol replay events/history/result diverged")
+ygo_kito.native_protocol.NativeError: protocol replay events/history/result diverged
+
+======================================================================
+ERROR: test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='sort')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/integration_tests/test_protocol_history.py", line 37, in test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events
+    result,again=run_protocol_case(CACHE,name,replay=json.loads(json.dumps(trace)))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/protocol_cases.py", line 148, in run_protocol_case
+    raise NativeError("protocol replay events/history/result diverged")
+ygo_kito.native_protocol.NativeError: protocol replay events/history/result diverged
+
+======================================================================
+ERROR: test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='announcements')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/integration_tests/test_protocol_history.py", line 37, in test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events
+    result,again=run_protocol_case(CACHE,name,replay=json.loads(json.dumps(trace)))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/protocol_cases.py", line 148, in run_protocol_case
+    raise NativeError("protocol replay events/history/result diverged")
+ygo_kito.native_protocol.NativeError: protocol replay events/history/result diverged
+
+======================================================================
+ERROR: test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='number-equip')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/integration_tests/test_protocol_history.py", line 37, in test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events
+    result,again=run_protocol_case(CACHE,name,replay=json.loads(json.dumps(trace)))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/protocol_cases.py", line 148, in run_protocol_case
+    raise NativeError("protocol replay events/history/result diverged")
+ygo_kito.native_protocol.NativeError: protocol replay events/history/result diverged
+
+======================================================================
+ERROR: test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='move-zone')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/integration_tests/test_protocol_history.py", line 37, in test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events
+    result,again=run_protocol_case(CACHE,name,replay=json.loads(json.dumps(trace)))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/protocol_cases.py", line 148, in run_protocol_case
+    raise NativeError("protocol replay events/history/result diverged")
+ygo_kito.native_protocol.NativeError: protocol replay events/history/result diverged
+
+======================================================================
+ERROR: test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='rps')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/integration_tests/test_protocol_history.py", line 37, in test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events
+    result,again=run_protocol_case(CACHE,name,replay=json.loads(json.dumps(trace)))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/protocol_cases.py", line 148, in run_protocol_case
+    raise NativeError("protocol replay events/history/result diverged")
+ygo_kito.native_protocol.NativeError: protocol replay events/history/result diverged
+
+======================================================================
+ERROR: test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='disable-two')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/integration_tests/test_protocol_history.py", line 37, in test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events
+    result,again=run_protocol_case(CACHE,name,replay=json.loads(json.dumps(trace)))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/protocol_cases.py", line 148, in run_protocol_case
+    raise NativeError("protocol replay events/history/result diverged")
+ygo_kito.native_protocol.NativeError: protocol replay events/history/result diverged
+
+======================================================================
+ERROR: test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='private-sort')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/integration_tests/test_protocol_history.py", line 37, in test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events
+    result,again=run_protocol_case(CACHE,name,replay=json.loads(json.dumps(trace)))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/protocol_cases.py", line 148, in run_protocol_case
+    raise NativeError("protocol replay events/history/result diverged")
+ygo_kito.native_protocol.NativeError: protocol replay events/history/result diverged
+
+======================================================================
+ERROR: test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='confirm-extra')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/integration_tests/test_protocol_history.py", line 37, in test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events
+    result,again=run_protocol_case(CACHE,name,replay=json.loads(json.dumps(trace)))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/protocol_cases.py", line 148, in run_protocol_case
+    raise NativeError("protocol replay events/history/result diverged")
+ygo_kito.native_protocol.NativeError: protocol replay events/history/result diverged
+
+======================================================================
+ERROR: test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events (test_protocol_history.RealProtocolHistoryTests.test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events) (name='public-deck')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/integration_tests/test_protocol_history.py", line 37, in test_all_declared_card_scripts_respond_and_replay_actual_observations_and_events
+    result,again=run_protocol_case(CACHE,name,replay=json.loads(json.dumps(trace)))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/protocol_cases.py", line 148, in run_protocol_case
+    raise NativeError("protocol replay events/history/result diverged")
+ygo_kito.native_protocol.NativeError: protocol replay events/history/result diverged
+
+======================================================================
+ERROR: test_natural_terminal_has_complete_public_lp_battle_chain_and_result_history_and_replay (test_protocol_history.RealProtocolHistoryTests.test_natural_terminal_has_complete_public_lp_battle_chain_and_result_history_and_replay)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/integration_tests/test_protocol_history.py", line 154, in test_natural_terminal_has_complete_public_lp_battle_chain_and_result_history_and_replay
+    _,again=run_protocol_case(CACHE,'number-equip',complete=True,replay=json.loads(json.dumps(trace)))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/protocol_cases.py", line 148, in run_protocol_case
+    raise NativeError("protocol replay events/history/result diverged")
+ygo_kito.native_protocol.NativeError: protocol replay events/history/result diverged
+
+======================================================================
+ERROR: test_real_dual_synchro_level_uses_two_instead_of_one_and_triggers_actual_draw (test_protocol_history.RealProtocolHistoryTests.test_real_dual_synchro_level_uses_two_instead_of_one_and_triggers_actual_draw)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/integration_tests/test_protocol_history.py", line 62, in test_real_dual_synchro_level_uses_two_instead_of_one_and_triggers_actual_draw
+    req=DecisionRequest.from_dict(trace['windows'][0]['request'])
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/contracts.py", line 487, in from_dict
+    RunContext.from_dict(d["context"]), d["duel_id"], d["decision_id"],
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/contracts.py", line 71, in from_dict
+    tuple(ModelVersion.from_dict(m) for m in array(d.get("models", []), "models")))
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/validation.py", line 43, in array
+    raise ContractError(f"{label} must be an array")
+ygo_kito.validation.ContractError: models must be an array
+
+======================================================================
+ERROR: test_real_minimal_at_least_has_two_distinct_accepted_returns_and_no_extra_removal (test_protocol_history.RealProtocolHistoryTests.test_real_minimal_at_least_has_two_distinct_accepted_returns_and_no_extra_removal)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/integration_tests/test_protocol_history.py", line 47, in test_real_minimal_at_least_has_two_distinct_accepted_returns_and_no_extra_removal
+    req=DecisionRequest.from_dict(trace['windows'][0]['request'])
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/contracts.py", line 487, in from_dict
+    RunContext.from_dict(d["context"]), d["duel_id"], d["decision_id"],
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/contracts.py", line 71, in from_dict
+    tuple(ModelVersion.from_dict(m) for m in array(d.get("models", []), "models")))
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/validation.py", line 43, in array
+    raise ContractError(f"{label} must be an array")
+ygo_kito.validation.ContractError: models must be an array
+
+======================================================================
+ERROR: test_real_multi_zone_disable_agrees_with_core_field_mask (test_protocol_history.RealProtocolHistoryTests.test_real_multi_zone_disable_agrees_with_core_field_mask)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/integration_tests/test_protocol_history.py", line 100, in test_real_multi_zone_disable_agrees_with_core_field_mask
+    window=trace['windows'][0];req=DecisionRequest.from_dict(window['request'])
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/contracts.py", line 487, in from_dict
+    RunContext.from_dict(d["context"]), d["duel_id"], d["decision_id"],
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/contracts.py", line 71, in from_dict
+    tuple(ModelVersion.from_dict(m) for m in array(d.get("models", []), "models")))
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/validation.py", line 43, in array
+    raise ContractError(f"{label} must be an array")
+ygo_kito.validation.ContractError: models must be an array
+
+======================================================================
+ERROR: test_real_sorting_changes_next_actual_draw_without_publishing_top_order (test_protocol_history.RealProtocolHistoryTests.test_real_sorting_changes_next_actual_draw_without_publishing_top_order)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/integration_tests/test_protocol_history.py", line 88, in test_real_sorting_changes_next_actual_draw_without_publishing_top_order
+    req=DecisionRequest.from_dict(window['request'])
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/contracts.py", line 487, in from_dict
+    RunContext.from_dict(d["context"]), d["duel_id"], d["decision_id"],
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/contracts.py", line 71, in from_dict
+    tuple(ModelVersion.from_dict(m) for m in array(d.get("models", []), "models")))
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/validation.py", line 43, in array
+    raise ContractError(f"{label} must be an array")
+ygo_kito.validation.ContractError: models must be an array
+
+======================================================================
+ERROR: test_rich_history_reaches_model_and_large_declaration_candidates_fail_closed (test_protocol_history.RealProtocolHistoryTests.test_rich_history_reaches_model_and_large_declaration_candidates_fail_closed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/integration_tests/test_protocol_history.py", line 186, in test_rich_history_reaches_model_and_large_declaration_candidates_fail_closed
+    req=DecisionRequest.from_dict(trace['windows'][0]['request'])
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/contracts.py", line 487, in from_dict
+    RunContext.from_dict(d["context"]), d["duel_id"], d["decision_id"],
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/contracts.py", line 71, in from_dict
+    tuple(ModelVersion.from_dict(m) for m in array(d.get("models", []), "models")))
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/YGO-Kito/src/ygo_kito/validation.py", line 43, in array
+    raise ContractError(f"{label} must be an array")
+ygo_kito.validation.ContractError: models must be an array
+
+----------------------------------------------------------------------
+Ran 13 tests in 26.886s
+
+FAILED (errors=19)

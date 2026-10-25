@@ -1,0 +1,85 @@
+{
+  "source_commit": "ecabe3fb90664f12723824b6e3ee32907a73c48d",
+  "python": "3.12.14",
+  "results": [
+    {
+      "label": "unit",
+      "command": [
+        "/workspace/YGO-Kito/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "source_commit": "ecabe3fb90664f12723824b6e3ee32907a73c48d",
+      "exit_code": 0,
+      "started_at_utc": "2026-10-23T05:26:43.714659+00:00",
+      "wall_seconds": 12.17153041500569,
+      "log": ".cache/protocol-history-final-unit.log",
+      "child_peak_rss_kib_cumulative": 273428,
+      "test_count": 143,
+      "framework_seconds": 10.77,
+      "skipped": 0,
+      "published_log": "docs/reports/2026-10-23-protocol-history-final-unit.log",
+      "published_log_sha256": "9b9c53cb96dc378dec8550b956b02a23c649e4b4d12724ca0a2334a6d8f8f372"
+    },
+    {
+      "label": "integration",
+      "command": [
+        "/workspace/YGO-Kito/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "integration_tests",
+        "-v"
+      ],
+      "source_commit": "ecabe3fb90664f12723824b6e3ee32907a73c48d",
+      "exit_code": 0,
+      "started_at_utc": "2026-10-23T05:26:55.886441+00:00",
+      "wall_seconds": 736.9595642089989,
+      "log": ".cache/protocol-history-final-integration.log",
+      "child_peak_rss_kib_cumulative": 468900,
+      "test_count": 137,
+      "framework_seconds": 735.434,
+      "skipped": 0,
+      "published_log": "docs/reports/2026-10-23-protocol-history-final-integration.log",
+      "published_log_sha256": "137e7453dc4e5469f42cc55a8a0c6a18a7215efd4a84edae71c48489453c286d"
+    },
+    {
+      "label": "independent_protocol_history_cli",
+      "command": [
+        "/workspace/YGO-Kito/.venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "protocol-history-acceptance",
+        "--root",
+        ".cache",
+        "--output",
+        ".cache/protocol-history-delivery-v2"
+      ],
+      "source_commit": "ecabe3fb90664f12723824b6e3ee32907a73c48d",
+      "started_at_utc": "2026-10-23T05:39:16.477730+00:00",
+      "exit_code": 0,
+      "wall_seconds": 21.66514745200402,
+      "stdout": ".cache/protocol-history-cli-final.stdout.json",
+      "stderr": ".cache/protocol-history-cli-final.stderr.log",
+      "child_peak_rss_kib": 57772,
+      "published_proof": "docs/reports/protocol-history-v3-evidence/proof.json",
+      "measured": {
+        "parent_peak_rss_kib": 57772,
+        "process_cpu_seconds": 21.503221500000002,
+        "wall_seconds": 21.539258304001123
+      },
+      "trace_receipts_verified": 19,
+      "independent_replay_runs": 19,
+      "published_stdout": "docs/reports/2026-10-23-protocol-history-cli.stdout.json",
+      "published_stderr": "docs/reports/2026-10-23-protocol-history-cli.stderr.log"
+    }
+  ],
+  "implementation_sha256": "74c9b64903cbe938c32607a57dee608c2e09d9e67c91f30a1b009c30ffdd1cb4",
+  "publication_note": "Tested production source remains ecabe3f; later documentation/evidence-only commit does not change this implementation SHA.",
+  "scope_note": "Full regression includes existing bounded CPU training tests. The independent protocol/history command performs zero parameter updates and zero provider calls; none of these is competitive evaluation."
+}

@@ -1,0 +1,1573 @@
+{
+  "events": [
+    {
+      "count": 5,
+      "kind": 90,
+      "player": 0
+    },
+    {
+      "count": 5,
+      "kind": 90,
+      "player": 1
+    },
+    {
+      "kind": 40,
+      "player": 0,
+      "turn": 1
+    },
+    {
+      "kind": 41,
+      "phase": "draw"
+    },
+    {
+      "kind": 2
+    },
+    {
+      "kind": 41,
+      "phase": "standby"
+    },
+    {
+      "kind": 41,
+      "phase": "main1"
+    },
+    {
+      "choices": 9,
+      "kind": 11,
+      "player": 0
+    },
+    {
+      "kind": 2
+    },
+    {
+      "choices": 5,
+      "kind": 18,
+      "player": 0
+    },
+    {
+      "choices": 2,
+      "kind": 19,
+      "player": 0
+    },
+    {
+      "from_zone": 2,
+      "kind": 50,
+      "player": 0,
+      "public_card": 65367484,
+      "reason": 2048,
+      "to_zone": 4
+    },
+    {
+      "kind": 62,
+      "player": 0,
+      "position": 1,
+      "public_summoning_card": 65367484,
+      "slot": 0,
+      "zone": 4
+    },
+    {
+      "choices": 1,
+      "kind": 16,
+      "player": 0
+    },
+    {
+      "choices": 1,
+      "kind": 16,
+      "player": 1
+    },
+    {
+      "kind": 63
+    },
+    {
+      "choices": 1,
+      "kind": 16,
+      "player": 0
+    },
+    {
+      "choices": 1,
+      "kind": 16,
+      "player": 1
+    },
+    {
+      "choices": 9,
+      "kind": 11,
+      "player": 0
+    },
+    {
+      "kind": 2
+    },
+    {
+      "choices": 4,
+      "kind": 18,
+      "player": 0
+    },
+    {
+      "from_zone": 2,
+      "kind": 50,
+      "player": 0,
+      "public_card": 32864,
+      "reason": 33555456,
+      "to_zone": 4
+    },
+    {
+      "kind": 60,
+      "player": 0,
+      "position": 1,
+      "public_summoning_card": 32864,
+      "slot": 1,
+      "zone": 4
+    },
+    {
+      "choices": 1,
+      "kind": 16,
+      "player": 0
+    },
+    {
+      "choices": 1,
+      "kind": 16,
+      "player": 1
+    },
+    {
+      "kind": 61
+    },
+    {
+      "choices": 1,
+      "kind": 16,
+      "player": 0
+    },
+    {
+      "choices": 1,
+      "kind": 16,
+      "player": 1
+    },
+    {
+      "choices": 3,
+      "kind": 11,
+      "player": 0
+    },
+    {
+      "kind": 2
+    },
+    {
+      "choices": 3,
+      "kind": 26,
+      "player": 0
+    },
+    {
+      "choices": 3,
+      "kind": 11,
+      "player": 0
+    },
+    {
+      "kind": 2
+    },
+    {
+      "choices": 3,
+      "kind": 26,
+      "player": 0
+    },
+    {
+      "choices": 3,
+      "kind": 26,
+      "player": 0
+    },
+    {
+      "choices": 3,
+      "kind": 26,
+      "player": 0
+    },
+    {
+      "choices": 3,
+      "kind": 26,
+      "player": 0
+    },
+    {
+      "kind": 83,
+      "targets": [
+        [
+          0,
+          4,
+          0
+        ]
+      ]
+    },
+    {
+      "from_zone": 4,
+      "kind": 50,
+      "player": 0,
+      "reason": 2048,
+      "to_zone": 2
+    },
+    {
+      "count": 4,
+      "kind": 33,
+      "player": 0
+    },
+    {
+      "kind": 2
+    },
+    {
+      "choices": 4,
+      "kind": 18,
+      "player": 0
+    },
+    {
+      "choices": 2,
+      "kind": 19,
+      "player": 0
+    },
+    {
+      "from_zone": 2,
+      "kind": 50,
+      "player": 0,
+      "public_card": 18738846,
+      "reason": 2048,
+      "to_zone": 4
+    },
+    {
+      "kind": 62,
+      "player": 0,
+      "position": 1,
+      "public_summoning_card": 18738846,
+      "slot": 0,
+      "zone": 4
+    },
+    {
+      "choices": 1,
+      "kind": 16,
+      "player": 0
+    },
+    {
+      "choices": 1,
+      "kind": 16,
+      "player": 1
+    },
+    {
+      "kind": 63
+    },
+    {
+      "choices": 1,
+      "kind": 16,
+      "player": 0
+    }
+  ],
+  "kind": "real-unselect-private-audit-v1",
+  "profile": {
+    "decks": [
+      [
+        32864,
+        32864,
+        32864,
+        549481,
+        549481,
+        549481,
+        732302,
+        732302,
+        732302,
+        756652,
+        756652,
+        756652,
+        1184620,
+        1184620,
+        1184620,
+        1761063,
+        1761063,
+        1761063,
+        1784619,
+        1784619,
+        1784619,
+        1929294,
+        1929294,
+        1929294,
+        2118022,
+        2118022,
+        2118022,
+        2311603,
+        2311603,
+        2311603,
+        2468169,
+        18738846,
+        18738846,
+        18738846,
+        43096270,
+        43096270,
+        43096270,
+        65367484,
+        65367484,
+        65367484
+      ],
+      [
+        32864,
+        32864,
+        32864,
+        549481,
+        549481,
+        549481,
+        732302,
+        732302,
+        732302,
+        756652,
+        756652,
+        756652,
+        1184620,
+        1184620,
+        1184620,
+        1761063,
+        1761063,
+        1761063,
+        1784619,
+        1784619,
+        1784619,
+        1929294,
+        1929294,
+        1929294,
+        2118022,
+        2118022,
+        2118022,
+        2311603,
+        2311603,
+        2311603,
+        2468169,
+        18738846,
+        18738846,
+        18738846,
+        43096270,
+        43096270,
+        43096270,
+        65367484,
+        65367484,
+        65367484
+      ]
+    ],
+    "name": "engineering-real-unselect-v1",
+    "schema_version": 1
+  },
+  "resources": {
+    "build_seconds": 24.126,
+    "built_at_utc": "2026-10-22T08:16:41.137897+00:00",
+    "command": [
+      "g++",
+      "-std=c++17",
+      "-O1",
+      "-fPIC",
+      "-shared",
+      "-DOCGCORE_EXPORT_FUNCTIONS",
+      "-DLUA_USE_LINUX",
+      "-I/workspace/YGO-Kito/.cache/engine-src/lua",
+      "/workspace/YGO-Kito/.cache/engine-src/core/card.cpp",
+      "/workspace/YGO-Kito/.cache/engine-src/core/duel.cpp",
+      "/workspace/YGO-Kito/.cache/engine-src/core/effect.cpp",
+      "/workspace/YGO-Kito/.cache/engine-src/core/field.cpp",
+      "/workspace/YGO-Kito/.cache/engine-src/core/group.cpp",
+      "/workspace/YGO-Kito/.cache/engine-src/core/interpreter.cpp",
+      "/workspace/YGO-Kito/.cache/engine-src/core/libcard.cpp",
+      "/workspace/YGO-Kito/.cache/engine-src/core/libdebug.cpp",
+      "/workspace/YGO-Kito/.cache/engine-src/core/libduel.cpp",
+      "/workspace/YGO-Kito/.cache/engine-src/core/libeffect.cpp",
+      "/workspace/YGO-Kito/.cache/engine-src/core/libgroup.cpp",
+      "/workspace/YGO-Kito/.cache/engine-src/core/ocgapi.cpp",
+      "/workspace/YGO-Kito/.cache/engine-src/core/operations.cpp",
+      "/workspace/YGO-Kito/.cache/engine-src/core/playerop.cpp",
+      "/workspace/YGO-Kito/.cache/engine-src/core/processor.cpp",
+      "/workspace/YGO-Kito/.cache/engine-src/core/scriptlib.cpp",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/lapi.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/lauxlib.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/lbaselib.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/lcode.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/lcorolib.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/lctype.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/ldblib.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/ldebug.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/ldo.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/ldump.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/lfunc.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/lgc.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/liolib.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/llex.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/lmathlib.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/lmem.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/loadlib.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/lobject.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/lopcodes.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/loslib.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/lparser.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/lstate.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/lstring.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/lstrlib.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/ltable.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/ltablib.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/ltm.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/lundump.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/lutf8lib.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/lvm.c",
+      "/workspace/YGO-Kito/.cache/engine-src/lua/lzio.c",
+      "-ldl",
+      "-lm",
+      "-o",
+      "/workspace/YGO-Kito/.cache/engine-build/libocgcore.so"
+    ],
+    "compiler": "g++ (Debian 14.2.0-19) 14.2.0",
+    "resources": {
+      "banlist": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+      "card_data_abi": "754c750eb26e81eba44de3253c056a89de364f942ec5cd63ecd9d9791acff45e",
+      "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+      "client_config": "07f92954941343d33f38eae3986997cc620d595301e67adb9e473bfa3c254d0c",
+      "client_protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+      "core_api": "cb7b33d709791e86be0b821152c1ca34c2a2c72847c3603b4a07826c88b802af",
+      "core_constants": "2c78c4c7c92306cd76f09cc111c28e6604e0e3d4fc16252ec31e8cb8d1493e17",
+      "library": "b33b0fb302e24e4757532f224f04aec21e4b16153979b112923c6f746b2e531f",
+      "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+    },
+    "schema_version": 1,
+    "source_commits": {
+      "client": "0d76e26b30c5ddb0273ee746459506c5719fddb6",
+      "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+      "database": "217ae165c1886af2fc36b823fc08f9fc3ec13185",
+      "lua": "6e22fedb74cf0c9b6656e9fce8b7331db847c605",
+      "scripts": "b83db1cc3f512d3bec2faafb9ecf199143332be1"
+    },
+    "source_lock_sha256": "3b73a6f7594f1372fcc0b26e6dbe0bbd0e41392a6c9c453308819c85d88ecfc1"
+  },
+  "responses": [
+    {
+      "action_id": "choice-3",
+      "player": 0,
+      "request_sha256": "ef630951462c06e25b95ee17adaef67e85a7180223d4011d0f8b20186f2ed25c",
+      "wire_response_audit_only": {
+        "integer": 1
+      }
+    },
+    {
+      "action_id": "choice-0",
+      "player": 0,
+      "request_sha256": "b9cef7825005253f62ae9018ce6b75866b2fde61c834c49a852ffc74d07c49a4",
+      "wire_response_audit_only": {
+        "bytes_hex": "000400"
+      }
+    },
+    {
+      "action_id": "choice-0",
+      "player": 0,
+      "request_sha256": "27ffc8457b4f7527b7272bcc86a2cde35d35d88c66320194d17508153689d6dc",
+      "wire_response_audit_only": {
+        "integer": 1
+      }
+    },
+    {
+      "action_id": "choice-0",
+      "player": 0,
+      "request_sha256": "42485b0ddcccd9768630dc0ed33d6a8e6bb3b83b47fa0e94fbfe8a8fb8d49ebf",
+      "wire_response_audit_only": {
+        "integer": -1
+      }
+    },
+    {
+      "action_id": "choice-0",
+      "player": 1,
+      "request_sha256": "7d89c5ad18c6e140f2c667ca1af548c694b5ab07a7ad66a9a853ad9a94120915",
+      "wire_response_audit_only": {
+        "integer": -1
+      }
+    },
+    {
+      "action_id": "choice-0",
+      "player": 0,
+      "request_sha256": "eadb99acff6adc1bb2c002c26c2f8f919ae64aea60291e98a8711d1d67cea8ab",
+      "wire_response_audit_only": {
+        "integer": -1
+      }
+    },
+    {
+      "action_id": "choice-0",
+      "player": 1,
+      "request_sha256": "a46c849db5ab3939319ab1c187559e12229c60a823854ae733499bfd4eb7a5d1",
+      "wire_response_audit_only": {
+        "integer": -1
+      }
+    },
+    {
+      "action_id": "choice-1",
+      "player": 0,
+      "request_sha256": "bbdbc367a9b7f5ae067e487ebc7bbc6e88c0aedeaed94a13cf38e7f421d77799",
+      "wire_response_audit_only": {
+        "integer": 65536
+      }
+    },
+    {
+      "action_id": "choice-0",
+      "player": 0,
+      "request_sha256": "77b6b88b788d19e4fd00ec6733881519ff0ce3d701beb377a13da7796d9724c2",
+      "wire_response_audit_only": {
+        "bytes_hex": "000401"
+      }
+    },
+    {
+      "action_id": "choice-0",
+      "player": 0,
+      "request_sha256": "a5c4ec860db959b1183014ca24a22c67807aa0aa38f42134b25fb4b5642e7340",
+      "wire_response_audit_only": {
+        "integer": -1
+      }
+    },
+    {
+      "action_id": "choice-0",
+      "player": 1,
+      "request_sha256": "34c4349fa996512da809d3ce0f79b0b5be7a2ca81ae6a698f480ec030a843118",
+      "wire_response_audit_only": {
+        "integer": -1
+      }
+    },
+    {
+      "action_id": "choice-0",
+      "player": 0,
+      "request_sha256": "c602e861e0d30392803ec3297b6ceae8e7c02444c5f109ece3abf0707cf2f63a",
+      "wire_response_audit_only": {
+        "integer": -1
+      }
+    },
+    {
+      "action_id": "choice-0",
+      "player": 1,
+      "request_sha256": "fd99039ec091ada8f51e1251e963a3336ef6311e2704a01a864541bfd7b167fe",
+      "wire_response_audit_only": {
+        "integer": -1
+      }
+    },
+    {
+      "action_id": "choice-0",
+      "player": 0,
+      "request_sha256": "fdaf170e6a1ac7bb82c40887d40610788af9be4a065c5919cd7135b3e037f0dc",
+      "wire_response_audit_only": {
+        "integer": 1
+      }
+    },
+    {
+      "action_id": "choice-2",
+      "player": 0,
+      "request_sha256": "bd1a1af1c21ffc4388b6d95d808d267f114dd641a1dc14483ecb5126caa34d12",
+      "wire_response_audit_only": {
+        "integer": -1
+      }
+    },
+    {
+      "action_id": "choice-0",
+      "player": 0,
+      "request_sha256": "fac77d734af0a5161cb3326bc7cce0ef063adc06fe6446f7f44bf959ac2806bd",
+      "wire_response_audit_only": {
+        "integer": 1
+      }
+    },
+    {
+      "action_id": "choice-0",
+      "player": 0,
+      "request_sha256": "837aee1c5355731d8f29fa3e5ed55124676316062ae1a702fd98b85123c0dd3d",
+      "wire_response_audit_only": {
+        "bytes_hex": "0100"
+      }
+    },
+    {
+      "action_id": "choice-1",
+      "player": 0,
+      "request_sha256": "aa8d5cce4431de50a69bbb10b495819f60e343ff5c4d161d93f61c1164ac8828",
+      "wire_response_audit_only": {
+        "bytes_hex": "0101"
+      }
+    },
+    {
+      "action_id": "choice-0",
+      "player": 0,
+      "request_sha256": "d071c5d4124c959aff8fa47d84cd6b8d4c3629c43f18005892da04ca678f1658",
+      "wire_response_audit_only": {
+        "bytes_hex": "0100"
+      }
+    },
+    {
+      "action_id": "choice-2",
+      "player": 0,
+      "request_sha256": "13e971aa8c247977aa0f654d75e63ba5717541dfa0f9592d1a2e8d37d829c63b",
+      "wire_response_audit_only": {
+        "integer": -1
+      }
+    },
+    {
+      "action_id": "choice-0",
+      "player": 0,
+      "request_sha256": "d59a896bae9c1fd00a33b2201bfeefd4d07982314e10da05c9b4bb59820761a2",
+      "wire_response_audit_only": {
+        "bytes_hex": "000400"
+      }
+    },
+    {
+      "action_id": "choice-0",
+      "player": 0,
+      "request_sha256": "93c041a996d9715e00ea721c9bc32644a374cf8fd533bbfdb08b34be328344f0",
+      "wire_response_audit_only": {
+        "integer": 1
+      }
+    },
+    {
+      "action_id": "choice-0",
+      "player": 0,
+      "request_sha256": "9ac0af848c9335b7fa46353557cccd40eda92e7c2b722358cb0b031fdd2c2b97",
+      "wire_response_audit_only": {
+        "integer": -1
+      }
+    },
+    {
+      "action_id": "choice-0",
+      "player": 1,
+      "request_sha256": "bdce5fb6c500fb91dc7ffc0f0aa7fdd1c8a36d01abb349de3b8b68fb739a650e",
+      "wire_response_audit_only": {
+        "integer": -1
+      }
+    }
+  ],
+  "result": {
+    "callback_errors": 0,
+    "cancel_did_not_consume_procedure": true,
+    "field_public": [
+      32864,
+      18738846
+    ],
+    "goal_special_summon_completed": true,
+    "hidden_hand_isolated": true,
+    "operations": [
+      "cancel",
+      "add",
+      "remove",
+      "add",
+      "finish"
+    ],
+    "returned_card_audit_only": 65367484,
+    "scripts": [
+      "c18738846.lua",
+      "c65367484.lua",
+      "constant.lua",
+      "procedure.lua",
+      "utility.lua"
+    ]
+  },
+  "schema_version": 1,
+  "seed_audit_only": 17,
+  "windows": [
+    {
+      "operation": "cancel",
+      "request": {
+        "actions": [
+          {
+            "action_id": "choice-0",
+            "card_refs": [
+              "p0.monster.0"
+            ],
+            "details": {
+              "description": null,
+              "destination": null,
+              "operation": "add"
+            },
+            "kind": "select",
+            "value": 1
+          },
+          {
+            "action_id": "choice-1",
+            "card_refs": [
+              "p0.monster.1"
+            ],
+            "details": {
+              "description": null,
+              "destination": null,
+              "operation": "add"
+            },
+            "kind": "select",
+            "value": 1
+          },
+          {
+            "action_id": "choice-2",
+            "card_refs": [],
+            "details": {
+              "description": null,
+              "destination": null,
+              "operation": "cancel"
+            },
+            "kind": "pass",
+            "value": null
+          }
+        ],
+        "context": {
+          "models": [],
+          "run_id": "private-replay-audit",
+          "seed": null,
+          "versions": {
+            "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+            "card_pool": "native-effect-duel-v1",
+            "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+            "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+            "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+            "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+          }
+        },
+        "decision_id": "p0-window-11",
+        "duel_id": "native-effect-duel",
+        "observation": {
+          "cards": [
+            {
+              "card_id": 18738846,
+              "controller": 0,
+              "owner": 0,
+              "ref": "p0.hand.0",
+              "visibility": "observer",
+              "zone": "hand"
+            },
+            {
+              "card_id": 1929294,
+              "controller": 0,
+              "owner": 0,
+              "ref": "p0.hand.1",
+              "visibility": "observer",
+              "zone": "hand"
+            },
+            {
+              "card_id": 1184620,
+              "controller": 0,
+              "owner": 0,
+              "ref": "p0.hand.2",
+              "visibility": "observer",
+              "zone": "hand"
+            },
+            {
+              "attack": 2100,
+              "card_id": 65367484,
+              "controller": 0,
+              "defense": 0,
+              "owner": 0,
+              "position": 1,
+              "ref": "p0.monster.0",
+              "visibility": "public",
+              "zone": "monster"
+            },
+            {
+              "attack": 1200,
+              "card_id": 32864,
+              "controller": 0,
+              "defense": 900,
+              "owner": 0,
+              "position": 1,
+              "ref": "p0.monster.1",
+              "visibility": "public",
+              "zone": "monster"
+            }
+          ],
+          "deck_counts": [
+            35,
+            35
+          ],
+          "hand_counts": [
+            3,
+            5
+          ],
+          "life_points": [
+            8000,
+            8000
+          ],
+          "observer": 0,
+          "phase": "main1",
+          "public_history": [
+            {
+              "card_ids": [],
+              "event_id": "public-0",
+              "kind": "phase"
+            },
+            {
+              "card_ids": [],
+              "event_id": "public-1",
+              "kind": "phase"
+            },
+            {
+              "card_ids": [],
+              "event_id": "public-2",
+              "kind": "phase"
+            },
+            {
+              "card_ids": [],
+              "event_id": "public-3",
+              "kind": "phase"
+            },
+            {
+              "card_ids": [
+                65367484
+              ],
+              "event_id": "public-4",
+              "kind": "move"
+            },
+            {
+              "card_ids": [
+                65367484
+              ],
+              "event_id": "public-5",
+              "kind": "summon"
+            },
+            {
+              "card_ids": [
+                32864
+              ],
+              "event_id": "public-6",
+              "kind": "move"
+            },
+            {
+              "card_ids": [
+                32864
+              ],
+              "event_id": "public-7",
+              "kind": "summon"
+            }
+          ],
+          "turn": 1,
+          "turn_player": 0
+        },
+        "prompt": {
+          "cancelable": true,
+          "finishable": false,
+          "maximum": 2,
+          "message": 26,
+          "minimum": 1
+        },
+        "schema_version": 1
+      },
+      "selected_card_audit_only": null
+    },
+    {
+      "operation": "add",
+      "request": {
+        "actions": [
+          {
+            "action_id": "choice-0",
+            "card_refs": [
+              "p0.monster.0"
+            ],
+            "details": {
+              "description": null,
+              "destination": null,
+              "operation": "add"
+            },
+            "kind": "select",
+            "value": 1
+          },
+          {
+            "action_id": "choice-1",
+            "card_refs": [
+              "p0.monster.1"
+            ],
+            "details": {
+              "description": null,
+              "destination": null,
+              "operation": "add"
+            },
+            "kind": "select",
+            "value": 1
+          },
+          {
+            "action_id": "choice-2",
+            "card_refs": [],
+            "details": {
+              "description": null,
+              "destination": null,
+              "operation": "cancel"
+            },
+            "kind": "pass",
+            "value": null
+          }
+        ],
+        "context": {
+          "models": [],
+          "run_id": "private-replay-audit",
+          "seed": null,
+          "versions": {
+            "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+            "card_pool": "native-effect-duel-v1",
+            "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+            "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+            "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+            "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+          }
+        },
+        "decision_id": "p0-window-13",
+        "duel_id": "native-effect-duel",
+        "observation": {
+          "cards": [
+            {
+              "card_id": 18738846,
+              "controller": 0,
+              "owner": 0,
+              "ref": "p0.hand.0",
+              "visibility": "observer",
+              "zone": "hand"
+            },
+            {
+              "card_id": 1929294,
+              "controller": 0,
+              "owner": 0,
+              "ref": "p0.hand.1",
+              "visibility": "observer",
+              "zone": "hand"
+            },
+            {
+              "card_id": 1184620,
+              "controller": 0,
+              "owner": 0,
+              "ref": "p0.hand.2",
+              "visibility": "observer",
+              "zone": "hand"
+            },
+            {
+              "attack": 2100,
+              "card_id": 65367484,
+              "controller": 0,
+              "defense": 0,
+              "owner": 0,
+              "position": 1,
+              "ref": "p0.monster.0",
+              "visibility": "public",
+              "zone": "monster"
+            },
+            {
+              "attack": 1200,
+              "card_id": 32864,
+              "controller": 0,
+              "defense": 900,
+              "owner": 0,
+              "position": 1,
+              "ref": "p0.monster.1",
+              "visibility": "public",
+              "zone": "monster"
+            }
+          ],
+          "deck_counts": [
+            35,
+            35
+          ],
+          "hand_counts": [
+            3,
+            5
+          ],
+          "life_points": [
+            8000,
+            8000
+          ],
+          "observer": 0,
+          "phase": "main1",
+          "public_history": [
+            {
+              "card_ids": [],
+              "event_id": "public-0",
+              "kind": "phase"
+            },
+            {
+              "card_ids": [],
+              "event_id": "public-1",
+              "kind": "phase"
+            },
+            {
+              "card_ids": [],
+              "event_id": "public-2",
+              "kind": "phase"
+            },
+            {
+              "card_ids": [],
+              "event_id": "public-3",
+              "kind": "phase"
+            },
+            {
+              "card_ids": [
+                65367484
+              ],
+              "event_id": "public-4",
+              "kind": "move"
+            },
+            {
+              "card_ids": [
+                65367484
+              ],
+              "event_id": "public-5",
+              "kind": "summon"
+            },
+            {
+              "card_ids": [
+                32864
+              ],
+              "event_id": "public-6",
+              "kind": "move"
+            },
+            {
+              "card_ids": [
+                32864
+              ],
+              "event_id": "public-7",
+              "kind": "summon"
+            }
+          ],
+          "turn": 1,
+          "turn_player": 0
+        },
+        "prompt": {
+          "cancelable": true,
+          "finishable": false,
+          "maximum": 2,
+          "message": 26,
+          "minimum": 1
+        },
+        "schema_version": 1
+      },
+      "selected_card_audit_only": 65367484
+    },
+    {
+      "operation": "remove",
+      "request": {
+        "actions": [
+          {
+            "action_id": "choice-0",
+            "card_refs": [
+              "p0.monster.1"
+            ],
+            "details": {
+              "description": null,
+              "destination": null,
+              "operation": "add"
+            },
+            "kind": "select",
+            "value": 1
+          },
+          {
+            "action_id": "choice-1",
+            "card_refs": [
+              "p0.monster.0"
+            ],
+            "details": {
+              "description": null,
+              "destination": null,
+              "operation": "remove"
+            },
+            "kind": "select",
+            "value": 0
+          },
+          {
+            "action_id": "choice-2",
+            "card_refs": [],
+            "details": {
+              "description": null,
+              "destination": null,
+              "operation": "finish"
+            },
+            "kind": "pass",
+            "value": null
+          }
+        ],
+        "context": {
+          "models": [],
+          "run_id": "private-replay-audit",
+          "seed": null,
+          "versions": {
+            "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+            "card_pool": "native-effect-duel-v1",
+            "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+            "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+            "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+            "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+          }
+        },
+        "decision_id": "p0-window-14",
+        "duel_id": "native-effect-duel",
+        "observation": {
+          "cards": [
+            {
+              "card_id": 18738846,
+              "controller": 0,
+              "owner": 0,
+              "ref": "p0.hand.0",
+              "visibility": "observer",
+              "zone": "hand"
+            },
+            {
+              "card_id": 1929294,
+              "controller": 0,
+              "owner": 0,
+              "ref": "p0.hand.1",
+              "visibility": "observer",
+              "zone": "hand"
+            },
+            {
+              "card_id": 1184620,
+              "controller": 0,
+              "owner": 0,
+              "ref": "p0.hand.2",
+              "visibility": "observer",
+              "zone": "hand"
+            },
+            {
+              "attack": 2100,
+              "card_id": 65367484,
+              "controller": 0,
+              "defense": 0,
+              "owner": 0,
+              "position": 1,
+              "ref": "p0.monster.0",
+              "visibility": "public",
+              "zone": "monster"
+            },
+            {
+              "attack": 1200,
+              "card_id": 32864,
+              "controller": 0,
+              "defense": 900,
+              "owner": 0,
+              "position": 1,
+              "ref": "p0.monster.1",
+              "visibility": "public",
+              "zone": "monster"
+            }
+          ],
+          "deck_counts": [
+            35,
+            35
+          ],
+          "hand_counts": [
+            3,
+            5
+          ],
+          "life_points": [
+            8000,
+            8000
+          ],
+          "observer": 0,
+          "phase": "main1",
+          "public_history": [
+            {
+              "card_ids": [],
+              "event_id": "public-0",
+              "kind": "phase"
+            },
+            {
+              "card_ids": [],
+              "event_id": "public-1",
+              "kind": "phase"
+            },
+            {
+              "card_ids": [],
+              "event_id": "public-2",
+              "kind": "phase"
+            },
+            {
+              "card_ids": [],
+              "event_id": "public-3",
+              "kind": "phase"
+            },
+            {
+              "card_ids": [
+                65367484
+              ],
+              "event_id": "public-4",
+              "kind": "move"
+            },
+            {
+              "card_ids": [
+                65367484
+              ],
+              "event_id": "public-5",
+              "kind": "summon"
+            },
+            {
+              "card_ids": [
+                32864
+              ],
+              "event_id": "public-6",
+              "kind": "move"
+            },
+            {
+              "card_ids": [
+                32864
+              ],
+              "event_id": "public-7",
+              "kind": "summon"
+            }
+          ],
+          "turn": 1,
+          "turn_player": 0
+        },
+        "prompt": {
+          "cancelable": false,
+          "finishable": true,
+          "maximum": 2,
+          "message": 26,
+          "minimum": 1
+        },
+        "schema_version": 1
+      },
+      "selected_card_audit_only": 65367484
+    },
+    {
+      "operation": "add",
+      "request": {
+        "actions": [
+          {
+            "action_id": "choice-0",
+            "card_refs": [
+              "p0.monster.0"
+            ],
+            "details": {
+              "description": null,
+              "destination": null,
+              "operation": "add"
+            },
+            "kind": "select",
+            "value": 1
+          },
+          {
+            "action_id": "choice-1",
+            "card_refs": [
+              "p0.monster.1"
+            ],
+            "details": {
+              "description": null,
+              "destination": null,
+              "operation": "add"
+            },
+            "kind": "select",
+            "value": 1
+          },
+          {
+            "action_id": "choice-2",
+            "card_refs": [],
+            "details": {
+              "description": null,
+              "destination": null,
+              "operation": "cancel"
+            },
+            "kind": "pass",
+            "value": null
+          }
+        ],
+        "context": {
+          "models": [],
+          "run_id": "private-replay-audit",
+          "seed": null,
+          "versions": {
+            "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+            "card_pool": "native-effect-duel-v1",
+            "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+            "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+            "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+            "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+          }
+        },
+        "decision_id": "p0-window-15",
+        "duel_id": "native-effect-duel",
+        "observation": {
+          "cards": [
+            {
+              "card_id": 18738846,
+              "controller": 0,
+              "owner": 0,
+              "ref": "p0.hand.0",
+              "visibility": "observer",
+              "zone": "hand"
+            },
+            {
+              "card_id": 1929294,
+              "controller": 0,
+              "owner": 0,
+              "ref": "p0.hand.1",
+              "visibility": "observer",
+              "zone": "hand"
+            },
+            {
+              "card_id": 1184620,
+              "controller": 0,
+              "owner": 0,
+              "ref": "p0.hand.2",
+              "visibility": "observer",
+              "zone": "hand"
+            },
+            {
+              "attack": 2100,
+              "card_id": 65367484,
+              "controller": 0,
+              "defense": 0,
+              "owner": 0,
+              "position": 1,
+              "ref": "p0.monster.0",
+              "visibility": "public",
+              "zone": "monster"
+            },
+            {
+              "attack": 1200,
+              "card_id": 32864,
+              "controller": 0,
+              "defense": 900,
+              "owner": 0,
+              "position": 1,
+              "ref": "p0.monster.1",
+              "visibility": "public",
+              "zone": "monster"
+            }
+          ],
+          "deck_counts": [
+            35,
+            35
+          ],
+          "hand_counts": [
+            3,
+            5
+          ],
+          "life_points": [
+            8000,
+            8000
+          ],
+          "observer": 0,
+          "phase": "main1",
+          "public_history": [
+            {
+              "card_ids": [],
+              "event_id": "public-0",
+              "kind": "phase"
+            },
+            {
+              "card_ids": [],
+              "event_id": "public-1",
+              "kind": "phase"
+            },
+            {
+              "card_ids": [],
+              "event_id": "public-2",
+              "kind": "phase"
+            },
+            {
+              "card_ids": [],
+              "event_id": "public-3",
+              "kind": "phase"
+            },
+            {
+              "card_ids": [
+                65367484
+              ],
+              "event_id": "public-4",
+              "kind": "move"
+            },
+            {
+              "card_ids": [
+                65367484
+              ],
+              "event_id": "public-5",
+              "kind": "summon"
+            },
+            {
+              "card_ids": [
+                32864
+              ],
+              "event_id": "public-6",
+              "kind": "move"
+            },
+            {
+              "card_ids": [
+                32864
+              ],
+              "event_id": "public-7",
+              "kind": "summon"
+            }
+          ],
+          "turn": 1,
+          "turn_player": 0
+        },
+        "prompt": {
+          "cancelable": true,
+          "finishable": false,
+          "maximum": 2,
+          "message": 26,
+          "minimum": 1
+        },
+        "schema_version": 1
+      },
+      "selected_card_audit_only": 65367484
+    },
+    {
+      "operation": "finish",
+      "request": {
+        "actions": [
+          {
+            "action_id": "choice-0",
+            "card_refs": [
+              "p0.monster.1"
+            ],
+            "details": {
+              "description": null,
+              "destination": null,
+              "operation": "add"
+            },
+            "kind": "select",
+            "value": 1
+          },
+          {
+            "action_id": "choice-1",
+            "card_refs": [
+              "p0.monster.0"
+            ],
+            "details": {
+              "description": null,
+              "destination": null,
+              "operation": "remove"
+            },
+            "kind": "select",
+            "value": 0
+          },
+          {
+            "action_id": "choice-2",
+            "card_refs": [],
+            "details": {
+              "description": null,
+              "destination": null,
+              "operation": "finish"
+            },
+            "kind": "pass",
+            "value": null
+          }
+        ],
+        "context": {
+          "models": [],
+          "run_id": "private-replay-audit",
+          "seed": null,
+          "versions": {
+            "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+            "card_pool": "native-effect-duel-v1",
+            "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+            "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+            "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+            "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+          }
+        },
+        "decision_id": "p0-window-16",
+        "duel_id": "native-effect-duel",
+        "observation": {
+          "cards": [
+            {
+              "card_id": 18738846,
+              "controller": 0,
+              "owner": 0,
+              "ref": "p0.hand.0",
+              "visibility": "observer",
+              "zone": "hand"
+            },
+            {
+              "card_id": 1929294,
+              "controller": 0,
+              "owner": 0,
+              "ref": "p0.hand.1",
+              "visibility": "observer",
+              "zone": "hand"
+            },
+            {
+              "card_id": 1184620,
+              "controller": 0,
+              "owner": 0,
+              "ref": "p0.hand.2",
+              "visibility": "observer",
+              "zone": "hand"
+            },
+            {
+              "attack": 2100,
+              "card_id": 65367484,
+              "controller": 0,
+              "defense": 0,
+              "owner": 0,
+              "position": 1,
+              "ref": "p0.monster.0",
+              "visibility": "public",
+              "zone": "monster"
+            },
+            {
+              "attack": 1200,
+              "card_id": 32864,
+              "controller": 0,
+              "defense": 900,
+              "owner": 0,
+              "position": 1,
+              "ref": "p0.monster.1",
+              "visibility": "public",
+              "zone": "monster"
+            }
+          ],
+          "deck_counts": [
+            35,
+            35
+          ],
+          "hand_counts": [
+            3,
+            5
+          ],
+          "life_points": [
+            8000,
+            8000
+          ],
+          "observer": 0,
+          "phase": "main1",
+          "public_history": [
+            {
+              "card_ids": [],
+              "event_id": "public-0",
+              "kind": "phase"
+            },
+            {
+              "card_ids": [],
+              "event_id": "public-1",
+              "kind": "phase"
+            },
+            {
+              "card_ids": [],
+              "event_id": "public-2",
+              "kind": "phase"
+            },
+            {
+              "card_ids": [],
+              "event_id": "public-3",
+              "kind": "phase"
+            },
+            {
+              "card_ids": [
+                65367484
+              ],
+              "event_id": "public-4",
+              "kind": "move"
+            },
+            {
+              "card_ids": [
+                65367484
+              ],
+              "event_id": "public-5",
+              "kind": "summon"
+            },
+            {
+              "card_ids": [
+                32864
+              ],
+              "event_id": "public-6",
+              "kind": "move"
+            },
+            {
+              "card_ids": [
+                32864
+              ],
+              "event_id": "public-7",
+              "kind": "summon"
+            }
+          ],
+          "turn": 1,
+          "turn_player": 0
+        },
+        "prompt": {
+          "cancelable": false,
+          "finishable": true,
+          "maximum": 2,
+          "message": 26,
+          "minimum": 1
+        },
+        "schema_version": 1
+      },
+      "selected_card_audit_only": 65367484
+    }
+  ]
+}

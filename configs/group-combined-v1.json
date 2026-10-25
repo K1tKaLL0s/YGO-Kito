@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "workflow": "four-model-alternating-v1",
+  "max_updates": 2,
+  "validate_every": 1,
+  "checkpoint_every": 1,
+  "wall_seconds": 180.0,
+  "cpu_config": {},
+  "task": "configs/build-combined-native-v4.json",
+  "adapters": "configs/lora-engineering-v1.json",
+  "bootstrap_seed": 1724,
+  "stages_per_worker": 13,
+  "train": {
+    "profile": "configs/group-combined-train-v1.json",
+    "opponent": "visible-effects-first-v1",
+    "seed_start": 1725,
+    "seed_stride": 1
+  },
+  "validation": {
+    "profile": "configs/group-combined-validation-v1.json",
+    "opponent": "visible-effects-last-option-v1",
+    "seeds": [
+      1001724
+    ],
+    "policy_seed": 100456
+  },
+  "construction_curriculum": "configs/construction-combined-v1.json"
+}

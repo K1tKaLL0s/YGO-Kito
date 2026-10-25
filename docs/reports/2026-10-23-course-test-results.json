@@ -1,0 +1,79 @@
+{
+  "source_commit": "40d3e6510361aa000b87e72d44bd75c7023b6c6a",
+  "python": "3.12.14",
+  "implementation_sha256": "d5f00f432a153269d517c20c2e6656e077829cd8362b059d7f92fa8838d13cd8",
+  "started_utc": "2026-10-23T09:40:50.441802+00:00",
+  "results": [
+    {
+      "name": "unit",
+      "command": [
+        "/workspace/YGO-Kito/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 12.46351793500071,
+      "child_cpu_seconds": 15.562603,
+      "child_peak_rss_kib": 282448,
+      "log": ".cache/course-final-unit.log",
+      "log_sha256": "e77c92ea66b06b8c7b881d16eb18b1579f23d1271fc07e998ff878f7e50c3da2",
+      "tests": 172,
+      "skips": 0,
+      "published_log": "2026-10-23-course-final-unit.log"
+    },
+    {
+      "name": "integration",
+      "command": [
+        "/workspace/YGO-Kito/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "integration_tests",
+        "-v"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 1168.0565160140031,
+      "child_cpu_seconds": 1223.524281,
+      "child_peak_rss_kib": 694568,
+      "log": ".cache/course-final-integration.log",
+      "log_sha256": "42f58ddf7322df9d8f6e34d38e9eea2d6515927a7251692df24871e36208f3b2",
+      "tests": 172,
+      "skips": 0,
+      "private_artifact_root": "/workspace/YGO-Kito/.cache/course-final-artifacts-v1",
+      "published_log": "2026-10-23-course-final-integration.log"
+    },
+    {
+      "name": "cli",
+      "command": [
+        "/workspace/YGO-Kito/.venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "build-train-cpu",
+        "--root",
+        ".cache",
+        "--state-root",
+        ".cache/course-final-build",
+        "--run-id",
+        "combined-final",
+        "--task",
+        "configs/build-combined-native-v4.json"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 16.85365228199953,
+      "child_cpu_seconds": 17.682053999999894,
+      "child_peak_rss_kib": 694568,
+      "log": ".cache/course-final-cli.stdout.json",
+      "log_sha256": "09f87f04c4a9cb1678a9eafecf5574311c636a4e0b4de39d8ce8564fdced2c85",
+      "private_stdout_retained_in_cloud": true,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "finished_utc": "2026-10-23T10:00:47.820673+00:00",
+  "code_publication": "blocked; this remote update contains public documentation/evidence only",
+  "private_cli_stdout_not_published": true
+}

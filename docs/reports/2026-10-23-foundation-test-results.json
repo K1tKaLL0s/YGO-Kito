@@ -1,0 +1,73 @@
+{
+  "source_commit": "0e795560f49c79cadd23cb210e2fc1c7cb8f72e1",
+  "python": "3.12.14",
+  "implementation_sha256": "c6f51f2294e8fc3c6d8e8ab5467658c0cd2096b33407c40187c84dd370e4ac78",
+  "started_utc": "2026-10-23T08:26:16.191887+00:00",
+  "results": [
+    {
+      "name": "unit",
+      "command": [
+        "/workspace/YGO-Kito/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 12.496343347003858,
+      "child_cpu_seconds": 15.655561999999998,
+      "child_peak_rss_kib": 282292,
+      "log": ".cache/foundation-final-unit.log",
+      "log_sha256": "a5b03e0faaff8ac6f570246cebcca018838ff23188f5ed3876a86ffdf221cc09",
+      "tests": 168,
+      "skips": 0,
+      "published_log": "2026-10-23-foundation-final-unit.log"
+    },
+    {
+      "name": "integration",
+      "command": [
+        "/workspace/YGO-Kito/.venv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "integration_tests",
+        "-v"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 832.6852598810001,
+      "child_cpu_seconds": 864.4216800000002,
+      "child_peak_rss_kib": 573760,
+      "log": ".cache/foundation-final-integration.log",
+      "log_sha256": "e66b9221302f70bd3897fa3683c67f0042a05eca89c5c1827536a3a94c64f5fb",
+      "tests": 163,
+      "skips": 0,
+      "published_log": "2026-10-23-foundation-final-integration.log"
+    },
+    {
+      "name": "cli",
+      "command": [
+        "/workspace/YGO-Kito/.venv/bin/python",
+        "-m",
+        "ygo_kito",
+        "foundation-acceptance",
+        "--root",
+        ".cache",
+        "--output",
+        ".cache/foundation-delivery-v2"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 49.16062565900211,
+      "child_cpu_seconds": 49.92316899999996,
+      "child_peak_rss_kib": 793988,
+      "log": ".cache/foundation-final-cli.stdout.json",
+      "log_sha256": "f844dc4ceebcb3ce9a6b8dbbc83b5e402f43fa11cea6419460952b0a3aaa2237",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "published_log": "2026-10-23-foundation-cli.stdout.json"
+    }
+  ],
+  "finished_utc": "2026-10-23T08:41:10.538633+00:00",
+  "public_projection_directory": "semantic-indexed-opponents-evidence"
+}

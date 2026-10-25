@@ -1,0 +1,26 @@
+test_explicit_source_keeps_old_default_and_binds_separate_partitions (tests.test_construction_curriculum.RealCurriculumContractTests.test_explicit_source_keeps_old_default_and_binds_separate_partitions) ... ok
+test_selected_extra_side_parts_are_not_silently_dropped_from_duel_profiles (tests.test_construction_curriculum.RealCurriculumContractTests.test_selected_extra_side_parts_are_not_silently_dropped_from_duel_profiles) ... ok
+test_v1_side_metadata_preserves_opponent_and_rejects_extras_and_bad_bounds (tests.test_construction_curriculum.RealCurriculumContractTests.test_v1_side_metadata_preserves_opponent_and_rejects_extras_and_bad_bounds) ... ok
+test_validation_overlap_wrong_driver_task_or_partition_fails_closed (tests.test_construction_curriculum.RealCurriculumContractTests.test_validation_overlap_wrong_driver_task_or_partition_fails_closed) ... ok
+test_banish_scripts_show_faceup_public_and_facedown_only_to_own_player (integration_tests.test_extra_materials.RealExtraMaterialTests.test_banish_scripts_show_faceup_public_and_facedown_only_to_own_player) ... ok
+test_hidden_opponent_extra_worlds_have_identical_requests_and_model_features (integration_tests.test_extra_materials.RealExtraMaterialTests.test_hidden_opponent_extra_worlds_have_identical_requests_and_model_features) ... ok
+test_illegal_id_preserves_sum_window_and_core_rejects_corrupted_sum_response (integration_tests.test_extra_materials.RealExtraMaterialTests.test_illegal_id_preserves_sum_window_and_core_rejects_corrupted_sum_response) ... ok
+test_real_sum_metadata_reaches_network_and_preserves_distinct_action_pointers (integration_tests.test_extra_materials.RealExtraMaterialTests.test_real_sum_metadata_reaches_network_and_preserves_distinct_action_pointers) ... ok
+test_real_xyz_material_hosts_and_actual_owners_match_both_views (integration_tests.test_extra_materials.RealExtraMaterialTests.test_real_xyz_material_hosts_and_actual_owners_match_both_views) ... ok
+test_two_real_sum_choices_consume_different_materials_and_replay_exactly (integration_tests.test_extra_materials.RealExtraMaterialTests.test_two_real_sum_choices_consume_different_materials_and_replay_exactly) ... ok
+test_unsearched_route_budget_is_unknown_and_binding_mismatch_fails (integration_tests.test_extra_materials.RealExtraMaterialTests.test_unsearched_route_budget_is_unknown_and_binding_mismatch_fails) ... ok
+test_v1_side_is_bound_validated_and_never_dealt_or_enabled_as_extra (integration_tests.test_extra_materials.RealExtraMaterialTests.test_v1_side_is_bound_validated_and_never_dealt_or_enabled_as_extra) ... ERROR
+
+======================================================================
+ERROR: test_v1_side_is_bound_validated_and_never_dealt_or_enabled_as_extra (integration_tests.test_extra_materials.RealExtraMaterialTests.test_v1_side_is_bound_validated_and_never_dealt_or_enabled_as_extra)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/YGO-Kito/integration_tests/test_extra_materials.py", line 109, in test_v1_side_is_bound_validated_and_never_dealt_or_enabled_as_extra
+    self.assertNotEqual(digest(profile), digest(bound))
+                        ^^^^^^
+NameError: name 'digest' is not defined
+
+----------------------------------------------------------------------
+Ran 12 tests in 16.690s
+
+FAILED (errors=1)

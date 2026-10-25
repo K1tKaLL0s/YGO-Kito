@@ -1,0 +1,91 @@
+{
+  "annotations": [
+    {
+      "condition": "Conditional normal-monster engineering example; not a user deck.",
+      "layer": "engineering_goal",
+      "source": "configs/build-engineering-v1.json",
+      "subject": "self",
+      "tag": "theme·engineering-normal"
+    },
+    {
+      "condition": "Goal card must be in the actual own opening hand at turn one.",
+      "layer": "engineering_goal",
+      "source": "real-core-supported-scope-v1",
+      "subject": "self",
+      "tag": "effect·normal-summon"
+    },
+    {
+      "condition": "Weak engineering comparison only; no win-rate or stability label.",
+      "layer": "engineering_proxy",
+      "source": "mean-printed-monster-atk-v1",
+      "subject": "self",
+      "tag": "situation·printed-attack-proxy"
+    }
+  ],
+  "candidate_budget": 16,
+  "environment": {
+    "authority": "custom",
+    "environment_id": "custom-native-current",
+    "release_cutoff": null,
+    "versions": {
+      "banlist": "2026.10:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+      "card_pool": "native-effect-duel-v1",
+      "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+      "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+      "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+      "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+    }
+  },
+  "goal": {
+    "card_id": 69247929,
+    "kind": "normal_summon",
+    "starting_conditions": {
+      "player": 0,
+      "requires_opening_hand": [
+        69247929
+      ],
+      "turn": 1
+    }
+  },
+  "pool": [
+    32864,
+    549481,
+    732302,
+    756652,
+    1184620,
+    1761063,
+    1784619,
+    1929294,
+    2118022,
+    2311603,
+    2468169,
+    2483611,
+    2830619,
+    2863439,
+    2906250,
+    2957055,
+    69247929
+  ],
+  "requirements": [
+    {
+      "card_id": 69247929,
+      "maximum": 3,
+      "minimum": 3,
+      "zone": "main"
+    },
+    {
+      "card_id": 2957055,
+      "maximum": 1,
+      "minimum": 1,
+      "zone": "side"
+    }
+  ],
+  "schema_version": 1,
+  "sizes": {
+    "extra": 0,
+    "main": 40,
+    "side": 1
+  },
+  "source": "engineering_fixture",
+  "task_id": "engineering-normal-build-v1"
+}

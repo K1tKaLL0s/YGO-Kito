@@ -1,0 +1,29 @@
+{
+  "id": "budget-status",
+  "ok": true,
+  "result": {
+    "billing_verified": false,
+    "by_stage_gpu_hours": {
+      "failure-revalidation-reserve": 0.0,
+      "lora-final-evaluation": 0.0,
+      "ocg-2022-07": 0.0,
+      "ocg-2022-10": 0.0,
+      "ocg-2026-10": 0.0,
+      "throughput-small-train": 0.0
+    },
+    "cloud_stop_confirmed": false,
+    "cpu_wall_seconds_reported_separately": 61.64199446800012,
+    "events": 2,
+    "gpu_instance_hours_remaining": 100.0,
+    "gpu_instance_hours_used": 0.0,
+    "over_budget": false,
+    "paid_launch_enabled": false,
+    "plan_id": "three-environments-v1",
+    "plan_sha256": "9d0a209c2408e855eb475834881ee1c50763462b8e2e75924d9d061f4a441b46",
+    "reported_amounts_by_currency": {},
+    "revision": 2,
+    "source": "host_reported_unverified",
+    "unknown_amount_events": 2
+  },
+  "schema_version": 1
+}
