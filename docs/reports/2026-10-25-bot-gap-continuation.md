@@ -21,7 +21,9 @@
 
 ## 证据分层
 
-最终统一 CPU 白名单、完整源码启动／接口和四角色已保存权重初始化恢复使用本轮最终代码；实际计数、提交、源码摘要和远端 CI 在本轮回执中列出。CPU 验证没有调用 native、第三方 C# 或外部 provider。
+代码提交 `bc7b8b8d0475406f5d93480986b849b45dea53d0` 的统一 CPU 白名单 **517／517 通过，0失败／错误／跳过，36.024秒**，含完整项目启动和接口契约，[逐模块计数](2026-10-25-bot-gap-evidence/local-cpu-results.json)及[逐测试结果](2026-10-25-bot-gap-evidence/local-cpu-tests.log)已保存。运行时受选源码干净；CI 折叠摘要为 `b5df411ad5545c989efc13267b8719a2f160cd61a0aa6c40ece77da3cbc5a3cd`，95文件路径→SHA map 摘要为 `d19a310867616257ead51d8bea2cdb146687dd2b5b6aa22603f18d6ce56a27bd`，两者算法不同。原 guard 字节与 DP 相同，native 仅保留此前逐字可逆核验的历史禁表 hook，本轮均未改动。CPU 没有调用 native、第三方 C# 或外部 provider。
+
+同一代码下，自有已保存工程权重实际完成四角色初始化、保存、删除源副本后的恢复，模型与来源标记一致，原始源文件未变，新更新数为0；[恢复摘要](2026-10-25-bot-gap-evidence/group-initialization-summary.json)单列。不是正式训练恢复或能力验收；后续恢复仍须保留目标 recipe／spec。
 
 普通真实 core 的正常终局、检索→XYZ、两条私有确认及公开历史确认机制另存[最终正常投影收据](2026-10-25-windbot-projection-evidence/public-confirmation-and-final-mechanisms.json)，[此前四机制](2026-10-25-windbot-projection-evidence/private-continuity-and-normal.json)保留其旧源码版本。以每次完整源码 map 和结果为准，保留先前尝试；机制成功不冒称自然终局。该测试使用已批准的锁定资源和原 submit／guard，不做故障注入，不执行 C#，不更新模型。四角色恢复仅证明自有工程权重继承、保存与恢复，不证明正式训练能力、历史卡池或胜率。
 
