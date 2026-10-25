@@ -1,0 +1,210 @@
+{
+  "kind": "fixed-bot-build-resource-download",
+  "requests": [
+    {
+      "url": "https://raw.githubusercontent.com/IceYGO/windbot/dec0535f8669dca01457a898890a968139711b19/BotWrapper/WindBot.ico",
+      "bytes": 17542,
+      "git_blob_sha1": "c4e3ba5225ed380a60b15558a6de09c48da99fe5",
+      "sha256": "a63d5dc320378e6d33d3a8d64d01bc5c11fa882b5be8e1cb634df3a961fbfddd",
+      "http_status": 200
+    },
+    {
+      "url": "https://raw.githubusercontent.com/IceYGO/windbot/dec0535f8669dca01457a898890a968139711b19/ThirdParty/Mono.Data.Sqlite/resources/SQLiteCommand.bmp",
+      "bytes": 246,
+      "git_blob_sha1": "13dbda04939c110ae2013a0ddb3d0306d27ce23e",
+      "sha256": "3cd8b53fc36045b91f24d5630c099086b40002f13d275957be5bdafc73ede3f7",
+      "http_status": 200
+    },
+    {
+      "url": "https://raw.githubusercontent.com/IceYGO/windbot/dec0535f8669dca01457a898890a968139711b19/ThirdParty/Mono.Data.Sqlite/resources/SQLiteConnection.bmp",
+      "bytes": 246,
+      "git_blob_sha1": "f787a2db7d4de7d06f9664be36099f94f721592d",
+      "sha256": "d06d6f57ab03582714b98a12d23811a00113017187744a480749fd965e2442dd",
+      "http_status": 200
+    },
+    {
+      "url": "https://raw.githubusercontent.com/IceYGO/windbot/dec0535f8669dca01457a898890a968139711b19/ThirdParty/Mono.Data.Sqlite/resources/SQLiteDataAdapter.bmp",
+      "bytes": 246,
+      "git_blob_sha1": "27186a09377e784812e492890ef898de09a60336",
+      "sha256": "ba037ceb019b1f9b92504730672fcfc902079206b73ee1e7fe7002a8956e62f9",
+      "http_status": 200
+    },
+    {
+      "url": "https://raw.githubusercontent.com/IceYGO/windbot/dec0535f8669dca01457a898890a968139711b19/ThirdParty/sqlite/x64/sqlite3.dll",
+      "bytes": 3285504,
+      "git_blob_sha1": "c8142d385e59023ad8c71edb62153d8256fc5dea",
+      "sha256": "ab57d0437795ecc757cb693f32ea224173fa9856594d95cfa6b5033e645cd1ec",
+      "http_status": 200
+    },
+    {
+      "url": "https://raw.githubusercontent.com/IceYGO/windbot/dec0535f8669dca01457a898890a968139711b19/ThirdParty/sqlite/x86/sqlite3.dll",
+      "bytes": 2572288,
+      "git_blob_sha1": "73e3357e050708b2f8bc296731490bac985d91c8",
+      "sha256": "1c2fcfa7632b6025829e3539142f1b7ebdbc5bb44d4fd6cc0f42f83715d2eb9f",
+      "http_status": 200
+    }
+  ],
+  "executed": false,
+  "binary_resources_verified": true,
+  "retried": false,
+  "fallback_attempted": false,
+  "resources": [
+    {
+      "source_id": "ice",
+      "repository": "IceYGO/windbot",
+      "commit": "dec0535f8669dca01457a898890a968139711b19",
+      "path": "BotWrapper/WindBot.ico",
+      "bytes": 17542,
+      "git_blob_sha1": "c4e3ba5225ed380a60b15558a6de09c48da99fe5",
+      "sha256": "a63d5dc320378e6d33d3a8d64d01bc5c11fa882b5be8e1cb634df3a961fbfddd",
+      "fetched_url": "https://raw.githubusercontent.com/IceYGO/windbot/dec0535f8669dca01457a898890a968139711b19/BotWrapper/WindBot.ico",
+      "reused_verified_blob": false
+    },
+    {
+      "source_id": "ice",
+      "repository": "IceYGO/windbot",
+      "commit": "dec0535f8669dca01457a898890a968139711b19",
+      "path": "ThirdParty/Mono.Data.Sqlite/resources/SQLiteCommand.bmp",
+      "bytes": 246,
+      "git_blob_sha1": "13dbda04939c110ae2013a0ddb3d0306d27ce23e",
+      "sha256": "3cd8b53fc36045b91f24d5630c099086b40002f13d275957be5bdafc73ede3f7",
+      "fetched_url": "https://raw.githubusercontent.com/IceYGO/windbot/dec0535f8669dca01457a898890a968139711b19/ThirdParty/Mono.Data.Sqlite/resources/SQLiteCommand.bmp",
+      "reused_verified_blob": false
+    },
+    {
+      "source_id": "ice",
+      "repository": "IceYGO/windbot",
+      "commit": "dec0535f8669dca01457a898890a968139711b19",
+      "path": "ThirdParty/Mono.Data.Sqlite/resources/SQLiteConnection.bmp",
+      "bytes": 246,
+      "git_blob_sha1": "f787a2db7d4de7d06f9664be36099f94f721592d",
+      "sha256": "d06d6f57ab03582714b98a12d23811a00113017187744a480749fd965e2442dd",
+      "fetched_url": "https://raw.githubusercontent.com/IceYGO/windbot/dec0535f8669dca01457a898890a968139711b19/ThirdParty/Mono.Data.Sqlite/resources/SQLiteConnection.bmp",
+      "reused_verified_blob": false
+    },
+    {
+      "source_id": "ice",
+      "repository": "IceYGO/windbot",
+      "commit": "dec0535f8669dca01457a898890a968139711b19",
+      "path": "ThirdParty/Mono.Data.Sqlite/resources/SQLiteDataAdapter.bmp",
+      "bytes": 246,
+      "git_blob_sha1": "27186a09377e784812e492890ef898de09a60336",
+      "sha256": "ba037ceb019b1f9b92504730672fcfc902079206b73ee1e7fe7002a8956e62f9",
+      "fetched_url": "https://raw.githubusercontent.com/IceYGO/windbot/dec0535f8669dca01457a898890a968139711b19/ThirdParty/Mono.Data.Sqlite/resources/SQLiteDataAdapter.bmp",
+      "reused_verified_blob": false
+    },
+    {
+      "source_id": "ice",
+      "repository": "IceYGO/windbot",
+      "commit": "dec0535f8669dca01457a898890a968139711b19",
+      "path": "ThirdParty/sqlite/x64/sqlite3.dll",
+      "bytes": 3285504,
+      "git_blob_sha1": "c8142d385e59023ad8c71edb62153d8256fc5dea",
+      "sha256": "ab57d0437795ecc757cb693f32ea224173fa9856594d95cfa6b5033e645cd1ec",
+      "fetched_url": "https://raw.githubusercontent.com/IceYGO/windbot/dec0535f8669dca01457a898890a968139711b19/ThirdParty/sqlite/x64/sqlite3.dll",
+      "reused_verified_blob": false
+    },
+    {
+      "source_id": "ice",
+      "repository": "IceYGO/windbot",
+      "commit": "dec0535f8669dca01457a898890a968139711b19",
+      "path": "ThirdParty/sqlite/x86/sqlite3.dll",
+      "bytes": 2572288,
+      "git_blob_sha1": "73e3357e050708b2f8bc296731490bac985d91c8",
+      "sha256": "1c2fcfa7632b6025829e3539142f1b7ebdbc5bb44d4fd6cc0f42f83715d2eb9f",
+      "fetched_url": "https://raw.githubusercontent.com/IceYGO/windbot/dec0535f8669dca01457a898890a968139711b19/ThirdParty/sqlite/x86/sqlite3.dll",
+      "reused_verified_blob": false
+    },
+    {
+      "source_id": "ice",
+      "repository": "IceYGO/windbot",
+      "commit": "dec0535f8669dca01457a898890a968139711b19",
+      "path": "WindBot.ico",
+      "bytes": 17542,
+      "git_blob_sha1": "c4e3ba5225ed380a60b15558a6de09c48da99fe5",
+      "sha256": "a63d5dc320378e6d33d3a8d64d01bc5c11fa882b5be8e1cb634df3a961fbfddd",
+      "fetched_url": "https://raw.githubusercontent.com/IceYGO/windbot/dec0535f8669dca01457a898890a968139711b19/BotWrapper/WindBot.ico",
+      "reused_verified_blob": true
+    },
+    {
+      "source_id": "pure",
+      "repository": "purerosefallen/windbot",
+      "commit": "1b8f89537afe930ce96d2fc8d57b0e91b1f96457",
+      "path": "BotWrapper/WindBot.ico",
+      "bytes": 17542,
+      "git_blob_sha1": "c4e3ba5225ed380a60b15558a6de09c48da99fe5",
+      "sha256": "a63d5dc320378e6d33d3a8d64d01bc5c11fa882b5be8e1cb634df3a961fbfddd",
+      "fetched_url": "https://raw.githubusercontent.com/IceYGO/windbot/dec0535f8669dca01457a898890a968139711b19/BotWrapper/WindBot.ico",
+      "reused_verified_blob": true
+    },
+    {
+      "source_id": "pure",
+      "repository": "purerosefallen/windbot",
+      "commit": "1b8f89537afe930ce96d2fc8d57b0e91b1f96457",
+      "path": "ThirdParty/Mono.Data.Sqlite/resources/SQLiteCommand.bmp",
+      "bytes": 246,
+      "git_blob_sha1": "13dbda04939c110ae2013a0ddb3d0306d27ce23e",
+      "sha256": "3cd8b53fc36045b91f24d5630c099086b40002f13d275957be5bdafc73ede3f7",
+      "fetched_url": "https://raw.githubusercontent.com/IceYGO/windbot/dec0535f8669dca01457a898890a968139711b19/ThirdParty/Mono.Data.Sqlite/resources/SQLiteCommand.bmp",
+      "reused_verified_blob": true
+    },
+    {
+      "source_id": "pure",
+      "repository": "purerosefallen/windbot",
+      "commit": "1b8f89537afe930ce96d2fc8d57b0e91b1f96457",
+      "path": "ThirdParty/Mono.Data.Sqlite/resources/SQLiteConnection.bmp",
+      "bytes": 246,
+      "git_blob_sha1": "f787a2db7d4de7d06f9664be36099f94f721592d",
+      "sha256": "d06d6f57ab03582714b98a12d23811a00113017187744a480749fd965e2442dd",
+      "fetched_url": "https://raw.githubusercontent.com/IceYGO/windbot/dec0535f8669dca01457a898890a968139711b19/ThirdParty/Mono.Data.Sqlite/resources/SQLiteConnection.bmp",
+      "reused_verified_blob": true
+    },
+    {
+      "source_id": "pure",
+      "repository": "purerosefallen/windbot",
+      "commit": "1b8f89537afe930ce96d2fc8d57b0e91b1f96457",
+      "path": "ThirdParty/Mono.Data.Sqlite/resources/SQLiteDataAdapter.bmp",
+      "bytes": 246,
+      "git_blob_sha1": "27186a09377e784812e492890ef898de09a60336",
+      "sha256": "ba037ceb019b1f9b92504730672fcfc902079206b73ee1e7fe7002a8956e62f9",
+      "fetched_url": "https://raw.githubusercontent.com/IceYGO/windbot/dec0535f8669dca01457a898890a968139711b19/ThirdParty/Mono.Data.Sqlite/resources/SQLiteDataAdapter.bmp",
+      "reused_verified_blob": true
+    },
+    {
+      "source_id": "pure",
+      "repository": "purerosefallen/windbot",
+      "commit": "1b8f89537afe930ce96d2fc8d57b0e91b1f96457",
+      "path": "ThirdParty/sqlite/x64/sqlite3.dll",
+      "bytes": 3285504,
+      "git_blob_sha1": "c8142d385e59023ad8c71edb62153d8256fc5dea",
+      "sha256": "ab57d0437795ecc757cb693f32ea224173fa9856594d95cfa6b5033e645cd1ec",
+      "fetched_url": "https://raw.githubusercontent.com/IceYGO/windbot/dec0535f8669dca01457a898890a968139711b19/ThirdParty/sqlite/x64/sqlite3.dll",
+      "reused_verified_blob": true
+    },
+    {
+      "source_id": "pure",
+      "repository": "purerosefallen/windbot",
+      "commit": "1b8f89537afe930ce96d2fc8d57b0e91b1f96457",
+      "path": "ThirdParty/sqlite/x86/sqlite3.dll",
+      "bytes": 2572288,
+      "git_blob_sha1": "73e3357e050708b2f8bc296731490bac985d91c8",
+      "sha256": "1c2fcfa7632b6025829e3539142f1b7ebdbc5bb44d4fd6cc0f42f83715d2eb9f",
+      "fetched_url": "https://raw.githubusercontent.com/IceYGO/windbot/dec0535f8669dca01457a898890a968139711b19/ThirdParty/sqlite/x86/sqlite3.dll",
+      "reused_verified_blob": true
+    },
+    {
+      "source_id": "pure",
+      "repository": "purerosefallen/windbot",
+      "commit": "1b8f89537afe930ce96d2fc8d57b0e91b1f96457",
+      "path": "WindBot.ico",
+      "bytes": 17542,
+      "git_blob_sha1": "c4e3ba5225ed380a60b15558a6de09c48da99fe5",
+      "sha256": "a63d5dc320378e6d33d3a8d64d01bc5c11fa882b5be8e1cb634df3a961fbfddd",
+      "fetched_url": "https://raw.githubusercontent.com/IceYGO/windbot/dec0535f8669dca01457a898890a968139711b19/BotWrapper/WindBot.ico",
+      "reused_verified_blob": true
+    }
+  ],
+  "unique_downloads": 6,
+  "resource_files": 14,
+  "note": "Inert binary resource bytes only; no assembly, sqlite DLL or third-party program was loaded/executed."
+}

@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "kind": "supplemental-exact-monarch506-desktop-overlay-proposal",
+  "status": "prepared_not_executed",
+  "approval_status": "additional_exact_library_module_execution_not_confirmed",
+  "base": {
+    "repository": "purerosefallen/windbot",
+    "commit": "1b8f89537afe930ce96d2fc8d57b0e91b1f96457",
+    "executor_count": 74,
+    "original_executor": {
+      "source_id": "pure",
+      "source_path": "Game/AI/Decks/Monarch506Executor.cs",
+      "class_name": "Monarch506Executor",
+      "deck_name": "Monarch506",
+      "deck_file": "AI_Monarch506",
+      "git_blob_sha1": "d7658cac3717d865c69e30d8dfb8381ce3c3547a",
+      "sha256": "c30c2ef5eafe9967260710ccf570e839cd713b491be3f32f9a81e67cda1e1e96",
+      "bot_id": "2a098efc9591fc4743543f0d84ba7e2d812b055a55aba7be55f013470bcd493f"
+    }
+  },
+  "replacement": {
+    "repository": "mercury233/libWindbot",
+    "commit": "4d8cae5f08c8cd474fc65402bd163971d59bd3c8",
+    "original_executor": {
+      "source_id": "library",
+      "source_path": "libWindbot/Game/AI/Decks/Monarch506Executor.cs",
+      "class_name": "Monarch506Executor",
+      "deck_name": "Monarch506",
+      "deck_file": "AI_Monarch506",
+      "git_blob_sha1": "01014fb8f0df311df31f45d9f812446fa832e57e",
+      "sha256": "347fa5ee60bb88455528bd835fc513e7eb55acc15d35e55039869039efadbeb9",
+      "bot_id": "9f5fcd8ce3a186c33c2eb9a82af7e31ba1edc89d344285408af63a912a0d5e64"
+    },
+    "target_relative_path": "Game/AI/Decks/Monarch506Executor.cs"
+  },
+  "static_comparison": {
+    "only_exact_byte_replacement": {
+      "from": "UseNerfedCardEffects = !Config.GetBool(\"UsePreErrataEffects\", false);",
+      "to": "UseNerfedCardEffects = false; // TODO"
+    },
+    "all_other_bytes_equal": true,
+    "android_api_dependency_added_in_this_file": false,
+    "api_compatibility": "same namespace/base/imports/member uses outside exact configuration assignment; compile/runtime unverified"
+  },
+  "proposed_isolated_variant": {
+    "variant_id": "pure-with-library-monarch506-exact",
+    "copy_base_to_new_directory_only": true,
+    "replace_one_file_only": true,
+    "preserve_licenses": [
+      "Pure root MIT",
+      "library root MIT including mercury233/IceYGO notices"
+    ],
+    "compile_full_74_executor_desktop_project": true,
+    "include_duplicate_class_in_same_assembly": false,
+    "keep_original_ice_pure_plans_and_roots_unchanged": true,
+    "no_android_build_or_postbuild": true,
+    "no_public_network": true,
+    "loopback_host": "127.0.0.1"
+  },
+  "implementation_before_execution": [
+    "Confirm exact single-file library-module scope separately from unchanged Ice/Pure pins.",
+    "Add distinct typed overlay manifest binding both original pins, file hashes, licenses and separate assembly identity; unchanged fixed-pin validator currently rejects modified roots.",
+    "Prepare full 74-type reflection/constructor expectations for distinct variant; never label it unmodified Pure.",
+    "Approved official Mono/.NET4.8 tools and system SQLite required; current toolchain remains blocked."
+  ],
+  "validation_after_execution": [
+    "Full 74 Executor source/type/Deck and YDK checks; no ExternalPolicyOnly.",
+    "Real full build, every exact constructor/resource result and separate assembly/tool hashes.",
+    "Bounded exact driver/profile loopback normal proof; no inherited strength/history qualification."
+  ],
+  "source_modified": false,
+  "third_party_compiled": false,
+  "runtime_loaded": false,
+  "normal_duel_verified": false,
+  "strength_verified": false,
+  "history_verified": false
+}

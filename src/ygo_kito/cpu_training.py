@@ -166,6 +166,11 @@ class CpuTrainer:
             selection_key=b''.join(w.to_bytes(8,'big') for w in words).hex()
         factory=NativeNormalEngine if engine_factory is None else engine_factory
         if not callable(factory):raise ContractError("trusted engine factory must be callable")
+        if opponent_adapter is not None:
+            from .windbot_projection import WindBotOpponent
+            if isinstance(opponent_adapter, WindBotOpponent):
+                from functools import partial
+                factory = partial(opponent_adapter.managed_engine_factory, factory)
         with factory(root, scenario="effect-duel", deck_profile=profile, seed=seed,selection_key=selection_key) as engine:
             facts = public_card_facts(root)
             driver,assigned=(None,())

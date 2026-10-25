@@ -50,7 +50,7 @@ def allowed(name):
     path = PurePosixPath(name)
     return (not path.is_absolute() and str(path) == name and ".." not in path.parts
             and not any(part.startswith(".") or part in ("__pycache__", "node_modules") for part in path.parts)
-            and path.suffix in (".py", ".md", ".toml", ".json", ".txt", ".yaml", ".yml", ".sql", ".sh")
+            and path.suffix in (".py", ".cs", ".md", ".toml", ".json", ".txt", ".yaml", ".yml", ".sql", ".sh")
             and (name in ROOT_FILES or name.startswith(PREFIXES)))
 
 

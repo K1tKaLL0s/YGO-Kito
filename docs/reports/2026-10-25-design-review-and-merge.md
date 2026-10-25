@@ -23,7 +23,7 @@
 
 新增范围**尚未全部完成，当前不能执行条件合并**。源码准备与815成员重验已过，14项CPU只验证惰性安装/发现/版本/裁剪拒绝，不能当真实机器人运行。仍缺全量完整C#构建、必要二进制/工具链、YGOPro LAN房间消息到本项目ctypes合法单席位的真实桥接及逐bot正常加载/对局验证。没有以泛化占位、ExternalPolicyOnly或一个外部代理代替全部Executor。
 
-[专项审批packet](2026-10-25-bot-build-run-approval-packet.json)已列固定来源、完整exe的build argv、仅127.0.0.1的测试argv和风险。当前Mono/MSBuild/xbuild/dotnet均无；只读apt-cache policy又因系统APT配置权限不足未能取得候选版本，未安装工具、编译或执行第三方代码。安装会改系统软件目录，MSBuild/SQLite/C#会执行第三方逻辑，按用户指定的专项边界等待批准；不是一次平台执行审批拒绝，不伪造拒绝记录，也不换工具绕过。lib Android PostBuild、公网Test1和付费调用不在拟执行范围。
+[专项审批packet](2026-10-25-bot-build-run-approval-packet.json)已获用户明确批准：签名Debian Mono工具安装、固定Ice/Pure完整构建及仅127.0.0.1有界验证。实际系统安装因uid1000无sudo、dpkg目录权限不足失败；保留默认签名/来源而改用工作区APT缓存读取配置的Debian snapshot索引，三个InRelease均于06:52:52 UTC被代理HTTP403拒绝。APT退出0仍伴随全部索引失败，不能记为安装成功。已停止该网络路径，不更换镜像/代理/工具绕过；不是自动审批拒绝，也不是仍在等用户授权。详见[精确阻碍回执](2026-10-25-bot-toolchain-block.json)。Mono/MSBuild/xbuild/dotnet仍无，完整C#编译、真实机器人加载与对局未执行；继续独立资源部署和安全桥接实现。lib Android PostBuild、公网Test1和付费调用仍不在授权范围。
 
 ## 合并检查与接续
 
@@ -31,4 +31,8 @@ GPU安装、性能调优、能力训练归第二阶段；PC/可选LLM/DP另取�
 
 闭合后先核最终头提交与CI，再逐项检查有无他人新增变更；PR1合main后，将PR2明确retarget main、复核diff并以expected_head_sha合并；PR3同样retarget main，确认最终tree包含全部差异后合并。保留原作者commit和分支，不强推/删分支/自动合并/部署。若具体动作被审批拒绝，只停止该动作并准确报告。
 
-当前没有实时Codex用量读取工具；父任务的历史59%不当成当前值，≤20%保存停止，不使用重置卡。最终统一CPU与远端CI另按真实收据报告，不能引用9be7668的362项替代本批检查。
+6ec5a2521d014ac4516c4b160df16d9874e5a591已推送同一PR3分支，本地408/408明确CPU白名单通过（0失败/错误/跳过，26.94秒）；其源码摘要及初始化实际宿主收据保存在同名前缀evidence目录。该结果不覆盖后续新增桥接代码或第三方运行；远端CI另按真实收据更新，不能引用9be7668的362项替代本批检查。
+
+卡库交父任务DP采集使用[现有严格格式与审计命令](../development/card-data-collection-contract.md)，不是新schema或已取得全库的宣称。
+
+本云端没有实时Codex用量读取工具。父任务于2026-10-25 07:03:58 UTC实际读取官方页：每周剩余94%、6天23小时后重置，账户已恢复周期且未使用重置卡；这是该时刻的读数，不当作持续实时值。仍以实际剩余≤20%保存停止。

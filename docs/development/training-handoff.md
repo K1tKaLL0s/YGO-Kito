@@ -55,6 +55,10 @@ PYTHONPATH=src .venv/bin/python -m ygo_kito native-smoke --root .cache --seed 7
 
 已有数据可先按[来源索引审计](historical-listing-audit.md)生成逐期报告；未知发行日期不放行。若仅一期资料齐备，可明确配置`scope: "selected-period"`运行其工程课程，未选时期保持未验证且不能调用；不必先补齐未来2026。完整3＋8收件仍用默认whole-plan严格模式。冻结模型的来源/推理迁移和[第三方桥接准备](static-windbot-bridge.md)各自保留资格边界，后者不是非LLM基线依赖。
 
+本轮新增交付范围另要求[维护范围全部机器人](maintained-bot-deployment.md)，不能以旧dsh目录或少量示例替代。固定来源、许可证、全部Executor/配套牌表与可校验获取入口均在该说明；源码注册与真实C#加载/对局资格分开。当前云端已获限定第三方执行批准，但Mono安装被系统权限与签名源代理403阻断，未编译/运行WindBot；[精确回执](../reports/2026-10-25-bot-toolchain-block.json)不是继续等待用户授权。腾讯主机接续须先核自身工具/网络条件，不能绕过当前拒绝，也不把失败项静默省略。已有本地Python规则/冻结模型基线保持独立。
+
+历史全库另交DP采集时，使用[实际卡库、禁限和发行清单格式](card-data-collection-contract.md)，不更改训练schema或把公开未发售卡提前放行。跨期继承用[显式四角色权重初始化](group-initialization.md)，与同run完整恢复分开；不关闭旧绑定门禁。
+
 ## 4. Agent 启动、任务控制与恢复
 
 无训练权限的默认读取入口：

@@ -92,6 +92,7 @@ class PeriodBuildAssets(BuildAssets):
                                    "adapter_revision": self.adapter_revision, "evidence_source": self.evidence_source})
         self._row_seal = digest({c: self.rows[c] for c in sorted(self.allowed_card_ids)})
         self._opponents = {}
+        self._bot_rebinders = {}
         self.historical_rules_verified = False
         self.official_sources_verified = False
 
@@ -186,11 +187,36 @@ class PeriodBuildAssets(BuildAssets):
         opponent = self._opponents.get(digest(binding))
         if opponent is None or opponent.binding != binding:
             raise ContractError("no actual period opponent matches the supplied frozen binding")
-        opponent.assert_runtime(self.root, profile, 1 - opponent.seat, _verify_physical=False)
+        if binding["controller"] == "bot":
+            opponent.assert_runtime(self.root, profile, 1 - opponent.seat)
+        else:
+            opponent.assert_runtime(self.root, profile, 1 - opponent.seat, _verify_physical=False)
 
     def opponent_for(self, binding, profile):
         self.assert_training_opponent(binding, profile)
         return self._opponents[digest(binding)]
+
+    def bind_bot_opponent(self, profile, opponent_id, registry, *, executor_id, source_id,
+                          build_audit_path, build_audit_sha256, mono, seat=1, source=None):
+        """Use the actual full-build registry adapter; missing audits stay closed."""
+        from .bot_deployment import BotSourceRegistry
+        if not isinstance(registry, BotSourceRegistry):
+            raise ContractError("period WindBot requires the full typed source registry")
+        self.assert_integrity(physical=False)
+        checked = self.validate_profile(profile)
+        source = source or ("engineering_fixture" if self.evidence_source == "engineering_fixture" else "user_provided")
+        options = dict(executor_id=executor_id, source_id=source_id, native_root=self.root,
+            profile=checked, seat=seat, versions=Versions.from_dict(self.environment["versions"]),
+            environment_id=self.environment["environment_id"], opponent_id=opponent_id, source=source,
+            build_audit_path=build_audit_path, build_audit_sha256=build_audit_sha256, mono=mono,
+            workspace=self.workspace, period_context=self.period_context)
+        opponent = registry.training_adapter(**options)
+        identity = digest(opponent.binding)
+        self._opponents[identity] = opponent
+        self._bot_rebinders[identity] = lambda changed: self.bind_bot_opponent(changed, opponent_id, registry,
+            executor_id=executor_id, source_id=source_id, build_audit_path=build_audit_path,
+            build_audit_sha256=build_audit_sha256, mono=mono, seat=seat, source=source)
+        return opponent
 
     def rebind_rule_opponent(self, binding, actor_deck, *, purpose=None):
         """Re-freeze the actual policy/profile after a construction edit."""
@@ -211,6 +237,11 @@ class PeriodBuildAssets(BuildAssets):
             raise ContractError("the bound profile revision cannot carry an edited extra deck")
         elif "sides" in profile or actor_deck.side:
             profile.setdefault("sides", [[], []])[actor] = list(actor_deck.side)
+        if binding["controller"] == "bot":
+            rebind = self._bot_rebinders.get(digest(binding))
+            if rebind is None:
+                raise ContractError("no actual full-build WindBot rebind configuration")
+            return rebind(profile)
         if isinstance(previous, PeriodSnapshotOpponent):
             return self.bind_snapshot_opponent(profile, binding["opponent_id"], previous._checkpoint_reference,
                 previous._checkpoint_sha256, previous.binding["model_sha256"], seat=previous.seat, source=binding["source"],

@@ -57,6 +57,10 @@ class DeploymentPreparationTests(unittest.TestCase):
             "visible_cuda_devices": 0, "cuda_device_memory_bytes": [], "cuda_build": None}
 
     def test_bundle_is_reproducible_and_omits_runtime_and_private_paths(self):
+        helper = "scripts/WindBotAudit.cs"
+        path = self.root / helper
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("// Inert source-only build-audit fixture; never compiled.\n", encoding="utf-8")
         for name in (".cache/private.weights", "docs/reports/private.json", "private-decks/user.json"):
             path = self.root / name
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -72,7 +76,7 @@ class DeploymentPreparationTests(unittest.TestCase):
         self.assertTrue(verified["verified"])
         self.assertFalse(verified["extracted"])
         with tarfile.open(first) as archive:
-            self.assertEqual(set(archive.getnames()), REQUIRED_FILES | {MANIFEST})
+            self.assertEqual(set(archive.getnames()), REQUIRED_FILES | {MANIFEST, helper})
 
     def test_dirty_source_or_symlink_is_not_packaged(self):
         output = Path(self.temporary.name) / "packet.tar.gz"

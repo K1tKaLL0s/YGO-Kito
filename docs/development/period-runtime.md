@@ -62,6 +62,32 @@ group recipe 可显式加入 `period_inputs: "configs/具体描述符.json"`，�
 
 `prepare`、`verified/restore`、阶段事务和 `save_to` 使用操作内作用域，共享一次完整加载的宿主；嵌套课程检查和四角色 adapter 检查复用同一对象。每次命中和成功退出都重新读取描述符、intake、policy、实际加载各期卡库/发行清单/禁表及 snapshot 的字节摘要，并检查路径、manifest、runtime receipt、冻结模型和内存封印；不使用 stat 捷径或跨操作缓存。异常退出也清空作用域，下一次独立入口重新完整加载。保存 checkpoint、发布准备状态及提交阶段记录前另有显式来源检查；原 `resource_binding` 与开 core 前完整资源检查保留。预算与 reserve 数值不因减少重复加载而提高。
 
+## 固定完整WindBot构建的可选宿主配置
+
+维护范围、源码/资源安装与完整程序集审计见[机器人部署](maintained-bot-deployment.md)。已有本地基线不依赖它；用户新增“包含全部已有机器人”交付范围另行跟踪。下面是宿主描述符的字段形状，路径与摘要必须来自真实安装/构建，不能将示意写成已通过审计：
+
+```json
+{
+  "bots": {
+    "2022-07": {
+      "opponent-01": {
+        "source_id": "ice",
+        "executor_id": "ChaosRitualExecutor",
+        "installed_root": ".cache/prepared-bot-sources",
+        "build_audit": {"path": ".cache/bot-build/audit.json", "sha256": "<真实审计文件SHA256>"},
+        "mono": "/usr/bin/mono"
+      }
+    }
+  }
+}
+```
+
+该字段加入原有完整period描述符，不是独立牌表或课程。对应收件slot必须明确 `controller:"bot"`、同一精确 `model:executor_id` 和实际factory返回的driver_version；policy绑定必须等于实际adapter.binding。`installed_root`、audit与固定lock均在workspace内，Mono是宿主明确的绝对工具路径。只支持获准的完整Ice/Pure桌面实现；lib/Android保持源码交付，不隐式运行。
+
+`PeriodBuildAssets.bind_bot_opponent`调用完整 `BotSourceRegistry.training_adapter`，由真实源/程序集/卡库/YDK审计门禁建立 `WindBotOpponent`。`CpuTrainer.sample_episode`对该明确类型使用 `managed_engine_factory`：原PeriodNativeEngine保留日期/卡池检查、ABI与响应guard，附加宿主可见事实投影及本机房间；policy.choose只返回当前LegalAction。退出/异常关闭进程与连接。actor构筑修改后重新绑定实际profile与同一bot源码/审计，不能默默回退rule策略。
+
+没有真实完整构建审计或资源变化时拒绝；runtime构造通过、一次对局、历史合法与策略强度是不同状态。当前云端Mono安装因系统权限和配置签名源代理403失败，未执行C#；Python socket/host fixture或正常引擎投影测试不能填成WindBot已运行。未将GPU、PC或可选LLM加为软件门槛。
+
 ## 证据边界
 
 安全 CPU：`tests.test_period_runtime` 与 `tests.test_period_host` 使用明示合成文件和模拟物理收据，仅验证宿主门禁及普通接口，不需要 core，不用 skip 制造通过。

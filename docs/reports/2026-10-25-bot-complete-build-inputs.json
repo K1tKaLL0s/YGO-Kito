@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "kind": "complete-bot-build-input-preparation",
+  "packet": {
+    "archive_sha256": "a40a54efb0a4a3d6283013ec0f9f0bf6808f4eaef66a8a812238a0433e3ad5be",
+    "source_files": 829,
+    "inventory_sha256": "c405d35aac9aad63f3d5bb94dc6bc355abb0b9c328691d16355f52243d0a71a1",
+    "runtime_ready": false
+  },
+  "verified": {
+    "verified_source_files": 829,
+    "source_lock_sha256": "d54f892a52a0770e60c64a842b13b412cd778a5ac2887815850ad7eae96c153b",
+    "inventory_sha256": "c405d35aac9aad63f3d5bb94dc6bc355abb0b9c328691d16355f52243d0a71a1",
+    "runtime_ready": false
+  },
+  "plans": {
+    "ice": "ice-complete-build-plan.json",
+    "pure": "pure-complete-build-plan.json"
+  },
+  "runtime_loaded": false,
+  "compiled": false,
+  "toolchain_blocker": "system installation EACCES; configured official snapshot APT InRelease proxy HTTP403, no alternate attempted"
+}

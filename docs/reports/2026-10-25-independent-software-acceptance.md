@@ -1,6 +1,6 @@
 # 2026-10-25 独立软件验收
 
-验收对象：`/workspace/YGO-Kito-construction`，基线 `9be766876a26c1b5692c87c196bf98b007c9051d` 及当前未提交的 group_runner 对手/强制重构修正。验收者直接阅读规范及源码，不以 MASTER-CHECKLIST 勾选或作者报告代替实现证据。本文为独立软件审查，不执行提交、推送或合并。
+验收对象：`/workspace/YGO-Kito-construction`。初验基线 `9be766876a26c1b5692c87c196bf98b007c9051d` 及当时未提交的 group_runner 修正；随后修正已进入 `6ec5a2521d014ac4516c4b160df16d9874e5a591`，新增房间/合法投影继续单独复核。验收者直接阅读规范及源码，不以 MASTER-CHECKLIST 勾选或作者报告代替实现证据。本文为独立软件审查，不执行提交、推送或合并。
 
 ## 当前结论
 
@@ -79,9 +79,25 @@
 - 固定 commit/许可、所有 Executor 编译包含、跨源 YDK 候选及主题别名均可核。没有缺失牌表资源候选，但同名多版本必须明确绑定；不能据候选存在宣称历史牌表合法/强度达标。14 个 icon/sqlite 等二进制资源只有 metadata，未下载或执行。
 - `BotSourceRegistry.statuses` 的 `loaded_source_registry` 只表示源字节和索引通过。`runtime_loaded/normal_duel_verified/training_connected` 为 false；`training_adapter` 对所有来源明确拒绝，指出未实现/未验的 YGOPro loopback room→本项目 ctypes/seat DTO 桥。
 
-**新增可运行 bots 的确切剩余动作**：安装/冻结 Mono/MSBuild 及 Linux 引用与所需二进制资源，完整编译 Ice/Pure 固定源码，在隔离 loopback 宿主执行正常对局，并完成合法观察/动作的房间协议桥接。目标是固定版本完整桌面实现；不是运行 Android 库 PostBuild 或公共远端服务器。本文只核对了会生成审查命令的 `approval_packet`，没有执行安装、第三方构建或进程，动作状态为**未执行/待安全审批及实现**；本验收者没有收到或绕过自动审批拒绝。具体审批结果由主线程按其实际工具回执另报。
+**新增可运行 bots 的确切剩余动作**：安装/冻结 Mono/MSBuild 及 Linux 引用与所需二进制资源，完整编译 Ice/Pure 固定源码，在隔离 loopback 宿主执行正常对局，并完成合法观察/动作的房间协议桥接。目标是固定版本完整桌面实现；不是运行 Android 库 PostBuild 或公共远端服务器。
+
+**授权与阻塞更新（2026-10-25 续验）**：用户已批准签名 Debian Mono 安装、完整固定 Ice/Pure 构建和有界 `127.0.0.1` 验证，先前“待用户审批”已过时，不再作为阻塞理由。实际安装仍失败，证据为 `docs/reports/2026-10-25-bot-toolchain-block.json`：系统 `apt-get install --no-install-recommends mono-devel` 在 uid1000、无 sudo 下无法读取配置片段和打开 `/var/lib/dpkg/lock-frontend`；保留既定源与签名验证的 workspace APT 索引请求又被配置代理对三个 snapshot Debian InRelease 地址返回 HTTP403，已下载索引为 0。APT exit0 不能当索引成功。主线程已停止，未换镜像、代理或工具重试绕过。
+
+动作状态为**已授权但外部环境依赖失败/网络代理拒绝**，不是自动审批拒绝；Mono 未安装，C# 未编译，第三方运行/正常对局均未执行。需要具备已批准工具链，或有合法安装权限和可访问签名包源的执行环境。本验收者不重复失败动作，只继续被动资源/协议代码/明确 CPU 契约检查。新增房间与合法投影落盘后另行列明受检证据，不以 fixture 当 runtime。
 
 源部署交付已具备，新增完整运行交付仍不能验收。未把“源码存在”或命令审批包当作 bot 已可运行，也没有把未来 GPU/PC/LLM 能力条件加入这个判断。
+
+### 续验：完整构建输入、实际房间与合法投影
+
+14 个二进制资源随后按用户已授权范围取得并核固定来源（仅被动字节，没有 DLL/.NET 加载）。我独立对 `.cache/bot-source-review/complete-bot-build-inputs-v2.tar.gz` 重新 `verify_bundle`：**829 个成员通过**，当前锁规范 SHA256 为 `d54f892a52a0770e60c64a842b13b412cd778a5ac2887815850ad7eae96c153b`，inventory 为 `c405d35aac9aad63f3d5bb94dc6bc355abb0b9c328691d16355f52243d0a71a1`。实际 Ice/Pure 全量计划分别为 73/74 个 Executor，`executed/runtime_loaded` 均为 false；旧 815 成员摘要保留为先前源部署历史，不替换成新包证据。
+
+新增 `bot_build_audit.py` 与自有 `BotAssemblyAudit.cs` 准备完整项目构建、反射全部注册类型/精确属性和全构造检查，禁止缩减 Executor 或用 ExternalPolicyOnly 子集替代。注入 runner 的测试回执强制为 `injected_process_contract_check`、runtime/constructors false，生产 registry 要求实际完整审计回执、程序集/目录/全部 YDK/工具链/本地 Python 实现摘要一致。独立执行 source/build audit 及两个时期 host 分派用例：**27 tests，0.552 秒，全部通过**；未调用 Mono、C# 编译器或第三方构造。
+
+实际代码审查发现并交 owner 修复了两个来源/版本缺口：生产 registry 曾允许 `room_factory` 回调替代实际 C# 进程，却保留固定 WindBot 身份；驱动摘要曾只覆盖两个类，遗漏实际投影和响应 helper。当前生产回调参数已移除，只有受审 `actual_room→windbot_session` 路径；完整 room/projection/registry/build audit 模块和 Mono/compiler/MSBuild 文件摘要被纳入并持续核对。低层 fixture 用例保留明确测试边界，不能进入生产 registry 冒充实际 C# 驱动。
+
+`windbot_room.py` 的实际 socket 握手要求 loopback、随机 token、固定协议和完整己方牌表；异常/超时关闭连接且不接替旧连接。当前窗口按固定 observer、完整合法请求摘要、state_version、deadline 和一次性使用约束，将返回字节映射为既有 action_id；正常提交仍走原 `submit/validate_selection/response guard`。`windbot_projection.py` 经 Python 委托代理读取已返回的消息，不修改原 CDLL 函数签名、native.py 或响应 guard；仅查询合法 CardView 已有身份的标量，隐身对象保空记录，对手抽牌清 ID、手牌用本地匿名末位、deck 序号不传原索引。早期跨模块事件字段不一致已修正，Journal→frame→LAN codec 的组合用例已加入；早期独立 24 项 room/projection CPU 用例为 0.348 秒全部通过，不外推后续继续新增的检索/extra 范围。
+
+还读取了正常现有核心的投影收据（218 次合法提交、110 个 frame、7 回合自然终局），其 `csharp_windbot_executed=false`、未新训练；这证明普通核心到投影/原提交路径的有界组合，不能证明完整 WindBot 策略运行。后续 room/projection 的常见检索与额外卡组支持仍在扩展，需源码冻结后再列明定点复验；当前整体合并门槛仍未因这些 fixture 或本地投影证据关闭。
 
 ## 本轮实测证据
 
@@ -98,6 +114,6 @@ OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 PYTHONPATH=src \
 
 结果：**108 tests，2.720 秒，全部通过，无 skip。** 实际 Python `3.12.14`、Torch `2.9.1+cpu`、`torch.version.cuda=None`。初验 `group_runner.py` SHA256 为 `7e70e24a19910398b3109d091442073bba8d1b621ca1a586923ce0af19e2d09e`，`coordinator.py` 为 `e303a6515221a83b1a208c52feb0a7210025fe37c147637b45c90da369b70b64`。包含实际小型模型参数更新/保存/下次更新恢复、实际 SQLite 账本、现有模型与目录绑定组合；合成卡/结果/文本判断始终只是代码路径证据。本轮两个额外最小复现独立于既有通过测试，说明通过清单尚未覆盖这些反馈状态转换。
 
-本轮未运行完整安全 CPU CI；没有声称远端 CI、当前正式真实引擎或 GPU 实机结果。已有历史引擎/CI报告不代替本轮事实。主线程仍须在新增范围完成后复核最终源码及最终提交 CI，再依用户授权按 PR1→PR2→PR3 合并 main。
+本验收者未重复运行完整安全 CPU CI。已读取主线程保存的实际 GitHub 回执 `docs/reports/2026-10-25-design-review-evidence/6ec5a25-ci.json`：PR3 head `6ec5a25` 的 run `40170732886`、job `121100853915` 成功，408/408、无 skip；PR 合并检出为 `0a7e7d8c4d6e3c597cd4f3b31e90c0ddda727494`，implementation SHA256 `30a179db9051c0aedd39b591ec39745623ae945a1ce83b59b0cd0b49f58d1334`。这是该候选的 CPU/合成契约证据，未覆盖续验中后来新增的 room/projection/binary 代码或第三方运行；没有将回执的 `ci_verified:false` 改写为该脚本自身验证过远端 CI。新增范围未验不得据旧 408 项结论合并。主线程仍须核最终源码、实际最终提交 CI 及当前用户范围，再依用户授权按 PR1→PR2→PR3 合并 main。
 
 GPU 安装、吞吐/数值调优、正式模型能力与迁移验收属于阶段2；PC 产品与客户端互操作属于阶段3；LLM/provider 为可选后置；历史全库由既定 DP 路径另取。本文未把这些事项添加为当前软件合并门槛。

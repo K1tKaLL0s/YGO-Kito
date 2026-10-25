@@ -6,7 +6,7 @@ opponent. Static source hashes do not confer duel, strength or history status.
 Only fetch_sources performs network I/O, to fixed pinned raw GitHub file URLs.
 """
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from enum import Enum
 from pathlib import Path, PurePosixPath
 from copy import deepcopy
@@ -37,7 +37,7 @@ PINS = {
 }
 COUNTS = {"ice": (73, 71), "pure": (74, 73), "library": (73, 0), "mobile-config": (0, 0)}
 MANIFEST = "bot-deployment-manifest.json"
-MAX_FILE = 2 * 1024 * 1024
+MAX_FILE = 4 * 1024 * 1024  # Largest reviewed x64 sqlite DLL is 3,285,504 bytes.
 MAX_TOTAL = 32 * 1024 * 1024
 DECK_DIR = re.compile(r"(?:^|/)Game/AI/Decks/[^/]+\.cs$")
 STRING = r'"(?:\\.|[^"\\])*"'
@@ -101,7 +101,7 @@ def validate_lock(lock):
         if ident in seen or ident not in PINS or (source["repository"], source["commit"]) != PINS[ident]:
             raise ContractError("source is duplicate or differs from its approved fixed pin")
         seen.add(ident)
-        expected_scope = "configuration-only" if ident == "mobile-config" else "all-text-source-and-resources"
+        expected_scope = "configuration-only" if ident == "mobile-config" else "all-reviewed-source-and-build-resources"
         if source["scope"] != expected_scope:
             raise ContractError("source scope differs; a reduced Executor scope is forbidden")
         if (source["expected_executor_files"], source["expected_ydk_files"]) != COUNTS[ident]:
@@ -166,7 +166,7 @@ def _project(source, files):
         root = ET.fromstring(source)
     except ET.ParseError as error:
         raise ContractError("invalid build project XML") from error
-    patterns, references, packages, imports, postbuild, frameworks, platforms = [], [], [], [], [], [], []
+    patterns, references, packages, imports, postbuild, frameworks, platforms, resource_patterns = [], [], [], [], [], [], [], []
     def walk(node, conditional=False):
         conditional = conditional or bool(node.attrib.get("Condition"))
         if node.tag.rsplit("}", 1)[-1] == "Compile" and conditional:
@@ -187,6 +187,10 @@ def _project(source, files):
         if tag == "PostBuildEvent" and node.text and node.text.strip(): postbuild.append(node.text)
         if tag == "TargetFrameworkVersion" and node.text: frameworks.append(node.text)
         if tag == "PlatformTarget" and node.text: platforms.append(node.text)
+        if tag in ("None", "Content", "EmbeddedResource") and node.attrib.get("Include"):
+            resource_patterns.append(node.attrib["Include"].replace("\\", "/"))
+        if tag == "ApplicationIcon" and node.text:
+            resource_patterns.append(node.text.replace("\\", "/"))
         # Do not interpret a conditional group as proof of complete compilation.
         if "ExternalPolicyOnly" in str(node.attrib):
             raise ContractError("ExternalPolicyOnly source subsets are forbidden")
@@ -194,9 +198,14 @@ def _project(source, files):
     missing = sorted(p for p in files if DECK_DIR.search(p) and p not in compiled)
     if missing:
         raise ContractError("build omits declared Executor sources: " + ", ".join(missing))
+    missing_resources = [p for p in resource_patterns if not any(c in p for c in "*?$") and p not in files]
+    if missing_resources:
+        raise ContractError("build resource inputs are absent: " + ", ".join(missing_resources))
     return {"frameworks": sorted(set(frameworks)), "platform_targets": sorted(set(platforms)),
             "references": references, "packages": packages, "imports": imports,
             "postbuild_events": postbuild, "compile_patterns": patterns,
+            "resource_patterns": resource_patterns,
+            "resource_input_files": sorted(p for p in files if any(fnmatch.fnmatchcase(p, pattern) for pattern in resource_patterns)),
             "compiled_executor_files": sorted(p for p in compiled if DECK_DIR.search(p)),
             "build_executed": False}
 
@@ -380,7 +389,8 @@ def fetch_sources(lock, destination, *, opener=None, timeout=30):
         result = {"state": "prepared", "source_files": len(files), "downloaded_unique_blobs": len(downloaded),
             "downloaded_unique_bytes": sum(map(len, downloaded.values())), "transport": transport,
             "source_lock_sha256": digest(lock), "inventory_sha256": discovered["inventory_sha256"],
-            "withheld_binary_files_downloaded": 0, "roots": roots,
+            "withheld_binary_files_downloaded": 0,
+            "pinned_binary_build_files": sum(f["path"].lower().endswith((".dll", ".ico", ".bmp")) for _, f in files), "roots": roots,
             "runtime_loaded": False, "third_party_executed": False, "training_connected": False}
         (staging / "roots.json").write_text(canonical_json(roots) + "\n", encoding="utf-8")
         (staging / "fetch-receipt.json").write_text(canonical_json(result) + "\n", encoding="utf-8")
@@ -529,9 +539,173 @@ class BotSourceRegistry:
             raise ContractError("unknown fixed-source bot identity")
         return deepcopy(self._by_id[bot_id])
 
-    def training_adapter(self, bot_id):
-        self.resolve(bot_id)
-        raise ContractError("WindBot room transport is not connected: missing loopback YGOPro game-host protocol to this project's ctypes/seat-DTO legal-action adapter")
+    def training_adapter(self, executor_id, *, source_id=None, native_root=None, profile=None, seat=1,
+                         versions=None, environment_id=None, opponent_id=None, source="user_provided",
+                         build_audit_path=None, build_audit_sha256=None, mono=None,
+                         workspace=None, period_context=None):
+        """Build the actual managed-room adapter only after a complete real audit.
+
+        Source registration remains independent of this gate. The default room
+        factory launches the full audited C# executable in an isolated directory;
+        there is no provider fixture or fallback if audit/tool/transport is absent.
+        """
+        from .agent_registry import identifier
+        from .bot_build_audit import file_sha, validate_audit_result
+        from .contracts import Versions
+        from .deck_profile import validate_profile
+        from .build_contracts import DeckParts
+        from .validation import integer, member
+        from .windbot_projection import WindBotOpponent
+        from .windbot_room import WindBotRoom, windbot_session
+        from contextlib import contextmanager
+        import inspect
+        self.statuses()
+        matches = [r for r in self.inventory["origins"] if r["bot_id"] == executor_id or
+                   (r["source_id"] == source_id and r["class_name"] == executor_id)]
+        if len(matches) != 1:
+            raise ContractError("exact fixed-source Executor identity is absent or ambiguous")
+        definition = deepcopy(matches[0])
+        if definition["source_id"] not in ("ice", "pure") or source_id != definition["source_id"]:
+            raise ContractError("only an explicitly selected complete desktop Executor can run")
+        if build_audit_path is None or build_audit_sha256 is None:
+            raise ContractError("actual full-Executor build/resource/constructor audit is required; source registry alone cannot run")
+        workspace = Path(workspace or self.root.parent).resolve()
+        def local(value):
+            if value is None:
+                raise ContractError("explicit runtime audit/resource path required")
+            path = Path(value).resolve(strict=True)
+            if not path.is_relative_to(workspace) or not path.is_file():
+                raise ContractError("runtime evidence/resources must stay inside the explicit workspace")
+            return path
+        audit_path = local(build_audit_path)
+        if file_sha(audit_path) != build_audit_sha256:
+            raise ContractError("build audit file checksum differs")
+        audit = json.loads(audit_path.read_text(encoding="utf-8"))
+        fields(audit, {"schema_version", "kind", "source_id", "repository", "commit", "source_lock_sha256",
+            "inventory_sha256", "assembly_path", "assembly_sha256", "source_root", "source_roots",
+            "audit_source_sha256", "audit_output_path", "audit_output_sha256", "toolchain", "cards",
+            "expected_bots", "evidence_source", "runtime_loaded", "constructors_verified", "audit",
+            "normal_duel_verified", "strength_verified", "history_verified", "training_connected"})
+        if (audit.get("schema_version") != 1 or audit.get("kind") != "complete-desktop-bot-build-audit" or
+                audit.get("source_id") != source_id or (audit.get("repository"), audit.get("commit")) != PINS[source_id] or
+                audit.get("evidence_source") != "actual_complete_assembly_audit" or audit.get("runtime_loaded") is not True or
+                audit.get("constructors_verified") is not True or audit.get("source_lock_sha256") != digest(self.lock) or
+                audit.get("inventory_sha256") != self.inventory["inventory_sha256"] or
+                any(audit[k] is not False for k in ("normal_duel_verified", "strength_verified", "history_verified", "training_connected")) or
+                Path(audit.get("source_root", "")).resolve() != self.root / source_id or
+                audit.get("audit_source_sha256") != file_sha(Path(__file__).resolve().parents[2] / "scripts/BotAssemblyAudit.cs")):
+            raise ContractError("real complete assembly audit does not match this exact source registry")
+        fields(audit["cards"], {"path", "sha256"})
+        assembly, database, audit_output = local(audit["assembly_path"]), local(audit["cards"]["path"]), local(audit["audit_output_path"])
+        expected_bots = audit["expected_bots"]
+        expected = {("WindBot.Game.AI.Decks." + r["class_name"], r["deck_name"], r["deck_file"], r["level"] or "Normal")
+                    for r in self.inventory["origins"] if r["source_id"] == source_id}
+        if (len(expected_bots) != COUNTS[source_id][0] or
+                {(b["full_type"], b["deck_name"], b["deck_file"], b["level"]) for b in expected_bots} != expected):
+            raise ContractError("build audit omitted or changed a full source Executor")
+        if file_sha(audit_output) != audit["audit_output_sha256"] or json.loads(audit_output.read_text()) != audit["audit"]:
+            raise ContractError("runtime reflection output differs from its build receipt")
+        validate_audit_result({"bots": expected_bots, "assembly_path": str(assembly)}, audit["audit"], construct=True)
+        if file_sha(assembly) != audit["assembly_sha256"] or file_sha(database) != audit["cards"]["sha256"]:
+            raise ContractError("runtime assembly/catalog differs from the actual build audit")
+        selected = [b for b in expected_bots if b["full_type"] == "WindBot.Game.AI.Decks." + definition["class_name"]]
+        for bot in expected_bots:
+            deck = local(bot["selected_deck"]["path"])
+            if file_sha(deck) != bot["selected_deck"]["sha256"]:
+                raise ContractError("an audited Executor YDK source changed")
+        if len(selected) != 1:
+            raise ContractError("selected Executor was not audited uniquely")
+        if mono is None or not Path(mono).is_absolute():
+            raise ContractError("host Mono path must be explicit and absolute")
+        executable = Path(mono).resolve(strict=True)
+        if not executable.is_file() or not shutil.which(str(executable)):
+            raise ContractError("explicit installed official Mono executable is unavailable")
+        tools = fields(audit["toolchain"], {"mono", "compiler", "msbuild"})
+        tool_seals = {}
+        for tool in tools.values():
+            fields(tool, {"path", "sha256"})
+            path = Path(tool["path"])
+            if not path.is_absolute() or not path.is_file() or file_sha(path) != tool["sha256"]:
+                raise ContractError("audited Mono/build tool identity differs")
+            tool_seals[str(path.resolve())] = tool["sha256"]
+        if Path(tools["mono"]["path"]).resolve() != executable or tools["mono"]["sha256"] != file_sha(executable):
+            raise ContractError("selected Mono differs from the actual constructor audit toolchain")
+        if not isinstance(versions, Versions) or versions.cards != audit["cards"]["sha256"]:
+            raise ContractError("typed runtime versions/catalog differ from the actual C# audit")
+        integer(seat, "bot seat", 0, 1); validate_profile(profile)
+        profile, period_context = deepcopy(profile), deepcopy(period_context)
+        identifier(environment_id); identifier(opponent_id)
+        member(source, "bot evidence source", ("engineering_fixture", "user_provided", "external_submission"))
+        def deck_for(player):
+            return DeckParts(tuple(profile["decks"][player]), tuple(profile.get("extras", [[], []])[player]),
+                             tuple(profile.get("sides", [[], []])[player]))
+        other, own = deck_for(seat), deck_for(1 - seat)
+        record = {"bot_id": definition["bot_id"], "source_id": source_id, "source_lock_sha256": digest(self.lock),
+            "audit_sha256": build_audit_sha256, "assembly_sha256": audit["assembly_sha256"], "cards": audit["cards"],
+            "period_context": deepcopy(period_context), "environment_id": environment_id,
+            "profile_sha256": digest(profile), "versions": asdict(versions), "toolchain": tools}
+        implementation_paths = [Path(__file__).resolve(), Path(inspect.getfile(WindBotOpponent)).resolve(),
+            Path(inspect.getfile(WindBotRoom)).resolve(), Path(inspect.getfile(validate_audit_result)).resolve()]
+        implementation_files = {str(path): file_sha(path) for path in implementation_paths}
+        implementation_digest = {Path(path).name: sha for path, sha in implementation_files.items()}
+        binding = {"schema_version": 1, "opponent_id": opponent_id, "environment_id": environment_id,
+            "registered_record_sha256": digest(record), "opponent_deck_sha256": digest(other.to_dict()),
+            "own_deck_sha256": digest(own.to_dict()), "profile_sha256": digest(profile),
+            "driver_version": "windbot-" + source_id + "-" + definition["bot_id"][:24],
+            "driver_implementation_sha256": digest({"source": definition["sha256"], "assembly": audit["assembly_sha256"],
+                "python_modules": implementation_digest}),
+            "source": source, "controller": "bot", "strength_qualified": False, "external_provider_verified": False,
+            "model_sha256": None, "opponent_deck_content_sha256": digest({k: sorted(v) for k, v in other.to_dict().items()})}
+        seals = {str(audit_path): build_audit_sha256, str(assembly): audit["assembly_sha256"],
+                 str(database): audit["cards"]["sha256"], str(audit_output): audit["audit_output_sha256"],
+                 **tool_seals, **implementation_files}
+        for bot in expected_bots: seals[bot["selected_deck"]["path"]] = bot["selected_deck"]["sha256"]
+        active = {}
+        lock_seal = digest(self.lock)
+        def validator():
+            if digest(self.lock) != lock_seal:
+                raise ContractError("bot source lock changed after runtime binding")
+            self.statuses()
+            for path, sha in {**seals, **active}.items():
+                if not Path(path).is_file() or file_sha(path) != sha:
+                    raise ContractError("actual bot source/audit/assembly/catalog/YDK/tool state changed")
+        @contextmanager
+        def actual_room(opponent):
+            validator()
+            runtime_parent = workspace / ".cache/windbot-runtime"
+            runtime_parent.mkdir(parents=True, exist_ok=True)
+            with tempfile.TemporaryDirectory(prefix=source_id + "-", dir=runtime_parent) as temporary:
+                directory = Path(temporary)
+                deployed = {"executable": directory / "WindBot.exe", "database": directory / "cards.cdb", "deck_file": directory / "match.ydk"}
+                shutil.copyfile(assembly, deployed["executable"]); shutil.copyfile(database, deployed["database"])
+                ydk = "#main\n" + "\n".join(map(str, other.main)) + "\n#extra\n" + "\n".join(map(str, other.extra)) + "\n!side\n" + "\n".join(map(str, other.side)) + "\n"
+                deployed["deck_file"].write_text(ydk, encoding="utf-8")
+                component = next(s for s in self.lock["sources"] if s["source_id"] == source_id)
+                for f in component["files"]:
+                    if f["path"].startswith("Dialogs/"):
+                        target = directory / f["path"]; target.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copyfile(self.root / source_id / f["path"], target)
+                    elif f["path"].startswith("ThirdParty/sqlite/"):
+                        target = directory / f["path"].removeprefix("ThirdParty/sqlite/")
+                        target.parent.mkdir(parents=True, exist_ok=True); shutil.copyfile(self.root / source_id / f["path"], target)
+                shutil.copyfile(self.root / source_id / "App.config", directory / "WindBot.exe.config")
+                active.update({str(p): file_sha(p) for p in directory.rglob("*") if p.is_file()})
+                try:
+                    with windbot_session(other, observer=seat, duel_rule=5, mono=executable,
+                            executable=deployed["executable"], database=deployed["database"], deck_file=deployed["deck_file"],
+                            executor=definition["deck_name"], allowed_executors={b["deck_name"] for b in expected_bots},
+                            working_directory=directory,
+                            expected_sha256={"mono": seals[str(executable)], **{k: file_sha(p) for k, p in deployed.items()}}) as room:
+                        yield room
+                finally:
+                    active.clear()
+        adapter = WindBotOpponent(root=native_root, profile=profile, seat=seat, versions=versions, binding=binding,
+            runtime_validator=validator, room_factory=actual_room)
+        adapter.rebind = lambda new_profile: self.training_adapter(executor_id, source_id=source_id, native_root=native_root,
+            profile=new_profile, seat=seat, versions=versions, environment_id=environment_id, opponent_id=opponent_id,
+            source=source, build_audit_path=audit_path, build_audit_sha256=build_audit_sha256, mono=executable,
+            workspace=workspace, period_context=period_context)
+        return adapter
 
 
 def approval_packet(lock, source_id, source_directory, *, deck_name="ChaosRitual", port=7911):
@@ -555,7 +729,7 @@ def approval_packet(lock, source_id, source_directory, *, deck_name="ChaosRitual
         "run_argv": ["mono", "bin/Release/WindBot.exe", "Name=KitoLoopbackAudit", "Deck=" + deck_name,
                      "Host=127.0.0.1", "Port=" + str(port), "Chat=False", "Debug=False"],
         "runtime_blockers": ["Mono/MSBuild version and Linux framework references not installed/frozen",
-            "full-project icon/sqlite binary resources declared but not downloaded or installed",
+            "Linux system libsqlite3 is required; the pinned Windows DLL resources do not prove Linux loading",
             "actual pinned cards.cdb and selected YDK/dialog resource binding must be explicit",
             "loopback YGOPro room host to Kito ctypes/seat-DTO legal-action bridge is not implemented or tested"],
         "excluded": ["libWindbot Android/Xamarin/Embeddinator PostBuildEvent", "WindBot.Test1 hardcoded public host",

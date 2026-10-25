@@ -12,9 +12,9 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
-from ygo_kito.build_contracts import BuildTask, DeckParts
+from ygo_kito.build_contracts import BuildTask, DeckParts, digest
 from ygo_kito.deck_intake import PERIODS
-from ygo_kito.period_host import load_period_host, period_host_operation, assert_period_hosts_unchanged
+from ygo_kito.period_host import load_period_host, period_host_operation, assert_period_hosts_unchanged, _bot_specs
 from ygo_kito.period_runtime import PeriodBuildAssets
 from ygo_kito.semantic_curriculum import COURSE, inputs
 from ygo_kito.training_input import _profile
@@ -82,6 +82,54 @@ class PeriodHostTests(unittest.TestCase):
         self.write("intake.json", self.intake)
         self.write("policy.json", self.policy)
         self.write("period-host.json", self.descriptor)
+
+    def test_bot_host_configuration_is_exact_local_and_optional(self):
+        self.assertEqual(_bot_specs({}, self.root, ("2022-07",)), ({}, []))
+        spec = {"source_id": "ice", "executor_id": "ChaosRitualExecutor", "installed_root": "installed",
+                "build_audit": {"path": "audit.json", "sha256": "a" * 64}, "mono": "/usr/bin/mono"}
+        value = {"bots": {"2022-07": {"opponent-01": spec}}}
+        bots, references = _bot_specs(value, self.root, ("2022-07",))
+        self.assertEqual(bots["2022-07"]["opponent-01"], spec)
+        self.assertIn("configs/bot-sources-v1.json", references)
+        for key, invalid in (("source_id", "library"), ("installed_root", "../outside"),
+                             ("mono", "mono"), ("executor_id", "")):
+            wrong = deepcopy(value); wrong["bots"]["2022-07"]["opponent-01"][key] = invalid
+            with self.subTest(key=key), self.assertRaises(ContractError):
+                _bot_specs(wrong, self.root, ("2022-07",))
+
+    def test_bot_dispatch_reaches_the_actual_registry_factory_without_claiming_a_runtime(self):
+        # Explicit host-dispatch fixture: no C#, subprocess, socket or native core.
+        spec = {"source_id": "ice", "executor_id": "ChaosRitualExecutor", "installed_root": "installed",
+                "build_audit": {"path": "audit.json", "sha256": "a" * 64}, "mono": "/usr/bin/mono"}
+        self.descriptor.update(scope="selected-period", bots={"2022-07": {"opponent-01": spec}})
+        slot = self.intake["slots"][3]
+        slot["controller"] = {"controller": "bot", "provider": None, "model": spec["executor_id"],
+                              "driver_version": "windbot-lan-v1"}
+        expected = self.policy["periods"]["2022-07"]["partitions"]["train"]["opponents"][0]["binding"]
+        expected.update(controller="bot", driver_version="windbot-lan-v1")
+        for relative in ("audit.json", "installed/bot-deployment-manifest.json", "configs/bot-sources-v1.json"):
+            target = self.root / relative; target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("{}", encoding="utf-8")
+        self.save()
+        captured = []
+        def explicit_dispatch_fixture(assets, profile, opponent_id, registry, **options):
+            captured.append((registry, options))
+            actual = assets.bind_rule_opponent(profile, opponent_id)
+            actual.binding = deepcopy(expected)
+            actual._binding_sha256 = digest(actual.binding)
+            assets._opponents[digest(actual.binding)] = actual
+            return actual
+        with patch("ygo_kito.bot_deployment.BotSourceRegistry") as registry, \
+             patch.object(PeriodBuildAssets, "bind_bot_opponent", explicit_dispatch_fixture):
+            host = load_period_host(self.recipe, workspace=self.root)
+        self.assertEqual(len(captured), 1)
+        self.assertIs(captured[0][0], registry.return_value)
+        self.assertEqual(captured[0][1]["build_audit_sha256"], spec["build_audit"]["sha256"])
+        self.assertEqual(host.period_id, "2022-07")
+        slot["controller"]["model"] = "WrongExecutor"
+        self.save()
+        with self.assertRaisesRegex(ContractError, "same exact pinned Executor"):
+            load_period_host(self.recipe, workspace=self.root)
 
     def test_option_absence_preserves_existing_engineering_inputs(self):
         self.assertIsNone(load_period_host({}, workspace=self.root))

@@ -36,7 +36,7 @@ class BotDeploymentTests(unittest.TestCase):
             library, mobile = ident == "library", ident == "mobile-config"
             prefix = "libWindbot/" if library else ""
             source = {"source_id": ident, "repository": repo, "commit": pin,
-                "scope": "configuration-only" if mobile else "all-text-source-and-resources",
+                "scope": "configuration-only" if mobile else "all-reviewed-source-and-build-resources",
                 "license": {"path": "LICENSE", "spdx": "GPL-2.0-only" if mobile else "MIT"},
                 "project": None if mobile else prefix + "WindBot.csproj", "files": [], "withheld_binary_resources": [],
                 "expected_executor_files": 0 if mobile else 1, "expected_ydk_files": 1 if ident in ("ice", "pure") else 0}
@@ -138,8 +138,10 @@ class BotDeploymentTests(unittest.TestCase):
         self.assertEqual(len(states), 3)
         self.assertTrue(all(s.source_state == bots.PreparationState.LOADED for s in states))
         self.assertTrue(all(not s.runtime_loaded and not s.normal_duel_verified and not s.strength_verified and not s.history_verified for s in states))
-        with self.assertRaisesRegex(ContractError, "missing loopback YGOPro game-host"):
-            registry.training_adapter(states[0].bot_id)
+        with self.assertRaisesRegex(ContractError, "actual full-Executor"):
+            registry.training_adapter(states[0].bot_id, source_id=states[0].source_id)
+        with self.assertRaises(TypeError):
+            registry.training_adapter(states[0].bot_id, room_factory=lambda _: None)
         with self.assertRaisesRegex(ContractError, "no overwrite"): bots.install_sources(first, self.lock, destination)
 
     def test_loaded_registry_rechecks_source_and_memory_seals(self):
@@ -312,7 +314,7 @@ class FixedBotSourceMetadataTests(unittest.TestCase):
     def test_real_lock_accounts_for_all_reviewed_origins_and_precise_theme_labels(self):
         lock = bots.validate_lock(json.loads((ROOT / "configs/bot-sources-v1.json").read_text()))
         self.assertEqual([(s["expected_executor_files"], s["expected_ydk_files"]) for s in lock["sources"]], [(73, 71), (74, 73), (73, 0), (0, 0)])
-        self.assertEqual(sum(len(s["files"]) for s in lock["sources"]), 815)
+        self.assertEqual(sum(len(s["files"]) for s in lock["sources"]), 829)
         self.assertIn("现代荷鲁斯", lock["theme_aliases"]["Horus"]["excludes"])
         self.assertIn("光暗龙", lock["theme_aliases"]["ChaosRitual"]["excludes"])
         self.assertIn("耀圣", lock["theme_aliases"]["Elfnote"]["labels"])

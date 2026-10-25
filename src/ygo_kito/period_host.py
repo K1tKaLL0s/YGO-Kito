@@ -113,6 +113,29 @@ def _inside(workspace, value):
     return path
 
 
+def _bot_specs(descriptor, workspace, selected_periods):
+    """Host-selected fixed builds, never RPC/provider path selection."""
+    bots = fields(descriptor.get("bots", {}), set(), set(PERIODS))
+    references = []
+    for period in selected_periods:
+        assignments = fields(bots.get(period, {}), set(), set(SLOTS[3:]))
+        for spec in assignments.values():
+            fields(spec, {"source_id", "executor_id", "installed_root", "build_audit", "mono"})
+            member(spec["source_id"], "desktop WindBot source", ("ice", "pure"))
+            text(spec["executor_id"], "exact pinned WindBot Executor identity")
+            installed = _inside(workspace, spec["installed_root"])
+            audit = fields(spec["build_audit"], {"path", "sha256"})
+            _inside(workspace, audit["path"])
+            _sha256(audit["sha256"], "full WindBot build audit")
+            text(spec["mono"], "explicit host Mono executable")
+            if not Path(spec["mono"]).is_absolute():
+                raise ContractError("host Mono executable requires an explicit absolute path")
+            references.extend([audit["path"], str(installed / "bot-deployment-manifest.json")])
+    if any(bots.get(p) for p in selected_periods):
+        references.append("configs/bot-sources-v1.json")
+    return bots, references
+
+
 @dataclass(frozen=True)
 class PeriodHost:
     loaded: LoadedTrainingInputs
@@ -156,7 +179,7 @@ def load_period_host(recipe, *, workspace=ROOT):
     if not path.is_relative_to(workspace / "configs"):
         raise ContractError("period input descriptor must stay in repository configs")
     descriptor_sources = _source_snapshot(workspace, [reference])
-    descriptor = fields(read_json(path), {"schema_version", "intake", "policy", "period_id", "native_roots"}, {"snapshots", "scope"})
+    descriptor = fields(read_json(path), {"schema_version", "intake", "policy", "period_id", "native_roots"}, {"snapshots", "scope", "bots"})
     integer(descriptor["schema_version"], "period host schema", 1, 1)
     member(descriptor["period_id"], "selected training period", PERIODS)
     scope = descriptor.get("scope", "whole-plan")
@@ -172,7 +195,7 @@ def load_period_host(recipe, *, workspace=ROOT):
     input_sources = _source_snapshot(workspace, [descriptor["intake"], descriptor["policy"]])
     intake = validate_intake(read_json(intake_path))
     policy = validate_policy(read_json(policy_path), selected_period=selected_period)
-    references = []
+    bots, references = _bot_specs(descriptor, workspace, selected_periods)
     snapshots = fields(descriptor.get("snapshots", {}), set(), set(PERIODS))
     for period in selected_periods:
         assignments = snapshots.get(period, {})
@@ -195,7 +218,8 @@ def load_period_host(recipe, *, workspace=ROOT):
     assets = {p: PeriodBuildAssets(native_roots[p], p, intake["environments"][p], workspace,
                 adapter_revision=policy["periods"][p]["adapter_revision"], evidence_source=source) for p in selected_periods}
     slots = {s["slot_id"]: s for s in intake["slots"]}
-    used_snapshots = set()
+    used_snapshots, used_bots = set(), set()
+    bot_registries = {}
     for period in selected_periods:
         for purpose, partition in policy["periods"][period]["partitions"].items():
             profiles = compiled["periods"][period]["partitions"][purpose]["profiles"]
@@ -213,13 +237,31 @@ def load_period_host(recipe, *, workspace=ROOT):
                     actual = assets[period].bind_snapshot_opponent(profile, expected["opponent_id"], _inside(workspace, snapshot["path"]),
                         snapshot["sha256"], controller["model"], model_source=snapshot["model_source"], migration=snapshot["migration"],
                         source=expected["source"])
+                elif controller["controller"] == "bot":
+                    from .bot_deployment import BotSourceRegistry
+                    spec = bots.get(period, {}).get(entry["slot_id"])
+                    if spec is None:
+                        raise ContractError("period WindBot requires its explicit fixed source and full-build audit")
+                    if controller["model"] != spec["executor_id"]:
+                        raise ContractError("period bot slot must name the same exact pinned Executor")
+                    installed = _inside(workspace, spec["installed_root"])
+                    key = str(installed)
+                    if key not in bot_registries:
+                        bot_registries[key] = BotSourceRegistry(read_json(_inside(workspace, "configs/bot-sources-v1.json")), installed)
+                    actual = assets[period].bind_bot_opponent(profile, expected["opponent_id"], bot_registries[key],
+                        executor_id=spec["executor_id"], source_id=spec["source_id"],
+                        build_audit_path=_inside(workspace, spec["build_audit"]["path"]),
+                        build_audit_sha256=spec["build_audit"]["sha256"], mono=spec["mono"], source=expected["source"])
+                    used_bots.add((period, entry["slot_id"]))
                 else:
                     raise ContractError("period bot/external provider requires an implemented legal-action transport")
                 if actual.binding != expected:
-                    kind = "snapshot" if controller["controller"] == "local_snapshot" else "rule"
+                    kind = {"rule_baseline": "rule", "local_snapshot": "snapshot", "bot": "bot"}[controller["controller"]]
                     raise ContractError("period host actual " + kind + " driver binding differs from the frozen input evidence")
     if used_snapshots != {(p, slot) for p in selected_periods for slot in snapshots.get(p, {})}:
         raise ContractError("period host snapshot artifacts must correspond exactly to configured local snapshot slots")
+    if used_bots != {(p, slot) for p in selected_periods for slot in bots.get(p, {})}:
+        raise ContractError("period host bot artifacts must correspond exactly to configured bot slots")
     loaded = load_training_inputs(intake, policy, workspace, runtime_assets=assets, selected_period=selected_period)
     host = PeriodHost(loaded, descriptor["period_id"], digest(deepcopy(descriptor)))
     entry = _OperationHost(host, workspace, sources, loaded.manifest["binding_sha256"], host.descriptor_sha256, host.period_id,
