@@ -17,11 +17,11 @@
 
 ## 新增完整机器人部署范围
 
-用户本轮追加：部署需包含已明确维护范围内全部现有bots，不能只盘点旧dsh副本。现固定IceYGO/purerosefallen/libWindbot及YGOMobile配置四源，完成[815文件源码包、完整发现/校验/惰性安装器与typed源码注册表](../development/maintained-bot-deployment.md)：73/74/73个Executor文件，220条来源、81组代码字节身份、144条YDK路径、211条发行配置别名；14个二进制资源仅锁定未取。相同字节仍保留原来源/构建上下文，不声称运行等价或历史强度。
+用户本轮追加：部署需包含已明确维护范围内全部现有bots，不能只盘点旧dsh副本。现固定IceYGO/purerosefallen/libWindbot及YGOMobile配置四源，先完成815文件源码准备，专项批准后又实际取得14份被动构建资源并核原Git blob/长度/SHA；[当前完整包为829成员](../development/maintained-bot-deployment.md)。73/74/73个Executor文件，220条来源、81组字节身份、144条YDK路径、211配置别名完整保留，字节相同不声称运行等价。147条桌面来源覆盖80/81字节组，library独有Monarch506变体另列方案而非静默省略。
 
 根MIT及原依赖声明保留；GPL移动端只含LICENSE和bot.conf资料，不整搬客户端。Horus是旧黑炎龙Lv6/Lv8；ChaosRitual为光与暗之仪式，Elfnote为耀圣，不能据旧副本没有文件否定整个生态，也不把纯轴存在当巳剑混轴更强的证明。未替用户填正式八套牌表。
 
-新增范围**尚未全部完成，当前不能执行条件合并**。源码准备与815成员重验已过，14项CPU只验证惰性安装/发现/版本/裁剪拒绝，不能当真实机器人运行。仍缺全量完整C#构建、必要二进制/工具链、YGOPro LAN房间消息到本项目ctypes合法单席位的真实桥接及逐bot正常加载/对局验证。没有以泛化占位、ExternalPolicyOnly或一个外部代理代替全部Executor。
+新增范围**尚未全部完成，当前不能执行条件合并**。539368b已补实际LAN房间、合法席位事件/查询/提示投影、全构建审计门禁、registry→分期宿主→采样器及重绑，具体支持路径有正常真实core实证；原native/guard未改。来源替身回调、实现摘要漏helper、私有alias和子进程退出边界已独立修验。仍缺工具可用环境中的完整C#编译、逐名加载/构造及逐bot正常对局，部分不能精确投影路径显式拒绝，详见[最新交付](2026-10-25-bot-delivery-and-blockers.md)。没有以泛化占位、ExternalPolicyOnly或Python peer代替真实Executor。
 
 [专项审批packet](2026-10-25-bot-build-run-approval-packet.json)已获用户明确批准：签名Debian Mono工具安装、固定Ice/Pure完整构建及仅127.0.0.1有界验证。实际系统安装因uid1000无sudo、dpkg目录权限不足失败；保留默认签名/来源而改用工作区APT缓存读取配置的Debian snapshot索引，三个InRelease均于06:52:52 UTC被代理HTTP403拒绝。APT退出0仍伴随全部索引失败，不能记为安装成功。已停止该网络路径，不更换镜像/代理/工具绕过；不是自动审批拒绝，也不是仍在等用户授权。详见[精确阻碍回执](2026-10-25-bot-toolchain-block.json)。Mono/MSBuild/xbuild/dotnet仍无，完整C#编译、真实机器人加载与对局未执行；继续独立资源部署和安全桥接实现。lib Android PostBuild、公网Test1和付费调用仍不在授权范围。
 
@@ -32,6 +32,8 @@ GPU安装、性能调优、能力训练归第二阶段；PC/可选LLM/DP另取�
 闭合后先核最终头提交与CI，再逐项检查有无他人新增变更；PR1合main后，将PR2明确retarget main、复核diff并以expected_head_sha合并；PR3同样retarget main，确认最终tree包含全部差异后合并。保留原作者commit和分支，不强推/删分支/自动合并/部署。若具体动作被审批拒绝，只停止该动作并准确报告。
 
 6ec5a2521d014ac4516c4b160df16d9874e5a591已推送同一PR3分支，本地408/408明确CPU白名单通过（0失败/错误/跳过，26.94秒）；其源码摘要及初始化实际宿主收据保存在同名前缀evidence目录。该结果不覆盖后续新增桥接代码或第三方运行；远端CI另按真实收据更新，不能引用9be7668的362项替代本批检查。
+
+后续代码539368b4f024d5f349e94a974dca2bb6910f74f4统一462/462 CPU通过、无skip，29.40秒，implementation SHA987676c4c6b44fc21d529f331d9d06bb75f5c012e1ceaa0ed0b8205a8f7b8304；当前源又实际完成一次四角色初始化/保存/删临时source后恢复，新run更新0，未采样/训练。正常core投影与检索XYZ为独立两项真实用例，均未运行C#。[当前收据](2026-10-25-bot-delivery-evidence/local-cpu.json)与远端CI/源码包分别保存，不互相替代。
 
 卡库交父任务DP采集使用[现有严格格式与审计命令](../development/card-data-collection-contract.md)，不是新schema或已取得全库的宣称。
 

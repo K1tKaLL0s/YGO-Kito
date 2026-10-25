@@ -6,7 +6,7 @@
 
 **初验发现的两项具体反馈软件阻塞现已闭合，包括首次修正后发现的同牌表变体。** 当前修正使预警后的改进候选可以再次验证；强制重构要求新接受的真实改动候选覆盖当前全部 mandatory 锚点，并拒绝当前 mandatory 所涉失败牌表的环境/驱动/旧父节点改名。归一化 scope 与租用对手的实际适配器也已有一致性检查。下文保留发现、反例、修正与独立复验链条；没有把未来训练能力增加为门槛。
 
-初验后主线程新增范围的复核结果：跨期主模型权重继承模块与实际保存工件已有独立证据；完整维护范围 bots 的源锁、全量盘点、离线源部署已通过核验，**实际可运行 bot 及训练桥接仍未完成**。未执行第三方 bot，不能将源注册表的 loaded 状态当作运行/对局/训练已连接。因此本文不对新增完整可运行 bots 范围或整个合并流程作“全部完成”结论。
+初验后主线程新增范围的复核结果：跨期主模型权重继承模块与实际保存工件已有独立证据；完整维护范围 bots 的源锁、全量盘点、完整构建输入及 Python 合法桥接代码已有有界验证，**实际 C# 运行和桥接互操作仍未验证**。未执行第三方 bot，不能将源注册表的 loaded 状态当作运行/对局/训练已连接。因此本文不对新增完整可运行 bots 范围或整个合并流程作“全部完成”结论。当前受检的软件修正未再发现具体阻塞，剩余实际编译/运行由下述环境依赖阻塞，不能据 CPU/投影证据合并。
 
 当前软件的其余受检主干已有可调用实现及明确拒绝边界：独立角色模型、无卡 ID 构筑图、狭义主轴、卡文绑定、真实轻量分类器与拒判、LoRA、通用本地 Agent、时期与用途隔离、完整阶段恢复。没有据此认定正式构筑/决斗能力、预测校准或全部卡效正确性通过。
 
@@ -70,16 +70,16 @@
 
 该实际源 SHA256 为 `ac8f1a048a9cf9b01a5f544944b5fa4663338aa54f00a7688f121ef99ad21863`，来源上下文是旧工程 `2022-10 / release_cutoff=2022-10-01`、各基模 1 次更新和保存的 LoRA；不是确认截止 2022-12-31 的正式该期池。目标也是普通工程任务（`period_context=null`），没有冒充未来第三期最终池或实际历史能力。该冒烟没有新的采样、训练或 native 调用。受检的跨期模块/接线未再发现阻塞。
 
-## 新增完整 bots 范围：源部署通过，运行仍阻塞
+## 新增完整 bots 范围：初次源部署与后续运行边界
 
 直接阅读 `bot_deployment.py` 的锁校验、源码/工程文件全量盘点、tar 包成员与摘要检查、惰性安装、typed registry 及审批包生成。实际独立运行 `tests.test_bot_deployment`：**14 tests，0.203 秒，全部通过，无 skip**；另对实际 `.cache/bot-source-review/maintained-bot-sources-v1.tar.gz` 调用 `verify_bundle`，在临时目录仅写被动源码后重新全量盘点。**815 个源文件全部按 SHA256 与 Git blob SHA1 核过**，不是只检查几个 Executor 样例。
 
 - 固定 source lock：`configs/bot-sources-v1.json`，规范 SHA256 `9a4aaa5948292d4e2f1b99df1b72dfa4cd53808c702c494aecd80ecedbd631b6`。
 - 实际全量 inventory：`.cache/bot-source-review/inventory.json`，规范 SHA256 `d72ad7ff39a541f1ecacc8eea7a7f4544beba937813dd6bc98da95ae04b82348`；220 个来源实例，Ice/Pure/Library 为 73/74/73，按代码字节保留 81 组，211 条 bot.conf 配置记录。
 - 固定 commit/许可、所有 Executor 编译包含、跨源 YDK 候选及主题别名均可核。没有缺失牌表资源候选，但同名多版本必须明确绑定；不能据候选存在宣称历史牌表合法/强度达标。14 个 icon/sqlite 等二进制资源只有 metadata，未下载或执行。
-- `BotSourceRegistry.statuses` 的 `loaded_source_registry` 只表示源字节和索引通过。`runtime_loaded/normal_duel_verified/training_connected` 为 false；`training_adapter` 对所有来源明确拒绝，指出未实现/未验的 YGOPro loopback room→本项目 ctypes/seat DTO 桥。
+- 初次源部署版本中，`BotSourceRegistry.statuses` 的 `loaded_source_registry` 只表示源字节和索引通过。`runtime_loaded/normal_duel_verified/training_connected` 为 false；当时 `training_adapter` 对所有来源明确拒绝。随后新增的实际受审 managed adapter 与门控见续验，不将初版拒绝分支误写为最终 API 尚不存在。
 
-**新增可运行 bots 的确切剩余动作**：安装/冻结 Mono/MSBuild 及 Linux 引用与所需二进制资源，完整编译 Ice/Pure 固定源码，在隔离 loopback 宿主执行正常对局，并完成合法观察/动作的房间协议桥接。目标是固定版本完整桌面实现；不是运行 Android 库 PostBuild 或公共远端服务器。
+**新增可运行 bots 的确切剩余动作**：取得可用的已批准 Mono/MSBuild/Linux 依赖环境，使用已准备的完整源码/二进制资源编译 Ice/Pure，实际执行全 Executor 反射/构造检查，在隔离 loopback 宿主核验已实现的合法观察/动作协议桥接与正常对局。目标是固定版本完整桌面实现；不是运行 Android 库 PostBuild 或公共远端服务器。
 
 **授权与阻塞更新（2026-10-25 续验）**：用户已批准签名 Debian Mono 安装、完整固定 Ice/Pure 构建和有界 `127.0.0.1` 验证，先前“待用户审批”已过时，不再作为阻塞理由。实际安装仍失败，证据为 `docs/reports/2026-10-25-bot-toolchain-block.json`：系统 `apt-get install --no-install-recommends mono-devel` 在 uid1000、无 sudo 下无法读取配置片段和打开 `/var/lib/dpkg/lock-frontend`；保留既定源与签名验证的 workspace APT 索引请求又被配置代理对三个 snapshot Debian InRelease 地址返回 HTTP403，已下载索引为 0。APT exit0 不能当索引成功。主线程已停止，未换镜像、代理或工具重试绕过。
 
@@ -97,7 +97,19 @@
 
 `windbot_room.py` 的实际 socket 握手要求 loopback、随机 token、固定协议和完整己方牌表；异常/超时关闭连接且不接替旧连接。当前窗口按固定 observer、完整合法请求摘要、state_version、deadline 和一次性使用约束，将返回字节映射为既有 action_id；正常提交仍走原 `submit/validate_selection/response guard`。`windbot_projection.py` 经 Python 委托代理读取已返回的消息，不修改原 CDLL 函数签名、native.py 或响应 guard；仅查询合法 CardView 已有身份的标量，隐身对象保空记录，对手抽牌清 ID、手牌用本地匿名末位、deck 序号不传原索引。早期跨模块事件字段不一致已修正，Journal→frame→LAN codec 的组合用例已加入；早期独立 24 项 room/projection CPU 用例为 0.348 秒全部通过，不外推后续继续新增的检索/extra 范围。
 
-还读取了正常现有核心的投影收据（218 次合法提交、110 个 frame、7 回合自然终局），其 `csharp_windbot_executed=false`、未新训练；这证明普通核心到投影/原提交路径的有界组合，不能证明完整 WindBot 策略运行。后续 room/projection 的常见检索与额外卡组支持仍在扩展，需源码冻结后再列明定点复验；当前整体合并门槛仍未因这些 fixture 或本地投影证据关闭。
+冻结前续验又定位并修正了两处直接边界：对手隐藏卡组卡移入 overlay 的身份按固定协议已经公开，projection 保留合法 ID，但 room 谓词一度遗漏 overlay 并错误拒绝；以及非 observer hand/extra 的公开引用需要分配独立匿名别名，不能保留原始私有 vector 序号。前者已用实际 Journal→LAN codec 组合回归闭合；后者最终为 `lock=overlay OR p!=observer`，我独立运行最后该别名回归通过。对手 hand 的 position bit 不被误当公共身份，只有显式合法公开事实才能带身份；未知/过期别名仍拒绝。
+
+`WindBotOpponent` 已钉住初始 root、seat、versions、profile/_profile、policy 及其两个低层回调身份；生产 registry 不接受 callback 替身。时期 host 新增实际 registry 分派、build audit 路径与 source 绑定；PeriodBuildAssets 的 bot 绑定/重绑仍核时期资源与双方牌表，普通采样器仅对该 typed adapter 进入受管 engine factory。所选两个 host 用例明确使用 patched registry/bind fixture，不冒称 C# 运行。
+
+我独立执行 room/projection **44 项 CPU 用例全部通过（2.202 秒）**，其后只对新增子进程生命周期跑 **3 项 fixture 用例全部通过（0.041 秒）**，再对最终私有别名改动跑 **1 项定点回归通过**，未为重复验证重新运行全部 408 项。生命周期清理只持有本次 Popen：关闭房间、wait、必要时 terminate/kill 后 reap；单个 daemon Timer 同时覆盖两提示之间闲置，cleanup lock 防重复竞争。无法确认回收时记录 `uncertain` 并抛异常，不标成功；不修改 native、向其他 PID 发信号或做故障注入。上述测试用注入 Popen 对象，没有启动 C# 或发送实际进程信号。首次误填测试类名导致的 unittest loader error已改为正确 LoopbackTests 后重跑；不是生产源码失败。
+
+最终源码：`windbot_projection.py` SHA256 `5d95b096a1adc472f94255662584b5b2e85fab565558f9bac1635fdd76df6e49`，`windbot_room.py` 为 `d55fbc14928a27bc3d0100639d2c9e03aa29f81704146b58230eac754be78e3f`。主线程/实现者对这两份冻结源码整组 47 项 CPU（26 projection＋21 room）通过；我没有将其重写为自己重复运行过整组。
+
+已独立读取并核规范 summary 摘要、文件 SHA 和源码逐项绑定的公开收据 `docs/reports/2026-10-25-windbot-projection-evidence/normal-and-search-xyz.json`（文件 SHA256 `cce107dcfe9beb9068fe8c2083a2a55ccfe48753f1ac3bd81c87246677c94fba`）。其当前两个真实核心正向检查分别是：normal 218 次合法提交、110 frame、7 回合**自然终局**；既有检索/Rescue XYZ 路线 22 次提交、18 frame、窗口内虚拟检索与公开素材投影通过，**该路线探针不是自然终局对局**。两项均绑定上述最终源码，走原 submit/guard，`csharp_windbot_executed=false`，无新训练或历史/强度资格。先前 unsupported 记录保留，不用后来成功改写早期失败。
+
+当前有界桥接明确拒绝：无无序表示的私有 deck confirmation、已不匹配当前合法槽的公开 confirmation、已识别隐身 hand/extra 的不明移除连续性、绑定匿名对象后的 extra shuffle、未实现事件 30/35/36/37/42 等，以及不支持的私有区原 chain 触发位置。这些边界与两个正向检查一起报告，不以有界工程通过冒充通用协议/所有 Executor 的实际操作能力。
+
+**续验结论：受检软件改动未再发现具体阻塞；完整 C# 编译、反射/构造、实际正常 WindBot 对局和互操作证据仍为 0，因 uid 权限与既定签名 APT 源 HTTP403 受阻。用户授权已经具备，不需重复申请同一许可；没有换镜像/代理/工具绕过。当前新增完整运行范围仍不能验收或据旧 CI 合并。**
 
 ## 本轮实测证据
 
