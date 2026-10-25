@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "kind": "third-party-bot-approval-requests",
+  "executed": false,
+  "requests": {
+    "ice": {
+      "schema_version": 1,
+      "kind": "third-party-build-run-approval-packet",
+      "executed": false,
+      "source_id": "ice",
+      "repository": "IceYGO/windbot",
+      "commit": "dec0535f8669dca01457a898890a968139711b19",
+      "source_lock_sha256": "9a4aaa5948292d4e2f1b99df1b72dfa4cd53808c702c494aecd80ecedbd631b6",
+      "working_directory": "/workspace/YGO-Kito-construction/.cache/bot-source-review/IceYGO--windbot/source",
+      "toolchain_present": {
+        "mono": false,
+        "msbuild": false,
+        "xbuild": false,
+        "dotnet": false
+      },
+      "toolchain_install_candidate": [
+        "apt-get",
+        "install",
+        "--no-install-recommends",
+        "mono-devel"
+      ],
+      "toolchain_version_frozen": false,
+      "build_argv": [
+        "msbuild",
+        "WindBot.csproj",
+        "/t:Build",
+        "/p:Configuration=Release",
+        "/p:Platform=AnyCPU",
+        "/p:ExternalPolicyOnly=false",
+        "/p:RunPostBuildEvent=Never"
+      ],
+      "run_argv": [
+        "mono",
+        "bin/Release/WindBot.exe",
+        "Name=KitoLoopbackAudit",
+        "Deck=ChaosRitual",
+        "Host=127.0.0.1",
+        "Port=7911",
+        "Chat=False",
+        "Debug=False"
+      ],
+      "runtime_blockers": [
+        "Mono/MSBuild version and Linux framework references not installed/frozen",
+        "full-project icon/sqlite binary resources declared but not downloaded or installed",
+        "actual pinned cards.cdb and selected YDK/dialog resource binding must be explicit",
+        "loopback YGOPro room host to Kito ctypes/seat-DTO legal-action bridge is not implemented or tested"
+      ],
+      "excluded": [
+        "libWindbot Android/Xamarin/Embeddinator PostBuildEvent",
+        "WindBot.Test1 hardcoded public host",
+        "remote game servers",
+        "paid services",
+        "native fault tests"
+      ],
+      "risks": [
+        "toolchain install changes packages and requires separate approval",
+        "compiling third-party C# permits its MSBuild imports/tasks to execute",
+        "running C# and sqlite native dependencies requires a bounded isolated loopback harness"
+      ],
+      "training_connected": false
+    },
+    "pure": {
+      "schema_version": 1,
+      "kind": "third-party-build-run-approval-packet",
+      "executed": false,
+      "source_id": "pure",
+      "repository": "purerosefallen/windbot",
+      "commit": "1b8f89537afe930ce96d2fc8d57b0e91b1f96457",
+      "source_lock_sha256": "9a4aaa5948292d4e2f1b99df1b72dfa4cd53808c702c494aecd80ecedbd631b6",
+      "working_directory": "/workspace/YGO-Kito-construction/.cache/bot-source-review/purerosefallen--windbot/source",
+      "toolchain_present": {
+        "mono": false,
+        "msbuild": false,
+        "xbuild": false,
+        "dotnet": false
+      },
+      "toolchain_install_candidate": [
+        "apt-get",
+        "install",
+        "--no-install-recommends",
+        "mono-devel"
+      ],
+      "toolchain_version_frozen": false,
+      "build_argv": [
+        "msbuild",
+        "WindBot.csproj",
+        "/t:Build",
+        "/p:Configuration=Release",
+        "/p:Platform=AnyCPU",
+        "/p:ExternalPolicyOnly=false",
+        "/p:RunPostBuildEvent=Never"
+      ],
+      "run_argv": [
+        "mono",
+        "bin/Release/WindBot.exe",
+        "Name=KitoLoopbackAudit",
+        "Deck=ChaosRitual",
+        "Host=127.0.0.1",
+        "Port=7911",
+        "Chat=False",
+        "Debug=False"
+      ],
+      "runtime_blockers": [
+        "Mono/MSBuild version and Linux framework references not installed/frozen",
+        "full-project icon/sqlite binary resources declared but not downloaded or installed",
+        "actual pinned cards.cdb and selected YDK/dialog resource binding must be explicit",
+        "loopback YGOPro room host to Kito ctypes/seat-DTO legal-action bridge is not implemented or tested"
+      ],
+      "excluded": [
+        "libWindbot Android/Xamarin/Embeddinator PostBuildEvent",
+        "WindBot.Test1 hardcoded public host",
+        "remote game servers",
+        "paid services",
+        "native fault tests"
+      ],
+      "risks": [
+        "toolchain install changes packages and requires separate approval",
+        "compiling third-party C# permits its MSBuild imports/tasks to execute",
+        "running C# and sqlite native dependencies requires a bounded isolated loopback harness"
+      ],
+      "training_connected": false
+    }
+  }
+}

@@ -26,7 +26,7 @@ WORKFLOW = "four-model-alternating-v1"
 PHASES = ("build_goal", "build_optimizer", "duel_train", "coordinator_train", "evaluate", "feedback")
 ROLE_PHASE = {"build_goal": 0, "build_optimizer": 1, "duel": 2, "coordinator": 3}
 EXTRA_FIELDS = {"workflow", "task", "adapters", "bootstrap_seed", "stages_per_worker"}
-OPTIONAL_FIELDS = {"construction_curriculum", "execution", "allocated_gpu_count", "period_inputs", "coordinator_supervision"}
+OPTIONAL_FIELDS = {"construction_curriculum", "execution", "allocated_gpu_count", "period_inputs", "coordinator_supervision", "initialize_from"}
 
 
 def period_host(recipe):
@@ -79,6 +79,38 @@ def coordinator_supervision_report(examples):
             "supervision_evidence_verified": False, "real_win_rate_supervision": False, "calibration": "pending"}
 
 
+def initialization_spec(recipe):
+    """Host-only explicit new-run weight transfer, separate from restore."""
+    if "initialize_from" not in recipe:
+        return None
+    from .group_initialization import validate_initialization_spec
+    return validate_initialization_spec(read_json(config_path(recipe["initialize_from"])))
+
+
+def check_initialization_provenance(recipe, provenance, binding):
+    """Resume validates the recorded transfer, without reimporting its source."""
+    spec = initialization_spec(recipe)
+    if spec is None:
+        if provenance is not None:
+            raise ContractError("group checkpoint has unexpected initialization provenance")
+        return
+    if not isinstance(provenance, dict):
+        raise ContractError("initialized group checkpoint lacks its source provenance")
+    if (provenance.get("schema_version") != 1 or
+            provenance.get("kind") != "explicit-group-weight-initialization-not-resume" or
+            provenance.get("weights") != spec["weights"] or
+            provenance.get("source_artifact_sha256") != spec["sha256"] or
+            provenance.get("source_binding_sha256") != spec["source_binding_sha256"] or
+            digest(provenance.get("source_binding")) != spec["source_binding_sha256"] or
+            provenance.get("target_binding_sha256") != digest(binding) or
+            provenance.get("target_task_sha256") != binding["task_sha256"] or
+            provenance.get("target_period_context") != binding.get("period_context") or
+            any(provenance.get(key) is not False for key in
+                ("optimizer_state_inherited", "rng_state_inherited", "data_or_ledger_inherited",
+                 "historical_training_verified", "ability_verified"))):
+        raise ContractError("group checkpoint initialization provenance differs from its source/target binding")
+
+
 def validate_recipe(value):
     from .training_runner import validate_recipe as validate_duel
     fields(value, {"schema_version", "max_updates", "validate_every", "checkpoint_every", "wall_seconds", "cpu_config",
@@ -102,6 +134,7 @@ def validate_recipe(value):
     if "construction_curriculum" in value:
         config_path(value["construction_curriculum"])
     if "period_inputs" in value:config_path(value["period_inputs"])
+    initialization_spec(value)
     coordinator_supervision(value)
     if value["cpu_config"].get("actor_seat", 0) != 0:
         raise ContractError("conditional group curriculum currently binds actor seat zero")
@@ -164,6 +197,9 @@ def binding_for(root, row):
     if "coordinator_supervision" in recipe:
         examples = coordinator_supervision(recipe)
         extra.update(coordinator_supervision_sha256=digest(examples), coordinator_supervision_source=examples["source"])
+    initialization = initialization_spec(recipe)
+    if initialization is not None:
+        extra["initialization_spec_sha256"] = digest(initialization)
     if host is not None:
         extra.update(period_input_sha256=host.loaded.manifest["binding_sha256"],
                      period_context=host.assets.period_context)
@@ -258,6 +294,12 @@ class GroupState:
                                sorted(c for c in assets.rows if 0 < c < 2**32), device=self.device)
         self.coordinator = CoordinatorTrainer(device=self.device)
         self.coordinator_examples = coordinator_supervision(row["recipe"])
+        self.initialization_provenance = None
+        initialization = initialization_spec(row["recipe"])
+        if initialization is not None:
+            from .group_initialization import initialize_group_weights
+            self.initialization_provenance = initialize_group_weights(self.builder, self.duel, self.coordinator,
+                workspace=ROOT, spec=initialization, target_binding=row["binding"])
         self.sessions, self.data = None, None
         self.construction_state = None
         self.data_index = None
@@ -389,6 +431,7 @@ class GroupState:
             raise ContractError("group save implementation/resources changed")
         if "period_inputs" in self.row["recipe"]:
             self.assets.assert_integrity(physical=False)
+        check_initialization_provenance(self.row["recipe"], getattr(self, "initialization_provenance", None), self.row["binding"])
         self.validate_cursor()
         with self.host._db() as db:
             if db.execute("SELECT COUNT(*) FROM jobs WHERE state IN ('pending','leased')").fetchone()[0]:
@@ -419,6 +462,8 @@ class GroupState:
                      "global_rng": {"torch": torch.get_rng_state(), "python": random.getstate()}}
             if "construction_curriculum" in self.row["recipe"]:
                 state["construction_state"] = self.construction_state
+            if self.initialization_provenance is not None:
+                state["initialization_provenance"] = copy.deepcopy(self.initialization_provenance)
             from .semantic_curriculum import configured,snapshot_index
             if configured(self.row['recipe']):state['data_index_snapshot']=snapshot_index(self)
             assert_period_hosts_unchanged()
@@ -447,14 +492,16 @@ class GroupState:
         fields(state, {"schema_version", "boundary", "binding", "components", "adapters", "cursor", "consumed", "events", "data", "data_marks", "evaluations",
                        "deck", "candidate_id", "forecast_id", "last_feedback", "ledger_bytes", "ledger_sha256", "ledger_state_sha256", "policy_rng", "global_rng", "budget_snapshot"}
                | ({"construction_state"} if "construction_curriculum" in row["recipe"] else set())
-               | ({'data_index_snapshot'} if semantic else set()), {"execution", "device_rng"})
+               | ({'data_index_snapshot'} if semantic else set()), {"execution", "device_rng", "initialization_provenance"})
         if (state["schema_version"] != 1 or state["boundary"] != "complete-workflow-stage" or state["binding"] != row["binding"]
                 or binding_for(assets.root, row) != row["binding"] or hashlib.sha256(state["ledger_bytes"]).hexdigest() != state["ledger_sha256"]):
             raise ContractError("group checkpoint boundary/version/ledger differs")
+        check_initialization_provenance(row["recipe"], state.get("initialization_provenance"), row["binding"])
         validate_budget(state["budget_snapshot"], row)  # Never restore/replace newer accounting from model state.
         obj = cls.__new__(cls)
         obj.assets, obj.row, obj.state_root = assets, row, Path(state_root)
         obj.device = device
+        obj.initialization_provenance = copy.deepcopy(state.get("initialization_provenance"))
         obj.task, obj.data = BuildTask.from_dict(row["task"]), state["data"]
         obj.construction_state = state.get("construction_state")
         obj.data_index=None
@@ -663,6 +710,36 @@ def actor_profile(profile, deck):
     return result
 
 
+def _scheduled_validation_cursor(partition, opponent):
+    """Resolve a leased opponent by identity, independently of scope ordering."""
+    from .data_isolation import opponent_identity
+    fields(opponent, {"opponent_id", "deck_sha256", "driver_sha256", "weight"})
+    matches, identities = [], set()
+    # A binding beyond the declared seed count has no sampling weight and
+    # cannot be selected through this partition's for_runner contract.
+    for cursor, binding in enumerate(partition["opponent_bindings"][:len(partition["seeds"])]):
+        identity = opponent_identity(binding)
+        if identity in identities:
+            raise ContractError("validation partition repeats one actual opponent identity")
+        identities.add(identity)
+        if (binding["opponent_id"] == opponent["opponent_id"] and
+                binding["opponent_deck_sha256"] == opponent["deck_sha256"] and identity == opponent["driver_sha256"]):
+            matches.append(cursor)
+    if len(matches) != 1:
+        raise ContractError("scheduled validation opponent has no unique binding in this period partition")
+    return matches[0]
+
+
+def _validation_job_purpose(candidate, route):
+    if route["action"] not in ("register_forecast", "build_goal", "build_optimizer"):
+        raise ContractError("rule coordinator did not grant versioned forecast stage")
+    if not route["context"]["rebuild_required"]:
+        return "engineering_validation"
+    if candidate["parent_candidate_id"] is None or route.get("rebuild_validation_eligible") is not True:
+        raise ContractError("mandatory reconstruction requires a changed child candidate before validation")
+    return "rebuild_validation"
+
+
 def evaluate(state, generation):
     from .model_group import call, route_with_model
     from .coordinator import Coordinator
@@ -679,9 +756,9 @@ def evaluate(state, generation):
         state.candidate_id = candidate["candidate_id"]
     else:
         state.candidate_id = same["candidate_id"]
+        candidate = same
     route, advice = route_with_model(state.host, state.coordinator, state.candidate_id, None, 1)
-    if route["action"] not in ("register_forecast", "build_goal"):
-        raise ContractError("rule coordinator did not grant versioned forecast stage")
+    job_purpose = _validation_job_purpose(candidate, route)
     # Mandatory rebuild is enforced again by job.schedule; a same-deck rename
     # cannot clear its root lineage, warning or required reconstruction.
     state.forecast_id = f"cycle-{state.cycle + 1}-forecast"
@@ -703,17 +780,30 @@ def evaluate(state, generation):
              for i,n in sorted(counts.items())]
     forecast = call(state.host, "forecast.register", {"forecast_id": state.forecast_id, "candidate_id": state.candidate_id,
         "probability": advice["probability"], "origin_role": "coordinator", "model_sha256": state.versions()["coordinator"], "calibration": "pending", "scope": scope})
+    scope = forecast["scope"]  # The ledger normalizes opponent ordering and weights.
     worker = Coordinator(state.host.path, state.host.policy, role="duel_worker", source="real_engine", assets=state.assets)
     results = []
     for index, seed in enumerate(state.row["recipe"]["validation"]["seeds"]):
         job_id = f"cycle-{state.cycle + 1}-evaluation-{index}"
-        call(state.host, "job.schedule", {"job_id": job_id, "forecast_id": state.forecast_id, "seed": seed, "purpose": "engineering_validation"})
+        call(state.host, "job.schedule", {"job_id": job_id, "forecast_id": state.forecast_id, "seed": seed, "purpose": job_purpose})
         job = call(worker, "job.claim", {"job_id": job_id, "worker_id": "cpu-group-evaluator"})
         if job["scope"] != scope or job["actor_seat"] != 0 or job["deck"] != state.deck or job["seed"] != seed:
             raise ContractError("group frozen job/version/deck/seed differs")
         actual_profile = actor_profile(profile, deck)
         from .semantic_curriculum import configured,opponent as semantic_opponent
-        adapter=semantic_opponent(state,actual_profile,'validation',episode_cursor=index) if configured(state.row['recipe']) else None
+        opponent_cursor = index
+        if host is not None:
+            if seed != part["seeds"][index] or state.row["recipe"]["validation"]["policy_seed"] != part["policy_seed"]:
+                raise ContractError("scheduled validation seed/policy differs from its period partition")
+            opponent_cursor = _scheduled_validation_cursor(part, job["opponent"])
+        elif job["opponent"] != scope["opponents"][0]:
+            raise ContractError("scheduled validation opponent differs from its actual fixed driver")
+        adapter=semantic_opponent(state,actual_profile,'validation',episode_cursor=opponent_cursor) if configured(state.row['recipe']) else None
+        if host is not None:
+            if (adapter is None or adapter.binding["opponent_id"] != job["opponent"]["opponent_id"] or
+                    digest(profile_deck(adapter.profile, 1).to_dict()) != job["opponent"]["deck_sha256"] or
+                    opponent_identity(adapter.binding) != job["opponent"]["driver_sha256"]):
+                raise ContractError("actual validation adapter differs from the leased opponent")
         episode = sampler(state).sample_episode(state.assets.root, adapter.profile if adapter else actual_profile, purpose="validation", seed=seed,
             policy_seed=state.row["recipe"]["validation"]["policy_seed"], opponent=state.row["recipe"]["validation"]["opponent"],opponent_adapter=adapter,engine_factory=getattr(state.assets,"engine_factory",None))
         record_episode(state, episode, generation)

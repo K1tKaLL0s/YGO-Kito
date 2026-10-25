@@ -8,7 +8,7 @@
 
 **持续进度入口：[总工作清单 MASTER-CHECKLIST](docs/plans/MASTER-CHECKLIST.md)。** 每批完成后同步稳定任务 ID、状态和证据，符合验收条件才勾选；部分完成保持未勾选。该表索引全阶段进度，保留[第一阶段详细清单](docs/plans/2026-10-22-phase-1-cpu-checklist.md)，不替代统一规范。PR 已发布不表示已合并。
 
-**当前云端整合候选：[PR #3](https://github.com/K1tKaLL0s/YGO-Kito/pull/3)。** 保留PR1、DP草稿PR2及构筑工作历史，不合并或自动合并。此前59dfda0已有352项安全CPU与远端CI通过，并有单列正常真实引擎/重放证据；本次日期与来源变更见[最新接续](docs/reports/2026-10-25-cutoff-and-source-update.md)。旧188项是历史基线。通用接续先读[AGENTS.md](AGENTS.md)和[Agent说明](docs/development/generic-agent-integration.md)。
+**当前云端整合候选：[PR #3](https://github.com/K1tKaLL0s/YGO-Kito/pull/3)。** 保留PR1、DP草稿PR2及构筑工作历史。用户已授权设计复核、必要修正和最终CI通过后依次合入main；新增完整机器人部署范围尚未闭合时不先行合并，实际状态见[设计审查接续](docs/reports/2026-10-25-design-review-and-merge.md)。此前9be7668已有362项CPU/CI通过及单列正常引擎证据，不能替代后续改动的检查。通用接续先读[AGENTS.md](AGENTS.md)和[Agent说明](docs/development/generic-agent-integration.md)。
 
 **继续工程准备：[安全CPU CI](docs/development/safe-cpu-ci.md)、[3＋8牌表收件](docs/development/deck-intake.md)、[完整源码训练交接](docs/development/training-handoff.md)。** 已建立[草稿PR #3](https://github.com/K1tKaLL0s/YGO-Kito/pull/3)，依赖#1→#2→#3。最新测试/CI与剩余依赖统一见[继续工程报告](docs/reports/2026-10-24-engineering-continuation.md)；原188项是历史整合基线，不代替新提交检查。
 

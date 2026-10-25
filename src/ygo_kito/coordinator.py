@@ -100,6 +100,32 @@ class Coordinator:
     def _required(self, db, candidate_id):
         return self._has_alert(db, candidate_id, "mandatory_rebuild")
 
+    def _mandatory_forecasts(self, db, candidate_id):
+        root = self._row(db, "candidates", candidate_id)["root"]
+        return [row[0] for row in db.execute(
+            "SELECT a.forecast_id FROM alerts a JOIN forecasts f ON f.id=a.forecast_id "
+            "JOIN candidates c ON c.id=f.candidate_id WHERE c.root=? AND a.kind='mandatory_rebuild' "
+            "ORDER BY a.forecast_id", (root,))]
+
+    def _rebuild_validation_eligible(self, db, candidate_id):
+        candidate = self._row(db, "candidates", candidate_id)
+        payload = json.loads(candidate["payload"])
+        if payload["parent_candidate_id"] is None:
+            return False
+        parent = self._row(db, "candidates", payload["parent_candidate_id"])
+        if candidate["deck_sha"] == parent["deck_sha"]:
+            return False  # Changing environment, driver or parent is not reconstruction.
+        mandatory = self._mandatory_forecasts(db, candidate_id)
+        failed_decks = {row[0] for row in db.execute(
+            "SELECT c.deck_sha FROM alerts a JOIN forecasts f ON f.id=a.forecast_id "
+            "JOIN candidates c ON c.id=f.candidate_id WHERE c.root=? AND a.kind='mandatory_rebuild'",
+            (candidate["root"],))}
+        # This host-owned anchor is fixed at first acceptance. Existing/legacy
+        # candidates and handoff retries cannot become a new response to a
+        # later mandatory alert. Historical warnings and counts stay intact.
+        return (bool(mandatory) and payload.get("rebuild_after_forecasts") == mandatory
+                and candidate["deck_sha"] not in failed_decks)
+
     def _candidate(self, params):
         d = fields(params, {"candidate_id", "parent_candidate_id", "task", "deck", "build_models"})
         identifier(d["candidate_id"])
@@ -167,6 +193,8 @@ class Coordinator:
                 root = d["candidate_id"]
             if db.execute("SELECT 1 FROM candidates WHERE goal_key=? AND deck_sha=? AND env_sha=?", (goal_key, deck_hash, env_hash)).fetchone():
                 raise ContractError("same deck cannot be renamed to reset feedback")
+            payload["rebuild_after_forecasts"] = (self._mandatory_forecasts(db, d["parent_candidate_id"])
+                                                    if d["parent_candidate_id"] is not None else [])
             db.execute("INSERT INTO candidates VALUES(?,?,?,?,?,?,?)", (d["candidate_id"], root, d["parent_candidate_id"], goal_key, deck_hash, env_hash, canonical_json(payload)))
             self._event(db, {"event": "handoff_accepted", "candidate_id": d["candidate_id"], "root": root, "source": self.source})
         return payload
@@ -212,8 +240,10 @@ class Coordinator:
             f = self._row(db, "forecasts", d["forecast_id"])
             candidate = json.loads(self._row(db, "candidates", f["candidate_id"])["payload"])
             required = self._required(db, f["candidate_id"])
-            if required and (d["purpose"] != "rebuild_validation" or candidate["parent_candidate_id"] is None):
+            if required and d["purpose"] != "rebuild_validation":
                 raise ContractError("mandatory reconstruction blocks further ordinary duel jobs")
+            if required and not self._rebuild_validation_eligible(db, f["candidate_id"]):
+                raise ContractError("mandatory reconstruction requires a changed child accepted after the current mandatory alerts")
             scope = json.loads(f["payload"])["scope"]
             rng = random.Random(d["seed"])
             opponent = rng.choices(scope["opponents"], [o["weight"] for o in scope["opponents"]])[0]
@@ -306,6 +336,7 @@ class Coordinator:
             candidate = json.loads(self._row(db, "candidates", d["candidate_id"])["payload"])
             required = self._required(db, d["candidate_id"])
             warning = self._has_alert(db, d["candidate_id"], "reevaluate")
+            rebuild_eligible = self._rebuild_validation_eligible(db, d["candidate_id"]) if required else False
         status = self.forecast_status(d["forecast_id"]) if d["forecast_id"] is not None else None
         if status and status["forecast"]["candidate_id"] != d["candidate_id"]:
             raise ContractError("route forecast belongs to another candidate")
@@ -325,7 +356,8 @@ class Coordinator:
                 raise ContractError("advisory model calibration is pending")
         event = {"event": "route_decision", "candidate_id": d["candidate_id"], "forecast_id": d["forecast_id"],
                  "source": self.source, "mode": "rule_authoritative", "context": context,
-                 "action": action, "reason": reason, "advisory": d["advisory"], "rebuild_required": required}
+                 "action": action, "reason": reason, "advisory": d["advisory"], "rebuild_required": required,
+                 "rebuild_validation_eligible": rebuild_eligible}
         with self._db() as db, db:
             self._event(db, event)
         return event

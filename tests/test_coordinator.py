@@ -112,6 +112,93 @@ class CoordinatorContractTests(unittest.TestCase):
         self.assertTrue(self.coord.forecast_status("new-driver")["mandatory_rebuild"])
         self.assertFalse(self.coord.dispatch(message("job.schedule", {"job_id": "new-driver-bypass", "forecast_id": "new-driver", "seed": 4, "purpose": "evaluation"}))["ok"])
 
+    def test_mandatory_requires_new_reconstruction_after_alert_not_an_existing_child(self):
+        seen = {digest({zone: sorted(cards) for zone, cards in self.candidate["deck"].items()})}
+        def child(ident, parent):
+            request = copy.deepcopy(self.candidate)
+            request.update(candidate_id=ident, parent_candidate_id=parent["candidate_id"], deck=copy.deepcopy(parent["deck"]))
+            for position, old in enumerate(parent["deck"]["main"]):
+                for code in request["task"]["pool"]:
+                    if code == old or parent["deck"]["main"].count(code) >= 3:
+                        continue
+                    request["deck"]["main"] = list(parent["deck"]["main"])
+                    request["deck"]["main"][position] = code
+                    signature = digest({zone: sorted(cards) for zone, cards in request["deck"].items()})
+                    if signature not in seen:
+                        result = self.call(self.coord, "handoff.submit", request)
+                        seen.add(signature)
+                        return result
+            self.fail("synthetic contract fixture has no distinct child deck")
+
+        first = child("existing-child", self.candidate)
+        early = child("too-early-grandchild", first)
+        self.call(self.coord, "forecast.register", dict(self.forecast, forecast_id="child-forecast", candidate_id=first["candidate_id"]))
+        worker = self.host("duel_worker")
+        for index in range(125):
+            job = self.call(self.coord, "job.schedule", {"job_id": "child-job-" + str(index), "forecast_id": "child-forecast",
+                "seed": index, "purpose": "engineering_validation"})
+            self.call(worker, "job.claim", {"job_id": job["job_id"], "worker_id": "fixture-worker"})
+            self.call(worker, "results.append", {"results": [{"result_id": "child-result-" + str(index),
+                "job_id": job["job_id"], "worker_id": "fixture-worker", "forecast_id": "child-forecast",
+                "candidate_id": first["candidate_id"], "scope_sha256": job["scope_sha256"],
+                "source": "synthetic_contract_test", "unit": "BO1", "outcome": "loss",
+                "audit_sha256": digest({"synthetic_index": index}), "diagnosis": "unknown"}]})
+        self.assertEqual(first["rebuild_after_forecasts"], [])
+        self.assertEqual(early["rebuild_after_forecasts"], [])
+        for candidate in (first, early):
+            forecast_id = "child-forecast" if candidate is first else "early-forecast"
+            if candidate is early:
+                self.call(self.coord, "forecast.register", dict(self.forecast, forecast_id=forecast_id, candidate_id=candidate["candidate_id"]))
+            route = self.call(self.coord, "route", {"candidate_id": candidate["candidate_id"], "forecast_id": forecast_id,
+                "remaining_tasks": 1, "advisory": None})
+            self.assertFalse(route["rebuild_validation_eligible"])
+            denied = self.coord.dispatch(message("job.schedule", {"job_id": candidate["candidate_id"] + "-bypass",
+                "forecast_id": forecast_id, "seed": 200, "purpose": "rebuild_validation"}))
+            self.assertFalse(denied["ok"])
+            self.assertIn("after the current mandatory alerts", denied["error"]["message"])
+        # Retrying the exact old handoff must preserve its original empty anchor.
+        retry = {key: first[key] for key in self.candidate}
+        self.assertEqual(self.call(self.coord, "handoff.submit", retry), first)
+        environment_only = copy.deepcopy(retry)
+        environment_only.update(candidate_id="environment-only-child", parent_candidate_id=first["candidate_id"])
+        environment_only["task"]["environment"]["environment_id"] += "-new-context"
+        same_deck = self.call(self.coord, "handoff.submit", environment_only)
+        self.assertEqual(same_deck["rebuild_after_forecasts"], ["child-forecast"])
+        same_route = self.call(self.coord, "route", {"candidate_id": same_deck["candidate_id"], "forecast_id": None,
+            "remaining_tasks": 1, "advisory": None})
+        self.assertFalse(same_route["rebuild_validation_eligible"])
+        reparented = copy.deepcopy(retry)
+        reparented.update(candidate_id="old-deck-new-parent", parent_candidate_id="candidate")
+        reparented["task"]["environment"]["environment_id"] += "-reparented-context"
+        renamed = self.call(self.coord, "handoff.submit", reparented)
+        self.assertEqual(renamed["rebuild_after_forecasts"], ["child-forecast"])
+        renamed_scope = dict(self.scope, actor_policy_sha256="a" * 64)
+        self.call(self.coord, "forecast.register", dict(self.forecast, forecast_id="renamed-forecast",
+            candidate_id=renamed["candidate_id"], scope=renamed_scope))
+        denied = self.coord.dispatch(message("job.schedule", {"job_id": "reparented-bypass", "forecast_id": "renamed-forecast",
+            "seed": 200, "purpose": "rebuild_validation"}))
+        self.assertFalse(denied["ok"])
+        # A previously used core that is different from the mandatory failure
+        # is still eligible for explicitly versioned reconstruction/validation.
+        old_core = copy.deepcopy(self.candidate)
+        old_core.update(candidate_id="revalidate-old-core", parent_candidate_id=first["candidate_id"])
+        old_core["task"]["environment"]["environment_id"] += "-revalidated-context"
+        recovered_core = self.call(self.coord, "handoff.submit", old_core)
+        core_route = self.call(self.coord, "route", {"candidate_id": recovered_core["candidate_id"], "forecast_id": None,
+            "remaining_tasks": 1, "advisory": None})
+        self.assertTrue(core_route["rebuild_validation_eligible"])
+        rebuilt = child("post-alert-reconstruction", early)
+        self.assertEqual(rebuilt["rebuild_after_forecasts"], ["child-forecast"])
+        self.call(self.coord, "forecast.register", dict(self.forecast, forecast_id="rebuilt-forecast", candidate_id=rebuilt["candidate_id"]))
+        route = self.call(self.coord, "route", {"candidate_id": rebuilt["candidate_id"], "forecast_id": "rebuilt-forecast",
+            "remaining_tasks": 1, "advisory": None})
+        self.assertTrue(route["rebuild_validation_eligible"])
+        accepted = self.call(self.coord, "job.schedule", {"job_id": "post-alert-job", "forecast_id": "rebuilt-forecast",
+            "seed": 201, "purpose": "rebuild_validation"})
+        self.assertEqual(accepted["candidate_id"], rebuilt["candidate_id"])
+        self.assertTrue(self.coord.forecast_status("child-forecast")["mandatory_rebuild"])
+        self.assertEqual(self.coord.forecast_status("child-forecast")["matches"], 125)
+
     def test_forecast_is_required_before_job_and_fixed_roles_cannot_override_permissions(self):
         self.assertFalse(self.coord.dispatch(message("job.schedule", {"job_id": "no-forecast", "forecast_id": "missing", "seed": 1, "purpose": "evaluation"}))["ok"])
         for role, method, params in (("monitor", "forecast.register", self.forecast), ("duel_worker", "handoff.submit", self.candidate),

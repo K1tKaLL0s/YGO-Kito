@@ -1,6 +1,6 @@
 # 完整源码训练交接：CPU 工程检查与腾讯云启动步骤
 
-本说明供任何有读文件、执行本地命令、UTF-8 stdio 能力的编程 Agent 接续，厂商 SDK 不是依赖。使用完整 Git 检出或[已核验自包含源码包](deployment-preparation.md)，不使用 DP 的 `_work`，也不依赖用户已关闭的本机。先读 `AGENTS.md`、`docs/plans/MASTER-CHECKLIST.md`、`generic-agent-integration.md` 及本文件；沿用 PR #1 → #2 → #3，当前没有合并或自动合并授权。
+本说明供任何有读文件、执行本地命令、UTF-8 stdio 能力的编程 Agent 接续，厂商 SDK 不是依赖。使用完整 Git 检出或[已核验自包含源码包](deployment-preparation.md)，不使用 DP 的 `_work`，也不依赖用户已关闭的本机。先读 `AGENTS.md`、`docs/plans/MASTER-CHECKLIST.md`、`generic-agent-integration.md` 及本文件。用户2026-10-25已授权在设计复核、必要修正和最终CI通过后按PR #1→#2→#3顺序合入main；实际合并状态单列核对，不授权自动合并、部署或付费训练。
 
 这里交付可重复的 CPU 工程检查和训练收件/恢复步骤，**不是正式训练就绪证书**。`formal_training_ready` 保持 false；训练实际规则组合、相应数据/对手及GPU运行另验；PC产品/客户端互操作归后续应用阶段，真实provider为可选补充。本轮不执行原生故障、崩溃复现、未筛选测试发现、付费训练或外部模型调用。
 
