@@ -1,0 +1,2368 @@
+{
+  "kind": "same-host-actual-model-engine-training-cpu-cuda-comparison",
+  "source_commit": "6cef642cc840120fc6d445cfbf7b8bc082b61f0d",
+  "source_identity": "27dd8fc78333929ce8f38291b96fb32f55308ad986b33271dbbfce8979990f69",
+  "source_file_sha256": "66c35abd70b0effe28a306c5d1d5b76ecd283ffd9230115f973227ecf6203396",
+  "source_model_sha256": "202430015c848dcbf0de4b04dd4131d58401a72e8cc901591fe63ab275e6aa8b",
+  "source_completed_updates": 2,
+  "torch": "2.9.1+cu128",
+  "cuda_runtime": "12.8",
+  "gpu": "NVIDIA A10",
+  "dtype": "float32",
+  "tf32": false,
+  "torch_threads": 1,
+  "batch_size": 32,
+  "formal_games": 0,
+  "formal_updates": 0,
+  "started_utc": 1793001878.2663884,
+  "ended_utc": 1793003021.9837887,
+  "status": "completed",
+  "training_planned": 16,
+  "training_stats": {
+    "cpu": {
+      "completed_updates": 8,
+      "sampling_seconds": {
+        "count": 8,
+        "mean": 2.280429420119617,
+        "min": 1.4693481019930914,
+        "p50": 1.7885062459972687,
+        "p95": 4.22212738234084,
+        "p99": 4.848393878862261,
+        "max": 5.004960502992617
+      },
+      "update_seconds": {
+        "count": 8,
+        "mean": 0.3709724150066904,
+        "min": 0.1636199820204638,
+        "p50": 0.22498771850951016,
+        "p95": 0.9310796200516048,
+        "p99": 1.1058929712089591,
+        "max": 1.149596308998298
+      },
+      "total_seconds": {
+        "count": 8,
+        "mean": 2.6514018351263076,
+        "min": 1.6329680840135552,
+        "p50": 2.0071656804939266,
+        "p95": 5.153207002392445,
+        "p99": 5.95428685007122,
+        "max": 6.154556811990915
+      },
+      "batch_samples": 256,
+      "samples_per_update_second": 86.25978295292626
+    },
+    "cuda:0": {
+      "completed_updates": 8,
+      "sampling_seconds": {
+        "count": 8,
+        "mean": 2.575912747743132,
+        "min": 1.6556449479830917,
+        "p50": 2.038533953993465,
+        "p95": 4.933761075635265,
+        "p99": 5.629801209509896,
+        "max": 5.803811242978554
+      },
+      "update_seconds": {
+        "count": 8,
+        "mean": 0.28652453712857096,
+        "min": 0.08273097302298993,
+        "p50": 0.15545831600320525,
+        "p95": 0.802123672404559,
+        "p99": 0.9980699840851591,
+        "max": 1.0470565620053094
+      },
+      "total_seconds": {
+        "count": 8,
+        "mean": 2.862437284871703,
+        "min": 1.7383759210060816,
+        "p50": 2.237994828989031,
+        "p95": 5.735884748039824,
+        "p99": 6.627871193595055,
+        "max": 6.850867804983864
+      },
+      "batch_samples": 256,
+      "samples_per_update_second": 111.683279626557
+    }
+  },
+  "frozen_planned": 16,
+  "frozen_stats": {
+    "cpu": {
+      "completed": 8,
+      "game_seconds": {
+        "count": 8,
+        "mean": 67.31245525887425,
+        "min": 51.634010469017085,
+        "p50": 63.337407225495554,
+        "p95": 89.18819167830807,
+        "p99": 89.51144252846541,
+        "max": 89.59225524100475
+      },
+      "wall_seconds": {
+        "count": 8,
+        "mean": 67.79401727038203,
+        "min": 52.11257406199002,
+        "p50": 63.80054578350973,
+        "p95": 89.72115390680119,
+        "p99": 90.0371844053545,
+        "max": 90.11619202999282
+      },
+      "model_forward_ms": {
+        "count": 914,
+        "mean": 2.643676168049423,
+        "min": 1.0612409969326109,
+        "p50": 2.725860002101399,
+        "p95": 3.1043097536894484,
+        "p99": 3.3428624039515853,
+        "max": 4.390860005514696
+      },
+      "actor_full_inference_ms": {
+        "count": 914,
+        "mean": 3.949308422075929,
+        "min": 1.7808080010581762,
+        "p50": 4.07573051052168,
+        "p95": 4.577470899675972,
+        "p99": 4.8885975539451465,
+        "max": 6.3135550008155406
+      }
+    },
+    "cuda:0": {
+      "completed": 8,
+      "game_seconds": {
+        "count": 8,
+        "mean": 66.9858535181229,
+        "min": 51.38600955301081,
+        "p50": 63.0143657860026,
+        "p95": 91.28170381910313,
+        "p99": 93.13765731822728,
+        "max": 93.60164569300832
+      },
+      "wall_seconds": {
+        "count": 8,
+        "mean": 67.47140376999596,
+        "min": 51.85615026697633,
+        "p50": 63.47936930549622,
+        "p95": 91.82100468119752,
+        "p99": 93.66318738102476,
+        "max": 94.12373305598157
+      },
+      "model_forward_ms": {
+        "count": 914,
+        "mean": 4.022984110984107,
+        "min": 3.3930669887922704,
+        "p50": 3.948855504859239,
+        "p95": 4.559487361984792,
+        "p99": 4.819835616508499,
+        "max": 5.681021983036771
+      },
+      "actor_full_inference_ms": {
+        "count": 914,
+        "mean": 5.798091024691004,
+        "min": 4.606064991094172,
+        "p50": 5.745569011196494,
+        "p95": 6.5366444920073254,
+        "p99": 6.8631356782861985,
+        "max": 7.698997011175379
+      }
+    }
+  },
+  "original_checkpoint_unchanged": true,
+  "peak_rss_bytes": 1775226880,
+  "peak_cuda_allocated_bytes": 93940736,
+  "peak_cuda_reserved_bytes": 106954752,
+  "training_attempts": [
+    {
+      "device": "cpu",
+      "step": 0,
+      "seed": 520001,
+      "status": "completed",
+      "sampling_wall_seconds": 5.004960502992617,
+      "update_wall_seconds": 1.149596308998298,
+      "wall_seconds": 6.154556811990915,
+      "process_cpu_seconds": 6.156936803,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 0,
+        "policy_sha256": "202430015c848dcbf0de4b04dd4131d58401a72e8cc901591fe63ab275e6aa8b",
+        "purpose": "train",
+        "opponent": "visible-effects-first-v1",
+        "seed_audit_only": 520001,
+        "actor_seat": 0,
+        "turns": 22,
+        "native_decisions": 671,
+        "actor_samples": 330,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 4.106421492004301,
+        "actor_inference_ms": {
+          "count": 330,
+          "mean": 3.4478317155100573,
+          "median": 3.445381997153163,
+          "min": 1.7845050024334341,
+          "max": 4.514553002081811
+        },
+        "trajectory_sha256": "f544b759838672e5172da4c1b4444f577b16454d4faf75c0ffc97da552cbf4cc"
+      },
+      "update": {
+        "optimizer_step": 1,
+        "batch_samples": 32,
+        "episode_samples": 330,
+        "loss": -0.0004145127022638917,
+        "policy_loss": 4.470348358154297e-08,
+        "value_loss": 0.001968150958418846,
+        "entropy": 0.1398632973432541,
+        "gradient_norm_before_clip": 0.2105512171983719,
+        "changed_parameter_elements": 20877,
+        "parameter_delta_l2": 0.14244844642642274,
+        "policy_head_delta_l2": 0.04594596170897111,
+        "before_sha256": "202430015c848dcbf0de4b04dd4131d58401a72e8cc901591fe63ab275e6aa8b",
+        "after_sha256": "b584c25f312b07e1894f1c69ddcb5636236a1b33a402e6dad59f864644ec928f",
+        "learning_rate_next": 0.00099
+      },
+      "forward_ms": {
+        "count": 331,
+        "mean": 2.5138397306468327,
+        "median": 2.4090229999274015,
+        "min": 1.064095995388925,
+        "max": 41.1012280092109
+      },
+      "native_api_seconds": {
+        "constructor": 0.9630023950012401,
+        "next_decision": 0.3851011248480063,
+        "submit": 0.006304194947006181,
+        "exit": 0.0005555579846259207
+      },
+      "model_after_sha256": "b584c25f312b07e1894f1c69ddcb5636236a1b33a402e6dad59f864644ec928f"
+    },
+    {
+      "device": "cpu",
+      "step": 1,
+      "seed": 520002,
+      "status": "completed",
+      "sampling_wall_seconds": 2.7682944439875428,
+      "update_wall_seconds": 0.5252629120077472,
+      "wall_seconds": 3.29355735599529,
+      "process_cpu_seconds": 3.294962589999999,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 1,
+        "policy_sha256": "b584c25f312b07e1894f1c69ddcb5636236a1b33a402e6dad59f864644ec928f",
+        "purpose": "train",
+        "opponent": "visible-effects-first-v1",
+        "seed_audit_only": 520002,
+        "actor_seat": 0,
+        "turns": 14,
+        "native_decisions": 398,
+        "actor_samples": 194,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 2.386958296992816,
+        "actor_inference_ms": {
+          "count": 194,
+          "mean": 3.363057030076833,
+          "median": 3.431059987633489,
+          "min": 1.807248016120866,
+          "max": 4.51698899269104
+        },
+        "trajectory_sha256": "cccc538163293f1394737b21f77806a518dbe9b1c7aa963e97efe01dbca86064"
+      },
+      "update": {
+        "optimizer_step": 2,
+        "batch_samples": 32,
+        "episode_samples": 194,
+        "loss": 0.008952275849878788,
+        "policy_loss": -1.30385160446167e-08,
+        "value_loss": 0.025170693174004555,
+        "entropy": 0.36330580711364746,
+        "gradient_norm_before_clip": 0.2728786766529083,
+        "changed_parameter_elements": 21961,
+        "parameter_delta_l2": 0.0784862607150813,
+        "policy_head_delta_l2": 0.032064034496626106,
+        "before_sha256": "b584c25f312b07e1894f1c69ddcb5636236a1b33a402e6dad59f864644ec928f",
+        "after_sha256": "7884eb8b3a5a9beb99343597a0c060612661e6120d61dc35e06cfb54712303f6",
+        "learning_rate_next": 0.0009801
+      },
+      "forward_ms": {
+        "count": 195,
+        "mean": 2.5014617438547506,
+        "median": 2.4014489899855107,
+        "min": 1.0881120106205344,
+        "max": 35.76429400709458
+      },
+      "native_api_seconds": {
+        "constructor": 0.8994808970019221,
+        "next_decision": 0.19120461589773186,
+        "submit": 0.0036533219390548766,
+        "exit": 0.0004263840091880411
+      },
+      "model_after_sha256": "7884eb8b3a5a9beb99343597a0c060612661e6120d61dc35e06cfb54712303f6"
+    },
+    {
+      "device": "cpu",
+      "step": 2,
+      "seed": 520003,
+      "status": "completed",
+      "sampling_wall_seconds": 1.8237212039821316,
+      "update_wall_seconds": 0.23144484500517137,
+      "wall_seconds": 2.055166048987303,
+      "process_cpu_seconds": 2.0544219480000017,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 2,
+        "policy_sha256": "7884eb8b3a5a9beb99343597a0c060612661e6120d61dc35e06cfb54712303f6",
+        "purpose": "train",
+        "opponent": "visible-effects-first-v1",
+        "seed_audit_only": 520003,
+        "actor_seat": 0,
+        "turns": 8,
+        "native_decisions": 231,
+        "actor_samples": 112,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 1.635683656000765,
+        "actor_inference_ms": {
+          "count": 112,
+          "mean": 3.3427346510766904,
+          "median": 3.465785484877415,
+          "min": 1.7985120066441596,
+          "max": 4.251937993103638
+        },
+        "trajectory_sha256": "3e1cb1f73494bcee4d138235ad402971d30502921c929a7cede6fe18fa9f2336"
+      },
+      "update": {
+        "optimizer_step": 3,
+        "batch_samples": 32,
+        "episode_samples": 112,
+        "loss": 0.018956610932946205,
+        "policy_loss": 4.842877388000488e-08,
+        "value_loss": 0.03877956047654152,
+        "entropy": 0.043321698904037476,
+        "gradient_norm_before_clip": 0.35458123683929443,
+        "changed_parameter_elements": 21988,
+        "parameter_delta_l2": 0.08505744526062245,
+        "policy_head_delta_l2": 0.024536805712746846,
+        "before_sha256": "7884eb8b3a5a9beb99343597a0c060612661e6120d61dc35e06cfb54712303f6",
+        "after_sha256": "86df61977131b71aaa21e1e57a3a8c1872bfabc866361b69536f987314974caf",
+        "learning_rate_next": 0.000970299
+      },
+      "forward_ms": {
+        "count": 113,
+        "mean": 2.597750857394123,
+        "median": 2.427978004561737,
+        "min": 1.1117359972558916,
+        "max": 33.65531700546853
+      },
+      "native_api_seconds": {
+        "constructor": 0.9107449679868296,
+        "next_decision": 0.09660380188142881,
+        "submit": 0.0021746690035797656,
+        "exit": 0.00048806099221110344
+      },
+      "model_after_sha256": "86df61977131b71aaa21e1e57a3a8c1872bfabc866361b69536f987314974caf"
+    },
+    {
+      "device": "cpu",
+      "step": 3,
+      "seed": 520004,
+      "status": "completed",
+      "sampling_wall_seconds": 1.7194239019881934,
+      "update_wall_seconds": 0.21853059201384895,
+      "wall_seconds": 1.9379544940020423,
+      "process_cpu_seconds": 1.9375117070000023,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 3,
+        "policy_sha256": "86df61977131b71aaa21e1e57a3a8c1872bfabc866361b69536f987314974caf",
+        "purpose": "train",
+        "opponent": "visible-effects-first-v1",
+        "seed_audit_only": 520004,
+        "actor_seat": 0,
+        "turns": 8,
+        "native_decisions": 217,
+        "actor_samples": 106,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 1.6240374330081977,
+        "actor_inference_ms": {
+          "count": 106,
+          "mean": 3.2187348787940793,
+          "median": 3.335635003168136,
+          "min": 1.7453110194765031,
+          "max": 4.080124024767429
+        },
+        "trajectory_sha256": "200cbc94bfd88dc7d6a4d6d673eb0147e03a731edad97f93ecbe14e503231103"
+      },
+      "update": {
+        "optimizer_step": 4,
+        "batch_samples": 32,
+        "episode_samples": 106,
+        "loss": 0.020283445715904236,
+        "policy_loss": -1.1175870895385742e-08,
+        "value_loss": 0.04316423088312149,
+        "entropy": 0.1298658549785614,
+        "gradient_norm_before_clip": 0.3790765702724457,
+        "changed_parameter_elements": 21998,
+        "parameter_delta_l2": 0.0930358057329837,
+        "policy_head_delta_l2": 0.02261400039385895,
+        "before_sha256": "86df61977131b71aaa21e1e57a3a8c1872bfabc866361b69536f987314974caf",
+        "after_sha256": "a0e4c210d95afbad5bdf7c5bc339f82f02557d466efe2b9f73b99893e7be0167",
+        "learning_rate_next": 0.0009605960099999999
+      },
+      "forward_ms": {
+        "count": 107,
+        "mean": 2.4962565411756983,
+        "median": 2.3373680014628917,
+        "min": 1.0606299911160022,
+        "max": 33.09426800115034
+      },
+      "native_api_seconds": {
+        "constructor": 0.9724186319799628,
+        "next_decision": 0.08927671308629215,
+        "submit": 0.0020616437832359225,
+        "exit": 0.00039215898141264915
+      },
+      "model_after_sha256": "a0e4c210d95afbad5bdf7c5bc339f82f02557d466efe2b9f73b99893e7be0167"
+    },
+    {
+      "device": "cpu",
+      "step": 4,
+      "seed": 520005,
+      "status": "completed",
+      "sampling_wall_seconds": 1.9807240660011303,
+      "update_wall_seconds": 0.25917153200134635,
+      "wall_seconds": 2.2398955980024766,
+      "process_cpu_seconds": 2.240169832000003,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 4,
+        "policy_sha256": "a0e4c210d95afbad5bdf7c5bc339f82f02557d466efe2b9f73b99893e7be0167",
+        "purpose": "train",
+        "opponent": "visible-effects-first-v1",
+        "seed_audit_only": 520005,
+        "actor_seat": 0,
+        "turns": 10,
+        "native_decisions": 256,
+        "actor_samples": 124,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 1.8511294290074147,
+        "actor_inference_ms": {
+          "count": 124,
+          "mean": 3.8680994602468526,
+          "median": 3.3256764872930944,
+          "min": 1.744590001180768,
+          "max": 83.60053302021697
+        },
+        "trajectory_sha256": "87edbf88eee143faf111fa1eb5587837f7d06fb4fe8fa1ddd9b67f5ec67830f4"
+      },
+      "update": {
+        "optimizer_step": 5,
+        "batch_samples": 32,
+        "episode_samples": 124,
+        "loss": 0.008190710097551346,
+        "policy_loss": -7.450580596923828e-09,
+        "value_loss": 0.020663321018218994,
+        "entropy": 0.21409428119659424,
+        "gradient_norm_before_clip": 0.08276036381721497,
+        "changed_parameter_elements": 22079,
+        "parameter_delta_l2": 0.08373578686639954,
+        "policy_head_delta_l2": 0.021234668884869818,
+        "before_sha256": "a0e4c210d95afbad5bdf7c5bc339f82f02557d466efe2b9f73b99893e7be0167",
+        "after_sha256": "3a7aada3ca8c2abdef27e71928c1d7ca0fbd7ecf5c08be8da81e75a41458e583",
+        "learning_rate_next": 0.0009509900498999999
+      },
+      "forward_ms": {
+        "count": 125,
+        "mean": 2.4746926797088236,
+        "median": 2.3271980171557516,
+        "min": 1.0454919829498976,
+        "max": 34.076320996973664
+      },
+      "native_api_seconds": {
+        "constructor": 0.9679863619967364,
+        "next_decision": 0.10962927297805436,
+        "submit": 0.002356816199608147,
+        "exit": 0.000464376003947109
+      },
+      "model_after_sha256": "3a7aada3ca8c2abdef27e71928c1d7ca0fbd7ecf5c08be8da81e75a41458e583"
+    },
+    {
+      "device": "cpu",
+      "step": 5,
+      "seed": 520006,
+      "status": "completed",
+      "sampling_wall_seconds": 1.4693481019930914,
+      "update_wall_seconds": 0.1636199820204638,
+      "wall_seconds": 1.6329680840135552,
+      "process_cpu_seconds": 1.6320997099999985,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 5,
+        "policy_sha256": "3a7aada3ca8c2abdef27e71928c1d7ca0fbd7ecf5c08be8da81e75a41458e583",
+        "purpose": "train",
+        "opponent": "visible-effects-first-v1",
+        "seed_audit_only": 520006,
+        "actor_seat": 0,
+        "turns": 6,
+        "native_decisions": 139,
+        "actor_samples": 65,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 1.4256439360033255,
+        "actor_inference_ms": {
+          "count": 65,
+          "mean": 3.160596030871742,
+          "median": 3.3780699886847287,
+          "min": 1.9100010104011744,
+          "max": 3.793263982515782
+        },
+        "trajectory_sha256": "e8affb4b0fa0e889be6c81a8e7a3b053250bb623c7582019b6ea332022873c66"
+      },
+      "update": {
+        "optimizer_step": 6,
+        "batch_samples": 32,
+        "episode_samples": 65,
+        "loss": 0.011620457284152508,
+        "policy_loss": -9.313225746154785e-09,
+        "value_loss": 0.026908772066235542,
+        "entropy": 0.1833919882774353,
+        "gradient_norm_before_clip": 0.32684552669525146,
+        "changed_parameter_elements": 22108,
+        "parameter_delta_l2": 0.08909656825504633,
+        "policy_head_delta_l2": 0.021891033872910106,
+        "before_sha256": "3a7aada3ca8c2abdef27e71928c1d7ca0fbd7ecf5c08be8da81e75a41458e583",
+        "after_sha256": "f68deaa242d900493b42567749aaf9f118444809fdf64a6266755a99601b33cd",
+        "learning_rate_next": 0.0009414801494009999
+      },
+      "forward_ms": {
+        "count": 66,
+        "mean": 2.594412967675563,
+        "median": 2.3423569946317,
+        "min": 1.1183379974681884,
+        "max": 32.763405004516244
+      },
+      "native_api_seconds": {
+        "constructor": 1.0518262069963384,
+        "next_decision": 0.054191560979234055,
+        "submit": 0.0011953549110330641,
+        "exit": 0.00039599699084647
+      },
+      "model_after_sha256": "f68deaa242d900493b42567749aaf9f118444809fdf64a6266755a99601b33cd"
+    },
+    {
+      "device": "cpu",
+      "step": 6,
+      "seed": 520007,
+      "status": "completed",
+      "sampling_wall_seconds": 1.7236718519998249,
+      "update_wall_seconds": 0.21427912401850335,
+      "wall_seconds": 1.9379509760183282,
+      "process_cpu_seconds": 1.9370955920000021,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 6,
+        "policy_sha256": "f68deaa242d900493b42567749aaf9f118444809fdf64a6266755a99601b33cd",
+        "purpose": "train",
+        "opponent": "visible-effects-first-v1",
+        "seed_audit_only": 520007,
+        "actor_seat": 0,
+        "turns": 8,
+        "native_decisions": 202,
+        "actor_samples": 97,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 1.6396342560183257,
+        "actor_inference_ms": {
+          "count": 97,
+          "mean": 3.236236215746702,
+          "median": 3.25219301157631,
+          "min": 2.3118300014175475,
+          "max": 4.560479981591925
+        },
+        "trajectory_sha256": "6a38e8aaf0f640b8e58a929a2ae69b9fdf5332235b1aad83fede8e3002acf378"
+      },
+      "update": {
+        "optimizer_step": 7,
+        "batch_samples": 32,
+        "episode_samples": 97,
+        "loss": 0.006772482302039862,
+        "policy_loss": -0.0,
+        "value_loss": 0.017116595059633255,
+        "entropy": 0.17858153581619263,
+        "gradient_norm_before_clip": 0.047380805015563965,
+        "changed_parameter_elements": 22331,
+        "parameter_delta_l2": 0.07901307368662795,
+        "policy_head_delta_l2": 0.017730265642589484,
+        "before_sha256": "f68deaa242d900493b42567749aaf9f118444809fdf64a6266755a99601b33cd",
+        "after_sha256": "0097dcfe0d7bef87b4655babc1c71d585a3064bcf5f30b344a4c4495a19df80b",
+        "learning_rate_next": 0.0009320653479069899
+      },
+      "forward_ms": {
+        "count": 98,
+        "mean": 2.5483712756516868,
+        "median": 2.2458699968410656,
+        "min": 1.3631909969262779,
+        "max": 34.978542011231184
+      },
+      "native_api_seconds": {
+        "constructor": 1.0477170369995292,
+        "next_decision": 0.08171419356949627,
+        "submit": 0.00184809704660438,
+        "exit": 0.0005702050111722201
+      },
+      "model_after_sha256": "0097dcfe0d7bef87b4655babc1c71d585a3064bcf5f30b344a4c4495a19df80b"
+    },
+    {
+      "device": "cpu",
+      "step": 7,
+      "seed": 520008,
+      "status": "completed",
+      "sampling_wall_seconds": 1.7532912880124059,
+      "update_wall_seconds": 0.20587402398814447,
+      "wall_seconds": 1.9591653120005503,
+      "process_cpu_seconds": 1.9581901219999978,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 7,
+        "policy_sha256": "0097dcfe0d7bef87b4655babc1c71d585a3064bcf5f30b344a4c4495a19df80b",
+        "purpose": "train",
+        "opponent": "visible-effects-first-v1",
+        "seed_audit_only": 520008,
+        "actor_seat": 0,
+        "turns": 8,
+        "native_decisions": 201,
+        "actor_samples": 96,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 1.582949510018807,
+        "actor_inference_ms": {
+          "count": 96,
+          "mean": 3.289755093343653,
+          "median": 3.4525059891166165,
+          "min": 1.8093120015691966,
+          "max": 4.098639008589089
+        },
+        "trajectory_sha256": "fa6fc847e8b518dd23c23bbf4365731c120d0f92bae98c8734aab694e2efce33"
+      },
+      "update": {
+        "optimizer_step": 8,
+        "batch_samples": 32,
+        "episode_samples": 96,
+        "loss": 0.0024261956568807364,
+        "policy_loss": 3.725290298461914e-09,
+        "value_loss": 0.010248279199004173,
+        "entropy": 0.269794762134552,
+        "gradient_norm_before_clip": 0.14188888669013977,
+        "changed_parameter_elements": 22353,
+        "parameter_delta_l2": 0.0681829686995648,
+        "policy_head_delta_l2": 0.01721575660390587,
+        "before_sha256": "0097dcfe0d7bef87b4655babc1c71d585a3064bcf5f30b344a4c4495a19df80b",
+        "after_sha256": "4244aa43157ea8405be3944229bc7af85606c433fde7e093e664308a1cacc97e",
+        "learning_rate_next": 0.00092274469442792
+      },
+      "forward_ms": {
+        "count": 97,
+        "mean": 2.5627310297778356,
+        "median": 2.4114580010063946,
+        "min": 1.0639569954946637,
+        "max": 32.262280001305044
+      },
+      "native_api_seconds": {
+        "constructor": 0.9827548530010972,
+        "next_decision": 0.0828340309963096,
+        "submit": 0.0018253149464726448,
+        "exit": 0.00041957100620493293
+      },
+      "model_after_sha256": "4244aa43157ea8405be3944229bc7af85606c433fde7e093e664308a1cacc97e"
+    },
+    {
+      "device": "cuda:0",
+      "step": 0,
+      "seed": 520001,
+      "status": "completed",
+      "sampling_wall_seconds": 5.803811242978554,
+      "update_wall_seconds": 1.0470565620053094,
+      "wall_seconds": 6.850867804983864,
+      "process_cpu_seconds": 6.853308724999998,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 0,
+        "policy_sha256": "202430015c848dcbf0de4b04dd4131d58401a72e8cc901591fe63ab275e6aa8b",
+        "purpose": "train",
+        "opponent": "visible-effects-first-v1",
+        "seed_audit_only": 520001,
+        "actor_seat": 0,
+        "turns": 22,
+        "native_decisions": 671,
+        "actor_samples": 330,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 4.901630284002749,
+        "actor_inference_ms": {
+          "count": 330,
+          "mean": 5.370615705826574,
+          "median": 5.3646765009034425,
+          "min": 4.764985991641879,
+          "max": 7.666026009246707
+        },
+        "trajectory_sha256": "f544b759838672e5172da4c1b4444f577b16454d4faf75c0ffc97da552cbf4cc"
+      },
+      "update": {
+        "optimizer_step": 1,
+        "batch_samples": 32,
+        "episode_samples": 330,
+        "loss": -0.00041452841833233833,
+        "policy_loss": 2.9802322387695312e-08,
+        "value_loss": 0.0019681493286043406,
+        "entropy": 0.1398632973432541,
+        "gradient_norm_before_clip": 0.21055109798908234,
+        "changed_parameter_elements": 20878,
+        "parameter_delta_l2": 0.1424485532675307,
+        "policy_head_delta_l2": 0.04594612770571429,
+        "before_sha256": "202430015c848dcbf0de4b04dd4131d58401a72e8cc901591fe63ab275e6aa8b",
+        "after_sha256": "de920d2a2d3f103d0e87288452a25fbc9996a4b2d76bae250292dcf3c746e736",
+        "learning_rate_next": 0.00099
+      },
+      "forward_ms": {
+        "count": 331,
+        "mean": 3.8646191335353564,
+        "median": 3.8863790105096996,
+        "min": 3.435027989326045,
+        "max": 5.852216010680422
+      },
+      "native_api_seconds": {
+        "constructor": 0.9847365400055423,
+        "next_decision": 0.399907191953389,
+        "submit": 0.006732362235197797,
+        "exit": 0.0004254119994584471
+      },
+      "model_after_sha256": "de920d2a2d3f103d0e87288452a25fbc9996a4b2d76bae250292dcf3c746e736"
+    },
+    {
+      "device": "cuda:0",
+      "step": 1,
+      "seed": 520002,
+      "status": "completed",
+      "sampling_wall_seconds": 3.317953621997731,
+      "update_wall_seconds": 0.34724830600316636,
+      "wall_seconds": 3.665201928000897,
+      "process_cpu_seconds": 3.665323561000001,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 1,
+        "policy_sha256": "de920d2a2d3f103d0e87288452a25fbc9996a4b2d76bae250292dcf3c746e736",
+        "purpose": "train",
+        "opponent": "visible-effects-first-v1",
+        "seed_audit_only": 520002,
+        "actor_seat": 0,
+        "turns": 14,
+        "native_decisions": 398,
+        "actor_samples": 194,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 2.9289544339990243,
+        "actor_inference_ms": {
+          "count": 194,
+          "mean": 5.464138164150183,
+          "median": 5.424674498499371,
+          "min": 4.937641002470627,
+          "max": 6.651864008745179
+        },
+        "trajectory_sha256": "cccc538163293f1394737b21f77806a518dbe9b1c7aa963e97efe01dbca86064"
+      },
+      "update": {
+        "optimizer_step": 2,
+        "batch_samples": 32,
+        "episode_samples": 194,
+        "loss": 0.008952295407652855,
+        "policy_loss": 1.1175870895385742e-08,
+        "value_loss": 0.02517068386077881,
+        "entropy": 0.3633057773113251,
+        "gradient_norm_before_clip": 0.2728787064552307,
+        "changed_parameter_elements": 21961,
+        "parameter_delta_l2": 0.07848649524716961,
+        "policy_head_delta_l2": 0.03206456769428723,
+        "before_sha256": "de920d2a2d3f103d0e87288452a25fbc9996a4b2d76bae250292dcf3c746e736",
+        "after_sha256": "a30bbda5925c92669e932e0c49a07b70f4ec1765c07d6dd12af64a4e7f254d82",
+        "learning_rate_next": 0.0009801
+      },
+      "forward_ms": {
+        "count": 195,
+        "mean": 3.963377723882261,
+        "median": 3.948886995203793,
+        "min": 3.6309270071797073,
+        "max": 5.372540996177122
+      },
+      "native_api_seconds": {
+        "constructor": 1.0108882259810343,
+        "next_decision": 0.20141210599103943,
+        "submit": 0.0038266522460617125,
+        "exit": 0.0004034810117445886
+      },
+      "model_after_sha256": "a30bbda5925c92669e932e0c49a07b70f4ec1765c07d6dd12af64a4e7f254d82"
+    },
+    {
+      "device": "cuda:0",
+      "step": 2,
+      "seed": 520003,
+      "status": "completed",
+      "sampling_wall_seconds": 1.9990868550084997,
+      "update_wall_seconds": 0.2590988439915236,
+      "wall_seconds": 2.2581856990000233,
+      "process_cpu_seconds": 2.258067902999997,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 2,
+        "policy_sha256": "a30bbda5925c92669e932e0c49a07b70f4ec1765c07d6dd12af64a4e7f254d82",
+        "purpose": "train",
+        "opponent": "visible-effects-first-v1",
+        "seed_audit_only": 520003,
+        "actor_seat": 0,
+        "turns": 8,
+        "native_decisions": 231,
+        "actor_samples": 112,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 1.8892386959923897,
+        "actor_inference_ms": {
+          "count": 112,
+          "mean": 5.114244490479385,
+          "median": 4.904067987808958,
+          "min": 4.5239710016176105,
+          "max": 6.674406002275646
+        },
+        "trajectory_sha256": "3e1cb1f73494bcee4d138235ad402971d30502921c929a7cede6fe18fa9f2336"
+      },
+      "update": {
+        "optimizer_step": 3,
+        "batch_samples": 32,
+        "episode_samples": 112,
+        "loss": 0.018956582993268967,
+        "policy_loss": 2.9802322387695312e-08,
+        "value_loss": 0.03877954185009003,
+        "entropy": 0.043321698904037476,
+        "gradient_norm_before_clip": 0.35458120703697205,
+        "changed_parameter_elements": 21988,
+        "parameter_delta_l2": 0.08505771353214063,
+        "policy_head_delta_l2": 0.024537276295298723,
+        "before_sha256": "a30bbda5925c92669e932e0c49a07b70f4ec1765c07d6dd12af64a4e7f254d82",
+        "after_sha256": "ab00abbae818d64c4a6a263aa6030cfbace632974cc54613512e2daf599f8d0e",
+        "learning_rate_next": 0.000970299
+      },
+      "forward_ms": {
+        "count": 113,
+        "mean": 3.7078838406513914,
+        "median": 3.490142000373453,
+        "min": 3.419518005102873,
+        "max": 5.438685999251902
+      },
+      "native_api_seconds": {
+        "constructor": 0.9661395699949935,
+        "next_decision": 0.09775250297388993,
+        "submit": 0.002128646185155958,
+        "exit": 0.00047910300781950355
+      },
+      "model_after_sha256": "ab00abbae818d64c4a6a263aa6030cfbace632974cc54613512e2daf599f8d0e"
+    },
+    {
+      "device": "cuda:0",
+      "step": 3,
+      "seed": 520004,
+      "status": "completed",
+      "sampling_wall_seconds": 2.07798105297843,
+      "update_wall_seconds": 0.13982290599960834,
+      "wall_seconds": 2.2178039589780383,
+      "process_cpu_seconds": 2.2179743909999985,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 3,
+        "policy_sha256": "ab00abbae818d64c4a6a263aa6030cfbace632974cc54613512e2daf599f8d0e",
+        "purpose": "train",
+        "opponent": "visible-effects-first-v1",
+        "seed_audit_only": 520004,
+        "actor_seat": 0,
+        "turns": 8,
+        "native_decisions": 217,
+        "actor_samples": 106,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 1.9796310160018038,
+        "actor_inference_ms": {
+          "count": 106,
+          "mean": 5.483757700927046,
+          "median": 5.426843999885023,
+          "min": 5.0182830018457025,
+          "max": 7.782014989061281
+        },
+        "trajectory_sha256": "200cbc94bfd88dc7d6a4d6d673eb0147e03a731edad97f93ecbe14e503231103"
+      },
+      "update": {
+        "optimizer_step": 4,
+        "batch_samples": 32,
+        "episode_samples": 106,
+        "loss": 0.020283494144678116,
+        "policy_loss": 3.725290298461914e-08,
+        "value_loss": 0.04316423088312149,
+        "entropy": 0.129865825176239,
+        "gradient_norm_before_clip": 0.3790765702724457,
+        "changed_parameter_elements": 21998,
+        "parameter_delta_l2": 0.09303618135377649,
+        "policy_head_delta_l2": 0.022614719476536788,
+        "before_sha256": "ab00abbae818d64c4a6a263aa6030cfbace632974cc54613512e2daf599f8d0e",
+        "after_sha256": "0d66a5956264d70ccb0bbeaa4ddc05808d1657928f396ee59295c58dd5017d81",
+        "learning_rate_next": 0.0009605960099999999
+      },
+      "forward_ms": {
+        "count": 107,
+        "mean": 3.998015335680499,
+        "median": 3.9589749940205365,
+        "min": 3.5149879986420274,
+        "max": 5.647520010825247
+      },
+      "native_api_seconds": {
+        "constructor": 0.9909714979876298,
+        "next_decision": 0.09726013502222486,
+        "submit": 0.002184037904953584,
+        "exit": 0.00042861801921389997
+      },
+      "model_after_sha256": "0d66a5956264d70ccb0bbeaa4ddc05808d1657928f396ee59295c58dd5017d81"
+    },
+    {
+      "device": "cuda:0",
+      "step": 4,
+      "seed": 520005,
+      "status": "completed",
+      "sampling_wall_seconds": 2.1490775650017895,
+      "update_wall_seconds": 0.17109372600680217,
+      "wall_seconds": 2.3201712910085917,
+      "process_cpu_seconds": 2.3203889669999995,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 4,
+        "policy_sha256": "0d66a5956264d70ccb0bbeaa4ddc05808d1657928f396ee59295c58dd5017d81",
+        "purpose": "train",
+        "opponent": "visible-effects-first-v1",
+        "seed_audit_only": 520005,
+        "actor_seat": 0,
+        "turns": 10,
+        "native_decisions": 256,
+        "actor_samples": 124,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 2.015624150983058,
+        "actor_inference_ms": {
+          "count": 124,
+          "mean": 5.185017941966502,
+          "median": 5.106645490741357,
+          "min": 4.523350013187155,
+          "max": 6.009192002238706
+        },
+        "trajectory_sha256": "87edbf88eee143faf111fa1eb5587837f7d06fb4fe8fa1ddd9b67f5ec67830f4"
+      },
+      "update": {
+        "optimizer_step": 5,
+        "batch_samples": 32,
+        "episode_samples": 124,
+        "loss": 0.008190711960196495,
+        "policy_loss": -0.0,
+        "value_loss": 0.0206633098423481,
+        "entropy": 0.21409428119659424,
+        "gradient_norm_before_clip": 0.0827602669596672,
+        "changed_parameter_elements": 22079,
+        "parameter_delta_l2": 0.08373607861458723,
+        "policy_head_delta_l2": 0.021235269837795855,
+        "before_sha256": "0d66a5956264d70ccb0bbeaa4ddc05808d1657928f396ee59295c58dd5017d81",
+        "after_sha256": "e9b6fa7ed70ca08e5dcf540d13bedbb9ff455acbc90c09e7bddcc73d40998710",
+        "learning_rate_next": 0.0009509900498999999
+      },
+      "forward_ms": {
+        "count": 125,
+        "mean": 3.743187637999654,
+        "median": 3.660182992462069,
+        "min": 3.373651998117566,
+        "max": 4.684354003984481
+      },
+      "native_api_seconds": {
+        "constructor": 0.9655894729949068,
+        "next_decision": 0.11070077409385704,
+        "submit": 0.0024203363864216954,
+        "exit": 0.00042104400927200913
+      },
+      "model_after_sha256": "e9b6fa7ed70ca08e5dcf540d13bedbb9ff455acbc90c09e7bddcc73d40998710"
+    },
+    {
+      "device": "cuda:0",
+      "step": 5,
+      "seed": 520006,
+      "status": "completed",
+      "sampling_wall_seconds": 1.6556449479830917,
+      "update_wall_seconds": 0.08273097302298993,
+      "wall_seconds": 1.7383759210060816,
+      "process_cpu_seconds": 1.7374045390000035,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 5,
+        "policy_sha256": "e9b6fa7ed70ca08e5dcf540d13bedbb9ff455acbc90c09e7bddcc73d40998710",
+        "purpose": "train",
+        "opponent": "visible-effects-first-v1",
+        "seed_audit_only": 520006,
+        "actor_seat": 0,
+        "turns": 6,
+        "native_decisions": 139,
+        "actor_samples": 65,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 1.610948549991008,
+        "actor_inference_ms": {
+          "count": 65,
+          "mean": 5.3643645696306175,
+          "median": 5.35216397838667,
+          "min": 5.019225005526096,
+          "max": 6.028889998560771
+        },
+        "trajectory_sha256": "e8affb4b0fa0e889be6c81a8e7a3b053250bb623c7582019b6ea332022873c66"
+      },
+      "update": {
+        "optimizer_step": 6,
+        "batch_samples": 32,
+        "episode_samples": 65,
+        "loss": 0.01162046380341053,
+        "policy_loss": -3.725290298461914e-09,
+        "value_loss": 0.02690877392888069,
+        "entropy": 0.1833919882774353,
+        "gradient_norm_before_clip": 0.32684561610221863,
+        "changed_parameter_elements": 22108,
+        "parameter_delta_l2": 0.08909675933187251,
+        "policy_head_delta_l2": 0.021891095109144512,
+        "before_sha256": "e9b6fa7ed70ca08e5dcf540d13bedbb9ff455acbc90c09e7bddcc73d40998710",
+        "after_sha256": "d00eb968eb1140848657013c80d27114062e7b1571f5d3d643f8603987ee33ee",
+        "learning_rate_next": 0.0009414801494009999
+      },
+      "forward_ms": {
+        "count": 66,
+        "mean": 3.9369389383919593,
+        "median": 3.9155890117399395,
+        "min": 3.7183820095378906,
+        "max": 5.188353999983519
+      },
+      "native_api_seconds": {
+        "constructor": 1.0925982439948712,
+        "next_decision": 0.055331480980385095,
+        "submit": 0.001263082114746794,
+        "exit": 0.00044596102088689804
+      },
+      "model_after_sha256": "d00eb968eb1140848657013c80d27114062e7b1571f5d3d643f8603987ee33ee"
+    },
+    {
+      "device": "cuda:0",
+      "step": 6,
+      "seed": 520007,
+      "status": "completed",
+      "sampling_wall_seconds": 1.7921395669982303,
+      "update_wall_seconds": 0.12099062200286426,
+      "wall_seconds": 1.9131301890010945,
+      "process_cpu_seconds": 1.9129467950000034,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 6,
+        "policy_sha256": "d00eb968eb1140848657013c80d27114062e7b1571f5d3d643f8603987ee33ee",
+        "purpose": "train",
+        "opponent": "visible-effects-first-v1",
+        "seed_audit_only": 520007,
+        "actor_seat": 0,
+        "turns": 8,
+        "native_decisions": 202,
+        "actor_samples": 97,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 1.7089441190182697,
+        "actor_inference_ms": {
+          "count": 97,
+          "mean": 4.9341382178569155,
+          "median": 4.8508069885428995,
+          "min": 4.570109013002366,
+          "max": 5.951603001449257
+        },
+        "trajectory_sha256": "6a38e8aaf0f640b8e58a929a2ae69b9fdf5332235b1aad83fede8e3002acf378"
+      },
+      "update": {
+        "optimizer_step": 7,
+        "batch_samples": 32,
+        "episode_samples": 97,
+        "loss": 0.006772476714104414,
+        "policy_loss": -0.0,
+        "value_loss": 0.01711658388376236,
+        "entropy": 0.17858153581619263,
+        "gradient_norm_before_clip": 0.04738090932369232,
+        "changed_parameter_elements": 22331,
+        "parameter_delta_l2": 0.07901319954407904,
+        "policy_head_delta_l2": 0.017730207035317164,
+        "before_sha256": "d00eb968eb1140848657013c80d27114062e7b1571f5d3d643f8603987ee33ee",
+        "after_sha256": "9fb77b63e0fb450ca275aee4f169ff4d67fee68d566b9aed749c595cb8add901",
+        "learning_rate_next": 0.0009320653479069899
+      },
+      "forward_ms": {
+        "count": 98,
+        "mean": 3.5511478057074153,
+        "median": 3.476551006315276,
+        "min": 3.390393976587802,
+        "max": 4.753463988890871
+      },
+      "native_api_seconds": {
+        "constructor": 0.9575809199886862,
+        "next_decision": 0.08077393801067956,
+        "submit": 0.0018075810512527823,
+        "exit": 0.0004324649926275015
+      },
+      "model_after_sha256": "9fb77b63e0fb450ca275aee4f169ff4d67fee68d566b9aed749c595cb8add901"
+    },
+    {
+      "device": "cuda:0",
+      "step": 7,
+      "seed": 520008,
+      "status": "completed",
+      "sampling_wall_seconds": 1.8116071289987303,
+      "update_wall_seconds": 0.12415435799630359,
+      "wall_seconds": 1.935761486995034,
+      "process_cpu_seconds": 1.9354244489999957,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 7,
+        "policy_sha256": "9fb77b63e0fb450ca275aee4f169ff4d67fee68d566b9aed749c595cb8add901",
+        "purpose": "train",
+        "opponent": "visible-effects-first-v1",
+        "seed_audit_only": 520008,
+        "actor_seat": 0,
+        "turns": 8,
+        "native_decisions": 201,
+        "actor_samples": 96,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 1.7259532140160445,
+        "actor_inference_ms": {
+          "count": 96,
+          "mean": 5.043505479989108,
+          "median": 4.960549485986121,
+          "min": 4.485608020331711,
+          "max": 6.570088997250423
+        },
+        "trajectory_sha256": "fa6fc847e8b518dd23c23bbf4365731c120d0f92bae98c8734aab694e2efce33"
+      },
+      "update": {
+        "optimizer_step": 8,
+        "batch_samples": 32,
+        "episode_samples": 96,
+        "loss": 0.00242620543576777,
+        "policy_loss": 1.4901161193847656e-08,
+        "value_loss": 0.01024827640503645,
+        "entropy": 0.269794762134552,
+        "gradient_norm_before_clip": 0.14188896119594574,
+        "changed_parameter_elements": 22353,
+        "parameter_delta_l2": 0.0681830553249579,
+        "policy_head_delta_l2": 0.01721573265291036,
+        "before_sha256": "9fb77b63e0fb450ca275aee4f169ff4d67fee68d566b9aed749c595cb8add901",
+        "after_sha256": "23d229208899e580f7b68a4eceb877800fdced8415b6872ace17cd87f9be012e",
+        "learning_rate_next": 0.00092274469442792
+      },
+      "forward_ms": {
+        "count": 97,
+        "mean": 3.636962040171469,
+        "median": 3.5492430033627898,
+        "min": 3.365376003785059,
+        "max": 5.240733007667586
+      },
+      "native_api_seconds": {
+        "constructor": 0.9635754940100014,
+        "next_decision": 0.08217531684204005,
+        "submit": 0.0018696119368541986,
+        "exit": 0.0004321750020608306
+      },
+      "model_after_sha256": "23d229208899e580f7b68a4eceb877800fdced8415b6872ace17cd87f9be012e"
+    }
+  ],
+  "frozen_attempts": [
+    {
+      "device": "cpu",
+      "case_id": "ice-burn-seat0",
+      "repeat": 0,
+      "status": "completed",
+      "actor_seat": 0,
+      "seed_pair": {
+        "game_seed": 100001,
+        "policy_seed": 200001
+      },
+      "wall_seconds": 88.98751167801674,
+      "process_cpu_seconds": 78.64590672,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 2,
+        "policy_sha256": "202430015c848dcbf0de4b04dd4131d58401a72e8cc901591fe63ab275e6aa8b",
+        "purpose": "validation",
+        "opponent": "registered:windbot-ice-f85b8e800e95abf6517ea666",
+        "seed_audit_only": 100001,
+        "actor_seat": 0,
+        "turns": 22,
+        "native_decisions": 346,
+        "actor_samples": 170,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 88.43778791901423,
+        "actor_inference_ms": {
+          "count": 170,
+          "mean": 3.8122274466064376,
+          "median": 3.9383065013680607,
+          "min": 1.7808080010581762,
+          "max": 4.989468987332657
+        },
+        "trajectory_sha256": "3adb38a06e5ada27e10b477c13d9cebfd1b5f644690e4cf3cd2bafb37280fc19",
+        "opponent_binding": {
+          "controller": "bot",
+          "driver_implementation_sha256": "736b0b0d12143f16a98903cb3e3234d5816f47f4bac6c184231ff1b191f4b492",
+          "driver_version": "windbot-ice-f85b8e800e95abf6517ea666",
+          "environment_id": "pilot",
+          "external_provider_verified": false,
+          "model_sha256": null,
+          "opponent_deck_content_sha256": "247c44331f24376a0ca45ac33d8ce1b935ae4f74ce9ecff80316136a10c8c7d6",
+          "opponent_deck_sha256": "36620efef619dcc5a62c1b64b20add0cfeb22721929db232fce5cf2ec72e6c07",
+          "opponent_id": "ice-burn-seat0",
+          "own_deck_sha256": "1a4b99d0cb5c01f4a5f5d7d8a536a4bf9e038f259e0276e24de4b145e9d91b85",
+          "profile_sha256": "422d8f67dcf20a1e12b33e080d4201586fff9d4983518a942d407d8a535ebbf9",
+          "registered_record_sha256": "2fc1303b225f256240986c36879e8d7c0787628c2c5547d98bfb212806edd4ee",
+          "schema_version": 1,
+          "source": "engineering_fixture",
+          "strength_qualified": false
+        }
+      },
+      "native_api_seconds": {
+        "constructor": 0.9064929200103506,
+        "next_decision": 0.2603094033256639,
+        "submit": 0.005753758770879358,
+        "exit": 0.0010981409868691117
+      },
+      "forward_ms": {
+        "count": 170,
+        "mean": 2.522906012018211,
+        "median": 2.5903700006892905,
+        "min": 1.0709989874158055,
+        "max": 3.4179959911853075
+      },
+      "actual_start_order": "first",
+      "model_unchanged": true
+    },
+    {
+      "device": "cuda:0",
+      "case_id": "ice-burn-seat0",
+      "repeat": 0,
+      "status": "completed",
+      "actor_seat": 0,
+      "seed_pair": {
+        "game_seed": 100001,
+        "policy_seed": 200001
+      },
+      "wall_seconds": 87.54450912802713,
+      "process_cpu_seconds": 77.711691264,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 2,
+        "policy_sha256": "202430015c848dcbf0de4b04dd4131d58401a72e8cc901591fe63ab275e6aa8b",
+        "purpose": "validation",
+        "opponent": "registered:windbot-ice-f85b8e800e95abf6517ea666",
+        "seed_audit_only": 100001,
+        "actor_seat": 0,
+        "turns": 22,
+        "native_decisions": 346,
+        "actor_samples": 170,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 86.97324033899349,
+        "actor_inference_ms": {
+          "count": 170,
+          "mean": 5.739624364993206,
+          "median": 5.7174264948116615,
+          "min": 4.635451012291014,
+          "max": 7.221799023682252
+        },
+        "trajectory_sha256": "3adb38a06e5ada27e10b477c13d9cebfd1b5f644690e4cf3cd2bafb37280fc19",
+        "opponent_binding": {
+          "controller": "bot",
+          "driver_implementation_sha256": "736b0b0d12143f16a98903cb3e3234d5816f47f4bac6c184231ff1b191f4b492",
+          "driver_version": "windbot-ice-f85b8e800e95abf6517ea666",
+          "environment_id": "pilot",
+          "external_provider_verified": false,
+          "model_sha256": null,
+          "opponent_deck_content_sha256": "247c44331f24376a0ca45ac33d8ce1b935ae4f74ce9ecff80316136a10c8c7d6",
+          "opponent_deck_sha256": "36620efef619dcc5a62c1b64b20add0cfeb22721929db232fce5cf2ec72e6c07",
+          "opponent_id": "ice-burn-seat0",
+          "own_deck_sha256": "1a4b99d0cb5c01f4a5f5d7d8a536a4bf9e038f259e0276e24de4b145e9d91b85",
+          "profile_sha256": "422d8f67dcf20a1e12b33e080d4201586fff9d4983518a942d407d8a535ebbf9",
+          "registered_record_sha256": "2fc1303b225f256240986c36879e8d7c0787628c2c5547d98bfb212806edd4ee",
+          "schema_version": 1,
+          "source": "engineering_fixture",
+          "strength_qualified": false
+        }
+      },
+      "native_api_seconds": {
+        "constructor": 1.128428141004406,
+        "next_decision": 0.25437521332059987,
+        "submit": 0.0058800258848350495,
+        "exit": 0.000759673013817519
+      },
+      "forward_ms": {
+        "count": 170,
+        "mean": 3.98348026415881,
+        "median": 3.9317195041803643,
+        "min": 3.4076760057359934,
+        "max": 5.031608015997335
+      },
+      "actual_start_order": "first",
+      "model_unchanged": true
+    },
+    {
+      "device": "cuda:0",
+      "case_id": "ice-burn-seat1",
+      "repeat": 0,
+      "status": "completed",
+      "actor_seat": 1,
+      "seed_pair": {
+        "game_seed": 100004,
+        "policy_seed": 200004
+      },
+      "wall_seconds": 51.85615026697633,
+      "process_cpu_seconds": 45.60718688000003,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 2,
+        "policy_sha256": "202430015c848dcbf0de4b04dd4131d58401a72e8cc901591fe63ab275e6aa8b",
+        "purpose": "validation",
+        "opponent": "registered:windbot-ice-f85b8e800e95abf6517ea666",
+        "seed_audit_only": 100004,
+        "actor_seat": 1,
+        "turns": 7,
+        "native_decisions": 197,
+        "actor_samples": 92,
+        "outcome": {
+          "winner": 0,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 51.38600955301081,
+        "actor_inference_ms": {
+          "count": 92,
+          "mean": 5.730344236286802,
+          "median": 5.662052004481666,
+          "min": 4.721564007923007,
+          "max": 7.012254005530849
+        },
+        "trajectory_sha256": "a200441eab6c8b0495c7818f2c87910d02f9c7fcf53f3fb981ece4f1eb45bcdf",
+        "opponent_binding": {
+          "controller": "bot",
+          "driver_implementation_sha256": "736b0b0d12143f16a98903cb3e3234d5816f47f4bac6c184231ff1b191f4b492",
+          "driver_version": "windbot-ice-f85b8e800e95abf6517ea666",
+          "environment_id": "pilot",
+          "external_provider_verified": false,
+          "model_sha256": null,
+          "opponent_deck_content_sha256": "247c44331f24376a0ca45ac33d8ce1b935ae4f74ce9ecff80316136a10c8c7d6",
+          "opponent_deck_sha256": "36620efef619dcc5a62c1b64b20add0cfeb22721929db232fce5cf2ec72e6c07",
+          "opponent_id": "ice-burn-seat1",
+          "own_deck_sha256": "1a4b99d0cb5c01f4a5f5d7d8a536a4bf9e038f259e0276e24de4b145e9d91b85",
+          "profile_sha256": "4a88547c28cc72cc467e870818ff8405da376c0747bcb3a17de3991a989182e1",
+          "registered_record_sha256": "3bc31c9d1cad284763887182c431f4da309392ecfb6b098f3bc3bcaabeb4eb31",
+          "schema_version": 1,
+          "source": "engineering_fixture",
+          "strength_qualified": false
+        }
+      },
+      "native_api_seconds": {
+        "constructor": 0.9745003969874233,
+        "next_decision": 0.10574242807342671,
+        "submit": 0.0032543580746278167,
+        "exit": 0.0008064300054684281
+      },
+      "forward_ms": {
+        "count": 92,
+        "mean": 3.9977336611786005,
+        "median": 3.9027190068736672,
+        "min": 3.454504010733217,
+        "max": 5.0333020044490695
+      },
+      "actual_start_order": "second",
+      "model_unchanged": true
+    },
+    {
+      "device": "cpu",
+      "case_id": "ice-burn-seat1",
+      "repeat": 0,
+      "status": "completed",
+      "actor_seat": 1,
+      "seed_pair": {
+        "game_seed": 100004,
+        "policy_seed": 200004
+      },
+      "wall_seconds": 53.98906869802158,
+      "process_cpu_seconds": 47.76690933500004,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 2,
+        "policy_sha256": "202430015c848dcbf0de4b04dd4131d58401a72e8cc901591fe63ab275e6aa8b",
+        "purpose": "validation",
+        "opponent": "registered:windbot-ice-f85b8e800e95abf6517ea666",
+        "seed_audit_only": 100004,
+        "actor_seat": 1,
+        "turns": 7,
+        "native_decisions": 197,
+        "actor_samples": 92,
+        "outcome": {
+          "winner": 0,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 53.53298828098923,
+        "actor_inference_ms": {
+          "count": 92,
+          "mean": 3.9044912609033813,
+          "median": 4.034162499010563,
+          "min": 1.9646050059236586,
+          "max": 6.187999009853229
+        },
+        "trajectory_sha256": "a200441eab6c8b0495c7818f2c87910d02f9c7fcf53f3fb981ece4f1eb45bcdf",
+        "opponent_binding": {
+          "controller": "bot",
+          "driver_implementation_sha256": "736b0b0d12143f16a98903cb3e3234d5816f47f4bac6c184231ff1b191f4b492",
+          "driver_version": "windbot-ice-f85b8e800e95abf6517ea666",
+          "environment_id": "pilot",
+          "external_provider_verified": false,
+          "model_sha256": null,
+          "opponent_deck_content_sha256": "247c44331f24376a0ca45ac33d8ce1b935ae4f74ce9ecff80316136a10c8c7d6",
+          "opponent_deck_sha256": "36620efef619dcc5a62c1b64b20add0cfeb22721929db232fce5cf2ec72e6c07",
+          "opponent_id": "ice-burn-seat1",
+          "own_deck_sha256": "1a4b99d0cb5c01f4a5f5d7d8a536a4bf9e038f259e0276e24de4b145e9d91b85",
+          "profile_sha256": "4a88547c28cc72cc467e870818ff8405da376c0747bcb3a17de3991a989182e1",
+          "registered_record_sha256": "3bc31c9d1cad284763887182c431f4da309392ecfb6b098f3bc3bcaabeb4eb31",
+          "schema_version": 1,
+          "source": "engineering_fixture",
+          "strength_qualified": false
+        }
+      },
+      "native_api_seconds": {
+        "constructor": 0.9679924149822909,
+        "next_decision": 0.10993496442097239,
+        "submit": 0.003449931100476533,
+        "exit": 0.0008239629969466478
+      },
+      "forward_ms": {
+        "count": 92,
+        "mean": 2.600979904894737,
+        "median": 2.699039992876351,
+        "min": 1.18333101272583,
+        "max": 4.329663992393762
+      },
+      "actual_start_order": "second",
+      "model_unchanged": true
+    },
+    {
+      "device": "cpu",
+      "case_id": "ice-blackwing-seat0",
+      "repeat": 0,
+      "status": "completed",
+      "actor_seat": 0,
+      "seed_pair": {
+        "game_seed": 100007,
+        "policy_seed": 200007
+      },
+      "wall_seconds": 59.529562804003945,
+      "process_cpu_seconds": 52.586979633,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 2,
+        "policy_sha256": "202430015c848dcbf0de4b04dd4131d58401a72e8cc901591fe63ab275e6aa8b",
+        "purpose": "validation",
+        "opponent": "registered:windbot-ice-93686e46ce431b3cb91bfa00",
+        "seed_audit_only": 100007,
+        "actor_seat": 0,
+        "turns": 6,
+        "native_decisions": 204,
+        "actor_samples": 87,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 59.07418158298242,
+        "actor_inference_ms": {
+          "count": 87,
+          "mean": 4.092930460511974,
+          "median": 4.245696007274091,
+          "min": 2.017494000028819,
+          "max": 6.3135550008155406
+        },
+        "trajectory_sha256": "a6a7136d04fe743b301c39440657b739c5876bcae2520f4e6438f11a4861e785",
+        "opponent_binding": {
+          "controller": "bot",
+          "driver_implementation_sha256": "19bb968d7c3b305ed4b98a062f6debc913a79a8127e8c46d9565313db85f9dc1",
+          "driver_version": "windbot-ice-93686e46ce431b3cb91bfa00",
+          "environment_id": "pilot",
+          "external_provider_verified": false,
+          "model_sha256": null,
+          "opponent_deck_content_sha256": "1ad6315b2f9aa3429f147d7054e4c3b8b10b6e09c2dcdf10eb689d4473ee37e3",
+          "opponent_deck_sha256": "f6f72ccb6f9dfab62054d6a13fe88c8f7b257f009bd60438c4ef9743e021b3fa",
+          "opponent_id": "ice-blackwing-seat0",
+          "own_deck_sha256": "1a4b99d0cb5c01f4a5f5d7d8a536a4bf9e038f259e0276e24de4b145e9d91b85",
+          "profile_sha256": "c8ec4986b1aa7acadaa7facfdff2d3873bc33d31571c42b36ef120143809eb87",
+          "registered_record_sha256": "5cc6c49a68c2900d5c829b9b83aba08380d4115bf2fe9a581bb2420d174db9b4",
+          "schema_version": 1,
+          "source": "engineering_fixture",
+          "strength_qualified": false
+        }
+      },
+      "native_api_seconds": {
+        "constructor": 0.982231153990142,
+        "next_decision": 0.15219995283405297,
+        "submit": 0.0037329719634726644,
+        "exit": 0.0006912630051374435
+      },
+      "forward_ms": {
+        "count": 87,
+        "mean": 2.7792658626728146,
+        "median": 2.892834978410974,
+        "min": 1.2105519999749959,
+        "max": 4.390860005514696
+      },
+      "actual_start_order": "first",
+      "model_unchanged": true
+    },
+    {
+      "device": "cuda:0",
+      "case_id": "ice-blackwing-seat0",
+      "repeat": 0,
+      "status": "completed",
+      "actor_seat": 0,
+      "seed_pair": {
+        "game_seed": 100007,
+        "policy_seed": 200007
+      },
+      "wall_seconds": 57.64914243601379,
+      "process_cpu_seconds": 50.64371799999998,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 2,
+        "policy_sha256": "202430015c848dcbf0de4b04dd4131d58401a72e8cc901591fe63ab275e6aa8b",
+        "purpose": "validation",
+        "opponent": "registered:windbot-ice-93686e46ce431b3cb91bfa00",
+        "seed_audit_only": 100007,
+        "actor_seat": 0,
+        "turns": 6,
+        "native_decisions": 204,
+        "actor_samples": 87,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 57.1841290529992,
+        "actor_inference_ms": {
+          "count": 87,
+          "mean": 5.745704252013252,
+          "median": 5.683978000888601,
+          "min": 4.8044889990706,
+          "max": 7.112982013495639
+        },
+        "trajectory_sha256": "a6a7136d04fe743b301c39440657b739c5876bcae2520f4e6438f11a4861e785",
+        "opponent_binding": {
+          "controller": "bot",
+          "driver_implementation_sha256": "19bb968d7c3b305ed4b98a062f6debc913a79a8127e8c46d9565313db85f9dc1",
+          "driver_version": "windbot-ice-93686e46ce431b3cb91bfa00",
+          "environment_id": "pilot",
+          "external_provider_verified": false,
+          "model_sha256": null,
+          "opponent_deck_content_sha256": "1ad6315b2f9aa3429f147d7054e4c3b8b10b6e09c2dcdf10eb689d4473ee37e3",
+          "opponent_deck_sha256": "f6f72ccb6f9dfab62054d6a13fe88c8f7b257f009bd60438c4ef9743e021b3fa",
+          "opponent_id": "ice-blackwing-seat0",
+          "own_deck_sha256": "1a4b99d0cb5c01f4a5f5d7d8a536a4bf9e038f259e0276e24de4b145e9d91b85",
+          "profile_sha256": "c8ec4986b1aa7acadaa7facfdff2d3873bc33d31571c42b36ef120143809eb87",
+          "registered_record_sha256": "5cc6c49a68c2900d5c829b9b83aba08380d4115bf2fe9a581bb2420d174db9b4",
+          "schema_version": 1,
+          "source": "engineering_fixture",
+          "strength_qualified": false
+        }
+      },
+      "native_api_seconds": {
+        "constructor": 1.001794403011445,
+        "next_decision": 0.1465982680383604,
+        "submit": 0.003361175913596526,
+        "exit": 0.000846176000777632
+      },
+      "forward_ms": {
+        "count": 87,
+        "mean": 3.9795932417532067,
+        "median": 3.9141910092439502,
+        "min": 3.434847021708265,
+        "max": 4.711273999419063
+      },
+      "actual_start_order": "first",
+      "model_unchanged": true
+    },
+    {
+      "device": "cuda:0",
+      "case_id": "ice-blackwing-seat1",
+      "repeat": 0,
+      "status": "completed",
+      "actor_seat": 1,
+      "seed_pair": {
+        "game_seed": 100010,
+        "policy_seed": 200010
+      },
+      "wall_seconds": 67.82438478598488,
+      "process_cpu_seconds": 59.51597270099995,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 2,
+        "policy_sha256": "202430015c848dcbf0de4b04dd4131d58401a72e8cc901591fe63ab275e6aa8b",
+        "purpose": "validation",
+        "opponent": "registered:windbot-ice-93686e46ce431b3cb91bfa00",
+        "seed_audit_only": 100010,
+        "actor_seat": 1,
+        "turns": 9,
+        "native_decisions": 246,
+        "actor_samples": 108,
+        "outcome": {
+          "winner": 0,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 67.35768318999908,
+        "actor_inference_ms": {
+          "count": 108,
+          "mean": 5.737722740579759,
+          "median": 5.680295507772826,
+          "min": 4.723766993265599,
+          "max": 7.698997011175379
+        },
+        "trajectory_sha256": "9f83d04caa9202af5076cb417676d3c02351793d4ccc01609e2345f449a550e6",
+        "opponent_binding": {
+          "controller": "bot",
+          "driver_implementation_sha256": "19bb968d7c3b305ed4b98a062f6debc913a79a8127e8c46d9565313db85f9dc1",
+          "driver_version": "windbot-ice-93686e46ce431b3cb91bfa00",
+          "environment_id": "pilot",
+          "external_provider_verified": false,
+          "model_sha256": null,
+          "opponent_deck_content_sha256": "1ad6315b2f9aa3429f147d7054e4c3b8b10b6e09c2dcdf10eb689d4473ee37e3",
+          "opponent_deck_sha256": "f6f72ccb6f9dfab62054d6a13fe88c8f7b257f009bd60438c4ef9743e021b3fa",
+          "opponent_id": "ice-blackwing-seat1",
+          "own_deck_sha256": "1a4b99d0cb5c01f4a5f5d7d8a536a4bf9e038f259e0276e24de4b145e9d91b85",
+          "profile_sha256": "1dd6d3e46945fc34ec79d8f5cf230c66659152f674dd5661bd3212f7e85963c8",
+          "registered_record_sha256": "f4a6c73e3869dd8311a85d069321625b8296dc8fd56b305994b207d7b3fe0a40",
+          "schema_version": 1,
+          "source": "engineering_fixture",
+          "strength_qualified": false
+        }
+      },
+      "native_api_seconds": {
+        "constructor": 0.8817519399744924,
+        "next_decision": 0.1806227949273307,
+        "submit": 0.004030468000564724,
+        "exit": 0.0006725789862684906
+      },
+      "forward_ms": {
+        "count": 108,
+        "mean": 3.958226417092158,
+        "median": 3.8989519816823304,
+        "min": 3.465194022282958,
+        "max": 5.681021983036771
+      },
+      "actual_start_order": "second",
+      "model_unchanged": true
+    },
+    {
+      "device": "cpu",
+      "case_id": "ice-blackwing-seat1",
+      "repeat": 0,
+      "status": "completed",
+      "actor_seat": 1,
+      "seed_pair": {
+        "game_seed": 100010,
+        "policy_seed": 200010
+      },
+      "wall_seconds": 68.01975715201115,
+      "process_cpu_seconds": 59.626596549,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 2,
+        "policy_sha256": "202430015c848dcbf0de4b04dd4131d58401a72e8cc901591fe63ab275e6aa8b",
+        "purpose": "validation",
+        "opponent": "registered:windbot-ice-93686e46ce431b3cb91bfa00",
+        "seed_audit_only": 100010,
+        "actor_seat": 1,
+        "turns": 9,
+        "native_decisions": 246,
+        "actor_samples": 108,
+        "outcome": {
+          "winner": 0,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 67.5547684149933,
+        "actor_inference_ms": {
+          "count": 108,
+          "mean": 4.117947676773097,
+          "median": 4.198772498057224,
+          "min": 2.3822420043870807,
+          "max": 5.311995977535844
+        },
+        "trajectory_sha256": "9f83d04caa9202af5076cb417676d3c02351793d4ccc01609e2345f449a550e6",
+        "opponent_binding": {
+          "controller": "bot",
+          "driver_implementation_sha256": "19bb968d7c3b305ed4b98a062f6debc913a79a8127e8c46d9565313db85f9dc1",
+          "driver_version": "windbot-ice-93686e46ce431b3cb91bfa00",
+          "environment_id": "pilot",
+          "external_provider_verified": false,
+          "model_sha256": null,
+          "opponent_deck_content_sha256": "1ad6315b2f9aa3429f147d7054e4c3b8b10b6e09c2dcdf10eb689d4473ee37e3",
+          "opponent_deck_sha256": "f6f72ccb6f9dfab62054d6a13fe88c8f7b257f009bd60438c4ef9743e021b3fa",
+          "opponent_id": "ice-blackwing-seat1",
+          "own_deck_sha256": "1a4b99d0cb5c01f4a5f5d7d8a536a4bf9e038f259e0276e24de4b145e9d91b85",
+          "profile_sha256": "1dd6d3e46945fc34ec79d8f5cf230c66659152f674dd5661bd3212f7e85963c8",
+          "registered_record_sha256": "f4a6c73e3869dd8311a85d069321625b8296dc8fd56b305994b207d7b3fe0a40",
+          "schema_version": 1,
+          "source": "engineering_fixture",
+          "strength_qualified": false
+        }
+      },
+      "native_api_seconds": {
+        "constructor": 0.8924836149963085,
+        "next_decision": 0.18143939386936836,
+        "submit": 0.004138501943089068,
+        "exit": 0.0007877349853515625
+      },
+      "forward_ms": {
+        "count": 108,
+        "mean": 2.7847733985658527,
+        "median": 2.8615905030164868,
+        "min": 1.510578003944829,
+        "max": 3.6473879881668836
+      },
+      "actual_start_order": "second",
+      "model_unchanged": true
+    },
+    {
+      "device": "cuda:0",
+      "case_id": "ice-burn-seat0",
+      "repeat": 1,
+      "status": "completed",
+      "actor_seat": 0,
+      "seed_pair": {
+        "game_seed": 100001,
+        "policy_seed": 200001
+      },
+      "wall_seconds": 94.12373305598157,
+      "process_cpu_seconds": 83.79173827499994,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 2,
+        "policy_sha256": "202430015c848dcbf0de4b04dd4131d58401a72e8cc901591fe63ab275e6aa8b",
+        "purpose": "validation",
+        "opponent": "registered:windbot-ice-f85b8e800e95abf6517ea666",
+        "seed_audit_only": 100001,
+        "actor_seat": 0,
+        "turns": 22,
+        "native_decisions": 346,
+        "actor_samples": 170,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 93.60164569300832,
+        "actor_inference_ms": {
+          "count": 170,
+          "mean": 5.881647570811979,
+          "median": 5.986312506138347,
+          "min": 4.707307001808658,
+          "max": 6.666982022579759
+        },
+        "trajectory_sha256": "3adb38a06e5ada27e10b477c13d9cebfd1b5f644690e4cf3cd2bafb37280fc19",
+        "opponent_binding": {
+          "controller": "bot",
+          "driver_implementation_sha256": "736b0b0d12143f16a98903cb3e3234d5816f47f4bac6c184231ff1b191f4b492",
+          "driver_version": "windbot-ice-f85b8e800e95abf6517ea666",
+          "environment_id": "pilot",
+          "external_provider_verified": false,
+          "model_sha256": null,
+          "opponent_deck_content_sha256": "247c44331f24376a0ca45ac33d8ce1b935ae4f74ce9ecff80316136a10c8c7d6",
+          "opponent_deck_sha256": "36620efef619dcc5a62c1b64b20add0cfeb22721929db232fce5cf2ec72e6c07",
+          "opponent_id": "ice-burn-seat0",
+          "own_deck_sha256": "1a4b99d0cb5c01f4a5f5d7d8a536a4bf9e038f259e0276e24de4b145e9d91b85",
+          "profile_sha256": "422d8f67dcf20a1e12b33e080d4201586fff9d4983518a942d407d8a535ebbf9",
+          "registered_record_sha256": "2fc1303b225f256240986c36879e8d7c0787628c2c5547d98bfb212806edd4ee",
+          "schema_version": 1,
+          "source": "engineering_fixture",
+          "strength_qualified": false
+        }
+      },
+      "native_api_seconds": {
+        "constructor": 0.9866103109961841,
+        "next_decision": 0.2675004137272481,
+        "submit": 0.005931749881710857,
+        "exit": 0.0008216100104618818
+      },
+      "forward_ms": {
+        "count": 170,
+        "mean": 4.104638228583259,
+        "median": 4.162628494668752,
+        "min": 3.4019149898085743,
+        "max": 4.563024005619809
+      },
+      "actual_start_order": "first",
+      "model_unchanged": true
+    },
+    {
+      "device": "cpu",
+      "case_id": "ice-burn-seat0",
+      "repeat": 1,
+      "status": "completed",
+      "actor_seat": 0,
+      "seed_pair": {
+        "game_seed": 100001,
+        "policy_seed": 200001
+      },
+      "wall_seconds": 90.11619202999282,
+      "process_cpu_seconds": 80.05183837000004,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 2,
+        "policy_sha256": "202430015c848dcbf0de4b04dd4131d58401a72e8cc901591fe63ab275e6aa8b",
+        "purpose": "validation",
+        "opponent": "registered:windbot-ice-f85b8e800e95abf6517ea666",
+        "seed_audit_only": 100001,
+        "actor_seat": 0,
+        "turns": 22,
+        "native_decisions": 346,
+        "actor_samples": 170,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 89.59225524100475,
+        "actor_inference_ms": {
+          "count": 170,
+          "mean": 3.825354410047807,
+          "median": 3.956290485803038,
+          "min": 1.8312030006200075,
+          "max": 4.885041009401903
+        },
+        "trajectory_sha256": "3adb38a06e5ada27e10b477c13d9cebfd1b5f644690e4cf3cd2bafb37280fc19",
+        "opponent_binding": {
+          "controller": "bot",
+          "driver_implementation_sha256": "736b0b0d12143f16a98903cb3e3234d5816f47f4bac6c184231ff1b191f4b492",
+          "driver_version": "windbot-ice-f85b8e800e95abf6517ea666",
+          "environment_id": "pilot",
+          "external_provider_verified": false,
+          "model_sha256": null,
+          "opponent_deck_content_sha256": "247c44331f24376a0ca45ac33d8ce1b935ae4f74ce9ecff80316136a10c8c7d6",
+          "opponent_deck_sha256": "36620efef619dcc5a62c1b64b20add0cfeb22721929db232fce5cf2ec72e6c07",
+          "opponent_id": "ice-burn-seat0",
+          "own_deck_sha256": "1a4b99d0cb5c01f4a5f5d7d8a536a4bf9e038f259e0276e24de4b145e9d91b85",
+          "profile_sha256": "422d8f67dcf20a1e12b33e080d4201586fff9d4983518a942d407d8a535ebbf9",
+          "registered_record_sha256": "2fc1303b225f256240986c36879e8d7c0787628c2c5547d98bfb212806edd4ee",
+          "schema_version": 1,
+          "source": "engineering_fixture",
+          "strength_qualified": false
+        }
+      },
+      "native_api_seconds": {
+        "constructor": 0.9685656570072751,
+        "next_decision": 0.26114041786058806,
+        "submit": 0.005665115866577253,
+        "exit": 0.0006957519799470901
+      },
+      "forward_ms": {
+        "count": 170,
+        "mean": 2.5388118064524057,
+        "median": 2.6000019861385226,
+        "min": 1.0612409969326109,
+        "max": 3.0845659784972668
+      },
+      "actual_start_order": "first",
+      "model_unchanged": true
+    },
+    {
+      "device": "cpu",
+      "case_id": "ice-burn-seat1",
+      "repeat": 1,
+      "status": "completed",
+      "actor_seat": 1,
+      "seed_pair": {
+        "game_seed": 100004,
+        "policy_seed": 200004
+      },
+      "wall_seconds": 52.11257406199002,
+      "process_cpu_seconds": 45.79093559199998,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 2,
+        "policy_sha256": "202430015c848dcbf0de4b04dd4131d58401a72e8cc901591fe63ab275e6aa8b",
+        "purpose": "validation",
+        "opponent": "registered:windbot-ice-f85b8e800e95abf6517ea666",
+        "seed_audit_only": 100004,
+        "actor_seat": 1,
+        "turns": 7,
+        "native_decisions": 197,
+        "actor_samples": 92,
+        "outcome": {
+          "winner": 0,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 51.634010469017085,
+        "actor_inference_ms": {
+          "count": 92,
+          "mean": 3.787721087143797,
+          "median": 3.9330414874712005,
+          "min": 2.1156400034669787,
+          "max": 4.744956997456029
+        },
+        "trajectory_sha256": "a200441eab6c8b0495c7818f2c87910d02f9c7fcf53f3fb981ece4f1eb45bcdf",
+        "opponent_binding": {
+          "controller": "bot",
+          "driver_implementation_sha256": "736b0b0d12143f16a98903cb3e3234d5816f47f4bac6c184231ff1b191f4b492",
+          "driver_version": "windbot-ice-f85b8e800e95abf6517ea666",
+          "environment_id": "pilot",
+          "external_provider_verified": false,
+          "model_sha256": null,
+          "opponent_deck_content_sha256": "247c44331f24376a0ca45ac33d8ce1b935ae4f74ce9ecff80316136a10c8c7d6",
+          "opponent_deck_sha256": "36620efef619dcc5a62c1b64b20add0cfeb22721929db232fce5cf2ec72e6c07",
+          "opponent_id": "ice-burn-seat1",
+          "own_deck_sha256": "1a4b99d0cb5c01f4a5f5d7d8a536a4bf9e038f259e0276e24de4b145e9d91b85",
+          "profile_sha256": "4a88547c28cc72cc467e870818ff8405da376c0747bcb3a17de3991a989182e1",
+          "registered_record_sha256": "3bc31c9d1cad284763887182c431f4da309392ecfb6b098f3bc3bcaabeb4eb31",
+          "schema_version": 1,
+          "source": "engineering_fixture",
+          "strength_qualified": false
+        }
+      },
+      "native_api_seconds": {
+        "constructor": 1.0798041289963294,
+        "next_decision": 0.10525546869030222,
+        "submit": 0.003169017087202519,
+        "exit": 0.0009749880118761212
+      },
+      "forward_ms": {
+        "count": 92,
+        "mean": 2.5095665655301316,
+        "median": 2.626267494633794,
+        "min": 1.2962649925611913,
+        "max": 3.091569000389427
+      },
+      "actual_start_order": "second",
+      "model_unchanged": true
+    },
+    {
+      "device": "cuda:0",
+      "case_id": "ice-burn-seat1",
+      "repeat": 1,
+      "status": "completed",
+      "actor_seat": 1,
+      "seed_pair": {
+        "game_seed": 100004,
+        "policy_seed": 200004
+      },
+      "wall_seconds": 52.68639594697743,
+      "process_cpu_seconds": 46.07334217499999,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 2,
+        "policy_sha256": "202430015c848dcbf0de4b04dd4131d58401a72e8cc901591fe63ab275e6aa8b",
+        "purpose": "validation",
+        "opponent": "registered:windbot-ice-f85b8e800e95abf6517ea666",
+        "seed_audit_only": 100004,
+        "actor_seat": 1,
+        "turns": 7,
+        "native_decisions": 197,
+        "actor_samples": 92,
+        "outcome": {
+          "winner": 0,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 52.23035122497822,
+        "actor_inference_ms": {
+          "count": 92,
+          "mean": 5.686936314779577,
+          "median": 5.706951502361335,
+          "min": 4.64297499274835,
+          "max": 6.90801499877125
+        },
+        "trajectory_sha256": "a200441eab6c8b0495c7818f2c87910d02f9c7fcf53f3fb981ece4f1eb45bcdf",
+        "opponent_binding": {
+          "controller": "bot",
+          "driver_implementation_sha256": "736b0b0d12143f16a98903cb3e3234d5816f47f4bac6c184231ff1b191f4b492",
+          "driver_version": "windbot-ice-f85b8e800e95abf6517ea666",
+          "environment_id": "pilot",
+          "external_provider_verified": false,
+          "model_sha256": null,
+          "opponent_deck_content_sha256": "247c44331f24376a0ca45ac33d8ce1b935ae4f74ce9ecff80316136a10c8c7d6",
+          "opponent_deck_sha256": "36620efef619dcc5a62c1b64b20add0cfeb22721929db232fce5cf2ec72e6c07",
+          "opponent_id": "ice-burn-seat1",
+          "own_deck_sha256": "1a4b99d0cb5c01f4a5f5d7d8a536a4bf9e038f259e0276e24de4b145e9d91b85",
+          "profile_sha256": "4a88547c28cc72cc467e870818ff8405da376c0747bcb3a17de3991a989182e1",
+          "registered_record_sha256": "3bc31c9d1cad284763887182c431f4da309392ecfb6b098f3bc3bcaabeb4eb31",
+          "schema_version": 1,
+          "source": "engineering_fixture",
+          "strength_qualified": false
+        }
+      },
+      "native_api_seconds": {
+        "constructor": 0.8947495580068789,
+        "next_decision": 0.10863895298098214,
+        "submit": 0.0035810659173876047,
+        "exit": 0.0009391010098624974
+      },
+      "forward_ms": {
+        "count": 92,
+        "mean": 3.9435674128902103,
+        "median": 3.926188001059927,
+        "min": 3.3930669887922704,
+        "max": 5.142495996551588
+      },
+      "actual_start_order": "second",
+      "model_unchanged": true
+    },
+    {
+      "device": "cuda:0",
+      "case_id": "ice-blackwing-seat0",
+      "repeat": 1,
+      "status": "completed",
+      "actor_seat": 0,
+      "seed_pair": {
+        "game_seed": 100007,
+        "policy_seed": 200007
+      },
+      "wall_seconds": 59.134353825007565,
+      "process_cpu_seconds": 52.208296047999966,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 2,
+        "policy_sha256": "202430015c848dcbf0de4b04dd4131d58401a72e8cc901591fe63ab275e6aa8b",
+        "purpose": "validation",
+        "opponent": "registered:windbot-ice-93686e46ce431b3cb91bfa00",
+        "seed_audit_only": 100007,
+        "actor_seat": 0,
+        "turns": 6,
+        "native_decisions": 204,
+        "actor_samples": 87,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 58.67104838200612,
+        "actor_inference_ms": {
+          "count": 87,
+          "mean": 5.9555174010784375,
+          "median": 5.855330993654206,
+          "min": 4.606064991094172,
+          "max": 7.62701200437732
+        },
+        "trajectory_sha256": "a6a7136d04fe743b301c39440657b739c5876bcae2520f4e6438f11a4861e785",
+        "opponent_binding": {
+          "controller": "bot",
+          "driver_implementation_sha256": "19bb968d7c3b305ed4b98a062f6debc913a79a8127e8c46d9565313db85f9dc1",
+          "driver_version": "windbot-ice-93686e46ce431b3cb91bfa00",
+          "environment_id": "pilot",
+          "external_provider_verified": false,
+          "model_sha256": null,
+          "opponent_deck_content_sha256": "1ad6315b2f9aa3429f147d7054e4c3b8b10b6e09c2dcdf10eb689d4473ee37e3",
+          "opponent_deck_sha256": "f6f72ccb6f9dfab62054d6a13fe88c8f7b257f009bd60438c4ef9743e021b3fa",
+          "opponent_id": "ice-blackwing-seat0",
+          "own_deck_sha256": "1a4b99d0cb5c01f4a5f5d7d8a536a4bf9e038f259e0276e24de4b145e9d91b85",
+          "profile_sha256": "c8ec4986b1aa7acadaa7facfdff2d3873bc33d31571c42b36ef120143809eb87",
+          "registered_record_sha256": "5cc6c49a68c2900d5c829b9b83aba08380d4115bf2fe9a581bb2420d174db9b4",
+          "schema_version": 1,
+          "source": "engineering_fixture",
+          "strength_qualified": false
+        }
+      },
+      "native_api_seconds": {
+        "constructor": 1.0075158409890719,
+        "next_decision": 0.1537635279528331,
+        "submit": 0.0038683539896737784,
+        "exit": 0.0008855689957272261
+      },
+      "forward_ms": {
+        "count": 87,
+        "mean": 4.130119321688517,
+        "median": 4.034167010104284,
+        "min": 3.4256689832545817,
+        "max": 5.341932002920657
+      },
+      "actual_start_order": "first",
+      "model_unchanged": true
+    },
+    {
+      "device": "cpu",
+      "case_id": "ice-blackwing-seat0",
+      "repeat": 1,
+      "status": "completed",
+      "actor_seat": 0,
+      "seed_pair": {
+        "game_seed": 100007,
+        "policy_seed": 200007
+      },
+      "wall_seconds": 59.581334415008314,
+      "process_cpu_seconds": 52.35966534199997,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 2,
+        "policy_sha256": "202430015c848dcbf0de4b04dd4131d58401a72e8cc901591fe63ab275e6aa8b",
+        "purpose": "validation",
+        "opponent": "registered:windbot-ice-93686e46ce431b3cb91bfa00",
+        "seed_audit_only": 100007,
+        "actor_seat": 0,
+        "turns": 6,
+        "native_decisions": 204,
+        "actor_samples": 87,
+        "outcome": {
+          "winner": 1,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 59.1200460359978,
+        "actor_inference_ms": {
+          "count": 87,
+          "mean": 4.07199881604241,
+          "median": 4.229454993037507,
+          "min": 2.0370610000099987,
+          "max": 4.939835023833439
+        },
+        "trajectory_sha256": "a6a7136d04fe743b301c39440657b739c5876bcae2520f4e6438f11a4861e785",
+        "opponent_binding": {
+          "controller": "bot",
+          "driver_implementation_sha256": "19bb968d7c3b305ed4b98a062f6debc913a79a8127e8c46d9565313db85f9dc1",
+          "driver_version": "windbot-ice-93686e46ce431b3cb91bfa00",
+          "environment_id": "pilot",
+          "external_provider_verified": false,
+          "model_sha256": null,
+          "opponent_deck_content_sha256": "1ad6315b2f9aa3429f147d7054e4c3b8b10b6e09c2dcdf10eb689d4473ee37e3",
+          "opponent_deck_sha256": "f6f72ccb6f9dfab62054d6a13fe88c8f7b257f009bd60438c4ef9743e021b3fa",
+          "opponent_id": "ice-blackwing-seat0",
+          "own_deck_sha256": "1a4b99d0cb5c01f4a5f5d7d8a536a4bf9e038f259e0276e24de4b145e9d91b85",
+          "profile_sha256": "c8ec4986b1aa7acadaa7facfdff2d3873bc33d31571c42b36ef120143809eb87",
+          "registered_record_sha256": "5cc6c49a68c2900d5c829b9b83aba08380d4115bf2fe9a581bb2420d174db9b4",
+          "schema_version": 1,
+          "source": "engineering_fixture",
+          "strength_qualified": false
+        }
+      },
+      "native_api_seconds": {
+        "constructor": 1.0076485509925988,
+        "next_decision": 0.15048484088038094,
+        "submit": 0.003740186773939058,
+        "exit": 0.000717974005965516
+      },
+      "forward_ms": {
+        "count": 87,
+        "mean": 2.7544490913405544,
+        "median": 2.890941977966577,
+        "min": 1.279121992411092,
+        "max": 3.233577008359134
+      },
+      "actual_start_order": "first",
+      "model_unchanged": true
+    },
+    {
+      "device": "cpu",
+      "case_id": "ice-blackwing-seat1",
+      "repeat": 1,
+      "status": "completed",
+      "actor_seat": 1,
+      "seed_pair": {
+        "game_seed": 100010,
+        "policy_seed": 200010
+      },
+      "wall_seconds": 70.01613732401165,
+      "process_cpu_seconds": 61.50311271500004,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 2,
+        "policy_sha256": "202430015c848dcbf0de4b04dd4131d58401a72e8cc901591fe63ab275e6aa8b",
+        "purpose": "validation",
+        "opponent": "registered:windbot-ice-93686e46ce431b3cb91bfa00",
+        "seed_audit_only": 100010,
+        "actor_seat": 1,
+        "turns": 9,
+        "native_decisions": 246,
+        "actor_samples": 108,
+        "outcome": {
+          "winner": 0,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 69.5536041269952,
+        "actor_inference_ms": {
+          "count": 108,
+          "mean": 4.1528541664269545,
+          "median": 4.289122996851802,
+          "min": 2.461902011418715,
+          "max": 5.178555002203211
+        },
+        "trajectory_sha256": "9f83d04caa9202af5076cb417676d3c02351793d4ccc01609e2345f449a550e6",
+        "opponent_binding": {
+          "controller": "bot",
+          "driver_implementation_sha256": "19bb968d7c3b305ed4b98a062f6debc913a79a8127e8c46d9565313db85f9dc1",
+          "driver_version": "windbot-ice-93686e46ce431b3cb91bfa00",
+          "environment_id": "pilot",
+          "external_provider_verified": false,
+          "model_sha256": null,
+          "opponent_deck_content_sha256": "1ad6315b2f9aa3429f147d7054e4c3b8b10b6e09c2dcdf10eb689d4473ee37e3",
+          "opponent_deck_sha256": "f6f72ccb6f9dfab62054d6a13fe88c8f7b257f009bd60438c4ef9743e021b3fa",
+          "opponent_id": "ice-blackwing-seat1",
+          "own_deck_sha256": "1a4b99d0cb5c01f4a5f5d7d8a536a4bf9e038f259e0276e24de4b145e9d91b85",
+          "profile_sha256": "1dd6d3e46945fc34ec79d8f5cf230c66659152f674dd5661bd3212f7e85963c8",
+          "registered_record_sha256": "f4a6c73e3869dd8311a85d069321625b8296dc8fd56b305994b207d7b3fe0a40",
+          "schema_version": 1,
+          "source": "engineering_fixture",
+          "strength_qualified": false
+        }
+      },
+      "native_api_seconds": {
+        "constructor": 1.1217485999804921,
+        "next_decision": 0.18534228674252518,
+        "submit": 0.004631726798834279,
+        "exit": 0.0006838190020062029
+      },
+      "forward_ms": {
+        "count": 108,
+        "mean": 2.8098980104981885,
+        "median": 2.914701006375253,
+        "min": 1.4475499920081347,
+        "max": 3.3790219749789685
+      },
+      "actual_start_order": "second",
+      "model_unchanged": true
+    },
+    {
+      "device": "cuda:0",
+      "case_id": "ice-blackwing-seat1",
+      "repeat": 1,
+      "status": "completed",
+      "actor_seat": 1,
+      "seed_pair": {
+        "game_seed": 100010,
+        "policy_seed": 200010
+      },
+      "wall_seconds": 68.95256071499898,
+      "process_cpu_seconds": 60.90512517900004,
+      "summary": {
+        "source": "live-core-actor-seat",
+        "policy_version": 2,
+        "policy_sha256": "202430015c848dcbf0de4b04dd4131d58401a72e8cc901591fe63ab275e6aa8b",
+        "purpose": "validation",
+        "opponent": "registered:windbot-ice-93686e46ce431b3cb91bfa00",
+        "seed_audit_only": 100010,
+        "actor_seat": 1,
+        "turns": 9,
+        "native_decisions": 246,
+        "actor_samples": 108,
+        "outcome": {
+          "winner": 0,
+          "reason_code": 1
+        },
+        "terminal_reward": -1.0,
+        "elapsed_seconds": 68.48272070998792,
+        "actor_inference_ms": {
+          "count": 108,
+          "mean": 5.88674830537962,
+          "median": 5.830228503327817,
+          "min": 4.636753001250327,
+          "max": 6.7086099879816175
+        },
+        "trajectory_sha256": "9f83d04caa9202af5076cb417676d3c02351793d4ccc01609e2345f449a550e6",
+        "opponent_binding": {
+          "controller": "bot",
+          "driver_implementation_sha256": "19bb968d7c3b305ed4b98a062f6debc913a79a8127e8c46d9565313db85f9dc1",
+          "driver_version": "windbot-ice-93686e46ce431b3cb91bfa00",
+          "environment_id": "pilot",
+          "external_provider_verified": false,
+          "model_sha256": null,
+          "opponent_deck_content_sha256": "1ad6315b2f9aa3429f147d7054e4c3b8b10b6e09c2dcdf10eb689d4473ee37e3",
+          "opponent_deck_sha256": "f6f72ccb6f9dfab62054d6a13fe88c8f7b257f009bd60438c4ef9743e021b3fa",
+          "opponent_id": "ice-blackwing-seat1",
+          "own_deck_sha256": "1a4b99d0cb5c01f4a5f5d7d8a536a4bf9e038f259e0276e24de4b145e9d91b85",
+          "profile_sha256": "1dd6d3e46945fc34ec79d8f5cf230c66659152f674dd5661bd3212f7e85963c8",
+          "registered_record_sha256": "f4a6c73e3869dd8311a85d069321625b8296dc8fd56b305994b207d7b3fe0a40",
+          "schema_version": 1,
+          "source": "engineering_fixture",
+          "strength_qualified": false
+        }
+      },
+      "native_api_seconds": {
+        "constructor": 1.110377086995868,
+        "next_decision": 0.1860212439787574,
+        "submit": 0.004449738189578056,
+        "exit": 0.0006491940002888441
+      },
+      "forward_ms": {
+        "count": 108,
+        "mean": 4.059205451792675,
+        "median": 3.976448002504185,
+        "min": 3.4067340020556003,
+        "max": 4.714921000413597
+      },
+      "actual_start_order": "second",
+      "model_unchanged": true
+    }
+  ]
+}

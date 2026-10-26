@@ -1,0 +1,99 @@
+{
+  "checked_utc": "2026-10-26T12:50:35.430626+00:00",
+  "base_commit": "6cef642cc840120fc6d445cfbf7b8bc082b61f0d",
+  "files": [
+    {
+      "path": "CLOUDSTUDIO_GUIDE.zh-CN.md",
+      "sha256": "35a7fc3f0ea327f5ee3efb561771dee869161ca755c14842a68dc970d35141e6",
+      "bytes": 6522
+    },
+    {
+      "path": "CODEBUDDY.md",
+      "sha256": "492682b21758edcbda16fa0583d52bf8ccb4c06254b27f859c82257d2e8c83c2",
+      "bytes": 1038
+    },
+    {
+      "path": "GPU_COMPARE_20261026.zh-CN.md",
+      "sha256": "aacea75bc873f3728815aef2045b163db506a55620a978e7e9a3e5ae9d2ffd13",
+      "bytes": 9539
+    },
+    {
+      "path": "docs/development/cloudstudio-runbook-20261026.zh-CN.md",
+      "sha256": "f1833efc6b0c482c2466b00902d8188a23695a77f9ffe3718162165007dad45e",
+      "bytes": 18119
+    },
+    {
+      "path": "docs/development/cloudstudio-sync-handoff-20261026.zh-CN.md",
+      "sha256": "bb604e5f8d1c600a4e80e8357e29a2ea1ea0ab4c6b3cedeef0b3c48c31abad3f",
+      "bytes": 2208
+    },
+    {
+      "path": "docs/reports/cloudstudio-20261026/comparison-summary.json",
+      "sha256": "199750ac05b9fd98d3f677ccdc77e0585fb4140120fe38dd1311956d0c212e67",
+      "bytes": 87120
+    },
+    {
+      "path": "docs/reports/cloudstudio-20261026/exact-input-and-recovery.json",
+      "sha256": "1fb56df4582490864bf73629e604ca4a147492da7377038a5c11f85a1b68e2a6",
+      "bytes": 6934
+    },
+    {
+      "path": "docs/reports/cloudstudio-20261026/group-update-summary.json",
+      "sha256": "c6dfe34617c94166436320c0fa998495a1537933b987af2593b4af1bb73a1968",
+      "bytes": 36614
+    },
+    {
+      "path": "docs/reports/cloudstudio-20261026/limits-all-receipt.json",
+      "sha256": "e3c88a9c40cec4695bbf194f066fc2b7f2240b0ee08170f9705f5ca09bc10feb",
+      "bytes": 272
+    },
+    {
+      "path": "docs/reports/cloudstudio-20261026/migration-assets.json",
+      "sha256": "5ba99a7e3ba1183abdf34fde7523769d919249a5ea2da0c6ad5ffa694afd38f1",
+      "bytes": 5227
+    },
+    {
+      "path": "docs/reports/cloudstudio-20261026/paired-analysis.json",
+      "sha256": "c47bb7f630a2b8aa2fe854f368117d339beec651b0e845a98565f827b3c5ed84",
+      "bytes": 3477
+    },
+    {
+      "path": "docs/reports/cloudstudio-20261026/release-dates-receipt.json",
+      "sha256": "b49cf40742df171367416edf65b6aece2a2fec0b1567a75796605198bfecd932",
+      "bytes": 274
+    },
+    {
+      "path": "docs/reports/cloudstudio-20261026/source-group-reference.json",
+      "sha256": "ad09d6310b9ea1f0e4ff95fd1feadfd28ded5769619f3fb59ab6dd16546ed047",
+      "bytes": 319
+    },
+    {
+      "path": "scripts/experiments/cloudstudio_20261026/README.md",
+      "sha256": "677b7c4d92f387bbc9640f7b371a26256047ac4ee0d60045cf60a893430a5dfc",
+      "bytes": 966
+    },
+    {
+      "path": "scripts/experiments/cloudstudio_20261026/compare_actual.py",
+      "sha256": "0d7c8d226e1ba1049989cefec2c336b2ddfcad128b2e6aba12c174c775822afb",
+      "bytes": 11933
+    },
+    {
+      "path": "scripts/experiments/cloudstudio_20261026/group_update_compare.py",
+      "sha256": "438576bb3dcf301a68c03b4ca7a6163199117ac08d7846a981ff0506cbce0cb3",
+      "bytes": 5014
+    },
+    {
+      "path": "scripts/experiments/cloudstudio_20261026/postcheck.py",
+      "sha256": "c7b2fe28f631129747a8ee2ac6d289843917c4ea47746b83c3b40c5a100cd387",
+      "bytes": 3466
+    }
+  ],
+  "python_compile_passed": 3,
+  "json_parse_passed": 8,
+  "broken_relative_links": [],
+  "credential_or_personal_path_pattern_findings": [],
+  "production_source_diff": false,
+  "training_or_timing_executed_this_sync": false,
+  "prior_617_regression": "historical baseline evidence; not rerun this sync",
+  "manual_review": "Reports, JSON field allowlists, script imports and side effects reviewed; process samples, HTTP headers, raw card datasets, binaries and checkpoint tensors omitted."
+}

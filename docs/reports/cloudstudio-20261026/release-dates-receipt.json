@@ -1,0 +1,9 @@
+{
+  "url": "https://ygocdb.com/api/v0/releaseDates.json",
+  "attempted_utc": "2026-10-26T08:39:12.310568+00:00",
+  "status": 200,
+  "sha256": "03bda26138b7010ce3eceac4e2e82fd8b8e9259082ee9922188db46c551f7720",
+  "bytes": 3123090,
+  "records": 14343,
+  "root_type": "list"
+}

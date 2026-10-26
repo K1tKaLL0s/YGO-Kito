@@ -1,0 +1,6 @@
+{
+  "path": ".cache/training-prep-20261026/state/runs/four-model-source-20261026b/checkpoints/local-step-7.weights",
+  "sha256": "fcb4a3b970e8b834be69c0d0ee3ff26a53eb1e067b946f5cb11a63e82cea4f87",
+  "source_binding_sha256": "c9cf28d7efcb1ed5569144379b1157f2ed5188f2c8f442e7628ec8ab9614cb0b",
+  "weights": "effective"
+}
