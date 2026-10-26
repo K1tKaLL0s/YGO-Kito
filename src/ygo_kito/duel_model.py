@@ -108,6 +108,7 @@ class PlayerEncoder:
                 tokens.append([self._card(card.card_id),ZONES.index("history"),2,relative(card.controller),1,0,EVENTS.index("reveal")])
                 # This is past knowledge, not a current-position/card inventory.
                 numbers.append([0.,0.,0.,0.])
+        current_and_private_tokens = len(tokens)
         for event in obs.public_history[-cfg.history_events:]:
             for code in event.card_ids or (None,):
                 tokens.append([self._card(code), ZONES.index("history"), 2, 0, 0, 0, EVENTS.index(event.kind)])
@@ -131,7 +132,9 @@ class PlayerEncoder:
                     tokens.append([0, ZONES.index("history"), 2, 0, 0, 0, EVENTS.index(event.kind)])
                     numbers.append(payload)
         if len(tokens) > cfg.max_tokens or len(request.actions) > cfg.max_actions:
-            raise ContractError("player input exceeds model token/action budget")
+            raise ContractError("player input exceeds model token/action budget: "
+                f"tokens={len(tokens)} limit={cfg.max_tokens}, actions={len(request.actions)} limit={cfg.max_actions}, "
+                f"current_and_private_tokens={current_and_private_tokens}, public_history_tokens={len(tokens)-current_and_private_tokens}")
         p, other = obs.observer, 1 - obs.observer
         state = [obs.life_points[p] / 8000, obs.life_points[other] / 8000,
                  obs.hand_counts[p] / 60, obs.hand_counts[other] / 60,

@@ -1,8 +1,10 @@
 # YGO-Kito
 
-本轮新增[实际自主课程与 BO3 入口](docs/development/scenario-course-runner.md)：复用四模型与有效 LoRA，提供目录候选／模型选择、构筑逻辑及 CB 核验、合法换备、逐小局更新、完整场计数、冻结评估和自包含恢复。当前仅 CPU 机制测试通过，不代表真实机器人模型路径、GPU 速度或训练能力已经验收；起始权重、资源与真实计时须显式提供。草稿 [PR #4](https://github.com/K1tKaLL0s/YGO-Kito/pull/4) 不自动合并或训练。
+CPU接管与功能审计见[当前说明](docs/development/cpu-takeover-and-selfplay.md)：区分headless模型对战／对练和阶段3的GUI，沿用已确认慢档而不重新测时。新增冻结有效模型对手、独立自对抗历史池及仅热门主题的萌卡staging；正式训练仍需资产清单、资源／预算确认及用户通知。
 
-游戏王 AI 项目的私密设计、资料与 CPU 基础开发仓库。
+本轮新增[实际自主课程与 BO3 入口](docs/development/scenario-course-runner.md)：复用四模型与有效 LoRA，提供目录候选／模型选择、构筑逻辑及 CB 核验、合法换备、逐小局更新、完整场计数、冻结评估和恢复。CPU 机制回归与历史真实模型对机器人终局分开记录；完整分期课程仍缺实际资产与资格，沿用用户确认慢档，不重新测时。草稿 [PR #4](https://github.com/K1tKaLL0s/YGO-Kito/pull/4) 不自动合并或训练。
+
+游戏王 AI 项目的设计、资料与 CPU 开发仓库。
 
 ## 当前开发入口
 
@@ -10,16 +12,16 @@
 
 **持续进度入口：[总工作清单 MASTER-CHECKLIST](docs/plans/MASTER-CHECKLIST.md)。** 每批完成后同步稳定任务 ID、状态和证据，符合验收条件才勾选；部分完成保持未勾选。该表索引全阶段进度，保留[第一阶段详细清单](docs/plans/2026-10-22-phase-1-cpu-checklist.md)，不替代统一规范。PR 已发布不表示已合并。
 
-**工程基线已合并：[PR #1→#2→#3](https://github.com/K1tKaLL0s/YGO-Kito/pull/3)，main `7e92994d`。** 该main的517项CPU CI通过，作者分支保留；C# WindBot尚未实际编译／运行，用户已明确将其留至腾讯云接续。新增[三环境训练规则与计时准备](docs/development/autonomous-training-preparation.md)单列2610自主课程与历史验收，包含有界CPU预跑代码；BO3／自主课程的具体未接执行项如实列明，不能将方案当作正式训练已就绪。已授权用户牌表接入见[收件说明](docs/development/user-deck-dataset.md)。本轮增量仍经独立草稿审查，不自动合并或训练。通用接续先读[AGENTS.md](AGENTS.md)和[Agent说明](docs/development/generic-agent-integration.md)。
+**工程基线已合并：[PR #1→#2→#3](https://github.com/K1tKaLL0s/YGO-Kito/pull/3)，main `7e92994d`。** 该main的517项CPU CI通过，作者分支保留。WindBot 在腾讯端已有特定 Executor 的真实终局，见 CloudStudio 来源报告；当前 Codex 容器仅源码齐全、没有 Mono／WindBot 可执行文件。新增[三环境训练准备](docs/development/autonomous-training-preparation.md)及[实际课程](docs/development/scenario-course-runner.md)单列2610自主课程与历史验收，不能将代码接线当作正式训练已就绪。已授权用户牌表接入见[收件说明](docs/development/user-deck-dataset.md)。本轮增量经独立草稿审查，不自动合并或训练。通用接续先读[AGENTS.md](AGENTS.md)和[Agent说明](docs/development/generic-agent-integration.md)。
 
-**继续工程准备：[安全CPU CI](docs/development/safe-cpu-ci.md)、[3＋8牌表收件](docs/development/deck-intake.md)、[完整源码训练交接](docs/development/training-handoff.md)。** 已建立[草稿PR #3](https://github.com/K1tKaLL0s/YGO-Kito/pull/3)，依赖#1→#2→#3。最新测试/CI与剩余依赖统一见[继续工程报告](docs/reports/2026-10-24-engineering-continuation.md)；原188项是历史整合基线，不代替新提交检查。
+**继续工程准备：[安全CPU CI](docs/development/safe-cpu-ci.md)、[3＋8牌表收件](docs/development/deck-intake.md)、[完整源码训练交接](docs/development/training-handoff.md)。** PR1→2→3已合入main；当前后续工程在[草稿PR #4](https://github.com/K1tKaLL0s/YGO-Kito/pull/4)。历史报告数字只适用原提交，不代替当前head检查。
 
 **2026-10-24 独立新增：[构筑逻辑与非 LLM 入口](docs/development/construction-logic.md)。** 已补齐实际轻量可训练分类器、现有目标/优化模型的图候选选择与偏好训练、目录卡绑定及既有统筹连接。图由程序枚举、模型评分；小合成训练只验证代码，正式泛化和任意图合法 CB 未验，见[当前清单](docs/reports/2026-10-24-construction-trainable.md)。
 
 - 模型组：决斗模型＋构筑目标/优化两个子模型，由轻量统筹模型和确定性程序包裹；三个执行模型独立小 Transformer，共享数据规范，不强制共享权重。
 - 先训练基本模型组，LLM 后置且非必需。**LoRA 是基模后的常规持续适配路线**，不是旧文所说的完全可不开展。
-- 开发使用云端 Codex，训练计划使用腾讯云；约 100h 总上限，初始分配 5/25/25/20/10/15 小时，按吞吐实测调整，不保证达标、不自动授权付费或训练。
-- 珠泪哀歌三期课程：2022 年 7 月、2022 年 10 月、2026 年 10 月；目标→改进循环、合法可见信息、独立 BO3 与跨牌组迁移验收。
+- 开发与当前CPU接管准备使用云端Codex，原腾讯云A10结果按来源保留；100h总上限及原分配不自动扩大，CPU预算单位与长期任务宿主须明确。不重新测时，不自动授权付费或正式训练。
+- 2207／2210保留珠泪主题，2610为自主主题／构筑／CB；目标→改进循环、合法可见信息和独立 BO3 验收保留，不用任意自弈替代常见卡组覆盖。
 - 第一阶段交付可用代码、真实规则适配、资源导入、训练入口、恢复与交接；用户提供卡组后进入腾讯云第二阶段。GPU依赖安装、实测、调优与能力验收属于训练阶段，PC产品/客户端互操作归阶段3。**手机端及 YGOMobile 暂移出本期范围**。
 - 构筑预测与实战反馈：百场内明显落后预警、千场内明显落后强制重构；具体统计阈值实施前冻结。
 
@@ -61,7 +63,7 @@ PYTHONPATH=src .venv/bin/python -m ygo_kito --config configs/cpu.toml status
 
 [决斗模型CPU训练/恢复说明](docs/development/cpu-duel-training.md)提供明确的 `duel-train-cpu` 命令、工程配置和真实checkpoint/监控接口。只用既有云端CPU，不启动付费资源或外部API；模型权重在云端缓存保存，PR提交代码、原始指标和哈希。工程样例不替代用户牌组或独立能力验收。
 
-[构筑目标/优化CPU说明](docs/development/cpu-building.md)提供 `build-train-cpu`、`build-check`、主/额外/副卡DTO及目标→优化→目标→优化接口。目标模型使用真实条件路线/明确硬失败监督，优化模型仅以明示的弱代理比较作训练；当前17张工程pool不取代未来交叉检索，非空额外卡表合法不代表额外路线已接入。JSON输出已实际导入现有注册器，用户3＋8套仍待接收。
+[构筑目标/优化CPU说明](docs/development/cpu-building.md)提供 `build-train-cpu`、`build-check`、主/额外/副卡DTO及目标→优化→目标→优化接口。该历史批次的17张工程pool、监督和注册证据不等于一般构筑能力。用户输入现有三主六对手及原版／修订边界见[收件说明](docs/development/user-deck-dataset.md)，余下槽位与运行资格另核。
 
 [统筹与四模型闭环说明](docs/development/coordinator-model-group.md)提供 `model-group-cpu`、分权 `coordinator-call`、固定预测/谱系/单在途任务、预设百场/千场反馈及完整组checkpoint；合成统计与真实结果分账。
 
@@ -73,9 +75,9 @@ PYTHONPATH=src .venv/bin/python -m ygo_kito --config configs/cpu.toml status
 
 [2026-10-21 旧阶段计划](docs/plans/2026-10-21-development-and-training-budget.md) 与 [旧技术复核](docs/reviews/2026-10-21-technical-route-review.md) 保留决策历史，不再作为最新选型入口。尤其旧文的 LoRA 可选、移动端后续排期、预算未分配和架构待讨论表述，不覆盖统一说明。
 
-[M2f通用协议与完整效果对局](docs/reports/2026-10-23-general-protocol-m2f.md)新增效果描述、落点、选项/解放接口及4条40张工程效果牌组真实终局；[协议矩阵](docs/development/native-protocol-matrix.md)明确真实覆盖和拒绝范围。用户3＋8套卡组尚未接收，不阻塞工程样例验证。当前额度停止阈值为20%，替代旧5%。
+[M2f通用协议与完整效果对局](docs/reports/2026-10-23-general-protocol-m2f.md)新增效果描述、落点、选项/解放接口及4条40张工程效果牌组真实终局；[协议矩阵](docs/development/native-protocol-matrix.md)明确真实覆盖和拒绝范围。用户牌表收件以当前收件说明为准。额度停止阈值为20%，替代旧5%。
 
-[外部 agent 接口与 CodeBuddy 接入指南](docs/development/external-agent-interface.md)提供分权本地JSON CLI、实际显式CPU控制、卡组/环境/对手池和真实核心单席位动作。**CodeBuddy/DeepSeek和云/通用训练后端尚未联调；当前本地CPU后端默认关闭，须宿主启用。** 用户3＋8套待接收，样例不替代；后续主动盘点实际机器人和三期历史覆盖，再建议补充主题。
+[外部 agent 接口与 CodeBuddy 接入指南](docs/development/external-agent-interface.md)提供分权本地JSON CLI、实际显式CPU控制、卡组/环境/对手池和真实核心单席位动作。外部模型未联调；本地CPU后端默认关闭，须宿主启用。本轮不调用 DeepSeek／CodeBuddy，已有模型驱动不冒称外部模型操作。
 
 ## 现行文档
 

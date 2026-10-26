@@ -9,11 +9,13 @@ from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import asdict
 import hashlib
+import io
 import json
 import math
 import os
 from pathlib import Path
 import sqlite3
+import shutil
 import time
 import fcntl
 
@@ -27,14 +29,15 @@ from .duel_model import parameter_digest
 from .implementation_identity import source_tree_snapshot
 from .match_runner import (FirstOrderPolicy, GameResult, MatchParticipant, MatchRules,
                            MatchState, ModelSideboardPolicy, keep_side)
-from .training_scenarios import check_2610_rates, volume_met, volume_requirements
+from .training_scenarios import (check_2610_rates, volume_requirements, validate_timing_basis,
+                                 course_volume_requirements, course_volume_met)
 from .validation import ContractError, canonical_json, fields, integer
 
 
 def validate_config(value):
     d = fields(value, {"course_id", "period_id", "mode", "pilot_mean_seconds", "training_seeds",
         "evaluation_pairs", "matches_per_invocation", "wall_seconds", "allocated_gpu_count", "fixed_deck",
-        "initial_first", "evaluation_matches", "opponent_side"})
+        "initial_first", "evaluation_matches", "opponent_side"}, {"timing_basis", "checkpoint_policy", "data_index_storage"})
     identifier(d["course_id"])
     if d["period_id"] not in ("2022-07", "2022-10", "2026-10"):
         raise ContractError("explicit supported period required")
@@ -43,7 +46,14 @@ def validate_config(value):
     if (d["mode"] == "autonomous") != (d["fixed_deck"] is None):
         raise ContractError("autonomous mode cannot require the reference Tear deck")
     if d["fixed_deck"] is not None: DeckParts.from_dict(d["fixed_deck"])
+    checkpoint_policy(d.get("checkpoint_policy"))
+    if "data_index_storage" in d:
+        from .data_isolation import validate_storage_limits
+        validate_storage_limits(d["data_index_storage"])
     if d["pilot_mean_seconds"] is not None: volume_requirements(d["pilot_mean_seconds"])
+    if d.get("timing_basis") is not None:
+        validate_timing_basis(d["timing_basis"])
+        course_volume_requirements(d)
     seeds = d["training_seeds"]
     if not isinstance(seeds, list) or not seeds or len(seeds) != len(set(seeds)):
         raise ContractError("explicit unique complete course training seed schedule required")
@@ -82,8 +92,24 @@ def _exclusive_json(path, value):
         output.write(canonical_json(value) + "\n"); output.flush(); os.fsync(output.fileno())
 
 
+def checkpoint_policy(value=None):
+    """Explicit per-course retention; absent/null means no deletion or quota."""
+    policy={"keep_last":None,"milestone_every":None,"min_free_bytes":0,"max_state_bytes":None}
+    if value is not None:policy.update(fields(value,set(),set(policy)))
+    for key in ("keep_last","milestone_every","max_state_bytes"):
+        if policy[key] is not None:integer(policy[key],"checkpoint policy "+key,1)
+    integer(policy["min_free_bytes"],"checkpoint minimum free bytes",0)
+    return policy
+
+
 def bot_binding(bot):
     runtime = bot["runtime"]
+    from .model_opponents import ModelOpponentRuntime
+    if isinstance(runtime, ModelOpponentRuntime):
+        return {"deck": bot["deck"].to_dict(), "stage": bot["stage"], "purpose": bot["purpose"],
+            "first_order": bot["first_order"], "coverage_label": bot["coverage_label"], "source": bot["source"],
+            "runtime": runtime.identity(), "common_deck_evidence": deepcopy(bot["common_deck_evidence"]),
+            "private_sampling_binding_sha256": digest({"seed": bot.get("opponent_policy_seed")})}
     return {"deck": bot["deck"].to_dict(), "stage": bot["stage"], "purpose": bot["purpose"],
         "first_order": bot["first_order"], "coverage_label": bot["coverage_label"], "source": bot["source"],
         "runtime": {"source_id": runtime.source_id, "executor_id": runtime.executor_id,
@@ -94,14 +120,38 @@ def bot_binding(bot):
             "session_seconds": runtime.session_seconds, "mono": runtime.mono}}
 
 
+def validate_common_deck_evidence(evidence, deck, period):
+    """An explicit reviewed deck is distinct from arbitrary self-play coverage."""
+    from datetime import date
+    e = fields(evidence, {"kind", "source", "reviewed_at", "period_id", "format", "banlist_effective", "deck_sha256"})
+    if (e["kind"] not in ("user_provided_common_deck", "host_reviewed_common_deck") or
+            e["format"] != "OCG" or e["period_id"] != period or e["banlist_effective"] != period + "-01" or
+            e["deck_sha256"] != digest(deck.to_dict()) or not isinstance(e["source"], str) or not e["source"].strip()):
+        raise ContractError("model-driven common deck requires explicit same-period review and exact legal deck identity")
+    try:
+        if date.fromisoformat(e["reviewed_at"]).isoformat() != e["reviewed_at"]: raise ValueError()
+    except (TypeError, ValueError) as error:
+        raise ContractError("common deck review date must be explicit ISO date") from error
+    return deepcopy(e)
+
+
 class ScenarioCourse:
     """Concrete caller, retaining the existing four networks and LoRA modules."""
-    def __init__(self, models, *, assets, data_index, config, state_root, bots):
+    def __init__(self, models, *, assets, data_index, config, state_root, bots, storage_envelope=None):
         from .course_models import CourseModels
         if not isinstance(models, CourseModels) or not isinstance(data_index, DataIndex):
             raise ContractError("actual course models and data index required")
         self.models, self.assets, self.data_index = models, assets, data_index
         self.config = validate_config(config)
+        if config.get("data_index_storage") is not None:
+            from .data_isolation import validate_storage_limits
+            if data_index.storage_limits != validate_storage_limits(config["data_index_storage"]):
+                raise ContractError("actual data-index storage policy differs from the declared course")
+        from .storage_envelope import StorageEnvelope
+        if storage_envelope is not None and not isinstance(storage_envelope, StorageEnvelope):
+            raise ContractError("actual host storage envelope required")
+        self.storage_envelope = storage_envelope
+        self._bound_storage_envelope = storage_envelope
         if tuple(config["training_seeds"]) != models.duel.config.game_seeds:
             raise ContractError("actual actor does not own the full course seed schedule")
         if getattr(assets, "period_id", None) != config["period_id"]:
@@ -112,14 +162,25 @@ class ScenarioCourse:
             raise ContractError("numerical device and allocated GPU count differ")
         self.root = Path(state_root).resolve()
         self.root.mkdir(parents=True, exist_ok=True)
+        if storage_envelope is not None: storage_envelope.require_controlled_directory(self.root)
         self.bots = dict(bots)
+        from .model_opponents import ModelOpponentRuntime
         required = {"runtime", "deck", "stage", "purpose", "first_order", "source", "coverage_label"}
         for ident, bot in self.bots.items():
-            identifier(ident); fields(bot, required)
-            if (not isinstance(bot["runtime"], CourseBotRuntime) or not isinstance(bot["deck"], DeckParts)
+            identifier(ident); fields(bot, required, {"common_deck_evidence", "opponent_policy_seed"})
+            if (not isinstance(bot["runtime"], (CourseBotRuntime, ModelOpponentRuntime)) or not isinstance(bot["deck"], DeckParts)
                     or bot["stage"] not in ("bots-bo1", "common-decks-bo3") or
                     bot["purpose"] not in ("train", "validation", "final_eval")):
                 raise ContractError("explicit typed qualified bot, stage and split required")
+            if isinstance(bot["runtime"], ModelOpponentRuntime):
+                if bot["stage"] != "common-decks-bo3":
+                    raise ContractError("new self-play models cannot replace the existing-bot first stage")
+                validate_common_deck_evidence(bot.get("common_deck_evidence"), bot["deck"], config["period_id"])
+                bot["runtime"].assert_assets(assets)
+                if bot["runtime"].policy_mode == "sample":
+                    integer(bot.get("opponent_policy_seed"), "private opponent sampling seed", 0, 2**32-8)
+                elif bot.get("opponent_policy_seed") is not None:
+                    raise ContractError("greedy model opponent cannot consume a sampling seed")
             FirstOrderPolicy(bot["first_order"])
             if not isinstance(bot["coverage_label"], str) or not bot["coverage_label"].strip():
                 raise ContractError("host must declare actual opponent coverage, not infer from source availability")
@@ -132,6 +193,10 @@ class ScenarioCourse:
             "source_map": source_tree_snapshot(Path(__file__).resolve().parent),
             "period_context": deepcopy(assets.period_context), "rules_sha256": self.rules.sha256,
             "bots": {i: bot_binding(b) for i, b in self.bots.items()}}
+        if storage_envelope is not None:
+            self.binding["storage_envelope"] = deepcopy(storage_envelope.binding)
+        if data_index.storage_limits is not None:
+            self.binding["data_index_storage_sha256"] = data_index.storage_policy_sha256
         self.records, self.events, self.active_seconds = [], [], 0.
         self.selection = self.deck = self.construction = None
         self.pending = None
@@ -139,6 +204,8 @@ class ScenarioCourse:
         self.frozen_evaluation = None
         self.revision, self.desired = 0, "ready"
         self._last_checkpoint = None
+        self.checkpoint_policy=checkpoint_policy(self.config.get("checkpoint_policy"))
+        self._checkpoint_entries=[]
         self._config_sha256 = digest(self.config)
         self._binding_sha256 = digest(self.binding)
         from .course_feedback import CourseFeedbackUpdater
@@ -150,11 +217,11 @@ class ScenarioCourse:
                           for r in self.records) for kind in ("bo1", "bo3")}
 
     def stage(self):
-        if self.config["pilot_mean_seconds"] is None: return "timing_required"
-        counts, rule = self.counts(), volume_requirements(self.config["pilot_mean_seconds"])
+        if self.config["pilot_mean_seconds"] is None and self.config.get("timing_basis") is None: return "timing_required"
+        counts, rule = self.counts(), course_volume_requirements(self.config)
         first = rule.get("bo1_min", rule.get("minimum_bo1"))
         if counts["bo1"] < first: return "bots-bo1"
-        return "complete" if volume_met(self.config["pilot_mean_seconds"], counts["bo1"], counts["bo3"]) else "common-decks-bo3"
+        return "complete" if course_volume_met(self.config, counts["bo1"], counts["bo3"]) else "common-decks-bo3"
 
     def status(self):
         counts = self.counts()
@@ -164,6 +231,7 @@ class ScenarioCourse:
             "anomalous_matches": sum(not r["complete"] for r in self.records),
             "active_seconds": self.active_seconds, "wall_limit_seconds": self.config["wall_seconds"],
             "pilot_matches_credited": 0, "evaluation_matches_credited": 0,
+            "timing_basis": deepcopy(self.config.get("timing_basis")),
             "pending_match": None if self.pending is None else self.pending["state"].summary(),
             "formal_training_success_verified": False, "events": deepcopy(self.events[-8:])}
 
@@ -217,7 +285,9 @@ class ScenarioCourse:
         initial = "actor" if ordinal % 2 == 0 else "opponent"
         state = MatchState(match_id, (MatchParticipant("actor", self.deck), MatchParticipant("opponent", bot["deck"])),
             self.rules, {"course_binding_sha256": digest(self.binding), "purpose": purpose,
-                         "stage": stage, "bot_id": bot_id}, initial, adapter_revision=self.assets.adapter_revision)
+                         "stage": stage, "bot_id": bot_id,
+                         **({"model_opponent": bot["runtime"].identity()} if not isinstance(bot["runtime"], CourseBotRuntime) else {})},
+            initial, adapter_revision=self.assets.adapter_revision)
         self.pending = {"state": state, "bot_id": bot_id, "purpose": purpose, "stage": stage,
                         "format": "bo1" if stage == "bots-bo1" else "bo3", "receipts": []}
 
@@ -236,6 +306,7 @@ class ScenarioCourse:
                 raise ContractError("frozen evaluation changed a model, optimizer or training cursor")
 
     def _game(self):
+        self._storage_guard()
         p = self.pending; match = p["state"]; bot = self.bots[p["bot_id"]]; purpose = p["purpose"]
         try:
             if match.status == "awaiting_sideboards":
@@ -254,9 +325,15 @@ class ScenarioCourse:
             match.abort_intermission(type(error).__name__)
             return
         if match.status != "ready": return
+        runtime_options = ({"bot_runtime": bot["runtime"]} if isinstance(bot["runtime"], CourseBotRuntime)
+                           else {"model_runtime": bot["runtime"]})
+        if not isinstance(bot["runtime"], CourseBotRuntime) and bot["runtime"].policy_mode == "sample":
+            secret = digest({"seed": bot["opponent_policy_seed"], "match_id": match.match_id,
+                             "game_number": len(match.summary()["games"]) + 1})
+            runtime_options["opponent_policy_rng"] = torch.Generator(device="cpu").manual_seed(int(secret[:16],16) % (2**63-1))
         adapter = CourseGameAdapter(assets=self.assets, match_state=match, actor_participant_id="actor",
             trainer=self.models.duel, adapter_session=self.models.sessions.get("duel"),
-            bot_runtime=bot["runtime"], data_index=self.data_index, experiment_id=self.config["course_id"],
+            **runtime_options, data_index=self.data_index, experiment_id=self.config["course_id"],
             purpose=purpose, policy_rng=self.models.policy_rng,
             evaluation_pairs=tuple(tuple(v) for v in self.config["evaluation_pairs"].get(purpose, [])),
             evaluation_cursor=self.evaluation_cursor.get(purpose, 0))
@@ -312,9 +389,10 @@ class ScenarioCourse:
         integer(limit, "bounded invocation match limit", 1, self.config["matches_per_invocation"])
         if (digest(self.config) != self._config_sha256 or self.config != self.binding["config"] or
                 digest(self.binding) != self._binding_sha256 or
+                {i: bot_binding(b) for i, b in self.bots.items()} != self.binding["bots"] or
                 source_tree_snapshot(Path(__file__).resolve().parent) != self.binding["source_map"]):
             raise ContractError("course configuration changed after binding")
-        if self.config["pilot_mean_seconds"] is None:
+        if self.config["pilot_mean_seconds"] is None and self.config.get("timing_basis") is None:
             raise ContractError("real timing pilot must determine the volume branch before formal execution")
         if self.revision == 0 and (self.root / "latest.json").exists():
             raise ContractError("existing course must be restored before executing another game")
@@ -350,6 +428,7 @@ class ScenarioCourse:
             if purpose != "train" and sum(r["purpose"] == purpose for r in self.records) >= self.config["evaluation_matches"]: break
             if self.active_seconds + self.models.duel.config.episode_seconds > self.config["wall_seconds"]:
                 self.desired = "budget_insufficient_for_next_game"; break
+            self._storage_guard()
             started, accounted = time.monotonic(), self.active_seconds
             try:
                 self._start_match(purpose)
@@ -474,6 +553,8 @@ class ScenarioCourse:
         _exclusive_json(marker, {"planned_games": len(pairs), "seed_schedule_sha256": digest(pairs),
                                  "automatic_retry": False})
         choices = sorted(i for i, b in self.bots.items() if b["purpose"] == "train")
+        if any(not isinstance(self.bots[i]["runtime"], CourseBotRuntime) for i in choices):
+            raise ContractError("legacy bot timing protocol does not measure mixed model opponents; retain the declared prior branch")
         if not choices: raise ContractError("real qualified pilot bot cases required")
         if self.deck is None: self._construct()
         execution = self.model_execution(); frozen = self.models.fingerprint()
@@ -487,7 +568,7 @@ class ScenarioCourse:
             "training_updates": 0, "formal_matches": 0, "native_executed": False,
             "csharp_execution_attempted": False, "all_models_unchanged": False,
             "bo3_timing_verified": False, "general_speed_verified": False}
-        pilot_index = DataIndex(self.root / "timing-data")
+        pilot_index = DataIndex(self.root / "timing-data", storage_limits=self.data_index.storage_limits)
         for ordinal, pair in enumerate(pairs):
             bot_id = choices[(ordinal // 2) % len(choices)]; bot = self.bots[bot_id]
             initial = "actor" if ordinal % 2 == 0 else "opponent"
@@ -523,12 +604,145 @@ class ScenarioCourse:
         if progress is not None: progress(deepcopy(report))
         return report
 
+    def _storage_bytes(self):
+        # The index is normally a sibling of course/, so include its complete
+        # directory (including SQLite journals), without deleting any of it.
+        roots=[self.root]
+        index_root=Path(self.data_index.root).resolve()
+        if self.root.is_relative_to(index_root):roots=[index_root]
+        elif not index_root.is_relative_to(self.root):roots.append(index_root)
+        total=0
+        for root in roots:
+            for path in root.rglob("*"):
+                if path.is_symlink():raise ContractError("course storage inventory does not follow symlinks")
+                if path.is_file():
+                    stat=path.stat()
+                    total+=max(stat.st_size,getattr(stat,"st_blocks",0)*512)
+        return total
+
+    def _storage_guard(self, additional_bytes=0):
+        integer(additional_bytes,"additional checkpoint storage bytes",0)
+        if self.storage_envelope is not self._bound_storage_envelope:
+            raise ContractError("course storage envelope instance changed after binding")
+        policy=checkpoint_policy(self.config.get("checkpoint_policy"))
+        if policy!=self.checkpoint_policy:raise ContractError("checkpoint policy changed after course binding")
+        if self.storage_envelope is not None:
+            if self.binding.get("storage_envelope") != self.storage_envelope.binding:
+                raise ContractError("course workspace storage envelope changed")
+            self.storage_envelope.guard(additional_bytes)
+        used=self._storage_bytes()
+        if policy["max_state_bytes"] is not None and used+additional_bytes>policy["max_state_bytes"]:
+            raise ContractError("course state storage limit would be exceeded; no game or checkpoint started")
+        if shutil.disk_usage(self.root).free<policy["min_free_bytes"]+additional_bytes:
+            raise ContractError("course minimum free disk reserve is unavailable")
+        index_root=Path(self.data_index.root).resolve()
+        if index_root.stat().st_dev!=self.root.stat().st_dev and shutil.disk_usage(index_root).free<policy["min_free_bytes"]:
+            raise ContractError("course data-index disk reserve is unavailable")
+        return used
+
+    def storage_status(self):
+        return {"checkpoint_policy":deepcopy(self.checkpoint_policy),"state_and_index_bytes":self._storage_bytes(),
+            "manifest_entries":len(self._checkpoint_entries),"records_and_index_still_grow":True,
+            "whole_environment_under_30GB_proven":False,"training_authorized_by_storage_check":False}
+
+    def _registry(self,entries):
+        return {"schema_version":1,"kind":"course-owned-checkpoint-manifest-v1",
+            "course_binding_sha256":digest(self.binding),"entries":deepcopy(entries)}
+
+    def _validate_entries(self,entries):
+        if not isinstance(entries,list):raise ContractError("course checkpoint manifest entries must be a list")
+        last=0
+        every=self.checkpoint_policy["milestone_every"]
+        for i,e in enumerate(entries):
+            fields(e,{"path","sha256","bytes","revision","initial","milestone","course_binding_sha256"})
+            integer(e["revision"],"owned checkpoint revision",last+1)
+            integer(e["bytes"],"owned checkpoint bytes",1)
+            if (e["path"]!="checkpoint-"+str(e["revision"])+".weights" or
+                    not isinstance(e["sha256"],str) or len(e["sha256"])!=64 or any(c not in "0123456789abcdef" for c in e["sha256"]) or
+                    e["initial"] is not (i==0) or e["milestone"] is not bool(every and e["revision"]%every==0) or
+                    e["course_binding_sha256"]!=digest(self.binding)):
+                raise ContractError("owned checkpoint manifest identity differs")
+            last=e["revision"]
+        return entries
+
+    def _protected_checkpoints(self,entries):
+        keep=self.checkpoint_policy["keep_last"]
+        if keep is None:return {e["path"] for e in entries}
+        return {e["path"] for e in entries if e["initial"] or e["milestone"]} | {e["path"] for e in entries[-keep:]}
+
+    def _verify_owned_files(self,entries):
+        protected=self._protected_checkpoints(entries)
+        for e in entries:
+            path=self.root/e["path"]
+            if path.is_symlink():raise ContractError("owned checkpoint cannot be a symlink")
+            if not path.exists():
+                if e["path"] in protected:raise ContractError("protected owned checkpoint is missing")
+                continue  # An already-pruned manifest entry remains an audit record.
+            if (not path.is_file() or path.stat().st_size!=e["bytes"] or
+                    hashlib.sha256(path.read_bytes()).hexdigest()!=e["sha256"]):
+                raise ContractError("owned checkpoint bytes changed; pruning is refused")
+
+    def _assert_registry(self):
+        path=self.root/"checkpoint-manifest.json"
+        self._validate_entries(self._checkpoint_entries)
+        if path.is_symlink():raise ContractError("course checkpoint manifest symlinks unsupported")
+        if self._checkpoint_entries:
+            if not path.is_file() or digest(json.loads(path.read_text()))!=digest(self._registry(self._checkpoint_entries)):
+                raise ContractError("course checkpoint manifest changed or disappeared")
+            self._verify_owned_files(self._checkpoint_entries)
+        elif path.exists():raise ContractError("existing checkpoint manifest requires explicit course restore")
+        if self._last_checkpoint is not None:
+            latest=self.root/"latest.json"
+            if latest.is_symlink() or digest(json.loads(latest.read_text()))!=digest(self._last_checkpoint):
+                raise ContractError("course checkpoint pointer advanced; restore before saving")
+
+    def _restored_entries(self,saved,pointer):
+        storage=saved.get("checkpoint_storage")
+        if storage is None:
+            if (self.root/"checkpoint-manifest.json").exists():raise ContractError("legacy checkpoint has no owned manifest binding")
+            return []  # Existing unregistered files will never become pruning targets.
+        fields(storage,{"schema_version","policy","prior_entries"})
+        integer(storage["schema_version"],"checkpoint storage schema",1,1)
+        if storage["policy"]!=self.checkpoint_policy:raise ContractError("restored checkpoint retention policy differs")
+        entries=deepcopy(self._validate_entries(storage["prior_entries"]))
+        if entries and entries[-1]["revision"]>=pointer["revision"]:raise ContractError("restored checkpoint manifest ancestry differs")
+        entries.append(self._checkpoint_entry(pointer,entries))
+        self._validate_entries(entries)
+        path=self.root/"checkpoint-manifest.json"
+        if path.is_symlink() or not path.is_file() or digest(json.loads(path.read_text()))!=digest(self._registry(entries)):
+            raise ContractError("restored checkpoint manifest is not anchored by the current checkpoint")
+        self._verify_owned_files(entries)
+        return entries
+
+    def _checkpoint_entry(self,pointer,prior):
+        every=self.checkpoint_policy["milestone_every"]
+        return {"path":pointer["path"],"sha256":pointer["sha256"],"bytes":(self.root/pointer["path"]).stat().st_size,
+            "revision":pointer["revision"],"initial":not prior,"milestone":bool(every and pointer["revision"]%every==0),
+            "course_binding_sha256":digest(self.binding)}
+
+    def _prune_checkpoints(self):
+        # Validate the complete ownership registry and every extant file before
+        # the first unlink. Unknown files, data/index, markers and receipts are
+        # never candidates, even if their filenames resemble checkpoints.
+        self._assert_registry()
+        if self._last_checkpoint is None:return
+        protected=self._protected_checkpoints(self._checkpoint_entries)
+        protected.add(self._last_checkpoint["path"])
+        for e in self._checkpoint_entries:
+            path=self.root/e["path"]
+            if e["path"] not in protected and path.exists():
+                if path.is_symlink() or path.stat().st_size!=e["bytes"] or hashlib.sha256(path.read_bytes()).hexdigest()!=e["sha256"]:
+                    raise ContractError("owned checkpoint changed during pruning")
+                path.unlink()
+
     def save(self):
+        self._assert_registry()
+        self._storage_guard()
         if self.pending is not None: match = self.pending["state"].to_dict()
         else: match = None
-        self.revision += 1
+        revision=self.revision+1
         payload = {"kind": "ordered-course-game-boundary-v1", "binding": self.binding,
-            "revision": self.revision, "models": self.models.save_state(),
+            "revision": revision, "models": self.models.save_state(),
             "records": self.records, "events": self.events, "active_seconds": self.active_seconds,
             "selection": self.selection, "deck": None if self.deck is None else self.deck.to_dict(),
             "initial_model_execution": deepcopy(self.initial_model_execution),
@@ -536,15 +750,41 @@ class ScenarioCourse:
                 **{k:v for k,v in self.pending.items() if k != "state"}, "state": match},
             "evaluation_cursor": self.evaluation_cursor, "frozen_evaluation": self.frozen_evaluation,
             "desired": self.desired, "feedback": self.feedback.state_dict(),
-            "data_index_sha256": index_identity(self.data_index)}
-        path = self.root / ("checkpoint-" + str(self.revision) + ".weights")
-        with path.open("xb") as output:
-            torch.save(payload, output); output.flush(); os.fsync(output.fileno())
-        pointer = {"path": path.name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-                   "revision": self.revision, "active_seconds": self.active_seconds}
-        temporary = self.root / ("latest-" + str(self.revision) + ".json")
+            "data_index_sha256": index_identity(self.data_index),
+            "checkpoint_storage":{"schema_version":1,"policy":deepcopy(self.checkpoint_policy),
+                "prior_entries":deepcopy(self._checkpoint_entries)}}
+        # Know the serialized byte count before writing disk. This is an actual
+        # envelope size, not an estimate from neural tensor parameters.
+        buffer=io.BytesIO();torch.save(payload,buffer);raw=buffer.getbuffer()
+        path = self.root / ("checkpoint-" + str(revision) + ".weights")
+        pointer = {"path": path.name, "sha256":hashlib.sha256(raw).hexdigest(),
+                   "revision":revision,"active_seconds":self.active_seconds}
+        every=self.checkpoint_policy["milestone_every"]
+        entry={"path":path.name,"sha256":pointer["sha256"],"bytes":len(raw),"revision":revision,
+            "initial":not self._checkpoint_entries,"milestone":bool(every and revision%every==0),"course_binding_sha256":digest(self.binding)}
+        entries=self._checkpoint_entries+[entry]
+        manifest=self._registry(entries)
+        temporary = self.root / ("latest-" + str(revision) + ".json")
+        manifest_temporary=self.root/("checkpoint-manifest-"+str(revision)+".json")
+        if any(p.exists() or p.is_symlink() for p in (path,temporary,manifest_temporary)):
+            raise ContractError("checkpoint output exists; it will not be overwritten or adopted")
+        block=max(1,os.statvfs(self.root).f_frsize)
+        sizes=(len(raw),len(canonical_json(manifest).encode())+1,len(canonical_json(pointer).encode())+1)
+        extra=sum(((size+block-1)//block)*block for size in sizes)+2*block
+        self._storage_guard(extra)
+        if self.storage_envelope is None:
+            with path.open("xb") as output:
+                output.write(raw); output.flush(); os.fsync(output.fileno())
+        else:
+            reservation = "course-" + digest({"binding": self._binding_sha256, "path": path.name})[:40]
+            with self.storage_envelope.reserve_file(reservation, path, len(raw), purpose="checkpoint") as output:
+                output.write(raw); output.commit()
+        _exclusive_json(manifest_temporary,manifest);os.replace(manifest_temporary,self.root/"checkpoint-manifest.json")
         _exclusive_json(temporary, pointer); os.replace(temporary, self.root / "latest.json")
+        self.revision=revision
+        self._checkpoint_entries=entries
         self._last_checkpoint = deepcopy(pointer)
+        self._prune_checkpoints()
         return pointer
 
     def restore_latest(self):
@@ -561,6 +801,7 @@ class ScenarioCourse:
                 saved["revision"] != pointer["revision"] or saved["active_seconds"] != pointer["active_seconds"] or
                 saved["data_index_sha256"] != index_identity(self.data_index)):
             raise ContractError("checkpoint binding/accounting/data is stale; no automatic rollback")
+        entries=self._restored_entries(saved,pointer)
         self.models.restore_state(saved["models"], assets=self.assets, expected_binding=self.models.binding)
         from .course_feedback import CourseFeedbackUpdater
         self.feedback = CourseFeedbackUpdater(self.models, self.data_index, self.config["course_id"])
@@ -576,4 +817,5 @@ class ScenarioCourse:
             if value["binding"]["course_binding_sha256"] != digest(self.binding):
                 raise ContractError("pending match belongs to another course")
         self._last_checkpoint = deepcopy(pointer)
+        self._checkpoint_entries=entries
         return self.status()

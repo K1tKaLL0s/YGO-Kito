@@ -1,5 +1,7 @@
 # CloudStudio 与云端 Codex 交接
 
+> 2026-10-26 后续 CPU 接管以[当前功能与启动清单](docs/development/cpu-takeover-and-selfplay.md)为准：本地已读取本交接的18文件，原checkpoint／完整时期数据仍未迁入。用户取消重新测时，课程可用明确慢档 `timing_basis`；当前目录约1.63GB，正式训练全峰值尚不能证明严格小于30GB。三次新双模型核心功能尝试均未终局，未开正式训练。下文原CloudStudio运行记录按来源保留，不把旧预跑建议变成当前门槛。
+
 YGO-Kito 用真实游戏王引擎执行合法动作；四模型分别负责构筑目标、卡组优化、决斗策略和统筹调度。构筑目标生成条件路线，优化模型调整主／额外／副卡，决斗模型在受限观测和合法动作 DTO 上决策，统筹模型根据分账反馈安排后续任务。数据按训练、预跑和冻结评估隔离；更新与资源绑定、优化器、LoRA、RNG、预算及阶段状态一起保存。
 
 ## 当前状态（2026-10-26 同步）
@@ -40,7 +42,7 @@ CloudStudio 主目录 /workspace 的 main 仍是 7e92994；原用户未提交文
 PYTHONPATH=src /workspace/.venv/bin/python scripts/scenario_course.py --template --output .cache/course-host-template.next.json
 ```
 
-填齐真实工件后，先用 --config 与 --output 做默认预检；预检通过才选择 --pilot。--run 是正式训练入口，需等待用户新授权。目前 .cache/actual-course-host.json 尚未生成，不能照抄文件名直接启动。恢复字段和暂停边界按 runner 文档及所用 host 配置执行；记录运行 ID、PID、日志、累计预算和 checkpoint 后再给出精确停止／恢复命令。失败保留结果与最后完整场 checkpoint，查原因后在新输出目录续接，冻结评估仍隔离。
+填齐真实工件后，先用 --config 与 --output 做默认预检。本次明确慢档不选择 --pilot；course文件使用 `pilot_mean_seconds:null` 和已确认 `timing_basis`。--run 是正式训练入口：用户已条件授权总峰值小于30GB后在Codex训练，仍先交启动清单、等父任务完成用户通知后才启动。目前 .cache/actual-course-host.json 尚未生成，不能照抄文件名直接启动。恢复字段和暂停边界按 runner 文档及所用 host 配置执行；记录运行 ID、PID、日志、累计预算和 checkpoint 后再给出精确停止／恢复命令。失败保留结果与最后完整场 checkpoint，查原因后在新输出目录续接，冻结评估仍隔离。
 
 ## AI 对战、学习边界、自对练
 

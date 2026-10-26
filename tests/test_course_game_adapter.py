@@ -20,13 +20,15 @@ from ygo_kito import course_game_adapter as course
 from ygo_kito.bot_deployment import BotSourceRegistry
 from ygo_kito.build_contracts import DeckParts, digest
 from ygo_kito.build_pipeline import BuildAssets
-from ygo_kito.contracts import DecisionRequest, Versions
+from ygo_kito.contracts import ActionSelection, DecisionRequest, Versions
 from ygo_kito.cpu_training import CpuTrainer, CpuTrainingConfig
 from ygo_kito.data_isolation import DataIndex
 from ygo_kito.duel_model import DuelModelConfig, FEATURE_VERSION, parameter_digest
 from ygo_kito.group_runner import GroupState
 from ygo_kito.lora import AdapterConfig, AdapterSession
 from ygo_kito.match_runner import MatchParticipant, MatchRules, MatchState, MatchRunner, GameSpec, FirstOrderPolicy
+from ygo_kito import model_opponents as neural
+from ygo_kito.contracts import validate_selection
 from ygo_kito.validation import ContractError
 from ygo_kito.windbot_projection import WindBotOpponent
 
@@ -274,6 +276,163 @@ class CourseGameAdapterTests(unittest.TestCase):
         self.assertTrue(result.terminal); self.assertEqual(seen, [120])
         with self.assertRaises(ContractError): CpuTrainingConfig(episode_seconds=120)
         with self.assertRaises(ContractError): course.CourseTrainingConfig(episode_seconds=301)
+
+    def model_runtime(self):
+        source = CpuTrainer(replace(self.config, model_seed=999), list(range(1, 42)))
+        snapshot = neural.FrozenDuelSnapshot.capture(source, assets=self.assets, source_binding={'fixture': 'initial-other-model'},
+            source_label='synthetic initial network; not trained ability')
+        return neural.ModelOpponentRuntime(snapshot, 'fixture-initial-model')
+
+    def model_adapter(self, runtime, **options):
+        return course.CourseGameAdapter(assets=self.assets, match_state=self.state, actor_participant_id='actor',
+            trainer=self.trainer, model_runtime=runtime, data_index=self.index, experiment_id='fixture-course',
+            purpose=options.pop('purpose', 'train'), **options)
+
+    def model_match(self, runtime, name='fixture-model-match'):
+        return MatchState(name, self.participants, self.rules, {'fixture': 'fake-engine-only', 'model_opponent': runtime.identity()}, 'actor')
+
+    @contextmanager
+    def fake_model_execution(self):
+        """Actual two-network scoring/PPO; explicitly fake engine, no C#/core."""
+        owner = self
+        class Engine:
+            def __init__(self, root, *, course_observations, **options):
+                self.receipt = owner.assets.receipt; self._selection_seed = options.get('selection_key')
+                self.turn = 1; self.life_points = [8000, 8000]; self.events = []; self.outcome = None
+                self.pending = None; self.cursor = 0; self.watched = course_observations
+                self.requests = []
+                for seat in (0, 1):
+                    payload = request(); payload['context']['seed'] = None
+                    payload['context']['versions'] = asdict(neural._versions(owner.assets, options['deck_profile']['adapter_revision']))
+                    payload['observation'].update(observer=seat, turn_player=0)
+                    payload['observation']['cards'][0].update(owner=seat, controller=seat, card_id=seat+1)
+                    payload['observation']['cards'][1].update(owner=1-seat, controller=1-seat)
+                    payload['decision_id'] = 'fake-model-seat-'+str(seat)
+                    self.requests.append(DecisionRequest.from_dict(payload))
+                self.watched.update(constructor_started=True, constructor_completed=True)
+            def __enter__(self): return self
+            def __exit__(self, *args): owner.close_calls.append('fake-model-engine')
+            def next_decision(self):
+                if self.cursor == 2:
+                    self.pending = None; self.events = [{'kind': 5}]
+                    self.outcome = {'winner': owner.state._pending.seat_of('actor'), 'reason_code': 1}
+                    return None
+                self.pending = self.requests[self.cursor]; self.cursor += 1
+                self.watched['actual_first_core_seat'] = owner.actual_first
+                self.watched['decision_windows'] += 1
+                return self.pending
+            def submit(self, selected): validate_selection(self.pending, selected)
+            def _observation(self, seat): return self.requests[seat].observation
+        with patch.object(neural, 'verify_resources', return_value=self.assets.receipt), \
+                patch.object(course, 'verify_resources', return_value=self.assets.receipt), \
+                patch.object(course, '_CourseNativeEngine', Engine), \
+                patch('ygo_kito.cpu_training.public_card_facts', return_value={}):
+            yield
+
+    def test_two_neural_initial_models_use_actual_sampler_fresh_base_ppo_and_bo3_siding(self):
+        before = parameter_digest(self.trainer.model)
+        with self.fake_model_execution(), patch.object(BotSourceRegistry, 'training_adapter', side_effect=AssertionError('no C# path')):
+            runtime = self.model_runtime(); frozen = runtime.identity()
+            self.state = self.model_match(runtime)
+            adapter = self.model_adapter(runtime)
+            result = self.run_two_game_match(adapter)
+        self.assertEqual(result['status'], 'complete')
+        self.assertEqual(result['complete_matches'], 1)
+        self.assertEqual(self.trainer.updates, 2); self.assertEqual(self.trainer.episode_cursor, 2)
+        self.assertNotEqual(parameter_digest(self.trainer.model), before)
+        self.assertEqual(runtime.identity(), frozen)
+        self.assertEqual(adapter.last_receipt['actor_core_seat'], 1)
+        self.assertEqual(adapter.last_episode['policy_version'], 1)
+        self.assertEqual(adapter.last_episode['steps'][0]['request'].observation.observer, 1)
+        self.assertEqual(adapter.last_receipt['opponent_binding']['controller'], 'local_snapshot')
+        self.assertEqual(adapter.last_receipt['opponent_binding']['model_sha256'], frozen['snapshot']['model_sha256'])
+        self.assertEqual(adapter.state_metadata()['kind'], 'course-live-model-self-play-game-adapter')
+        self.assertNotIn('qualification_sha256', adapter.state_metadata())
+        self.assertEqual([g['actual_first_participant_id'] for g in result['games']], ['actor', 'bot'])
+        self.assertEqual(self.index.summary()['by_purpose']['train'], 2)
+
+    def test_model_opponent_effective_actor_lora_and_frozen_eval_keep_same_update_path(self):
+        session = AdapterSession(self.trainer.model, AdapterConfig('fixture-actor-duel', 'duel', ('value_head.2',), rank=1, max_updates=3),
+            {'base_version': 'fixture-base', 'feature_version': FEATURE_VERSION, 'context_sha256': 'a'*64})
+        base = session.verify_base()
+        with self.fake_model_execution():
+            runtime = self.model_runtime(); self.state = self.model_match(runtime)
+            adapter = self.model_adapter(runtime, adapter_session=session)
+            self.run_two_game_match(adapter)
+            self.assertEqual(session.updates, 2); self.assertEqual(session.verify_base(), base)
+            # Independent eval index/models opponent version to retain actual
+            # DataIndex split guards; no relabeling of the training opponent.
+            source = CpuTrainer(replace(self.config, model_seed=998), list(range(1, 42)))
+            frozen = neural.FrozenDuelSnapshot.capture(source, assets=self.assets, source_binding={'fixture': 'heldout'}, source_label='heldout initial fixture')
+            heldout = neural.ModelOpponentRuntime(frozen, 'fixture-heldout-model')
+            self.state = self.model_match(heldout, 'fixture-model-eval')
+            evaluation = self.model_adapter(heldout, purpose='final_eval', adapter_session=session, evaluation_pairs=((800, 900), (801, 901)))
+            before = evaluation.training_fingerprint()
+            with patch.object(AdapterSession, 'step', side_effect=AssertionError('frozen eval must not update')):
+                self.run_two_game_match(evaluation)
+            self.assertEqual(evaluation.training_fingerprint(), before)
+        self.assertEqual(evaluation.evaluation_cursor, 2)
+        self.assertTrue(evaluation.last_receipt['frozen_training_state_unchanged'])
+
+    def test_model_runtime_xor_exact_match_snapshot_and_same_split_guards(self):
+        with self.fake_model_execution():
+            runtime = self.model_runtime()
+            with self.assertRaisesRegex(ContractError, 'exactly one'):
+                self.adapter(model_runtime=runtime)
+            with self.assertRaisesRegex(ContractError, 'match must bind'): self.model_adapter(runtime)
+            self.state = self.model_match(runtime)
+            trained = self.model_adapter(runtime); self.run_two_game_match(trained)
+            self.state = self.model_match(runtime, 'fixture-model-heldout')
+            evaluated = self.model_adapter(runtime, purpose='final_eval', evaluation_pairs=((800, 900),))
+            before = evaluated.training_fingerprint()
+            result = evaluated(self.state.issue_game_spec())
+            self.assertFalse(result.terminal); self.assertEqual(before, evaluated.training_fingerprint())
+            self.assertIn('crosses train/validation/final', evaluated.last_receipt['error']['message'])
+            other = neural.ModelOpponentRuntime(runtime.snapshot, 'another-opponent-id')
+            with self.assertRaisesRegex(ContractError, 'match must bind'): self.model_adapter(other)
+
+    def test_sampled_model_uses_a_per_game_rng_fork_and_rejects_actor_rng_aliases(self):
+        with self.fake_model_execution():
+            runtime = replace(self.model_runtime(), policy_mode='sample')
+            self.state = self.model_match(runtime)
+            for alias in (self.trainer.policy_rng, self.trainer.batch_rng):
+                with self.assertRaisesRegex(ContractError, 'independent owned'):
+                    self.model_adapter(runtime, opponent_policy_rng=alias)
+            with self.assertRaisesRegex(ContractError, 'independent owned'): self.model_adapter(runtime)
+            generator = torch.Generator(device='cpu').manual_seed(700)
+            initial = generator.get_state().clone()
+            adapter = self.model_adapter(runtime, opponent_policy_rng=generator)
+            self.run_two_game_match(adapter)
+        self.assertEqual(self.trainer.updates, 2)
+        self.assertTrue(torch.equal(generator.get_state(), initial))
+        private = adapter.last_receipt['opponent_sampling']
+        self.assertTrue(private['caller_rng_unchanged']); self.assertEqual(private['after']['decisions'], 1)
+        self.assertNotEqual(private['before']['rng_state'], private['after']['rng_state'])
+        self.assertEqual(adapter.state_metadata()['model_opponent']['policy_mode'], 'sample')
+        self.assertNotIn('rng_state', str(adapter.state_metadata()))
+
+    def test_normal_python_diagnostic_ring_is_bounded_and_never_copies_private_dto(self):
+        d = request(); d['context']['seed'] = None; d['prompt'] = {'message': 11}
+        req = DecisionRequest.from_dict(d)
+        class NormalFixture:
+            def __init__(self): self.pending = None
+            def next_decision(self): self.pending = req; return req
+            def submit(self, selection): validate_selection(self.pending, selection)
+        class Observed(course._FirstTurnObservation, NormalFixture): pass
+        watched = {'decision_windows': 0, 'actual_first_core_seat': None}
+        engine = Observed(course_observations=watched)
+        for _ in range(150):
+            current = engine.next_decision()
+            engine.submit(ActionSelection(current.context.run_id, current.duel_id, current.decision_id, current.actions[0].action_id))
+        with self.assertRaises(ContractError):
+            engine.submit(ActionSelection(req.context.run_id, req.duel_id, req.decision_id, 'not-legal'))
+        diagnostics = watched['private_diagnostics']
+        self.assertEqual(diagnostics['windows'], 150); self.assertEqual(diagnostics['submit_returned'], 150)
+        self.assertEqual(diagnostics['submit_rejected'], 1); self.assertEqual(len(diagnostics['ring']), 128)
+        self.assertEqual(diagnostics['prompt_counts'], {'11': 150})
+        self.assertFalse(diagnostics['ring'][-1]['accepted']); self.assertFalse(diagnostics['training_eligible'])
+        for secret in ('card_id', 'card_refs', 'seed', 'private_reveals', 'old_log_prob'):
+            self.assertNotIn(secret, str(diagnostics))
 
 
 if __name__ == '__main__': unittest.main()

@@ -32,7 +32,7 @@ TARGETS = {"2022-07": "2022-09-30", "2022-10": "2022-12-31", "2026-10": "2026-11
 def validate_host_spec(value):
     d = fields(value, {"schema_version", "kind", "period_id", "selected_target_cutoff", "active_environment",
         "native_root", "source_group", "bootstrap_task", "duel_config", "adapter_configs", "available_cards",
-        "timing_pilot", "pilot_pairs", "bots", "course", "state_root", "resume", "device"})
+        "timing_pilot", "pilot_pairs", "bots", "course", "state_root", "resume", "device"}, {"storage_envelope"})
     integer(d["schema_version"], "course host schema", 1, 1)
     member(d["kind"], "course host kind", ("scenario-course-host-v1",))
     member(d["period_id"], "course period", tuple(TARGETS))
@@ -46,6 +46,7 @@ def validate_host_spec(value):
     for key in ("active_environment", "bootstrap_task", "duel_config", "adapter_configs", "available_cards", "course"):
         _reference(d[key])
     if d["timing_pilot"] is not None: _reference(d["timing_pilot"])
+    if d.get("storage_envelope") is not None: _reference(d["storage_envelope"])
     pairs = d["pilot_pairs"]
     if not isinstance(pairs, list) or not 1 <= len(pairs) <= 100:
         raise ContractError("explicit bounded private pilot seed schedule required")
@@ -60,17 +61,34 @@ def validate_host_spec(value):
     seen = set()
     from .agent_registry import identifier
     for b in d["bots"]:
-        fields(b, {"bot_id", "source_id", "executor_id", "lock", "installed_root", "mono", "audit", "qualification",
-            "qualification_profile", "deck", "source", "session_seconds", "stage", "purpose", "first_order", "coverage_label"}, {"variant_root"})
+        model_driver = b.get("driver") == "local_model_snapshot"
+        if model_driver:
+            fields(b, {"driver", "bot_id", "model", "migration", "deck", "source", "stage", "purpose",
+                       "first_order", "coverage_label", "common_deck_evidence"}, {"policy_mode", "opponent_policy_seed"})
+            _reference(b["model"])
+            member(b["migration"], "explicit snapshot inference transfer", ("same-period-inference", "explicit-inference-migration"))
+            if b["stage"] != "common-decks-bo3":
+                raise ContractError("new model snapshots do not replace the existing-bot first stage")
+            member(b.get("policy_mode", "greedy"), "model policy mode", ("greedy", "sample"))
+            if b.get("policy_mode", "greedy") == "sample":
+                integer(b.get("opponent_policy_seed"), "private opponent policy seed", 0, 2**32-8)
+            elif b.get("opponent_policy_seed") is not None:
+                raise ContractError("greedy model opponent cannot consume a sampling seed")
+        else:
+            fields(b, {"bot_id", "source_id", "executor_id", "lock", "installed_root", "mono", "audit", "qualification",
+                "qualification_profile", "deck", "source", "session_seconds", "stage", "purpose", "first_order", "coverage_label"}, {"variant_root"})
         identifier(b["bot_id"])
         if b["bot_id"] in seen: raise ContractError("duplicate host bot ID")
         seen.add(b["bot_id"])
-        member(b["source_id"], "desktop source", ("ice", "pure"))
         member(b["source"], "bot source", ("engineering_fixture", "user_provided", "external_submission"))
         member(b["stage"], "course stage", ("bots-bo1", "common-decks-bo3"))
         member(b["purpose"], "course partition", ("train", "validation", "final_eval"))
         member(b["first_order"], "declared order policy", ("always_first", "always_second"))
         text(b["coverage_label"], "host declared coverage label")
+        if model_driver:
+            _reference(b["deck"])
+            continue
+        member(b["source_id"], "desktop source", ("ice", "pure"))
         for key in ("executor_id", "installed_root", "mono"): text(b[key], "explicit bot " + key)
         if not Path(b["mono"]).is_absolute(): raise ContractError("Mono requires an explicit absolute path")
         for key in ("lock", "audit", "qualification", "qualification_profile", "deck"): _reference(b[key])
@@ -175,8 +193,8 @@ def model_execution(models):
 
 
 def check_training_capacity(course, duel, adapters):
-    from .training_scenarios import volume_requirements
-    rule = volume_requirements(course["pilot_mean_seconds"])
+    from .training_scenarios import course_volume_requirements
+    rule = course_volume_requirements(course)
     small_games = (rule.get("bo1_min", rule.get("minimum_bo1")) +
                    3 * rule.get("bo3_min", rule.get("minimum_bo3")))
     if len(duel.game_seeds) < small_games:
@@ -227,10 +245,18 @@ class ScenarioCourseHost:
         self.spec = validate_host_spec(spec)
         self.spec_sha256 = digest(self.spec)
         self._prepared = None
+        self._storage_envelope = None
 
     def _prepare(self, *, require_pilot=True):
         if digest(self.spec) != self.spec_sha256: raise ContractError("host configuration changed")
         d, w = self.spec, self.workspace
+        self._storage_envelope = None
+        if d.get("storage_envelope") is not None:
+            from .storage_envelope import StorageEnvelope
+            envelope_config = fields(_json(w, d["storage_envelope"]), set(),
+                {"state_roots", "temporary_roots", "limit_bytes", "outside_bytes", "min_free_bytes", "safety_margin_bytes"})
+            self._storage_envelope = StorageEnvelope(w, **envelope_config)
+            self._storage_envelope.guard()  # Read-only; unknown outside usage fails closed.
         environment = _json(w, d["active_environment"])
         timing = _active_cutoff(d["period_id"], d["selected_target_cutoff"], environment)
         assets = PeriodBuildAssets(_inside(w, d["native_root"], directory=True), d["period_id"], environment, w,
@@ -260,6 +286,8 @@ class ScenarioCourseHost:
         if {p[0] for p in d["pilot_pairs"]} & formal_seeds:
             raise ContractError("pilot physical seeds overlap formal training/evaluation")
         state = _state_root(w, d["state_root"])
+        if self._storage_envelope is not None:
+            self._storage_envelope.require_controlled_directory(state / "course" if require_pilot else state)
         model_inputs = {k: v for k, v in d.items() if k not in ("timing_pilot", "course", "resume", "pilot_pairs", "state_root")}
         source_binding = {"host_model_inputs_sha256": digest(model_inputs), "period_context": deepcopy(assets.period_context),
             "selected_target_cutoff": d["selected_target_cutoff"],
@@ -284,6 +312,23 @@ class ScenarioCourseHost:
         from .course_game_adapter import CourseBotRuntime
         bots = {}
         for b in d["bots"]:
+            if b.get("driver") == "local_model_snapshot":
+                from .model_opponents import FrozenDuelSnapshot, ModelOpponentRuntime
+                from .scenario_course import validate_common_deck_evidence
+                snapshot = FrozenDuelSnapshot.load(w, b["model"]["path"], b["model"]["sha256"])
+                runtime = ModelOpponentRuntime(snapshot, b["bot_id"], source=b["source"], migration=b["migration"],
+                    policy_mode=b.get("policy_mode", "greedy"))
+                deck_path, deck_raw = _bytes(w, b["deck"])
+                deck = DeckParts.from_dict(parse_ydk(deck_raw.decode("utf-8"))) if deck_path.suffix.lower() == ".ydk" else DeckParts.from_dict(parse_json(deck_raw.decode("utf-8")))
+                validate_deck_parts(deck.to_dict(), assets.rows, assets.limits, allowed=assets.allowed_card_ids)
+                evidence = validate_common_deck_evidence(b["common_deck_evidence"], deck, d["period_id"])
+                # Static snapshot/resource admission only; this does not claim
+                # strategy strength, a prior C# run, or a paid external model.
+                runtime.assert_assets(assets)
+                bots[b["bot_id"]] = {"runtime": runtime, "deck": deck, "common_deck_evidence": evidence,
+                    **({"opponent_policy_seed": b["opponent_policy_seed"]} if "opponent_policy_seed" in b else {}),
+                    **{k:b[k] for k in ("stage", "purpose", "first_order", "source", "coverage_label")}}
+                continue
             registry = BotSourceRegistry(_json(w, b["lock"]), _inside(w, b["installed_root"], directory=True))
             runtime = CourseBotRuntime(registry=registry, workspace=w, source_id=b["source_id"], executor_id=b["executor_id"],
                 audit=b["audit"], qualification=b["qualification"], qualification_profile=b["qualification_profile"],
@@ -314,7 +359,7 @@ class ScenarioCourseHost:
         for stage in ("bots-bo1", "common-decks-bo3"):
             if not any(b["stage"] == stage and b["purpose"] == "train" for b in bots.values()):
                 raise ContractError("both ordered training stages require actual qualified bots")
-        if require_pilot:
+        if require_pilot and course.get("timing_basis") is None:
             _reference(d["timing_pilot"])
             execution = model_execution(models)
             if saved is not None:
@@ -327,6 +372,9 @@ class ScenarioCourseHost:
             mean = check_timing_pilot(_json(w, d["timing_pilot"]), assets=assets, execution=execution,
                 pilot_pairs=d["pilot_pairs"], bots=bots)
             if course["pilot_mean_seconds"] != mean: raise ContractError("course mean must equal its pinned actual pilot window")
+        if require_pilot:
+            # An explicit user choice of the already confirmed slow branch
+            # does not claim a fresh measurement, and requires no re-timing.
             check_training_capacity(course, duel, adapters)
         return models, assets, course, bots, state, excluded
 
@@ -339,7 +387,11 @@ class ScenarioCourseHost:
             models, assets, course, bots, _, excluded = self._prepared
             report.update(status="ready", period_id=self.spec["period_id"], selected_target_cutoff=self.spec["selected_target_cutoff"],
                 active_period_context=deepcopy(assets.period_context), effective_models=models.versions(),
-                bot_ids=list(bots), pilot_mean_seconds=course["pilot_mean_seconds"], excluded_cards=excluded)
+                bot_ids=list(bots), pilot_mean_seconds=course["pilot_mean_seconds"],
+                timing_basis=deepcopy(course.get("timing_basis")), excluded_cards=excluded)
+            report["whole_training_storage_peak_under_30GB_verified"] = False
+            if self._storage_envelope is not None:
+                report["storage_envelope"] = self._storage_envelope.audit()
         except (ContractError, OSError, ValueError, KeyError, TypeError, RuntimeError, ImportError, sqlite3.Error) as error:
             self._prepared = None
             report["blockers"].append({"type": type(error).__name__, "message": str(error)})
@@ -353,8 +405,9 @@ class ScenarioCourseHost:
             raise ContractError("existing private course state requires explicit resume")
         from .data_isolation import DataIndex
         from .scenario_course import ScenarioCourse
-        course = ScenarioCourse(models, assets=assets, data_index=DataIndex(state / "data-index"),
-            config=config, state_root=state / "course", bots=bots)
+        course = ScenarioCourse(models, assets=assets,
+            data_index=DataIndex(state / "data-index", storage_limits=config.get("data_index_storage")),
+            config=config, state_root=state / "course", bots=bots, storage_envelope=self._storage_envelope)
         if self.spec["resume"]: course.restore_latest()
         if progress is not None:
             progress({"kind": "scenario-course-host-run", "status": "running", "native_executed": None,
@@ -371,8 +424,9 @@ class ScenarioCourseHost:
         from .data_isolation import DataIndex
         from .scenario_course import ScenarioCourse
         root = state / ("timing-pilot-" + secrets.token_hex(12))
-        course = ScenarioCourse(models, assets=assets, data_index=DataIndex(root / "private-index"),
-            config=config, state_root=root / "course", bots=bots)
+        course = ScenarioCourse(models, assets=assets,
+            data_index=DataIndex(root / "private-index", storage_limits=config.get("data_index_storage")),
+            config=config, state_root=root / "course", bots=bots, storage_envelope=self._storage_envelope)
         if progress is not None:
             progress({"kind": "course-group-bo1-timing-pilot-v1", "status": "running", "native_executed": None,
                 "csharp_execution_attempted": None, "training_updates": 0, "formal_matches": 0})
