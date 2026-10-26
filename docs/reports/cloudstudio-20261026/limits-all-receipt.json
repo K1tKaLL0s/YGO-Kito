@@ -1,0 +1,9 @@
+{
+  "url": "https://ygocdb.com/api/v0/limits.json?show=all",
+  "attempted_utc": "2026-10-26T08:39:16.637363+00:00",
+  "status": 200,
+  "sha256": "a1eae437839197d8f08f9932fbba769567079137490b340a30fcc45def8dfcdd",
+  "bytes": 804793,
+  "records": 4,
+  "root_type": "dict"
+}
