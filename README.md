@@ -1,5 +1,7 @@
 # YGO-Kito
 
+本轮新增[实际自主课程与 BO3 入口](docs/development/scenario-course-runner.md)：复用四模型与有效 LoRA，提供目录候选／模型选择、构筑逻辑及 CB 核验、合法换备、逐小局更新、完整场计数、冻结评估和自包含恢复。当前仅 CPU 机制测试通过，不代表真实机器人模型路径、GPU 速度或训练能力已经验收；起始权重、资源与真实计时须显式提供。草稿 [PR #4](https://github.com/K1tKaLL0s/YGO-Kito/pull/4) 不自动合并或训练。
+
 游戏王 AI 项目的私密设计、资料与 CPU 基础开发仓库。
 
 ## 当前开发入口
@@ -8,7 +10,7 @@
 
 **持续进度入口：[总工作清单 MASTER-CHECKLIST](docs/plans/MASTER-CHECKLIST.md)。** 每批完成后同步稳定任务 ID、状态和证据，符合验收条件才勾选；部分完成保持未勾选。该表索引全阶段进度，保留[第一阶段详细清单](docs/plans/2026-10-22-phase-1-cpu-checklist.md)，不替代统一规范。PR 已发布不表示已合并。
 
-**当前云端整合候选：[PR #3](https://github.com/K1tKaLL0s/YGO-Kito/pull/3)。** 保留PR1、DP草稿PR2及构筑工作历史。用户已授权设计复核、必要修正和最终CI通过后依次合入main；新增完整机器人运行范围尚未闭合时不先行合并。[本轮续作](docs/reports/2026-10-25-bot-gap-continuation.md)补齐私有对象／公开历史连续性、精确Monarch506变体、构建诊断与全量资格入口；最终测试与CI按对应提交回执核对，不沿用539368b的462项成绩。C#工具安装受系统权限和配置签名源代理403阻碍，未编译或运行WindBot；这些环境阻碍没有用于停止独立软件工作。通用接续先读[AGENTS.md](AGENTS.md)和[Agent说明](docs/development/generic-agent-integration.md)。
+**工程基线已合并：[PR #1→#2→#3](https://github.com/K1tKaLL0s/YGO-Kito/pull/3)，main `7e92994d`。** 该main的517项CPU CI通过，作者分支保留；C# WindBot尚未实际编译／运行，用户已明确将其留至腾讯云接续。新增[三环境训练规则与计时准备](docs/development/autonomous-training-preparation.md)单列2610自主课程与历史验收，包含有界CPU预跑代码；BO3／自主课程的具体未接执行项如实列明，不能将方案当作正式训练已就绪。已授权用户牌表接入见[收件说明](docs/development/user-deck-dataset.md)。本轮增量仍经独立草稿审查，不自动合并或训练。通用接续先读[AGENTS.md](AGENTS.md)和[Agent说明](docs/development/generic-agent-integration.md)。
 
 **继续工程准备：[安全CPU CI](docs/development/safe-cpu-ci.md)、[3＋8牌表收件](docs/development/deck-intake.md)、[完整源码训练交接](docs/development/training-handoff.md)。** 已建立[草稿PR #3](https://github.com/K1tKaLL0s/YGO-Kito/pull/3)，依赖#1→#2→#3。最新测试/CI与剩余依赖统一见[继续工程报告](docs/reports/2026-10-24-engineering-continuation.md)；原188项是历史整合基线，不代替新提交检查。
 

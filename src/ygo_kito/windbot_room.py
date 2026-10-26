@@ -457,14 +457,20 @@ def _local_vector_bound(window, player, location):
     if location not in (4, 8):
         for message in window.frame.messages:
             d = message.fields
-            if message.kind == 50 and tuple(d.get("previous", ()))[:2] == (player, location):
-                count += 1
+            if message.kind == 50:
+                # MSG_MOVE.previous is a four-byte slot. MSG_POS_CHANGE (53)
+                # uses the same field name for one position byte and does not
+                # change any zone's card count. Decode only the move schema;
+                # malformed move slots still fail the ordinary wire contract.
+                previous = d.get("previous")
+                _wire_slot(previous)
+                if tuple(previous)[:2] == (player, location):
+                    count += 1
+                if swap_vector and previous[0] == player and previous[1] in (1, 16, 64):
+                    swapped_count += 1
             elif message.kind == 90 and location == 1 and d.get("player") == player:
                 count += len(d.get("card_ids", ()))
-            previous = tuple(d.get("previous", ()))
-            if swap_vector and message.kind == 50 and len(previous) == 4 and previous[0] == player and previous[1] in (1, 16, 64):
-                swapped_count += 1
-            elif swap_vector and message.kind == 90 and d.get("player") == player:
+            if swap_vector and message.kind == 90 and d.get("player") == player:
                 swapped_count += len(d.get("card_ids", ()))
     return min(max(count, swapped_count), 256)
 

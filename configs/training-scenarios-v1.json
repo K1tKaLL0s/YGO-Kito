@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "kind": "training_scenario_preparation_not_runner_recipe",
+  "execution_enabled": false,
+  "budget_plan": "configs/training-plan-v1.json",
+  "model_roles": ["duel", "build_goal", "build_optimizer", "coordinator"],
+  "common": {
+    "count_unit": "completed_matches",
+    "timing_unit": "actual_small_games_model_and_engine",
+    "timing_pilot_counts_toward_training": false,
+    "fast": {"mean_seconds_at_most": 60, "bo1_min": 1000, "bo3_min": 100},
+    "slow": {"mean_seconds_above": 60, "total_min": 1000, "bo1_ratio": 6, "bo3_ratio": 4},
+    "frozen_evaluation_counts_toward_training": false,
+    "pilot_sample_recommendation": {
+      "actual_small_games": 12,
+      "status": "recommendation_not_user_minimum",
+      "coverage": ["several actually qualified opponents", "both actual starting orders", "record model/device/decks and failed attempts"],
+      "window": "all attempted games in one declared fixed-checkpoint pilot; incomplete attempts reported separately",
+      "representative_of_unmeasured_bo3_or_gpu": false
+    }
+  },
+  "periods": {
+    "2022-07": {
+      "construction_mode": "existing_tearlaments_reference",
+      "main_slot": "main-01",
+      "release_cutoff": "2022-09-30",
+      "acceptance": {
+        "kind": "legacy_reference_bo3",
+        "source": "docs/plans/2026-10-22-unified-development-spec.md section 12.1",
+        "metric_unit": "bo3_match_with_siding",
+        "external_at_least": 0.6,
+        "mirror_target": 0.5,
+        "mirror_tolerance": null,
+        "frozen_external_bo3_min": 200,
+        "frozen_mirror_bo3_min": 200,
+        "confidence_level": 0.95,
+        "confidence_decision_rule": null,
+        "draw_and_repeated_observation_rule": null
+      }
+    },
+    "2022-10": {
+      "construction_mode": "existing_tearlaments_reference",
+      "main_slot": "main-02",
+      "release_cutoff": "2022-12-31",
+      "acceptance": {
+        "kind": "legacy_reference_bo3",
+        "source": "docs/plans/2026-10-22-unified-development-spec.md section 12.1",
+        "metric_unit": "bo3_match_with_siding",
+        "external_at_least": 0.6,
+        "mirror_target": 0.5,
+        "mirror_tolerance": null,
+        "frozen_external_bo3_min": 200,
+        "frozen_mirror_bo3_min": 200,
+        "confidence_level": 0.95,
+        "confidence_decision_rule": null,
+        "draw_and_repeated_observation_rule": null
+      }
+    },
+    "2026-10": {
+      "construction_mode": "model_selected_theme_build_and_cb",
+      "main_slot": null,
+      "fixed_theme": null,
+      "user_deck_role": "preserved_optional_reference_not_required_entry",
+      "release_cutoff": "2026-11-01",
+      "eligible_pool": "confirmed_released_period_legal_catalogue_and_script_usable_subset",
+      "missing_card_policy": "exclude_missing_card_not_other_themes",
+      "stages": [
+        {"stage_id": "available-bot-bo1", "format": "BO1", "opponents": "actually_runtime_qualified_available_bots", "requires": []},
+        {"stage_id": "common-decks-bo3", "format": "BO3", "opponents": "explicit_2026_10_common_deck_pool", "requires": ["available-bot-bo1_completed"]}
+      ],
+      "acceptance": {
+        "kind": "actual_small_game_start_order_rates",
+        "source": "user confirmation 2026-10-25 18:11:59 UTC",
+        "scope": "common-decks-bo3_frozen_evaluation_only",
+        "metric_unit": "actual_completed_small_games_by_actual_start_order",
+        "first_strictly_greater_than": 0.49,
+        "second_strictly_greater_than": 0.39,
+        "both_required": true,
+        "draws_are_wins": false,
+        "draws_in_completed_denominator": true,
+        "legacy_evaluation_sampling": {
+          "source": "unified spec section 12.1 originally applies 200 external plus 200 mirror BO3 per period",
+          "external_bo3_min": 200,
+          "mirror_bo3_min": 200,
+          "mapping_to_autonomous_themes": "pending; not silently cancelled or satisfied by training matches"
+        },
+        "anomalies": "retain_all_attempts_and_leave_success_pending_until_adjudicated"
+      }
+    }
+  },
+  "isolation": {
+    "partitions": ["timing_pilot", "train", "validation", "final_eval"],
+    "training_never_consumes_pilot_or_frozen_evaluation": true,
+    "freeze_model_deck_opponents_and_seeds_for_evaluation": true,
+    "stage1_results_are_stage2_acceptance": false
+  },
+  "runtime_gaps": [
+    "actual target-device group/LoRA and BO3 execution evidence is not supplied by CPU fixture checks",
+    "historical near-50-percent tolerance and confidence decision protocol remain unconfirmed",
+    "legacy 200 external plus 200 mirror evaluation mapping to autonomous themes remains explicit and pending"
+  ]
+}
