@@ -1,0 +1,102 @@
+{
+  "frozen_pairs": [
+    {
+      "case_id": "ice-burn-seat0",
+      "repeat": 0,
+      "trajectory_equal": true,
+      "cpu_game_seconds": 88.43778791901423,
+      "cuda_game_seconds": 86.97324033899349,
+      "cuda_minus_cpu_seconds": -1.464547580020735
+    },
+    {
+      "case_id": "ice-burn-seat1",
+      "repeat": 0,
+      "trajectory_equal": true,
+      "cpu_game_seconds": 53.53298828098923,
+      "cuda_game_seconds": 51.38600955301081,
+      "cuda_minus_cpu_seconds": -2.1469787279784214
+    },
+    {
+      "case_id": "ice-blackwing-seat0",
+      "repeat": 0,
+      "trajectory_equal": true,
+      "cpu_game_seconds": 59.07418158298242,
+      "cuda_game_seconds": 57.1841290529992,
+      "cuda_minus_cpu_seconds": -1.8900525299832225
+    },
+    {
+      "case_id": "ice-blackwing-seat1",
+      "repeat": 0,
+      "trajectory_equal": true,
+      "cpu_game_seconds": 67.5547684149933,
+      "cuda_game_seconds": 67.35768318999908,
+      "cuda_minus_cpu_seconds": -0.19708522499422543
+    },
+    {
+      "case_id": "ice-burn-seat0",
+      "repeat": 1,
+      "trajectory_equal": true,
+      "cpu_game_seconds": 89.59225524100475,
+      "cuda_game_seconds": 93.60164569300832,
+      "cuda_minus_cpu_seconds": 4.009390452003572
+    },
+    {
+      "case_id": "ice-burn-seat1",
+      "repeat": 1,
+      "trajectory_equal": true,
+      "cpu_game_seconds": 51.634010469017085,
+      "cuda_game_seconds": 52.23035122497822,
+      "cuda_minus_cpu_seconds": 0.5963407559611369
+    },
+    {
+      "case_id": "ice-blackwing-seat0",
+      "repeat": 1,
+      "trajectory_equal": true,
+      "cpu_game_seconds": 59.1200460359978,
+      "cuda_game_seconds": 58.67104838200612,
+      "cuda_minus_cpu_seconds": -0.44899765399168245
+    },
+    {
+      "case_id": "ice-blackwing-seat1",
+      "repeat": 1,
+      "trajectory_equal": true,
+      "cpu_game_seconds": 69.5536041269952,
+      "cuda_game_seconds": 68.48272070998792,
+      "cuda_minus_cpu_seconds": -1.0708834170072805
+    }
+  ],
+  "resources": {
+    "cpu": {
+      "gpu_util_percent_mean": 0.0,
+      "gpu_util_percent_max": 0.0,
+      "gpu_memory_used_MiB_max": 445.0,
+      "power_W_mean": 55.790074626865675,
+      "python_cpu_percent_mean": 88.1958252946338,
+      "python_rss_bytes_max": 1717981184,
+      "actor_inference_seconds_per_game": 0.4512084872221749,
+      "native_api_seconds_per_game": 1.1717285768572765
+    },
+    "cuda:0": {
+      "gpu_util_percent_mean": 0.0450281425891182,
+      "gpu_util_percent_max": 3.0,
+      "gpu_memory_used_MiB_max": 445.0,
+      "power_W_mean": 56.2018574108818,
+      "python_cpu_percent_mean": 88.2701863122264,
+      "python_rss_bytes_max": 1717981184,
+      "actor_inference_seconds_per_game": 0.6624318995709473,
+      "native_api_seconds_per_game": 1.1787159736049944
+    }
+  },
+  "host_visible_28_cpu_busy_percent_mean": 4.411561736757569,
+  "host_visible_28_cpu_busy_percent_max": 8.305114952771342,
+  "host_samples": 345,
+  "source_group_reference": {
+    "path": ".cache/training-prep-20261026/state/runs/four-model-source-20261026b/checkpoints/local-step-7.weights",
+    "sha256": "fcb4a3b970e8b834be69c0d0ee3ff26a53eb1e067b946f5cb11a63e82cea4f87",
+    "source_binding_sha256": "c9cf28d7efcb1ed5569144379b1157f2ed5188f2c8f442e7628ec8ab9614cb0b",
+    "weights": "effective"
+  },
+  "formal_training_ready": false,
+  "formal_training_started": false,
+  "reason": "no reliable end-to-end CUDA advantage; actual period manifests and qualified split course assets pending"
+}
