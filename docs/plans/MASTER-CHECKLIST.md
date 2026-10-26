@@ -31,6 +31,7 @@ PR #1→#2→#3已依用户后续明确授权合入main，基线为`7e92994d28b8
 - **CP-06 存储机制补齐／容量未验**：课程显式保留自管检查点、保护initial/latest/milestone；自对抗历史模型／闭场资料只存一次并校验引用。默认不删数据，不清索引或在途标记。全资产／DataIndex／日志／临时峰值仍须按实际规模核算，容量guard不认证100小时或完整课程足够。
 - **CP-07 失败诊断与迁移边界**：三次真实双模型失败均保留，0终局／更新／入库；MSG16优先权pass不能误认取消循环，旧诊断缺回合推进字段，未证实codec根因。新增公共进度与token分项诊断，不改策略/规则、不跑第四次窗口。[当前说明](../development/cpu-takeover-and-selfplay.md)、[最小受控迁移名单](../reports/2026-10-26-cpu-transfer-inputs.json)
 - **CP-08 真实写路径有界化**：可选持久DataIndex主DB页数／单工件UTF8上限及事务回滚，课程／自对抗检查点、模型blob和闭场记录实接物理预留sink；默认不删旧数据。拟议新桶上限条件总计约25.63GB，仅作准备，外部环境及未包裹写入仍待核，不能把停止上限当最低量完成证明。[预算表](../../configs/cpu-storage-plan-v1.json)
+- **CP-09 CloudStudio接手入口补齐**：PR #4／#5／#6已核实合入main `9c914b3`且其[CPU CI成功](https://github.com/K1tKaLL0s/YGO-Kito/actions/runs/40366489841)，代码审查基准保留da7d4d8。在此main上独立补齐[CODEBUDDY.md](../../CODEBUDDY.md)：CPU解释器／资产、三期独立验收、慢档完整场数、真实未终局诊断、辅助自对抗、pause.request／resume及空间停止边界。旧CloudStudio指南标明历史时点与另一控制链；本轮不代调用外部AI不构成永久禁止用户用CodeBuddy／DeepSeek接手。四个CLI帮助／参数、相对链接及diff检查单列；独立文档PR交网页任务审核，不自行合并，未新增对局或训练。
 
 正式启动前先交资产／资源／预算清单，待父任务完成用户通知；本批不启动正式训练，不使用重置卡。
 
