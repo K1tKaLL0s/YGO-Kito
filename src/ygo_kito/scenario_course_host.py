@@ -32,7 +32,7 @@ TARGETS = {"2022-07": "2022-09-30", "2022-10": "2022-12-31", "2026-10": "2026-11
 def validate_host_spec(value):
     d = fields(value, {"schema_version", "kind", "period_id", "selected_target_cutoff", "active_environment",
         "native_root", "source_group", "bootstrap_task", "duel_config", "adapter_configs", "available_cards",
-        "timing_pilot", "pilot_pairs", "bots", "course", "state_root", "resume", "device"})
+        "timing_pilot", "pilot_pairs", "bots", "course", "state_root", "resume", "device"}, {"storage_envelope"})
     integer(d["schema_version"], "course host schema", 1, 1)
     member(d["kind"], "course host kind", ("scenario-course-host-v1",))
     member(d["period_id"], "course period", tuple(TARGETS))
@@ -46,6 +46,7 @@ def validate_host_spec(value):
     for key in ("active_environment", "bootstrap_task", "duel_config", "adapter_configs", "available_cards", "course"):
         _reference(d[key])
     if d["timing_pilot"] is not None: _reference(d["timing_pilot"])
+    if d.get("storage_envelope") is not None: _reference(d["storage_envelope"])
     pairs = d["pilot_pairs"]
     if not isinstance(pairs, list) or not 1 <= len(pairs) <= 100:
         raise ContractError("explicit bounded private pilot seed schedule required")
@@ -244,10 +245,18 @@ class ScenarioCourseHost:
         self.spec = validate_host_spec(spec)
         self.spec_sha256 = digest(self.spec)
         self._prepared = None
+        self._storage_envelope = None
 
     def _prepare(self, *, require_pilot=True):
         if digest(self.spec) != self.spec_sha256: raise ContractError("host configuration changed")
         d, w = self.spec, self.workspace
+        self._storage_envelope = None
+        if d.get("storage_envelope") is not None:
+            from .storage_envelope import StorageEnvelope
+            envelope_config = fields(_json(w, d["storage_envelope"]), set(),
+                {"state_roots", "temporary_roots", "limit_bytes", "outside_bytes", "min_free_bytes", "safety_margin_bytes"})
+            self._storage_envelope = StorageEnvelope(w, **envelope_config)
+            self._storage_envelope.guard()  # Read-only; unknown outside usage fails closed.
         environment = _json(w, d["active_environment"])
         timing = _active_cutoff(d["period_id"], d["selected_target_cutoff"], environment)
         assets = PeriodBuildAssets(_inside(w, d["native_root"], directory=True), d["period_id"], environment, w,
@@ -277,6 +286,8 @@ class ScenarioCourseHost:
         if {p[0] for p in d["pilot_pairs"]} & formal_seeds:
             raise ContractError("pilot physical seeds overlap formal training/evaluation")
         state = _state_root(w, d["state_root"])
+        if self._storage_envelope is not None:
+            self._storage_envelope.require_controlled_directory(state / "course" if require_pilot else state)
         model_inputs = {k: v for k, v in d.items() if k not in ("timing_pilot", "course", "resume", "pilot_pairs", "state_root")}
         source_binding = {"host_model_inputs_sha256": digest(model_inputs), "period_context": deepcopy(assets.period_context),
             "selected_target_cutoff": d["selected_target_cutoff"],
@@ -378,6 +389,9 @@ class ScenarioCourseHost:
                 active_period_context=deepcopy(assets.period_context), effective_models=models.versions(),
                 bot_ids=list(bots), pilot_mean_seconds=course["pilot_mean_seconds"],
                 timing_basis=deepcopy(course.get("timing_basis")), excluded_cards=excluded)
+            report["whole_training_storage_peak_under_30GB_verified"] = False
+            if self._storage_envelope is not None:
+                report["storage_envelope"] = self._storage_envelope.audit()
         except (ContractError, OSError, ValueError, KeyError, TypeError, RuntimeError, ImportError, sqlite3.Error) as error:
             self._prepared = None
             report["blockers"].append({"type": type(error).__name__, "message": str(error)})
@@ -391,8 +405,9 @@ class ScenarioCourseHost:
             raise ContractError("existing private course state requires explicit resume")
         from .data_isolation import DataIndex
         from .scenario_course import ScenarioCourse
-        course = ScenarioCourse(models, assets=assets, data_index=DataIndex(state / "data-index"),
-            config=config, state_root=state / "course", bots=bots)
+        course = ScenarioCourse(models, assets=assets,
+            data_index=DataIndex(state / "data-index", storage_limits=config.get("data_index_storage")),
+            config=config, state_root=state / "course", bots=bots, storage_envelope=self._storage_envelope)
         if self.spec["resume"]: course.restore_latest()
         if progress is not None:
             progress({"kind": "scenario-course-host-run", "status": "running", "native_executed": None,
@@ -409,8 +424,9 @@ class ScenarioCourseHost:
         from .data_isolation import DataIndex
         from .scenario_course import ScenarioCourse
         root = state / ("timing-pilot-" + secrets.token_hex(12))
-        course = ScenarioCourse(models, assets=assets, data_index=DataIndex(root / "private-index"),
-            config=config, state_root=root / "course", bots=bots)
+        course = ScenarioCourse(models, assets=assets,
+            data_index=DataIndex(root / "private-index", storage_limits=config.get("data_index_storage")),
+            config=config, state_root=root / "course", bots=bots, storage_envelope=self._storage_envelope)
         if progress is not None:
             progress({"kind": "course-group-bo1-timing-pilot-v1", "status": "running", "native_executed": None,
                 "csharp_execution_attempted": None, "training_updates": 0, "formal_matches": 0})

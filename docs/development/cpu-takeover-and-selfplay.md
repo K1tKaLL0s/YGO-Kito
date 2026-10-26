@@ -46,7 +46,7 @@ PYTHONPATH=src .cache/ci-cpu-venv/bin/python scripts/takeover_readiness.py
 
 只读盘点区间：2026-10-26 13:28 UTC。当前目录逻辑字节1,521,884,972，按唯一inode分配1,619,820,544（约1.62GB／1.51GiB）。CPU Python环境分配1,108,262,912；固定引擎源码／构建92,413,952；机器人源码准备92,123,136；44份工程权重192,888,832；6份索引33,980,416；现存轨迹／audit23,908,352。它是开发缓存现状，不是正式训练估计。
 
-用户条件是**训练总占用峰值严格小于30,000,000,000字节（30GB，约27.94GiB）**。需计入环境／资产、入站数据、保留检查点、索引／轨迹、日志和安装／写盘临时峰值。当前完整分期数据未到；DataIndex保留完整玩家DTO步骤，没有总字节裁剪；失败／冻结评测／新增自对抗规模也未确定，因此上界未知、空间准入保持false。不能只用空闲盘、当前小模型或来源4MB宣称满足。
+用户条件是**训练总占用峰值严格小于30,000,000,000字节（30GB，约27.94GiB）**。需计入环境／资产、入站数据、保留检查点、索引／轨迹、日志和安装／写盘临时峰值。DataIndex默认保留完整玩家DTO步骤；新增可选主DB／单工件上限不删除历史数据，达到上限即拒绝事务。失败／冻结评测／新增自对抗规模和完整外部环境占用尚未全部绑定，仍不能只用空闲盘、当前小模型或来源4MB宣称正式全程峰值满足。
 
 新增课程可显式设置 `checkpoint_policy` 的 `keep_last`／`milestone_every`／`min_free_bytes`／`max_state_bytes`；默认保留历史。仅处理本状态manifest登记且哈希核对的检查点，保护initial／latest／milestone，不删DataIndex、在途标记、用户文件或历史模型。`SelfPlaySeries`把历史模型与已结束场次分别按内容存一次，检查点保存校验引用，恢复实际读取、核场次与计数。空间不足在新局前停。此策略不为整个工作区／SQLite未来增长作容量认证；原工程group runner的检查点策略也未被隐式更改。
 
@@ -60,6 +60,8 @@ PYTHONPATH=src .cache/ci-cpu-venv/bin/python scripts/takeover_readiness.py
 
 两份权重合计7,494,510字节（7.49MB／7.15MiB）。卡片发行日期原JSON 3,123,090字节、禁限原JSON804,793字节只有URL／SHA收据入Git，原缓存准确路径不在收据中；接收实际文件后再转换成仓库逐期schema并核验，不编造路径或把收据当全库。第三方数据／卡文许可与代码许可分别核查，不自动公开原始数据。
 
+新课程effective初始化的最低必需是完整四模型文件＋引用和目标资源/config，不能拆出某一角色假冒完整组。加载器只继承四角色实际参数；源文件内虽含优化器／LoRA／RNG／台账，目标优化器／RNG／数据／台账重建。真正旧任务resume需整个 `/workspace/.cache/training-prep-20261026/state/`、相应登记／阶段／数据／索引、精确原源码／配方／资源及累计预算；旧任务已done，恢复不自动扩大训练。完整迁移要求、目标布局、已有可复用native哈希及未知原缓存路径见[传输清单](../reports/2026-10-26-cpu-transfer-inputs.json)。四模型＋两份raw JSON合计8,075,746字节；无需搬运CUDA环境或重复已有同哈希core/CDB/scripts。
+
 本地确有旧完整组 `ac8f1a048a9cf9b01a5f544944b5fa4663338aa54f00a7688f121ef99ad21863`，15,457,047字节，其中索引快照11,284,480字节；它不是腾讯端 `fcb4a3`。可另立明确工程起点，但不能叫原权重迁入或原状态恢复。CPU环境、当前固定core与15,071行CDB／13,575脚本在本地已有摘要核对；完整分期发行证据、合格C#运行环境仍缺。源工作区已停止，不能假设能直接读取，也不为迁移自动重启计费环境。
 
 ## 本轮真实双模型检查
@@ -69,6 +71,30 @@ PYTHONPATH=src .cache/ci-cpu-venv/bin/python scripts/takeover_readiness.py
 仅改变已支持的 `history_events:32→8` 保持 `max_tokens:256`，全部NN参数形状和值相同，但输入窗口和策略行为可能变化；不裁当前卡、私有已知信息或合法动作。此类显式工程推理快照需保存原快照／配置、新配置与相同权重摘要；旧四模型初始化仍严格比较完整配置，不允许静默续训迁移。后续功能结果单列，不能抹掉前两次失败或自动视为正式课程配置。
 
 第三次使用该明确context8工程配置，神经采样、权重及原120秒／1500决策上限保留；此次未出现token错误，但1501窗口再次预算中止，1500次正常提交、0拒绝、0终局／更新／正式场。故**真实双模型完整终局、真实双模型BO3与正式课程接管仍未通过**。不再重复窗口或增加预算来获取“通过”；失败不转成胜率样本。公开摘要及实现摘要见[本轮审计](../reports/2026-10-26-cpu-takeover-audit.json)，原始私有诊断留缓存。
+
+后两次取消总数仅4／3次；各环尾大量MSG16单动作pass是正常合法优先权放弃，不可称取消循环。环中requestSHA含decision/window，不能据唯一哈希断言场面持续变化，也不能据多次pass证明回合卡住。旧记录未留turn/phase/LP/牌库余量，故现有证据不足以把原因归为codec、回合不推进或策略能力中的某一项。两套模型均工程initial、更新0；三个失败索引datasets/artifacts均0，没有失败片段污染训练。
+
+最小修正是有界host诊断v2：只保合法玩家DTO的回合／阶段／LP／双方公开手牌及牌库数量、每席首末值、单回合窗口峰值和MSG10/11菜单值；idle的8为手牌洗切，不是阶段推进证据。不留隐藏卡名、seed或logit，不改模型选择。编码超限错误给出实际tokens/actions、当前／私有token与公开历史token计数，不截断候选或改变特征。新增CPU诊断测试不是新真实对局结果。本轮没有重跑第四个窗口或重新测时。
+
+真实终局下一步应先接收并核验指定源，预登记一个冻结NN对合法小牌表的配置、seed、模型/输入配置、120秒及1500决策上限和仅功能用途；得到原core真实终局、完整私有replay且所有训练指纹不变才算该case通过。若预算停止，从新公共进度识别是慢推进还是当前回合重复动作；若再次编码失败，用实际token分项判定。需要更长预算或输入配置迁移时先显式列出，不能换seed反复试到成功、手写策略代打、删合法动作、改规则或把中止记draw/win。BO3另核实际换备、输者选先后和终局，原失败继续保留。
+
+## 有界存储接线与机器人环境
+
+`configs/cpu-storage-plan-v1.json`是拟议上限表，**不是开训配置**：按当前约1.634GB，三期新state/index峰值各5GB、共享自对抗/冻结池2GB、临时/日志2GB、剩余入站资产/CPU依赖2GB、明确余量3GB，条件合计约25.63GB。各state桶含SQLite主文件／journal／写盘重叠，不能再把这些排除在预算外。它不证明这些容量能容纳最低场数，达到上限时保存/拒写，不降数量或删用户数据来凑。
+
+课程配置可加入 `data_index_storage:{max_database_bytes:1000000000,max_artifact_bytes:16777216}`。DataIndex持久校验策略，每个连接按实际page_size设置并核验SQLite页上限；只允许已有DELETE journal模式，排序临时存储用内存。主文件页上限与单份实际UTF8工件envelope分别限制，真实SQLITE_FULL会回滚；不删除或手动收缩数据库。SQLite journal另占空间，主DB cap不能单独当全峰值证明，依据[官方PRAGMA说明](https://sqlite.org/pragma.html#pragma_max_page_count)及[临时文件说明](https://sqlite.org/tempfiles.html)。
+
+宿主spec可给 `storage_envelope` 的路径／SHA引用，内容为 `state_roots`、`temporary_roots`、`limit_bytes`、`outside_bytes`、`min_free_bytes`、`safety_margin_bytes`。先运行只读审计：
+
+```bash
+PYTHONPATH=src .cache/ci-cpu-venv/bin/python scripts/storage_envelope.py
+```
+
+`outside_bytes:null`保持未知并拒实际预留；不能为过门禁随填0。指定实际根和外部占用后，课程／自对抗局前及保存前检查全workspace，检查点以及自对抗模型blob／闭场记录接物理预分配的有界新文件sink。默认不删旧数据、不覆盖目标，失败part及收据留存、重复ID拒绝。SQLite页限、sink和已有保留策略是实接代码；它们不是操作系统全局quota，安装程序、未包裹日志、其他进程及最低量完成仍未认证。准备时逐项计入未知部分，不能把“当前写入可准入”改写成“正式全程已就绪”。
+
+本容器Debian13.6、uid1000，PATH/dpkg未见Mono/mcs/xbuild/msbuild/dotnet；旧签名源代理403与系统权限失败没有重试。只有获准目标主机已有系统管理权限且其正常配置的官方签名Debian源可验证时，才可由环境管理员 `apt-get update`、`apt-get install --no-install-recommends mono-devel libsqlite3-0`；这不是在此绕过拒绝的建议。随后使用实际mono/mcs/xbuild路径及[全量构建入口](maintained-bot-deployment.md)，Ice/Pure分别完整编译／构造，保留全部Executor和MIT声明。
+
+本容器已实读完整包 `.cache/bot-source-review/complete-bot-build-inputs-v2.tar.gz`，7,723,314字节，SHA `a40a54efb0a4a3d6283013ec0f9f0bf6808f4eaef66a8a812238a0433e3ad5be`，829源文件＋1manifest、零链接。旧 `maintained-bot-sources-v1.tar.gz` 是815文件，不能混用。源码存在不等于编译、加载或终局资格；迁入腾讯已构建bot目录也不能替代本地Mono或新源码下的资格复核。
 
 ## 萌卡仅作为热门主题渠道
 

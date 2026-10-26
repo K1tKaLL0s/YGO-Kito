@@ -37,7 +37,7 @@ from .validation import ContractError, canonical_json, fields, integer
 def validate_config(value):
     d = fields(value, {"course_id", "period_id", "mode", "pilot_mean_seconds", "training_seeds",
         "evaluation_pairs", "matches_per_invocation", "wall_seconds", "allocated_gpu_count", "fixed_deck",
-        "initial_first", "evaluation_matches", "opponent_side"}, {"timing_basis", "checkpoint_policy"})
+        "initial_first", "evaluation_matches", "opponent_side"}, {"timing_basis", "checkpoint_policy", "data_index_storage"})
     identifier(d["course_id"])
     if d["period_id"] not in ("2022-07", "2022-10", "2026-10"):
         raise ContractError("explicit supported period required")
@@ -47,6 +47,9 @@ def validate_config(value):
         raise ContractError("autonomous mode cannot require the reference Tear deck")
     if d["fixed_deck"] is not None: DeckParts.from_dict(d["fixed_deck"])
     checkpoint_policy(d.get("checkpoint_policy"))
+    if "data_index_storage" in d:
+        from .data_isolation import validate_storage_limits
+        validate_storage_limits(d["data_index_storage"])
     if d["pilot_mean_seconds"] is not None: volume_requirements(d["pilot_mean_seconds"])
     if d.get("timing_basis") is not None:
         validate_timing_basis(d["timing_basis"])
@@ -134,12 +137,21 @@ def validate_common_deck_evidence(evidence, deck, period):
 
 class ScenarioCourse:
     """Concrete caller, retaining the existing four networks and LoRA modules."""
-    def __init__(self, models, *, assets, data_index, config, state_root, bots):
+    def __init__(self, models, *, assets, data_index, config, state_root, bots, storage_envelope=None):
         from .course_models import CourseModels
         if not isinstance(models, CourseModels) or not isinstance(data_index, DataIndex):
             raise ContractError("actual course models and data index required")
         self.models, self.assets, self.data_index = models, assets, data_index
         self.config = validate_config(config)
+        if config.get("data_index_storage") is not None:
+            from .data_isolation import validate_storage_limits
+            if data_index.storage_limits != validate_storage_limits(config["data_index_storage"]):
+                raise ContractError("actual data-index storage policy differs from the declared course")
+        from .storage_envelope import StorageEnvelope
+        if storage_envelope is not None and not isinstance(storage_envelope, StorageEnvelope):
+            raise ContractError("actual host storage envelope required")
+        self.storage_envelope = storage_envelope
+        self._bound_storage_envelope = storage_envelope
         if tuple(config["training_seeds"]) != models.duel.config.game_seeds:
             raise ContractError("actual actor does not own the full course seed schedule")
         if getattr(assets, "period_id", None) != config["period_id"]:
@@ -150,6 +162,7 @@ class ScenarioCourse:
             raise ContractError("numerical device and allocated GPU count differ")
         self.root = Path(state_root).resolve()
         self.root.mkdir(parents=True, exist_ok=True)
+        if storage_envelope is not None: storage_envelope.require_controlled_directory(self.root)
         self.bots = dict(bots)
         from .model_opponents import ModelOpponentRuntime
         required = {"runtime", "deck", "stage", "purpose", "first_order", "source", "coverage_label"}
@@ -180,6 +193,10 @@ class ScenarioCourse:
             "source_map": source_tree_snapshot(Path(__file__).resolve().parent),
             "period_context": deepcopy(assets.period_context), "rules_sha256": self.rules.sha256,
             "bots": {i: bot_binding(b) for i, b in self.bots.items()}}
+        if storage_envelope is not None:
+            self.binding["storage_envelope"] = deepcopy(storage_envelope.binding)
+        if data_index.storage_limits is not None:
+            self.binding["data_index_storage_sha256"] = data_index.storage_policy_sha256
         self.records, self.events, self.active_seconds = [], [], 0.
         self.selection = self.deck = self.construction = None
         self.pending = None
@@ -551,7 +568,7 @@ class ScenarioCourse:
             "training_updates": 0, "formal_matches": 0, "native_executed": False,
             "csharp_execution_attempted": False, "all_models_unchanged": False,
             "bo3_timing_verified": False, "general_speed_verified": False}
-        pilot_index = DataIndex(self.root / "timing-data")
+        pilot_index = DataIndex(self.root / "timing-data", storage_limits=self.data_index.storage_limits)
         for ordinal, pair in enumerate(pairs):
             bot_id = choices[(ordinal // 2) % len(choices)]; bot = self.bots[bot_id]
             initial = "actor" if ordinal % 2 == 0 else "opponent"
@@ -605,8 +622,14 @@ class ScenarioCourse:
 
     def _storage_guard(self, additional_bytes=0):
         integer(additional_bytes,"additional checkpoint storage bytes",0)
+        if self.storage_envelope is not self._bound_storage_envelope:
+            raise ContractError("course storage envelope instance changed after binding")
         policy=checkpoint_policy(self.config.get("checkpoint_policy"))
         if policy!=self.checkpoint_policy:raise ContractError("checkpoint policy changed after course binding")
+        if self.storage_envelope is not None:
+            if self.binding.get("storage_envelope") != self.storage_envelope.binding:
+                raise ContractError("course workspace storage envelope changed")
+            self.storage_envelope.guard(additional_bytes)
         used=self._storage_bytes()
         if policy["max_state_bytes"] is not None and used+additional_bytes>policy["max_state_bytes"]:
             raise ContractError("course state storage limit would be exceeded; no game or checkpoint started")
@@ -749,8 +772,13 @@ class ScenarioCourse:
         sizes=(len(raw),len(canonical_json(manifest).encode())+1,len(canonical_json(pointer).encode())+1)
         extra=sum(((size+block-1)//block)*block for size in sizes)+2*block
         self._storage_guard(extra)
-        with path.open("xb") as output:
-            output.write(raw); output.flush(); os.fsync(output.fileno())
+        if self.storage_envelope is None:
+            with path.open("xb") as output:
+                output.write(raw); output.flush(); os.fsync(output.fileno())
+        else:
+            reservation = "course-" + digest({"binding": self._binding_sha256, "path": path.name})[:40]
+            with self.storage_envelope.reserve_file(reservation, path, len(raw), purpose="checkpoint") as output:
+                output.write(raw); output.commit()
         _exclusive_json(manifest_temporary,manifest);os.replace(manifest_temporary,self.root/"checkpoint-manifest.json")
         _exclusive_json(temporary, pointer); os.replace(temporary, self.root / "latest.json")
         self.revision=revision

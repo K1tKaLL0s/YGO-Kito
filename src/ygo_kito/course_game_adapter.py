@@ -101,11 +101,16 @@ class _FirstTurnObservation:
         self._course_observations = course_observations
         # Host-only bounded diagnostics over normal legal DTOs. Neither raw
         # native messages nor private card identities/seed values are recorded.
-        self._course_diagnostics = {"kind": "bounded-legal-dto-host-diagnostic-v1", "ring_limit": 128,
+        self._course_diagnostics = {"kind": "bounded-legal-dto-host-diagnostic-v2", "ring_limit": 128,
             "windows": 0, "submit_returned": 0, "submit_rejected": 0, "prompt_counts": {},
             "observer_counts": {}, "action_counts": {}, "operation_counts": {}, "ring": [],
+            "first_public_progress_by_observer": {}, "last_public_progress_by_observer": {},
+            "turn_changes_observed": 0, "maximum_windows_in_one_turn": 0,
+            "phase_control_counts": {},
             "terminal_claimed": False, "training_eligible": False,
             "accepted_semantics": "normal submit returned; no independent effect/terminal claim"}
+        self._diagnostic_turn = None
+        self._diagnostic_turn_windows = 0
         course_observations["private_diagnostics"] = self._course_diagnostics
         course_observations["constructor_started"] = True
         super().__init__(*args, **kwargs)
@@ -120,8 +125,23 @@ class _FirstTurnObservation:
             message = None if request.prompt is None else request.prompt.message
             for name, key in (("prompt_counts", str(message)), ("observer_counts", str(obs.observer))):
                 d[name][key] = d[name].get(key, 0)+1
+            # Only facts from this already validated player's DTO. These
+            # bounded host diagnostics never query core internals or retain
+            # card identities, private reveals, seeds, logits or action refs.
+            progress = {"turn": obs.turn, "turn_player": obs.turn_player, "phase": obs.phase,
+                "life_points": list(obs.life_points), "hand_counts": list(obs.hand_counts),
+                "deck_counts": list(obs.deck_counts)}
+            observer = str(obs.observer)
+            d["first_public_progress_by_observer"].setdefault(observer, copy.deepcopy(progress))
+            d["last_public_progress_by_observer"][observer] = copy.deepcopy(progress)
+            if self._diagnostic_turn != obs.turn:
+                if self._diagnostic_turn is not None: d["turn_changes_observed"] += 1
+                self._diagnostic_turn, self._diagnostic_turn_windows = obs.turn, 0
+            self._diagnostic_turn_windows += 1
+            d["maximum_windows_in_one_turn"] = max(d["maximum_windows_in_one_turn"], self._diagnostic_turn_windows)
             self._diagnose({"event": "request", "observer": obs.observer, "message": message,
-                "request_sha256": request_digest(request), "legal_actions": len(request.actions)})
+                "request_sha256": request_digest(request), "legal_actions": len(request.actions),
+                "public_progress": progress})
             if self._course_observations["actual_first_core_seat"] is None and obs.turn == 1:
                 self._course_observations["actual_first_core_seat"] = obs.turn_player
         return request
@@ -140,11 +160,21 @@ class _FirstTurnObservation:
             "action_kind": None if action is None else action.kind,
             "operation": None if action is None or action.details is None else action.details.operation,
             "accepted": False}
+        # Preserve only documented battle/idle menu values. Idle value 8 is
+        # the hand-shuffle menu, not evidence that the phase advanced. Arbitrary
+        # numeric choices can be card identities, so they are never copied.
+        menu = {10: (2, 3), 11: (6, 7, 8)}.get(row["message"], ())
+        row["phase_control"] = action.value if (action is not None and action.value in menu and
+            action.kind in ("pass", "select") and not action.card_refs) else None
         try:
             result = super().submit(selection)
             row["accepted"] = True; self._course_diagnostics["submit_returned"] += 1
             for name, key in (("action_counts", row["action_kind"]), ("operation_counts", row["operation"])):
                 if key is not None: self._course_diagnostics[name][key] = self._course_diagnostics[name].get(key, 0)+1
+            if row["phase_control"] is not None:
+                key = str(row["observer"]) + ":" + str(row["message"]) + ":" + str(row["phase_control"])
+                counts = self._course_diagnostics["phase_control_counts"]
+                counts[key] = counts.get(key, 0) + 1
             return result
         except BaseException:
             self._course_diagnostics["submit_rejected"] += 1

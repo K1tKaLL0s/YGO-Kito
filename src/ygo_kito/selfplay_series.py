@@ -189,7 +189,7 @@ def _frozen(players):
 
 
 class SelfPlaySeries:
-    def __init__(self, *, players, assets, data_index, state_root, config):
+    def __init__(self, *, players, assets, data_index, state_root, config, storage_envelope=None):
         if (not isinstance(players, (tuple, list)) or len(players) != 2 or
                 any(not isinstance(p, SelfPlayPlayer) for p in players) or
                 len({p.player_id for p in players}) != 2):
@@ -197,8 +197,14 @@ class SelfPlaySeries:
         if not isinstance(assets, BuildAssets) or not isinstance(data_index, DataIndex):
             raise ContractError('actual typed assets and a private data index required')
         self.players = {p.player_id: p for p in players}; self.assets, self.index = assets, data_index
+        from .storage_envelope import StorageEnvelope
+        if storage_envelope is not None and not isinstance(storage_envelope, StorageEnvelope):
+            raise ContractError('actual host storage envelope required')
+        self.storage_envelope = storage_envelope
+        self._bound_storage_envelope = storage_envelope
         self.config = _config(config, self.players)
         self.root = Path(state_root).resolve(); self.root.mkdir(parents=True, exist_ok=True)
+        if storage_envelope is not None: storage_envelope.require_controlled_directory(self.root)
         self._index_mode()
         self._independent()
         allowed = set.intersection(*(set(p.models.builder.encoder.available_ids) for p in players))
@@ -213,6 +219,10 @@ class SelfPlaySeries:
             'rules_sha256': self.rules.sha256, 'resources': deepcopy(assets.receipt),
             'period_context': deepcopy(getattr(assets, 'period_context', None)),
             'implementation': source_tree_snapshot(Path(__file__).resolve().parent)}
+        if storage_envelope is not None:
+            self.binding['storage_envelope'] = deepcopy(storage_envelope.binding)
+        if data_index.storage_limits is not None:
+            self.binding['data_index_storage_sha256'] = data_index.storage_policy_sha256
         self._binding_sha = digest(self.binding)
         self.pool = FrozenModelPool()
         for p in players: self.pool.capture(p, assets, initial=True)
@@ -245,10 +255,14 @@ class SelfPlaySeries:
             raise ContractError('each self-play learner must own a distinct physical training seed schedule')
 
     def _check(self):
+        if self.storage_envelope is not self._bound_storage_envelope:
+            raise ContractError('self-play storage envelope instance changed after binding')
         self._independent(); self.rules.assert_integrity(); self._index_mode()
         if (digest(self.binding) != self._binding_sha or self.config != self.binding['config'] or
                 source_tree_snapshot(Path(__file__).resolve().parent) != self.binding['implementation']):
             raise ContractError('self-play source/configuration binding changed')
+        if self.storage_envelope is not None and self.binding.get('storage_envelope') != self.storage_envelope.binding:
+            raise ContractError('self-play workspace storage envelope changed')
         for p in self.players.values():
             p.models._check()
             if (p.deck.to_dict() != self.binding['players'][p.player_id]['deck'] or
@@ -470,6 +484,7 @@ class SelfPlaySeries:
 
     def _room(self, additional_bytes):
         policy = self.config['checkpoint_policy']
+        if self.storage_envelope is not None: self.storage_envelope.guard(additional_bytes)
         if (policy['max_state_bytes'] is not None and
                 self._state_bytes() + additional_bytes > policy['max_state_bytes']):
             self.desired = 'storage_blocked'
@@ -591,6 +606,14 @@ class SelfPlaySeries:
             (self.root/name).unlink();row['deleted']=True
         self._write_manifest(manifest)
 
+    def _write_owned_bytes(self, path, raw, purpose):
+        if self.storage_envelope is None:
+            with path.open('xb') as output:output.write(raw);output.flush();os.fsync(output.fileno())
+        else:
+            key = 'series-' + digest({'binding': self._binding_sha, 'path': path.relative_to(self.root).as_posix()})[:40]
+            with self.storage_envelope.reserve_file(key, path, len(raw), purpose=purpose) as output:
+                output.write(raw);output.commit()
+
     def save(self):
         self._check(); self._latest(); self._charge()
         manifest=self._manifest()
@@ -611,11 +634,11 @@ class SelfPlaySeries:
             target=self.root/name
             if target.parent.is_symlink():raise ContractError('owned storage directory cannot be a symlink')
             target.parent.mkdir(parents=True,exist_ok=True)
-            with target.open('xb') as output:output.write(raw);output.flush();os.fsync(output.fileno())
+            self._write_owned_bytes(target, raw, 'trajectory' if kind == 'match' else 'checkpoint')
             manifest['files'][name]={'sha256':hashlib.sha256(raw).hexdigest(),'bytes':len(raw),'kind':kind,
                 'revision':revision,'deleted':False}
         path = self.root/('checkpoint-' + str(revision) + '.weights')
-        with path.open('xb') as output:output.write(checkpoint_raw);output.flush();os.fsync(output.fileno())
+        self._write_owned_bytes(path, checkpoint_raw, 'checkpoint')
         pointer = {'path': path.name, 'sha256': hashlib.sha256(checkpoint_raw).hexdigest(), 'revision': revision}
         manifest['files'][path.name]={'sha256':pointer['sha256'],'bytes':len(checkpoint_raw),'kind':'checkpoint',
             'revision':revision,'deleted':False}

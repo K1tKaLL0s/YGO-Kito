@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "kind": "cpu-training-storage-planning-v1",
+  "status": "proposed_ceilings_not_a_launch_configuration",
+  "strict_total_limit_bytes": 30000000000,
+  "current_workspace_observation": {
+    "date_utc": "2026-10-26",
+    "scope": "read-only census interval before this storage integration; not a frozen filesystem image",
+    "accounted_bytes": 1634275343,
+    "method": "conservative_unique_inode_census",
+    "outside_environment_bytes": null
+  },
+  "new_budget_buckets": {
+    "period_2022_07_state_and_index_peak": 5000000000,
+    "period_2022_10_state_and_index_peak": 5000000000,
+    "period_2026_10_state_and_index_peak": 5000000000,
+    "shared_selfplay_and_frozen_model_pool": 2000000000,
+    "temporary_and_log_peak": 2000000000,
+    "incoming_assets_and_remaining_CPU_dependencies": 2000000000,
+    "explicit_unallocated_headroom": 3000000000
+  },
+  "conditional_accounted_total_bytes": 25634275343,
+  "per_new_period_settings_to_bind_after_paths_are_chosen": {
+    "checkpoint_policy": {
+      "keep_last": 2,
+      "milestone_every": null,
+      "min_free_bytes": 536870912,
+      "max_state_bytes": 5000000000
+    },
+    "data_index_storage": {
+      "max_database_bytes": 1000000000,
+      "max_artifact_bytes": 16777216
+    }
+  },
+  "conditions": [
+    "Buckets apply to distinct new roots; do not count the same bytes twice or delete existing user data to fit.",
+    "Each period bucket includes database, rollback/statement journal allowance, checkpoints, metadata and temporary boundary duplication; main DB cap alone is insufficient.",
+    "Bind actual state/temp paths and measured external environment bytes to the storage envelope before allocation; unknown external bytes fail closed.",
+    "Installers, unwrapped logs and other writers are not an OS-wide quota; stop and re-audit before using them.",
+    "Keep latest and initial recovery points, data partition identity, uncertainty markers and failure evidence; no automatic deletion of old data.",
+    "A ceiling may stop or refuse a write before minimum training volume is complete. It does not prove these ceilings suffice for the required course.",
+    "Do not start formal training from this planning file. Real assets, functionality, peak review and parent start notification remain required."
+  ],
+  "minimum_volume_completion_within_buckets_verified": false,
+  "full_future_peak_under_30GB_verified": false,
+  "training_authorized_by_this_file": false
+}

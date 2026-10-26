@@ -46,6 +46,8 @@ MODULES=(
     "tests.test_model_opponents", "tests.test_model_match_host", "tests.test_selfplay_series",
     "tests.test_cpu_takeover_routes", "tests.test_mycard_staging", "tests.test_takeover_readiness",
     "tests.test_scenario_storage",
+    "tests.test_model_progress", "tests.test_storage_envelope", "tests.test_data_storage",
+    "tests.test_course_storage_envelope",
 )
 DP_HEAD="a7085e23a74fb04bff571c1c679e0097dd1ae430"
 DP_HASHES={"src/ygo_kito/native.py":"0a2f40c99e3e14bb1eb0446c89c8b80175cd6f1893c8207ee8496deb6725139e",

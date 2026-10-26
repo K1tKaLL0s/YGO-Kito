@@ -1,0 +1,170 @@
+{
+  "bot_runtime_transfer": {
+    "already_verified_source_bundle": ".cache/bot-source-review/complete-bot-build-inputs-v2.tar.gz",
+    "current_container_mono_available": false,
+    "do_not_copy_old_815_source_bundle": true,
+    "lookup_configuration": "/workspace/.cache/gpu-compare-20261026/pilot-spec.json",
+    "preserve": [
+      "full Ice and Pure build outputs and managed/native dependency files",
+      "MIT license/source lock/inventory and construct audit",
+      "matching exact card DB hash",
+      "qualification spec and report as historical evidence; new Python source qualification still required"
+    ],
+    "source_bundle_bytes": 7723314,
+    "source_bundle_sha256": "a40a54efb0a4a3d6283013ec0f9f0bf6808f4eaef66a8a812238a0433e3ad5be",
+    "source_directories": null,
+    "status": "Tencent actual build/audit/qualification paths must be read from its pilot spec; source directories not published in Git receipts"
+  },
+  "formal_training_started": false,
+  "full_old_group_resume_requires": "entire /workspace/.cache/training-prep-20261026/state/ plus exact old source/recipes/resources and cumulative budget; not required for new effective initialization",
+  "kind": "private-controlled-CPU-transfer-requirements",
+  "native_resources_already_available_locally": {
+    "copy_required_if_hashes_match": false,
+    "receiving_root": ".cache",
+    "runtime_files": [
+      "engine-build/libocgcore.so",
+      "engine-build/receipt.json",
+      "engine-src/database/locales/zh-CN/cards.cdb",
+      "engine-src/scripts/",
+      "engine-src/client/lflist.conf",
+      "engine-src/core/ocgapi.h",
+      "engine-src/core/common.h",
+      "engine-src/core/card_data.h",
+      "engine-src/client/gframe/config.h",
+      "engine-src/client/gframe/duelclient.cpp"
+    ],
+    "verified_receipt": {
+      "build_seconds": 54.304,
+      "built_at_utc": "2026-10-24T22:00:14.313483+00:00",
+      "command": [
+        "g++",
+        "-std=c++17",
+        "-O1",
+        "-fPIC",
+        "-shared",
+        "-DOCGCORE_EXPORT_FUNCTIONS",
+        "-DLUA_USE_LINUX",
+        "-I/workspace/YGO-Kito-construction/.cache/engine-src/lua",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/core/card.cpp",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/core/duel.cpp",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/core/effect.cpp",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/core/field.cpp",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/core/group.cpp",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/core/interpreter.cpp",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/core/libcard.cpp",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/core/libdebug.cpp",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/core/libduel.cpp",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/core/libeffect.cpp",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/core/libgroup.cpp",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/core/ocgapi.cpp",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/core/operations.cpp",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/core/playerop.cpp",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/core/processor.cpp",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/core/scriptlib.cpp",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/lapi.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/lauxlib.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/lbaselib.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/lcode.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/lcorolib.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/lctype.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/ldblib.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/ldebug.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/ldo.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/ldump.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/lfunc.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/lgc.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/liolib.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/llex.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/lmathlib.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/lmem.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/loadlib.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/lobject.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/lopcodes.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/loslib.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/lparser.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/lstate.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/lstring.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/lstrlib.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/ltable.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/ltablib.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/ltm.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/lundump.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/lutf8lib.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/lvm.c",
+        "/workspace/YGO-Kito-construction/.cache/engine-src/lua/lzio.c",
+        "-ldl",
+        "-lm",
+        "-o",
+        "/workspace/YGO-Kito-construction/.cache/engine-build/libocgcore.so"
+      ],
+      "compiler": "g++ (Debian 14.2.0-19) 14.2.0",
+      "resources": {
+        "banlist": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+        "card_data_abi": "754c750eb26e81eba44de3253c056a89de364f942ec5cd63ecd9d9791acff45e",
+        "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+        "client_config": "07f92954941343d33f38eae3986997cc620d595301e67adb9e473bfa3c254d0c",
+        "client_protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+        "core_api": "cb7b33d709791e86be0b821152c1ca34c2a2c72847c3603b4a07826c88b802af",
+        "core_constants": "2c78c4c7c92306cd76f09cc111c28e6604e0e3d4fc16252ec31e8cb8d1493e17",
+        "library": "b33b0fb302e24e4757532f224f04aec21e4b16153979b112923c6f746b2e531f",
+        "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+      },
+      "schema_version": 1,
+      "source_commits": {
+        "client": "0d76e26b30c5ddb0273ee746459506c5719fddb6",
+        "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+        "database": "217ae165c1886af2fc36b823fc08f9fc3ec13185",
+        "lua": "6e22fedb74cf0c9b6656e9fce8b7331db847c605",
+        "scripts": "b83db1cc3f512d3bec2faafb9ecf199143332be1"
+      },
+      "source_lock_sha256": "3b73a6f7594f1372fcc0b26e6dbe0bbd0e41392a6c9c453308819c85d88ecfc1"
+    }
+  },
+  "optional_independent_duel_reference": {
+    "bytes": 3346647,
+    "sha256": "66c35abd70b0effe28a306c5d1d5b76ecd283ffd9230115f973227ecf6203396",
+    "source_path": "/workspace/.cache/codex-20261025/agent/runs/smoke-normal123/checkpoints/step-2.weights"
+  },
+  "required_for_selected_source_initialization": [
+    {
+      "bytes": 4147863,
+      "destination_relative_path": ".cache/controlled-input-20261026/source-group.weights",
+      "sha256": "fcb4a3b970e8b834be69c0d0ee3ff26a53eb1e067b946f5cb11a63e82cea4f87",
+      "source_binding_sha256": "c9cf28d7efcb1ed5569144379b1157f2ed5188f2c8f442e7628ec8ab9614cb0b",
+      "source_path": "/workspace/.cache/training-prep-20261026/state/runs/four-model-source-20261026b/checkpoints/local-step-7.weights",
+      "source_state_inherited": false,
+      "weights_selection": "effective"
+    },
+    {
+      "already_in_git": "docs/reports/cloudstudio-20261026/source-group-reference.json",
+      "relocation": "preserve original; create separate initialization reference with actual receiving relative path; file SHA and source binding unchanged",
+      "source_path": "/workspace/.cache/gpu-compare-20261026/source-group-reference.json"
+    }
+  ],
+  "required_period_metadata": [
+    {
+      "bytes": 3123090,
+      "destination_relative_path": ".cache/controlled-input-20261026/releaseDates.raw.json",
+      "sha256": "03bda26138b7010ce3eceac4e2e82fd8b8e9259082ee9922188db46c551f7720",
+      "source_path": null,
+      "source_path_status": "raw cache path not included in published receipt; sender must identify actual file, do not guess",
+      "url": "https://ygocdb.com/api/v0/releaseDates.json"
+    },
+    {
+      "bytes": 804793,
+      "destination_relative_path": ".cache/controlled-input-20261026/limits-all.raw.json",
+      "sha256": "a1eae437839197d8f08f9932fbba769567079137490b340a30fcc45def8dfcdd",
+      "source_path": null,
+      "source_path_status": "raw cache path not included in published receipt; sender must identify actual file, do not guess",
+      "url": "https://ygocdb.com/api/v0/limits.json?show=all"
+    }
+  ],
+  "schema_version": 1,
+  "transfer_boundary": [
+    "owner-authorized private asset transfer only",
+    "no credentials, CUDA environment, public Git dataset/weights upload or public download host",
+    "SHA verify before weights_only loading; preserve originals",
+    "do not execute archived sampling scripts to locate paths",
+    "not proof assets received or formal launch ready"
+  ]
+}
