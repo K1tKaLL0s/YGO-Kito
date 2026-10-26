@@ -1,0 +1,220 @@
+{
+  "base_commit": "6cef642cc840120fc6d445cfbf7b8bc082b61f0d",
+  "cloudstudio_source_commit": "b6e16504a8ad2636d33159092f7040fd172ff683",
+  "cloudstudio_sync_scope": "18 source/report files; no checkpoint or full raw dataset migrated",
+  "date_utc": "2026-10-26",
+  "formal_training_started": false,
+  "implementation_manifest_digest_algorithm": "digest(source_tree_snapshot(src/ygo_kito)); not the merge checker concatenated-file digest",
+  "implementation_manifest_sha256": "389ab7507db08ee4eb7c246ee48cdf5fa6fef7efa1ba95b4d094b689a2bf0b22",
+  "kind": "cpu-takeover-feature-audit",
+  "mycard": {
+    "data_redistribution_rights_verified": false,
+    "deck_demo_or_build_fetch": false,
+    "historical_parent_response_date": "2026-10-06",
+    "live_request_result": "proxy tunnel 403; stopped without retry or alternate route",
+    "request_observed_date": "2026-10-26",
+    "scope": "popular theme names and source timestamps only"
+  },
+  "normal_core_functional_cases": [
+    {
+      "actor_training_state_unchanged": true,
+      "completed_games": 0,
+      "decision_windows": 1501,
+      "error": {
+        "message": "CPU sample budget exhausted; no terminal reward/update claimed",
+        "type": "NativeError"
+      },
+      "formal_games": 0,
+      "history_events": 32,
+      "implementation_manifest_sha256": "9510c069d312f100280b48a2096d39d0be8043608c5c28fc83f3da309bd3f7ce",
+      "kind": "normal-core-frozen-model-pair-functional",
+      "max_tokens": 256,
+      "mean_duration_reported": false,
+      "native_executed": true,
+      "opponent_policy_mode": "greedy",
+      "private_host_receipt_sha256": "78b1fbe0a42eb736716e2c32d958ccf02a834a2262ab683188c8542456a24a11",
+      "private_result_sha256": "8d76649d66090f29d512134f78ef430c19016499452bc48cb03a7b379bdb976e",
+      "source_model_stage": "engineering_initial_untrained",
+      "status": "failed_or_uncertain",
+      "timing_pilot": false,
+      "training_updates": 0
+    },
+    {
+      "actor_training_state_unchanged": true,
+      "completed_games": 0,
+      "decision_windows": 1046,
+      "error": {
+        "message": "player input exceeds model token/action budget",
+        "type": "ContractError"
+      },
+      "formal_games": 0,
+      "history_events": 32,
+      "implementation_manifest_sha256": "c111722ca8b2907714d966bc9aac1fd2495c072d9029d20e812bf6183e8a0184",
+      "kind": "normal-core-frozen-model-pair-functional",
+      "max_tokens": 256,
+      "mean_duration_reported": false,
+      "native_executed": true,
+      "opponent_policy_mode": "sample",
+      "private_host_receipt_sha256": "9fecd3d885bd3d10ac79d01403153e41c679abcb7b75f4ad80ba38dc787bd3fb",
+      "private_result_sha256": "bf874bb94b46a04469160e70ef076a4c6fcebf2683bdbfe139e9dfb746df2c70",
+      "source_model_stage": "engineering_initial_untrained",
+      "status": "failed_or_uncertain",
+      "timing_pilot": false,
+      "training_updates": 0
+    },
+    {
+      "actor_training_state_unchanged": true,
+      "completed_games": 0,
+      "decision_windows": 1501,
+      "error": {
+        "message": "CPU sample budget exhausted; no terminal reward/update claimed",
+        "type": "NativeError"
+      },
+      "formal_games": 0,
+      "history_events": 8,
+      "implementation_manifest_sha256": "389ab7507db08ee4eb7c246ee48cdf5fa6fef7efa1ba95b4d094b689a2bf0b22",
+      "kind": "normal-core-frozen-model-pair-functional",
+      "max_tokens": 256,
+      "mean_duration_reported": false,
+      "native_executed": true,
+      "opponent_policy_mode": "sample",
+      "private_host_receipt_sha256": "e79fd66e40a4a6bd9e09c227585f4fea3981180d7f059e64c0a9eea6da8284f9",
+      "private_result_sha256": "1f48f2c7f6816cd4304001ad4f1d16723be9fd3fc409412e12c1ff7cd841ee4a",
+      "source_model_stage": "engineering_initial_untrained",
+      "status": "failed_or_uncertain",
+      "timing_pilot": false,
+      "training_updates": 0
+    }
+  ],
+  "quota": {
+    "currently_readable_in_this_container": false,
+    "parent_observation_utc": "2026-10-26T13:13:10Z",
+    "parent_remaining_percent_at_observation_only": 86,
+    "save_stop_percent": 20
+  },
+  "required_migration": {
+    "cuda_environment_migration_required": false,
+    "local_old_group_equivalent_to_selected_source": false,
+    "model_group": {
+      "bytes": 4147863,
+      "formal_updates": 0,
+      "path": "/workspace/.cache/training-prep-20261026/state/runs/four-model-source-20261026b/checkpoints/local-step-7.weights",
+      "received_locally": false,
+      "sha256": "fcb4a3b970e8b834be69c0d0ee3ff26a53eb1e067b946f5cb11a63e82cea4f87",
+      "source_binding_sha256": "c9cf28d7efcb1ed5569144379b1157f2ed5188f2c8f442e7628ec8ab9614cb0b"
+    },
+    "optional_duel_reference": {
+      "bytes": 3346647,
+      "formal_updates": 0,
+      "path": "/workspace/.cache/codex-20261025/agent/runs/smoke-normal123/checkpoints/step-2.weights",
+      "received_locally": false,
+      "sha256": "66c35abd70b0effe28a306c5d1d5b76ecd283ffd9230115f973227ecf6203396"
+    },
+    "public_checkpoint_upload_authorized": false,
+    "source_json_receipts_only": [
+      {
+        "bytes": 3123090,
+        "sha256": "03bda26138b7010ce3eceac4e2e82fd8b8e9259082ee9922188db46c551f7720",
+        "url": "https://ygocdb.com/api/v0/releaseDates.json"
+      },
+      {
+        "bytes": 804793,
+        "sha256": "a1eae437839197d8f08f9932fbba769567079137490b340a30fcc45def8dfcdd",
+        "url": "https://ygocdb.com/api/v0/limits.json?show=all"
+      }
+    ]
+  },
+  "resource_snapshot": {
+    "cgroup_cpu_cores": 4,
+    "cgroup_memory_bytes": 17179869184,
+    "cuda_build": null,
+    "long_job_lifetime_verified": false,
+    "mono_available": false,
+    "pinned_core_and_catalog_script_hashes_verified": true,
+    "termination_persistence_guaranteed": false,
+    "torch": "2.9.1+cpu",
+    "windbot_executables": 0
+  },
+  "retiming_requested": false,
+  "schema_version": 1,
+  "storage": {
+    "allocated_bytes": 1619820544,
+    "categories": {
+      "archives": {
+        "allocated_bytes_unique_inode": 18489344,
+        "file_count": 10,
+        "logical_bytes": 18464017
+      },
+      "checkpoint_weights": {
+        "allocated_bytes_unique_inode": 192888832,
+        "file_count": 44,
+        "logical_bytes": 192808968
+      },
+      "cpu_python_environment": {
+        "allocated_bytes_unique_inode": 1108262912,
+        "file_count": 23684,
+        "logical_bytes": 1049875429
+      },
+      "data_index_sqlite": {
+        "allocated_bytes_unique_inode": 33980416,
+        "file_count": 6,
+        "logical_bytes": 33964032
+      },
+      "existing_training_trajectory_and_audit_files": {
+        "allocated_bytes_unique_inode": 23908352,
+        "file_count": 16,
+        "logical_bytes": 23885680
+      },
+      "logs": {
+        "allocated_bytes_unique_inode": 2793472,
+        "file_count": 120,
+        "logical_bytes": 2556909
+      },
+      "maintained_bot_source_copies_and_preparation": {
+        "allocated_bytes_unique_inode": 92123136,
+        "file_count": 2087,
+        "logical_bytes": 86545440
+      },
+      "native_sources_and_build": {
+        "allocated_bytes_unique_inode": 92413952,
+        "file_count": 13977,
+        "logical_bytes": 64286542
+      },
+      "other_cache_and_extracted_source_copies": {
+        "allocated_bytes_unique_inode": 33525760,
+        "file_count": 1819,
+        "logical_bytes": 29733440
+      },
+      "working_source_and_docs": {
+        "allocated_bytes_unique_inode": 21434368,
+        "file_count": 786,
+        "logical_bytes": 19764515
+      }
+    },
+    "formal_start_space_ready": false,
+    "future_upper_bound_bytes": null,
+    "later_df_free_bytes": 30344568832,
+    "later_du_allocated_bytes": 1633247232,
+    "logical_bytes": 1521884972,
+    "measurement_utc": "2026-10-26T13:28:31.462205+00:00",
+    "new_policy_scope": "explicit owned checkpoint retention plus local space guards; not whole-host capacity certification",
+    "remaining_growth": [
+      "complete period assets and build toolchain",
+      "full DataIndex player DTO payloads and SQLite transactions",
+      "cumulative course records/events and append-only manifests",
+      "failed attempts, raw audits, held-out evaluation and self-play schedule",
+      "temporary build/install/write peaks"
+    ],
+    "strict_limit_bytes": 30000000000
+  },
+  "unresolved_launch_items": [
+    "selected source weights and real period release data",
+    "qualified stage1 WindBot executable/runtime in this container",
+    "reviewed common-deck train/validation/final roster and remaining opponent slots",
+    "full model-pair terminal and real BO3 functional evidence",
+    "explicit model context policy; old group model config cannot silently migrate 32 to 8",
+    "self-play proportion/allocation/acceptance without replacing original coverage",
+    "CPU budget units and bounded all-assets storage peak",
+    "host lifetime/persistence and parent start notification"
+  ]
+}

@@ -26,6 +26,36 @@ def volume_met(mean_seconds, bo1_matches, bo3_matches):
     return bo1_matches + bo3_matches >= rule["total_min"] and bo1_matches * 2 == bo3_matches * 3
 
 
+def validate_timing_basis(value):
+    """A user-selected branch is a quantity rule, not a new speed measurement."""
+    d = fields(value, {"kind", "branch", "source", "observed_mean_seconds", "retiming_requested", "current_device_measured"})
+    if (d["kind"] != "user_confirmed_slow_branch" or d["branch"] != "slow" or
+            d["observed_mean_seconds"] is not None or d["retiming_requested"] is not False or
+            d["current_device_measured"] is not False or not isinstance(d["source"], str) or
+            not d["source"].strip() or len(d["source"]) > 1024):
+        raise ContractError("explicit historical slow-branch instruction required; no invented CPU mean")
+    return d
+
+
+def course_volume_requirements(config):
+    basis = config.get("timing_basis")
+    if basis is not None:
+        validate_timing_basis(basis)
+        if config.get("pilot_mean_seconds") is not None:
+            raise ContractError("historical branch selection cannot masquerade as a current measured mean")
+        return {"count_unit": "completed_matches", "total_min": 1000,
+                "ratio_bo1": 6, "ratio_bo3": 4, "minimum_bo1": 600, "minimum_bo3": 400}
+    return volume_requirements(config.get("pilot_mean_seconds"))
+
+
+def course_volume_met(config, bo1_matches, bo3_matches):
+    _count(bo1_matches, "completed BO1 matches"); _count(bo3_matches, "completed BO3 matches")
+    rule = course_volume_requirements(config)
+    if "bo1_min" in rule:
+        return bo1_matches >= rule["bo1_min"] and bo3_matches >= rule["bo3_min"]
+    return bo1_matches + bo3_matches >= rule["total_min"] and bo1_matches * 2 == bo3_matches * 3
+
+
 def check_2610_rates(period, first_wins, first_completed, second_wins, second_completed,
                      *, stage="common-decks-bo3", partition="final_eval", anomalies=0):
     """Check arithmetic only; callers must supply actual, frozen small-game evidence.

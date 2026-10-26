@@ -29,14 +29,17 @@ from .duel_model import FEATURE_VERSION, parameter_digest
 from .implementation_identity import assert_source_tree, source_tree_snapshot
 from .lora import AdapterSession
 from .lora_group import ppo_inputs, ppo_loss
+from .model_opponents import ModelOpponentRuntime, ModelSnapshotOpponent
 from .native import NativeNormalEngine
 from .native_assets import verify_resources
+from .normal_duel import request_digest
 from .period_runtime import PeriodBuildAssets, PeriodNativeEngine
 from .training_pilot import _bytes, _check_qualification, _inside, _reference
 from .validation import ContractError, fields, integer, member, parse_json, text
 from .windbot_projection import WindBotOpponent
 
 REAL_GAME_SOURCE = "live-core-neural-policy-registered-bot"
+MODEL_GAME_SOURCE = "live-core-neural-policy-frozen-neural-opponent"
 
 
 @dataclass(frozen=True)
@@ -96,6 +99,14 @@ class CourseBotRuntime:
 class _FirstTurnObservation:
     def __init__(self, *args, course_observations, **kwargs):
         self._course_observations = course_observations
+        # Host-only bounded diagnostics over normal legal DTOs. Neither raw
+        # native messages nor private card identities/seed values are recorded.
+        self._course_diagnostics = {"kind": "bounded-legal-dto-host-diagnostic-v1", "ring_limit": 128,
+            "windows": 0, "submit_returned": 0, "submit_rejected": 0, "prompt_counts": {},
+            "observer_counts": {}, "action_counts": {}, "operation_counts": {}, "ring": [],
+            "terminal_claimed": False, "training_eligible": False,
+            "accepted_semantics": "normal submit returned; no independent effect/terminal claim"}
+        course_observations["private_diagnostics"] = self._course_diagnostics
         course_observations["constructor_started"] = True
         super().__init__(*args, **kwargs)
         course_observations["constructor_completed"] = True
@@ -105,9 +116,40 @@ class _FirstTurnObservation:
         if request is not None:
             obs = request.observation
             self._course_observations["decision_windows"] += 1
+            d = self._course_diagnostics; d["windows"] += 1
+            message = None if request.prompt is None else request.prompt.message
+            for name, key in (("prompt_counts", str(message)), ("observer_counts", str(obs.observer))):
+                d[name][key] = d[name].get(key, 0)+1
+            self._diagnose({"event": "request", "observer": obs.observer, "message": message,
+                "request_sha256": request_digest(request), "legal_actions": len(request.actions)})
             if self._course_observations["actual_first_core_seat"] is None and obs.turn == 1:
                 self._course_observations["actual_first_core_seat"] = obs.turn_player
         return request
+
+    def _diagnose(self, row):
+        ring = self._course_diagnostics["ring"]
+        ring.append(row)
+        if len(ring) > 128: del ring[:-128]
+
+    def submit(self, selection):
+        request = self.pending
+        action = next((a for a in request.actions if a.action_id == selection.action_id), None) if request is not None else None
+        row = {"event": "submit", "observer": None if request is None else request.observation.observer,
+            "message": None if request is None or request.prompt is None else request.prompt.message,
+            "request_sha256": None if request is None else request_digest(request),
+            "action_kind": None if action is None else action.kind,
+            "operation": None if action is None or action.details is None else action.details.operation,
+            "accepted": False}
+        try:
+            result = super().submit(selection)
+            row["accepted"] = True; self._course_diagnostics["submit_returned"] += 1
+            for name, key in (("action_counts", row["action_kind"]), ("operation_counts", row["operation"])):
+                if key is not None: self._course_diagnostics[name][key] = self._course_diagnostics[name].get(key, 0)+1
+            return result
+        except BaseException:
+            self._course_diagnostics["submit_rejected"] += 1
+            raise
+        finally: self._diagnose(row)
 
 
 class _CourseNativeEngine(_FirstTurnObservation, NativeNormalEngine):
@@ -130,14 +172,23 @@ class CourseGameAdapter:
     public views or policy inputs. A failed update is reported with observed
     before/after model and update cursor; the course owner decides rollback.
     """
-    def __init__(self, *, assets, match_state, actor_participant_id, trainer, bot_runtime,
+    def __init__(self, *, assets, match_state, actor_participant_id, trainer, bot_runtime=None, model_runtime=None,
                  data_index, experiment_id, purpose, config=None, adapter_session=None,
-                 policy_rng=None, evaluation_pairs=(), evaluation_cursor=0):
+                 policy_rng=None, evaluation_pairs=(), evaluation_cursor=0, opponent_policy_rng=None):
         from .match_runner import MatchState
         if not isinstance(assets, BuildAssets) or not isinstance(match_state, MatchState):
             raise ContractError("typed rule assets and authorized MatchState required")
-        if not isinstance(trainer, CpuTrainer) or not isinstance(bot_runtime, CourseBotRuntime) or not isinstance(data_index, DataIndex):
-            raise ContractError("actual trainer, bot runtime and data index required")
+        if not isinstance(trainer, CpuTrainer) or not isinstance(data_index, DataIndex):
+            raise ContractError("actual trainer and data index required")
+        if ((bot_runtime is None) == (model_runtime is None) or
+                bot_runtime is not None and not isinstance(bot_runtime, CourseBotRuntime) or
+                model_runtime is not None and not isinstance(model_runtime, ModelOpponentRuntime)):
+            raise ContractError("exactly one typed bot runtime or frozen model runtime required")
+        if model_runtime is not None:
+            if model_device(trainer.model).type != "cpu": raise ContractError("model self-play course is CPU only")
+            model_runtime.assert_integrity()
+            if match_state.binding.get("model_opponent") != model_runtime.identity():
+                raise ContractError("match must bind its exact frozen model opponent for all small games")
         identifier(actor_participant_id); identifier(experiment_id)
         member(purpose, "course partition", ("train", "validation", "final_eval"))
         cfg = trainer.config if config is None else config
@@ -168,13 +219,24 @@ class CourseGameAdapter:
         actual_rng = trainer.policy_rng if policy_rng is None else policy_rng
         if not isinstance(actual_rng, torch.Generator) or actual_rng.device.type != "cpu":
             raise ContractError("checkpointed CPU sampling generator required")
+        if model_runtime is not None and model_runtime.policy_mode == "sample":
+            known_rngs = (actual_rng, trainer.policy_rng, trainer.batch_rng,
+                None if adapter_session is None else adapter_session.rng)
+            if (not isinstance(opponent_policy_rng, torch.Generator) or opponent_policy_rng.device.type != "cpu" or
+                    any(opponent_policy_rng is g for g in known_rngs)):
+                raise ContractError("opponent sampling requires an independent owned CPU generator")
+        elif opponent_policy_rng is not None: raise ContractError("only sampled model opponents accept a host RNG")
         self.assets, self.match_state, self.actor_id = assets, match_state, actor_participant_id
         self.trainer, self.session, self.config, self.policy_rng = trainer, adapter_session, cfg, actual_rng
-        self.bot, self.data_index, self.experiment_id, self.purpose = bot_runtime, data_index, experiment_id, purpose
-        self._registry_object = bot_runtime.registry
-        self._bot_seal = self._bot_identity()
+        self.bot, self.model_runtime = bot_runtime, model_runtime
+        self.opponent_policy_rng = opponent_policy_rng
+        self._opponent_rng_object = opponent_policy_rng
+        self.data_index, self.experiment_id, self.purpose = data_index, experiment_id, purpose
+        self._registry_object = None if bot_runtime is None else bot_runtime.registry
+        self._bot_seal = self._bot_identity() if bot_runtime is not None else None
+        self._model_seal = None if model_runtime is None else digest(model_runtime.identity())
         self.evaluation_pairs, self.evaluation_cursor = tuple(evaluation_pairs), evaluation_cursor
-        self.last_receipt = self.last_episode = None
+        self.last_receipt = self.last_episode = self.last_partial_diagnostics = None
         self._actor_objects = (trainer.model, trainer.encoder, adapter_session, actual_rng)
         self._used_specs = set()
         self._config_sha256 = digest(asdict(cfg))
@@ -184,7 +246,8 @@ class CourseGameAdapter:
             raise ContractError("course actor is absent from the actual match")
         self._originals = {p.participant_id: p.deck for p in originals}
         self.bot_id = next(p for p in self._originals if p != actor_participant_id)
-        self._bind_original_qualification()
+        self._qualification_sha256 = None
+        if self.bot is not None: self._bind_original_qualification()
 
     def _bot_identity(self):
         b = self.bot
@@ -274,7 +337,7 @@ class CourseGameAdapter:
     def state_metadata(self):
         optimizer = self.trainer.optimizer if self.session is None else self.session.optimizer
         steps = [float(v["step"]) for v in optimizer.state.values() if "step" in v]
-        return {"schema_version": 1, "kind": "course-live-game-adapter", "purpose": self.purpose,
+        value = {"schema_version": 1, "kind": "course-live-game-adapter" if self.bot is not None else "course-live-model-self-play-game-adapter", "purpose": self.purpose,
             "device": str(model_device(self.trainer.model)), "feature_version": FEATURE_VERSION,
             "model_sha256": parameter_digest(self.trainer.model), "vocab_sha256": self.trainer.encoder.vocab_sha256,
             "lora": None if self.session is None else {"version": self.session.version_id(),
@@ -282,8 +345,14 @@ class CourseGameAdapter:
             "training_cursor": self.trainer.episode_cursor if self.session is None else self.session.updates,
             "observed_optimizer_step_max": max(steps, default=0),
             "evaluation_cursor": self.evaluation_cursor, "config_sha256": self._config_sha256,
-            "qualification_sha256": self._qualification_sha256, "source_map_sha256": digest(self._source_map),
-            "original_bot_deck_sha256": digest(self._originals[self.bot_id].to_dict())}
+            "source_map_sha256": digest(self._source_map)}
+        if self.bot is not None:
+            value.update(qualification_sha256=self._qualification_sha256,
+                original_bot_deck_sha256=digest(self._originals[self.bot_id].to_dict()))
+        else:
+            value.update(model_opponent=self.model_runtime.identity(),
+                original_model_opponent_deck_sha256=digest(self._originals[self.bot_id].to_dict()))
+        return value
 
     def _index(self, spec, episode):
         binding = episode["summary"]["opponent_binding"]
@@ -308,21 +377,28 @@ class CourseGameAdapter:
             "match_id": spec.match_id, "game_number": spec.game_number, "partition": self.purpose,
             "model_update_started": False, "model_update_completed": False, "sample_completed": False,
             "formal_match_completion_claimed": False}
-        self.last_episode = None
+        self.last_episode = self.last_partial_diagnostics = None
         watched = {"constructor_started": False, "constructor_completed": False,
                    "actual_first_core_seat": None, "decision_windows": 0}
         started = time.monotonic(); elapsed = None; native_decisions = 0; result_winner = None
         fingerprint = self.training_fingerprint() if self.purpose != "train" else None
         modes = [(m, m.training) for m in self.trainer.model.modules()]
-        anomaly = None; current = None
+        anomaly = None; current = None; opponent = None
         try:
             assert_source_tree(Path(__file__).resolve().parent, self._source_map)
             if (self.trainer.model, self.trainer.encoder, self.session, self.policy_rng) != self._actor_objects:
                 raise ContractError("course actor objects changed after binding")
-            if self.bot.registry is not self._registry_object or self._bot_identity() != self._bot_seal:
-                raise ContractError("course bot source/Executor/audit configuration changed")
+            if self.bot is not None:
+                if self.bot.registry is not self._registry_object or self._bot_identity() != self._bot_seal:
+                    raise ContractError("course bot source/Executor/audit configuration changed")
+                for reference in (self.bot.audit, self.bot.qualification, self.bot.qualification_profile): _bytes(self.bot.workspace, reference)
+            else:
+                self.model_runtime.assert_integrity()
+                if (digest(self.model_runtime.identity()) != self._model_seal or
+                        self.match_state.binding.get("model_opponent") != self.model_runtime.identity() or
+                        self.opponent_policy_rng is not self._opponent_rng_object):
+                    raise ContractError("this match's frozen model opponent changed")
             if digest(asdict(self.config)) != self._config_sha256: raise ContractError("course config changed")
-            for reference in (self.bot.audit, self.bot.qualification, self.bot.qualification_profile): _bytes(self.bot.workspace, reference)
             if isinstance(self.assets, PeriodBuildAssets): self.assets.assert_integrity()
             elif verify_resources(self.assets.root) != self.assets.receipt: raise ContractError("course native resources changed")
             if self.session is not None:
@@ -330,8 +406,20 @@ class CourseGameAdapter:
                 if self.session.model is not self.trainer.model or not self.session.enabled or self.session.detached:
                     raise ContractError("effective actor adapter changed")
             profile = self._validate_profile(spec); seat = spec.seat_of(self.actor_id)
-            opponent = self.bot.registry.training_adapter(self.bot.executor_id, **self._runtime_options(profile, seat))
-            if not isinstance(opponent, WindBotOpponent): raise ContractError("actual audited typed bot required")
+            if self.bot is not None:
+                opponent = self.bot.registry.training_adapter(self.bot.executor_id, **self._runtime_options(profile, seat))
+                if not isinstance(opponent, WindBotOpponent): raise ContractError("actual audited typed bot required")
+            else:
+                private_rng = None
+                if self.opponent_policy_rng is not None:
+                    # Fork only this game. The caller keeps its original stream;
+                    # exact before/after states are private complete-boundary
+                    # evidence, not permission to resume a native half-game.
+                    private_rng = torch.Generator(device="cpu").set_state(self.opponent_policy_rng.get_state())
+                opponent = self.model_runtime.bind(self.assets, profile, 1-seat, policy_rng=private_rng)
+                if not isinstance(opponent, ModelSnapshotOpponent): raise ContractError("actual typed frozen model required")
+                if self.model_runtime.policy_mode == "sample":
+                    record["opponent_sampling"] = {"before": opponent.policy.sampling_state()}
             opponent.assert_runtime(self.assets.root, profile, seat)
             current = copy.copy(self.trainer)
             current.config = replace(self.config, actor_seat=seat)
@@ -378,6 +466,11 @@ class CourseGameAdapter:
             anomaly = type(error).__name__
             record.update(status="failed_or_uncertain", error={"type": anomaly, "message": str(error)}, retry_allowed=False)
         finally:
+            if isinstance(opponent, ModelSnapshotOpponent) and self.model_runtime.policy_mode == "sample":
+                record["opponent_sampling"]["after"] = opponent.policy.sampling_state()
+                record["opponent_sampling"]["caller_rng_unchanged"] = (
+                    record["opponent_sampling"]["before"]["rng_state"] == self.opponent_policy_rng.get_state().tolist())
+            self.last_partial_diagnostics = copy.deepcopy(watched.get("private_diagnostics"))
             if current is not None:
                 record["observed_sampler_cursor"] = current.episode_cursor
                 record["observed_sampler_updates"] = current.updates
@@ -393,8 +486,10 @@ class CourseGameAdapter:
                 record["frozen_training_state_unchanged"] = unchanged
                 if not unchanged:
                     anomaly = "frozen_training_state_changed"; record["status"] = "failed_or_uncertain"
-            record.update(after=self.state_metadata(), observations=dict(watched), wall_seconds=time.monotonic()-started)
+            record.update(after=self.state_metadata(), observations={k: v for k, v in watched.items() if k != "private_diagnostics"},
+                wall_seconds=time.monotonic()-started)
         return GameResult(game_number=spec.game_number, winner_core_seat=result_winner if anomaly is None else None,
             actual_first_core_seat=watched["actual_first_core_seat"], terminal=anomaly is None,
-            evidence_source=REAL_GAME_SOURCE, elapsed_seconds=elapsed if elapsed is not None else record["wall_seconds"],
+            evidence_source=REAL_GAME_SOURCE if self.bot is not None else MODEL_GAME_SOURCE,
+            elapsed_seconds=elapsed if elapsed is not None else record["wall_seconds"],
             native_decisions=native_decisions, anomaly=anomaly)

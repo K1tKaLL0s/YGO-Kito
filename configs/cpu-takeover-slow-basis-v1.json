@@ -1,0 +1,8 @@
+{
+  "kind": "user_confirmed_slow_branch",
+  "branch": "slow",
+  "source": "User instruction 2026-10-26: retain the >60-second branch from prior A10 paired-game observations; do not re-time in Codex",
+  "observed_mean_seconds": null,
+  "retiming_requested": false,
+  "current_device_measured": false
+}

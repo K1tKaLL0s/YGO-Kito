@@ -1,5 +1,7 @@
 # 显式工件课程入口
 
+2026-10-26 CPU 接管按[当前说明](cpu-takeover-and-selfplay.md)执行：用户取消重新测时，明确沿用慢档。课程可设置 `pilot_mean_seconds:null` 并填写 `configs/cpu-takeover-slow-basis-v1.json` 的完整 `timing_basis`；此时 `timing_pilot:null` 合法且不调用计时预跑，仍严格检查每环境600完整BO1＋400完整BO3、1800小局的种子／LoRA容量及其他资产。当前 CPU 精确速度保持未知。下文真实计时协议保留供其他显式选择该方式的宿主使用，不是本次新增门槛。
+
 `scripts/scenario_course.py`接宿主工件、实际`CourseModels`、分期资产、构筑kernel、BO1／BO3状态机和真实game adapter。默认只预检；模板中的null必须由真实工件填充，不会初始化随机替代模型、安装工具、下载数据或自动开始训练。`--pilot`和`--run`均须显式选择，彼此互斥。
 
 ```bash
@@ -17,10 +19,10 @@ PYTHONPATH=src .venv/bin/python scripts/scenario_course.py \
 - `bootstrap_task`：与实际分期资产匹配的语义`BuildTask`；`duel_config`必须显式列全训练game seeds；`adapter_configs`沿用四role配置文件的`adapters`数组，不得丢LoRA。正式快档最坏需1300小局、慢档1800小局的种子与duel LoRA更新容量；旧工程配置的max_updates=2不够，正式预检提前拒绝，不等第3局再失败。单独pilot不要求这份正式容量。
 - `available_cards`：`{"schema_version":1,"card_ids":[实际候选ID]}`。宿主逐卡核时期允许池、卡库、禁限和实际脚本；只有纯通常怪兽可明确不需脚本，缺失项逐张排除，不能把整个其他主题禁用。
 - 每个bot的固定源lock／完整安装树、实际构造审计、同Executor与原牌表的真实正常对局资格报告及profile、明确YDK或DeckParts JSON、stage／partition／先后手基线／实际覆盖说明。仅源码存在、registry或fixture不是运行资格。验证／终验须增加明确独立条目，不能用别名跨split复用同实际对手。
-- `timing_pilot`：`course-group-bo1-timing-pilot-v1`真实完整声明窗口，同四模型、实际LoRA、设备／词表／配置、分期／资源／完整源码及真实bot case绑定。失败、缺计时、未完成或身份不匹配会blocked，不能任填均值或用fixture启用课程。旧standalone CPU报告不能代替本协议，也不能冒充group／LoRA／GPU速度。
+- `timing_pilot`：在选择实际测量分支时，引用 `course-group-bo1-timing-pilot-v1` 完整声明窗口，同四模型、实际LoRA、设备／词表／配置、分期／资源／完整源码及真实bot case绑定。缺失或不匹配会blocked，不能任填均值；本次明确慢档 `timing_basis` 免除此项测量，不免除其余门禁。
 - `course`：root课程配置文件，包括course_id、period_id、mode、实际pilot均值、完整training_seeds、独立validation／final_eval seed-pairs、每次match数量、wall上限、实际GPU数、历史固定牌表或自主模式null、交替首局先后、预声明独立评测场数及明确对手不换备基线。device显式`cpu`或`cuda:0..7`，CPU的allocated_gpu_count=0、GPU为1..8；wall×max(1,GPU数)不得超过2610的20h或历史每期25h分配，原100 GPU小时不变。没有租用算力或设备fallback。
 
-首次还没有计时报告时，`timing_pilot:null`及course文件中的`pilot_mean_seconds:null`表示待测；这只能进入显式`--pilot`，正式运行会拒绝。`pilot_pairs`列本次完整窗口的私有game／policy seed对，须与训练、validation及final_eval全部分开；约12局仍只是建议。获准的实际主机可执行：
+未选择已确认慢档 `timing_basis` 时，`timing_pilot:null` 及 `pilot_mean_seconds:null` 表示待测，正式运行拒绝。`pilot_pairs`列测量窗口的私有game／policy seed对，须与训练、validation及final_eval全部分开；约12局只是建议。本次不执行下列测时命令；其他单独获准的测量可使用：
 
 ```bash
 PYTHONPATH=src .venv/bin/python scripts/scenario_course.py \
@@ -39,4 +41,6 @@ PYTHONPATH=src .venv/bin/python scripts/scenario_course.py \
 
 输出独占创建，旧报告不覆盖；dispatch后未知执行保留partial／unknown。私有DataIndex、完整match状态及模型checkpoint保存在显式`.cache`状态目录，不上传私密轨迹。重新进入已有课程必须明确`resume:true`，由精确工件／模型／源码binding、自包含模型checkpoint和现存DataIndex恢复，旧初始化source文件可已删除而原spec／provenance仍保留；有in-flight或未裁决异常不得自动重跑。默认resume预检只读已有索引，不创建训练状态。一次调用结束不等于完整训练量或正式验收达标，所有公开结果仍保持`formal_training_success_verified:false`。
 
-BO3 draw裁决、历史“接近50%”容差、CI通过方法和重复观察规则未冻结时保留pending。2610严格>49%／>39%只属于第二阶段冻结实际小局先后手统计；stage1、pilot和训练结果不抵独立评测。继承已有少量工程更新仅建立初始化与恢复能力，不证明源模型的竞技能力。当前环境缺真实完整C#与计时工件，模板预检应blocked；本次只测明确CPU接口与fixture，不执行真实引擎／课程训练，不宣称速度、能力或100h够用。
+第二阶段对手可显式选 `driver:local_model_snapshot`，提供固定有效推理快照、`same-period-inference`／`explicit-inference-migration`、合法牌表及精确 `common_deck_evidence`。模型词表须覆盖实际分期资产；sample 模式另给宿主私有 `opponent_policy_seed`，其状态不进入模型特征。快照／种子和同一BO3绑定；历史快照、模式或标签不能伪造独立评估对手。此驱动只适用于 `common-decks-bo3`，不会以任意自弈替换第一阶段现成机器人；明确审阅来源也不认证策略强度。
+
+BO3 draw裁决、历史“接近50%”容差、区间方法和重复观察规则未冻结时保留pending。2610严格>49%／>39%只属于第二阶段冻结实际小局先后手统计；stage1、pilot和训练结果不抵独立评测。继承工程更新不证明竞技能力。当前 Codex 容器缺真实C#运行资产，模板预检应blocked；新增普通核心功能结果另列，不能据CPU机制测试宣称完整课程、速度、能力或100h够用。
