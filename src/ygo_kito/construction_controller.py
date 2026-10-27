@@ -18,7 +18,9 @@ class ConstructionController:
         self.coordinator, self.host = coordinator, host
 
     def bind(self, graph, task, deck):
-        result=self.binding_adapter.bind(graph,task,deck,required_tags=self.graph_adapter.codec.tags)
+        if not set(self.graph_adapter.required_connector_kinds)<={e.kind for e in graph.connectors}:
+            raise ContractError("requested coarse connection is absent")
+        result=self.binding_adapter.bind(graph,task,deck,required_tags=self.graph_adapter.required_tags)
         if result.proposal is None:
             raise ContractError("requested logic features cannot be bound: "+"; ".join(result.reasons))
         return result.proposal
@@ -27,7 +29,7 @@ class ConstructionController:
         session.check_goal()
         if session.task.sha256 != self.graph_adapter.task.sha256:
             raise ContractError("construction controller task binding differs")
-        requirements=digest(self.graph_adapter.codec.to_dict())
+        requirements=self.graph_adapter.requirements_sha256
         previous=getattr(session,"logic_requirements_sha256",None)
         if previous is not None and previous!=requirements:
             raise ContractError("requested logic features changed; explicitly revise the user request")

@@ -127,7 +127,7 @@ class HostConstructionBackend:
         if task.sha256 not in self._builders:
             self._builders[task.sha256] = BuildTrainer(task, assets, BuildTrainingConfig())
         if key not in self._adapters:
-            adapter = LogicModelAdapter.from_builder(self._builders[task.sha256], codec)
+            adapter = LogicModelAdapter.from_builder(self._builders[task.sha256], codec, required_tags=tags)
             if self._logic_checkpoint is not None:
                 try:
                     adapter.load(self._logic_checkpoint)

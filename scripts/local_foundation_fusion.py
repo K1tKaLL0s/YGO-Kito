@@ -108,7 +108,7 @@ def run(base,directory,stop,status,*,resume=False):
     if len(tags)!=2:raise RuntimeError('Required source-reviewed effect blocks are unavailable')
     tag=LogicTag('field','setcode:181');fact=PublicFactTag(tag,'setcode',0x181,'actual-host-catalog:'+assets.receipt['resources']['cards'])
     binding_adapter=CatalogBindingAdapter(assets,fact_tags=(fact,),assessments=assessments)
-    adapter=_SharedLogicAdapter(task,models.builder,LogicCodec(tags),models.kernel.updates)
+    adapter=_SharedLogicAdapter(task,models.builder,LogicCodec(tags),models.kernel.updates,required_tags=tags,required_connector_kinds=("送墓时发动",))
     session=ConstructionSession('珠泪主题：卡组送墓·墓地融合，具体融合目标与发动条件见任务',task)
     session.classification=IntentClassification('narrow',1.0,('setcode:181',),reasons=('explicit internal fixed-theme assignment; not text classifier confidence',))
     controller=ConstructionController(adapter,binding_adapter,models.coordinator)

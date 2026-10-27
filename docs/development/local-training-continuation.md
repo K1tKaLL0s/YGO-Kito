@@ -13,7 +13,7 @@ N:\YGO-Kito\_local_cpu_20261027\source\scripts\local-training.ps1 -Action Stop -
 N:\YGO-Kito\_local_cpu_20261027\source\scripts\local-training.ps1 -Action Resume -Job course -RunId local-course-001
 ```
 
-`Start` 创建隐藏的普通 WSL 客户端进程，并以独立会话运行注册的学习任务。项目独占锁记录 Linux PID、启动时间和 boot ID。`Status` 验证现存进程身份并报告心跳年龄；发行版未运行时只读取保存状态。`Stop` 写入合作式停止请求，在完整小局、配对案例或参数更新边界保存后退出。
+`Start` 创建隐藏的普通 WSL 客户端进程，并以独立会话运行注册的学习任务。项目独占锁记录 Linux PID、启动时间和 boot ID。后续 worker 先取得固定 inode 的系统 flock 互斥，再检查/迁移旧租约，避免并发 Resume 迁走新进程的活锁；不删除互斥文件。`Status` 验证现存进程身份并报告心跳年龄；发行版未运行时只读取保存状态。`Stop` 写入合作式停止请求，在完整小局、配对案例或参数更新边界保存后退出。
 
 `Resume` 复用同一运行和课程身份，读取完整模型、优化器、调度器、RNG、DataIndex 与游标。已有完成标记拒绝重复执行；不确定的在途对局或更新保留，要求检查，不能自动清除后重打。旧进程仍存活时禁止第二个学习进程。
 
@@ -31,7 +31,7 @@ N:\YGO-Kito\_local_cpu_20261027\source\scripts\local-training.ps1 -Action Resume
 
 `local_foundation_course.py` 通过现有 `ScenarioCourse` 接续基础参数 PPO 与完整大场计数。已有比较的正常终局/回放和相同资源身份可作为本期 bot 运行证据，保留原回执与明确源码迁移记录，不另加资格批次。`local_course_collaboration.py` 在训练块之间继续四段构筑推理、引擎样本目标学习、真实调度记录学习与冻结驾驶比较。优化角色只消费实际严格比较，缺标签时如实保持未更新。
 
-初始本机课程只供应已有且当期合法的 CyberDragon bot 基线。常见主题、强参考内战与独立验收覆盖仍需补齐；不能将这个对手改名充抵覆盖。预测监督尚未完成时不得将整百事件或无条件重构作为预测反馈证据。四段推理、各角色基础参数更新与竞技改善分别记账。
+初始本机课程只供应已有且当期合法的 CyberDragon bot 基线。常见主题、强参考内战与独立验收覆盖仍需补齐；不能将这个对手改名充抵覆盖。`local_course_forecast.py` 已接入真实终局的统筹预测头监督，并从第13场前登记固定预测。前12场仅用于事后监督；未校准预测不作为最终胜率验收。按池范围保存预测、实际成绩、工程偏差规则及提示/重构记录，不将整百事件或无条件重构冒充统计反馈。四段推理、各角色基础参数更新与竞技改善分别记账。
 
 ## 状态与资源
 
@@ -42,3 +42,5 @@ Linux 原生 core 与完整 Ice WindBot 在本机重建。固定源码来源见 
 `pack_formal_course_source.py --base <本机项目基目录>` 保存不可变的 Python 执行快照。已建缓存不能被静默覆盖；修改执行代码后需要明确迁移并保留旧记录。运行时读取资源、磁盘、停止请求和既有预算条件，Codex 当前剩余额度到 20% 时保存停止，不使用重置卡。
 
 GitHub 草稿 PR #8 保存云端原始恢复包和源码改动。本机继续成果更新同一草稿 PR，保持不合并。模型、优化器、RNG 和训练账本属于用户授权公开的恢复资产；第三方 CDB、Lua、core 与 bot 运行文件按固定来源和许可恢复。恢复包本身不是完整第三方运行环境。
+
+任务要求与词表证据分开：`LogicModelAdapter` 的 `required_tags` / `required_connector_kinds` 是显式请求，`LogicCodec` 是可用词表。自主宿主通过绑定中的 `construction_logic_requirements` 声明本次要求，并始终保留狭义主题。已评审卡文不反向定义任务。当前健康训练保留既有不可变源码；新增通用语义需显式迁移后消费，不跳过恢复绑定。

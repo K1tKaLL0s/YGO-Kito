@@ -150,10 +150,12 @@ def initialize_course_vocabulary(builder, host_available_ids, *, seed=45881):
 
 class _SharedLogicAdapter(LogicModelAdapter):
     """Existing graph scorer with host-managed training, no new optimizer."""
-    def __init__(self, task, builder, codec, updates):
+    def __init__(self, task, builder, codec, updates, *, required_tags=(), required_connector_kinds=()):
         self.task, self.models, self.deck_encoder, self.codec = task, builder.models, builder.encoder, codec
         self.device = model_device(self.models[ROLES[0]])
         self.codec_sha256 = digest(codec.to_dict())
+        self.required_tags=tuple(required_tags);self.required_connector_kinds=tuple(required_connector_kinds)
+        self.requirements_sha256=digest(self.requirements())
         self.encoder = LogicFeatureEncoder(codec, builder.encoder.config.max_tokens)
         self.updates, self.last_selection = updates, {}
 
@@ -460,9 +462,16 @@ class AutonomousConstructionKernel:
             # classifier prediction or a fabricated trained confidence score.
             session.classification=IntentClassification("narrow",1.0,(term,),reasons=("explicit internal task assignment; not text classification",))
             effect_tags, _ = reviewed_effect_blocks(self.assets, task.pool)
-            codec=LogicCodec(effect_tags or (LogicTag.from_dict(theme["tag"]),))
+            theme_tag=LogicTag.from_dict(theme["tag"])
+            requested=self.source_binding.get("construction_logic_requirements",{"tags":[],"connector_kinds":[]})
+            if not isinstance(requested,dict) or set(requested)!={"tags","connector_kinds"}:
+                raise ContractError("explicit construction logic requirements need tags and connector_kinds")
+            required_tags=tuple(dict.fromkeys((theme_tag,*(LogicTag.from_dict(t) for t in requested["tags"]))))
+            required_kinds=tuple(requested["connector_kinds"])
+            codec=LogicCodec((*required_tags,*effect_tags),tuple(dict.fromkeys(("ns","ss","送墓时发动",*required_kinds))))
             self.sessions[ident]=session
-            self.adapters[ident]=_SharedLogicAdapter(task,self.builder,codec,self.updates)
+            self.adapters[ident]=_SharedLogicAdapter(task,self.builder,codec,self.updates,
+                required_tags=required_tags,required_connector_kinds=required_kinds)
         return self.sessions[ident],self.adapters[ident]
 
     def run_selected(self, selection, *, feedback=(), base=None, verifier=existing_goal_verifier):
@@ -480,7 +489,8 @@ class AutonomousConstructionKernel:
             cb_verified=False,ability_verified=False,
             effect_blocks={'status':'source_reviewed' if effect_tags else 'reviewed_effect_vocabulary_unavailable',
                            'tags':[{'dimension':t.dimension,'value':t.value} for t in effect_tags],
-                           'assessment_count':len(assessments),'connectors_separate':True})
+                           'assessment_count':len(assessments),'connectors_separate':True,
+                            'requested':adapter.requirements(),'reviews_define_requirements':False})
         if result.get("best"):
             attempts=result["best"]["validation"].get("attempts",[])
             result["cb_verified"]=any(a.get("engine_validation",{}).get("status") in
@@ -513,7 +523,7 @@ class AutonomousConstructionKernel:
             "logic":session.logic.to_dict() if session.logic else None,"feedback":deepcopy(session.feedback),"role":role}
         if role=="build_optimizer" and session.logic is None:
             raise ContractError("graph optimization requires an existing target graph")
-        graphs=rule_graph_candidates(context,adapter.codec)
+        graphs=adapter.candidates(context)
         integer(preferred_index,"graph preference index",0,len(graphs)-1)
         adapter._check(context,graphs)
         model=self.builder.models[role]
@@ -586,7 +596,7 @@ class AutonomousConstructionKernel:
                     session.record_feedback(item["source"],item["message"])
                 session.feedback=deepcopy(raw["feedback"])
                 required=raw["logic_requirements_sha256"]
-                if required is not None and required!=digest(adapter.codec.to_dict()):
+                if required is not None and required!=adapter.requirements_sha256:
                     raise ContractError("restored graph tag requirements differ")
                 if required is not None:session.logic_requirements_sha256=required
                 accepted=deepcopy(saved["accepted_fill"])

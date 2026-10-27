@@ -2,10 +2,11 @@
 from copy import deepcopy
 import hashlib
 import json
+import shutil
 from pathlib import Path
 
 
-def cycle(course,base,target,stop,status,*,initial=False):
+def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,feedback=None):
     from ygo_kito.build_contracts import BuildTask,DeckParts,digest
     from ygo_kito.build_pipeline import verify_goal
     from ygo_kito.build_training import supervision_projection
@@ -14,13 +15,22 @@ def cycle(course,base,target,stop,status,*,initial=False):
     def read(p):return json.loads(p.read_text(encoding='utf-8'))
     def write(p,v):
         tmp=p.with_name(p.name+'.tmp');tmp.write_text(json.dumps(v,ensure_ascii=False,indent=2)+'\n',encoding='utf-8');tmp.replace(p)
+    def pause_if_requested():
+        if stop.exists():
+            # Admission may have advanced the DataIndex since the last update.
+            # Commit its exact full boundary before reporting a recoverable stop.
+            course.save()
+            error=RuntimeError('Safe stop at saved collaborative feedback boundary')
+            error.safe_boundary_saved=True
+            raise error
     def apply_once(feedback_id,artifact_id,**kw):
         if not any(x['feedback_id']==feedback_id for x in course.feedback.consumed):
-            if stop.exists():raise RuntimeError('Safe stop before indexed role update')
+            pause_if_requested()
             course.apply_feedback(feedback_id,artifact_id,**kw)
-    number=sum(course.counts().values());root=target/('collaboration-'+str(number).zfill(6));root.mkdir(exist_ok=True)
+    number=sum(course.counts().values());root=target/('collaboration-'+str(number).zfill(6)+('-forced' if force_rebuild else ''));root.mkdir(exist_ok=True)
     if (root/'complete.json').exists():return read(root/'complete.json')
     task=course._task();models=course.models;assets=course.assets
+    incumbent=deepcopy(course.construction['best'])
     path=root/'actual-four-stage.json'
     if path.exists():result=read(path)
     elif initial:
@@ -34,9 +44,17 @@ def cycle(course,base,target,stop,status,*,initial=False):
             write(root/('route-'+str(counter).zfill(3)+'.json'),{'task':t.to_dict(),'deck':d.to_dict(),'proof':proof})
             status('collaborative_native_route',formal_matches=number,route_attempt=counter,result=proof['status'])
             return proof
-        feedback=({'source':'duel','message':'Actual completed training matches: '+str(number)+'; observed wins: '+str(sum(r['winner']=='actor' for r in course.records if r['purpose']=='train' and r['complete']))+'. Reconsider the unchanged goal with actual public feedback; no quality label from one game.'},)
-        result=models.kernel.run_selected(course.selection,base=course.deck,feedback=feedback,verifier=verifier)
+        routing_feedback=({'source':'duel','message':'Actual completed training matches: '+str(number)+'; observed wins: '+str(sum(r['winner']=='actor' for r in course.records if r['purpose']=='train' and r['complete']))+'. Reconsider the unchanged goal with actual public feedback; no quality label from one game.'},)
+        if feedback:routing_feedback+=({'source':'duel','message':'Actual immutable forecast discrepancy: '+json.dumps(feedback,sort_keys=True)},)
+        result=models.kernel.run_selected(course.selection,base=None if force_rebuild else course.deck,feedback=routing_feedback,verifier=verifier)
         if not result.get('best') or not result.get('cb_verified'):raise RuntimeError('Collaborative construction has no exact verified task route')
+        if force_rebuild:
+            result['forced_reconstruction_proposed_best']=deepcopy(result['best'])
+            # Reconstruct from the goal, then compare with the still-valid
+            # incumbent. Reconstruction does not force an unmeasured card edit.
+            verifier(task,course.deck,assets)
+            result['best']=deepcopy(incumbent);result['verified_best']=deepcopy(incumbent)
+            result['forced_reconstruction_executed_from_empty']=True
         write(path,result)
     session=models.kernel.sessions[course.selection['candidate_id']]
     session.check_goal()
@@ -54,6 +72,7 @@ def cycle(course,base,target,stop,status,*,initial=False):
         if proof is None:raise RuntimeError('Public redacted output cannot replace the exact private goal replay')
         goal_rows.append({'deck':deck.to_dict(),'label':1.,'source':'pinned_constraints_and_actual_native_route','evidence':proof})
     def admit(data,suffix):
+        pause_if_requested()
         data['supervision_sha256']=digest(supervision_projection(data));write(root/(suffix+'.json'),data)
         dataset_id='course-build-'+task.sha256[:24]
         course.data_index.freeze({'dataset_id':dataset_id,'experiment_id':course.config['course_id'],'purpose':'train','family':'construction','versions':task.environment['versions'],'opponents':[],'task_sha256':task.sha256})
@@ -67,6 +86,7 @@ def cycle(course,base,target,stop,status,*,initial=False):
     goal_id=admit(deepcopy(common),'native-goal')
     apply_once('course-'+str(number)+'-goal',goal_id,kind='construction',task=task,roles=('build_goal',))
     trace_sha=hashlib.sha256(path.read_bytes()).hexdigest();dataset_id='course-actual-coordinator'
+    pause_if_requested()
     course.data_index.freeze({'dataset_id':dataset_id,'experiment_id':course.config['course_id'],'purpose':'train','family':'coordinator','versions':task.environment['versions'],'opponents':[],'task_sha256':None})
     for i in range(3):
         before,after=result['phases'][i:i+2]
@@ -76,6 +96,7 @@ def cycle(course,base,target,stop,status,*,initial=False):
         trace={'source':'host_logged_workflow_transition_v1','trace_sha256':trace_sha,'from_phase':i+1,'to_phase':i+2,'context':context,
                'route_label':after['role'],'forecast_target':None,'evidence':{'from_phase':before,'to_phase':after}}
         artifact_id='course-'+str(number)+'-route-'+str(i)
+        pause_if_requested()
         artifact=course.data_index.ingest_coordinator_trace(dataset_id,artifact_id,trace)
         rows=[{'context':context,'route_label':after['role'],'forecast_target':None,'provenance':{'dataset_id':dataset_id,'record_id':artifact_id,
                'source':'actual_four_stage_transition_only','evidence_sha256':artifact['payload_sha256']}}]
@@ -87,9 +108,17 @@ def cycle(course,base,target,stop,status,*,initial=False):
         runtime=bot_entry['runtime'];bot={'bot_id':runtime.opponent_id,'executor_id':runtime.executor_id,'source_id':runtime.source_id,'source':runtime.source,'mono':runtime.mono}
         audit_path=runtime.workspace/runtime.audit['path'];audit=read(audit_path)
         seeds=tuple(models.duel.config.game_seeds[models.duel.episode_cursor:models.duel.episode_cursor+4])
+        from ygo_kito.data_isolation import DataIndex
+        comparison_index=root/'comparison-index'
+        if not comparison_index.exists():
+            # Preserve the main course's committed index identity during a
+            # frozen multi-case operation. Import only its closed supervision.
+            shutil.copytree(course.data_index.path.parent,comparison_index)
+        private_index=DataIndex(comparison_index)
         comparison=compare_model_candidates(task,assets,candidates,bot_entry['deck'],trainer=models.duel,registry=runtime.registry,
             bot=bot,audit={'path':str(audit_path),'assembly_sha256':audit['assembly_sha256']},workspace=runtime.workspace,
-            seeds=seeds,directory=root/'fixed-model-pairs',data_index=course.data_index,experiment_id=course.config['course_id'],stop=stop,status=status)
+            seeds=seeds,directory=root/'fixed-model-pairs',data_index=private_index,experiment_id=course.config['course_id'],stop=stop,status=status)
+        status('saved_complete_collaborative_comparison',completed_cases=len(comparison['games']),total_cases=len(comparison['games']),complete_pairs=len(comparison['games'])//2)
         preferred=comparison['preferred_index']
         if preferred is not None:
             data=deepcopy(common);data['pairs']=[{'better':candidates[preferred].to_dict(),'worse':candidates[1-preferred].to_dict(),

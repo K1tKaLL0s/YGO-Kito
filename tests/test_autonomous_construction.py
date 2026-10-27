@@ -128,6 +128,24 @@ class CourseVocabularyTests(unittest.TestCase):
 
 
 class AutonomousKernelTests(unittest.TestCase):
+    def test_reviewed_pool_features_do_not_replace_the_assigned_theme(self):
+        from unittest.mock import patch
+        from ygo_kito.construction_logic import LogicTag
+        task,assets,builder,coordinator=fixture()
+        kernel=AutonomousConstructionKernel(builder,coordinator,assets=assets,host_available_ids=assets.rows,
+            source_binding={"kind":"synthetic-not-engine-availability"},pool_limit=32,candidate_limit=16)
+        selection=kernel.select_task()
+        extra=LogicTag("effect","unrequested-reviewed-feature")
+        with patch("ygo_kito.autonomous_construction.reviewed_effect_blocks",return_value=((extra,),())):
+            session,adapter=kernel._session(selection)
+        theme=LogicTag.from_dict(selection["theme"]["tag"])
+        self.assertIn(extra,adapter.codec.tags)
+        self.assertEqual(adapter.required_tags,(theme,))
+        context={"request":session.request,"task":session.task.to_dict(),"goal_sha256":session.goal_sha256,
+            "logic":None,"feedback":[],"role":"build_goal"}
+        for graph in adapter.candidates(context):
+            self.assertEqual({t for n in graph.nodes for t in n.tags},{theme})
+
     def test_supported_extra_goals_are_proposals_not_engine_or_graph_proof(self):
         task,assets,builder,coordinator=fixture(initialize=False)
         assets.rows[37]=dict(assets.rows[1],id=37,type=0x800001,name="synthetic-xyz",setcode=0x6e7)

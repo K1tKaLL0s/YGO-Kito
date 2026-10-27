@@ -1,5 +1,6 @@
 """One isolated local learning job, owned independently of the chat transport."""
 import argparse
+import fcntl
 from datetime import datetime, timezone
 import importlib.util
 import hashlib
@@ -28,6 +29,13 @@ def main():
     def alive(old):
         path=Path('/proc')/str(old.get('pid',-1))/'stat'
         return old.get('boot_id')==boot and path.is_file() and path.read_text().split()[21]==old.get('process_start_ticks')
+    # This fixed inode is never renamed or unlinked. Hold the OS lock for the
+    # whole worker lifetime, including stale-lease inspection and replacement.
+    owner_mutex=(lease.parent/'active.mutex').open('a+b')
+    try:fcntl.flock(owner_mutex.fileno(),fcntl.LOCK_EX|fcntl.LOCK_NB)
+    except BlockingIOError:
+        owner_mutex.close()
+        raise RuntimeError('Another local learning worker owns the project OS mutex')
     if lease.exists():
         old=json.loads(lease.read_text())
         if alive(old):raise RuntimeError('An identified learning process already owns the project: '+str(old['pid']))
@@ -60,7 +68,7 @@ def main():
         path=base/'source/scripts'/filename
         # Preserve the exact orchestration bytes for this launch/resume.
         snapshot=directory/'execution-scripts';snapshot.mkdir(exist_ok=True)
-        for script in (Path(__file__),path,path.with_name('local_course_collaboration.py'),path.with_name('local_foundation_comparison.py')):
+        for script in (Path(__file__),path,path.with_name('local_course_collaboration.py'),path.with_name('local_foundation_comparison.py'),path.with_name('local_course_forecast.py')):
             if script.exists():
                 data=script.read_bytes();saved=snapshot/(hashlib.sha256(data).hexdigest()+'-'+script.name)
                 if not saved.exists():saved.write_bytes(data)
@@ -71,11 +79,14 @@ def main():
         status('completed',desired='completed',result=result)
         (directory/'completed.json').write_text(json.dumps(state,indent=2)+'\n')
     except Exception as error:
-        status('paused_at_boundary' if stop.exists() else 'failed_needs_inspection',
-               desired='paused' if stop.exists() else 'needs_inspection',error=repr(error),automatic_retry=False)
+        paused=stop.exists() and getattr(error,'safe_boundary_saved',False)
+        status('paused_at_boundary' if paused else 'failed_needs_inspection',
+               desired='paused' if paused else 'needs_inspection',error=repr(error),automatic_retry=False,
+               stop_requested=stop.exists(),safe_boundary_confirmed=paused)
         with (directory/'failure.log').open('a') as f:traceback.print_exc(file=f)
         raise
     finally:
         finished.set();thread.join(timeout=2)
         if lease.exists() and json.loads(lease.read_text())==identity:lease.unlink()
+        fcntl.flock(owner_mutex.fileno(),fcntl.LOCK_UN);owner_mutex.close()
 if __name__=='__main__':main()

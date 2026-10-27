@@ -67,7 +67,9 @@ def run(base,directory,stop,status,*,resume=False):
         if not changed or not changed<=allowed: raise RuntimeError('Unexpected course source migration: '+repr(changed-allowed))
         goal=read(foundation/'fusion-task.json')['goal']
         goal['constraints']=[c for c in goal['constraints'] if c['id']!='autonomous-axis']
-        binding=deepcopy(state['binding']);binding.update(source_files=actual,construction_goal=goal)
+        binding=deepcopy(state['binding']);binding.update(source_files=actual,construction_goal=goal,construction_logic_requirements={
+            "tags":[{"dimension":"effect","value":"卡组送墓"},{"dimension":"effect","value":"墓地融合"}],
+            "connector_kinds":["送墓时发动"]})
         temporary=CourseModels.initialize(BuildTask.from_dict(state['task']),assets,course_config_from_dict(state['configs']['duel']),state['configs']['adapters'],source,None,state['available_ids'],binding,device='cpu')
         for role,model in temporary.models().items(): model.load_state_dict(state['components']['models'][role],strict=True)
         temporary.kernel.updates=deepcopy(state['kernel']['updates'])
@@ -151,19 +153,30 @@ def run(base,directory,stop,status,*,resume=False):
         course.selection=selection;course.construction=result;course.deck=DeckParts.from_dict(result['best']['deck']);course.rules.validate(course.deck)
         course.save()
     from local_course_collaboration import cycle as collaborative_cycle
+    from local_course_forecast import CourseForecast
+    forecasts=CourseForecast(course,target,stop)
+    if forecasts.value['pending'] is not None:
+        forecasts.train_closed_outcomes();forecasts.after()
+    forecasts.before()
+    forecasts.train_closed_outcomes()
     while course.stage()!='complete':
         if stop.exists():
-            course.save();raise RuntimeError('Safe stop at a complete saved course boundary')
+            course.save()
+            error=RuntimeError('Safe stop at a complete saved course boundary');error.safe_boundary_saved=True;raise error
         if course.stage()=='common-decks-bo3':
             course.save();raise RuntimeError('Existing-bot stage complete; same-period common/mirror opponent coverage is not yet supplied')
         complete=sum(course.counts().values())
-        if complete%16==0:
+        discrepancy=forecasts.due()
+        if complete%16==0 or discrepancy is not None:
             status('actual_collaborative_role_learning',formal_matches=complete)
-            collaborative_cycle(course,base,target,stop,status,initial=(complete==0))
+            collaborative_cycle(course,base,target,stop,status,initial=(complete==0),force_rebuild=bool(discrepancy and discrepancy['kind']=='force_goal_reconstruction'),feedback=discrepancy)
+            if discrepancy is not None:forecasts.handled(discrepancy)
         status('actual_formal_base_training',course=course.status(),goal_updates=models.builder.updates['build_goal'],
             optimizer_updates=models.builder.updates['build_optimizer'],duel_updates=models.duel.updates,
             coordinator_updates=models.coordinator.updates,latest_checkpoint=str(course.root/'latest.json'))
+        forecasts.before()
         result=course.run(1)
+        forecasts.train_closed_outcomes();forecasts.after()
         write(target/'current-course-status.json',result)
         status('saved_formal_match_boundary',course=result,goal_updates=models.builder.updates['build_goal'],
             optimizer_updates=models.builder.updates['build_optimizer'],duel_updates=models.duel.updates,
