@@ -75,3 +75,17 @@ PYTHONPATH=src /workspace/.venv/bin/python scripts/scenario_course.py --template
 Codex额度只用当时实读值，剩余≤20%保存停止，确认重置到账才恢复，不用重置卡；转到 CodeBuddy 后需另核其实际额度／费用规则，不能沿用 Codex 历史读数。记录运行ID、PID、日志、最新检查点和累计用量；退出训练不等于云实例停计费。遇权限／访问拒绝停止具体动作，不换工具绕过。
 
 最短接手请求：“读取 CODEBUDDY.md，在当前 CloudStudio 的 CPU 环境继续：先诊断双模型未终局，补齐三环境配置和恢复验证，再按既定规则推进；正式训练前给我启动清单。”
+
+
+## 2026-10-27 本机接续（后续明确授权优先）
+
+用户现已授权迁移到本机 N:\YGO-Kito、安装必要项目隔离依赖、持续真实训练，并将 CloudStudio
+增量与恢复资产保存为独立草稿 PR。当前权威设计见
+[设计复核](docs/plans/2026-10-27-training-design-reconciled.md)、
+[基准源码差异复核](docs/reports/2026-10-27-training-design-code-gaps.md)；
+实际本机入口与恢复源见[本机接续](docs/development/local-cpu-continuation.md)。
+旧文中的正式训练审批、固定 learner 参考表或 LoRA-only 解释不能覆盖后续用户纠正。
+不新增预检/功能场/资格套餐或重新测时；运行具体出错后针对修复。
+原始导出 base 更新为 goal=1、duel=1、optimizer=0、coordinator=0，正式 BO1/BO3=0；
+四段推理已发生，优化质量训练、效果积木、珠泪融合 CB 与统筹学习尚未完成。
+参考只作独立评价；合法动作、隐藏信息隔离、预算、原状态与完整边界保存仍执行。

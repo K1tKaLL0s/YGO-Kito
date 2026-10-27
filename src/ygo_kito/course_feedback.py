@@ -5,6 +5,7 @@ supplies an explicit training artifact/label; held-out artifacts fail before a
 loss or update. The containing course transaction owns model/index checkpoints.
 """
 from copy import deepcopy
+from types import SimpleNamespace
 
 from .agent_registry import identifier
 from .build_contracts import BuildTask, DeckParts, digest
@@ -29,11 +30,13 @@ class CourseFeedbackUpdater:
             raise ContractError("existing course models and typed data index required")
         sessions=models.sessions
         actual=dict(models.builder.models,coordinator=models.coordinator.model)
-        if any(not isinstance(sessions.get(r),AdapterSession) or sessions[r].model is not actual[r]
+        self.learning_stage = getattr(models,"learning_stage","lora_adaptation")
+        self._role_models = actual
+        if self.learning_stage != "base" and any(not isinstance(sessions.get(r),AdapterSession) or sessions[r].model is not actual[r]
                or sessions[r].config.role!=r for r in (*BUILD_ROLES,"coordinator")):
             raise ContractError("actual independent existing role LoRA sessions required")
         self.models,self.index,self.experiment_id=models,data_index,experiment_id
-        self._sessions={r:sessions[r] for r in (*BUILD_ROLES,"coordinator")}
+        self._sessions={r:sessions[r] for r in (*BUILD_ROLES,"coordinator")} if self.learning_stage != "base" else {}
         self._models_binding=deepcopy(getattr(models,"binding",{}))
         self.binding={"feature_version":FEATURE_VERSION,"experiment_id":experiment_id,
             "models_binding":self._models_binding,"vocabulary_sha256":models.builder.encoder.vocabulary_sha256}
@@ -48,6 +51,8 @@ class CourseFeedbackUpdater:
                 any(self.models.sessions.get(r) is not s for r,s in self._sessions.items())):
             raise ContractError("course feedback models/session/vocabulary binding changed")
         actual=dict(self.models.builder.models,coordinator=self.models.coordinator.model)
+        if self.learning_stage != getattr(self.models,"learning_stage","lora_adaptation") or any(actual[r] is not m for r,m in self._role_models.items()):
+            raise ContractError("feedback base model or stage identity changed")
         for role,session in self._sessions.items():
             if session.model is not actual[role]:raise ContractError("feedback role model was replaced")
             session.verify_base()
@@ -82,12 +87,38 @@ class CourseFeedbackUpdater:
         if (any(r["feedback_id"]==feedback_id or r["content_key"] in content_keys.values() for r in self.consumed)):
             raise ContractError("feedback id or the same indexed feedback content was already consumed")
         for role in roles:
+            if self.learning_stage == "base":
+                updates = self.models.builder.updates[role] if role in BUILD_ROLES else self.models.coordinator.updates
+                limit = self.models.builder.config.batches if role in BUILD_ROLES else self.models.coordinator.config.steps
+                if updates >= limit: raise ContractError("base feedback update capacity exhausted")
+                continue
             session=self._sessions[role]
             if session.detached or not session.enabled or session.updates>=session.config.max_updates:
                 raise ContractError("feedback role adapter is inactive or its explicit update limit is exhausted")
         return request_sha,content_keys
 
+    def _loss_context(self,role):
+        if self.learning_stage != "base": return self._sessions[role]
+        rng = self.models.builder.batch_rng if role in BUILD_ROLES else self.models.coordinator.batch_rng
+        return SimpleNamespace(model=self._role_models[role],rng=rng)
+    def _base_step(self,feedback_id,artifact,request_sha,content_key,role,update_factory,*,label_source):
+        model=self._role_models[role];before=parameter_digest(model)
+        self.pending={"feedback_id":feedback_id,"artifact_id":artifact["artifact_id"],"role":role,"before_sha256":before,"learning_stage":"base","outcome":"started"}
+        try:
+            update=update_factory();after=parameter_digest(model)
+            if before == after: raise ContractError("base feedback did not change parameters")
+            if role in BUILD_ROLES:
+                self.models.builder.batch_cursor=max(self.models.builder.updates.values())
+                self.models.kernel.record_update(role,before_sha256=before,after_sha256=after)
+            result={"feedback_id":feedback_id,"artifact_id":artifact["artifact_id"],"role":role,"artifact_payload_sha256":artifact["payload_sha256"],"request_sha256":request_sha,"content_key":content_key,"before_sha256":before,"after_sha256":after,"label_source":label_source,"indexed_purpose":"train","learning_stage":"base","update":update,"ability_verified":False,"quality_inferred_from_single_duel":False}
+            self.consumed.append(result);self.pending=None;return deepcopy(result)
+        except Exception:
+            self.pending["outcome"]="failed_or_uncertain_do_not_replay";self.pending["after_sha256"]=parameter_digest(model);raise
     def _step(self,feedback_id,artifact,request_sha,content_key,role,loss_factory,*,label_source):
+        if self.learning_stage == "base":
+            if role not in BUILD_ROLES: raise ContractError("coordinator base feedback requires logged supervision updater")
+            loss=loss_factory()
+            return self._base_step(feedback_id,artifact,request_sha,content_key,role,lambda:self.models.builder._apply(role,loss),label_source=label_source)
         session=self._sessions[role]
         before=parameter_digest(session.model)
         # Validation/loss construction does not consume an update. Only the
@@ -119,10 +150,12 @@ class CourseFeedbackUpdater:
         if not isinstance(roles,(list,tuple)) or not roles or len(set(roles))!=len(roles) or any(r not in BUILD_ROLES for r in roles):
             raise ContractError("explicit distinct construction roles required")
         artifact,_,admission=self._artifact(artifact_id,task=task)
+        if "build_optimizer" in roles and not artifact["payload"]["pairs"]:
+            raise ContractError("optimizer requires actual strict comparison labels; goal-only data cannot update it")
         request={"kind":"indexed_semantic_construction","task_sha256":task.sha256}
         request_sha,keys=self._prepare(feedback_id,artifact,request,roles)
         return [self._step(feedback_id,artifact,request_sha,keys[role],role,
-            lambda role=role:construction_loss(role,self._sessions[role],self.models.builder,task,artifact["payload"],data_admission=admission),
+            lambda role=role:construction_loss(role,self._loss_context(role),self.models.builder,task,artifact["payload"],data_admission=admission),
             label_source="explicit_catalog_constraints_and_user_preferences_not_strength") for role in roles]
 
     def apply_coordinator(self,feedback_id,artifact_id,examples):
@@ -137,8 +170,10 @@ class CourseFeedbackUpdater:
                 raise ContractError("coordinator label must reference the exact indexed training record")
         request={"kind":"explicit_host_coordinator_labels","examples_sha256":digest(examples)}
         request_sha,keys=self._prepare(feedback_id,artifact,request,("coordinator",))
+        if self.learning_stage == "base":
+            return self._base_step(feedback_id,artifact,request_sha,keys["coordinator"],"coordinator",lambda:self.models.coordinator.step(examples),label_source="explicit_host_logged_not_calibrated_win_rate")
         return self._step(feedback_id,artifact,request_sha,keys["coordinator"],"coordinator",
-            lambda:actual_coordinator_loss(self._sessions["coordinator"],examples),label_source="explicit_host_logged_not_calibrated_win_rate")
+            lambda:actual_coordinator_loss(self._loss_context("coordinator"),examples),label_source="explicit_host_logged_not_calibrated_win_rate")
 
     def apply_task_preference(self,feedback_id,artifact_id,proposals,preferred_id,*,source="human_preference"):
         kernel=getattr(self.models,"kernel",None)
@@ -170,7 +205,7 @@ class CourseFeedbackUpdater:
     def state_dict(self):
         self._check()
         state={"schema_version":1,"feature_version":FEATURE_VERSION,"binding_sha256":self.binding_sha256,
-            "model_hashes":{r:parameter_digest(s.model) for r,s in self._sessions.items()},
+            "model_hashes":{r:parameter_digest(m) for r,m in self._role_models.items()},
             "consumed":deepcopy(self.consumed),"pending":deepcopy(self.pending),"weights_owned_by_course_checkpoint":True}
         state["metadata_sha256"]=digest(state)
         return state
@@ -179,7 +214,7 @@ class CourseFeedbackUpdater:
         self._check()
         if (not isinstance(state,dict) or state.get("schema_version")!=1 or state.get("feature_version")!=FEATURE_VERSION or
                 state.get("binding_sha256")!=self.binding_sha256 or
-                state.get("model_hashes")!={r:parameter_digest(s.model) for r,s in self._sessions.items()} or
+                state.get("model_hashes")!={r:parameter_digest(m) for r,m in self._role_models.items()} or
                 state.get("metadata_sha256")!=digest({k:v for k,v in state.items() if k!="metadata_sha256"})):
             raise ContractError("feedback restore requires exact model/index/course metadata")
         rows=deepcopy(state["consumed"])
@@ -187,7 +222,7 @@ class CourseFeedbackUpdater:
             raise ContractError("duplicate/malformed consumed feedback records")
         for row in rows:
             artifact,_,_=self._artifact(row["artifact_id"])
-            if artifact["payload_sha256"]!=row["artifact_payload_sha256"] or row["role"] not in self._sessions:
+            if artifact["payload_sha256"]!=row["artifact_payload_sha256"] or row["role"] not in self._role_models:
                 raise ContractError("consumed feedback no longer has its exact indexed training record")
         self.consumed=rows
         self.pending=deepcopy(state["pending"])

@@ -182,7 +182,7 @@ def _referenced_ids(value):
 
 class AutonomousConstructionKernel:
     def __init__(self, builder, coordinator, *, assets, host_available_ids, source_binding,
-                 theme_minimum=1, pool_limit=128, candidate_limit=32):
+                 theme_minimum=1, pool_limit=128, candidate_limit=32, allowed_theme_ids=None):
         if not isinstance(builder, BuildTrainer) or not isinstance(builder.encoder, CourseBuildEncoder):
             raise ContractError("explicitly initialized course BuildTrainer/encoder required")
         if assets is not builder.encoder.assets or builder.task.goal["kind"] != "deck_constraints":
@@ -198,6 +198,9 @@ class AutonomousConstructionKernel:
         integer(pool_limit, "local task pool limit", 14, 128)
         integer(candidate_limit, "returned ranked tasks", 2, 128)
         self.theme_minimum, self.pool_limit, self.candidate_limit = theme_minimum, pool_limit, candidate_limit
+        if allowed_theme_ids is not None and (not isinstance(allowed_theme_ids, (list, tuple)) or not allowed_theme_ids or any(not isinstance(x, str) or not x for x in allowed_theme_ids)):
+            raise ContractError("explicit nonempty theme identifiers required")
+        self.allowed_theme_ids = tuple(sorted(set(allowed_theme_ids))) if allowed_theme_ids is not None else None
         self.source_binding = deepcopy(source_binding)
         self._models = dict(builder.models)
         self._binding = self._current_binding()
@@ -213,7 +216,8 @@ class AutonomousConstructionKernel:
             "catalog_sha256": digest([{k: self.assets.rows[c].get(k) for k in fields} for c in self.available_ids]),
             "resources": deepcopy(self.assets.receipt), "period_context": deepcopy(getattr(self.assets, "period_context", None)),
             "available": list(self.available_ids), "limits": dict(self.assets.limits),
-            "theme_minimum": self.theme_minimum, "pool_limit": self.pool_limit, "candidate_limit": self.candidate_limit}
+            "theme_minimum": self.theme_minimum, "pool_limit": self.pool_limit, "candidate_limit": self.candidate_limit,
+            **({"allowed_theme_ids": list(self.allowed_theme_ids)} if self.allowed_theme_ids is not None else {})}
 
     def _check(self):
         self.builder.encoder.assert_binding()
@@ -345,6 +349,8 @@ class AutonomousConstructionKernel:
         self._check()
         mandatory = {r["card_id"] for r in self.builder.task.requirements} | _referenced_ids(self.builder.task.goal)
         themes, candidates, omitted = self.enumerate_themes(), [], []
+        if self.allowed_theme_ids is not None:
+            themes = [t for t in themes if t["theme_id"] in self.allowed_theme_ids]
         if not mandatory <= set(self.available_ids):
             return {"status":"fixed_goal_card_unavailable","candidates":[],"omitted":[],"goal_preserved":True}
         for theme in themes:
@@ -410,11 +416,11 @@ class AutonomousConstructionKernel:
             raise ContractError("task selection scores belong to stale source/model state")
         candidates=proposals["candidates"]
         if candidates:integer(rank,"actual model-ranked task position",0,len(candidates)-1)
-        if not candidates or len({v["score"] for v in proposals["all_scores"]})<2:
+        if not candidates or (len({v["score"] for v in proposals["all_scores"]})<2 and not (len(candidates)==1 and self.allowed_theme_ids is not None)):
             return {"status":"model_selection_unresolved","reason":"no discriminating model scores; no rule-theme fallback"}
         selected=deepcopy(candidates[rank]);task=BuildTask.from_dict(selected["task"])
         self.assets.check_task(task)
-        selected.update(status="model_selected_task",binding_sha256=self._binding_sha256,
+        selected.update(status="model_selected_task", selection_method=("user_fixed_theme_single_task_model_scored" if len(candidates)==1 and self.allowed_theme_ids is not None else "model_ranked_task_choice"),binding_sha256=self._binding_sha256,
                         selected_model_sha256=proposals["model_sha256"],goal_sha256=digest(task.goal))
         self.selections[selected["candidate_id"]]=deepcopy(selected)
         return selected

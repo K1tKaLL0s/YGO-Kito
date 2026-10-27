@@ -50,7 +50,7 @@ def validate(task,assets,data,*,for_training=True):
         or data['unknown_routes_used_as_negative'] is not False or data['competitive_quality_labels'] is not False
         or data['public_effect_receipts']!=assets.effect_receipts(task)):
         raise ContractError('semantic supervision identity/source differs')
-    if not 1<=len(array(data['goals'],'semantic goals'))<=16 or not 1<=len(array(data['pairs'],'semantic pairs'))<=8:
+    if not 1<=len(array(data['goals'],'semantic goals'))<=16 or not 0<=len(array(data['pairs'],'semantic pairs'))<=8:
         raise ContractError('semantic supervision record budget exceeded')
     for row in data['goals']:
         fields(row,{'deck','label','source','evidence'});deck=DeckParts.from_dict(row['deck'])

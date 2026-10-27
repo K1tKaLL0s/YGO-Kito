@@ -37,15 +37,16 @@ from .validation import ContractError, canonical_json, fields, integer
 def validate_config(value):
     d = fields(value, {"course_id", "period_id", "mode", "pilot_mean_seconds", "training_seeds",
         "evaluation_pairs", "matches_per_invocation", "wall_seconds", "allocated_gpu_count", "fixed_deck",
-        "initial_first", "evaluation_matches", "opponent_side"}, {"timing_basis", "checkpoint_policy", "data_index_storage"})
+        "initial_first", "evaluation_matches", "opponent_side"}, {"timing_basis", "checkpoint_policy", "data_index_storage", "construction_theme_ids"})
     identifier(d["course_id"])
     if d["period_id"] not in ("2022-07", "2022-10", "2026-10"):
         raise ContractError("explicit supported period required")
     if d["mode"] != ("autonomous" if d["period_id"] == "2026-10" else "fixed_theme"):
         raise ContractError("autonomous selection is scoped to 2610; historical themes stay fixed")
-    if (d["mode"] == "autonomous") != (d["fixed_deck"] is None):
-        raise ContractError("autonomous mode cannot require the reference Tear deck")
-    if d["fixed_deck"] is not None: DeckParts.from_dict(d["fixed_deck"])
+    if d["fixed_deck"] is not None:
+        raise ContractError("reference decks belong to independent evaluation, never the learner")
+    if d["mode"] == "fixed_theme" and d.get("construction_theme_ids") != ["setcode-181"]:
+        raise ContractError("historical construction requires the Pearl theme and model-generated deck")
     checkpoint_policy(d.get("checkpoint_policy"))
     if "data_index_storage" in d:
         from .data_isolation import validate_storage_limits
@@ -236,12 +237,6 @@ class ScenarioCourse:
             "formal_training_success_verified": False, "events": deepcopy(self.events[-8:])}
 
     def _construct(self, *, feedback=()):
-        if self.config["mode"] == "fixed_theme":
-            self.deck = DeckParts.from_dict(self.config["fixed_deck"])
-            self.assets.validate(self.models.builder.task, self.deck)
-            self.construction = {"kind": "preserved_historical_theme", "task_sha256": self.models.builder.task.sha256,
-                                 "cb_verified": False}
-            return
         kernel = self.models.kernel
         if self.selection is None:
             proposals = kernel.propose_tasks()

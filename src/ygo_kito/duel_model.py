@@ -109,10 +109,17 @@ class PlayerEncoder:
                 # This is past knowledge, not a current-position/card inventory.
                 numbers.append([0.,0.,0.,0.])
         current_and_private_tokens = len(tokens)
+        # History is a bounded window twice over: never older than the declared
+        # event count, and never wider than the remaining token budget. Whole
+        # events are kept newest-first so a request that already fitted encodes
+        # bit-identically, while a long duel can no longer fail on its late
+        # public history alone.
+        history = []
         for event in obs.public_history[-cfg.history_events:]:
+            block, block_numbers = [], []
             for code in event.card_ids or (None,):
-                tokens.append([self._card(code), ZONES.index("history"), 2, 0, 0, 0, EVENTS.index(event.kind)])
-                numbers.append([0.] * 4)
+                block.append([self._card(code), ZONES.index("history"), 2, 0, 0, 0, EVENTS.index(event.kind)])
+                block_numbers.append([0.] * 4)
             if event.details is not None:
                 d = event.details
                 # Typed facts, not raw audit records. Distinct tokens preserve
@@ -129,12 +136,24 @@ class PlayerEncoder:
                 payloads += [[relative(p.controller), (0 if p.zone == "none" else ZONES.index(p.zone) if p.zone != "deck" else 12)/12,
                               0. if p.sequence is None else (p.sequence+1)/256, (p.position or 0)/15] for p in d.locations]
                 for payload in payloads:
-                    tokens.append([0, ZONES.index("history"), 2, 0, 0, 0, EVENTS.index(event.kind)])
-                    numbers.append(payload)
+                    block.append([0, ZONES.index("history"), 2, 0, 0, 0, EVENTS.index(event.kind)])
+                    block_numbers.append(payload)
+            history.append((block, block_numbers))
+        budget = cfg.max_tokens - current_and_private_tokens
+        keep, used = 0, 0
+        for block, _ in reversed(history):
+            if used + len(block) > budget:
+                break
+            used += len(block)
+            keep += 1
+        for block, block_numbers in history[len(history) - keep:]:
+            tokens.extend(block)
+            numbers.extend(block_numbers)
         if len(tokens) > cfg.max_tokens or len(request.actions) > cfg.max_actions:
             raise ContractError("player input exceeds model token/action budget: "
                 f"tokens={len(tokens)} limit={cfg.max_tokens}, actions={len(request.actions)} limit={cfg.max_actions}, "
-                f"current_and_private_tokens={current_and_private_tokens}, public_history_tokens={len(tokens)-current_and_private_tokens}")
+                f"current_and_private_tokens={current_and_private_tokens}, public_history_tokens={len(tokens)-current_and_private_tokens}, "
+                f"history_events_offered={len(history)} history_events_kept={keep}")
         p, other = obs.observer, 1 - obs.observer
         state = [obs.life_points[p] / 8000, obs.life_points[other] / 8000,
                  obs.hand_counts[p] / 60, obs.hand_counts[other] / 60,

@@ -126,10 +126,11 @@ def validate_scenarios(config):
     if set(periods) != {"2022-07", "2022-10", "2026-10"}:
         raise ContractError("all three periods must retain separate scenarios")
     for period, slot, cutoff in (("2022-07", "main-01", "2022-09-30"), ("2022-10", "main-02", "2022-12-31")):
-        row = fields(periods[period], {"construction_mode", "main_slot", "release_cutoff", "acceptance"})
+        row = fields(periods[period], {"construction_mode", "main_slot", "reference_slot", "fixed_theme", "user_deck_role", "release_cutoff", "acceptance"})
         a = fields(row["acceptance"], {"kind", "source", "metric_unit", "external_at_least", "mirror_target", "mirror_tolerance",
              "frozen_external_bo3_min", "frozen_mirror_bo3_min", "confidence_level", "confidence_decision_rule", "draw_and_repeated_observation_rule"})
-        if (row.get("construction_mode") != "existing_tearlaments_reference" or row.get("main_slot") != slot or
+        if (row.get("construction_mode") != "model_generated_fixed_tearlaments_theme" or row.get("main_slot") is not None or
+            row.get("reference_slot") != slot or row.get("fixed_theme") != "tearlaments" or row.get("user_deck_role") != "independent_reference_evaluation_only" or
             row.get("release_cutoff") != cutoff or a.get("kind") != "legacy_reference_bo3" or
             a.get("metric_unit") != "bo3_match_with_siding" or a.get("external_at_least") != .6 or
             a.get("mirror_target") != .5 or a.get("frozen_external_bo3_min") != 200 or

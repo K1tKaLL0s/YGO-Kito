@@ -277,7 +277,7 @@ def fill_with_existing(session, assets, *, role="build_goal", base=None, models=
         candidates = edit_candidates(task,assets,base)
     else:
         candidates = (goal_candidates(task, assets, base) if role == "build_goal"
-                      else edit_candidates(task, assets, base, require_edit=True))
+                      else edit_candidates(task, assets, base, require_edit=False))
     scores, ranking = [0.] * len(candidates), "engineering_order_untrained"
     if models is not None:
         if encoder is None or role not in models:
@@ -312,41 +312,71 @@ def fill_with_existing(session, assets, *, role="build_goal", base=None, models=
 
 def construction_cycle(session, assets, providers, *, scopes=(), base=None, models=None, encoder=None,
                        binding_provider=None, text_reviewer=None, verifier=existing_goal_verifier):
-    """Coordinator: target stages 1/2/3 → optimizer stages 1/2/3.
-
-    Fill/duel/user feedback remains available to later cycles. A failed new
-    revision can return an earlier task-verified candidate only WITH its original
-    graph and proof; it never promotes it as evidence for the latest revision.
+    """Run goal -> optimizer -> goal -> optimizer with explicit feedback and incumbent.
+    Model ranking proposes changes. Without an independent comparison it does
+    not prove competitive improvement and cannot replace a valid incumbent.
     """
+    from collections import Counter
     phases, best, current = [], None, base
-    for role in ("build_goal", "build_optimizer"):
-        revision = session.propose_logic(role, providers.get(role))
-        phase = {"role": role, "stage_1": revision}
+    if base is not None:
+        assets.validate(session.task, base)
+        prior = next((e.get("candidate") for e in reversed(session.history)
+            if e.get("kind") == "construction_incumbent" and e.get("goal_sha256") == session.goal_sha256
+            and e.get("candidate", {}).get("deck") == base.to_dict()), None)
+        best = deepcopy(prior) if prior else {"deck": base.to_dict(), "logic": None, "logic_sha256": None,
+            "validation": {"status": "external_incumbent_retained_graph_proof_pending", "attempts": []},
+            "goal_sha256": session.goal_sha256}
+    roles = ("build_goal", "build_optimizer", "build_goal", "build_optimizer")
+    for number, role in enumerate(roles, 1):
+        phase = {"phase_number": number, "role": role, "input_deck": None if current is None else current.to_dict(),
+                 "feedback_before": deepcopy(session.feedback), "parameter_update_performed": False}
         phases.append(phase)
+        if role == "build_optimizer" and current is None:
+            phase["status"] = "skipped_no_goal_preserving_incumbent"
+            session.record_feedback(role, "no goal-preserving incumbent; return to goal stage")
+            continue
+        revision = session.propose_logic(role, providers.get(role)); phase["stage_1"] = revision
         if revision["status"] != "logic_revised":
-            break
+            session.record_feedback(role, "logic proposal unresolved; retain goal and feed next stage")
+            continue
         graph = session.logic
         phase["stage_2"] = select_main_axes(session.task, assets, session.classification, scopes)
         session.history.append({"stage": 2, "role": role, "logic_sha256": graph.sha256,
                                 "goal_sha256": session.goal_sha256, "result": deepcopy(phase["stage_2"])})
         if phase["stage_2"]["status"] not in ("selected", "skipped_broad"):
-            session.record_feedback("fill", "theme-axis phase unresolved: " + phase["stage_2"]["status"])
-            break
-        # If a target fill fails, ask the target again after feedback rather than
-        # manufacture an optimizer base or silently relax the goal.
+            session.record_feedback("fill", "theme-axis unresolved: " + phase["stage_2"]["status"])
+            continue
         result = fill_with_existing(session, assets, role=role, base=current, models=models, encoder=encoder,
             binding_provider=binding_provider, text_reviewer=text_reviewer, scopes=scopes, verifier=verifier)
         phase["stage_3"] = result
         session.history.append({"stage": 3, "role": role, "logic_sha256": graph.sha256,
                                 "goal_sha256": session.goal_sha256, "result": deepcopy(result)})
         if result["status"] not in ("task_goal_verified_logic_unproven", "list_constraints_verified_logic_unproven"):
-            session.record_feedback(role, "fill phase unresolved: " + result["status"])
-            break
-        current = DeckParts.from_dict(result["best_deck"])
-        best = {"deck": result["best_deck"], "logic": graph.to_dict(), "logic_sha256": graph.sha256,
-                "validation": result, "goal_sha256": session.goal_sha256}
-        session.record_feedback(role, "concrete task goal checked; lightweight graph execution remains unverified")
+            session.record_feedback(role, "fill unresolved: " + result["status"] + "; return feedback without relaxing the goal")
+            continue
+        proposal = DeckParts.from_dict(result["best_deck"])
+        phase["proposal_deck"] = proposal.to_dict()
+        phase["proposal_changes"] = {z: {"added": list((Counter(getattr(proposal,z))-Counter(getattr(current,z) if current else ())).elements()),
+            "removed": list((Counter(getattr(current,z) if current else ())-Counter(getattr(proposal,z))).elements())}
+            for z in ("main","extra","side")}
+        if best is None:
+            best = {"deck": proposal.to_dict(), "logic": graph.to_dict(), "logic_sha256": graph.sha256,
+                    "validation": result, "goal_sha256": session.goal_sha256}
+            phase["acceptance"] = "initial_goal_checked_incumbent"
+        else:
+            phase["acceptance"] = "retain_incumbent_independent_quality_comparison_pending"
+        current = DeckParts.from_dict(best["deck"])
+        phase["accepted_deck"] = current.to_dict()
+        phase["improvement_verified"] = False
+        session.record_feedback(role, "goal constraints checked; proposal changes " + str(phase["proposal_changes"]) +
+            "; independent quality comparison pending; incumbent retained; full graph execution unverified")
+        session.history.append({"stage": 3, "kind": "construction_incumbent", "role": role,
+            "goal_sha256": session.goal_sha256, "candidate": deepcopy(best)})
+    executed = [p["role"] for p in phases if p.get("stage_3",{}).get("status") in
+        ("task_goal_verified_logic_unproven", "list_constraints_verified_logic_unproven")]
     return {"status": "task_checked_candidate" if best else "construction_unresolved", "phases": phases,
             "best": best, "latest_logic_sha256": session.logic.sha256 if session.logic else None,
             "goal_sha256": session.goal_sha256, "graph_execution_verified": False,
+            "alternation_completed": executed == list(roles), "competitive_improvement_verified": False,
+            "optimization_training": "pending_actual_attributable_comparison_labels",
             "training_status": "no_training_performed_by_this_cycle"}

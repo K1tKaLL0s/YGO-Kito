@@ -334,3 +334,8 @@ PT远端验收：da0130b的[Actions 40141837656](https://github.com/K1tKaLL0s/YG
 - [x] **PT-10 已完成** 固定WindBot源码的纯DTO桥接准备与1152行时期×公开样例×源驱动矩阵，13项CPU检查通过。所有第三方行未运行，两个本地Python模型正常证据另列且不应用到第三方行；不执行/编译第三方代码，不把prepared或文件存在称作已接通成熟bot。实际证据与真正外部依赖见[本轮增量](../reports/2026-10-24-period-opponent-preparation.md)。
 - [ ] **PT-11 日期与软件已完成/最终池待核** 用户2026-10-25确认第三期截止2026-11-01，含JST当日正式OCG发售，禁表保持2026-10-01/2026.10。配置/预检已同步；共享JST时钟门禁及审计staging区分、selected-period兼容等91项CPU检查通过。百鸽公开HTML/API文档局部核验已有[来源报告](../reports/2026-10-25-baige-source-review.md)，JSON正文读取403已停止，未冒称取得全库。当前仅date_selected；11月1日JST当日及之后按实际正式发行/可信来源补齐记录、核对允许池和牌表再冻结，未知不放行。未创建自动任务，未改旧null夹具/原始证据；最终数据核对与GPU实测均不作为当前软件修改完成前置。
 - [ ] **PT-12 部分完成** 用户新增完整维护范围bots部署：829成员、220条Executor来源／81组字节身份、144份YDK路径、211配置别名保留；完整Ice73／Pure74计划及原包已核。精确library Monarch506已有独立完整Pure74 overlay、双MIT声明、打包／安装／核验、实际构建代码及registry→period_host接线，原源不覆盖。完整Python树封印、结构化构建失败及全量正常资格入口已实现；当前工程2026.10只读矩阵为147原桌面候选中44份原YDK合列表／103拒绝，含variant为148中44／104，不等于策略损坏或历史资格。新增私有确认、公开历史、事件布局、HINT隐私和70连续Type问题已定点修复，正常真实core收据与最终统一CPU／CI按最终源码另列。Mono安装已授权但EACCES＋配置签名源代理403阻断，本轮只读确认无预装；C#编译／反射／构造／对局仍0，故不合并。未知路径明确拒绝，不归因GPU／用户牌表／权重，不宣称只剩卡组。[当前续作及证据](../reports/2026-10-25-bot-gap-continuation.md)、[来源输入](../reports/2026-10-25-bot-complete-build-inputs.json)、[资格入口](../development/bot-qualification.md)、[分期接线](../development/period-runtime.md)
+
+
+## 2026-10-27 本机迁移与真实状态
+
+已保存 CloudStudio 干净 fresh/base 恢复包与11份源码修改，设计全文已落盘。基础更新 goal1/duel1/optimizer0/coordinator0，正式课程仍0。四段构筑前向不等于优化学习。详见[本机接续](../development/local-cpu-continuation.md)。本记录不勾选训练、CB、强度或CI通过；后续连续推进真实构筑比较、效果积木、融合CB、统筹学习。
