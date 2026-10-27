@@ -419,11 +419,16 @@ class ConcreteFillTests(unittest.TestCase):
         out = construction_cycle(session, self.assets, providers, binding_provider=binding,
                                  text_reviewer=text_review, verifier=goal_proof)
         self.assertEqual(out["status"], "task_checked_candidate")
-        self.assertEqual([c["role"] for c in calls], ["build_goal", "build_optimizer"])
-        self.assertTrue(calls[1]["feedback"])
-        self.assertEqual([h["stage"] for h in session.history], [1, 2, 3, 1, 2, 3])
+        self.assertEqual([c["role"] for c in calls], ["build_goal", "build_optimizer"] * 2)
+        self.assertTrue(all(c["feedback"] for c in calls[1:]))
+        self.assertEqual([h["stage"] for h in session.history if h.get("kind") != "construction_incumbent"], [1, 2, 3] * 4)
+        self.assertEqual(sum(h.get("kind") == "construction_incumbent" for h in session.history), 4)
         self.assertEqual(out["phases"][0]["stage_2"]["status"], "skipped_broad")
-        self.assertEqual(out["best"]["logic_sha256"], session.logic.sha256)
+        matching = [p for p in out["phases"] if p.get("proposal_deck") == out["best"]["deck"] and
+                    p.get("acceptance") in ("initial_goal_checked_incumbent", "same_incumbent_validation_updated")]
+        self.assertTrue(matching)
+        self.assertEqual(out["best"]["logic_sha256"], matching[-1]["stage_1"]["logic_sha256"])
+        self.assertTrue(out["incumbent_verified_for_task"])
         detached = session.to_dict()
         detached["task"]["goal"]["card_id"] = 999
         self.assertEqual(session.task.sha256, self.task.sha256)

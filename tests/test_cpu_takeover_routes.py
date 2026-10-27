@@ -41,13 +41,12 @@ def slow_basis():
 
 
 def config(period='2026-10'):
-    deck = DeckParts(tuple([c for c in range(1, 14) for _ in range(3)] + [14]))
     return {'course_id': 'cpu-takeover-route-fixture', 'period_id': period,
         'mode': 'autonomous' if period == '2026-10' else 'fixed_theme',
         'pilot_mean_seconds': None, 'timing_basis': slow_basis(), 'training_seeds': list(range(1800)),
         'evaluation_pairs': {'validation': [[3000, 4000]], 'final_eval': [[3001, 4001]]},
         'matches_per_invocation': 1, 'wall_seconds': 60, 'allocated_gpu_count': 0,
-        'fixed_deck': None if period == '2026-10' else deck.to_dict(), 'initial_first': 'alternate',
+        'fixed_deck': None, 'construction_theme_ids': None if period == '2026-10' else ['setcode-181'], 'initial_first': 'alternate',
         'evaluation_matches': 1, 'opponent_side': 'keep_original_baseline'}
 
 

@@ -172,4 +172,4 @@ class ConcreteControllerTests(unittest.TestCase):
             self.assertFalse(result["graph_execution_verified"])
             self.assertEqual(result["graph_model_selections"]["build_goal"]["selection"],"existing_BuildRanker")
             self.assertTrue(any(e["event"]=="route_decision" and e["advisory"] for e in host.history()))
-            self.assertEqual([p["role"] for p in result["phases"]],["build_goal","build_optimizer"])
+            self.assertEqual([p["role"] for p in result["phases"]],["build_goal","build_optimizer","build_goal","build_optimizer"])

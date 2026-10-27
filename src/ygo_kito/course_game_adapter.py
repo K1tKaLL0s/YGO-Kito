@@ -327,6 +327,15 @@ class CourseGameAdapter:
         qualified = _parts(profile, 1-actor_seat)
         if any(Counter(getattr(original, z)) != Counter(getattr(qualified, z)) for z in ("main", "extra", "side")):
             raise ContractError("original bot deck differs from its actually qualified listing")
+        from .observed_bot_evidence import KIND as OBSERVED, validate_observed_bot_evidence
+        if proof.get('kind') == OBSERVED:
+            if not isinstance(self.assets, PeriodBuildAssets):
+                raise ContractError('observed period evidence requires its actual period assets')
+            options = self._runtime_options(profile, actor_seat)
+            opponent = self.bot.registry.training_adapter(self.bot.executor_id, **options)
+            validate_observed_bot_evidence(self.assets, self.bot, proof, profile, opponent)
+            self._qualification_sha256 = self.bot.qualification['sha256']
+            return
         options = self._runtime_options(profile, actor_seat, qualification=True)
         opponent = self.bot.registry.training_adapter(self.bot.executor_id, **options)
         case = {"source_id": self.bot.source_id, "executor_id": self.bot.executor_id,

@@ -185,9 +185,10 @@ class ScenarioCourse:
             FirstOrderPolicy(bot["first_order"])
             if not isinstance(bot["coverage_label"], str) or not bot["coverage_label"].strip():
                 raise ContractError("host must declare actual opponent coverage, not infer from source availability")
-        for stage in ("bots-bo1", "common-decks-bo3"):
-            if not any(b["stage"] == stage and b["purpose"] == "train" for b in self.bots.values()):
-                raise ContractError("both ordered training stages require actual available opponents")
+        if not any(b["stage"] == "bots-bo1" and b["purpose"] == "train" for b in self.bots.values()):
+            raise ContractError("the existing-bot first stage requires an actual available opponent")
+        # Later coverage remains mandatory at its execution boundary. Its
+        # absence cannot prevent already supplied first-stage base learning.
         self.rules = MatchRules(assets.rows, assets.limits, models.builder.encoder.available_ids)
         for bot in self.bots.values(): self.rules.validate(bot["deck"])
         self.binding = {"kind": "ordered-scenario-course-v1", "config": self.config, "models": models.binding,
@@ -360,14 +361,9 @@ class ScenarioCourse:
         if not complete:
             self.desired = "needs_inspection"
             self.events.append({"kind": "unresolved_match", "status": view["status"], "automatic_retry": False})
-        if complete and p["purpose"] == "train":
-            n = sum(self.counts().values())
-            if n and n % 100 == 0:
-                self.events.append({"kind": "hundred_match_review", "complete_matches": n})
-            if n and n % 1000 == 0 and self.config["mode"] == "autonomous":
-                self._construct(feedback=({"source": "duel", "message": "1000 complete training matches: reconsider and reconstruct logic while retaining the chosen goal"},))
-                self.events.append({"kind": "thousand_match_logic_reconstruction", "complete_matches": n,
-                                    "goal_preserved": True})
+        # Real prediction discrepancies are handled with their registered scope
+        # and actual outcomes by the host; a round number alone is no review or
+        # evidence that reconstruction is warranted.
         self.save()
         return True
 
@@ -481,7 +477,7 @@ class ScenarioCourse:
         return result
 
     def apply_feedback(self, feedback_id, artifact_id, *, kind, examples=None, task=None,
-                       proposals=None, preferred_id=None, preferred_index=None):
+                       proposals=None, preferred_id=None, preferred_index=None, roles=None):
         """Host-only indexed labels; frozen evaluation never trains any role.
 
         The existing DataIndex owns artifact admission. A single duel is not
@@ -495,7 +491,7 @@ class ScenarioCourse:
         started = time.monotonic()
         try:
             if kind == "construction":
-                result = self.feedback.apply_construction(feedback_id, artifact_id, task or self._task())
+                result = self.feedback.apply_construction(feedback_id, artifact_id, task or self._task(), roles=roles if roles is not None else ("build_goal","build_optimizer"))
             elif kind == "coordinator":
                 result = self.feedback.apply_coordinator(feedback_id, artifact_id, examples)
             elif kind == "task_preference":

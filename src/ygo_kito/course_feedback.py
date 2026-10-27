@@ -156,7 +156,9 @@ class CourseFeedbackUpdater:
         request_sha,keys=self._prepare(feedback_id,artifact,request,roles)
         return [self._step(feedback_id,artifact,request_sha,keys[role],role,
             lambda role=role:construction_loss(role,self._loss_context(role),self.models.builder,task,artifact["payload"],data_admission=admission),
-            label_source="explicit_catalog_constraints_and_user_preferences_not_strength") for role in roles]
+            label_source=("actual_frozen_model_paired_training_signal_not_acceptance" if role=="build_optimizer" and
+                          any(p['source']=="real_core_paired_frozen_neural_audited_bot_v1" for p in artifact['payload']['pairs']) else
+                          "explicit_catalog_constraints_and_user_preferences_not_strength")) for role in roles]
 
     def apply_coordinator(self,feedback_id,artifact_id,examples):
         artifact,dataset,_=self._artifact(artifact_id)
@@ -168,6 +170,11 @@ class CourseFeedbackUpdater:
             if (provenance["dataset_id"]!=dataset["dataset_id"] or provenance["record_id"]!=artifact_id or
                     provenance["evidence_sha256"]!=artifact["payload_sha256"]):
                 raise ContractError("coordinator label must reference the exact indexed training record")
+        if artifact['family']=='coordinator':
+            trace=artifact['payload']
+            if any(row['context']!=trace['context'] or row['route_label']!=trace['route_label'] or
+                   row['forecast_target'] is not None for row in rows):
+                raise ContractError('coordinator labels differ from the exact indexed host transition')
         request={"kind":"explicit_host_coordinator_labels","examples_sha256":digest(examples)}
         request_sha,keys=self._prepare(feedback_id,artifact,request,("coordinator",))
         if self.learning_stage == "base":

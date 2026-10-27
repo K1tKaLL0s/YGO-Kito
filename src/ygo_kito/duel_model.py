@@ -139,6 +139,7 @@ class PlayerEncoder:
                     block.append([0, ZONES.index("history"), 2, 0, 0, 0, EVENTS.index(event.kind)])
                     block_numbers.append(payload)
             history.append((block, block_numbers))
+        offered_tokens = current_and_private_tokens + sum(len(block) for block, _ in history)
         budget = cfg.max_tokens - current_and_private_tokens
         keep, used = 0, 0
         for block, _ in reversed(history):
@@ -151,8 +152,10 @@ class PlayerEncoder:
             numbers.extend(block_numbers)
         if len(tokens) > cfg.max_tokens or len(request.actions) > cfg.max_actions:
             raise ContractError("player input exceeds model token/action budget: "
-                f"tokens={len(tokens)} limit={cfg.max_tokens}, actions={len(request.actions)} limit={cfg.max_actions}, "
-                f"current_and_private_tokens={current_and_private_tokens}, public_history_tokens={len(tokens)-current_and_private_tokens}, "
+                f"tokens={offered_tokens} limit={cfg.max_tokens}, actions={len(request.actions)} limit={cfg.max_actions}, "
+                f"offered_tokens={offered_tokens}, encoded_tokens={len(tokens)}, "
+                f"current_and_private_tokens={current_and_private_tokens}, public_history_tokens={offered_tokens-current_and_private_tokens}, "
+                f"public_history_tokens_kept={len(tokens)-current_and_private_tokens}, "
                 f"history_events_offered={len(history)} history_events_kept={keep}")
         p, other = obs.observer, 1 - obs.observer
         state = [obs.life_points[p] / 8000, obs.life_points[other] / 8000,

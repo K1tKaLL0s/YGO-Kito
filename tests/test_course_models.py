@@ -157,6 +157,7 @@ class CourseModelsTests(unittest.TestCase):
                 'weights': 'effective', 'source_binding_sha256': digest(source['binding'])}
         coordinator_factory = lambda config=None, **kwargs: CoordinatorTrainer(config or CoordinatorModelConfig(hidden=4), **kwargs)
         with patch.object(actual_models, 'BuildTrainingConfig', return_value=old_builder.config), \
+                patch.object(actual_models, 'CoordinatorModelConfig', side_effect=lambda **kw: CoordinatorModelConfig(hidden=4, **kw)), \
                 patch.object(actual_models, 'CoordinatorTrainer', side_effect=coordinator_factory):
             inherited = CourseModels.initialize(task, assets, old_duel.config, self.models.adapter_configs, self.root,
                 spec, assets.rows, {'kind': 'own-source-shape-fixture'})

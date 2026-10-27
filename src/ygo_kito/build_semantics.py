@@ -193,9 +193,9 @@ def route_task(task):
     v5 general-duel DTOs remain separately labelled, never silently interchanged.
     """
     from .build_contracts import BuildTask
-    goal=fields(task.goal.get('route_goal'),{'kind','card_id','starting_conditions'},{'route'})
-    if goal['kind'] not in ('synchro_summon','xyz_summon'):
-        raise ContractError('combined goal supports explicit conditional synchro/xyz objectives')
+    goal=fields(task.goal.get('route_goal'),{'kind','card_id','starting_conditions'},{'route','fusion_witness'})
+    if goal['kind'] not in ('synchro_summon','xyz_summon','fusion_summon'):
+        raise ContractError('combined goal supports explicit conditional synchro/xyz/fusion objectives')
     raw=task.to_dict();raw['schema_version']=3;raw['goal']=raw['goal']['route_goal']
     if 'route' in raw['goal']:raise ContractError('combined objective uses core discovery, not a prewritten route')
     if raw['environment']['release_cutoff'] is None:

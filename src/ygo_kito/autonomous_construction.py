@@ -23,6 +23,7 @@ from .construction_controller import ConstructionController
 from .construction_fill import existing_goal_verifier
 from .construction_logic import ConstructionSession, LogicTag, ThemeScope
 from .construction_model import LogicCodec, LogicFeatureEncoder, LogicModelAdapter
+from .construction_effect_blocks import reviewed_effect_blocks
 from .device import model_device
 from .duel_model import parameter_digest
 from .validation import ContractError, integer
@@ -202,6 +203,10 @@ class AutonomousConstructionKernel:
             raise ContractError("explicit nonempty theme identifiers required")
         self.allowed_theme_ids = tuple(sorted(set(allowed_theme_ids))) if allowed_theme_ids is not None else None
         self.source_binding = deepcopy(source_binding)
+        if 'construction_goal' in self.source_binding:
+            goal = self.source_binding['construction_goal']
+            if not isinstance(goal,dict) or goal.get('kind') != 'deck_constraints':
+                raise ContractError('explicit semantic construction objective required')
         self._models = dict(builder.models)
         self._binding = self._current_binding()
         self._binding_sha256 = digest(self._binding)
@@ -254,7 +259,7 @@ class AutonomousConstructionKernel:
         return result
 
     def _route_goals(self, pool):
-        fixed = self.builder.task.goal.get("route_goal")
+        fixed = self.source_binding.get('construction_goal', self.builder.task.goal).get('route_goal')
         if fixed is not None: return [deepcopy(fixed)]
         rows = self.assets.rows
         # Existing semantic combined goals support synchro/xyz, not a nested
@@ -283,7 +288,7 @@ class AutonomousConstructionKernel:
 
     def _task(self, theme, pool, route):
         base = self.builder.task.to_dict()
-        goal = deepcopy(base["goal"])
+        goal = deepcopy(self.source_binding.get('construction_goal', base['goal']))
         if len(goal["constraints"]) >= 12:
             raise ContractError("autonomous axis needs an available semantic constraint slot")
         goal["constraints"].append({"id":"autonomous-axis", "zones":["main","extra"],
@@ -294,6 +299,9 @@ class AutonomousConstructionKernel:
             goal["route_goal"] = deepcopy(route)
             wanted = Counter(("main",c) for c in route["starting_conditions"]["requires_opening_hand"])
             wanted[("main" if route["kind"]=="normal_summon" else "extra",route["card_id"])] = max(1,wanted[("main" if route["kind"]=="normal_summon" else "extra",route["card_id"])])
+            for code in set(goal.get('required_activations', ())) | set(goal.get('required_chain_resolutions', ())):
+                zone = 'extra' if self.assets.rows[code]['type'] & EXTRA_TYPES else 'main'
+                wanted[zone,code] = max(1,wanted[zone,code])
             for (zone,code), minimum in wanted.items():
                 row = requirements.setdefault((zone,code),{"zone":zone,"card_id":code,"minimum":0,"maximum":3})
                 row["minimum"] = max(row["minimum"],minimum)
@@ -347,7 +355,7 @@ class AutonomousConstructionKernel:
 
     def propose_tasks(self):
         self._check()
-        mandatory = {r["card_id"] for r in self.builder.task.requirements} | _referenced_ids(self.builder.task.goal)
+        mandatory = {r['card_id'] for r in self.builder.task.requirements} | _referenced_ids(self.source_binding.get('construction_goal', self.builder.task.goal))
         themes, candidates, omitted = self.enumerate_themes(), [], []
         if self.allowed_theme_ids is not None:
             themes = [t for t in themes if t["theme_id"] in self.allowed_theme_ids]
@@ -451,7 +459,8 @@ class AutonomousConstructionKernel:
             # This is an already-selected internal task, never a user-text
             # classifier prediction or a fabricated trained confidence score.
             session.classification=IntentClassification("narrow",1.0,(term,),reasons=("explicit internal task assignment; not text classification",))
-            codec=LogicCodec((LogicTag.from_dict(theme["tag"]),))
+            effect_tags, _ = reviewed_effect_blocks(self.assets, task.pool)
+            codec=LogicCodec(effect_tags or (LogicTag.from_dict(theme["tag"]),))
             self.sessions[ident]=session
             self.adapters[ident]=_SharedLogicAdapter(task,self.builder,codec,self.updates)
         return self.sessions[ident],self.adapters[ident]
@@ -461,13 +470,17 @@ class AutonomousConstructionKernel:
         for item in feedback:
             session.record_feedback(item["source"],item["message"])
         theme=selection["theme"];tag=LogicTag.from_dict(theme["tag"])
-        binding=CatalogBindingAdapter(self.assets,fact_tags=(PublicFactTag(tag,theme["field"],theme["value"],theme["source"]),))
+        effect_tags, assessments = reviewed_effect_blocks(self.assets, session.task.pool)
+        binding=CatalogBindingAdapter(self.assets,fact_tags=(PublicFactTag(tag,theme["field"],theme["value"],theme["source"]),),assessments=assessments)
         controller=ConstructionController(adapter,binding,self.coordinator)
         scope=ThemeScope(theme["tag"]["value"],theme["field"],theme["value"],theme["source"],self.theme_minimum)
         result=controller.run(session,scopes=(scope,),base=base,verifier=verifier)
         result.update(selected_task_sha256=session.task.sha256,selected_theme_id=theme["theme_id"],
             internal_task_assignment=True,text_classifier_inference=False,goal_preserved=True,
-            cb_verified=False,ability_verified=False)
+            cb_verified=False,ability_verified=False,
+            effect_blocks={'status':'source_reviewed' if effect_tags else 'reviewed_effect_vocabulary_unavailable',
+                           'tags':[{'dimension':t.dimension,'value':t.value} for t in effect_tags],
+                           'assessment_count':len(assessments),'connectors_separate':True})
         if result.get("best"):
             attempts=result["best"]["validation"].get("attempts",[])
             result["cb_verified"]=any(a.get("engine_validation",{}).get("status") in

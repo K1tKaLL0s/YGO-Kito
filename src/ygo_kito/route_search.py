@@ -13,7 +13,7 @@ import time
 
 from .build_contracts import digest
 from .contracts import ActionSelection
-from .extra_routes import completed_special_summon, profile_for
+from .extra_routes import completed_special_summon, completed_fusion_summon, profile_for
 from .native import NativeError, NativeNormalEngine
 from .normal_duel import request_digest
 from .validation import ContractError, array, canonical_json, fields, integer
@@ -44,6 +44,7 @@ def ranked_actions(request, goal, rows, *, width=4):
     cards = {c.ref: c for c in request.observation.cards}
     identities = {r: c.card_id for r, c in cards.items()}
     identities.update({c.ref: c.card_id for c in request.search_choices})
+    identities.update({c.ref: c.card_id for c in request.selection_choices})
     target_level = rows[goal["card_id"]]["level"] & 255
     def score(action):
         if request.observation.observer != 0:
@@ -52,8 +53,17 @@ def ranked_actions(request, goal, rows, *, width=4):
         facts = [rows[c] for c in ids if c in rows]
         if action.details and action.details.operation == "shuffle":
             return -10000
-        if action.kind == "special_summon" and goal["card_id"] in ids:
+        if action.details and action.details.operation in ("remove", "cancel"):
+            return -20
+        if action.details and action.details.operation == "finish":
+            return 1100
+        if goal["card_id"] in ids and action.kind in ("special_summon","select"):
             return 1000
+        objectives=set(goal.get('_required_effects',()))
+        opening=set(goal['starting_conditions']['requires_opening_hand'])
+        if action.kind=='activate' and objectives.intersection(ids):return 900
+        if action.kind=='summon' and opening.intersection(ids):return 850
+        if (request.search_choices or request.prompt.message in (15,20,23,26)) and action.kind=='select' and objectives.intersection(ids):return 800
         if action.details and action.details.operation == "finish":
             return 100
         if action.kind == "activate":
@@ -94,7 +104,7 @@ def discover_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budg
     integer(width, "discovery branch width", 1, 8)
     if type(seconds) not in (int, float) or not math.isfinite(seconds) or not 0 <= seconds <= 30:
         raise ContractError("discovery wall budget outside CPU range")
-    if task.schema_version != 3 or "route" in task.goal or task.goal["kind"] not in ("synchro_summon", "xyz_summon"):
+    if task.schema_version != 3 or "route" in task.goal or task.goal["kind"] not in ("synchro_summon", "xyz_summon", "fusion_summon"):
         raise ContractError("discovery requires a version-3 goal without prewritten route")
     for values in (required_activations,required_chain_resolutions):
         if not isinstance(values,tuple) or len(values)>4:raise ContractError('bounded distinct effect objectives required')
@@ -102,11 +112,17 @@ def discover_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budg
             integer(code,'effect objective card',1,2**32-1)
             if code not in task.pool:raise ContractError('effect objective outside public pool')
         if len(set(values))!=len(values):raise ContractError('effect objectives repeat')
-    mask = {"synchro_summon": 0x2000, "xyz_summon": 0x800000}[task.goal["kind"]]
+    mask = {"synchro_summon": 0x2000, "xyz_summon": 0x800000, "fusion_summon": 0x40}[task.goal["kind"]]
     if not assets.rows[task.goal["card_id"]]["type"] & mask:
         return {"status": "unsupported_route", "card_list_legal": True,
                 "unmet": ["goal kind and card type differ"], "core_attempts": []}
+    witness=task.goal.get('fusion_witness')
+    if task.goal['kind']=='fusion_summon':
+        from .fusion_witness import validate_fusion_witness
+        validate_fusion_witness(witness,task.pool,assets)
+    fusion_effects=witness if task.goal['kind']=='fusion_summon' else None
     started, trials, branches, failures = time.monotonic(), [], 0, []
+    branch_diagnostics=[]
     from .extra_routes import goal_profile_for
     selection_key = secrets.token_hex(16) if goal_profile_for(assets,deck).get("adapter_revision") in (4,5) else None
     required = Counter(task.goal["starting_conditions"]["requires_opening_hand"])
@@ -131,7 +147,7 @@ def discover_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budg
                     for depth in range(decision_budget):
                         if req is None or engine.turn > 1 or time.monotonic() - started >= seconds:
                             break
-                        choices = ranked_actions(req, task.goal, assets.rows, width=width)
+                        choices = ranked_actions(req, dict(task.goal,_required_effects=tuple(set(required_activations)|set(required_chain_resolutions))), assets.rows, width=width)
                         if not choices:
                             break
                         fingerprint = request_digest(req)
@@ -162,7 +178,15 @@ def discover_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budg
                         engine.submit(ActionSelection(req.context.run_id, req.duel_id, req.decision_id, action.action_id))
                         req = engine.next_decision()
                         own = engine._observation(0)
-                        if (completed_special_summon(engine.events, own, 0, task.goal["card_id"]) and set(required_activations)<=activated
+                        # Trigger effects can be accepted through YES/CHAIN prompts,
+                        # not an action whose kind is literally "activate".
+                        # Core CHAINING broadcasts establish actual activation.
+                        activated={e['public_card'] for e in engine.events if e['kind']==70 and e.get('player')==0 and 'public_card' in e}
+                        fusion=(completed_fusion_summon(engine.events,own,0,task.goal['card_id'],fusion_effects)
+                                if task.goal['kind']=='fusion_summon' else None)
+                        completed=(fusion is not None if task.goal['kind']=='fusion_summon' else
+                                   completed_special_summon(engine.events,own,0,task.goal['card_id']))
+                        if (completed and set(required_activations)<=activated
                             and set(required_chain_resolutions)<=resolved_chain_cards(engine.events)):
                             return {"status": "verified_success", "card_list_legal": True, "task_sha256": task.sha256,
                                     "deck_sha256": digest(deck.to_dict()), "starting_condition": task.goal["starting_conditions"],
@@ -171,6 +195,7 @@ def discover_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budg
                                     "trajectory_sha256": digest(audit), "elapsed_seconds": time.monotonic() - started, "unmet": [],
                                     "route_evidence": {"driver": DRIVER, "opponent": "neutral-pass-engineering-only", "conditional_only": True,
                                         "material_preference": "public-fact-ranked", "sum_choices": sums,
+                                        **({'fusion_summon_evidence':fusion} if fusion is not None else {}),
                                         "final_observation": json.loads(canonical_json(asdict(own))),
                                         "core_event_audit_not_policy_input": list(engine.events), "versions": task.environment["versions"],
                                         **({"private_selection_key_audit_only":selection_key} if selection_key is not None else {}),
@@ -179,6 +204,15 @@ def discover_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budg
                                                         "failed_branches": failures,
                                                         **({'required_activations':list(required_activations)} if required_activations else {}),
                                                         **({'required_chain_resolutions':list(required_chain_resolutions)} if required_chain_resolutions else {})}}}
+                    branch_diagnostics.append({'seed_audit_only':seed,'decisions':len(audit),
+                        'required_activations_seen':sorted(set(required_activations)&activated),
+                        'required_resolutions_seen':sorted(set(required_chain_resolutions)&resolved_chain_cards(engine.events)),
+                        'goal_special_summon_completed':completed_special_summon(engine.events,engine._observation(0),0,task.goal['card_id']),
+                        'fusion_material_moves':[{k:e[k] for k in ('kind','from_zone','to_zone','reason','player') if k in e}
+                            for e in engine.events if e['kind']==50 and e.get('reason',0)&0x40008==0x40008],
+                        'last_own_legal_intents':intents[-20:],
+                        'chain_and_summon_events':[e for e in engine.events if e['kind'] in (62,63,70,72,73,74,75,76)][-32:]})
+                    branch_diagnostics=branch_diagnostics[-4:]
             except NativeError as error:
                 # Unsupported messages terminate this branch; never replace a rule.
                 failures.append({"status": "unsupported_native_branch", "reason": str(error)[:256]})
@@ -186,7 +220,7 @@ def discover_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budg
             break
     return {"status": "not_found_within_budget", "card_list_legal": True, "core_attempts": trials,
             "unmet": ["bounded actual-core action exploration exhausted; not impossibility"],
-            "exploration": {"branches_executed": branches, "failed_branches": failures}}
+            "exploration": {"branches_executed": branches, "failed_branches": failures, "last_branches":branch_diagnostics}}
 
 
 def replay_discovered_goal(task, deck, assets, proof,*,required_activations=(),required_chain_resolutions=()):
@@ -194,11 +228,11 @@ def replay_discovered_goal(task, deck, assets, proof,*,required_activations=(),r
     fields(proof, {"status", "card_list_legal", "task_sha256", "deck_sha256", "starting_condition", "random_dependency",
                    "core_attempts", "responses", "core_event_kinds", "trajectory_sha256", "elapsed_seconds", "unmet", "route_evidence"})
     evidence = fields(proof["route_evidence"], {"driver", "opponent", "conditional_only", "material_preference", "sum_choices",
-        "final_observation", "core_event_audit_not_policy_input", "versions", "exploration"}, {"private_selection_key_audit_only"})
+        "final_observation", "core_event_audit_not_policy_input", "versions", "exploration"}, {"private_selection_key_audit_only","fusion_summon_evidence"})
     exploration = fields(evidence["exploration"], {"branches_executed", "branch_budget", "discovered_intents", "prewritten_route_supplied", "failed_branches"},{'required_activations','required_chain_resolutions'})
     integer(exploration["branch_budget"], "replay branch budget", 1, 64)
     integer(exploration["branches_executed"], "replay branch count", 1, exploration["branch_budget"])
-    mask = {"synchro_summon": 0x2000, "xyz_summon": 0x800000}.get(task.goal["kind"], 0)
+    mask = {"synchro_summon": 0x2000, "xyz_summon": 0x800000, "fusion_summon": 0x40}.get(task.goal["kind"], 0)
     if (task.schema_version != 3 or "route" in task.goal or not assets.rows[task.goal["card_id"]]["type"] & mask
             or proof["status"] != "verified_success" or proof["task_sha256"] != task.sha256 or proof["deck_sha256"] != digest(deck.to_dict())
             or proof["starting_condition"] != task.goal["starting_conditions"] or proof["card_list_legal"] is not True
@@ -208,6 +242,12 @@ def replay_discovered_goal(task, deck, assets, proof,*,required_activations=(),r
             or tuple(exploration.get('required_activations',()))!=required_activations
             or tuple(exploration.get('required_chain_resolutions',()))!=required_chain_resolutions):
         raise ContractError("discovered route binding differs")
+    witness=task.goal.get('fusion_witness')
+    if task.goal['kind']=='fusion_summon':
+        from .fusion_witness import validate_fusion_witness
+        validate_fusion_witness(witness,task.pool,assets)
+        if not evidence.get('fusion_summon_evidence'):raise ContractError('special summon alone cannot certify fusion')
+    fusion_effects=witness if task.goal['kind']=='fusion_summon' else None
     responses = array(proof["responses"], "discovered responses")
     integer(len(responses), "discovered response count", 1, 100)
     attempts = array(proof["core_attempts"], "discovered attempts")
@@ -237,6 +277,11 @@ def replay_discovered_goal(task, deck, assets, proof,*,required_activations=(),r
                 if action.kind=='activate' and row['player']==0:activated.update(ids)
             engine.submit(ActionSelection(req.context.run_id, req.duel_id, req.decision_id, row["action_id"]))
             req = engine.next_decision()
+        activated={e['public_card'] for e in engine.events if e['kind']==70 and e.get('player')==0 and 'public_card' in e}
+        if task.goal['kind']=='fusion_summon':
+            actual_fusion=completed_fusion_summon(engine.events,engine._observation(0),0,task.goal['card_id'],fusion_effects)
+            if actual_fusion is None or actual_fusion!=evidence.get('fusion_summon_evidence'):
+                raise ContractError('fusion replay lacks its resolved-effect/material-return/summon binding')
         if (engine.turn != 1 or engine.events != evidence["core_event_audit_not_policy_input"]
                 or [e["kind"] for e in engine.events] != proof["core_event_kinds"]
                 or json.loads(canonical_json(asdict(engine._observation(0)))) != evidence["final_observation"]

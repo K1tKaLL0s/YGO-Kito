@@ -9,7 +9,7 @@ from copy import deepcopy
 import math
 
 from .build_contracts import DeckParts, digest
-from .construction_logic import LogicTag, reachable, select_main_axes, short
+from .construction_logic import ConstructionLogic, LogicTag, reachable, select_main_axes, short
 from .proof_visibility import without_private_selection_key
 from .validation import ContractError, array, fields, member
 
@@ -326,6 +326,19 @@ def construction_cycle(session, assets, providers, *, scopes=(), base=None, mode
         best = deepcopy(prior) if prior else {"deck": base.to_dict(), "logic": None, "logic_sha256": None,
             "validation": {"status": "external_incumbent_retained_graph_proof_pending", "attempts": []},
             "goal_sha256": session.goal_sha256}
+    def verified_incumbent(candidate):
+        if not candidate or candidate.get("logic") is None:
+            return False
+        graph = ConstructionLogic.from_dict(candidate["logic"])
+        validation = candidate.get("validation", {})
+        accepted = ("task_goal_verified_logic_unproven", "list_constraints_verified_logic_unproven")
+        return (candidate.get("goal_sha256") == session.goal_sha256 and
+            graph.sha256 == candidate.get("logic_sha256") and validation.get("status") in accepted and
+            validation.get("best_deck") == candidate.get("deck") and
+            any(a.get("status") in accepted and a.get("goal_sha256") == session.goal_sha256 and
+                a.get("task_sha256") == session.task_sha256 and a.get("logic_sha256") == graph.sha256 and
+                a.get("best_deck") == candidate.get("deck")
+                for a in validation.get("attempts", [])))
     roles = ("build_goal", "build_optimizer", "build_goal", "build_optimizer")
     for number, role in enumerate(roles, 1):
         phase = {"phase_number": number, "role": role, "input_deck": None if current is None else current.to_dict(),
@@ -359,10 +372,31 @@ def construction_cycle(session, assets, providers, *, scopes=(), base=None, mode
         phase["proposal_changes"] = {z: {"added": list((Counter(getattr(proposal,z))-Counter(getattr(current,z) if current else ())).elements()),
             "removed": list((Counter(getattr(current,z) if current else ())-Counter(getattr(proposal,z))).elements())}
             for z in ("main","extra","side")}
+        if best is not None and not verified_incumbent(best) and proposal.to_dict()!=best['deck']:
+            # Validate the retained listing itself instead of substituting a
+            # different model proposal or certifying an untested incumbent.
+            retained=DeckParts.from_dict(best['deck'])
+            try:
+                retained_proposal=binding_provider(graph,session.task,retained)
+                retained_result=evaluate_fill(session,assets,retained_proposal,scopes=scopes,text_reviewer=text_reviewer,verifier=verifier)
+                phase['retained_incumbent_validation']=deepcopy(retained_result)
+                if retained_result['status'] in ('task_goal_verified_logic_unproven','list_constraints_verified_logic_unproven'):
+                    retained_validation={'status':retained_result['status'],'best_deck':retained.to_dict(),'attempts':[retained_result],
+                                         'ranking':'direct_retained_incumbent_validation','graph_execution_verified':False}
+                    best={'deck':retained.to_dict(),'logic':graph.to_dict(),'logic_sha256':graph.sha256,
+                          'validation':retained_validation,'goal_sha256':session.goal_sha256}
+            except ContractError as error:
+                session.record_feedback('fill','retained incumbent still unverified: '+str(error))
         if best is None:
             best = {"deck": proposal.to_dict(), "logic": graph.to_dict(), "logic_sha256": graph.sha256,
                     "validation": result, "goal_sha256": session.goal_sha256}
             phase["acceptance"] = "initial_goal_checked_incumbent"
+        elif proposal.to_dict() == best["deck"]:
+            # The same retained listing can acquire current, bound validation.
+            # Updating its evidence is not a claim of competitive improvement.
+            best = {"deck": proposal.to_dict(), "logic": graph.to_dict(), "logic_sha256": graph.sha256,
+                    "validation": result, "goal_sha256": session.goal_sha256}
+            phase["acceptance"] = "same_incumbent_validation_updated"
         else:
             phase["acceptance"] = "retain_incumbent_independent_quality_comparison_pending"
         current = DeckParts.from_dict(best["deck"])
@@ -374,8 +408,10 @@ def construction_cycle(session, assets, providers, *, scopes=(), base=None, mode
             "goal_sha256": session.goal_sha256, "candidate": deepcopy(best)})
     executed = [p["role"] for p in phases if p.get("stage_3",{}).get("status") in
         ("task_goal_verified_logic_unproven", "list_constraints_verified_logic_unproven")]
-    return {"status": "task_checked_candidate" if best else "construction_unresolved", "phases": phases,
-            "best": best, "latest_logic_sha256": session.logic.sha256 if session.logic else None,
+    incumbent_verified = verified_incumbent(best)
+    return {"status": "task_checked_candidate" if incumbent_verified else "construction_unresolved", "phases": phases,
+            "best": best, "incumbent_verified_for_task": incumbent_verified,
+            "verified_best": deepcopy(best) if incumbent_verified else None, "latest_logic_sha256": session.logic.sha256 if session.logic else None,
             "goal_sha256": session.goal_sha256, "graph_execution_verified": False,
             "alternation_completed": executed == list(roles), "competitive_improvement_verified": False,
             "optimization_training": "pending_actual_attributable_comparison_labels",

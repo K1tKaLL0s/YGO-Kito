@@ -76,8 +76,9 @@ class BuildEncoder:
                                 ids.append([self.card_index[code],1+ZONES.index(zone),0,6])
                                 numbers.append(self.assets.facts(code)+[0.,0.,0.,1. if hard else -1.])
         if route_goal is not None:
-            goal_kind = ("normal_summon", "synchro_summon", "xyz_summon").index(route_goal["kind"])
-            card(route_goal["card_id"], "extra" if extra_goal else "main", 1, context=goal_kind / 2)
+            # Preserve the exact existing three encodings during base continuation.
+            goal_context = {"normal_summon": 0., "synchro_summon": .5, "xyz_summon": 1., "fusion_summon": -.5}[route_goal["kind"]]
+            card(route_goal["card_id"], "extra" if extra_goal else "main", 1, context=goal_context)
         if extra_goal:
             for code in route_goal["starting_conditions"]["requires_opening_hand"]:
                 card(code, "main", 5)

@@ -101,13 +101,20 @@ def validate_supervision(task, assets, data):
                 from .contracts import Observation
                 from .extra_routes import completed_special_summon
                 evidence = fields(proof.get("route_evidence"), {"driver", "opponent", "conditional_only", "material_preference",
-                                                              "sum_choices", "final_observation", "core_event_audit_not_policy_input", "versions"}, {"exploration", "private_selection_key_audit_only"})
+                                                              "sum_choices", "final_observation", "core_event_audit_not_policy_input", "versions"}, {"exploration", "private_selection_key_audit_only", "fusion_summon_evidence"})
                 from .extra_routes import route_selection_key
                 route_selection_key(assets,deck,evidence)
                 if (evidence["conditional_only"] is not True or evidence["versions"] != task.environment["versions"]
                         or not completed_special_summon(evidence["core_event_audit_not_policy_input"],
                                                        Observation.from_dict(evidence["final_observation"]), 0, task.goal["card_id"])):
                     raise ContractError("extra goal lacks its own completed real-core route")
+                if task.goal['kind']=='fusion_summon':
+                    from .extra_routes import completed_fusion_summon
+                    from .fusion_witness import validate_fusion_witness
+                    witness=task.goal['fusion_witness'];validate_fusion_witness(witness,task.pool,assets)
+                    actual=completed_fusion_summon(evidence['core_event_audit_not_policy_input'],Observation.from_dict(evidence['final_observation']),0,task.goal['card_id'],witness)
+                    if actual is None or actual!=evidence.get('fusion_summon_evidence'):
+                        raise ContractError('fusion supervision needs its resolved-effect/material/summon certificate')
         else:
             fields(proof, {"status", "reason"})
             if record["source"] != "explicit_hard_constraint_failure" or proof["status"] != "hard_constraint_failure":

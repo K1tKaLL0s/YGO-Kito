@@ -78,9 +78,14 @@ class BuildTask:
             validate_goal(self.goal,self.pool)
             goal=self.goal
         else:
-            goal = fields(self.goal, {"kind", "card_id", "starting_conditions"}, {"route"})
-            member(goal["kind"], "building goal", ("normal_summon", "synchro_summon", "xyz_summon"))
+            goal = fields(self.goal, {"kind", "card_id", "starting_conditions"}, {"route", "fusion_witness"})
+            member(goal["kind"], "building goal", ("normal_summon", "synchro_summon", "xyz_summon", "fusion_summon"))
             integer(goal["card_id"], "goal card", 1, 2**32 - 1)
+            if goal['kind']=='fusion_summon':
+                from .fusion_witness import validate_fusion_witness
+                validate_fusion_witness(goal.get('fusion_witness'),self.pool)
+            elif 'fusion_witness' in goal:
+                raise ContractError('fusion evidence cannot silently change another summon objective')
             start = fields(goal["starting_conditions"], {"player", "turn", "requires_opening_hand"})
             integer(start["player"], "goal player", 0, 0)
             integer(start["turn"], "goal turn", 1, 1)

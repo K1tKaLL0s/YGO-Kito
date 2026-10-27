@@ -39,7 +39,7 @@ class BuildAssets:
 
     def environment_for(self, kind):
         environment = dict(self.environment, versions=dict(self.environment["versions"]))
-        if kind in ("synchro_summon", "xyz_summon"):
+        if kind in ("synchro_summon", "xyz_summon", "fusion_summon"):
             environment["versions"]["card_pool"] = "native-extra-material-v2"
         elif kind=="deck_constraints":
             environment["versions"]["card_pool"]="native-private-knowledge-v5"

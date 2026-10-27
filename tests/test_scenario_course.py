@@ -5,6 +5,8 @@ step. The engine and C# room come from the existing CPU fixture; these results
 are not core/C# execution, historical qualification or training ability.
 """
 from copy import deepcopy
+from dataclasses import replace
+import json
 from pathlib import Path
 import unittest
 from unittest.mock import patch
@@ -13,7 +15,9 @@ import torch
 
 from tests.test_autonomous_construction import fixture
 import tests.test_course_game_adapter as adapter_fixtures
-from ygo_kito.build_contracts import BuildTask, DeckParts
+from ygo_kito.build_contracts import BuildTask, DeckParts, digest
+from ygo_kito.contracts import DecisionRequest, validate_selection
+from tests.fixtures import request as decision_payload
 from ygo_kito.course_game_adapter import CourseTrainingConfig
 from ygo_kito.course_models import CourseModels
 from ygo_kito.duel_model import DuelModelConfig
@@ -30,12 +34,57 @@ class ScenarioCourseTests(unittest.TestCase):
         h = self.host
         task, catalog, _, _ = fixture(41, initialize=False)
         h.assets.rows = deepcopy(catalog.rows)
+        for row in h.assets.rows.values(): row['setcode'] = 0x181
+        h.assets.rows[42] = dict(h.assets.rows[1], id=42, type=0x800001,
+                                name='synthetic-xyz-contract-only')
+        # Exercise model generation and the normal discovery/replay contract.
+        # This is an explicitly fake offered-action engine, never native CB proof.
+        h.assets.receipt = deepcopy(h.assets.receipt)
+        h.assets.receipt['resources']['cards'] = digest(h.assets.rows)
+        q = json.loads((h.root/h.qualification['path']).read_text())
+        q['resources'] = deepcopy(h.assets.receipt)
+        h.qualification = h.helper.write_json('scenario-qualification-fixture.json', q)
+        h.runtime = replace(h.runtime, qualification=h.qualification)
+        assets = h.assets
+        class SyntheticGoalEngine:
+            def __init__(self, *args, **kwargs):
+                self.turn, self.events, self.done = 1, [], False
+                payload = decision_payload()
+                payload['context']['seed'] = None
+                payload['context']['versions'] = assets.environment_for('deck_constraints')['versions']
+                payload['observation']['cards'] = [
+                    dict(ref='fixture-opening-'+str(c), owner=0, controller=0,
+                         zone='hand', visibility='observer', card_id=c) for c in (1, 2)] + [
+                    dict(ref='fixture-target', owner=0, controller=0, zone='extra',
+                         visibility='observer', card_id=42)]
+                payload['prompt'] = {'message': 11}
+                payload['actions'] = [dict(action_id='fixture-special', kind='special_summon', card_refs=['fixture-target'])]
+                self.request = DecisionRequest.from_dict(payload)
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def _observation(self, player):
+                if not self.done: return self.request.observation
+                payload = json.loads(json.dumps(self.request.to_dict()))
+                payload['observation']['cards'] = [dict(ref='fixture-result', owner=0, controller=0,
+                    zone='monster', visibility='public', card_id=42)]
+                payload['actions'] = [dict(action_id='fixture-pass', kind='pass', card_refs=[])]
+                return DecisionRequest.from_dict(payload).observation
+            def next_decision(self): return None if self.done else self.request
+            def submit(self, selection):
+                validate_selection(self.request, selection)
+                self.done = True
+                self.events = [{'kind': 62, 'player': 0, 'public_summoning_card': 42}, {'kind': 63}]
+        h.assets.engine_factory = SyntheticGoalEngine
         h.assets.period_id = '2022-07'
         h.assets.period_context = {'kind': 'synthetic-period-not-historical', 'period_id': '2022-07'}
         h.assets.adapter_revision = 5
         raw = task.to_dict()
-        raw.update(pool=list(range(1, 42)), sizes={'main': 40, 'extra': 0, 'side': 1},
+        raw.update(pool=list(range(1, 43)), sizes={'main': 40, 'extra': 1, 'side': 1},
                    environment=h.assets.environment_for('deck_constraints'))
+        raw['goal']['route_goal'] = {'kind': 'xyz_summon', 'card_id': 42,
+            'starting_conditions': {'player': 0, 'turn': 1, 'requires_opening_hand': [1, 2]}}
+        raw['requirements'] = [dict(zone=zone, card_id=code, minimum=1, maximum=3)
+                               for zone, code in [('main', 1), ('main', 2), ('extra', 42)]]
         task = BuildTask.from_dict(raw)
         adapters = {r: AdapterConfig('course-' + r, r,
             ('head.0',) if r.startswith('build_') else ('value_head.2',) if r == 'duel' else ('route_head',),
@@ -43,13 +92,14 @@ class ScenarioCourseTests(unittest.TestCase):
         cfg = CourseTrainingConfig(model=DuelModelConfig(width=8, card_width=4, heads=2, feedforward=16),
             game_seeds=(100, 101, 102), batch_size=1, episode_seconds=30)
         self.models = CourseModels.initialize(task, h.assets, cfg, adapters, h.root, None,
-            h.assets.rows, {'kind': 'synthetic-fresh-course-not-trained', 'fixture': 'actual-models-fake-core'})
+            h.assets.rows, {'kind': 'synthetic-fresh-course-not-trained', 'fixture': 'actual-models-fake-core',
+                            'construction_theme_ids': ['setcode-181']})
         self.deck = h.parts(h.helper.profile, 0)
         self.config = {'course_id': 'synthetic-course-test', 'period_id': '2022-07', 'mode': 'fixed_theme',
             'pilot_mean_seconds': 60, 'training_seeds': [100, 101, 102],
             'evaluation_pairs': {'validation': [[200, 201], [202, 203]], 'final_eval': [[300, 301], [302, 303]]},
             'matches_per_invocation': 3, 'wall_seconds': 3600, 'allocated_gpu_count': 0,
-            'fixed_deck': self.deck.to_dict(), 'initial_first': 'alternate', 'evaluation_matches': 1,
+            'fixed_deck': None, 'construction_theme_ids': ['setcode-181'], 'initial_first': 'alternate', 'evaluation_matches': 1,
             'opponent_side': 'keep_original_baseline'}
         self.bots = {stage: {'runtime': h.runtime, 'deck': self.deck, 'stage': stage, 'purpose': 'train',
             'first_order': 'always_first', 'source': 'engineering_fixture', 'coverage_label': 'fake-room-only'}
@@ -111,7 +161,7 @@ class ScenarioCourseTests(unittest.TestCase):
         state.record_game(first, GameResult(1, first.seat_of('actor'), 0, True, 'synthetic_contract_fixture', 1., 2))
         self.assertFalse(c._close())
         self.assertEqual(c.counts()['bo3'], 0)
-        state.submit_sideboards({'actor': self.deck, 'opponent': self.deck})
+        state.submit_sideboards({'actor': c.deck, 'opponent': self.deck})
         state.choose_next_first('opponent', 'opponent')
         second = state.issue_game_spec()
         state.record_game(second, GameResult(2, 2, 0, True, 'synthetic_contract_fixture', 1., 2))
