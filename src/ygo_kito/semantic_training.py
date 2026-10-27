@@ -85,7 +85,15 @@ def validate(task,assets,data,*,for_training=True):
         if 'route_goal' in task.goal and any(digest(d.to_dict()) not in verified for d in (better,worse)):
             raise ContractError('combined optimizer comparisons require verified native goals on both sides')
         from .model_build_feedback import SOURCE as model_source,validate_model_comparison
-        if pair['source']==model_source:
+        from .model_auxiliary import SOURCES as auxiliary_sources,validate_auxiliary_comparison
+        if pair['source'] in auxiliary_sources:
+            comparison=pair.get('evidence');candidates=validate_auxiliary_comparison(task,assets,comparison)
+            preferred=comparison['preferred_index']
+            if (preferred is None or comparison['source']!=pair['source'] or
+                    pair['hard_constraints_checked'] is not True or better!=candidates[preferred] or worse!=candidates[1-preferred] or
+                    pair['better_value']!=1. or pair['worse_value']!=0.):
+                raise ContractError('Auxiliary rank must follow the actual paired goal evidence; 1/0 encodes order only')
+        elif pair['source']==model_source:
             comparison=pair.get('evidence');candidates=validate_model_comparison(task,assets,comparison)
             preferred=comparison['preferred_index']
             if (preferred is None or comparison['plan']['purpose']!='construction_train' or
