@@ -3,6 +3,7 @@ from copy import deepcopy
 import hashlib
 import json
 import shutil
+import time
 from pathlib import Path
 
 
@@ -27,11 +28,36 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
         if not any(x['feedback_id']==feedback_id for x in course.feedback.consumed):
             pause_if_requested()
             course.apply_feedback(feedback_id,artifact_id,**kw)
+            status('actual_collaborative_role_update',formal_matches=sum(course.counts().values()),
+                goal_updates=course.models.builder.updates['build_goal'],
+                optimizer_updates=course.models.builder.updates['build_optimizer'],
+                duel_updates=course.models.duel.updates,coordinator_updates=course.models.coordinator.updates)
     number=sum(course.counts().values());root=target/('collaboration-'+str(number).zfill(6)+('-forced' if force_rebuild else ''));root.mkdir(exist_ok=True)
     if (root/'complete.json').exists():return read(root/'complete.json')
     task=course._task();models=course.models;assets=course.assets
     incumbent=deepcopy(course.construction['best'])
+    # A retained incumbent may have its full private proof in an earlier
+    # closed construction. Search only this course, matching the complete task
+    # and deck; public/redacted outputs are never substituted for that proof.
+    proof_paths=sorted(set(target.glob('construction-route-*.json'))|
+                       set(target.glob('collaboration-*/route-*.json')))
+    proof_records=[(p,read(p)) for p in proof_paths]
+    def private_proof(deck):
+        return next(((p,r) for p,r in reversed(proof_records)
+            if r.get('task')==task.to_dict() and r.get('deck')==deck.to_dict()
+            and r['proof'].get('task_sha256')==task.sha256
+            and r['proof'].get('status')=='constraints_and_route_verified'
+            and r['proof'].get('native_route',{}).get('core_attempts')),None)
     path=root/'actual-four-stage.json'
+    if path.exists():
+        existing=read(path)
+        current,_=models.kernel._session(course.selection)
+        current_sha=current.logic.sha256 if current.logic is not None else None
+        if not initial and existing.get('latest_logic_sha256')!=current_sha:
+            # The process failed before committing the inference's kernel state.
+            # Preserve that trace and rebuild only inference, reusing exact
+            # private proofs. No duel or parameter update is replayed.
+            path.rename(path.with_name('actual-four-stage.uncommitted-'+str(time.time_ns())+'.json'))
     if path.exists():result=read(path)
     elif initial:
         result=deepcopy(course.construction);write(path,result)
@@ -40,9 +66,18 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
         def verifier(t,d,a):
             nonlocal counter
             if stop.exists():raise RuntimeError('Safe stop before next actual construction route')
-            counter+=1;proof=verify_goal(t,d,a,seconds=30.,attempts=64,decision_budget=100)
-            write(root/('route-'+str(counter).zfill(3)+'.json'),{'task':t.to_dict(),'deck':d.to_dict(),'proof':proof})
-            status('collaborative_native_route',formal_matches=number,route_attempt=counter,result=proof['status'])
+            counter+=1;prior=private_proof(d)
+            if prior is not None:
+                source,receipt=prior;proof=deepcopy(receipt['proof'])
+                provenance={'kind':'reuse_exact_private_native_proof','path':str(source.relative_to(target)),
+                    'sha256':hashlib.sha256(source.read_bytes()).hexdigest(),'new_native_execution':False}
+            else:
+                proof=verify_goal(t,d,a,seconds=30.,attempts=64,decision_budget=100)
+                provenance={'kind':'new_actual_native_route','new_native_execution':True}
+            row={'task':t.to_dict(),'deck':d.to_dict(),'proof':proof,'proof_provenance':provenance}
+            saved=root/('route-'+str(counter).zfill(3)+'.json');write(saved,row);proof_records.append((saved,row))
+            status('collaborative_reused_exact_route' if prior is not None else 'collaborative_native_route',
+                   formal_matches=number,route_attempt=counter,result=proof['status'])
             return proof
         routing_feedback=({'source':'duel','message':'Actual completed training matches: '+str(number)+'; observed wins: '+str(sum(r['winner']=='actor' for r in course.records if r['purpose']=='train' and r['complete']))+'. Reconsider the unchanged goal with actual public feedback; no quality label from one game.'},)
         if feedback:routing_feedback+=({'source':'duel','message':'Actual immutable forecast discrepancy: '+json.dumps(feedback,sort_keys=True)},)
@@ -56,10 +91,12 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
             result['best']=deepcopy(incumbent);result['verified_best']=deepcopy(incumbent)
             result['forced_reconstruction_executed_from_empty']=True
         write(path,result)
+        # Commit the generated session/history together with its inference trace
+        # before role admission. A later resume can then consume it exactly once.
+        course.save()
     session=models.kernel.sessions[course.selection['candidate_id']]
     session.check_goal()
     if result.get('goal_sha256')!=session.goal_sha256 or session.task.sha256!=task.sha256:raise RuntimeError('Collaboration changed the selected objective')
-    proofs=[read(p) for p in (target.glob('construction-route-*.json') if initial else root.glob('route-*.json'))]
     candidates=[DeckParts.from_dict(result['best']['deck'])]
     for phase in result['phases']:
         if phase.get('stage_3',{}).get('status')=='task_goal_verified_logic_unproven' and phase.get('proposal_deck'):
@@ -68,8 +105,9 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
             if len(candidates)==2:break
     goal_rows=[]
     for deck in candidates:
-        proof=next((p['proof'] for p in proofs if p['deck']==deck.to_dict() and p['proof']['task_sha256']==task.sha256 and p['proof']['status']=='constraints_and_route_verified'),None)
-        if proof is None:raise RuntimeError('Public redacted output cannot replace the exact private goal replay')
+        matched=private_proof(deck)
+        if matched is None:raise RuntimeError('Public redacted output cannot replace the exact private goal replay')
+        proof=matched[1]['proof']
         goal_rows.append({'deck':deck.to_dict(),'label':1.,'source':'pinned_constraints_and_actual_native_route','evidence':proof})
     def admit(data,suffix):
         pause_if_requested()
