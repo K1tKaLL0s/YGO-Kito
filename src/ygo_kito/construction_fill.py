@@ -441,6 +441,7 @@ def construction_cycle(session, assets, providers, *, scopes=(), base=None, mode
         "construction_candidate":candidate,"basic_cb":cb,"retained_candidates":retained_candidates,"deployment_incumbent":incumbent,
         "task_verified":verified,"cb_verified":bool(candidate and candidate["cb_verified"]),
         "incumbent_verified_for_task":False,"latest_logic_sha256":session.logic.sha256 if session.logic else None,
-        "goal_sha256":session.goal_sha256,"graph_execution_verified":False,"alternation_completed":complete,
+        "goal_sha256":session.goal_sha256,"task_goal_sha256":digest(session.task.goal),
+        "graph_execution_verified":False,"alternation_completed":complete,
         "competitive_improvement_verified":False,"deployment_acceptance":"independent_comparison_pending" if incumbent else "initial_candidate_only",
         "optimization_training":"pending_actual_attributable_comparison_labels","training_status":"no_training_performed_by_this_cycle"}

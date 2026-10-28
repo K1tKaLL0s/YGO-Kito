@@ -302,6 +302,7 @@ class ScenarioCourseHost:
             "selected_target_cutoff": d["selected_target_cutoff"],
             "resources": deepcopy(assets.receipt), "availability_artifact": deepcopy(d["available_cards"]),
             "available_ids_sha256": digest(available), "learning_stage": d.get("learning_stage", "lora_adaptation"),
+            "basic_cb_stage": "after_construction",
             "construction_theme_ids": course.get("construction_theme_ids")}
         from .course_models import CourseModels
         saved = None

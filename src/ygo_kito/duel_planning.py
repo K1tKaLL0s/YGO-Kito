@@ -78,8 +78,12 @@ def plans_from_construction(task, construction, *, deck=None):
         if deck is not None and (not isinstance(deck,DeckParts) or deck!=constructed):
             raise ContractError('basic CB does not belong to the actual constructed deck')
         deck_sha=digest(constructed.to_dict())
+        # The session goal binds request+task. Production construction exposes
+        # a separate task-goal digest; legacy inference envelopes use this
+        # digest directly in goal_sha256. Neither can substitute another task.
+        goal_sha=construction.get('task_goal_sha256',construction.get('goal_sha256'))
         if (basic.get('task_sha256')!=task.sha256 or basic.get('subject_deck_sha256')!=deck_sha or
-                construction.get('goal_sha256')!=digest(task.goal)):
+                goal_sha!=digest(task.goal)):
             raise ContractError('basic CB original task/goal/deck binding differs')
         routes=basic['routes']
         if not isinstance(routes,(list,tuple)) or len(routes)>8:raise ContractError('bounded basic CB routes required')
@@ -87,10 +91,15 @@ def plans_from_construction(task, construction, *, deck=None):
         for row in routes:
             if not isinstance(row,dict) or not isinstance(row.get('task'),dict):continue
             derived=BuildTask.from_dict(row['task']);raw=derived.to_dict()
-            if (any(raw[k]!=v for k,v in original.items() if k not in ('task_id','goal')) or
+            if (any(raw[k]!=v for k,v in original.items() if k not in ('task_id','goal','requirements')) or
                     any(derived.goal.get(k)!=v for k,v in task.goal.items()) or
                     set(derived.goal)-set(task.goal)-{'route_goal','required_activations','required_chain_resolutions'}):
                 raise ContractError('derived basic CB changes its original construction task or goal')
+            from .basic_cb_inference import inference_requirements
+            expected={(r['zone'],r['card_id']):r for r in inference_requirements(task,constructed,derived.goal)}
+            actual={(r['zone'],r['card_id']):r for r in raw['requirements']}
+            if actual!=expected:
+                raise ContractError('derived basic CB changes requirements beyond its inferred route cards')
             proof=row.get('proof')
             if not isinstance(proof,dict) or proof.get('status')!=accepted_status(derived):continue
             if proof.get('task_sha256')!=derived.sha256 or proof.get('deck_sha256')!=deck_sha:

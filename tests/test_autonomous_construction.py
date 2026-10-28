@@ -143,8 +143,13 @@ class AutonomousKernelTests(unittest.TestCase):
         self.assertEqual(adapter.required_tags,(theme,))
         context={"request":session.request,"task":session.task.to_dict(),"goal_sha256":session.goal_sha256,
             "logic":None,"feedback":[],"role":"build_goal"}
-        for graph in adapter.candidates(context):
-            self.assertEqual({t for n in graph.nodes for t in n.tags},{theme})
+        candidates=adapter.candidates(context)
+        for graph in candidates:
+            tags={t for n in graph.nodes for t in n.tags}
+            self.assertIn(theme,tags)
+            self.assertLessEqual(tags,set(adapter.codec.tags))
+        self.assertTrue(any(extra in {t for n in graph.nodes for t in n.tags} for graph in candidates))
+        self.assertEqual(adapter.required_tags,(theme,))
 
     def test_supported_extra_goals_are_proposals_not_engine_or_graph_proof(self):
         task,assets,builder,coordinator=fixture(initialize=False)

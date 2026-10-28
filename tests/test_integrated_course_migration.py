@@ -57,9 +57,12 @@ class IntegratedMigrationTests(unittest.TestCase):
                 old_source=dict(target)
                 old_source.update({'src/ygo_kito/'+name:value for name,value in provenance['sha256'].items()})
                 binding=deepcopy(helper.models.binding);binding.update(learning_stage='base',source_files=old_source)
+                binding.pop('basic_cb_stage',None)
                 # Old source policy adds a fixed route over a general base task,
                 # matching the actual checkpoint16/base-task boundary.
                 binding['construction_goal']=deepcopy(helper.models.builder.task.goal)
+                binding['construction_goal']['route_goal']={'kind':'xyz_summon','card_id':42,
+                    'starting_conditions':{'player':0,'turn':1,'requires_opening_hand':[1,2]}}
                 raw=helper.models.builder.task.to_dict();raw['requirements']=[]
                 for key in ('route_goal','required_activations','required_chain_resolutions'):raw['goal'].pop(key,None)
                 general=BuildTask.from_dict(raw)
@@ -76,12 +79,15 @@ class IntegratedMigrationTests(unittest.TestCase):
                 old=ScenarioCourse(old_models,assets=helper.host.assets,data_index=DataIndex(parent/'index'),
                     config=helper.config,state_root=parent/'course',bots=helper.bots)
                 old.selection=selection;old.active_seconds=17.;old.desired='paused'
-                with patch('os.statvfs',return_value=SimpleNamespace(f_frsize=4096),create=True):
+                self.assertIn('route_goal',old.models.binding['construction_goal'])
+                self.assertNotIn('basic_cb_stage',old.models.binding)
+                # The block-size mock also supplies Linux disk_usage's counts.
+                with patch('os.statvfs',return_value=SimpleNamespace(f_frsize=4096,f_blocks=1_000_000,f_bfree=900_000,f_bavail=900_000),create=True):
                     old.save();receipt=export_closed_course(old,root/'export.weights')
                 before_models=old.models.save_state()
             before={str(p.relative_to(parent)):sha(p) for p in parent.rglob('*') if p.is_file()}
             changed={p for p in target if old_source.get(p)!=target[p]}
-            with patch('os.statvfs',return_value=SimpleNamespace(f_frsize=4096),create=True):
+            with patch('os.statvfs',return_value=SimpleNamespace(f_frsize=4096,f_blocks=1_000_000,f_bfree=900_000,f_bavail=900_000),create=True):
                 migrated,report=migrate_closed_course(receipt,root/'next',assets=helper.host.assets,bots=helper.bots,
                     source_files=target,allowed_changed_files=changed,transition_to_postconstruction_cb=True)
                 migrated.restore_latest()

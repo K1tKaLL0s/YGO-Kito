@@ -15,6 +15,26 @@ from .validation import ContractError
 EXTRA=0x40|0x2000|0x800000|0x4000000
 
 
+def inference_requirements(task,deck,goal):
+    """Bind only an inferred route's already-present cards, preserving the task."""
+    route=goal.get('route_goal')
+    if not isinstance(route,dict):raise ContractError('basic CB requires its derived route goal')
+    counts={zone:Counter(getattr(deck,zone)) for zone in ('main','extra','side')}
+    needed={('main',code):n for code,n in Counter(route['starting_conditions']['requires_opening_hand']).items()}
+    for code in (route['card_id'],*goal.get('required_activations',()),*goal.get('required_chain_resolutions',())):
+        zones=[zone for zone in ('main','extra') if counts[zone][code]]
+        if len(zones)!=1:raise ContractError('basic CB route card must belong to its constructed main or extra deck')
+        key=(zones[0],code);needed[key]=max(1,needed.get(key,0))
+    requirements={(r['zone'],r['card_id']):r for r in task.to_dict()['requirements']}
+    for (zone,code),minimum in needed.items():
+        key=(zone,code)
+        if key in requirements:requirements[key]['minimum']=max(minimum,requirements[key]['minimum'])
+        else:requirements[key]={'zone':zone,'card_id':code,'minimum':minimum,'maximum':3}
+    if any(not r['minimum']<=counts[r['zone']][r['card_id']]<=r['maximum'] for r in requirements.values()):
+        raise ContractError('basic CB derived requirements are not satisfied by its constructed deck')
+    return list(requirements.values())
+
+
 def proposals(task,deck,assets,limit=8):
     rows=assets.rows;counts=Counter(deck.main);result=[]
     _,reviews=reviewed_effect_blocks(assets,tuple(set(deck.main+deck.extra)))
@@ -25,16 +45,7 @@ def proposals(task,deck,assets,limit=8):
         if effect is not None:goal.update(required_activations=[effect],required_chain_resolutions=[effect])
         # Only the derived inference task binds the already-present route cards.
         # The construction task has no fixed CB component requirement.
-        needed=Counter(route['starting_conditions']['requires_opening_hand'])
-        needed[route['card_id']]=max(1,needed[route['card_id']])
-        if effect is not None:needed[effect]=max(1,needed[effect])
-        requirements={(r['zone'],r['card_id']):r for r in raw['requirements']}
-        for code,minimum in needed.items():
-            zone='extra' if rows[code]['type']&EXTRA else 'main'
-            key=(zone,code)
-            if key in requirements:requirements[key]['minimum']=max(minimum,requirements[key]['minimum'])
-            else:requirements[key]={'zone':zone,'card_id':code,'minimum':minimum,'maximum':3}
-        raw['requirements']=list(requirements.values())
+        raw['requirements']=inference_requirements(task,deck,goal)
         raw.update(task_id='basic-cb-'+digest({'construction':task.sha256,'route':route,'effect':effect})[:24],goal=goal)
         candidate=BuildTask.from_dict(raw)
         if candidate not in result:result.append(candidate)

@@ -8,8 +8,9 @@ from copy import deepcopy
 from dataclasses import replace
 import json
 from pathlib import Path
+from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import torch
 
@@ -25,6 +26,59 @@ from ygo_kito.lora import AdapterConfig
 from ygo_kito.match_runner import GameResult
 from ygo_kito.scenario_course import ScenarioCourse
 from ygo_kito.validation import ContractError
+
+
+class ScenarioConstructionCompletionTests(unittest.TestCase):
+    """Actual course admission with synthetic kernel results; no games/updates."""
+    def course(self, status, *, completed=True, cb_verified=False):
+        course = object.__new__(ScenarioCourse)
+        deck = DeckParts((1,)*40)
+        result = {'best': {'deck': deck.to_dict()}, 'task_verified': True, 'alternation_completed': True,
+            'cb_verified': cb_verified, 'basic_cb': {'status': status, 'inference_completed': completed,
+                'routes': [{'fixture': 'synthetic-route-only'}] if cb_verified else []}}
+        selection = {'status': 'model_selected_task', 'candidate_id': 'first-model-choice'}
+        kernel = Mock()
+        kernel.propose_tasks.return_value = {'candidates': [selection, {'candidate_id': 'alternative'}]}
+        kernel.select_task.return_value = selection
+        kernel.run_selected.side_effect = lambda *args, **kwargs: deepcopy(result)
+        course.models = SimpleNamespace(kernel=kernel)
+        course.rules = SimpleNamespace(validate=Mock())
+        course.selection, course.deck, course.events = None, None, []
+        return course, kernel, result, selection, deck
+
+    def test_unknown_inference_keeps_first_model_goal_and_is_not_a_failed_construction(self):
+        c, kernel, _, selection, deck = self.course('bounded_inference_unknown')
+        c._construct()
+        self.assertEqual(c.selection, selection); self.assertEqual(c.deck, deck)
+        self.assertTrue(c.construction['task_verified']); self.assertFalse(c.construction['cb_verified'])
+        self.assertEqual(c.construction['basic_cb']['routes'], [])
+        kernel.run_selected.assert_called_once_with(selection, feedback=())
+        self.assertEqual(c.events, [])
+        c._construct(feedback=({'source': 'duel', 'message': 'synthetic feedback'},))
+        kernel.select_task.assert_called_once()
+        self.assertEqual(kernel.run_selected.call_args.kwargs['base'], deck)
+        self.assertEqual(c.selection, selection)
+
+    def test_not_run_cannot_be_admitted_by_a_route_success_flag(self):
+        for selected in (False, True):
+            c, _, _, selection, _ = self.course('not_run', completed=False, cb_verified=True)
+            if selected: c.selection = selection
+            with self.subTest(selected=selected), self.assertRaisesRegex(ContractError, 'basic CB inference'):
+                c._construct()
+            self.assertIsNone(c.deck)
+
+    def test_routes_found_remain_distinct_from_completed_unknown(self):
+        c, _, _, _, deck = self.course('routes_inferred', cb_verified=True)
+        c._construct()
+        self.assertEqual(c.deck, deck); self.assertTrue(c.construction['cb_verified'])
+        self.assertTrue(c.construction['basic_cb']['routes'])
+
+    def test_task_validation_and_four_handoffs_are_required_even_with_route_evidence(self):
+        for missing in ('task_verified', 'alternation_completed'):
+            c, _, result, selection, _ = self.course('routes_inferred', cb_verified=True)
+            c.selection = selection; result[missing] = False
+            with self.subTest(missing=missing), self.assertRaises(ContractError): c._construct()
+            self.assertIsNone(c.deck)
 
 
 class ScenarioCourseTests(unittest.TestCase):
@@ -49,12 +103,17 @@ class ScenarioCourseTests(unittest.TestCase):
         class SyntheticGoalEngine:
             def __init__(self, *args, **kwargs):
                 self.turn, self.events, self.done = 1, [], False
+                # A deterministic offered-action fixture over this constructed
+                # deck, not a native shuffle or a preassigned construction CB.
+                opening = kwargs['deck_profile']['decks'][0][:5]
+                self.extra = kwargs['deck_profile']['extras'][0]
+                assert self.extra == [42], 'synthetic target must belong to the constructed extra deck'
                 payload = decision_payload()
                 payload['context']['seed'] = None
                 payload['context']['versions'] = assets.environment_for('deck_constraints')['versions']
                 payload['observation']['cards'] = [
-                    dict(ref='fixture-opening-'+str(c), owner=0, controller=0,
-                         zone='hand', visibility='observer', card_id=c) for c in (1, 2)] + [
+                    dict(ref='fixture-opening-'+str(i), owner=0, controller=0,
+                         zone='hand', visibility='observer', card_id=c) for i, c in enumerate(opening)] + [
                     dict(ref='fixture-target', owner=0, controller=0, zone='extra',
                          visibility='observer', card_id=42)]
                 payload['prompt'] = {'message': 11}
@@ -81,10 +140,6 @@ class ScenarioCourseTests(unittest.TestCase):
         raw = task.to_dict()
         raw.update(pool=list(range(1, 43)), sizes={'main': 40, 'extra': 1, 'side': 1},
                    environment=h.assets.environment_for('deck_constraints'))
-        raw['goal']['route_goal'] = {'kind': 'xyz_summon', 'card_id': 42,
-            'starting_conditions': {'player': 0, 'turn': 1, 'requires_opening_hand': [1, 2]}}
-        raw['requirements'] = [dict(zone=zone, card_id=code, minimum=1, maximum=3)
-                               for zone, code in [('main', 1), ('main', 2), ('extra', 42)]]
         task = BuildTask.from_dict(raw)
         adapters = {r: AdapterConfig('course-' + r, r,
             ('head.0',) if r.startswith('build_') else ('value_head.2',) if r == 'duel' else ('route_head',),
@@ -93,6 +148,7 @@ class ScenarioCourseTests(unittest.TestCase):
             game_seeds=(100, 101, 102), batch_size=1, episode_seconds=30)
         self.models = CourseModels.initialize(task, h.assets, cfg, adapters, h.root, None,
             h.assets.rows, {'kind': 'synthetic-fresh-course-not-trained', 'fixture': 'actual-models-fake-core',
+                            'basic_cb_stage': 'after_construction',
                             'construction_theme_ids': ['setcode-181']})
         self.deck = h.parts(h.helper.profile, 0)
         self.config = {'course_id': 'synthetic-course-test', 'period_id': '2022-07', 'mode': 'fixed_theme',
@@ -111,6 +167,22 @@ class ScenarioCourseTests(unittest.TestCase):
         return ScenarioCourse(self.models, assets=self.host.assets, data_index=self.host.index,
             config=self.config, state_root=self.host.root/'scenario-state', bots=self.bots)
 
+    def test_route_free_task_passes_actual_handoffs_and_inferred_route_to_the_planner(self):
+        from ygo_kito.duel_planning import plans_from_construction
+        self.course._construct()
+        result=self.course.construction;task=self.course._task()
+        self.assertNotIn('route_goal',task.goal);self.assertEqual(task.requirements,())
+        self.assertTrue(result['task_verified']);self.assertTrue(result['alternation_completed'])
+        self.assertTrue(result['basic_cb_inference_performed'])
+        self.assertEqual(result['basic_cb']['status'],'routes_inferred')
+        self.assertEqual(result['task_goal_sha256'],digest(task.goal))
+        self.assertNotEqual(result['goal_sha256'],result['task_goal_sha256'])
+        self.assertTrue(plans_from_construction(task,result,deck=self.course.deck))
+        self.assertEqual([p['role'] for p in result['phases']],['build_goal','build_optimizer']*2)
+        for before,after in zip(result['phases'],result['phases'][1:]):
+            self.assertEqual(before['proposal_deck'],after['input_deck'])
+        self.assertEqual(result['best']['deck'],result['phases'][-1]['proposal_deck'])
+
     def test_real_adapter_updates_same_lora_and_pause_restore_resumes_next_bo1(self):
         base = self.models.sessions['duel'].verify_base()
         with self.host.fake_execution():
@@ -121,6 +193,13 @@ class ScenarioCourseTests(unittest.TestCase):
         self.assertEqual(self.models.sessions['duel'].verify_base(), base)
         policy = self.course.records[0]['receipts'][-1]['before']['planning']
         self.assertGreater(policy['combo_plan_count'],0)
+        from collections import Counter
+        inferred=self.course.construction['basic_cb']
+        self.assertEqual(inferred['status'],'routes_inferred')
+        self.assertNotIn('route_goal',self.course._task().goal)
+        self.assertEqual(self.course._task().requirements,())
+        needed=Counter(inferred['routes'][0]['task']['goal']['route_goal']['starting_conditions']['requires_opening_hand'])
+        self.assertFalse(needed-Counter(self.course.deck.main[:5]))
         self.assertEqual(policy['version'],'player-view-cb-expectimax-v1')
         self.assertEqual(self.course.records[0]['games'][0]['actual_first_participant_id'], 'actor')
         self.assertFalse((self.course.root/'in-flight.json').exists())

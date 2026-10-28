@@ -246,28 +246,35 @@ class ScenarioCourse:
 
     def _construct(self, *, feedback=()):
         kernel = self.models.kernel
+        def completed(result):
+            cb = result.get("basic_cb") or {}
+            return (bool(result.get("best")) and result.get("task_verified") is True and
+                    result.get("alternation_completed") is True and cb.get("inference_completed") is True and
+                    cb.get("status") in ("routes_inferred", "bounded_inference_unknown"))
         if self.selection is None:
             proposals = kernel.propose_tasks()
             result = None
-            # The user's autonomous objective is still open here. Reject an
-            # unverified fill without globally blocking other model-ranked
-            # themes. Once a concrete goal is accepted, later revisions below
-            # must preserve it rather than silently selecting a new theme.
+            # Construction must finish its four concrete handoffs and task
+            # check, then actually perform basic CB inference. A bounded
+            # unknown is completed inference, never a failed construction or
+            # a reason to replace the selected goal with a different theme.
             for rank in range(min(8, len(proposals.get("candidates", [])))):
                 candidate = kernel.select_task(proposals, rank=rank)
                 if candidate.get("status") != "model_selected_task": break
                 attempt = kernel.run_selected(candidate, feedback=feedback)
-                if attempt.get("best") and attempt.get("cb_verified"):
+                if completed(attempt):
                     self.selection, result = candidate, attempt
                     break
                 self.events.append({"kind": "autonomous_candidate_unverified", "candidate_id": candidate["candidate_id"],
-                    "model_rank": rank, "unknown_is_negative_training_label": False})
+                    "model_rank": rank, "task_verified": attempt.get("task_verified", False),
+                    "basic_cb_status": (attempt.get("basic_cb") or {}).get("status", "not_run"),
+                    "unknown_is_negative_training_label": False})
             if result is None:
-                raise ContractError("bounded model-ranked candidates have no concrete verified CB; preserve unknown and supply feedback")
+                raise ContractError("bounded model-ranked candidates have no task-checked construction with completed basic CB inference")
         else:
             result = kernel.run_selected(self.selection, feedback=feedback, base=self.deck)
-        if not result.get("best") or not result.get("cb_verified"):
-            raise ContractError("concrete text/engine CB verification has not accepted the selected logic")
+        if not completed(result):
+            raise ContractError("selected construction task or post-construction basic CB inference is incomplete")
         self.deck = DeckParts.from_dict(result["best"]["deck"])
         self.rules.validate(self.deck)
         self.construction = deepcopy(result)

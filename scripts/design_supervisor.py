@@ -123,7 +123,11 @@ def inspect_artifact(path,root,catalog):
     if inference.get('deck_sha256',subject)!=subject:raise Violation('basic CB payload belongs to a different construction')
     task_sha=cb.get('task_sha256');raw=None;raw_path=None
     if inference.get('task_sha256',task_sha)!=task_sha:raise Violation('basic CB payload belongs to a different task')
-    paths=list(root.glob('basic-cb-inference-*.json'))+list(root.glob('collaboration-v2-*/basic-cb-inference-*.json'))+list(root.glob('construction-route-*.json'))+list(root.glob('collaboration-v2-*/route-*.json'))
+    # Preserve namespace precedence; choose the first matching receipt within
+    # each namespace by relative pathname, independent of filesystem order.
+    paths=[path for pattern in ('basic-cb-inference-*.json','collaboration-v2-*/basic-cb-inference-*.json',
+                               'construction-route-*.json','collaboration-v2-*/route-*.json')
+           for path in sorted(root.glob(pattern),key=lambda p:p.relative_to(root).as_posix())]
     for route_path in paths:
         value,_=stable(route_path)
         if value.get('deck')==output and digest(value.get('task'))==task_sha:

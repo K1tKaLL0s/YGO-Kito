@@ -4,6 +4,10 @@
 
 `scripts/scenario_course.py`接宿主工件、实际`CourseModels`、分期资产、构筑kernel、BO1／BO3状态机和真实game adapter。默认只预检；模板中的null必须由真实工件填充，不会初始化随机替代模型、安装工具、下载数据或自动开始训练。`--pilot`和`--run`均须显式选择，彼此互斥。
 
+构筑顺序固定为目标→优化→目标→优化的四个具体牌表交接，随后才对第四个输出执行基础 CB 推断。宿主把 `basic_cb_stage:after_construction` 写入模型来源绑定；构筑任务不预置路线或未声明的固定组件。任务合法完成、推断完成和找到路线分别记录：`bounded_inference_unknown` 且 `inference_completed:true` 可保留合法构筑；`not_run` 或四次交接／任务校验未完成仍拒绝进入采样。`cb_verified` 只表示找到路线，不是构筑准入条件。派生推断任务可绑定其实际路线卡，原构筑约束与任务不改变，planner 精确核对这些新增要求及牌表归属。
+
+CPU 夹具可验证真实模型、调度、四次交接和推断包格式；替代引擎／合成 proof 不是真实 native、C#、规则正确性或竞技能力证据。旧来源绑定缺少上述阶段时必须走显式迁移，不能修改旧 checkpoint 摘要来恢复。
+
 ```bash
 PYTHONPATH=src .venv/bin/python scripts/scenario_course.py --template \
   --output .cache/course-host-template.json

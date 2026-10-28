@@ -118,6 +118,24 @@ def route_fixture():
 
 
 class ConfirmedSlowRouteTests(unittest.TestCase):
+    def test_production_host_binds_postconstruction_inference_without_a_preassigned_route(self):
+        from ygo_kito.course_models import CourseModels
+        with route_fixture() as (root, spec, course, save, timing):
+            # Only host routing is exercised; no Mono executable is launched.
+            for bot in spec['bots']: bot['mono']=str(root/'not-executed-fixture-mono')
+            # Calendar/catalog qualification is a separate fixture boundary;
+            # the production host must still forward the inference stage.
+            with patch.object(host, '_active_cutoff', return_value={'cutoff_reached': True}), \
+                    patch.object(CourseModels, 'initialize', wraps=CourseModels.initialize) as initialize:
+                result = host.prepare_course(root, spec).preflight()
+            self.assertEqual(result['status'], 'ready', result['blockers'])
+            binding = initialize.call_args.kwargs['source_binding']
+            self.assertEqual(binding['basic_cb_stage'], 'after_construction')
+            task = initialize.call_args.args[0]
+            self.assertNotIn('route_goal', task.goal)
+            self.assertEqual(task.requirements, ())
+            timing.assert_not_called()
+
     def test_explicit_branch_preserves_unknown_speed_and_exact_completed_match_ratio(self):
         c = config(); validate_config(c); validate_timing_basis(c['timing_basis'])
         rule = course_volume_requirements(c)

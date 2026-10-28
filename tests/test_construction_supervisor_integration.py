@@ -21,6 +21,58 @@ from local_course_collaboration import record_basic_cb_inference
 
 
 class ConstructionSupervisorIntegrationTests(unittest.TestCase):
+    def test_duplicate_receipts_keep_namespace_priority_and_task_deck_checks_with_reversed_glob(self):
+        from design_supervisor import Catalog, inspect_artifact
+        fixture=supervisor_fixture.IndependentDesignSupervisorTests()
+        fixture.setUp();self.addCleanup(fixture.doCleanups)
+        original=fixture.course/'basic-cb-inference-001.json'
+        raw=json.loads(original.read_text(encoding='utf-8'))
+        for name in ('basic-cb-inference-002.json','basic-cb-inference-004.json','construction-route-000.json'):
+            supervisor_fixture.write(fixture.course/name,raw)
+        nested=fixture.course/'collaboration-v2-000000';nested.mkdir()
+        supervisor_fixture.write(nested/'basic-cb-inference-000.json',raw)
+        wrong_task=deepcopy(raw);wrong_task['task']['task_id']='different-synthetic-task'
+        supervisor_fixture.write(fixture.course/'basic-cb-inference-000-wrong-task.json',wrong_task)
+        wrong_deck=deepcopy(raw);wrong_deck['deck']['main'][-1]=24
+        supervisor_fixture.write(fixture.course/'basic-cb-inference-000-wrong-deck.json',wrong_deck)
+        glob=Path.glob
+        catalog=Catalog(fixture.base,fixture.policy)
+        try:
+            with patch.object(Path,'glob',lambda path,pattern:iter(reversed(list(glob(path,pattern))))):
+                receipt=inspect_artifact(fixture.path,fixture.course,catalog)
+        finally:catalog.db.close()
+        self.assertEqual(receipt['cb_source'],original.name)
+
+    def test_real_kernel_runs_basic_inference_only_after_four_concrete_outputs_and_keeps_unknown(self):
+        from ygo_kito.basic_cb_inference import infer_basic_cb
+        _,assets,builder,original_kernel=kernel_fixture()
+        binding=deepcopy(original_kernel.source_binding);binding['basic_cb_stage']='after_construction'
+        kernel=AutonomousConstructionKernel(builder,original_kernel.coordinator,assets=assets,
+            host_available_ids=assets.rows,source_binding=binding,pool_limit=32,candidate_limit=8)
+        selection=kernel.select_task();task=kernel._selection(selection)
+        session,_=kernel._session(selection);calls=[]
+        def infer(current,deck,current_assets,**kwargs):
+            roles=[h['role'] for h in session.history if h.get('stage')==3 and
+                   h.get('result',{}).get('status')=='concrete_candidate_cb_pending']
+            self.assertEqual(roles,['build_goal','build_optimizer']*2)
+            self.assertNotIn('route_goal',current.goal);self.assertEqual(current.requirements,())
+            calls.append(supervisor_fixture.digest(deck.to_dict()))
+            return infer_basic_cb(current,deck,current_assets,**kwargs)
+        with patch('ygo_kito.basic_cb_inference.infer_basic_cb',side_effect=infer):
+            result=kernel.run_selected(selection,base=deck_for(task,assets))
+        self.assertTrue(calls);self.assertTrue(result['alternation_completed'])
+        self.assertTrue(result['task_verified']);self.assertTrue(result['basic_cb_inference_performed'])
+        self.assertEqual(result['basic_cb']['status'],'bounded_inference_unknown')
+        self.assertTrue(result['basic_cb']['inference_completed'])
+        self.assertEqual(result['basic_cb']['routes'],[]);self.assertFalse(result['cb_verified'])
+        self.assertEqual(calls[0],supervisor_fixture.digest(result['phases'][-1]['proposal_deck']))
+        for before,after in zip(result['phases'],result['phases'][1:]):
+            self.assertEqual(before['proposal_deck'],after['input_deck'])
+        self.assertEqual(result['best']['deck'],result['phases'][-1]['proposal_deck'])
+        for phase in result['phases']:
+            for attempt in phase['stage_3']['attempts']:
+                self.assertEqual(attempt['engine_validation']['status'],'not_run')
+
     def test_production_records_are_seen_by_the_real_observer_in_a_separate_process(self):
         fixture=supervisor_fixture.IndependentDesignSupervisorTests()
         fixture.setUp()

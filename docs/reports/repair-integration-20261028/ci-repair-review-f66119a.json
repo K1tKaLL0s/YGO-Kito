@@ -1,0 +1,60 @@
+{
+  "utc": "2026-10-28T04:09:13.077288+00:00",
+  "kind": "targeted-integration-source-review",
+  "base_remote_head": "f66119a68810263622a017d57febb196b2878c53",
+  "patch_sha256": "2c81f6cb5c9b7d7c347289e8638dd147aabbff09460e65619e2b7847591f1186",
+  "evidence_zip_sha256": "3f1189d7503b6f2aafe09144def887a6cb9a73df56b37871cb9760689a3fd27f",
+  "matched_baseline_and_patched_files": 16,
+  "syntax_only_python_files": 14,
+  "git_apply_forward_and_reverse_checks": "passed",
+  "runtime_tests_run_by_integrator": 0,
+  "author_reported_regressions": {
+    "tests_run": 13,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "log_sha256": "1746a01ebe6543128d935f90ddd1f39120ada04771b53c86f140345e0cb4908e",
+    "named_passed_cases": [
+      "test_production_host_binds_postconstruction_inference_without_a_preassigned_route (tests.test_cpu_takeover_routes.ConfirmedSlowRouteTests.test_production_host_binds_postconstruction_inference_without_a_preassigned_route)",
+      "test_route_free_task_passes_actual_handoffs_and_inferred_route_to_the_planner (tests.test_scenario_course.ScenarioCourseTests.test_route_free_task_passes_actual_handoffs_and_inferred_route_to_the_planner)",
+      "test_general_construction_accepts_only_route_card_requirements_in_its_derived_inference (tests.test_basic_cb_duel_integration.BasicCbDuelIntegrationTests.test_general_construction_accepts_only_route_card_requirements_in_its_derived_inference)",
+      "test_missing_provider_is_not_run_while_bounded_search_unknown_is_completed (tests.test_basic_cb_duel_integration.BasicCbDuelIntegrationTests.test_missing_provider_is_not_run_while_bounded_search_unknown_is_completed)",
+      "test_real_material_inference_envelope_reaches_planner_with_derived_task_ownership (tests.test_basic_cb_duel_integration.BasicCbDuelIntegrationTests.test_real_material_inference_envelope_reaches_planner_with_derived_task_ownership)",
+      "test_rebound_proof_cannot_drop_original_or_add_unrelated_or_change_maximum_requirements (tests.test_basic_cb_duel_integration.BasicCbDuelIntegrationTests.test_rebound_proof_cannot_drop_original_or_add_unrelated_or_change_maximum_requirements)",
+      "test_inferred_status_without_verified_recorded_route_stays_unknown (tests.test_duel_runtime_interfaces.BasicCbRuntimeShapeTests.test_inferred_status_without_verified_recorded_route_stays_unknown)",
+      "test_original_constraint_goal_yields_its_own_derived_routes_and_strips_audit (tests.test_duel_runtime_interfaces.BasicCbRuntimeShapeTests.test_original_constraint_goal_yields_its_own_derived_routes_and_strips_audit)",
+      "test_task_deck_and_original_goal_mismatches_cannot_borrow_another_cb (tests.test_duel_runtime_interfaces.BasicCbRuntimeShapeTests.test_task_deck_and_original_goal_mismatches_cannot_borrow_another_cb)",
+      "test_not_run_cannot_be_admitted_by_a_route_success_flag (tests.test_scenario_course.ScenarioConstructionCompletionTests.test_not_run_cannot_be_admitted_by_a_route_success_flag)",
+      "test_routes_found_remain_distinct_from_completed_unknown (tests.test_scenario_course.ScenarioConstructionCompletionTests.test_routes_found_remain_distinct_from_completed_unknown)",
+      "test_task_validation_and_four_handoffs_are_required_even_with_route_evidence (tests.test_scenario_course.ScenarioConstructionCompletionTests.test_task_validation_and_four_handoffs_are_required_even_with_route_evidence)",
+      "test_unknown_inference_keeps_first_model_goal_and_is_not_a_failed_construction (tests.test_scenario_course.ScenarioConstructionCompletionTests.test_unknown_inference_keeps_first_model_goal_and_is_not_a_failed_construction)"
+    ],
+    "scope": "isolated model, construction, inference and planner contracts; native/C# proof and runtime are synthetic; not a Linux full-suite result"
+  },
+  "review_findings": [
+    "ScenarioCourse admission requires task_verified, four completed handoffs and actual inference completion; bounded unknown is admitted, not_run is rejected even if cb_verified is true",
+    "ScenarioCourseHost passes basic_cb_stage=after_construction into actual model initialization and strict saved binding comparison",
+    "construction_cycle order and actual four outputs are preserved; inference is still called after the fourth output",
+    "session request+task digest and bare task-goal digest are distinct; planner uses the explicit task-goal digest with task/deck/native-proof ownership checks",
+    "derived inference requirements preserve all original minima/maxima and add only required route cards already present in the constructed main/extra; unrelated/drop/maximum mutation guards retained",
+    "sampler fixtures now provide concrete own-deck profiles matching host inventory; sampler production privacy and deck checks unchanged",
+    "statvfs fixtures supply disk block counts while production storage guard remains active",
+    "optional support tags remain optional within the codec and required theme assertions stay intact",
+    "supervisor receipt ordering is deterministic within unchanged namespace priority and task/deck validation"
+  ],
+  "local_execution_blockers": [
+    {
+      "action": "record_basic_cb_inference os.replace",
+      "target": "sandbox Temp/tmpemw4dhhn/course/collaboration-v2-000000-forced-cycle-1/basic-cb-inference-001.json",
+      "status": "PermissionError WinError5, stopped, not retried here"
+    },
+    {
+      "action": "baseline complete-course migration fixture",
+      "status": "0xC0000005 unresolved, not reexecuted here"
+    }
+  ],
+  "original_training_source_and_checkpoint_modified": false,
+  "formal_training_runs": 0,
+  "training_hold_released": false,
+  "new_remote_ci": "pending after publication"
+}

@@ -133,11 +133,12 @@ class JointAdapterAdmissionTests(unittest.TestCase):
                 old=ScenarioCourse(models,assets=helper.host.assets,data_index=DataIndex(parent/'index'),config=helper.config,
                     state_root=parent/'course',bots=helper.bots)
                 old.active_seconds=17.;old.desired='paused'
-                # Only Windows' missing filesystem-block query is adapted.
-                with patch('os.statvfs',return_value=SimpleNamespace(f_frsize=4096),create=True):
+                # Full statvfs contract: Linux shutil.disk_usage also reads
+                # block counts while the production storage guard stays active.
+                with patch('os.statvfs',return_value=SimpleNamespace(f_frsize=4096,f_blocks=1_000_000,f_bfree=900_000,f_bavail=900_000),create=True):
                     old.save();receipt=export_closed_course(old,root/'export.weights')
             before=(parent/'course/latest.json').read_bytes()
-            with patch('os.statvfs',return_value=SimpleNamespace(f_frsize=4096),create=True):
+            with patch('os.statvfs',return_value=SimpleNamespace(f_frsize=4096,f_blocks=1_000_000,f_bfree=900_000,f_bavail=900_000),create=True):
                 migrated,report=migrate_closed_course(receipt,root/'next',assets=helper.host.assets,bots=helper.bots,
                     source_files=target,allowed_changed_files={'src/ygo_kito/coordinator_model.py'})
                 migrated.restore_latest()
