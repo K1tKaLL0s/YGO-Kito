@@ -37,7 +37,7 @@ from .validation import ContractError, canonical_json, fields, integer
 def validate_config(value):
     d = fields(value, {"course_id", "period_id", "mode", "pilot_mean_seconds", "training_seeds",
         "evaluation_pairs", "matches_per_invocation", "wall_seconds", "allocated_gpu_count", "fixed_deck",
-        "initial_first", "evaluation_matches", "opponent_side"}, {"timing_basis", "checkpoint_policy", "data_index_storage", "construction_theme_ids"})
+        "initial_first", "evaluation_matches", "opponent_side"}, {"timing_basis", "checkpoint_policy", "data_index_storage", "construction_theme_ids", "training_record_offset"})
     identifier(d["course_id"])
     if d["period_id"] not in ("2022-07", "2022-10", "2026-10"):
         raise ContractError("explicit supported period required")
@@ -47,6 +47,7 @@ def validate_config(value):
         raise ContractError("reference decks belong to independent evaluation, never the learner")
     if d["mode"] == "fixed_theme" and d.get("construction_theme_ids") != ["setcode-181"]:
         raise ContractError("historical construction requires the Pearl theme and model-generated deck")
+    integer(d.get("training_record_offset",0), "archived prior-flow record offset",0,1000000)
     checkpoint_policy(d.get("checkpoint_policy"))
     if "data_index_storage" in d:
         from .data_isolation import validate_storage_limits
@@ -215,8 +216,11 @@ class ScenarioCourse:
         self.initial_model_execution = self.model_execution()
 
     def counts(self):
+        # Earlier real engine records remain intact but cannot silently
+        # satisfy a corrected construction curriculum's mandatory volume.
+        active=self.records[self.config.get("training_record_offset",0):]
         return {kind: sum(r["complete"] and r["purpose"] == "train" and r["format"] == kind
-                          for r in self.records) for kind in ("bo1", "bo3")}
+                          for r in active) for kind in ("bo1", "bo3")}
 
     def stage(self):
         if self.config["pilot_mean_seconds"] is None and self.config.get("timing_basis") is None: return "timing_required"
@@ -229,7 +233,10 @@ class ScenarioCourse:
         counts = self.counts()
         return {"kind": "ordered-scenario-course-status", "course_id": self.config["course_id"],
             "period_id": self.config["period_id"], "stage": self.stage(), "desired": self.desired,
-            "complete_training_matches": counts, "actual_small_game_attempts": sum(len(r["games"]) for r in self.records),
+            "complete_training_matches": counts,
+            "prior_flow_training_matches": {kind:sum(r["complete"] and r["purpose"]=="train" and r["format"]==kind
+                for r in self.records[:self.config.get("training_record_offset",0)]) for kind in ("bo1","bo3")},
+            "training_record_offset":self.config.get("training_record_offset",0), "actual_small_game_attempts": sum(len(r["games"]) for r in self.records),
             "anomalous_matches": sum(not r["complete"] for r in self.records),
             "active_seconds": self.active_seconds, "wall_limit_seconds": self.config["wall_seconds"],
             "pilot_matches_credited": 0, "evaluation_matches_credited": 0,

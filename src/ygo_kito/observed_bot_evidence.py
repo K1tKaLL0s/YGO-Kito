@@ -15,8 +15,7 @@ from .validation import ContractError, fields, parse_json
 KIND = 'observed-paired-period-bot-runtime-v1'
 # These are controller/learning additions, outside protocol/core/visible DTOs.
 # Exact old/new maps remain part of the receipt; runtime bot bytes cannot vary.
-COMPATIBLE = frozenset(('autonomous_construction.py', 'construction_effect_blocks.py',
-    'course_game_adapter.py', 'observed_bot_evidence.py', 'scenario_course.py'))
+COMPATIBLE = frozenset(('autonomous_construction.py', 'construction_effect_blocks.py', 'course_game_adapter.py', 'observed_bot_evidence.py', 'scenario_course.py', 'cli.py', 'construction_controller.py', 'construction_fill.py', 'construction_model.py', 'construction_service.py', 'model_auxiliary.py', 'semantic_training.py'))
 
 
 def validate_observed_bot_evidence(assets, bot, report, profile, adapter):

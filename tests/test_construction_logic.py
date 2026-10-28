@@ -421,14 +421,14 @@ class ConcreteFillTests(unittest.TestCase):
         self.assertEqual(out["status"], "task_checked_candidate")
         self.assertEqual([c["role"] for c in calls], ["build_goal", "build_optimizer"] * 2)
         self.assertTrue(all(c["feedback"] for c in calls[1:]))
-        self.assertEqual([h["stage"] for h in session.history if h.get("kind") != "construction_incumbent"], [1, 2, 3] * 4)
-        self.assertEqual(sum(h.get("kind") == "construction_incumbent" for h in session.history), 4)
-        self.assertEqual(out["phases"][0]["stage_2"]["status"], "skipped_broad")
-        matching = [p for p in out["phases"] if p.get("proposal_deck") == out["best"]["deck"] and
-                    p.get("acceptance") in ("initial_goal_checked_incumbent", "same_incumbent_validation_updated")]
-        self.assertTrue(matching)
-        self.assertEqual(out["best"]["logic_sha256"], matching[-1]["stage_1"]["logic_sha256"])
-        self.assertTrue(out["incumbent_verified_for_task"])
+        self.assertEqual([h["stage"] for h in session.history], [1,2,3]*4+["final_cb"])
+        self.assertEqual(sum(h.get("kind")=="construction_incumbent" for h in session.history),0)
+        self.assertEqual(out["phases"][0]["stage_2"]["status"],"skipped_broad")
+        self.assertEqual(out["best"]["deck"],out["phases"][-1]["proposal_deck"])
+        self.assertEqual(out["best"]["logic_sha256"],out["phases"][-1]["stage_1"]["logic_sha256"])
+        self.assertEqual(out["verified_best"],out["best"])
+        self.assertTrue(out["alternation_completed"])
+        self.assertIsNone(out["deployment_incumbent"])
         detached = session.to_dict()
         detached["task"]["goal"]["card_id"] = 999
         self.assertEqual(session.task.sha256, self.task.sha256)
@@ -443,9 +443,41 @@ class ConcreteFillTests(unittest.TestCase):
             return replace(answer, status="unsatisfied", note="new graph cannot be filled") if session.logic.revision else answer
         out = construction_cycle(session, self.assets, {r: provider for r in ("build_goal", "build_optimizer")},
                                  binding_provider=binding, text_reviewer=review, verifier=goal_proof)
-        self.assertEqual(out["best"]["logic"]["revision"], 0)
-        self.assertNotEqual(out["best"]["logic_sha256"], out["latest_logic_sha256"])
+        self.assertEqual(out["status"],"construction_unresolved")
+        self.assertIsNone(out["best"])
+        self.assertIsNone(out["final_cb"])
+        self.assertFalse(out["alternation_completed"])
         self.assertFalse(out["graph_execution_verified"])
+
+    def test_each_concrete_output_is_handed_forward_and_only_final_candidate_gets_cb(self):
+        session=fixture_session("堆墓",self.task)
+        calls=[];outputs=[];checks=[]
+        from ygo_kito.build_pipeline import edit_candidates
+        current=self.deck
+        for _ in range(4):
+            current=next(d for d in edit_candidates(self.task,self.assets,current) if d!=current)
+            outputs.append(current)
+        def provider(context):
+            graph=example_graph() if context["logic"] is None else revise_logic(ConstructionLogic.from_dict(context["logic"]))
+            return {"logic":graph.to_dict(),"reason":"synthetic handoff regression"}
+        def fill(s,a,*,role,base,**kwargs):
+            index=len(calls);calls.append(base)
+            self.assertTrue(kwargs["defer_engine"]);self.assertIsNone(kwargs["verifier"])
+            proposal=binding(s.logic,self.task,outputs[index])
+            checked=evaluate_fill(s,a,proposal,text_reviewer=text_review,defer_engine=True,verifier=None)
+            return {"status":checked["status"],"best_deck":outputs[index].to_dict(),"attempts":[checked]}
+        def verifier(task,deck,assets):
+            self.assertEqual(len(calls),4)
+            self.assertEqual(deck,outputs[-1]);checks.append(deck)
+            return goal_proof(task,deck,assets)
+        with patch("ygo_kito.construction_fill.fill_with_existing",side_effect=fill):
+            result=construction_cycle(session,self.assets,{r:provider for r in ("build_goal","build_optimizer")},
+                base=self.deck,binding_provider=binding,text_reviewer=text_review,verifier=verifier)
+        self.assertEqual(calls,[self.deck,*outputs[:-1]])
+        self.assertEqual(checks,[outputs[-1]])
+        self.assertEqual(result["deployment_incumbent"]["deck"],self.deck.to_dict())
+        self.assertEqual(result["best"]["deck"],outputs[-1].to_dict())
+        self.assertEqual(result["final_cb"]["logic_sha256"],result["latest_logic_sha256"])
 
     def test_existing_candidate_generator_and_independent_ranker_forward_remain_compatible(self):
         import torch
