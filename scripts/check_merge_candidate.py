@@ -48,6 +48,11 @@ MODULES=(
     "tests.test_scenario_storage",
     "tests.test_model_progress", "tests.test_storage_envelope", "tests.test_data_storage",
     "tests.test_course_storage_envelope",
+    "tests.test_construction_supervisor_integration", "tests.test_effect_construction_integration",
+    "tests.test_basic_cb_duel_integration", "tests.test_cross_window_adapters",
+    "tests.test_duel_runtime_interfaces", "tests.test_integrated_course_migration",
+    "tests.test_coordinator_joint", "tests.test_coordinator_shared_adapters.ScopedLoraTests",
+    "tests.test_design_supervisor", "tests.test_live_supervisor_guard",
 )
 DP_HEAD="a7085e23a74fb04bff571c1c679e0097dd1ae430"
 DP_HASHES={"src/ygo_kito/native.py":"0a2f40c99e3e14bb1eb0446c89c8b80175cd6f1893c8207ee8496deb6725139e",

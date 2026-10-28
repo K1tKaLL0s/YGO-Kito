@@ -25,7 +25,7 @@ class ConstructionController:
             raise ContractError("requested logic features cannot be bound: "+"; ".join(result.reasons))
         return result.proposal
 
-    def run(self, session, *, scopes=(), base=None, verifier=None, candidate_id=None, parent_candidate_id=None):
+    def run(self, session, *, scopes=(), base=None, verifier=None, candidate_id=None, parent_candidate_id=None,basic_cb_provider=None,mechanism_groups=None):
         session.check_goal()
         if session.task.sha256 != self.graph_adapter.task.sha256:
             raise ContractError("construction controller task binding differs")
@@ -45,7 +45,8 @@ class ConstructionController:
         advice=self.coordinator.advice(context)  # Actual existing MLP forward.
         result=construction_cycle(session,self.graph_adapter.deck_encoder.assets,self.graph_adapter.providers(),
             scopes=scopes,base=base,models=self.graph_adapter.models,encoder=self.graph_adapter.deck_encoder,
-            binding_provider=self.bind,text_reviewer=self.binding_adapter.reviewer,verifier=verifier)
+            binding_provider=self.bind,text_reviewer=self.binding_adapter.reviewer,verifier=verifier,
+            basic_cb_provider=basic_cb_provider,mechanism_groups=mechanism_groups)
         result["coordinator"]={"authoritative_action":action,"reason":reason,"advice":advice,
             "mode":"existing_network_advisory_rule_authoritative"}
         result["graph_model_selections"]=dict(self.graph_adapter.last_selection)

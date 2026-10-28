@@ -449,6 +449,9 @@ class ModelSideboardPolicy:
         batch = dict(batch, tokens=torch.cat((batch["tokens"], tokens), dim=1),
             numbers=torch.cat((batch["numbers"], numbers), dim=1),
             mask=torch.cat((batch["mask"], batch["mask"].new_ones((len(candidates), 1))), dim=1))
+        if 'mechanisms' in batch:
+            values=batch['mechanisms']
+            batch['mechanisms']=torch.cat((values,values.new_zeros((len(candidates),1,values.shape[-1]))),dim=1)
         scores = self.model(batch)
         if scores.shape != (len(candidates),) or not torch.isfinite(scores).all():
             raise ContractError("side optimizer returned invalid candidate scores")

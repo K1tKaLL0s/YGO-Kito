@@ -1,0 +1,7 @@
+{"utc": "2026-10-28T02:19:22.626299+00:00", "argv": ["E:\\CodexData\\2026-10-28\\task-13\\run_integration_validation.py", "tests.test_effect_mechanisms.LearnerMechanismTests.test_shared_learner_rankers_receive_mechanisms_and_four_phase_binding"], "python": "3.12.1 (tags/v3.12.1:2305ca5, Dec  7 2023, 22:03:25) [MSC v.1937 64 bit (AMD64)]", "python_executable": "N:\\YGO-Kito\\_local_cpu_20261027\\venv\\Scripts\\python.exe", "cwd": "E:\\CodexData\\2026-10-28\\task-13\\integration", "test_names": ["tests.test_effect_mechanisms.LearnerMechanismTests.test_shared_learner_rankers_receive_mechanisms_and_four_phase_binding"], "environment": {"PYTHONPATH": "E:\\CodexData\\2026-10-28\\task-13\\integration\\src", "PYTHONDONTWRITEBYTECODE": "1", "OMP_NUM_THREADS": "2", "MKL_NUM_THREADS": "2", "TEMP": "E:\\CodexData\\2026-10-28\\task-13\\tmp", "TMP": "E:\\CodexData\\2026-10-28\\task-13\\tmp"}, "formal_training_runs": 0, "native_games_executed": 0, "whole_supervisor_daemon_verified": false, "scope": "isolated synthetic integration; production recorder and observer audit in separate process; no formal guard claim"}
+test_shared_learner_rankers_receive_mechanisms_and_four_phase_binding (tests.test_effect_mechanisms.LearnerMechanismTests.test_shared_learner_rankers_receive_mechanisms_and_four_phase_binding) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 13.556s
+
+OK

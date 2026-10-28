@@ -20,6 +20,7 @@ def main():
     if not re.fullmatch(r'[A-Za-z0-9._-]+',a.run_id):raise ValueError('Invalid local run identity')
     base=a.base.resolve()
     if base!=Path(__file__).resolve().parents[2]:raise ValueError('Worker base must be this local project')
+    if (base/'reports/training.hold.json').exists():raise RuntimeError('Training is held for repair integration; no learning job was started')
     directory=base/'reports/local-training'/a.run_id;directory.mkdir(parents=True,exist_ok=True)
     if (directory/'completed.json').exists():raise RuntimeError('This job already completed; do not replay it')
     lease=base/'reports/local-training/active.lock';stop=directory/'stop.request'
@@ -56,6 +57,11 @@ def main():
             if counts is not None:state.update(formal_course_bo1=counts['bo1'],formal_course_bo3=counts['bo3'],formal_matches=sum(counts.values()))
             state['heartbeat_utc']=datetime.now(timezone.utc).isoformat()
             temp=directory/'status.json.tmp';temp.write_text(json.dumps(state,indent=2)+'\n');temp.replace(directory/'status.json')
+    if a.job=='course':
+        from local_design_supervision import make_unit_boundary
+        status.unit_boundary=make_unit_boundary(base,stop)
+        continuation_path=base/'reports/course-continuation.json'
+        if continuation_path.exists():status.course_continuation=json.loads(continuation_path.read_text(encoding='utf-8'))
     def heartbeat():
         while not finished.wait(10):status()
     def signal_stop(*_):stop.write_text('safe stop requested by signal\n')
@@ -68,21 +74,22 @@ def main():
         path=base/'source/scripts'/filename
         # Preserve the exact orchestration bytes for this launch/resume.
         snapshot=directory/'execution-scripts';snapshot.mkdir(exist_ok=True)
-        for script in (Path(__file__),path,path.with_name('local_course_collaboration.py'),path.with_name('local_foundation_comparison.py'),path.with_name('local_course_forecast.py')):
+        for script in (Path(__file__),path,path.with_name('local_course_collaboration.py'),path.with_name('local_foundation_comparison.py'),path.with_name('local_course_forecast.py'),path.with_name('local_design_supervision.py'),path.with_name('design_supervisor.py')):
             if script.exists():
                 data=script.read_bytes();saved=snapshot/(hashlib.sha256(data).hexdigest()+'-'+script.name)
                 if not saved.exists():saved.write_bytes(data)
         status('loading_registered_job',job_script_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),worker_script_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())
         spec=importlib.util.spec_from_file_location('registered_local_learning_job',path)
         module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
-        result=module.run(base,directory,stop,status,resume=a.resume)
+        options={'unit_boundary':status.unit_boundary,'continuation':getattr(status,'course_continuation',None)} if a.job=='course' else {}
+        result=module.run(base,directory,stop,status,resume=a.resume,**options)
         status('completed',desired='completed',result=result)
         (directory/'completed.json').write_text(json.dumps(state,indent=2)+'\n')
     except Exception as error:
-        paused=stop.exists() and getattr(error,'safe_boundary_saved',False)
+        paused=(stop.exists() or getattr(error,'pause_requested',False)) and getattr(error,'safe_boundary_saved',False)
         status('paused_at_boundary' if paused else 'failed_needs_inspection',
                desired='paused' if paused else 'needs_inspection',error=repr(error),automatic_retry=False,
-               stop_requested=stop.exists(),safe_boundary_confirmed=paused)
+               stop_requested=stop.exists(),safe_boundary_confirmed=paused,**getattr(error,'saved_course_status',{}))
         with (directory/'failure.log').open('a') as f:traceback.print_exc(file=f)
         raise
     finally:

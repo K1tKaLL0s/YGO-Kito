@@ -1,0 +1,10 @@
+{
+  "source_commit": "5cf3dc1ca189e794a5bd5a915b2e24a0070a4095",
+  "purpose": "Pinned repository-authored legacy architecture for explicit migration tests only; never selected by runtime",
+  "sha256": {
+    "build_model.py": "8d73c730e181c988daebd844fd4c40daf28d3858fd3af742ec551019a3040aa1",
+    "build_training.py": "6992fcd6cf9985f8babd0329e7ffe7117185f1468c9e63eeef738fbecbe36462",
+    "autonomous_construction.py": "1826a3a1849712f2604caa4cd2a6b0f4e2adc146fcbf706c24fd785382ec1c80",
+    "coordinator_model.py": "4a8c54dbfb258bebbe63319200bd8d03643ef877cbad0e451475e682251a2956"
+  }
+}

@@ -24,6 +24,7 @@ from ygo_kito.contracts import ActionSelection, DecisionRequest, Versions
 from ygo_kito.cpu_training import CpuTrainer, CpuTrainingConfig
 from ygo_kito.data_isolation import DataIndex
 from ygo_kito.duel_model import DuelModelConfig, FEATURE_VERSION, parameter_digest
+from ygo_kito.duel_effect_limits import EffectLimitBinding
 from ygo_kito.group_runner import GroupState
 from ygo_kito.lora import AdapterConfig, AdapterSession
 from ygo_kito.match_runner import MatchParticipant, MatchRules, MatchState, MatchRunner, GameSpec, FirstOrderPolicy
@@ -54,7 +55,7 @@ class CourseGameAdapterTests(unittest.TestCase):
         q['rows'][0]['binding_sha256'] = digest(self.binding(options))
         self.qualification = h.write_json('course-qualification.json', q)
         self.runtime = course.CourseBotRuntime(self.registry, self.root, 'ice', 'FixtureExecutor',
-            h.spec['bot_sources']['audits']['ice'], self.qualification, self.qual_profile, '/fixture/mono',
+            h.spec['bot_sources']['audits']['ice'], self.qualification, self.qual_profile, str(self.root/'fixture-mono'),
             'fixture-opponent', source='engineering_fixture')
         self.config = CpuTrainingConfig(model=DuelModelConfig(width=8, card_width=4, heads=2, feedforward=16),
                                        game_seeds=(100, 101, 102), batch_size=1, episode_seconds=30)
@@ -164,6 +165,19 @@ class CourseGameAdapterTests(unittest.TestCase):
         self.assertEqual([g['actual_first_participant_id'] for g in self.state.summary()['games']], ['actor', 'bot'])
         self.assertEqual(len(self.frames), 2)
         self.assertEqual(self.close_calls, ['fake-room', 'fake-engine']*2)
+
+    def test_exact_effect_limit_binding_reaches_actual_sampler_without_automatic_card_guessing(self):
+        # Synthetic identity/description binding exercises host plumbing only;
+        # it is not an assertion that fixture card 1 is the official named card.
+        binding=EffectLimitBinding('fixture-count','qa17200','fixture:shared-name:effect-1',
+            ((1,17),),((1,digest(self.assets.rows[1].get('desc',''))),),scope_complete=True)
+        with self.fake_execution():
+            adapter=self.adapter(effect_limit_bindings=(binding,))
+            result=adapter(self.state.issue_game_spec())
+        self.assertTrue(result.terminal)
+        self.assertEqual(adapter.last_receipt['before']['planning']['effect_limit_binding_count'],1)
+        view=adapter.last_episode['steps'][0]['planning']['interruption_rules']['counter_queries']
+        self.assertEqual(view[0]['rule_id'],'qa17200');self.assertEqual(view[0]['remaining'],3)
 
     def test_from_group_keeps_live_effective_lora_and_updates_only_adapter_each_game(self):
         session = AdapterSession(self.trainer.model, AdapterConfig('fixture-duel', 'duel', ('value_head.2',), rank=1, max_updates=3),

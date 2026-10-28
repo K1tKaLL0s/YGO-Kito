@@ -1,0 +1,123 @@
+{
+  "utc": "2026-10-28T02:00:59.287641+00:00",
+  "argv": [
+    "E:\\CodexData\\2026-10-28\\task-13\\import_source_snapshot.py",
+    "finalize"
+  ],
+  "source_cache": "N:\\YGO-Kito\\_local_cpu_20261027\\github-source",
+  "destination": "E:\\CodexData\\2026-10-28\\task-13\\integration",
+  "remote_head": "5cf3dc1ca189e794a5bd5a915b2e24a0070a4095",
+  "remote_tree": "9376d994c733862461029e622a026787b4cadcaf",
+  "git_metadata_copied": false,
+  "source_writes": false,
+  "formal_training_runs": 0,
+  "head": "5cf3dc1ca189e794a5bd5a915b2e24a0070a4095",
+  "status": "## codex/integration-20261028",
+  "verified_objects": 802,
+  "full_tree_verified": true,
+  "history": "single exact shallow baseline",
+  "commands": [
+    {
+      "argv": [
+        "git",
+        "-C",
+        "E:\\CodexData\\2026-10-28\\task-13\\integration",
+        "init",
+        "--initial-branch=codex/integration-20261028"
+      ],
+      "returncode": 0,
+      "stdout": "Initialized empty Git repository in E:/CodexData/2026-10-28/task-13/integration/.git/\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "E:\\CodexData\\2026-10-28\\task-13\\integration",
+        "config",
+        "core.autocrlf",
+        "false"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "E:\\CodexData\\2026-10-28\\task-13\\integration",
+        "update-ref",
+        "refs/heads/codex/integration-20261028",
+        "5cf3dc1ca189e794a5bd5a915b2e24a0070a4095"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "E:\\CodexData\\2026-10-28\\task-13\\integration",
+        "update-ref",
+        "refs/remotes/origin/codex/cloudstudio-foundation-20261027",
+        "5cf3dc1ca189e794a5bd5a915b2e24a0070a4095"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "E:\\CodexData\\2026-10-28\\task-13\\integration",
+        "remote",
+        "add",
+        "origin",
+        "https://github.com/K1tKaLL0s/YGO-Kito.git"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "E:\\CodexData\\2026-10-28\\task-13\\integration",
+        "read-tree",
+        "HEAD"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "E:\\CodexData\\2026-10-28\\task-13\\integration",
+        "rev-parse",
+        "HEAD"
+      ],
+      "returncode": 0,
+      "stdout": "5cf3dc1ca189e794a5bd5a915b2e24a0070a4095\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "E:\\CodexData\\2026-10-28\\task-13\\integration",
+        "status",
+        "--short",
+        "--branch"
+      ],
+      "returncode": 0,
+      "stdout": "## codex/integration-20261028\n",
+      "stderr": ""
+    }
+  ]
+}

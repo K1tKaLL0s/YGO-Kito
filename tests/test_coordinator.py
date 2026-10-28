@@ -1,6 +1,7 @@
 """Synthetic outcome contracts only: 1000 rows are not 1000 played matches."""
 
 import copy
+from contextlib import closing
 import json
 from pathlib import Path
 import sqlite3
@@ -229,11 +230,11 @@ class CoordinatorContractTests(unittest.TestCase):
         with self.assertRaises(ContractError):
             Coordinator(Path(self.temp.name) / "missing.sqlite", self.policy)
         other = Path(self.temp.name) / "foreign.sqlite"
-        with sqlite3.connect(other) as db:
+        with closing(sqlite3.connect(other)) as db, db:
             db.execute("CREATE TABLE unrelated(value TEXT)")
         with self.assertRaises(ContractError):
             Coordinator(other, self.policy, role="coordinator", create=True)
-        with sqlite3.connect(other) as db:
+        with closing(sqlite3.connect(other)) as db, db:
             self.assertEqual([r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")], ["unrelated"])
 
     def test_alpha_spending_and_uncertainty_are_explicit_and_predeclared(self):

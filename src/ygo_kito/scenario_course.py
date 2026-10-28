@@ -309,6 +309,7 @@ class ScenarioCourse:
                 raise ContractError("frozen evaluation changed a model, optimizer or training cursor")
 
     def _game(self):
+        from .duel_planning import plans_from_construction
         self._storage_guard()
         p = self.pending; match = p["state"]; bot = self.bots[p["bot_id"]]; purpose = p["purpose"]
         try:
@@ -339,7 +340,8 @@ class ScenarioCourse:
             **runtime_options, data_index=self.data_index, experiment_id=self.config["course_id"],
             purpose=purpose, policy_rng=self.models.policy_rng,
             evaluation_pairs=tuple(tuple(v) for v in self.config["evaluation_pairs"].get(purpose, [])),
-            evaluation_cursor=self.evaluation_cursor.get(purpose, 0))
+            evaluation_cursor=self.evaluation_cursor.get(purpose, 0),
+            combo_plans=plans_from_construction(self._task(),self.construction,deck=self.deck))
         spec = match.issue_game_spec()
         _exclusive_json(self.root / "in-flight.json", {"course_binding_sha256": digest(self.binding),
             "revision": self.revision, "match_id": spec.match_id, "game": spec.game_number,

@@ -6,7 +6,6 @@ position and kind projections, with no new network or card-embedding remapping.
 """
 from dataclasses import asdict
 from copy import deepcopy
-from itertools import islice, permutations
 import hashlib
 import math
 from pathlib import Path
@@ -15,6 +14,7 @@ import torch
 from torch.nn import functional as F
 
 from .build_contracts import digest
+from .construction_candidates import evidence_order, graph_signature, rejected_binding
 from .construction_logic import ConstructionLogic, LogicConnector, LogicMetadata, LogicNode, LogicTag
 from .duel_model import parameter_digest
 from .device import (model_device, execution_metadata, checkpoint_execution, optimizer_to,
@@ -86,7 +86,7 @@ def logic_requirements(codec, tags=(), connector_kinds=()):
 
 
 def rule_graph_candidates(context, codec, *, required_tags=(), required_connector_kinds=(), limit=8):
-    """Bounded proposals retain explicit requests; evidence is only vocabulary."""
+    """Retain different resource/topology plans, not permutations of one chain."""
     integer(limit, "graph candidates", 2, 16)
     requirements=logic_requirements(codec,required_tags,required_connector_kinds)
     requested=tuple(LogicTag.from_dict(t) for t in requirements["tags"])
@@ -104,27 +104,37 @@ def rule_graph_candidates(context, codec, *, required_tags=(), required_connecto
         raw=previous.to_dict();raw.update(revision=revision,parent_sha256=parent)
         proposals.append(ConstructionLogic.from_dict(raw))
     metadata=(LogicMetadata("rule-candidate-generator-v1","engineering","Program proposal; model ranking is separate."),)
+    edge_kinds=kinds or codec.kinds[:1]
+    def make(node_tags, pairs, entries, goals):
+        nodes=tuple(LogicNode("n"+str(i),tuple(t),metadata) for i,t in enumerate(node_tags))
+        edges=tuple(LogicConnector("e"+str(i),nodes[a].node_id,nodes[b].node_id,
+                                  edge_kinds[i%len(edge_kinds)]) for i,(a,b) in enumerate(pairs))
+        return ConstructionLogic(ident,nodes,edges,tuple(nodes[i].node_id for i in entries),
+                                 tuple(nodes[i].node_id for i in goals),revision,parent)
+    serial=[(t,) for t in tags]
+    while len(serial)<max(2,len(kinds)+1):serial.append(serial[-1])
+    proposals.append(make(serial,[(i,i+1) for i in range(len(serial)-1)],[0],[len(serial)-1]))
     if not kinds:
-        proposals.append(ConstructionLogic(ident,(LogicNode("goal",tags,metadata),),(),("goal",),("goal",),revision,parent))
-    orders=islice(permutations(tags),min(6,limit))
-    for order in orders:
-        nodes=tuple(LogicNode("n"+str(i),(tag,),metadata) for i,tag in enumerate(order))
-        # Each requested coarse connection must occur; it is not a legal CB proof.
-        required_nodes=max(2,len(kinds)+1)
-        while len(nodes)<required_nodes:
-            nodes+=(LogicNode("n"+str(len(nodes)),nodes[-1].tags,metadata),)
-        for edge_kinds in ((kinds,) if kinds else tuple((kind,) for kind in codec.kinds)):
-            edges=tuple(LogicConnector("e"+str(i),nodes[i].node_id,nodes[i+1].node_id,
-                        edge_kinds[i%len(edge_kinds)]) for i in range(len(nodes)-1))
-            proposals.append(ConstructionLogic(ident,nodes,edges,(nodes[0].node_id,),(nodes[-1].node_id,),revision,parent))
-            if len(proposals)>=limit:break
-        if len(proposals)>=limit:break
-    if len(tags)>=3 and not kinds:
-        nodes=tuple(LogicNode("n"+str(i),(tag,),metadata) for i,tag in enumerate(tags))
-        pairs=[(0,1),(0,2),(1,len(nodes)-1),(2,len(nodes)-1)] if len(nodes)>3 else [(0,1),(0,2),(1,2)]
-        proposals[-1]=ConstructionLogic(ident,nodes,tuple(LogicConnector("b"+str(i),nodes[a].node_id,nodes[b].node_id,codec.kinds[0])
-            for i,(a,b) in enumerate(pairs)),("n0",),(nodes[-1].node_id,),revision,parent)
-    return list({g.sha256:g for g in proposals if covers(g)}.values())[:limit]
+        proposals.append(make([tags],[],[0],[0]))
+    # One shared entry with independent resource branches and a merge, versus
+    # independent entries that feed a shared goal. These are coarse hypotheses.
+    branches=[(tags[0],),*((t,) for t in tags), (tags[-1],)]
+    end=len(branches)-1
+    proposals.append(make(branches,[(0,i) for i in range(1,end)]+[(i,end) for i in range(1,end)],[0],[end]))
+    if len(tags)>1:
+        merge=[(t,) for t in tags]+[(tags[-1],)]
+        proposals.append(make(merge,[(i,len(tags)) for i in range(len(tags))],list(range(len(tags))),[len(tags)]))
+    for optional in (t for t in codec.tags if t not in tags):
+        # Alternative support resources change the plan's content as well as
+        # topology. They never become new required user features.
+        optional_nodes=serial+[(optional,)]
+        n=len(serial)
+        proposals.append(make(optional_nodes,[(i,i+1) for i in range(n-1)]+[(0,n),(n,n-1)],[0],[n-1]))
+        if len(proposals)>=limit+2:break
+    distinct={}
+    for graph in proposals:
+        if covers(graph):distinct.setdefault(graph_signature(graph),graph)
+    return list(distinct.values())[:limit]
 
 
 def _numbers(value):
@@ -247,13 +257,28 @@ class LogicModelAdapter:
 
     def propose(self, context):
         candidates=self.candidates(context)
-        scores=self.scores(context,candidates); index=max(range(len(scores)),key=lambda i:scores[i])
+        scores=self.scores(context,candidates)
+        preference=evidence_order(context.get("attributed_feedback",()),self.task.sha256,"graph")
+        eligible=list(range(len(scores)))
+        failed = context.get("logic") and rejected_binding(context.get("attributed_feedback",()),self.task.sha256,context["logic"])
+        if failed:
+            # A source-bound concrete binding failed. Explore another plan;
+            # neither a graph quality label nor goal impossibility follows.
+            alternatives=[i for i in eligible if graph_signature(candidates[i])!=graph_signature(context["logic"])]
+            if alternatives:eligible=alternatives
+        index=max(eligible,key=lambda i:(preference.get(graph_signature(candidates[i]),0),scores[i]))
         graph=candidates[index]
         self.last_selection[context["role"]]={"candidate_generation":"bounded_program_graphs", "selection":"existing_BuildRanker",
             "scores":scores,"selected_index":index,"model_sha256":parameter_digest(self.models[context["role"]]),
             "graph_training_updates":self.updates[context["role"]],"graph_sha256":graph.sha256,
             "required_tags":self.requirements()["tags"],"required_connector_kinds":list(self.required_connector_kinds),
             "requirements_sha256":self.requirements_sha256,"codec_sha256":self.codec_sha256,"feature_version":FEATURE_VERSION}
+        self.last_selection[context["role"]].update(
+            graph_role_update_count=self.updates[context["role"]],
+            candidates=[{"logic":g.to_dict(),"signature":graph_signature(g),"score_uncalibrated":score}
+                        for g,score in zip(candidates,scores)],
+            feedback_attribution="whole_measured_candidate_not_graph_causality")
+        self.last_selection[context["role"]]["binding_counterexample_exploration"]=bool(failed)
         return {"logic":self.codec.decode(self.codec.encode(graph)).to_dict(),
                 "reason":"Existing role model selected a bounded program graph; scores are uncalibrated."}
 

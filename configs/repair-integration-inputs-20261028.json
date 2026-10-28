@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "kind": "repair-integration-input-registry",
+  "deployment_status": "integrated_direct_publication_authorized_pending_host_validation",
+  "baseline": {
+    "repository": "K1tKaLL0s/YGO-Kito",
+    "pr": 8,
+    "head": "5cf3dc1ca189e794a5bd5a915b2e24a0070a4095",
+    "tree": "9376d994c733862461029e622a026787b4cadcaf",
+    "provenance": "verified GitHub GET tree/blobs and exact single shallow commit"
+  },
+  "supervisor": {
+    "archive_sha256": "22725e86b0a8841fe82072d0ce430d976ccb9f7edc6edae78cb14a25c3fa5c11",
+    "status": "staged_not_live"
+  },
+  "construction": {
+    "commit": "041c72bbc6a2fb3288e0aec419c12fd3be9a641b",
+    "patch_sha256": "0c413bf69778eb7eef36ceaebe7e3fd8cd97c4c81b51256a5eb7742de4df1258",
+    "status": "reviewed_body_staged_with_two_integration_fixes"
+  },
+  "duel": {
+    "status": "reviewed_cumulative_delivery_staged",
+    "commit": "2933367dc0329872688a48eaaed3c83155124d5e",
+    "applied_cumulative_sha256": "5abe253c7c1795e9df6e8494fbe3c736087f8a669b7e311564f71f438db6db93",
+    "separately_applied_followup_or_runtime": false
+  },
+  "coordinator": {
+    "status": "reviewed_final_integrated_with_budget_proof_and_supervisor_fixes",
+    "old_wip_for_reference_only": "2de499f5de08ec43ffb8db0a326d4c0d482785a3",
+    "commit": "77b5c5551dc15191c796aaea9f707e536ac36e36",
+    "patch_sha256": "384ade1a69357c2e5ec0e96e30ad1cb8df189b9ccc6477f7fb82b55e210472e1",
+    "shared_adapters_sha256": {
+      "cycle_budget": "12745600d225170a2436744127e72792581bd45edf9f4bf99df300b017adc868",
+      "scoped_lora": "c54957157156aeb8a8b61db339281055d1d12db9fdbef6e8dccdb42776985477",
+      "unit_supervisor_entry": "8d58f1b8c866144fce3621fb333747849a6ccbd533fc3c063cf79a11bfa43091"
+    }
+  },
+  "effects": {
+    "base_patch_sha256": "ddcdf1de5ccd48629d3ae38fbeeaa0c03f7adae4d07782200402d0a78dc0d935",
+    "review_commit": "45fb85a224b4c99a723bc9cd1bb9a2051c5bd54e",
+    "review_patch_sha256": "28811011f2d675ffb4132b12d299e4c500b5283c26b65ca5d500f9cd0598508f",
+    "status": "reviewed_staged_with_shrunken_pool_boundary_fix",
+    "mechanism_groups_consumed_before_construction": true,
+    "whole_group_checkpoint_migrated": false
+  },
+  "official_rules": {
+    "filename": "ocg-negation-rules-2026-10-28.zip",
+    "bytes": 22008,
+    "expected_sha256": "3de42295f00998d836b3f8e6b7bf16e180f8f02bfef00787e4fae1eb197b4ad3",
+    "status": "consumer_local_materialization_failed",
+    "error": "library file transfer failed: download failed",
+    "target_directories": [
+      "docs/rules",
+      "resources/rules"
+    ],
+    "local_zip_present": false,
+    "decision_rules_connected": false
+  },
+  "checkpoint16": {
+    "sha256": "31784ea14850c4b458707af2f8b4b7fdda9f0c01d0e064acc3996125b7371e53",
+    "source006_sha256": "3e1296fd468e7fb51b7b34c89f37cd6091511e0e02f2bf215c5be0df6b5f75cc",
+    "matching_module_bindings": 115,
+    "source_and_checkpoint_read_only": true,
+    "restore_executed": false,
+    "migration_executed": false,
+    "read_only_metadata_deserializations": 1,
+    "full_runtime_restore_performed": false
+  },
+  "training_hold_required": true,
+  "formal_training_authorized_now": false,
+  "new_remote_ci_observed": false,
+  "last_remote_ci": {
+    "head": "5cf3dc1ca189e794a5bd5a915b2e24a0070a4095",
+    "run_id": 40607096034,
+    "conclusion": "failure"
+  },
+  "optional_multifactor": {
+    "commit": "ddaf81ee01990f5f047f0694188980a9475b77f2",
+    "status": "registered_only_pending_user_concept_definition",
+    "source_imported": false,
+    "active_training_connected": false,
+    "core_recovery_gate": false
+  },
+  "integrator_fixes": [
+    "canonical basic-cb-inference filenames",
+    "None-safe incomplete results",
+    "mechanism pool boundary and real producer wiring",
+    "one CycleBudget through new provider and every comparison",
+    "task proof independent of CB outcome including retained candidates",
+    "cycle_id and isolated data IDs",
+    "real before/after unit guard",
+    "paged LoRA plus nullable scope labels",
+    "derived CB target/material requirements",
+    "side context mechanism padding",
+    "composed v5/aggregate migration with explicit archived policy transition",
+    "read-only parent SQLite identity"
+  ],
+  "migration_tool": {
+    "synthetic_full_course_restore_verified": true,
+    "original_checkpoint16_migrated": false,
+    "old_tensors_adam_rng_cursors_preserved_in_fixture": true,
+    "new_generation_paused": true,
+    "explicit_postconstruction_policy_transition_supported": true
+  },
+  "publication": {
+    "status": "direct_user_authorization_received_original_tree_path_approved",
+    "attempts": 2,
+    "branch_updated": false,
+    "new_ci_triggered": false,
+    "direct_confirmation_utc": "2026-10-28T03:11:48Z",
+    "results_location": "PR8 description and consumer-local publication-result.json",
+    "snapshot_before_ref_update": true
+  }
+}

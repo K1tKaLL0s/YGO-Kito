@@ -1,7 +1,7 @@
-"""Small learnable coordinator, advisory to the deterministic controller.
+"""Small scoped coordinator behind deterministic permissions and hard limits.
 
-Training examples imitate engineering rules and synthetic probability anchors.
-They do not establish a calibrated win-rate predictor or useful scheduling.
+Legacy advice remains explicit. Scoped control/forecast and budget supervision
+are executable; useful decisions and statistical calibration require training.
 """
 
 from dataclasses import asdict, dataclass
@@ -19,7 +19,48 @@ from .device import (resolve_device, model_device, move_batch, execution_metadat
                      checkpoint_execution, optimizer_to, capture_device_rng, restore_device_rng)
 from .validation import ContractError, fields, integer
 
-FEATURE_VERSION = "coordinator-aggregate-context-v1"
+FEATURE_VERSION = "coordinator-public-scope-context-v2"
+SCOPE_WIDTH = 64
+
+
+def scope_tensor(value):
+    if (not isinstance(value, list) or len(value) != SCOPE_WIDTH or
+            any(type(x) not in (int, float) or not math.isfinite(x) for x in value)):
+        raise ContractError("coordinator requires 64 finite public scope features")
+    return [float(x) for x in value]
+
+
+def public_scope_features(builder, task, deck, scope, opponent_decks):
+    """Reuse public build facts, retaining exact task/deck/actor/environment identity.
+
+    No outcomes or hidden state enter this pre-game representation. Hash bytes
+    distinguish otherwise equal numeric summaries; they are not a strength label.
+    """
+    from .coord_contracts import evaluation_scope, FeedbackPolicy
+    from .build_contracts import DeckParts
+    scope = evaluation_scope(scope, {"task": task.to_dict()}, FeedbackPolicy())
+    _, numbers, state = builder.encoder.encode(task, deck)
+    rows = list(zip(*numbers))
+    values = list(state) + [sum(r) / len(r) for r in rows] + [max(r) for r in rows]
+    facts = [0.] * 6
+    for opponent in scope["opponents"]:
+        other = opponent_decks[opponent["opponent_id"]]
+        if not isinstance(other, DeckParts) or digest(other.to_dict()) != opponent["deck_sha256"]:
+            raise ContractError("predictor opponent deck differs from frozen scope")
+        cards = other.main + other.extra + other.side
+        if not cards:
+            raise ContractError("predictor needs the concrete opponent deck")
+        for code in cards:
+            row = builder.encoder.assets.facts(code)
+            if len(row) != 6:
+                raise ContractError("public build facts schema differs")
+            for i, x in enumerate(row):
+                facts[i] += x * opponent["weight"] / len(cards)
+    values += facts + scope["initiative_weights"] + [float(scope["unit"] == u) for u in ("BO1", "BO3")]
+    for identity, size in ((scope["actor_policy_sha256"], 8), (digest(scope["versions"]), 4),
+                           (task.sha256, 4), (digest(deck.to_dict()), 8), (digest(scope["opponents"]), 4)):
+        values.extend(b / 255 for b in bytes.fromhex(identity)[:size])
+    return scope_tensor(values)
 
 
 def context_tensor(context):
@@ -57,10 +98,18 @@ def supervision_rows(examples):
         raise ContractError("coordinator logged supervision size/digest differs")
     seen = set()
     for row in rows:
-        fields(row, {"context", "route_label", "forecast_target", "provenance"})
+        fields(row, {"context", "route_label", "forecast_target", "provenance"}, {"scope_features", "budget_target"})
         context_tensor(row["context"])
-        if row["route_label"] not in ROUTES:
+        if row["route_label"] is not None and row["route_label"] not in ROUTES:
             raise ContractError("unknown logged route target")
+        if "scope_features" in row:
+            scope_tensor(row["scope_features"])
+        if "budget_target" in row:
+            target_budget = row["budget_target"]
+            if type(target_budget) not in (int, float) or not math.isfinite(target_budget) or not 0 <= target_budget <= 1:
+                raise ContractError("logged budget target must be a fraction within [0,1]")
+            if "scope_features" not in row:
+                raise ContractError("budget supervision needs concrete public scope features")
         target = row["forecast_target"]
         if target is not None and (type(target) not in (int, float) or not math.isfinite(target) or not 0 <= target <= 1):
             raise ContractError("logged forecast target must be finite in [0,1] or absent")
@@ -100,6 +149,8 @@ class CoordinatorNetwork(nn.Module):
         self.encoder = nn.Sequential(nn.Linear(14, config.hidden), nn.Tanh(), nn.Linear(config.hidden, config.hidden), nn.Tanh())
         self.route_head = nn.Linear(config.hidden, len(ROUTES))
         self.forecast_head = nn.Linear(config.hidden, 1)
+        self.scope_projection = nn.Linear(SCOPE_WIDTH, config.hidden, bias=False)
+        self.budget_head = nn.Linear(config.hidden, 1)
 
     def forward(self, values):
         values = move_batch(values, model_device(self))
@@ -107,6 +158,15 @@ class CoordinatorNetwork(nn.Module):
             raise ContractError("coordinator requires finite CPU aggregate features")
         hidden = self.encoder(values)
         return self.route_head(hidden), self.forecast_head(hidden).squeeze(-1).sigmoid()
+
+    def forward_scoped(self, values, scope_values):
+        values, scope_values = move_batch((values, scope_values), model_device(self))
+        if (values.ndim != 2 or values.shape[1] != 14 or scope_values.shape != (len(values), SCOPE_WIDTH)
+                or not torch.isfinite(values).all() or not torch.isfinite(scope_values).all()):
+            raise ContractError("invalid aggregate/public-scope batch")
+        hidden = self.encoder(values) + self.scope_projection(scope_values).tanh()
+        return (self.route_head(hidden), self.forecast_head(hidden).squeeze(-1).sigmoid(),
+                self.budget_head(hidden).squeeze(-1).sigmoid())
 
 
 class CoordinatorTrainer:
@@ -129,31 +189,45 @@ class CoordinatorTrainer:
             raise ContractError("coordinator update budget exhausted")
         order = torch.randperm(len(rows), generator=self.batch_rng).tolist()
         values = torch.tensor([context_tensor(rows[i]["context"]) for i in order])
-        routes = torch.tensor([ROUTES.index(rows[i]["route_label"]) for i in order], device=self.device)
+        routed = [j for j, i in enumerate(order) if rows[i]["route_label"] is not None]
+        routes = torch.tensor([ROUTES.index(rows[order[j]]["route_label"]) for j in routed], device=self.device)
         targets = [rows[i]["synthetic_probability_anchor" if synthetic else "forecast_target"] for i in order]
         labelled = [i for i, target in enumerate(targets) if target is not None]
         self.model.train()
-        logits, predictions = self.model(values)
-        route_loss = F.cross_entropy(logits, routes)
+        scoped = any("scope_features" in r for r in rows)
+        if scoped:
+            scope_values = torch.tensor([rows[i].get("scope_features", [0.] * SCOPE_WIDTH) for i in order])
+            logits, predictions, allocations = self.model.forward_scoped(values, scope_values)
+        else:
+            logits, predictions = self.model(values)
+        route_loss = F.cross_entropy(logits[routed], routes) if routed else logits.sum() * 0
         forecast_loss = (F.mse_loss(predictions[labelled], torch.tensor([targets[i] for i in labelled], device=self.device))
                          if labelled else logits.sum() * 0)
-        loss = route_loss + forecast_loss
+        budget_rows = [j for j, i in enumerate(order) if "budget_target" in rows[i]]
+        budget_loss = (F.mse_loss(allocations[budget_rows], torch.tensor([rows[order[j]]["budget_target"] for j in budget_rows], device=self.device))
+                       if budget_rows else logits.sum() * 0)
+        loss = route_loss + forecast_loss + budget_loss
         before_hash = parameter_digest(self.model)
         before = {n: p.detach().clone() for n, p in self.model.named_parameters()}
         self.optimizer.zero_grad(set_to_none=True)
         loss.backward()
+        for head, active in ((self.model.route_head, routed), (self.model.forecast_head, labelled), (self.model.budget_head, budget_rows)):
+            if not active:
+                for parameter in head.parameters():
+                    parameter.grad = None  # Do not move an unlabelled head through old momentum.
         norm = float(torch.nn.utils.clip_grad_norm_(self.model.parameters(), .5, error_if_nonfinite=True))
         self.optimizer.step()
         self.scheduler.step()
         deltas = {n: float(((p.detach() - before[n]) ** 2).sum()) for n, p in self.model.named_parameters()}
         changed = sum(int(torch.count_nonzero(p.detach() != before[n])) for n, p in self.model.named_parameters())
-        if not changed or not norm or not any(v for n, v in deltas.items() if n.startswith("route_head")) or (labelled and not any(v for n, v in deltas.items() if n.startswith("forecast_head"))):
+        if not changed or not norm or (routed and not any(v for n, v in deltas.items() if n.startswith("route_head"))) or (labelled and not any(v for n, v in deltas.items() if n.startswith("forecast_head"))):
             raise ContractError("coordinator model/heads did not actually update")
         self.updates += 1
         return {"optimizer_step": self.updates, "loss": float(loss.detach()), "route_loss": float(route_loss.detach()),
                 "synthetic_forecast_loss": float(forecast_loss.detach()) if synthetic else None,
                 "forecast_loss": float(forecast_loss.detach()) if labelled else None,
                 "forecast_supervised_rows": len(labelled), "gradient_norm_before_clip": norm,
+                "budget_supervised_rows": len(budget_rows), "budget_loss": float(budget_loss.detach()) if budget_rows else None,
                 "changed_parameter_elements": changed, "parameter_delta_l2": math.sqrt(sum(deltas.values())),
                 "before_sha256": before_hash, "after_sha256": parameter_digest(self.model),
                 "supervision_source": examples["source"], "supervision_sha256": examples["sha256"],
@@ -165,6 +239,62 @@ class CoordinatorTrainer:
             logits, forecast = self.model(torch.tensor([context_tensor(context)]))
         return {"route": ROUTES[int(logits[0].argmax())], "probability": float(forecast[0]),
                 "model_sha256": parameter_digest(self.model), "calibration": "pending", "mode": "advisory_only"}
+
+    def control(self, context, features, *, allowed_routes, max_units):
+        integer(max_units, "host cycle budget", 0, 10000)
+        if not allowed_routes or any(r not in ROUTES for r in allowed_routes):
+            raise ContractError("explicit eligible cycle routes required")
+        self.model.eval()
+        with torch.no_grad():
+            logits, forecast, allocation = self.model.forward_scoped(
+                torch.tensor([context_tensor(context)]), torch.tensor([scope_tensor(features)]))
+        route = max(allowed_routes, key=lambda r: float(logits[0, ROUTES.index(r)]))
+        units = 0 if route == "stop" or not max_units else max(1, min(max_units, math.ceil(float(allocation[0]) * max_units)))
+        return {"route": route, "budget_units": units, "probability": float(forecast[0]),
+                "model_sha256": parameter_digest(self.model), "features_sha256": digest(features),
+                "calibration": "pending", "mode": "learned_control", "ability_verified": False}
+
+    def forecast(self, context, features):
+        return self.control(context, features, allowed_routes=("evaluate_duel",), max_units=1)
+
+    @classmethod
+    def upgrade_aggregate_state(cls, state, *, device=None):
+        """Explicit v1 -> v2 migration; never called by restore or a course run.
+
+        Preserve every old tensor and Adam moment. Only the scope projection and
+        budget head are newly initialized, with that fact in the returned receipt.
+        The caller must bind/save a new course source/checkpoint generation.
+        """
+        from copy import deepcopy
+        import hashlib
+        if state.get("feature_version") != "coordinator-aggregate-context-v1":
+            raise ContractError("explicit migration requires a v1 coordinator state")
+        checksum = hashlib.sha256()
+        for name, tensor in sorted(state["model"].items()):
+            checksum.update(name.encode()); checksum.update(tensor.detach().cpu().contiguous().numpy().tobytes())
+        if checksum.hexdigest() != state["model_sha256"]:
+            raise ContractError("legacy coordinator checksum differs")
+        with torch.random.fork_rng():
+            trainer = cls(CoordinatorModelConfig(**state["config"]), device=checkpoint_execution(state, device))
+        incompatible = trainer.model.load_state_dict(state["model"], strict=False)
+        new_names = {"scope_projection.weight", "budget_head.weight", "budget_head.bias"}
+        if set(incompatible.missing_keys) != new_names or incompatible.unexpected_keys:
+            raise ContractError("legacy model is not the supported aggregate architecture")
+        optimizer = deepcopy(state["optimizer"])
+        if len(optimizer["param_groups"]) != 1:
+            raise ContractError("unsupported legacy coordinator optimizer groups")
+        optimizer["param_groups"][0]["params"] = trainer.optimizer.state_dict()["param_groups"][0]["params"]
+        trainer.optimizer.load_state_dict(optimizer)
+        optimizer_to(trainer.optimizer, trainer.device)
+        trainer.scheduler.load_state_dict(state["scheduler"])
+        trainer.batch_rng.set_state(state["batch_rng"])
+        trainer.updates = integer(state["updates"], "legacy update cursor", 0, trainer.config.steps)
+        migrated = trainer.state()
+        if "device_rng" in state:
+            migrated["device_rng"] = deepcopy(state["device_rng"])
+        return migrated, {"kind": "explicit-coordinator-v1-to-v2", "parent_sha256": state["model_sha256"],
+            "model_sha256": migrated["model_sha256"], "new_untrained_parameters": sorted(new_names),
+            "old_parameters_and_optimizer_moments_preserved": True, "training_executed": False}
 
     def state(self):
         return {"config": asdict(self.config), "feature_version": FEATURE_VERSION,

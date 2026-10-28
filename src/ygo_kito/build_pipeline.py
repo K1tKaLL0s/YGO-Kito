@@ -98,7 +98,7 @@ def _parts(parts):
     return DeckParts(*(tuple(sorted(parts[zone])) for zone in ZONES))
 
 
-def goal_candidates(task, assets, base=None):
+def _goal_candidates(task, assets, base=None):
     """Bounded constraint construction followed by model ranking, not learned rule code."""
     assets.check_task(task)
     if task.goal['kind']=='deck_constraints':
@@ -149,10 +149,19 @@ def goal_candidates(task, assets, base=None):
     return found
 
 
-def edit_candidates(task, assets, base, *, require_edit=False):
+def goal_candidates(task, assets, base=None, *, feedback=(), return_portfolio=False,mechanism_groups=None):
+    from .construction_candidates import portfolio
+    initial = _goal_candidates(task, assets, base)
+    rows = portfolio(task, assets, base=base, initial=initial, feedback=feedback,mechanism_groups=mechanism_groups)
+    return rows if return_portfolio else [row["deck"] for row in rows]
+
+
+def edit_candidates(task, assets, base, *, require_edit=False, feedback=(), return_portfolio=False,mechanism_groups=None):
     assets.validate(task, base)
-    found = [] if require_edit else [base]
+    from .construction_candidates import portfolio
+    found = []
     for zone in ZONES:
+        count = 0
         for removed in sorted(set(getattr(base, zone))):
             for added in task.pool:
                 if added == removed:
@@ -163,9 +172,13 @@ def edit_candidates(task, assets, base, *, require_edit=False):
                 candidate = _parts(parts)
                 if assets.accepts(task, candidate) and candidate not in found:
                     found.append(candidate)
-                if len(found) >= task.candidate_budget:
-                    return found
-    return found
+                    count += 1
+                if count >= 32:
+                    break
+            if count >= 32:
+                break
+    rows = portfolio(task, assets, base=base, singles=found, feedback=feedback, require_edit=require_edit,mechanism_groups=mechanism_groups)
+    return rows if return_portfolio else [row["deck"] for row in rows]
 
 
 def deck_changes(before, after):

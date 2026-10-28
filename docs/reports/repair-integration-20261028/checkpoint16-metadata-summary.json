@@ -1,0 +1,104 @@
+{
+  "utc": "2026-10-28T02:40:13.814743+00:00",
+  "argv": [
+    "E:\\CodexData\\2026-10-28\\task-13\\inspect_checkpoint_metadata.py"
+  ],
+  "checkpoint_sha256": "31784ea14850c4b458707af2f8b4b7fdda9f0c01d0e064acc3996125b7371e53",
+  "checkpoint_unchanged": true,
+  "read_only_cpu_metadata_deserialization": true,
+  "old_runtime_restore_performed": false,
+  "migration_performed": false,
+  "model_execution": {
+    "schema_version": 1,
+    "device": "cpu",
+    "dtype": "float32"
+  },
+  "base_task": {
+    "task_id": "pearl-base-public-catalog-2207-v1",
+    "goal_fields": [
+      "constraints",
+      "kind",
+      "preferences"
+    ],
+    "requirements": [],
+    "sizes": {
+      "extra": 15,
+      "main": 40,
+      "side": 15
+    },
+    "pool_count": 69
+  },
+  "source_binding_fields": [
+    "learning_stage",
+    "construction_theme_ids",
+    "kind",
+    "task_sha256",
+    "resources",
+    "period_context",
+    "available_ids_sha256",
+    "source_files",
+    "construction_goal",
+    "construction_flow",
+    "construction_logic_requirements"
+  ],
+  "source_construction_goal_fields": [
+    "constraints",
+    "kind",
+    "preferences",
+    "required_activations",
+    "required_chain_resolutions",
+    "route_goal"
+  ],
+  "kernel_feature_version": "autonomous-catalog-task-course-v1",
+  "model_key_counts": {
+    "build_goal": 29,
+    "build_optimizer": 29,
+    "duel": 44,
+    "coordinator": 8
+  },
+  "build_optimizer_nonempty_parameter_counts": {
+    "build_goal": 29,
+    "build_optimizer": 0
+  },
+  "kernel_session_count": 1,
+  "current_selection": {
+    "task_id": "auto-ae8f3ac85f6c8a6d0abe6e4d",
+    "goal_fields": [
+      "constraints",
+      "kind",
+      "preferences",
+      "required_activations",
+      "required_chain_resolutions",
+      "route_goal"
+    ],
+    "requirements": [
+      {
+        "card_id": 73956664,
+        "maximum": 3,
+        "minimum": 1,
+        "zone": "main"
+      },
+      {
+        "card_id": 92731385,
+        "maximum": 3,
+        "minimum": 1,
+        "zone": "extra"
+      },
+      {
+        "card_id": 74078255,
+        "maximum": 3,
+        "minimum": 1,
+        "zone": "main"
+      }
+    ],
+    "sizes": {
+      "extra": 15,
+      "main": 40,
+      "side": 15
+    },
+    "pool_count": 32
+  },
+  "pending": null,
+  "feedback_pending": null,
+  "full_metadata_sha256": "7630d282d6851eefd06df0433928b245cfd2c8dc090fb14d85d4f5e10acac3bc"
+}

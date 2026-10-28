@@ -119,6 +119,9 @@ class ScenarioCourseTests(unittest.TestCase):
         self.assertEqual(self.models.duel.episode_cursor, 0)  # LoRA owns this course's training cursor.
         self.assertEqual(self.models.sessions['duel'].updates, 1)
         self.assertEqual(self.models.sessions['duel'].verify_base(), base)
+        policy = self.course.records[0]['receipts'][-1]['before']['planning']
+        self.assertGreater(policy['combo_plan_count'],0)
+        self.assertEqual(policy['version'],'player-view-cb-expectimax-v1')
         self.assertEqual(self.course.records[0]['games'][0]['actual_first_participant_id'], 'actor')
         self.assertFalse((self.course.root/'in-flight.json').exists())
         before, seconds = self.models.fingerprint(), self.course.active_seconds

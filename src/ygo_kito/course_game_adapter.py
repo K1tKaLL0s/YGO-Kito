@@ -26,6 +26,8 @@ from .data_isolation import DataIndex, episode_digest
 from .deck_profile import validate_deck_parts, validate_profile
 from .device import capture_device_rng, model_device
 from .duel_model import FEATURE_VERSION, parameter_digest
+from .duel_planning import ComboPlan, PlanningBudget, response_catalog, VERSION as PLANNING_VERSION
+from .duel_effect_limits import EffectLimitTracker
 from .implementation_identity import assert_source_tree, source_tree_snapshot
 from .lora import AdapterSession
 from .lora_group import ppo_inputs, ppo_loss
@@ -204,7 +206,8 @@ class CourseGameAdapter:
     """
     def __init__(self, *, assets, match_state, actor_participant_id, trainer, bot_runtime=None, model_runtime=None,
                  data_index, experiment_id, purpose, config=None, adapter_session=None,
-                 policy_rng=None, evaluation_pairs=(), evaluation_cursor=0, opponent_policy_rng=None):
+                 policy_rng=None, evaluation_pairs=(), evaluation_cursor=0, opponent_policy_rng=None,
+                 combo_plans=(), planning_budget=None,effect_limit_bindings=()):
         from .match_runner import MatchState
         if not isinstance(assets, BuildAssets) or not isinstance(match_state, MatchState):
             raise ContractError("typed rule assets and authorized MatchState required")
@@ -257,6 +260,16 @@ class CourseGameAdapter:
                 raise ContractError("opponent sampling requires an independent owned CPU generator")
         elif opponent_policy_rng is not None: raise ContractError("only sampled model opponents accept a host RNG")
         self.assets, self.match_state, self.actor_id = assets, match_state, actor_participant_id
+        if (not isinstance(combo_plans,tuple) or len(combo_plans)>8 or
+                any(not isinstance(p,ComboPlan) for p in combo_plans)):
+            raise ContractError("course requires bounded typed own CB plans")
+        self.combo_plans, self.planning_budget = combo_plans, planning_budget or PlanningBudget()
+        self.effect_limit_bindings=EffectLimitTracker(effect_limit_bindings).bindings
+        for binding in self.effect_limit_bindings:binding.assert_catalog(assets.rows)
+        if not isinstance(self.planning_budget,PlanningBudget): raise ContractError("typed planning budget required")
+        self._planning_sha256 = digest([PLANNING_VERSION,[asdict(p) for p in combo_plans],asdict(self.planning_budget),
+            [asdict(b) for b in self.effect_limit_bindings]])
+        self._response_catalog = response_catalog(assets.rows)
         self.trainer, self.session, self.config, self.policy_rng = trainer, adapter_session, cfg, actual_rng
         self.bot, self.model_runtime = bot_runtime, model_runtime
         self.opponent_policy_rng = opponent_policy_rng
@@ -385,6 +398,9 @@ class CourseGameAdapter:
             "observed_optimizer_step_max": max(steps, default=0),
             "evaluation_cursor": self.evaluation_cursor, "config_sha256": self._config_sha256,
             "source_map_sha256": digest(self._source_map)}
+        value["planning"] = {"version":PLANNING_VERSION,"context_sha256":self._planning_sha256,
+            "effect_limit_binding_count":len(self.effect_limit_bindings),
+            "combo_plan_count":len(self.combo_plans),"projection":"conditional-approximate-not-core-verified"}
         if self.bot is not None:
             value.update(qualification_sha256=self._qualification_sha256,
                 original_bot_deck_sha256=digest(self._originals[self.bot_id].to_dict()))
@@ -438,6 +454,10 @@ class CourseGameAdapter:
                         self.opponent_policy_rng is not self._opponent_rng_object):
                     raise ContractError("this match's frozen model opponent changed")
             if digest(asdict(self.config)) != self._config_sha256: raise ContractError("course config changed")
+            if digest([PLANNING_VERSION,[asdict(p) for p in self.combo_plans],asdict(self.planning_budget),
+                    [asdict(b) for b in self.effect_limit_bindings]]) != self._planning_sha256:
+                raise ContractError("course own CB/planning budget changed")
+            for binding in self.effect_limit_bindings:binding.assert_catalog(self.assets.rows)
             if isinstance(self.assets, PeriodBuildAssets): self.assets.assert_integrity()
             elif verify_resources(self.assets.root) != self.assets.receipt: raise ContractError("course native resources changed")
             if self.session is not None:
@@ -474,7 +494,9 @@ class CourseGameAdapter:
                 if self.evaluation_cursor >= len(self.evaluation_pairs): raise ContractError("held-out schedule exhausted")
                 kwargs["seed"], kwargs["policy_seed"] = self.evaluation_pairs[self.evaluation_cursor]
             episode = current.sample_episode(self.assets.root, profile, purpose=self.purpose,
-                opponent_adapter=opponent, engine_factory=factory, **kwargs)
+                opponent_adapter=opponent, engine_factory=factory, combo_plans=self.combo_plans,
+                planning_facts=self.assets.rows, planning_responses=self._response_catalog,
+                planning_budget=self.planning_budget,effect_limit_bindings=self.effect_limit_bindings, **kwargs)
             self.last_episode = episode; record["sample_completed"] = True
             summary = episode["summary"]; native_decisions = summary["native_decisions"]
             elapsed = summary["elapsed_seconds"]

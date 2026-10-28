@@ -24,8 +24,10 @@ TRAINING_EVIDENCE=[]
 
 
 def graph_context(session, role="build_goal"):
+    from ygo_kito.construction_candidates import attributed_feedback
     return {"request":session.request,"task":session.task.to_dict(),"goal_sha256":session.goal_sha256,
-            "logic":session.logic.to_dict() if session.logic else None,"feedback":list(session.feedback),"role":role}
+            "logic":session.logic.to_dict() if session.logic else None,"feedback":list(session.feedback),"role":role,
+            "attributed_feedback":attributed_feedback(session)}
 
 
 class ConstructionModelTests(unittest.TestCase):
@@ -34,30 +36,12 @@ class ConstructionModelTests(unittest.TestCase):
         self.task,self.assets=fixture_assets()
         self.builder=BuildTrainer(self.task,self.assets,BuildTrainingConfig())
         self.codec=LogicCodec((LogicTag("effect","送墓"),LogicTag("effect","回收")))
-        self.adapter=LogicModelAdapter.from_builder(self.builder,self.codec,required_tags=self.codec.tags)
+        self.adapter=LogicModelAdapter.from_builder(self.builder,self.codec)
         self.session=fixture_session("堆墓",self.task)
-
-    def test_evidence_vocabulary_does_not_add_unrequested_features(self):
-        requested=self.codec.tags[:1]
-        adapter=LogicModelAdapter.from_builder(self.builder,self.codec,required_tags=requested)
-        graphs=adapter.candidates(graph_context(self.session))
-        self.assertEqual(adapter.requirements()["tags"],[{"dimension":requested[0].dimension,"value":requested[0].value}])
-        for graph in graphs:
-            self.assertEqual({t for n in graph.nodes for t in n.tags},set(requested))
-        self.assertNotEqual(adapter.requirements_sha256,self.adapter.requirements_sha256)
-
-    def test_requested_coarse_connections_survive_every_proposal(self):
-        adapter=LogicModelAdapter.from_builder(self.builder,self.codec,required_tags=self.codec.tags[:1],
-            required_connector_kinds=("ns","送墓时发动"))
-        context=graph_context(self.session)
-        graphs=adapter.candidates(context)
-        self.assertGreaterEqual(len(graphs),1)
-        adapter._check(context,graphs)
-        for graph in graphs:self.assertTrue({"ns","送墓时发动"}<={e.kind for e in graph.connectors})
 
     def test_real_candidate_generation_model_selection_and_codec_roundtrip(self):
         context=graph_context(self.session)
-        candidates=self.adapter.candidates(context)
+        candidates=rule_graph_candidates(context,self.codec)
         self.assertGreaterEqual(len(candidates),2)
         for g in candidates:
             self.assertEqual(self.codec.decode(self.codec.encode(g)),g)
@@ -79,7 +63,7 @@ class ConstructionModelTests(unittest.TestCase):
     def test_actual_role_parameter_updates_loss_and_checkpoint_continue(self):
         for role in ("build_goal","build_optimizer"):
             context=graph_context(self.session,role)
-            candidates=self.adapter.candidates(context)
+            candidates=rule_graph_candidates(context,self.codec)
             before_other=parameter_digest(self.adapter.models["build_optimizer" if role=="build_goal" else "build_goal"])
             first=self.adapter.train_preference(context,candidates,len(candidates)-1,source="synthetic_code_path_only")
             self.assertNotEqual(first["before_sha256"],first["after_sha256"])
@@ -89,10 +73,10 @@ class ConstructionModelTests(unittest.TestCase):
             TRAINING_EVIDENCE.append({"role":role,"first":first,"fourth":last,"source":"synthetic_code_path_only"})
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)/"graph.weights"; self.adapter.save(path)
-            restored=LogicModelAdapter.from_builder(BuildTrainer(self.task,self.assets,BuildTrainingConfig()),self.codec,required_tags=self.codec.tags)
+            restored=LogicModelAdapter.from_builder(BuildTrainer(self.task,self.assets,BuildTrainingConfig()),self.codec)
             restored.load(path)
             for role in ("build_goal","build_optimizer"):
-                context=graph_context(self.session,role);candidates=self.adapter.candidates(context)
+                context=graph_context(self.session,role);candidates=rule_graph_candidates(context,self.codec)
                 self.assertEqual(self.adapter.scores(context,candidates),restored.scores(context,candidates))
                 a=self.adapter.train_preference(context,candidates,0,source="synthetic_code_path_only")
                 b=restored.train_preference(context,candidates,0,source="synthetic_code_path_only")
@@ -102,7 +86,7 @@ class ConstructionModelTests(unittest.TestCase):
 
     def test_unknown_tags_and_silent_goal_changes_are_rejected(self):
         context=graph_context(self.session)
-        candidates=self.adapter.candidates(context)
+        candidates=rule_graph_candidates(context,self.codec)
         context["request"]="silently changed goal"
         with self.assertRaisesRegex(ContractError,"task"):self.adapter.scores(context,candidates)
         with self.assertRaises(ContractError):self.codec.encode(replace(candidates[0],nodes=(replace(candidates[0].nodes[0],tags=(LogicTag("effect","unseen"),)),)))
@@ -126,12 +110,12 @@ class ConstructionModelTests(unittest.TestCase):
 
     def test_failed_second_role_load_keeps_all_active_models_and_optimizers(self):
         context=graph_context(self.session)
-        self.adapter.train_preference(context,self.adapter.candidates(context),0,source="synthetic_code_path_only")
+        self.adapter.train_preference(context,rule_graph_candidates(context,self.codec),0,source="synthetic_code_path_only")
         with tempfile.TemporaryDirectory() as folder:
             good=Path(folder)/"good.weights";bad=Path(folder)/"bad.weights";self.adapter.save(good)
             state=torch.load(good,weights_only=True);state["model_hashes"]["build_optimizer"]="0"*64
             torch.save(state,bad)
-            recipient=LogicModelAdapter.from_builder(BuildTrainer(self.task,self.assets,BuildTrainingConfig()),self.codec,required_tags=self.codec.tags)
+            recipient=LogicModelAdapter.from_builder(BuildTrainer(self.task,self.assets,BuildTrainingConfig()),self.codec)
             before={r:parameter_digest(m) for r,m in recipient.models.items()}
             with self.assertRaisesRegex(ContractError,"checksum"):recipient.load(bad)
             self.assertEqual(before,{r:parameter_digest(m) for r,m in recipient.models.items()})
@@ -139,7 +123,7 @@ class ConstructionModelTests(unittest.TestCase):
 
     def test_runtime_codec_cannot_silently_replace_required_features(self):
         context=graph_context(self.session)
-        candidates=self.adapter.candidates(context)
+        candidates=rule_graph_candidates(context,self.codec)
         self.codec.tags=(LogicTag("effect","silently changed"),)
         with self.assertRaisesRegex(ContractError,"vocabulary changed"):
             self.adapter.scores(context,candidates)
@@ -177,7 +161,7 @@ class ConcreteControllerTests(unittest.TestCase):
             "explicit-synthetic-annotation","Only checks the code path") for c,row in assets.rows.items())
         binder=CatalogBindingAdapter(assets,assessments=assessments)
         builder=BuildTrainer(task,assets,BuildTrainingConfig())
-        graph_adapter=LogicModelAdapter.from_builder(builder,LogicCodec((tag,)),required_tags=(tag,))
+        graph_adapter=LogicModelAdapter.from_builder(builder,LogicCodec((tag,)))
         session=ConstructionSession("堆墓",task,classifier=fixture_classifier())
         # Start from an existing legal list; old bounded edits do not need scipy.
         with tempfile.TemporaryDirectory() as folder:

@@ -1,0 +1,153 @@
+"""Independent CPU Transformer rankers for goal construction and deck edits.
+
+Architecture code is reusable; each role owns every parameter and optimizer.
+Effects are read as public facts/receipts, not understood by a downloaded LLM.
+"""
+
+from dataclasses import asdict, dataclass
+
+import torch
+from torch import nn
+
+from .build_contracts import BuildTask, DeckParts, ZONES, digest
+from .device import model_device, move_batch
+from .validation import ContractError, canonical_json, integer
+
+FEATURE_VERSION = "build-task-catalog-candidate-v5-combined-native-objectives"
+
+
+@dataclass(frozen=True)
+class BuildModelConfig:
+    width: int = 32
+    card_width: int = 16
+    heads: int = 4
+    layers: int = 1
+    feedforward: int = 64
+    max_tokens: int = 192
+
+    def __post_init__(self):
+        for key, value in asdict(self).items():
+            integer(value, key, 1, 512)
+        if (self.width > 128 or self.card_width > 64 or self.heads > 16 or self.width % self.heads
+                or self.layers > 2 or self.feedforward > 512 or self.max_tokens > 256):
+            raise ContractError("building model exceeds CPU prototype limits")
+
+
+class BuildEncoder:
+    def __init__(self, task, assets, config):
+        assets.check_task(task)
+        self.config, self.assets = config, assets
+        self.card_ids = tuple(task.pool)
+        self.card_index = {code: i + 1 for i, code in enumerate(self.card_ids)}
+        self.tags = tuple(sorted({canonical_json(a) for a in task.annotations}))
+        self.tag_index = {tag: i + 1 for i, tag in enumerate(self.tags)}
+        self.environment_sha256 = digest(task.environment)
+        self.vocabulary_sha256 = digest({"cards": self.card_ids, "annotations": self.tags})
+
+    def encode(self, task, deck):
+        if not isinstance(task, BuildTask) or not isinstance(deck, DeckParts):
+            raise ContractError("building encoder requires typed task and candidate only")
+        if digest(task.environment) != self.environment_sha256 or task.pool != self.card_ids:
+            raise ContractError("building encoder resource/pool binding differs")
+        ids, numbers = [[0, 0, 0, 0]], [[0.] * 10]
+
+        def card(code, zone, kind, minimum=0, maximum=3, context=0.):
+            if code not in self.card_index:
+                raise ContractError("candidate card outside building vocabulary")
+            count = getattr(deck, zone).count(code)
+            ids.append([self.card_index[code], 1 + ZONES.index(zone), 0, kind])
+            numbers.append(self.assets.facts(code) + [minimum / 3, maximum / 3, count / 3, context])
+
+        semantic=task.goal['kind']=='deck_constraints'
+        route_goal=task.goal.get('route_goal') if semantic else task.goal
+        extra_goal = route_goal is not None and route_goal['kind']!='normal_summon'
+        if semantic:
+            from .build_semantics import count,matches
+            for hard,items in ((True,task.goal['constraints']),(False,task.goal['preferences'])):
+                for item in sorted(items,key=lambda c:canonical_json({k:v for k,v in c.items() if k!='id'})):
+                    ids.append([0,0,0,6])
+                    numbers.append([item.get('minimum',0)/90,item.get('maximum',90)/90,
+                                    count(deck,item,self.assets.rows)/90,item.get('weight',0)/100,
+                                    sum(1<<ZONES.index(z) for z in item['zones'])/7,float(hard),0.,0.,0.,0.])
+                    for zone in ZONES:
+                        if zone not in item['zones']:continue
+                        for code in task.pool:
+                            if matches(self.assets.rows[code],item['predicate']):
+                                ids.append([self.card_index[code],1+ZONES.index(zone),0,6])
+                                numbers.append(self.assets.facts(code)+[0.,0.,0.,1. if hard else -1.])
+        if route_goal is not None:
+            # Preserve the exact existing three encodings during base continuation.
+            goal_context = {"normal_summon": 0., "synchro_summon": .5, "xyz_summon": 1., "fusion_summon": -.5}[route_goal["kind"]]
+            card(route_goal["card_id"], "extra" if extra_goal else "main", 1, context=goal_context)
+        if extra_goal:
+            for code in route_goal["starting_conditions"]["requires_opening_hand"]:
+                card(code, "main", 5)
+            numbers[0][-1] = float("route" not in route_goal)
+            for intent in route_goal.get("route", []):
+                operation = intent["operation"]
+                for code in intent["card_ids"]:
+                    card(code, "extra" if operation == "special_summon" else "main", 6,
+                         context=("activate", "summon", "search", "special_summon").index(operation) / 3)
+        if semantic:
+            from .build_pipeline import EXTRA_TYPES
+            for key,context in (('required_activations',.5),('required_chain_resolutions',.75)):
+                for code in task.goal.get(key,[]):
+                    card(code,'extra' if self.assets.rows[code]['type']&EXTRA_TYPES else 'main',6,context=context)
+        for req in task.requirements:
+            card(req["card_id"], req["zone"], 2, req["minimum"], req["maximum"])
+        for annotation in task.annotations:
+            key = canonical_json(annotation)
+            if key not in self.tag_index:
+                raise ContractError("unseen building context annotation; not silently ignored")
+            ids.append([0, 0, self.tag_index[key], 3])
+            numbers.append([0.] * 9 + [("self", "opponent", "both").index(annotation["subject"]) / 2])
+        for zone in ZONES:
+            for code in sorted(getattr(deck, zone)):
+                card(code, zone, 4)
+        if len(ids) > self.config.max_tokens:
+            raise ContractError("building context exceeds token budget")
+        state = [len(getattr(deck, z)) / (60 if z == "main" else 15) for z in ZONES]
+        state += [task.sizes[z] / (60 if z == "main" else 15) for z in ZONES]
+        return ids, numbers, state
+
+    def batch(self, task, decks, *, device=None):
+        integer(len(decks), "building rank batch", 1, 32)
+        encoded = [self.encode(task, deck) for deck in decks]
+        length = max(len(row[0]) for row in encoded)
+        batch = {"tokens": torch.zeros(len(decks), length, 4, dtype=torch.long),
+                 "numbers": torch.zeros(len(decks), length, 10),
+                 "state": torch.tensor([row[2] for row in encoded], dtype=torch.float32),
+                 "mask": torch.zeros(len(decks), length, dtype=torch.bool)}
+        for i, (tokens, numbers, _) in enumerate(encoded):
+            batch["tokens"][i, :len(tokens)] = torch.tensor(tokens)
+            batch["numbers"][i, :len(tokens)] = torch.tensor(numbers)
+            batch["mask"][i, :len(tokens)] = True
+        return move_batch(batch, device) if device is not None else batch
+
+
+class BuildRanker(nn.Module):
+    def __init__(self, config, vocabulary_size, annotation_count):
+        super().__init__()
+        self.card = nn.Embedding(vocabulary_size + 1, config.card_width, padding_idx=0)
+        self.card_project = nn.Linear(config.card_width, config.width)
+        self.zone = nn.Embedding(4, config.width)
+        self.kind = nn.Embedding(7, config.width)
+        self.annotation = nn.Embedding(annotation_count + 1, config.width, padding_idx=0)
+        self.numeric, self.state = nn.Linear(10, config.width), nn.Linear(6, config.width)
+        self.position = nn.Embedding(config.max_tokens, config.width)
+        self.norm = nn.LayerNorm(config.width)
+        layer = nn.TransformerEncoderLayer(config.width, config.heads, config.feedforward, dropout=0., batch_first=True)
+        self.encoder = nn.TransformerEncoder(layer, config.layers, enable_nested_tensor=False)
+        self.head = nn.Sequential(nn.Linear(config.width, config.width), nn.Tanh(), nn.Linear(config.width, 1))
+
+    def forward(self, batch):
+        batch = move_batch(batch, model_device(self))
+        if not batch["mask"][:, 0].all():
+            raise ContractError("building ranker requires CPU/valid context")
+        t = batch["tokens"]
+        x = (self.card_project(self.card(t[..., 0])) + self.zone(t[..., 1]) + self.annotation(t[..., 2])
+             + self.kind(t[..., 3]) + self.numeric(batch["numbers"]))
+        x[:, 0] = x[:, 0] + self.state(batch["state"])
+        x = x + self.position(torch.arange(x.shape[1], device=x.device))[None]
+        encoded = self.encoder(self.norm(x), src_key_padding_mask=~batch["mask"])
+        return self.head(encoded[:, 0]).squeeze(-1)

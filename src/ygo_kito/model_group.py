@@ -1,7 +1,8 @@
 """One bounded real model-group workflow and recovery at a pending-job boundary.
 
-The learned coordinator is synthetic-supervised/advisory. The evaluation match
-is native-core evidence; it is not a calibrated win-rate/strength experiment.
+Legacy callers retain advisory routing. Callers supplying public scope features
+execute learned cycle decisions within host limits. Native evaluation is not
+by itself a calibrated win-rate/strength experiment.
 """
 
 from dataclasses import asdict
@@ -48,13 +49,22 @@ def call(host, method, params=None, ident="pipeline-request"):
     return result["result"]
 
 
-def route_with_model(host, model, candidate_id, forecast_id, remaining):
+def route_with_model(host, model, candidate_id, forecast_id, remaining, *, features=None, allowed_routes=None, max_units=None):
     # Get the authoritative context, then log the actual model's advisory output.
     rule = call(host, "route", {"candidate_id": candidate_id, "forecast_id": forecast_id,
                               "remaining_tasks": remaining, "advisory": None})
-    advice = model.advice(rule["context"])
+    if features is None:
+        advice = model.advice(rule["context"])
+        extra = {}
+        keys = ("route", "model_sha256", "calibration")
+    else:
+        allowed_routes = list(allowed_routes or ("build_goal", "build_optimizer", "evaluate_duel", "train_duel", "stop"))
+        cap = remaining if max_units is None else min(remaining, max_units)
+        advice = model.control(rule["context"], features, allowed_routes=allowed_routes, max_units=cap)
+        extra = {"allowed_routes": allowed_routes, "max_units": cap}
+        keys = ("route", "model_sha256", "calibration", "mode", "budget_units", "features_sha256")
     result = call(host, "route", {"candidate_id": candidate_id, "forecast_id": forecast_id, "remaining_tasks": remaining,
-                                "advisory": {k: advice[k] for k in ("route", "model_sha256", "calibration")}})
+                                "advisory": {k: advice[k] for k in keys}, **extra})
     return result, advice
 
 

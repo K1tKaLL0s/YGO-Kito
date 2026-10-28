@@ -1,0 +1,272 @@
+{
+  "utc": "2026-10-28T02:58:11.333767+00:00",
+  "kind": "integrated-repairs-awaiting-real-course-validation",
+  "formal_training_runs": 0,
+  "native_games_executed": 0,
+  "training_hold_released": false,
+  "unique_final_case_results": [
+    {
+      "test": "tests.test_construction_supervisor_integration.ConstructionSupervisorIntegrationTests.test_actual_incomplete_kernel_result_keeps_none_and_false",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_construction_supervisor_integration.ConstructionSupervisorIntegrationTests.test_integrated_kernel_keeps_the_supervisor_wip_preassigned_route_rejection",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_construction_supervisor_integration.ConstructionSupervisorIntegrationTests.test_production_records_are_seen_by_the_real_observer_in_a_separate_process",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_construction_review_fixes.ConstructionReviewFixes.test_actual_course_script_accepts_unknown_cb_and_separates_forced_cycles",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_autonomous_construction.AutonomousKernelTests.test_metadata_roundtrip_preserves_goal_graph_feedback_and_rejects_tamper",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_effect_construction_integration.EffectConstructionIntegrationTests.test_run_selected_passes_current_groups_to_actual_portfolio_before_construction_ends",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_effect_construction_integration.EffectConstructionIntegrationTests.test_shrunken_pool_cannot_export_an_outside_fusion_target_or_break_portfolio",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_effect_semantic_review.EffectReviewRegressions.test_relationship_adapter_exports_the_existing_three_key_contract",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_effect_mechanisms.LearnerMechanismTests.test_shared_learner_rankers_receive_mechanisms_and_four_phase_binding",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_basic_cb_duel_integration.BasicCbDuelIntegrationTests.test_real_material_inference_envelope_reaches_planner_with_derived_task_ownership",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_cross_window_adapters.CrossWindowAdapterTests.test_real_new_provider_shares_six_second_budget_and_unknown_cb_admits_task_and_retained",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_cross_window_adapters.CrossWindowAdapterTests.test_real_unit_callback_stops_before_any_learning_when_observer_is_missing",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_duel_runtime_interfaces.BasicCbRuntimeShapeTests.test_inferred_status_without_verified_recorded_route_stays_unknown",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_duel_runtime_interfaces.BasicCbRuntimeShapeTests.test_original_constraint_goal_yields_its_own_derived_routes_and_strips_audit",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_duel_runtime_interfaces.BasicCbRuntimeShapeTests.test_task_deck_and_original_goal_mismatches_cannot_borrow_another_cb",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_duel_runtime_interfaces.PagedLoraRuntimeTests.test_sampler_full_distribution_gradient_and_restored_next_lora_update",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_coordinator_shared_adapters.ScopedLoraTests.test_scoped_forecast_and_budget_loss_preserves_unlabelled_route_adapter",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_coordinator_shared_adapters.SharedBudgetTests.test_pair_runner_reserves_sampling_and_replay_before_starting_any_case",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_coordinator_shared_adapters.SharedBudgetTests.test_unit_supervisor_stops_before_next_allocated_game",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_coordinator_joint.JointAdapterAdmissionTests.test_complete_base_course_migrates_through_original_and_new_restore_checks",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_coordinator_joint.JointAdapterAdmissionTests.test_frozen_actor_survives_live_update_and_real_model_opponent_constructor_accepts_binding",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_integrated_course_migration.IntegratedMigrationTests.test_v5_nonempty_adam_and_aggregate_coordinator_compose_without_changing_old_course",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_course_feedback.CourseFeedbackTests.test_actual_coordinator_update_requires_explicit_index_bound_labels",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_course_feedback.CourseFeedbackTests.test_actual_two_build_role_updates_keep_bases_and_consume_exact_data_once",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_course_feedback.CourseFeedbackTests.test_consumption_restores_with_exact_models_and_rejects_tamper_or_replay",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_course_feedback.CourseFeedbackTests.test_heldout_and_other_experiment_reject_before_loss_or_parameter_update",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_course_feedback.CourseFeedbackTests.test_indexed_task_graph_preferences_update_shared_role_and_kernel_counters",
+      "status": "passed"
+    },
+    {
+      "test": "tests.test_course_feedback.CourseFeedbackTests.test_interrupted_update_records_pending_and_refuses_automatic_retry",
+      "status": "passed"
+    }
+  ],
+  "selected_case_count": 28,
+  "each_selected_case_has_passing_receipt": true,
+  "single_all_green_cohort_run": false,
+  "initial_failures": 2,
+  "test_target_lookup_errors": [
+    {
+      "test": "unittest.loader._FailedTest.test_shared_learner_rankers_receive_mechanisms_and_four_phase_binding",
+      "status": "error"
+    }
+  ],
+  "initial_failure_reason": "The intended partial-cycle fixture actually completed all four phases. Replaced it with a real unresolved cycle supplied at the controller boundary, then reran only that case.",
+  "production_source_hashes_identical_across_receipts": false,
+  "source_snapshot_groups": [
+    {
+      "receipt": "integration-tests.json",
+      "source_snapshot_sha256": "1c1c10738eaa56d3c69f095c99984c9bfc4e8bf96abeab30e035bc434c1af99c",
+      "tests_run": 4,
+      "failures": 1,
+      "errors": 0
+    },
+    {
+      "receipt": "integration-tests-20261028T020715987735Z.json",
+      "source_snapshot_sha256": "1c1c10738eaa56d3c69f095c99984c9bfc4e8bf96abeab30e035bc434c1af99c",
+      "tests_run": 1,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "receipt": "integration-tests-20261028T021015315322Z.json",
+      "source_snapshot_sha256": "1c1c10738eaa56d3c69f095c99984c9bfc4e8bf96abeab30e035bc434c1af99c",
+      "tests_run": 1,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "receipt": "integration-tests-20261028T021806662033Z.json",
+      "source_snapshot_sha256": "c1fd45909ef8dc3d37284e46b301ce94fc25537daef7b2f9c231b0bcc9cff788",
+      "tests_run": 9,
+      "failures": 0,
+      "errors": 1
+    },
+    {
+      "receipt": "integration-tests-20261028T021922707414Z.json",
+      "source_snapshot_sha256": "c1fd45909ef8dc3d37284e46b301ce94fc25537daef7b2f9c231b0bcc9cff788",
+      "tests_run": 1,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "receipt": "integration-tests-20261028T022220111459Z.json",
+      "source_snapshot_sha256": "302518042d3a1685eaf85170e3d5d4df8bb0423189a9c5055b0b92a3d837af97",
+      "tests_run": 1,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "receipt": "integration-tests-20261028T023744197654Z.json",
+      "source_snapshot_sha256": "78f53577b2ca3474f13017f5e9e1752701422ab6fb34cd7918c75b6b961d4412",
+      "tests_run": 2,
+      "failures": 0,
+      "errors": 1
+    },
+    {
+      "receipt": "integration-tests-20261028T024208906317Z.json",
+      "source_snapshot_sha256": "78f53577b2ca3474f13017f5e9e1752701422ab6fb34cd7918c75b6b961d4412",
+      "tests_run": 1,
+      "failures": 0,
+      "errors": 1
+    },
+    {
+      "receipt": "integration-tests-20261028T024750014940Z.json",
+      "source_snapshot_sha256": "78f53577b2ca3474f13017f5e9e1752701422ab6fb34cd7918c75b6b961d4412",
+      "tests_run": 10,
+      "failures": 0,
+      "errors": 3
+    },
+    {
+      "receipt": "integration-tests-20261028T025013349659Z.json",
+      "source_snapshot_sha256": "bab7857e2dd941144bbcfc2b1295439c8f46cba6caa21ee2bc81ff408febf043",
+      "tests_run": 4,
+      "failures": 1,
+      "errors": 0
+    },
+    {
+      "receipt": "integration-tests-20261028T025132613544Z.json",
+      "source_snapshot_sha256": "60276fedf28d0cb37ae636ad9f038a8ff2d3c72ebaef4cd4426f03c255f1bbb2",
+      "tests_run": 8,
+      "failures": 0,
+      "errors": 1
+    },
+    {
+      "receipt": "integration-tests-20261028T025308092405Z.json",
+      "source_snapshot_sha256": "ce7adb04b71b39579ca44e22a015b1f4145917e3d4ec6f4ed1f7f2a6095f2e7b",
+      "tests_run": 1,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "receipt": "integration-tests-20261028T025420916519Z.json",
+      "source_snapshot_sha256": "a71c6091d26bb1860df817bb0daf173a4e5a763f250e5049816c7a160fc58ebd",
+      "tests_run": 2,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "receipt": "integration-tests-20261028T025557325096Z.json",
+      "source_snapshot_sha256": "d07620dc094a4a0015b8d3fc546910b267a2e0a60fdb0de1e7226ac1c944b5e2",
+      "tests_run": 19,
+      "failures": 0,
+      "errors": 0
+    }
+  ],
+  "production_recorder_and_real_audit_subprocess_verified": true,
+  "linux_supervisor_daemon_and_formal_guard_verified": false,
+  "historical_missing_13_and_4_results_recovered": false,
+  "original_checkpoint16_restore_or_migration_executed": false,
+  "synthetic_full_course_migration_verified": true,
+  "published_to_pr8": false,
+  "receipt_files": [
+    "integration-tests.json",
+    "integration-tests-20261028T020715987735Z.json",
+    "integration-tests-20261028T021015315322Z.json",
+    "integration-tests-20261028T021806662033Z.json",
+    "integration-tests-20261028T021922707414Z.json",
+    "integration-tests-20261028T022220111459Z.json",
+    "integration-tests-20261028T023744197654Z.json",
+    "integration-tests-20261028T024208906317Z.json",
+    "integration-tests-20261028T024750014940Z.json",
+    "integration-tests-20261028T025013349659Z.json",
+    "integration-tests-20261028T025132613544Z.json",
+    "integration-tests-20261028T025308092405Z.json",
+    "integration-tests-20261028T025420916519Z.json",
+    "integration-tests-20261028T025557325096Z.json"
+  ],
+  "scope": "isolated synthetic fixtures grouped by source snapshot; actual new provider, six-second shared budget and forecast task-proof admission; real paged LoRA/Adam; strict pinned-legacy full-course migration; real recorder/audit subprocess; native engine and local Linux daemon unavailable; no checkpoint16 restore",
+  "final_cross_module_cohort": {
+    "receipt": "integration-tests-20261028T025557325096Z.json",
+    "tests_run": 19,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "passed": true
+  },
+  "unhandled_utf8_load_attempt": {
+    "tests_executed": 0,
+    "reason": "first direct invocation omitted -X utf8; default-codepage config load rejected; following invocations explicitly use UTF-8",
+    "raw_log_preserved": true
+  },
+  "publication_status": "denied_by_automatic_approval_review",
+  "linux_ci_status": "not_triggered_due_to_publication_denial",
+  "linux_live_guard_test_status": "implemented_not_executed_in_this_Windows_environment"
+}

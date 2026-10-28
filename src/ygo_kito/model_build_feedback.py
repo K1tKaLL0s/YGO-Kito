@@ -82,9 +82,21 @@ def validate_model_comparison(task,assets,value):
     return candidates
 
 
+def comparison_case_id(plan,index,seed,seat,namespace=None):
+    key=[digest(plan),index,seed,seat]
+    return 'cmp-'+digest(key if namespace is None else [namespace,*key])[:40]
+
+
+def comparison_dataset_id(binding,namespace=None):
+    return 'construction-eval-'+digest(binding if namespace is None else {'cycle':namespace,'binding':binding})[:24]
+
+
 def compare_model_candidates(task,assets,candidates,opponent,*,trainer,registry,bot,audit,workspace,
-                             seeds,directory,data_index,experiment_id,stop,status,seconds=7200.):
+                             seeds,directory,data_index,experiment_id,stop,status,seconds=7200.,artifact_namespace=None,budget=None):
     if not isinstance(trainer,CpuTrainer) or trainer.updates<1:raise ContractError('actual separately started duel base required')
+    if budget is not None:budget.check('paired_comparison_start')
+    if artifact_namespace is not None and (not isinstance(artifact_namespace,str) or not 1<=len(artifact_namespace)<=128):
+        raise ContractError('bounded comparison artifact namespace required')
     directory=Path(directory);directory.mkdir(parents=True,exist_ok=True)
     model_sha=parameter_digest(trainer.model)
     driver={'version':'frozen-learned-actor-audited-bot-v1','type':'actual_learned_neural_policy','trained_policy':True,
@@ -102,6 +114,25 @@ def compare_model_candidates(task,assets,candidates,opponent,*,trainer,registry,
     original_rng=torch.get_rng_state().clone();modes=[(m,m.training) for m in trainer.model.modules()]
     original_cursor=(trainer.updates,trainer.episode_cursor,trainer._pending_episode_digest)
     original_policy_rng=trainer.policy_rng.get_state().clone();started=time.monotonic();games=[]
+    engine_factory=assets.engine_factory
+    if budget is not None:
+        from contextlib import contextmanager
+        from .native import NativeNormalEngine
+        base_factory=engine_factory or NativeNormalEngine
+        @contextmanager
+        def engine_factory(*args,**kwargs):
+            with base_factory(*args,**kwargs) as engine:
+                original_next,original_submit=engine.next_decision,engine.submit
+                def next_decision(*a,**k):
+                    budget.check('paired_native_boundary')
+                    return original_next(*a,**k)
+                def submit(*a,**k):
+                    budget.check('paired_response_boundary')
+                    return original_submit(*a,**k)
+                engine.next_decision,engine.submit=next_decision,submit
+                try:yield engine
+                finally:engine.next_decision,engine.submit=original_next,original_submit
+
     try:
         for seed in seeds:
             for seat in (0,1):
@@ -109,14 +140,17 @@ def compare_model_candidates(task,assets,candidates,opponent,*,trainer,registry,
                     if stop.exists():raise RuntimeError('Safe stop before next complete paired case')
                     if time.monotonic()-started>=seconds:raise RuntimeError('Actual comparison time allocation exhausted; no label')
                     name='candidate-'+str(index)+'-seed-'+str(seed)+'-seat-'+str(seat)
+                    artifact_id=comparison_case_id(plan,index,seed,seat,artifact_namespace)
                     receipt_path=directory/(name+'.json');flight=directory/(name+'.in-flight.json')
                     if receipt_path.exists():
                         game=json.loads(receipt_path.read_text())
+                        if game.get('data_artifact_id')!=artifact_id:raise ContractError('saved comparison cycle identity differs')
                         closed=directory/(name+'.closed-flight.json')
                         if not closed.exists() or json.loads(closed.read_text()).get('receipt_sha256')!=digest(game):raise RuntimeError('Completed case lacks its closed immutable boundary')
                         data_index.artifact(game['data_artifact_id'],for_training=True)
                         games.append(game);continue
                     if flight.exists():raise RuntimeError('Uncertain case preserved; no automatic replay: '+name)
+                    if budget is not None:budget.check('paired_case_boundary',required=2*trainer.config.episode_seconds,allowance=seconds-(time.monotonic()-started))
                     status('paired_actual_frozen_model_game',case=name,completed_cases=len(games),total_cases=len(seeds)*4)
                     profile=profile_for_case(candidate,opponent,seat,assets.adapter_revision);assets.validate_profile(profile)
                     adapter=registry.training_adapter(bot['executor_id'],source_id=bot['source_id'],native_root=assets.root,profile=profile,
@@ -128,12 +162,12 @@ def compare_model_candidates(task,assets,candidates,opponent,*,trainer,registry,
                     current.episode_cursor=trainer.config.game_seeds.index(seed);current._pending_episode_digest=None
                     rng_seed=int(digest({'seed':seed,'seat':seat,'model':model_sha,'purpose':'construction_train'})[:16],16)%(2**63-1)
                     current.policy_rng=torch.Generator(device='cpu').manual_seed(rng_seed)
+                    if budget is not None:budget.in_flight=True
                     write(flight,{'plan_sha256':digest(plan),'status':'sampling_no_automatic_replay'})
-                    episode=current.sample_episode(assets.root,profile,purpose='train',opponent_adapter=adapter,engine_factory=assets.engine_factory)
+                    episode=current.sample_episode(assets.root,profile,purpose='train',opponent_adapter=adapter,engine_factory=engine_factory)
                     trace=episode['_private_audit'];write(directory/(name+'.private-replay.json'),trace)
-                    replay=replay_private(assets.root,trace,engine_factory=assets.engine_factory)
-                    binding=episode['summary']['opponent_binding'];dataset_id='construction-eval-'+digest(binding)[:24]
-                    artifact_id='cmp-'+digest([digest(plan),index,seed,seat])[:40]
+                    replay=replay_private(assets.root,trace,engine_factory=engine_factory)
+                    binding=episode['summary']['opponent_binding'];dataset_id=comparison_dataset_id(binding,artifact_namespace)
                     data_index.freeze({'dataset_id':dataset_id,'experiment_id':experiment_id,'purpose':'train','family':'duel',
                         'versions':task.environment['versions'],'opponents':[binding],'task_sha256':None})
                     data_index.ingest_episode(dataset_id,artifact_id,episode);data_index.admit_episode(artifact_id,episode)
@@ -144,6 +178,7 @@ def compare_model_candidates(task,assets,candidates,opponent,*,trainer,registry,
                           'replay_verified':replay['replay_verified'],'policy_sha256':model_sha,'data_artifact_id':artifact_id}
                     write(receipt_path,game);write(flight,{'plan_sha256':digest(plan),'receipt_sha256':digest(game),'private_trace_sha256':digest(trace),'replay_verified':True})
                     flight.rename(directory/(name+'.closed-flight.json'));games.append(game)
+                    if budget is not None:budget.in_flight=False
                     write(directory/'progress.json',{'completed_cases':len(games),'total_cases':len(seeds)*4,'last_case':name,'formal_course_credit':False})
         if parameter_digest(trainer.model)!=model_sha or original_cursor!=(trainer.updates,trainer.episode_cursor,trainer._pending_episode_digest):
             raise ContractError('frozen comparison changed actual driver weights/cursors')

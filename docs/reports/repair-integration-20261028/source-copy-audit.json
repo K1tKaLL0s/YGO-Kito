@@ -1,0 +1,62 @@
+{
+  "utc": "2026-10-28T01:59:47.462056+00:00",
+  "argv": [
+    "E:\\CodexData\\2026-10-28\\task-13\\import_source_snapshot.py",
+    "copy"
+  ],
+  "source_cache": "N:\\YGO-Kito\\_local_cpu_20261027\\github-source",
+  "destination": "E:\\CodexData\\2026-10-28\\task-13\\integration",
+  "remote_head": "5cf3dc1ca189e794a5bd5a915b2e24a0070a4095",
+  "remote_tree": "9376d994c733862461029e622a026787b4cadcaf",
+  "git_metadata_copied": false,
+  "source_writes": false,
+  "formal_training_runs": 0,
+  "copied": 748,
+  "mismatches": [
+    {
+      "path": "artifacts/checkpoints/20261027-local-foundation-003.manifest.json",
+      "expected_blob": "8708584c9312ef5fac2cf2197494e076bf67af7a",
+      "cached_blob": "009efcbe7af6105fff2783c911fa201895a5f10a"
+    },
+    {
+      "path": "artifacts/checkpoints/20261027-local-foundation-003.sha256",
+      "expected_blob": "88d752b8510f2822b5198ec97e1455f475589df9",
+      "cached_blob": "d7c36c9cd3380c22536bb669c221e2cd916a8c5d"
+    },
+    {
+      "path": "scripts/local-training.ps1",
+      "expected_blob": "0712bb82939f34a1670916e559b364087675fdf0",
+      "cached_blob": "53b57b003907cc65d7e09d33a8977d3652d99c81"
+    },
+    {
+      "path": "scripts/local_training_worker.py",
+      "expected_blob": "31abd76ad5bcba125866332fffaa61240ca927c5",
+      "cached_blob": "a442003fa68974b03801764f52043d693048b49d"
+    },
+    {
+      "path": "src/ygo_kito/autonomous_construction.py",
+      "expected_blob": "4a617cfb1561d09d490527faa61ca9e78906edba",
+      "cached_blob": "baeec87f345703c0baae2b0edec6d3910e21d040"
+    },
+    {
+      "path": "src/ygo_kito/construction_controller.py",
+      "expected_blob": "2a670e6947e424594c1e9240bd07c6ccb6f045ea",
+      "cached_blob": "6766802dcb3aff4fa9acfb4cd3bf1760fb12ac5b"
+    },
+    {
+      "path": "src/ygo_kito/construction_fill.py",
+      "expected_blob": "59505c63b16e87a4fd5f831defa46f2671ad31e2",
+      "cached_blob": "4739a91f86284d47e5d4b228ed64ae86ab40d59f"
+    },
+    {
+      "path": "src/ygo_kito/construction_model.py",
+      "expected_blob": "1e274c2326fd21d92b9a10043a0cd4e9f710f285",
+      "cached_blob": "06f4d6fd51b9d74c8b3beda277c417e620974bc4"
+    },
+    {
+      "path": "tests/test_construction_logic.py",
+      "expected_blob": "1321bf1e062e7568e6a9a16cd5ae8c25d1c418b7",
+      "cached_blob": "d5fe30bf3edb51b9cce8c4d942ac2d868e7d1d9c"
+    }
+  ]
+}

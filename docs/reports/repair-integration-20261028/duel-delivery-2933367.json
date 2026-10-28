@@ -1,0 +1,166 @@
+{
+  "utc": "2026-10-28T02:19:27.212147+00:00",
+  "reviewed_target_commit": "2933367dc0329872688a48eaaed3c83155124d5e",
+  "strategy": "Apply only the current cumulative duel-planning-repair.patch. Its final blobs include both other delivered patches.",
+  "apply_followup_separately": false,
+  "apply_runtime_separately": false,
+  "all_followup_final_blobs_are_in_cumulative": {
+    "duel-planning-followup.patch": true,
+    "duel-runtime-interfaces-fix.patch": true
+  },
+  "files": {
+    "duel-planning-repair.patch": {
+      "sha256": "5abe253c7c1795e9df6e8494fbe3c736087f8a669b7e311564f71f438db6db93",
+      "entries": {
+        "docs/development/duel-effect-limit-interface.md": {
+          "base": "0000000",
+          "final": "87471ea"
+        },
+        "docs/plans/MASTER-CHECKLIST.md": {
+          "base": "5277c17",
+          "final": "f01d860"
+        },
+        "docs/reports/2026-10-28-duel-online-planning.md": {
+          "base": "0000000",
+          "final": "4047072"
+        },
+        "docs/reports/2026-10-28-duel-planning-validation.json": {
+          "base": "0000000",
+          "final": "5f9a3fa"
+        },
+        "src/ygo_kito/course_game_adapter.py": {
+          "base": "eb2551c",
+          "final": "a219fc5"
+        },
+        "src/ygo_kito/cpu_training.py": {
+          "base": "2f0cdf0",
+          "final": "6360469"
+        },
+        "src/ygo_kito/duel_effect_limits.py": {
+          "base": "0000000",
+          "final": "d7bbcdb"
+        },
+        "src/ygo_kito/duel_planning.py": {
+          "base": "0000000",
+          "final": "e1b5fe4"
+        },
+        "src/ygo_kito/lora_group.py": {
+          "base": "01803e1",
+          "final": "aad08e7"
+        },
+        "src/ygo_kito/scenario_course.py": {
+          "base": "180a203",
+          "final": "c953bfa"
+        },
+        "tests/test_course_game_adapter.py": {
+          "base": "b79a14a",
+          "final": "6f93804"
+        },
+        "tests/test_duel_effect_limits.py": {
+          "base": "0000000",
+          "final": "cbcd312"
+        },
+        "tests/test_duel_planning.py": {
+          "base": "0000000",
+          "final": "3908e96"
+        },
+        "tests/test_duel_runtime_interfaces.py": {
+          "base": "0000000",
+          "final": "1496ec2"
+        },
+        "tests/test_scenario_course.py": {
+          "base": "9675206",
+          "final": "d43c9eb"
+        }
+      }
+    },
+    "duel-planning-followup.patch": {
+      "sha256": "c7b7f51b6b18237da1a4dcf07dc23a7b2f7ebc5a5cd8a3c8cc6ba7dd1d2e3451",
+      "entries": {
+        "docs/development/duel-effect-limit-interface.md": {
+          "base": "0000000",
+          "final": "87471ea"
+        },
+        "docs/reports/2026-10-28-duel-online-planning.md": {
+          "base": "5a4c9fe",
+          "final": "4047072"
+        },
+        "docs/reports/2026-10-28-duel-planning-validation.json": {
+          "base": "a7133eb",
+          "final": "5f9a3fa"
+        },
+        "src/ygo_kito/course_game_adapter.py": {
+          "base": "d3a1495",
+          "final": "a219fc5"
+        },
+        "src/ygo_kito/cpu_training.py": {
+          "base": "0cc3660",
+          "final": "6360469"
+        },
+        "src/ygo_kito/duel_effect_limits.py": {
+          "base": "0000000",
+          "final": "d7bbcdb"
+        },
+        "src/ygo_kito/duel_planning.py": {
+          "base": "07d5a2a",
+          "final": "e1b5fe4"
+        },
+        "src/ygo_kito/lora_group.py": {
+          "base": "23941e5",
+          "final": "aad08e7"
+        },
+        "src/ygo_kito/scenario_course.py": {
+          "base": "be3d459",
+          "final": "c953bfa"
+        },
+        "tests/test_course_game_adapter.py": {
+          "base": "a7ff070",
+          "final": "6f93804"
+        },
+        "tests/test_duel_effect_limits.py": {
+          "base": "0000000",
+          "final": "cbcd312"
+        },
+        "tests/test_duel_planning.py": {
+          "base": "2eccde2",
+          "final": "3908e96"
+        },
+        "tests/test_duel_runtime_interfaces.py": {
+          "base": "0000000",
+          "final": "1496ec2"
+        }
+      }
+    },
+    "duel-runtime-interfaces-fix.patch": {
+      "sha256": "6302e4a01ee0554cc8bb0dba40b6070bb4fbd29406ec805fc6a25ed984800036",
+      "entries": {
+        "docs/reports/2026-10-28-duel-online-planning.md": {
+          "base": "d0872e5",
+          "final": "4047072"
+        },
+        "docs/reports/2026-10-28-duel-planning-validation.json": {
+          "base": "cdc41ff",
+          "final": "5f9a3fa"
+        },
+        "src/ygo_kito/duel_planning.py": {
+          "base": "f4f02ec",
+          "final": "e1b5fe4"
+        },
+        "src/ygo_kito/lora_group.py": {
+          "base": "23941e5",
+          "final": "aad08e7"
+        },
+        "src/ygo_kito/scenario_course.py": {
+          "base": "be3d459",
+          "final": "c953bfa"
+        },
+        "tests/test_duel_runtime_interfaces.py": {
+          "base": "0000000",
+          "final": "1496ec2"
+        }
+      }
+    }
+  },
+  "superseded_repair_sha256_at_initial_intake": "e1cd2d5a89c8cdefe4087cc1300db85009219753375ca6ab76451a22f74aed8c",
+  "superseded_followup_sha256_at_initial_intake": "d67c803ca4e5716cf38428fa8b6a6bf2b7ea954bf3dbec7d42663ae834a3ddcd"
+}

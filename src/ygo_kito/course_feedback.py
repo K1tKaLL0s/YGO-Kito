@@ -101,7 +101,7 @@ class CourseFeedbackUpdater:
         if self.learning_stage != "base": return self._sessions[role]
         rng = self.models.builder.batch_rng if role in BUILD_ROLES else self.models.coordinator.batch_rng
         return SimpleNamespace(model=self._role_models[role],rng=rng)
-    def _base_step(self,feedback_id,artifact,request_sha,content_key,role,update_factory,*,label_source):
+    def _base_step(self,feedback_id,artifact,request_sha,content_key,role,update_factory,*,label_source,graph_objective=False):
         model=self._role_models[role];before=parameter_digest(model)
         self.pending={"feedback_id":feedback_id,"artifact_id":artifact["artifact_id"],"role":role,"before_sha256":before,"learning_stage":"base","outcome":"started"}
         try:
@@ -109,16 +109,16 @@ class CourseFeedbackUpdater:
             if before == after: raise ContractError("base feedback did not change parameters")
             if role in BUILD_ROLES:
                 self.models.builder.batch_cursor=max(self.models.builder.updates.values())
-                self.models.kernel.record_update(role,before_sha256=before,after_sha256=after)
+                self.models.kernel.record_update(role,before_sha256=before,after_sha256=after,graph_objective=graph_objective)
             result={"feedback_id":feedback_id,"artifact_id":artifact["artifact_id"],"role":role,"artifact_payload_sha256":artifact["payload_sha256"],"request_sha256":request_sha,"content_key":content_key,"before_sha256":before,"after_sha256":after,"label_source":label_source,"indexed_purpose":"train","learning_stage":"base","update":update,"ability_verified":False,"quality_inferred_from_single_duel":False}
             self.consumed.append(result);self.pending=None;return deepcopy(result)
         except Exception:
             self.pending["outcome"]="failed_or_uncertain_do_not_replay";self.pending["after_sha256"]=parameter_digest(model);raise
-    def _step(self,feedback_id,artifact,request_sha,content_key,role,loss_factory,*,label_source):
+    def _step(self,feedback_id,artifact,request_sha,content_key,role,loss_factory,*,label_source,graph_objective=False):
         if self.learning_stage == "base":
             if role not in BUILD_ROLES: raise ContractError("coordinator base feedback requires logged supervision updater")
             loss=loss_factory()
-            return self._base_step(feedback_id,artifact,request_sha,content_key,role,lambda:self.models.builder._apply(role,loss),label_source=label_source)
+            return self._base_step(feedback_id,artifact,request_sha,content_key,role,lambda:self.models.builder._apply(role,loss),label_source=label_source,graph_objective=graph_objective)
         session=self._sessions[role]
         before=parameter_digest(session.model)
         # Validation/loss construction does not consume an update. Only the
@@ -131,7 +131,7 @@ class CourseFeedbackUpdater:
             after=parameter_digest(session.model)
             if before==after:raise ContractError("actual feedback session did not change role parameters")
             if role in BUILD_ROLES and getattr(self.models,"kernel",None) is not None:
-                self.models.kernel.record_update(role,before_sha256=before,after_sha256=after)
+                self.models.kernel.record_update(role,before_sha256=before,after_sha256=after,graph_objective=graph_objective)
             result={"feedback_id":feedback_id,"artifact_id":artifact["artifact_id"],"role":role,
                 "artifact_payload_sha256":artifact["payload_sha256"],"request_sha256":request_sha,
                 "content_key":content_key,"before_sha256":before,"after_sha256":after,
@@ -207,7 +207,7 @@ class CourseFeedbackUpdater:
         request_sha,keys=self._prepare(feedback_id,artifact,request,(role,))
         return self._step(feedback_id,artifact,request_sha,keys[role],role,
             lambda:kernel.graph_preference_loss(selection,preferred_index,role=role,source=source,purpose="train")["loss"],
-            label_source="explicit_admitted_host_graph_preference_not_automatic_strength")
+            label_source="explicit_admitted_host_graph_preference_not_automatic_strength",graph_objective=True)
 
     def state_dict(self):
         self._check()

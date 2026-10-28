@@ -173,6 +173,8 @@ def evaluate_fill(session, assets, proposal, *, scopes=(), text_reviewer=None, v
             output["best_deck"] = deepcopy(prior["deck"])
             output["fallback"] = without_private_selection_key(prior)
         session.record_feedback("fill", message)
+        from .construction_candidates import record_fill_observation
+        record_fill_observation(session,proposal,output)
         return output
 
     axes = select_main_axes(task, assets, session.classification, scopes)
@@ -261,13 +263,14 @@ def evaluate_fill(session, assets, proposal, *, scopes=(), text_reviewer=None, v
 
 
 def fill_with_existing(session, assets, *, role="build_goal", base=None, models=None, encoder=None,
-                       binding_provider=None, text_reviewer=None, scopes=(), verifier=existing_goal_verifier, defer_engine=False):
+                       binding_provider=None, text_reviewer=None, scopes=(), verifier=existing_goal_verifier, defer_engine=False,mechanism_groups=None):
     """Reuse existing fill/quantity generation and independent model ranking.
 
     Concrete CatalogBindingAdapter/LogicModelAdapter implementations can supply
     the providers. This fill function performs selection/checks, not training.
     """
     from .build_pipeline import edit_candidates, goal_candidates
+    from .construction_candidates import retained_order, attributed_feedback
     member(role, "fill role", ("build_goal", "build_optimizer"))
     session.check_goal()
     if session.logic is None:
@@ -275,6 +278,7 @@ def fill_with_existing(session, assets, *, role="build_goal", base=None, models=
     if binding_provider is None:
         return {"status": "binding_provider_unavailable", "training_status": "engineering_untrained", "best_deck": None}
     task = session.task
+    feedback=attributed_feedback(session)
     axes = select_main_axes(task, assets, session.classification, scopes)
     if axes["status"] not in ("selected", "skipped_broad"):
         return {"status": axes["status"], "stage_2": axes, "best_deck": None}
@@ -283,10 +287,12 @@ def fill_with_existing(session, assets, *, role="build_goal", base=None, models=
     if role == "build_goal" and base is not None and task.goal["kind"] == "deck_constraints" and assets.accepts(task,base):
         # Existing valid lists can start from bounded old edits without requiring
         # the optional MILP solver used for construction from an empty list.
-        candidates = edit_candidates(task,assets,base)
+        candidates = edit_candidates(task,assets,base,feedback=feedback,return_portfolio=True,mechanism_groups=mechanism_groups)
     else:
-        candidates = (goal_candidates(task, assets, base) if role == "build_goal"
-                      else edit_candidates(task, assets, base, require_edit=False))
+        candidates = (goal_candidates(task, assets, base,feedback=feedback,return_portfolio=True,mechanism_groups=mechanism_groups) if role == "build_goal"
+                      else edit_candidates(task, assets, base, require_edit=False,feedback=feedback,return_portfolio=True,mechanism_groups=mechanism_groups))
+    portfolio_rows=candidates
+    candidates=[row["deck"] for row in portfolio_rows]
     scores, ranking = [0.] * len(candidates), "engineering_order_untrained"
     if models is not None:
         if encoder is None or role not in models:
@@ -299,8 +305,8 @@ def fill_with_existing(session, assets, *, role="build_goal", base=None, models=
             if len(scores) != len(candidates) or any(not math.isfinite(s) for s in scores):
                 raise ContractError("invalid existing model candidate scores")
         ranking = "existing_role_model_uncalibrated"
-    results = []
-    for index in sorted(range(len(candidates)), key=lambda i: -scores[i]):
+    results, retained, selected = [], [], None
+    for index in retained_order(portfolio_rows,scores,feedback,task.sha256):
         try:
             proposal = binding_provider(session.logic, task, candidates[index])
         except ContractError as error:
@@ -313,15 +319,45 @@ def fill_with_existing(session, assets, *, role="build_goal", base=None, models=
         result.update(role=role, ranking=ranking, model_score_uncalibrated=scores[index])
         results.append(result)
         if result["status"] in ("task_goal_verified_logic_unproven", "list_constraints_verified_logic_unproven", "concrete_candidate_cb_pending"):
-            return {"status": result["status"], "best_deck": result["best_deck"], "attempts": results,
-                    "ranking": ranking, "graph_execution_verified": False}
+            if selected is None:selected=len(results)-1
+            row=portfolio_rows[index]
+            retained.append({"deck":candidates[index].to_dict(),"logic":session.logic.to_dict(),
+                "logic_sha256":session.logic.sha256,"goal_sha256":session.goal_sha256,
+                "strategy":row["strategy"],"changes":row["changes"],
+                "proposal_basis":row.get("proposal_basis","bounded_listing_or_single_edit"),
+                "proposal_source":row.get("proposal_source"),
+                "protected_package":deepcopy(row.get("protected_package")),
+                "model_score_uncalibrated":scores[index],"strength_status":"unknown",
+                "concrete_proposal":result.get("concrete_proposal")})
+            if len(retained)>=(3 if defer_engine else 1):break
+    if selected is not None:
+        best=results[selected]
+        return {"status":best["status"],"best_deck":best["best_deck"],"attempts":results,
+                "selected_attempt_index":selected,"portfolio":retained,
+                "ranking":ranking,"graph_execution_verified":False}
     return {"status": "no_verified_fill_within_candidates", "best_deck": results[-1]["best_deck"] if results else None,
             "attempts": results, "ranking": ranking, "graph_execution_verified": False}
 
 
+def _candidate_basic_cb(task,deck,assets,provider):
+    subject=digest(deck.to_dict())
+    if provider is None:
+        result={"kind":"basic_cb_inference_after_construction","status":"not_run","routes":[],
+                "inference_completed":False,"unknown_is_not_negative":True}
+    else:
+        result=deepcopy(provider(task,deck,assets))
+        if not isinstance(result,dict) or not isinstance(result.get("status"),str):
+            raise ContractError("basic CB provider must return a scoped inference result")
+    if (result.get("subject_deck_sha256",subject)!=subject or result.get("task_sha256",task.sha256)!=task.sha256):
+        raise ContractError("basic CB result belongs to a different task/deck")
+    result.update(subject_deck_sha256=subject,task_sha256=task.sha256,
+                  inference_scope="basic_cb_for_constructed_deck_not_whole_graph_acceptance")
+    return result
+
+
 def construction_cycle(session, assets, providers, *, scopes=(), base=None, models=None, encoder=None,
-                       binding_provider=None, text_reviewer=None, verifier=existing_goal_verifier):
-    """Pass four concrete outputs in order, then verify only the final candidate.
+                       binding_provider=None, text_reviewer=None, verifier=existing_goal_verifier,basic_cb_provider=None,mechanism_groups=None):
+    """Pass four concrete outputs in order, then infer basic CB for the constructed deck.
 
     The working candidate is distinct from a deployed incumbent. An incumbent
     cannot replace a phase handoff or lend its old CB proof to the final output.
@@ -348,13 +384,14 @@ def construction_cycle(session, assets, providers, *, scopes=(), base=None, mode
         if phase["stage_2"]["status"] not in ("selected","skipped_broad"):
             session.record_feedback("fill","theme-axis unresolved: "+phase["stage_2"]["status"]);break
         result=fill_with_existing(session,assets,role=role,base=current,models=models,encoder=encoder,
-            binding_provider=binding_provider,text_reviewer=text_reviewer,scopes=scopes,verifier=None,defer_engine=True)
+            binding_provider=binding_provider,text_reviewer=text_reviewer,scopes=scopes,verifier=None,defer_engine=True,
+            mechanism_groups=mechanism_groups)
         phase["stage_3"]=result
         session.history.append({"stage":3,"role":role,"logic_sha256":graph.sha256,
                                 "goal_sha256":session.goal_sha256,"result":deepcopy(result)})
         if result["status"]!="concrete_candidate_cb_pending":
             session.record_feedback(role,"concrete fill unresolved: "+result["status"]);break
-        last=result["attempts"][-1]
+        last=result["attempts"][result.get("selected_attempt_index",-1)]
         final_proposal=FillProposal.from_dict(last["concrete_proposal"])
         proposal=final_proposal.deck
         phase["proposal_deck"]=proposal.to_dict()
@@ -369,23 +406,40 @@ def construction_cycle(session, assets, providers, *, scopes=(), base=None, mode
         session.record_feedback(role,"concrete output passed to next phase; changes "+str(phase["proposal_changes"])+
             "; CB deferred until after all four phases; competitive comparison pending")
     complete=len(phases)==4 and all(p.get("stage_3",{}).get("status")=="concrete_candidate_cb_pending" for p in phases)
-    candidate=None;cb=None;verified=False
+    candidate=None;cb=None;verified=False;retained_candidates=[]
     if complete:
-        if final_proposal.logic_sha256!=session.logic.sha256 or final_proposal.deck.to_dict()!=phases[-1]["proposal_deck"]:
-            raise ContractError("final CB must bind the final optimizer's exact graph and deck")
-        cb=evaluate_fill(session,assets,final_proposal,scopes=scopes,text_reviewer=text_reviewer,verifier=verifier)
+        if final_proposal.deck.to_dict()!=phases[-1]["proposal_deck"]:
+            raise ContractError("basic CB input must be the constructed deck")
+        task_validation=evaluate_fill(session,assets,final_proposal,scopes=scopes,text_reviewer=text_reviewer,verifier=verifier)
+        cb=_candidate_basic_cb(session.task,current,assets,basic_cb_provider)
         accepted=("task_goal_verified_logic_unproven","list_constraints_verified_logic_unproven")
-        verified=cb["status"] in accepted and cb["best_deck"]==current.to_dict()
-        validation={"status":cb["status"],"best_deck":current.to_dict() if verified else None,
-                    "attempts":[cb],"ranking":"final_optimizer_candidate_after_four_handoffs","graph_execution_verified":False}
+        verified=task_validation["status"] in accepted and task_validation["best_deck"]==current.to_dict()
+        validation={"status":task_validation["status"],"best_deck":current.to_dict() if verified else None,
+                    "attempts":[task_validation],"ranking":"constructed_deck_after_four_handoffs","graph_execution_verified":False}
         candidate={"deck":current.to_dict(),"logic":session.logic.to_dict(),"logic_sha256":session.logic.sha256,
-                   "validation":validation,"goal_sha256":session.goal_sha256}
-        session.history.append({"stage":"final_cb","kind":"construction_final_candidate","role":"build_optimizer",
+                   "validation":validation,"goal_sha256":session.goal_sha256,"task_verified":verified,
+                   "basic_cb":cb,"cb_verified":cb.get("status")=="routes_inferred" and bool(cb.get("routes"))}
+        accepted_fill=deepcopy(session._accepted_fill)
+        # Every retained option is a concrete output of the fourth role. Infer
+        # its basic CB after the same four handoffs, before any quality label.
+        for row in phases[-1]["stage_3"].get("portfolio",[]):
+            proposal=FillProposal.from_dict(row["concrete_proposal"])
+            proof=task_validation if proposal.deck==current else evaluate_fill(session,assets,proposal,
+                scopes=scopes,text_reviewer=text_reviewer,verifier=verifier)
+            inference=cb if proposal.deck==current else _candidate_basic_cb(session.task,proposal.deck,assets,basic_cb_provider)
+            good=proof["status"] in accepted and proof["best_deck"]==row["deck"]
+            retained_candidates.append({**deepcopy(row),"basic_cb":inference,"task_verified":good,
+                "cb_verified":inference.get("status")=="routes_inferred" and bool(inference.get("routes")),
+                "validation":{"status":proof["status"],"best_deck":row["deck"] if good else None,
+                              "attempts":[proof],"graph_execution_verified":False}})
+        session._accepted_fill=accepted_fill
+        session.history.append({"stage":"basic_cb","kind":"construction_construction_candidate","role":"build_optimizer",
             "goal_sha256":session.goal_sha256,"candidate":deepcopy(candidate),"verified_for_task":verified})
-        if not verified:session.record_feedback("cb","final optimizer candidate CB unresolved: "+cb["status"])
+        if not verified:session.record_feedback("fill","construction task unresolved: "+task_validation["status"])
     return {"status":"task_checked_candidate" if verified else "construction_unresolved","phases":phases,
         "best":deepcopy(candidate) if verified else None,"verified_best":deepcopy(candidate) if verified else None,
-        "final_candidate":candidate,"final_cb":cb,"deployment_incumbent":incumbent,
+        "construction_candidate":candidate,"basic_cb":cb,"retained_candidates":retained_candidates,"deployment_incumbent":incumbent,
+        "task_verified":verified,"cb_verified":bool(candidate and candidate["cb_verified"]),
         "incumbent_verified_for_task":False,"latest_logic_sha256":session.logic.sha256 if session.logic else None,
         "goal_sha256":session.goal_sha256,"graph_execution_verified":False,"alternation_completed":complete,
         "competitive_improvement_verified":False,"deployment_acceptance":"independent_comparison_pending" if incumbent else "initial_candidate_only",
