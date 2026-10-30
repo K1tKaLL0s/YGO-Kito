@@ -302,6 +302,8 @@ class ConstructionSession:
         context = {"request": self.request, "goal_sha256": self.goal_sha256,
                    "task": self.task.to_dict(), "logic": self.logic.to_dict() if self.logic else None,
                    "feedback": [dict(f) for f in self.feedback], "role": role}
+        from .construction_candidates import attributed_feedback
+        context["attributed_feedback"]=attributed_feedback(self)
         proposal = fields(provider(context), {"logic", "reason"})
         self.check_goal()
         self.submit_logic(ConstructionLogic.from_dict(proposal["logic"]), role=role, reason=proposal["reason"])

@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "version": "actual-declared-goal-auxiliary-v1",
+  "registered_utc": "2026-10-27T22:29:16.277340+00:00",
+  "registration_scope": "after_historical_games_before_auxiliary_value_extraction_not_independent_acceptance",
+  "declared_goal": {
+    "constraints": [
+      {
+        "id": "public-pearl-main-axis",
+        "maximum": 60,
+        "minimum": 12,
+        "predicate": {
+          "field": "setcode",
+          "value": 385
+        },
+        "zones": [
+          "main"
+        ]
+      },
+      {
+        "id": "public-pearl-extra-axis",
+        "maximum": 15,
+        "minimum": 3,
+        "predicate": {
+          "field": "setcode",
+          "value": 385
+        },
+        "zones": [
+          "extra"
+        ]
+      },
+      {
+        "id": "autonomous-axis",
+        "maximum": 75,
+        "minimum": 1,
+        "predicate": {
+          "field": "setcode",
+          "value": 385
+        },
+        "zones": [
+          "main",
+          "extra"
+        ]
+      }
+    ],
+    "kind": "deck_constraints",
+    "preferences": [],
+    "required_activations": [
+      73956664,
+      74078255
+    ],
+    "required_chain_resolutions": [
+      73956664,
+      74078255
+    ],
+    "route_goal": {
+      "card_id": 92731385,
+      "fusion_witness": {
+        "allowed_destination_zones": [
+          1
+        ],
+        "effect_assessments": [
+          {
+            "card_id": 74078255,
+            "cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+            "effect_text_sha256": "d5227c9f2d731f0702794e3653c575b53de5bd9a91469feb690c27dc2921dd2c",
+            "note": "Only the quoted function is reviewed; activation conditions and execution require actual core evidence.",
+            "quote": "融合怪兽卡决定的包含墓地的这张卡的融合素材怪兽从自己的手卡·场上·墓地用喜欢的顺序回到持有者卡组下面，把那1只融合怪兽从额外卡组融合召唤。",
+            "source": "host-public-card-text-review:pearl-20261027-v1",
+            "status": "satisfied",
+            "tag": {
+              "dimension": "effect_type",
+              "value": "fusion_summon"
+            }
+          }
+        ],
+        "minimum_materials": 2,
+        "required_source_zones": [
+          16
+        ]
+      },
+      "kind": "fusion_summon",
+      "starting_conditions": {
+        "player": 0,
+        "requires_opening_hand": [
+          73956664
+        ],
+        "turn": 1
+      }
+    }
+  },
+  "task_sha256": "b0323b78dcbd281e5435a936020c99706acba898df7957cdf688aae87b39b1f5",
+  "primary_outcome_unchanged": true,
+  "goal_metric": "declared_terminal_subgoal_joint_actual_event_witness",
+  "stability_metric": "same_terminal_subgoal_before_end_of_first_actor_turn_under_natural_opening",
+  "opening_condition": "report_original_conditional_goal_start_separately_never_force_or_infer_opening_hand",
+  "interruption_metric": "observed_own_chain_negation_then_verified_goal_recovery_only_if_link_attribution_available",
+  "resource_metric": "actual_engine_card_cost_move_events_up_to_verified_goal_collection_only_until_resource_recovery_accounted",
+  "unknown_is_not_negative": true,
+  "unsupported_is_not_zero": true,
+  "field_count_or_atk_quality_labels": false,
+  "preference_rule": "primary_outcome_must_not_regress_then_paired_auxiliary_Pareto_consistency_with_support_from_at_least_two_seeds_no_arbitrary_weights",
+  "required_conditions": [
+    "same_frozen_driver",
+    "same_opponent",
+    "same_paired_seed_and_actor_seat",
+    "natural_terminal_and_private_replay_verified",
+    "full_comparison_complete"
+  ],
+  "competitive_ability_validated": false,
+  "reference_decks_used": false,
+  "plan_sha256": "6377c96a5f1a9b3c2a561bf9244a7abcfa2e8d1a11359be9276773079dd6c104"
+}

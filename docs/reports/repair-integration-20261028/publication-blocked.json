@@ -1,0 +1,28 @@
+{
+  "action": "GitHub create_tree for existing PR8 branch update",
+  "target": "K1tKaLL0s/YGO-Kito:codex/cloudstudio-foundation-20261027",
+  "pr_url": "https://github.com/K1tKaLL0s/YGO-Kito/pull/8",
+  "status": "denied_by_automatic_approval_review",
+  "attempts": 2,
+  "known_not_executed": true,
+  "branch_updated": false,
+  "new_ci_triggered": false,
+  "first_reason": "potentially private code/documentation tree; destination and trusted user publishing authorization considered unverified",
+  "read_only_new_evidence": {
+    "repository_id": 1428616965,
+    "visibility": "public",
+    "owner_and_authenticated_login": "K1tKaLL0s",
+    "push_permission": true,
+    "pr_draft": true,
+    "head_sha": "5cf3dc1ca189e794a5bd5a915b2e24a0070a4095"
+  },
+  "second_reason": "repository ownership verified, but approval review still requires a trusted direct user message authorizing this publication",
+  "workaround_attempted": false,
+  "remaining_action": "verify complete tree identity, update the existing ref with a lease, and read corresponding CI; original denied attempts remain historical",
+  "prior_denial_resolved": true,
+  "new_direct_user_authorization": {
+    "utc": "2026-10-28T03:11:48Z",
+    "scope": "this integrated code and documentation to the same public draft PR8; no merge, training or additional assets"
+  },
+  "original_create_tree_path_approved_after_confirmation": true
+}

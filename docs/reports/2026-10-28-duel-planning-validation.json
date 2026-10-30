@@ -1,0 +1,154 @@
+{
+  "kind": "isolated-duel-planning-targeted-validation",
+  "date": "2026-10-28",
+  "branch": "codex/duel-online-planning-20261028",
+  "baseline_commit": "74fb123268cdf757f69c2a2c6a77f107c6541c71",
+  "baseline_parent": "c1157ca5add6c29149eccf7106226b1099e63d8c",
+  "source_snapshot_reference": "formal-course-source-pack-008.json",
+  "snapshot_archive_sha256": "0022fb8755cc20642dcac32ed00066a239b208a86cc86c8d74f03616c8aa90c0",
+  "snapshot_comparison": {
+    "current_source_preexisting_difference": ["src/ygo_kito/construction_fill.py"],
+    "that_file_modified_by_repair": false,
+    "original_source_8_related_files_still_match_snapshot_008_after_repair": true,
+    "related_original_files": ["course_game_adapter.py", "cpu_training.py", "lora_group.py", "scenario_course.py", "duel_model.py", "hierarchical_policy.py", "route_search.py", "native_response_guard.py"]
+  },
+  "checks": [
+    {
+      "environment": "existing Windows CPU Python 3.12.1",
+      "command": "python -m unittest tests.test_duel_planning tests.test_duel_model tests.test_course_game_adapter -q",
+      "tests": 34,
+      "initial_passed": 33,
+      "initial_failed": 1,
+      "initial_failure": "Cross-player rejection fixture was itself invalid before reaching the planner; existing DTO membership validation correctly rejected it.",
+      "last_change": "The other observer now has an empty legal card view and a legal pass-only action list.",
+      "targeted_rerun": "python -m unittest tests.test_duel_planning.DuelPlanningTests.test_seed_and_cross_player_planner_reuse_are_rejected -v",
+      "targeted_rerun_exit_code": 0,
+      "targeted_rerun_tests": 1,
+      "final_distinct_test_passed": 34,
+      "single_clean_full_suite_rerun_claimed": false
+    },
+    {
+      "environment": "existing Chaos-Ubuntu-26.04 / existing venv-linux Python",
+      "command": "python -m unittest tests.test_scenario_course.ScenarioCourseTests.test_real_adapter_updates_same_lora_and_pause_restore_resumes_next_bo1 -v",
+      "tests": 1,
+      "exit_code": 0,
+      "passed": true,
+      "assertions": ["construction CB plan count reaches actual CourseGameAdapter", "same LoRA updates", "base parameters remain sealed", "pause and complete-boundary restore preserve model/RNG/cursors", "next small game uses next actor seat"],
+      "earlier_attempt": "Refused after source files were edited during the running integration test; repeated with frozen source and passed. No integrity guard was relaxed."
+    },
+    {"command": "git -c core.autocrlf=false diff --check", "exit_code": 0, "passed": true}
+  ],
+  "new_planning_examples": [
+    "visible field material changes preferred root and whether an Extra goal appears in future branches",
+    "revealed response changes expected consequences and preferred root",
+    "anonymous hand exit downgrades known identity to possible identity",
+    "visible negation invalidates pending step and allows another CB",
+    "staged search preserves unresolved activation and selected materials",
+    "selected material multiset changes the next incremental choice",
+    "legal graveyard activation enters a CB without its original starting hand",
+    "public battle values change attack preference; hidden values stay explicit probability cases",
+    "node budget and all-legal-action probability mass remain bounded and replayable",
+    "construction compiler strips private replay audits and limits identities to own task pool",
+    "actual sample_episode uses planning before sample_index and engine.submit",
+    "actual base PPO probability equals the sampled planned distribution",
+    "changing the private opponent deck without changing the actor DTO changes neither planning nor sampled action",
+    "controller seed and mixed-player planner memory are rejected"
+  ],
+  "claims": {
+    "new_dependencies_installed": false,
+    "system_configuration_changed": false,
+    "formal_training_started": false,
+    "real_native_games_run": false,
+    "duel_speed_retested": false,
+    "full_project_preflight_run": false,
+    "external_service_upload": false,
+    "new_raw_dataset_published": false,
+    "main_worktree_modified": false,
+    "native_response_guard_modified": false,
+    "model_parameter_shapes_changed": false,
+    "ci_claimed": false,
+    "full_card_effect_planning_claimed": false,
+    "probabilities_calibrated": false
+  },
+  "p1_review_followup": {
+    "reviewed_commit": "7ab0dcc4c474a17b3d02b35b1c066217c3ed4b93",
+    "confirmed_defect": "failure projection rebuilt from pre-action cards and refunded already paid materials",
+    "repair": "separate pre-response committed resources from hypothetical resolved benefits; do not fabricate recovery when payment timing is unknown",
+    "exact_regression": "two materials stay consumed after first summon negation; second Extra target cannot pay the same materials again; actual root response recovery is empty with resource value 0.21",
+    "command": "python -m unittest tests.test_duel_planning -v",
+    "tests": 16,
+    "exit_code": 0,
+    "blanket_interrupted_card_ban_removed": true,
+    "unknown_retry_remains_available_if_offered_by_engine": true,
+    "official_limit_rule_binding": "pending exact evidence-bound integration",
+    "no_general_ability_claim": true
+  },
+  "paused_followup": {
+    "p1_commit": "bb5deabc857675256bc4e58c9a17211a459f4cf8",
+    "status": "saved_and_paused_by_parent_instruction",
+    "final_short_command": "python -m unittest tests.test_duel_effect_limits tests.test_duel_planning tests.test_course_game_adapter.CourseGameAdapterTests.test_exact_effect_limit_binding_reaches_actual_sampler_without_automatic_card_guessing tests.test_course_game_adapter.CourseGameAdapterTests.test_from_group_keeps_live_effective_lora_and_updates_only_adapter_each_game -q",
+    "tests": 27,
+    "exit_code": 0,
+    "single_clean_run_passed": true,
+    "completed": [
+      "committed resources separated from successful resolution",
+      "paid summon materials cannot be reused by failure recovery",
+      "Xyz material state goes to grave after failed summon; successful material events are not copied",
+      "unknown material-trigger eligibility defers to actual legal windows",
+      "exact FAQ-scoped effect-limit query and shared per-turn counter interface",
+      "public activation negation and effect negation remain distinct",
+      "catalog text hashes and explicit scope are checked for injected bindings",
+      "bindings reach actual CourseGameAdapter, sampler, and planner; LoRA path passes"
+    ],
+    "not_completed": [
+      "parent complete official machine-rule table and reviewed physical card/effect binding generator",
+      "direct official evidence for generic named-card activation-once phrasing",
+      "full tribute/Fusion/Link procedures and all material-trigger rules",
+      "independent integration/review of remaining shared interfaces",
+      "any new real-core or formal-training verification"
+    ],
+    "formal_training_started": false,
+    "new_long_batches_started_after_pause_request": false,
+    "started_test_commands_still_running": false
+  },
+  "runtime_interface_p1_followup": {
+    "base_commit": "72bdc79f7a8459ea36498a6ddc0f2237be88279a",
+    "status": "two_identified_interface_defects_repaired_pending_parent_integration",
+    "basic_cb_shape": "original deck_constraints task; construction.basic_cb.routes contains each derived task/proof; construction.best.deck is the actual constructed deck",
+    "compiler_api_change": "plans_from_construction(task, construction, *, deck=None); ScenarioCourse passes deck=self.deck",
+    "lora_internal_input_change": "ppo_inputs returns requests+encoder instead of eagerly encoding all actions into batch; loss and duel probe use score_requests; legacy small encoded batch fallback retained",
+    "cb_checks": {
+      "tests": 3,
+      "passed": 3,
+      "scope": ["original goal preserved and multiple derived routes retained", "unknown/named-only execution claims yield no plan", "wrong task/deck/goal bindings rejected and private audit stripped"]
+    },
+    "paged_lora_check": {
+      "command": "python -m unittest tests.test_duel_runtime_interfaces.PagedLoraRuntimeTests -v",
+      "exit_code": 0,
+      "tests": 1,
+      "passed": 1,
+      "page_action_limit": 4,
+      "large_action_count": 11,
+      "mixed_small_action_count": 2,
+      "selected_action_in_final_page": true,
+      "saved_nonzero_planning_bias_replayed": true,
+      "global_probabilities_and_lora_parameter_gradients_match_unpaged_reference": true,
+      "restored_next_update_receipt_weights_and_base_match": true,
+      "scorer_encoder_planner_gradients_restore_mocked": false,
+      "engine": "explicit_fake_decision_engine_with_synthetic_SQL_catalog",
+      "initial_fixture_cleanup_error": "Windows SQLite handle release corrected; final targeted rerun passed"
+    },
+    "distinct_new_checks_passed": 4,
+    "old_27_checks_rerun": false,
+    "new_real_core_acceptance": false,
+    "formal_training_started": false,
+    "main_worktree_modified": false,
+    "full_preflight_or_speed_benchmark_run": false
+  },
+  "remaining_scope": [
+    "Parent independent review and controlled integration/checkpoint source-binding migration",
+    "General Fusion/Link effect semantics and complex costs/timing are not a full interpreter",
+    "Opponent response and hidden combat priors are uncalibrated approximate hypotheses",
+    "No new native-rule, bot strength, formal training, or win-rate evidence"
+  ]
+}

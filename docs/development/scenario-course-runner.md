@@ -4,6 +4,10 @@
 
 `scripts/scenario_course.py`接宿主工件、实际`CourseModels`、分期资产、构筑kernel、BO1／BO3状态机和真实game adapter。默认只预检；模板中的null必须由真实工件填充，不会初始化随机替代模型、安装工具、下载数据或自动开始训练。`--pilot`和`--run`均须显式选择，彼此互斥。
 
+构筑顺序固定为目标→优化→目标→优化的四个具体牌表交接，随后才对第四个输出执行基础 CB 推断。宿主把 `basic_cb_stage:after_construction` 写入模型来源绑定；构筑任务不预置路线或未声明的固定组件。任务合法完成、推断完成和找到路线分别记录：`bounded_inference_unknown` 且 `inference_completed:true` 可保留合法构筑，但当前用户规则禁止其进入正式对战；`not_run` 或四次交接／任务校验未完成仍拒绝进入采样。`cb_verified` 只表示找到路线，不是构筑任务合法性门槛；正式对战须另过成功条件CB与适用评分检查。派生推断任务可绑定其实际路线卡，原构筑约束与任务不改变，planner 精确核对这些新增要求及牌表归属。
+
+CPU 夹具可验证真实模型、调度、四次交接和推断包格式；替代引擎／合成 proof 不是真实 native、C#、规则正确性或竞技能力证据。旧来源绑定缺少上述阶段时必须走显式迁移，不能修改旧 checkpoint 摘要来恢复。
+
 ```bash
 PYTHONPATH=src .venv/bin/python scripts/scenario_course.py --template \
   --output .cache/course-host-template.json
@@ -44,3 +48,11 @@ PYTHONPATH=src .venv/bin/python scripts/scenario_course.py \
 第二阶段对手可显式选 `driver:local_model_snapshot`，提供固定有效推理快照、`same-period-inference`／`explicit-inference-migration`、合法牌表及精确 `common_deck_evidence`。模型词表须覆盖实际分期资产；sample 模式另给宿主私有 `opponent_policy_seed`，其状态不进入模型特征。快照／种子和同一BO3绑定；历史快照、模式或标签不能伪造独立评估对手。此驱动只适用于 `common-decks-bo3`，不会以任意自弈替换第一阶段现成机器人；明确审阅来源也不认证策略强度。
 
 BO3 draw裁决、历史“接近50%”容差、区间方法和重复观察规则未冻结时保留pending。2610严格>49%／>39%只属于第二阶段冻结实际小局先后手统计；stage1、pilot和训练结果不抵独立评测。继承工程更新不证明竞技能力。当前 Codex 容器缺真实C#运行资产，模板预检应blocked；新增普通核心功能结果另列，不能据CPU机制测试宣称完整课程、速度、能力或100h够用。
+
+最新暂停及 20/50、评分、CB 硬门槛见 [当前准入说明](course-admission-20-50.md)；修复后也须等用户审查并明确批准恢复。
+
+### 私有准入计数的保存与恢复
+
+同一逻辑课程的准入账本按 `course_id`、时期和策略 epoch 定位；迁移物理 target 或 generation 不会新建零计数。检查点仅保存 `admission_state_reference` 的逻辑身份、epoch、绑定摘要与私有账本文件摘要，不包含计数、提示、参考卡表或评分语义材料。
+
+恢复或明确迁移时，必须同时保留原 evaluator 私有目录中的课程准入状态及其审计材料。它们保持在 learner 源码、训练数据与公开交接树之外；只复制权重不能恢复准入计数。私有账本缺失、回退、领先检查点或校准／语义绑定变化均需检查，不能自动重置或重放。原检查点没有该引用时，首次接入新 epoch 会保存显式 prospective 边界，并明确不导入旧失败计数或历史 unknown；以后同 epoch 的恢复必须核对原引用。

@@ -419,16 +419,21 @@ class ConcreteFillTests(unittest.TestCase):
         out = construction_cycle(session, self.assets, providers, binding_provider=binding,
                                  text_reviewer=text_review, verifier=goal_proof)
         self.assertEqual(out["status"], "task_checked_candidate")
-        self.assertEqual([c["role"] for c in calls], ["build_goal", "build_optimizer"])
-        self.assertTrue(calls[1]["feedback"])
-        self.assertEqual([h["stage"] for h in session.history], [1, 2, 3, 1, 2, 3])
+        self.assertEqual([c["role"] for c in calls], ["build_goal", "build_optimizer"] * 2)
+        self.assertTrue(all(c["feedback"] for c in calls[1:]))
+        self.assertEqual([h["stage"] for h in session.history if isinstance(h["stage"],int)], [1, 2, 3] * 4)
+        self.assertEqual(session.history[-1]["stage"],"basic_cb")
         self.assertEqual(out["phases"][0]["stage_2"]["status"], "skipped_broad")
-        self.assertEqual(out["best"]["logic_sha256"], session.logic.sha256)
+        matching = [p for p in out["phases"] if p.get("proposal_deck") == out["best"]["deck"] and
+                    p.get("acceptance") == "working_candidate_handoff_only"]
+        self.assertTrue(matching)
+        self.assertEqual(out["best"]["logic_sha256"], matching[-1]["stage_1"]["logic_sha256"])
+        self.assertFalse(out["incumbent_verified_for_task"])
         detached = session.to_dict()
         detached["task"]["goal"]["card_id"] = 999
         self.assertEqual(session.task.sha256, self.task.sha256)
 
-    def test_failed_optimizer_graph_returns_old_candidate_with_its_original_graph(self):
+    def test_failed_optimizer_graph_leaves_the_cycle_unresolved(self):
         def provider(context):
             graph = example_graph() if context["logic"] is None else revise_logic(ConstructionLogic.from_dict(context["logic"]))
             return {"logic": graph.to_dict(), "reason": "synthetic revision"}
@@ -438,8 +443,9 @@ class ConcreteFillTests(unittest.TestCase):
             return replace(answer, status="unsatisfied", note="new graph cannot be filled") if session.logic.revision else answer
         out = construction_cycle(session, self.assets, {r: provider for r in ("build_goal", "build_optimizer")},
                                  binding_provider=binding, text_reviewer=review, verifier=goal_proof)
-        self.assertEqual(out["best"]["logic"]["revision"], 0)
-        self.assertNotEqual(out["best"]["logic_sha256"], out["latest_logic_sha256"])
+        self.assertIsNone(out["best"])
+        self.assertFalse(out["alternation_completed"])
+        self.assertEqual(out["status"],"construction_unresolved")
         self.assertFalse(out["graph_execution_verified"])
 
     def test_existing_candidate_generator_and_independent_ranker_forward_remain_compatible(self):

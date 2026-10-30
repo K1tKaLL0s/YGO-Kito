@@ -1,0 +1,823 @@
+{
+  "schema_version": 1,
+  "kind": "closed-local-foundation-continuation-v1",
+  "archive_sha256": "12ddad1cb71c2c5055ff5736aefae9c6aab7092ea3cb9ba0527931efe70d8155",
+  "archive_bytes": 15857745,
+  "files": {
+    ".cache/local-base-training-20261027/2207-base-005/active-environment.local.json": {
+      "size": 950,
+      "sha256": "4d9fef30fdc8ca2c9617da3a38e7bc5a55a51ec77ada4496e1c59b776297c6d7"
+    },
+    ".cache/local-base-training-20261027/2207-base-005/actual-fusion-four-stage.json": {
+      "size": 476319,
+      "sha256": "dcb8335654546c4ec01c1aaaa50b001d6d43d49934f5fbaa768e44162552a69b"
+    },
+    ".cache/local-base-training-20261027/2207-base-005/after-fusion-goal.weights": {
+      "size": 7436619,
+      "sha256": "eb9e54e2e751a2f40a69807fd4ecf39a466c9ebff1ce9115b505c80eaddf04e1"
+    },
+    ".cache/local-base-training-20261027/2207-base-005/binding.json": {
+      "size": 18692,
+      "sha256": "2d692f5357072c985b0262fd0440cd7e5928f73f339d48f985a6ad647be37617"
+    },
+    ".cache/local-base-training-20261027/2207-base-005/closed-goal-update.json": {
+      "size": 87,
+      "sha256": "3e838795536ae3d922315a54c91e090beb78fadda3efbd00e7ce67fcdcdfec4b"
+    },
+    ".cache/local-base-training-20261027/2207-base-005/feedback-state.json": {
+      "size": 8430,
+      "sha256": "c9e96f0c4b118dca32960cf4ac7e0ed77c52d56cddb425d96a53c4c80f3b70b1"
+    },
+    ".cache/local-base-training-20261027/2207-base-005/fusion-goal-supervision.json": {
+      "size": 68972,
+      "sha256": "bcd4458528dfa592c23ac02d6af4459406ce1c3ac54c2aa6a8c0f79afe131395"
+    },
+    ".cache/local-base-training-20261027/2207-base-005/fusion-task.json": {
+      "size": 4061,
+      "sha256": "45bf0a8c941edd049372b53e39ec8385f790df587634fe6d5690f82a91fd05ef"
+    },
+    ".cache/local-base-training-20261027/2207-base-005/generated-deck.json": {
+      "size": 921,
+      "sha256": "dba2f286d7865726b7aa27246da97d318ba601b81bd170800e9bf65896d3c1e9"
+    },
+    ".cache/local-base-training-20261027/2207-base-005/goal-update.json": {
+      "size": 1333,
+      "sha256": "54e1a6ac38d503760190c2b55ba1140c411ea33922a9098f400118b719f05b0a"
+    },
+    ".cache/local-base-training-20261027/2207-base-005/index/data-index.sqlite3": {
+      "size": 11104256,
+      "sha256": "7f013c3c06e9a520ae6634a8b2d9e5b8af52fc341f631a912a009fd6d4252d76"
+    },
+    ".cache/local-base-training-20261027/2207-base-005/latest-pointer.json": {
+      "size": 215,
+      "sha256": "dba34e52030e9b731b7b1193af667c58ab777bf516a22a8216391639883c2701"
+    },
+    ".cache/local-base-training-20261027/2207-base-005/migration.json": {
+      "size": 502,
+      "sha256": "871ca70a04071809fb6ed521325552318e89533e96a648f8f16eb523ef181471"
+    },
+    ".cache/local-base-training-20261027/2207-base-005/route-attempt-001.json": {
+      "size": 50859,
+      "sha256": "0a231903541d84e1de1a13628a17f5fc62a4e104c1b66553d08094785d17e673"
+    },
+    ".cache/local-base-training-20261027/2207-base-005/route-attempt-002.json": {
+      "size": 50860,
+      "sha256": "7d78ca5e449da03e016e3581369795a537e6abd973191dbdd50e268d35fbefe0"
+    },
+    ".cache/local-base-training-20261027/2207-base-005/route-attempt-003.json": {
+      "size": 50865,
+      "sha256": "cddf8c06e046f95fe45896a1407b68e616e9590f7a0bdaa5e3312403ecc83198"
+    },
+    ".cache/local-base-training-20261027/2207-base-005/route-attempt-004.json": {
+      "size": 50859,
+      "sha256": "88ae931fc3cf85d54318bb582148fad9c86c62c4d72c002cf838ab82a5a133b9"
+    },
+    ".cache/local-base-training-20261027/2207-base-005/selected-task.json": {
+      "size": 2312,
+      "sha256": "117e76a99e5d9bc212ef01c28755aeefa71b146d6d86f0394b5443c9e2f2427e"
+    },
+    ".cache/local-base-training-20261027/2207-base-005/summary.json": {
+      "size": 475,
+      "sha256": "6105adcb4efbf0028b1971288ccb79781e07b891444182fd5a4e7571c896bc83"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/binding.json": {
+      "size": 18804,
+      "sha256": "4dfdb25444f21206be4ae4ec0031390a350b9ad3347874c25e24bfa3b58c4fcd"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/index/data-index.sqlite3": {
+      "size": 169783296,
+      "sha256": "d570d6fa51345daa60802a00f190f623ca47bfbf7a553a0d6ec7b2b50388c695"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/latest-pointer.json": {
+      "size": 214,
+      "sha256": "b062fac6c7441b60bb0f29086f4ca555528debd2055e85b44dafa86f50f40dc8"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/migrated-initial.weights": {
+      "size": 7436387,
+      "sha256": "cfb137194ca52f69838890a5d3b3f791af5ed04cea691633ea9914a42ba614b7"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/migration.json": {
+      "size": 460,
+      "sha256": "b6dcdd8475b0577985d5c5022191070281c8f446921f15df6c477cdb41f6c0ac"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701002-seat-0.closed-flight.json": {
+      "size": 297,
+      "sha256": "c532ae0f66090c00281bc66cdc3b40938b2dc9917d420b5286d5e755dd40743c"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701002-seat-0.json": {
+      "size": 574,
+      "sha256": "a99b2584d1b47c7d788f8b98823e8ecd0e9026b48c7349dd48d4882ce1b51f4c"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701002-seat-0.private-replay.json": {
+      "size": 105390,
+      "sha256": "be5b636324a7d64f9a36871e9cf4492e693140b8ab21ef9335d737d6d5903393"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701002-seat-1.closed-flight.json": {
+      "size": 297,
+      "sha256": "6e3a56e5cdb9dcd05a9690931fd187d19360f31a38a6c2a24c6d6bffd47419c8"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701002-seat-1.json": {
+      "size": 575,
+      "sha256": "243523bd8f27c03fc1c999f248781bbf94c712778d27bb529a12854821fb6ea2"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701002-seat-1.private-replay.json": {
+      "size": 385466,
+      "sha256": "7d1d9179e5b9e84f1449bfe9304e44e5c148bcbe1f074fb6529820879128f564"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701003-seat-0.closed-flight.json": {
+      "size": 297,
+      "sha256": "180b440d22a73ea179b9d7eb7dcf6214172696573c5c7daa19f6e56b76c837e9"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701003-seat-0.json": {
+      "size": 576,
+      "sha256": "531284ba882edba4af66c899f079dbe6225be486e4940d844b1a68504ca6ecf2"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701003-seat-0.private-replay.json": {
+      "size": 991221,
+      "sha256": "153e6e4a93f6a229e0a46f446f3b81870c2c928a7685feb357e6047759c03258"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701003-seat-1.closed-flight.json": {
+      "size": 297,
+      "sha256": "5d0cd71878d7ffb98351cbc836af0122540353769823b565020976de743ba78e"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701003-seat-1.json": {
+      "size": 575,
+      "sha256": "400a072f2a8d48beb623b917bc2ca55e9af3d674db547feb17925b05bfd585f5"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701003-seat-1.private-replay.json": {
+      "size": 391776,
+      "sha256": "c861280ffe6414a169d9e76766a12e58d6b259fe3807f3aeb5f0435db4409457"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701004-seat-0.closed-flight.json": {
+      "size": 297,
+      "sha256": "42d5032466539e98af7c7f7db8d9f4627e3ebd7871884a207584e03caefcaebf"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701004-seat-0.json": {
+      "size": 575,
+      "sha256": "5d21aff5417446a43a068c2dadb0608b9099b34c8c63c10e5c93340e3d3b13bc"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701004-seat-0.private-replay.json": {
+      "size": 241022,
+      "sha256": "a6c424fc0d99f194f914236e6a877fa1a82c942fe0f1c44e6f836a49542b1ebd"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701004-seat-1.closed-flight.json": {
+      "size": 297,
+      "sha256": "f57fc2a68539c24676c36fdc332b2ce02e3e2528409afb12151dc2767f36b1d7"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701004-seat-1.json": {
+      "size": 575,
+      "sha256": "e1b50489d06e4590ecc10f7da78b35ac5b19e55891a1b627394238894fa8bf23"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701004-seat-1.private-replay.json": {
+      "size": 311469,
+      "sha256": "772e307b5ed1801c99a428cd9330995504ce74dc24f4e546844b39d76b7236dd"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701005-seat-0.closed-flight.json": {
+      "size": 297,
+      "sha256": "b85583bf358314b7f7b114b6405753f9f5494bd47b4b83acee574a33d60fbdaa"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701005-seat-0.json": {
+      "size": 576,
+      "sha256": "b486c3fc3e6c2907a7e967024c7a21a61efa01ca5dfc589f1632761eb46ee5c0"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701005-seat-0.private-replay.json": {
+      "size": 587640,
+      "sha256": "a5760dfc04b8f2c105e2a944b4114a16d40d91b6e0dce9f4d36e7350c97c2f28"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701005-seat-1.closed-flight.json": {
+      "size": 297,
+      "sha256": "f6b1150b03369256d18442ec3d326ba80b5293daeb2c333764736ff272879113"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701005-seat-1.json": {
+      "size": 576,
+      "sha256": "de074f393d8311780b4c2fe2602c728869ad7253ffc57dc2f73a8abde6a0db43"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-0-seed-701005-seat-1.private-replay.json": {
+      "size": 583992,
+      "sha256": "1aa617f0cafad28919fb7d5b462bcb226713e05b35c122bc41ccaccd32ff453c"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701002-seat-0.closed-flight.json": {
+      "size": 297,
+      "sha256": "964fd641772be5a1f5bbf96bedfec6bef4ac7890f946e2eda68208e2ad327664"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701002-seat-0.json": {
+      "size": 575,
+      "sha256": "98331d1596321dc864fed73d5fa38a260574acfcad68690763cbf87a5f8d7e42"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701002-seat-0.private-replay.json": {
+      "size": 168662,
+      "sha256": "f211843cf3b8832ee25eebba32c851092c6d3f597b76efdc7a27e84ab6283b65"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701002-seat-1.closed-flight.json": {
+      "size": 297,
+      "sha256": "15937e2c4c87f570e6c099b2365514c33e90b9a42d832078bd6c4d7043440352"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701002-seat-1.json": {
+      "size": 575,
+      "sha256": "12bb18a9ae5aaf59f36c4ae9accc0e9f7c6963789ac8d795055aee9b1d809c5e"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701002-seat-1.private-replay.json": {
+      "size": 385466,
+      "sha256": "e53dae6da67a23d77d10bbcfae49c5b4d82ec3511959ecb38ade61769090d930"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701003-seat-0.closed-flight.json": {
+      "size": 297,
+      "sha256": "2b957e8a34dbe503390c0e6ef413281afd9b692a1008b29aa7a4403e6718f160"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701003-seat-0.json": {
+      "size": 576,
+      "sha256": "4f30407f4b4304f9341e5819d0ceacc31b0014e3efcf2853725853837c59e7fb"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701003-seat-0.private-replay.json": {
+      "size": 408549,
+      "sha256": "81edabc9e8bfac25fb6ce0a4ad0aa2b003993fa9550aa82b489b6320a70e034f"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701003-seat-1.closed-flight.json": {
+      "size": 297,
+      "sha256": "d96f9c0d2a29ecaac840e0a678d2de0f46e6ff06c24c0ab0acf7f3ef0f6dc9d8"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701003-seat-1.json": {
+      "size": 575,
+      "sha256": "60c4ad8e281392fbe8a49ad3a8f33244a85dbdea6d467882619be1f1dcc9b598"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701003-seat-1.private-replay.json": {
+      "size": 391776,
+      "sha256": "1eab6720abf19a7fb3850f99606a04c8a8641ff2b3338bfef258d6ba514e80a7"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701004-seat-0.closed-flight.json": {
+      "size": 297,
+      "sha256": "7eadcf3794efbbe6d6540a20d57eabb59f4b5f60ac6526919b536fff2e589332"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701004-seat-0.json": {
+      "size": 575,
+      "sha256": "6999450c06cbded2609c7aa4086d1c7bf1de65cf253f26f3211d35f436369bd9"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701004-seat-0.private-replay.json": {
+      "size": 197137,
+      "sha256": "aebd4f5b8339dce881208ff72f7b5f87267c140ca34b49006b2fde3e07c277b5"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701004-seat-1.closed-flight.json": {
+      "size": 297,
+      "sha256": "206e3a221175183c5009b45cb82d29d4d102fc2a016a41579861f095e4d19d44"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701004-seat-1.json": {
+      "size": 575,
+      "sha256": "d5d9ced3c1a5c53f38e0e019e62220303995ddab4adcbe5df8617b1c8df05121"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701004-seat-1.private-replay.json": {
+      "size": 311469,
+      "sha256": "2b1d978e08c743a5727a230b800bb7c4f4945f6c59fe35eeb226b74c1fb91eb0"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701005-seat-0.closed-flight.json": {
+      "size": 297,
+      "sha256": "5061bc5e19adefbf28c49ff8ac091bc6217a7c0c67585d450e7981d40934ba03"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701005-seat-0.json": {
+      "size": 576,
+      "sha256": "8bcd73eab3b3d472eb151f90559e363dd5da0b4141ab322352c6e59eb9666a84"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701005-seat-0.private-replay.json": {
+      "size": 587639,
+      "sha256": "ee6cbbf53c5fe91545f42f9424fd81cab1ea23522ce81f78afe2977b1db9c5fe"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701005-seat-1.closed-flight.json": {
+      "size": 297,
+      "sha256": "9927d877d41c2ddae2b28a977305ddc9154815166d9858d3acad59e6c4c83ee2"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701005-seat-1.json": {
+      "size": 576,
+      "sha256": "7f302f0004a02329f02b8dacab0fd384c65f1b032df331bae3800d30731f428a"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/candidate-1-seed-701005-seat-1.private-replay.json": {
+      "size": 924304,
+      "sha256": "0ae25dc3e199bfbc2a752a6a5b29188dab617dffb68b12aac735b7b7632b3ab9"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/comparison.json": {
+      "size": 16522,
+      "sha256": "dc5b5151cd1efc63b966c23e0f579f8da46beaff1295955317cf9e7dd5e0a5df"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/plan.json": {
+      "size": 4841,
+      "sha256": "9b74efdb4d1574f382f03ad1e25bad70854d9f691c4ae6c7011019f2b61b045e"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/paired-comparison-001/progress.json": {
+      "size": 131,
+      "sha256": "cb74917aa81d1a4481bffaf97e384d587b49dd17f145748c325fc6647bc078be"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/runtime-migration.json": {
+      "size": 313,
+      "sha256": "b1f9ff520345a4e133f446d59e4520a2a73b0fbde9f303177f6b70d3f10c1ce4"
+    },
+    ".cache/local-base-training-20261027/2207-base-006/summary.json": {
+      "size": 172,
+      "sha256": "d39dac193b1696d5fbd9b5e81e2712f226b998368b9b227defdd5be323aad523"
+    },
+    "frozen-execution-source-006/configs/bot-sources-v1.json": {
+      "size": 217808,
+      "sha256": "b196165ee03d70d916c388cf6e146951132c145dcfe895d0ffab04e717e1f134"
+    },
+    "frozen-execution-source-006/configs/native-sources.lock.json": {
+      "size": 1467,
+      "sha256": "3b73a6f7594f1372fcc0b26e6dbe0bbd0e41392a6c9c453308819c85d88ecfc1"
+    },
+    "frozen-execution-source-006/scripts/BotAssemblyAudit.cs": {
+      "size": 10073,
+      "sha256": "2c2c6b3abc10e4743f3bc6f700862623ef04eefc1966d9be2f8fa71bd704e8e2"
+    },
+    "frozen-execution-source-006/src/ygo_kito/__init__.py": {
+      "size": 118,
+      "sha256": "81a2a8d256c266dfa553f3dd6189dc91bb36698f842386c3f481bf588861f599"
+    },
+    "frozen-execution-source-006/src/ygo_kito/__main__.py": {
+      "size": 48,
+      "sha256": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d"
+    },
+    "frozen-execution-source-006/src/ygo_kito/advanced_protocol.py": {
+      "size": 8691,
+      "sha256": "e9839ced2ccde96c045e395458a2ade9dfe4f7d8a31de0407be7729bdc1eb89a"
+    },
+    "frozen-execution-source-006/src/ygo_kito/agent_bridge.py": {
+      "size": 21377,
+      "sha256": "8a82180d06eb19ba55d3040258c188269110ee6ac5329219c2d3870176b6ef84"
+    },
+    "frozen-execution-source-006/src/ygo_kito/agent_driver.py": {
+      "size": 14798,
+      "sha256": "4403b127895d7918857d23c1884bc8d1543dde160353b9eb3448e2a40c1b875b"
+    },
+    "frozen-execution-source-006/src/ygo_kito/agent_monitor.py": {
+      "size": 6838,
+      "sha256": "4948e78016e182b5abe90ed28c87464f8aa9a2db87a4f774cba89547b68d216a"
+    },
+    "frozen-execution-source-006/src/ygo_kito/agent_registry.py": {
+      "size": 12181,
+      "sha256": "2bf5025b8ea21718c17be69a9d95796bfe51b9d29547ad1bd9e9bb070d3ed230"
+    },
+    "frozen-execution-source-006/src/ygo_kito/autonomous_construction.py": {
+      "size": 39361,
+      "sha256": "383cfca28aeca1df370c7a2e1463a38f60f99a46ac06797ba5363a2c18d25d10"
+    },
+    "frozen-execution-source-006/src/ygo_kito/bot_build_audit.py": {
+      "size": 17085,
+      "sha256": "c59c9da1a47090f82e7304fae8f3ef8ad59cccade84bf1cf4fed27e18a6c58b9"
+    },
+    "frozen-execution-source-006/src/ygo_kito/bot_deployment.py": {
+      "size": 47859,
+      "sha256": "cb38fc54c4170e382eee4eda87e77fe2b62c1ec625e407d179f2bfb82c07d6b2"
+    },
+    "frozen-execution-source-006/src/ygo_kito/bot_overlay.py": {
+      "size": 8693,
+      "sha256": "285cd804ae80c2cf25c6bd39abf1dfc6f977819bf7c845fb2fe5e4211d6158f5"
+    },
+    "frozen-execution-source-006/src/ygo_kito/bot_qualification.py": {
+      "size": 15063,
+      "sha256": "ebe419e678a82c24db4bcfe5c85aa8615cdb9325550af52eda19e55fcb226028"
+    },
+    "frozen-execution-source-006/src/ygo_kito/build_contracts.py": {
+      "size": 9590,
+      "sha256": "15cf3539d35ea0f155661e2b5f31eb5a6f0d9ac3f9690191a8be02ba5f3ed0ab"
+    },
+    "frozen-execution-source-006/src/ygo_kito/build_feedback.py": {
+      "size": 13078,
+      "sha256": "59e38018860893fa2bbda129365e540e594ac5db5d006145ae0e023e21c99f83"
+    },
+    "frozen-execution-source-006/src/ygo_kito/build_intent.py": {
+      "size": 15875,
+      "sha256": "be606627637616d68296954193bb1c3ecc0437d4d04b69539fca5c2b5f69262b"
+    },
+    "frozen-execution-source-006/src/ygo_kito/build_model.py": {
+      "size": 8559,
+      "sha256": "8d73c730e181c988daebd844fd4c40daf28d3858fd3af742ec551019a3040aa1"
+    },
+    "frozen-execution-source-006/src/ygo_kito/build_pipeline.py": {
+      "size": 18817,
+      "sha256": "9664cf3cbc03a55e48dcb7804d271c6bb51c2c0fa63205b1e4ed4fd9c3c5c5e6"
+    },
+    "frozen-execution-source-006/src/ygo_kito/build_semantics.py": {
+      "size": 12912,
+      "sha256": "7b3f33c7e166dfdd01fc2d0017bfe1cdc262be1826fe46320c753d97426cc8b2"
+    },
+    "frozen-execution-source-006/src/ygo_kito/build_training.py": {
+      "size": 26400,
+      "sha256": "6992fcd6cf9985f8babd0329e7ffe7117185f1468c9e63eeef738fbecbe36462"
+    },
+    "frozen-execution-source-006/src/ygo_kito/catalog_search.py": {
+      "size": 7169,
+      "sha256": "a23c7809f5beaf558c054057372976bdbd31682a734d95a9299accee4f411d6d"
+    },
+    "frozen-execution-source-006/src/ygo_kito/cli.py": {
+      "size": 42597,
+      "sha256": "214f8249943cb167b26e10af45daa44ea026c409a8d00e0ecc745ddce365afdb"
+    },
+    "frozen-execution-source-006/src/ygo_kito/coding_agent.py": {
+      "size": 2751,
+      "sha256": "8c896a3b8cecaea2e283e9d327504cd9bab6364f150193880c89241b467b4d9d"
+    },
+    "frozen-execution-source-006/src/ygo_kito/config.py": {
+      "size": 1763,
+      "sha256": "be30d9b4bddfc98f282449d7df2fa83a4540f47b7e83be405c511c4317bef0f6"
+    },
+    "frozen-execution-source-006/src/ygo_kito/construction_binding.py": {
+      "size": 14549,
+      "sha256": "0790b4c3f2a41931565c688110a0ca90988da16dcba3aa7774ff02623b50c59c"
+    },
+    "frozen-execution-source-006/src/ygo_kito/construction_controller.py": {
+      "size": 4387,
+      "sha256": "97e180cdeffd92bc19cb330fe12bbd1503ab78e7ca381096ef7587016cf16e74"
+    },
+    "frozen-execution-source-006/src/ygo_kito/construction_curriculum.py": {
+      "size": 15020,
+      "sha256": "3dfcfddbaab8708ebb0e273f6b79009ebc1844032a2a6f15ed7ac923588bb9a5"
+    },
+    "frozen-execution-source-006/src/ygo_kito/construction_effect_blocks.py": {
+      "size": 1909,
+      "sha256": "95384c3fc3d5fece790b19040be3f29835817341a0d5238a7be050a1ef61bcd9"
+    },
+    "frozen-execution-source-006/src/ygo_kito/construction_fill.py": {
+      "size": 25445,
+      "sha256": "4696b8900df65cad6035ab885d22a4f14047d447f751426615454f756c34fffc"
+    },
+    "frozen-execution-source-006/src/ygo_kito/construction_logic.py": {
+      "size": 14540,
+      "sha256": "13781d8cfbe6513e3afbde573e17ee37bf4da71658c0be092887ace10cb5888b"
+    },
+    "frozen-execution-source-006/src/ygo_kito/construction_model.py": {
+      "size": 18900,
+      "sha256": "a66d963b90636b63d81dd08c9bb0fa6f27da4609b80a7c2c216ef46663d40051"
+    },
+    "frozen-execution-source-006/src/ygo_kito/construction_service.py": {
+      "size": 7772,
+      "sha256": "d52ee0239652bdfa4cb76d1e35dc3eb7d44efe6d3238d1eb3a593b03681756ef"
+    },
+    "frozen-execution-source-006/src/ygo_kito/contracts.py": {
+      "size": 30296,
+      "sha256": "ec3154df3850393adc92a7cad9cbc5ca5794496b980038a23f3b1ca77d36fd13"
+    },
+    "frozen-execution-source-006/src/ygo_kito/coord_contracts.py": {
+      "size": 7651,
+      "sha256": "dad3a007d4a58a37424f8f0495c879cd5354a3972d4f577971026c8dd154038b"
+    },
+    "frozen-execution-source-006/src/ygo_kito/coordinator.py": {
+      "size": 27823,
+      "sha256": "a424572c2e5d4d9ae36ebffea2d40c3388646da6eb8f3b9ff6efccc92d64586c"
+    },
+    "frozen-execution-source-006/src/ygo_kito/coordinator_model.py": {
+      "size": 11552,
+      "sha256": "4a8c54dbfb258bebbe63319200bd8d03643ef877cbad0e451475e682251a2956"
+    },
+    "frozen-execution-source-006/src/ygo_kito/course_feedback.py": {
+      "size": 16818,
+      "sha256": "203c0cc773ff1dc0c55ceb8480faffc0525d7f6a645ccf008c6e442d90305612"
+    },
+    "frozen-execution-source-006/src/ygo_kito/course_game_adapter.py": {
+      "size": 35486,
+      "sha256": "e7bd6509e43bfa08395911cfd65a539ab840310586b9fc2915e0ac3dec3bc8ab"
+    },
+    "frozen-execution-source-006/src/ygo_kito/course_models.py": {
+      "size": 22326,
+      "sha256": "9360080abfa70445a82b4a58a1e6719701d06f87de282bbeaf261d066d076507"
+    },
+    "frozen-execution-source-006/src/ygo_kito/cpu_training.py": {
+      "size": 27881,
+      "sha256": "38db6b708b548f549b67762b8a7d18851ca6e4a6a55b321f87e4c759dc403075"
+    },
+    "frozen-execution-source-006/src/ygo_kito/data.py": {
+      "size": 2878,
+      "sha256": "e50a14afbd57203334bbae5c34e76f39e2fdd9a282494b262b1e37af866b05d6"
+    },
+    "frozen-execution-source-006/src/ygo_kito/data_isolation.py": {
+      "size": 20927,
+      "sha256": "6c0728dc50d0735386e9d3977c6922f5e3de811836b6fce12a6f615e01ea6e19"
+    },
+    "frozen-execution-source-006/src/ygo_kito/deck_intake.py": {
+      "size": 16054,
+      "sha256": "45694afe47fc7bd7fa33c29156cbad9843a4e964f0cfe1dafae017be347faff9"
+    },
+    "frozen-execution-source-006/src/ygo_kito/deck_profile.py": {
+      "size": 3871,
+      "sha256": "4a2459a19dc1025a8e9cc5af20891d62b436b9247abeedf270cb0642a0ac6dfa"
+    },
+    "frozen-execution-source-006/src/ygo_kito/device.py": {
+      "size": 4518,
+      "sha256": "9fad5294e0bbca00ef919a689d34463decdd515d07cbdb784fae309084352e09"
+    },
+    "frozen-execution-source-006/src/ygo_kito/discovery_acceptance.py": {
+      "size": 12456,
+      "sha256": "fff2b47be07219b5c922ccabf9493c3cf481dd9df39ad3a6696a6e722670bafc"
+    },
+    "frozen-execution-source-006/src/ygo_kito/duel_model.py": {
+      "size": 17033,
+      "sha256": "562d35cae7e20c5578455e4b95993e46132d7694676929ee83fcc70e58c520d7"
+    },
+    "frozen-execution-source-006/src/ygo_kito/effect_cases.py": {
+      "size": 9011,
+      "sha256": "9191dcdcc6fae42b11c615c9998da43575a528ed1e282f26ec4ef2b5862c700d"
+    },
+    "frozen-execution-source-006/src/ygo_kito/effect_duel.py": {
+      "size": 14549,
+      "sha256": "71a1e2d76be80d9e747c329a5fbedb48f83e2081e4ea40ce3eea5123c35fdaa0"
+    },
+    "frozen-execution-source-006/src/ygo_kito/engine.py": {
+      "size": 1650,
+      "sha256": "2d7ace8c37e25f104eab1b830a75dcdf3c5b3f8cc84639142de300d023bfe6d0"
+    },
+    "frozen-execution-source-006/src/ygo_kito/engineering_acceptance.py": {
+      "size": 17893,
+      "sha256": "c8a114acd101496755128e004ddb936ca4b549e6fc0ffaf42470cba7d4a33d89"
+    },
+    "frozen-execution-source-006/src/ygo_kito/external_policy_bridge.py": {
+      "size": 18412,
+      "sha256": "79c07dc37dcd84298bdf865ffff5e1971b05a8e63914b6e58aa44527428382ef"
+    },
+    "frozen-execution-source-006/src/ygo_kito/extra_acceptance.py": {
+      "size": 13221,
+      "sha256": "673c3ddd94568022d957ea8003cd92b684cba7f04c36039517b0e701933ee284"
+    },
+    "frozen-execution-source-006/src/ygo_kito/extra_observation.py": {
+      "size": 7342,
+      "sha256": "41044ad8f4759ee1a1ff0c2912e2ea622a0a438c0b8ea11b53aeb845b8620f40"
+    },
+    "frozen-execution-source-006/src/ygo_kito/extra_routes.py": {
+      "size": 12849,
+      "sha256": "8d3d69d30d966cddba7865bce277d34873bb76939bbcc85b6f86b96a4b99f0b1"
+    },
+    "frozen-execution-source-006/src/ygo_kito/foundation_acceptance.py": {
+      "size": 12581,
+      "sha256": "81fad492177868b5f219a9cd1421969b55070e203901c28d4cd7fd773737b55f"
+    },
+    "frozen-execution-source-006/src/ygo_kito/fusion_witness.py": {
+      "size": 1870,
+      "sha256": "9e3776cab409bcc6d40bd6e088cdcd9da89784c156adc1b14f64588ba9c586c7"
+    },
+    "frozen-execution-source-006/src/ygo_kito/group_initialization.py": {
+      "size": 24006,
+      "sha256": "1d2864983548b8009e241c0aeaf0c9acf14f8c853bf4e872ec79a54bbf987aaa"
+    },
+    "frozen-execution-source-006/src/ygo_kito/group_runner.py": {
+      "size": 67130,
+      "sha256": "7982cce2166ecb230fc66ac9f34acdbdc694702141f5407f53fe2e569a4a17d2"
+    },
+    "frozen-execution-source-006/src/ygo_kito/group_runner_acceptance.py": {
+      "size": 11678,
+      "sha256": "e35fe0bfa7e18aaf3931ce583a969f5b881c1f558356adb1e678582ab11b82b4"
+    },
+    "frozen-execution-source-006/src/ygo_kito/hierarchical_policy.py": {
+      "size": 5317,
+      "sha256": "6b6077e66e6502b8664f70cacef3dfdc299fd59285e1678b7e2488d04c7517e8"
+    },
+    "frozen-execution-source-006/src/ygo_kito/historical_listing.py": {
+      "size": 17386,
+      "sha256": "e8bbd885283ac3da8de59b59ee55615316df9794d725c6cb63b98d51f8caa967"
+    },
+    "frozen-execution-source-006/src/ygo_kito/implementation_identity.py": {
+      "size": 1189,
+      "sha256": "bd741be663676fed12e28cdb5aff79ad408f41748a9972d4637954a9c812add1"
+    },
+    "frozen-execution-source-006/src/ygo_kito/intent_model.py": {
+      "size": 18488,
+      "sha256": "20d8fff916fcfbefb8c8112163404983971aaabc33bfb9e47598a03f3bcfcaed"
+    },
+    "frozen-execution-source-006/src/ygo_kito/knowledge_acceptance.py": {
+      "size": 8846,
+      "sha256": "acbed8874eb344dc5b12219c9dd16f6bc926be0256c4757b120ae223e64f553b"
+    },
+    "frozen-execution-source-006/src/ygo_kito/knowledge_cases.py": {
+      "size": 719,
+      "sha256": "8dce1a5bc6473e6c28882a8c8084a7e4e9cdbe5b2aeebe101c7c9fb14954004c"
+    },
+    "frozen-execution-source-006/src/ygo_kito/local_training.py": {
+      "size": 31353,
+      "sha256": "5edb71e8e7a0d783e36b80bbf99b9c0a0157f1ea0e7237a94a1cc015d7638056"
+    },
+    "frozen-execution-source-006/src/ygo_kito/lora.py": {
+      "size": 15049,
+      "sha256": "90cb30fd194575c0229092f30db76cd44672cfa6fda3c408194b9b265b745502"
+    },
+    "frozen-execution-source-006/src/ygo_kito/lora_group.py": {
+      "size": 18360,
+      "sha256": "337c2fd2049c08c7c219faef9f2ef6e418be226af92426aba3519409718e8861"
+    },
+    "frozen-execution-source-006/src/ygo_kito/match_runner.py": {
+      "size": 28702,
+      "sha256": "cf6312e29d3778ab12dd50a59ececdb100d42b7cf98ed6c307be0a50116dc9ca"
+    },
+    "frozen-execution-source-006/src/ygo_kito/model_build_feedback.py": {
+      "size": 12923,
+      "sha256": "5a74e9bcc3b3637da58da11ea0e4f964cd994d63ae6f071d0270a8d04bdcaea1"
+    },
+    "frozen-execution-source-006/src/ygo_kito/model_group.py": {
+      "size": 20227,
+      "sha256": "82cdef441d5bc2ef7d3b4075e8060e9123001f068d977d12bc9b353d5448c5c9"
+    },
+    "frozen-execution-source-006/src/ygo_kito/model_match_host.py": {
+      "size": 15413,
+      "sha256": "61d3ce18a1a7f303937d3cea6502cc8ad557665e5ced360d00e084f317817566"
+    },
+    "frozen-execution-source-006/src/ygo_kito/model_opponents.py": {
+      "size": 24688,
+      "sha256": "2c5c11cb91704774b11f29c793d07debebdf2699dc838d27ec2ba05179feeca3"
+    },
+    "frozen-execution-source-006/src/ygo_kito/mycard_staging.py": {
+      "size": 9497,
+      "sha256": "0908884b7484c44ba22b71e524a4c1926c4ef903f07ffebad910fac6c1633905"
+    },
+    "frozen-execution-source-006/src/ygo_kito/native.py": {
+      "size": 41420,
+      "sha256": "3cecd36295b1e13b97617ac31862fa2d07a61e1c5e11c554dc475caa3ad4bbeb"
+    },
+    "frozen-execution-source-006/src/ygo_kito/native_assets.py": {
+      "size": 1859,
+      "sha256": "b06c37599f0d4db0b56fda8f96f296a9b94e08d6a361dd78dc3ff4afdbf497ef"
+    },
+    "frozen-execution-source-006/src/ygo_kito/native_protocol.py": {
+      "size": 11862,
+      "sha256": "e9f1bb58dcc283873637d59e27b3f00745bf94fabb2f51bde98e09daf5c4ef37"
+    },
+    "frozen-execution-source-006/src/ygo_kito/native_response_guard.py": {
+      "size": 5983,
+      "sha256": "685846435d4f951324f36a04ff49ea67c4d70c2d4b2c974963e12a4a9e8df64b"
+    },
+    "frozen-execution-source-006/src/ygo_kito/normal_duel.py": {
+      "size": 7588,
+      "sha256": "043ec108826fb0eaaf4088185c06d02d8b6324534801f965f36baa402ae544f1"
+    },
+    "frozen-execution-source-006/src/ygo_kito/opponent_pool.py": {
+      "size": 11320,
+      "sha256": "c1272bd0197d52900a787cf11f432fbf85e905329bc47c9c2ae5a5cbdc5da1ca"
+    },
+    "frozen-execution-source-006/src/ygo_kito/period_host.py": {
+      "size": 15213,
+      "sha256": "35caa0bae33de73819cc8fd49c634917c78a6251c9cd7094405d97fb486ac7f7"
+    },
+    "frozen-execution-source-006/src/ygo_kito/period_runtime.py": {
+      "size": 29393,
+      "sha256": "add5a6512ba5766d533be81787794da63c8f86ed48737196978e9516fc05b316"
+    },
+    "frozen-execution-source-006/src/ygo_kito/place_classification.py": {
+      "size": 4047,
+      "sha256": "d683303c1e2f2fcac9b93f8f42a0a265bac651ab650b41da3f5def5bd12702db"
+    },
+    "frozen-execution-source-006/src/ygo_kito/private_acceptance.py": {
+      "size": 7467,
+      "sha256": "d9c85576b81f8ab4f01ba2f131b906981c9781f59b4b3ab857e074fee9937309"
+    },
+    "frozen-execution-source-006/src/ygo_kito/private_cases.py": {
+      "size": 1113,
+      "sha256": "b551e580a7b55087bd94677d9456a609ba96a50b605c4a497ec73602c4a7b6d7"
+    },
+    "frozen-execution-source-006/src/ygo_kito/private_knowledge.py": {
+      "size": 3646,
+      "sha256": "13762f7c054d22588587802c637db407538a1da5125c159f7b05cd179f155b76"
+    },
+    "frozen-execution-source-006/src/ygo_kito/private_selection.py": {
+      "size": 5464,
+      "sha256": "083b56e16a114cbafab4c5b46838f95db932bbe68c87d13ed18a7f9455ba2206"
+    },
+    "frozen-execution-source-006/src/ygo_kito/proof_visibility.py": {
+      "size": 610,
+      "sha256": "89c26bed58473bcdc0f2d24b171f76c26f30471d13c21ab30f1395c4794cf825"
+    },
+    "frozen-execution-source-006/src/ygo_kito/protocol_acceptance.py": {
+      "size": 4518,
+      "sha256": "a3af86cb9e8a27cf3729caadd88879020250b8c2e530e2cafeeaf94e4e1364c7"
+    },
+    "frozen-execution-source-006/src/ygo_kito/protocol_cases.py": {
+      "size": 12119,
+      "sha256": "6531f1c79c9f35d6baa1e993d49a34476e2f2e1f9bd81d791b83110f1bb0fce8"
+    },
+    "frozen-execution-source-006/src/ygo_kito/public_history.py": {
+      "size": 14213,
+      "sha256": "0fb55a1b6f9a2eb105ab60ddc3b80ab5703e2b386b8799caceaa6d2bdb477da6"
+    },
+    "frozen-execution-source-006/src/ygo_kito/route_search.py": {
+      "size": 21284,
+      "sha256": "2e40a120634047c31d316f9704845d5a98a12952b37946119d536f6f49fbacf4"
+    },
+    "frozen-execution-source-006/src/ygo_kito/runner_acceptance.py": {
+      "size": 12093,
+      "sha256": "ffbfdebdb6a17fc3a77e3089b1e261457c3bad8b3a0bcf96293aee08a44f92cb"
+    },
+    "frozen-execution-source-006/src/ygo_kito/scenario_course.py": {
+      "size": 54445,
+      "sha256": "8c6f482df9d325eb59146aa7b2f9a20ebffe14dba0516db13466c8e051ecbf3d"
+    },
+    "frozen-execution-source-006/src/ygo_kito/scenario_course_host.py": {
+      "size": 30525,
+      "sha256": "0969d7865902073031c0d2b86b6efdaacd56a1c237a53517ff80e6570d99d041"
+    },
+    "frozen-execution-source-006/src/ygo_kito/search_cases.py": {
+      "size": 12061,
+      "sha256": "5d5188fc9fd4b9d56a71895378956ff0415f857066909e9c40aa22a5b192f25e"
+    },
+    "frozen-execution-source-006/src/ygo_kito/selfplay_series.py": {
+      "size": 51347,
+      "sha256": "5e08ddc54c73a17b74971c38c3e0d6ad85e1b12b6a833feb5cc250563c4ff7b9"
+    },
+    "frozen-execution-source-006/src/ygo_kito/semantic_curriculum.py": {
+      "size": 12827,
+      "sha256": "74e83e6c5fc1c24bdab035f87a24ea74265617c6d644cc44bff0cc4155337b44"
+    },
+    "frozen-execution-source-006/src/ygo_kito/semantic_training.py": {
+      "size": 7923,
+      "sha256": "89805e7078363c088aed2624061fac4b900eb738e0bb909459bb3e058cb33c34"
+    },
+    "frozen-execution-source-006/src/ygo_kito/storage.py": {
+      "size": 6600,
+      "sha256": "461184b629ca2a3d1cdd583bf5bbef4f6d34aca74dfb1b52079b753b79690404"
+    },
+    "frozen-execution-source-006/src/ygo_kito/storage_envelope.py": {
+      "size": 18233,
+      "sha256": "b23b9bba2c7c250e2a685123aa3b8631f6eae16f9a050982770889735e8e72ae"
+    },
+    "frozen-execution-source-006/src/ygo_kito/sum_protocol.py": {
+      "size": 3768,
+      "sha256": "8504746600666d34929508f73118e3d8b47536ce0345ee1e9bb29cc1dbd995fa"
+    },
+    "frozen-execution-source-006/src/ygo_kito/takeover_readiness.py": {
+      "size": 17296,
+      "sha256": "cf8ae4cf2d9551021dbf66b7d76efc3dce4e0d37673a66fa45d71e8289dccc72"
+    },
+    "frozen-execution-source-006/src/ygo_kito/training_input.py": {
+      "size": 22119,
+      "sha256": "d48384ddf4b4277e131be81d9098a862d650b5961a609dbe86621ba815d4c029"
+    },
+    "frozen-execution-source-006/src/ygo_kito/training_pilot.py": {
+      "size": 35196,
+      "sha256": "b7c16f337932c1113fe38171a32b1e8edcf11f8219fb22dd237d460dc4d16812"
+    },
+    "frozen-execution-source-006/src/ygo_kito/training_plan.py": {
+      "size": 13980,
+      "sha256": "32dca0b2ff564c759520a507c08c4fd88e034c95fe70ebb2801cd31bb577b0b4"
+    },
+    "frozen-execution-source-006/src/ygo_kito/training_preflight.py": {
+      "size": 4971,
+      "sha256": "e49113ebc9fc48addc932d1ea2bfd89dc70f393a2a6c3736ab7a999c60ee8dd6"
+    },
+    "frozen-execution-source-006/src/ygo_kito/training_runner.py": {
+      "size": 24163,
+      "sha256": "8deba9699c9262b6080dbdad9d15223160fcafeddda2ebfbf71d4d8c67274fb2"
+    },
+    "frozen-execution-source-006/src/ygo_kito/training_scenarios.py": {
+      "size": 12200,
+      "sha256": "5e61ab6f6bf0949386f7646b00903c68e4919213781e1db35896c78f130bc5fe"
+    },
+    "frozen-execution-source-006/src/ygo_kito/unselect_case.py": {
+      "size": 7691,
+      "sha256": "9065fac372807955d8a18f56ac9ebd205560923608ff9ce68f4fc51e9c2c2440"
+    },
+    "frozen-execution-source-006/src/ygo_kito/validation.py": {
+      "size": 2906,
+      "sha256": "cec1354483dc1a38a02d5aa43c9cfb0e73516c036ee8511e5ca503129efdf6ba"
+    },
+    "frozen-execution-source-006/src/ygo_kito/windbot_projection.py": {
+      "size": 48657,
+      "sha256": "23f02af625d56ff1405936ad73242a3c1e783d748c718c3a9bab3024ef33a5f7"
+    },
+    "frozen-execution-source-006/src/ygo_kito/windbot_room.py": {
+      "size": 71871,
+      "sha256": "267e880f517a652d5d6eb3b9d5736aaaf1d6f78931b4d590a9c340603c816220"
+    },
+    "runtime-identities/local-ice-build-audit-002-resumed.json": {
+      "size": 52085,
+      "sha256": "8ce1bd0dfc205a9bd8b40b5a6005857945221241449f0cace1c5a348b565b008"
+    },
+    "runtime-identities/local-ice-build-continuation-002.json": {
+      "size": 2740,
+      "sha256": "230b4f9432bd61a7bea1c42268e7585c500ad3f8aa9884414efbc4ac6de56b62"
+    },
+    "runtime-identities/model-pair-runtime-pack.json": {
+      "size": 158782,
+      "sha256": "5cd98b69e4e653f9b698faf6c2efe88670cedaabfc1858f8852b0bdf547f219f"
+    },
+    "runtime-identities/native-receipt.json": {
+      "size": 5822,
+      "sha256": "460926da40b5951073c3642a02b10a6a73772f4c5ce57aeaefc4438250932c62"
+    },
+    "runtime-identities/native-runtime-cache-source-manifest.json": {
+      "size": 2116564,
+      "sha256": "504da9571d9891d4673b7a9bfe81c6b26ab4348ecde02b4dd8739a73b0ce62f3"
+    }
+  },
+  "base_updates": {
+    "build_goal": 2,
+    "build_optimizer": 0,
+    "duel": 1,
+    "coordinator": 3
+  },
+  "formal_bo1": 0,
+  "formal_bo3": 0,
+  "paired_comparison": {
+    "games": 16,
+    "matched_pairs": 8,
+    "mean_scores": [
+      0.0,
+      0.0
+    ],
+    "status": "no_strict_label",
+    "sha256": "4cd88e04f1053dead666d66fe0bb77ee8612137f5837e4eb7ac193d6558a79be"
+  },
+  "third_party_runtime_blobs_included": false,
+  "credentials_included": false,
+  "original_cloud_artifact_preserved": true,
+  "execution_source": "frozen-execution-source-006",
+  "current_controller_source": "this PR tree; explicit subsequent source migration required"
+}

@@ -282,7 +282,7 @@ def main(argv=None) -> int:
                 task=BuildTask.from_dict(read_json(args.task));assets=BuildAssets(args.root)
                 builder=BuildTrainer(task,assets,BuildTrainingConfig())
                 codec=LogicCodec(tuple(LogicTag.from_dict(t) for t in array(read_json(args.required_tags),"requested logic tags")))
-                graph_adapter=LogicModelAdapter.from_builder(builder,codec)
+                graph_adapter=LogicModelAdapter.from_builder(builder,codec,required_tags=codec.tags)
                 if args.logic_checkpoint:graph_adapter.load(args.logic_checkpoint)
                 binding_adapter=CatalogBindingAdapter.from_dict(assets,read_json(args.binding_data))
                 session=ConstructionSession(args.request,task,classifier=LinearIntentClassifier.load(args.intent_model))

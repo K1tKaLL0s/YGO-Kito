@@ -1,0 +1,127 @@
+{
+  "utc": "2026-10-28T02:03:25.985999+00:00",
+  "argv": [
+    "E:\\CodexData\\2026-10-28\\task-13\\import_reviewed_construction.py"
+  ],
+  "patch": "E:\\CodexData\\2026-10-28\\task-3\\construction-all-v2.patch",
+  "patch_sha256": "0c413bf69778eb7eef36ceaebe7e3fd8cd97c4c81b51256a5eb7742de4df1258",
+  "reviewed_commit": "041c72bbc6a2fb3288e0aec419c12fd3be9a641b",
+  "files": [
+    {
+      "path": "scripts/local_course_collaboration.py",
+      "blob": "54a2fb72471a9b1bbeaa22d646b3018232f1b34e",
+      "sha256": "1643fc958b483623d69b5ff68d81479035f4646a95e04b191eded7538a11d3d8",
+      "normalized_lf": false
+    },
+    {
+      "path": "src/ygo_kito/autonomous_construction.py",
+      "blob": "ff2c90091608a854e9b9c4819877b9d1f4d15e66",
+      "sha256": "ac1b9e8db9d781ee38c1b59c130fd1da35dad43baa288d72fff834071782e58e",
+      "normalized_lf": false
+    },
+    {
+      "path": "src/ygo_kito/basic_cb_inference.py",
+      "blob": "a9ded555ffd9f0982fd3107a7c10f5cdb5237418",
+      "sha256": "bcafb5988b9b1a076b553e24fedd4ddc9d8ddf0e36cfcecffd41664c60059eae",
+      "normalized_lf": false
+    },
+    {
+      "path": "src/ygo_kito/build_pipeline.py",
+      "blob": "961d83e1af3bf59b6fb8d36605608767d5f59c98",
+      "sha256": "993868e1ea91853b7f8887c978007019ff2f28e6a77472e19d6d27bba76927f0",
+      "normalized_lf": false
+    },
+    {
+      "path": "src/ygo_kito/construction_candidates.py",
+      "blob": "6789aa42d3bc680cdfc460418e11f358fa216017",
+      "sha256": "792f1bacc938d43720bf2b2357a8dd65259dd4047446749354e885804e57bf1d",
+      "normalized_lf": false
+    },
+    {
+      "path": "src/ygo_kito/construction_controller.py",
+      "blob": "27246da7ecac54d87f00f0af04141d63fe1cc7bc",
+      "sha256": "0949575009f28249a647151a1cd6fe0dde15344f9b3d466b6d075c8c954da8d8",
+      "normalized_lf": false
+    },
+    {
+      "path": "src/ygo_kito/construction_course_evidence.py",
+      "blob": "92408af595c33bf617d1fba255be26dca62c5e8a",
+      "sha256": "3e336921dd0dee04d3ddee2c5be7e4d7c7038479b0e3eb72d8f8f0fa849ab8df",
+      "normalized_lf": false
+    },
+    {
+      "path": "src/ygo_kito/construction_fill.py",
+      "blob": "c0d0a77be74f853e0c9ce2e907d1c2bb2ae592f7",
+      "sha256": "12e011bead6353a06fe3390b617925d2686d9979c02f656a47b392b4fcaaed11",
+      "normalized_lf": false
+    },
+    {
+      "path": "src/ygo_kito/construction_logic.py",
+      "blob": "df8c5b8e8c4c64b571367ee96ad2b8c8ca6e6326",
+      "sha256": "c871b544bb9d5f4dbec3af2bf0ff9ade5887c744b005d837079aaf8133034ddc",
+      "normalized_lf": false
+    },
+    {
+      "path": "src/ygo_kito/construction_model.py",
+      "blob": "16e1dd4df827833638ec07889ea341c08270ebc3",
+      "sha256": "c1a32b86adff0eeca3b1e24ceed44eca96e0a86910a2c97daed624fb18ec3d73",
+      "normalized_lf": false
+    },
+    {
+      "path": "src/ygo_kito/course_feedback.py",
+      "blob": "91fe2e328df67790d2384fbec187eefb1599f9c4",
+      "sha256": "4ef3fbecad88505f63ea3339bb53128179587959183b1e32d8002453ac206464",
+      "normalized_lf": false
+    },
+    {
+      "path": "src/ygo_kito/model_build_feedback.py",
+      "blob": "35e26346d97e50397af6028638ad82d4d92489d3",
+      "sha256": "91cbfb320a7a2861993063c8df47c4a76d1c4cc72a678e834329b973cb8e7209",
+      "normalized_lf": false
+    },
+    {
+      "path": "tests/test_build_semantics.py",
+      "blob": "7939670f0ce7de208345bcae4be1a75c5ae55be2",
+      "sha256": "696c6df9ff7a4e024e82e80e84b51d5a5459095988ffae2517fc07f25a5d1840",
+      "normalized_lf": false
+    },
+    {
+      "path": "tests/test_construction_logic.py",
+      "blob": "3837af5c9c1151357005ed21507dd905ab350b13",
+      "sha256": "c60a264b60c688f6c02de7e31a851899a8b67ebc556bca982d47189726e058d8",
+      "normalized_lf": false
+    },
+    {
+      "path": "tests/test_construction_model.py",
+      "blob": "6884d1ad421e9174ad6d792df4049e5054763a2b",
+      "sha256": "70fbd90bf182532e95d5fa816ef78f8209ebb5efef681d7bb0274433fec1142e",
+      "normalized_lf": false
+    },
+    {
+      "path": "tests/test_construction_portfolio.py",
+      "blob": "3c7ee0a56ecba7c5302f3d448bb57dae4c32ff39",
+      "sha256": "03a4b5f28ae202afc309c3ce14892666c71ccb10eab543ea6c7d3201a96d95e1",
+      "normalized_lf": false
+    },
+    {
+      "path": "tests/test_construction_review_fixes.py",
+      "blob": "5253ddb1b7b8a86d82a0bfcdf3104f6d132840d4",
+      "sha256": "ad25107ba37d29f07e339a6dba3512686031ec0e77b6490c24e619a65ce8365a",
+      "normalized_lf": false
+    },
+    {
+      "path": "tests/test_construction_service.py",
+      "blob": "9417d47913c73b21be6c29abb28016980113c8f4",
+      "sha256": "b2110faeba44b969ee6e4b1a303719a36f77dd903bb2b2d443ec199696f94be4",
+      "normalized_lf": false
+    },
+    {
+      "path": "tests/test_course_feedback.py",
+      "blob": "6259e720d07bf06af6016eb12d9896484928c377",
+      "sha256": "7c25640e1837f06048b3862d07dd67b49a3dd055e6c8f7c43a183545a7588838",
+      "normalized_lf": false
+    }
+  ],
+  "git_commands_in_other_worktrees": 0,
+  "source_writes": false
+}

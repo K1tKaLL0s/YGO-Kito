@@ -25,6 +25,21 @@ from .validation import ContractError, integer
 _ACTIVE = threading.Lock()  # The upstream callback registry is process-global.
 
 
+def _validate_cb_opening_hand(scenario, opening, main_deck=None):
+    """Validate the exact own-hand assumption of a scoped CB probe."""
+    if scenario != "conditional-cb":
+        if opening is not None:
+            raise ContractError("controlled opening hands require the conditional-cb scenario")
+        return None
+    if type(opening) is not tuple or not 1 <= len(opening) <= 5:
+        raise ContractError("conditional-cb requires an explicit tuple of 1 to 5 main-deck cards")
+    for code in opening:
+        integer(code, "conditional CB opening card", 1, 2**32 - 1)
+    if main_deck is not None and Counter(opening) - Counter(main_deck):
+        raise ContractError("conditional CB opening exceeds the actor main-deck inventory")
+    return opening
+
+
 class CardData(C.Structure):
     _fields_ = [("code", C.c_uint32), ("alias", C.c_uint32), ("setcode", C.c_uint16 * 16),
                 *[(key, C.c_uint32) for key in ("type", "level", "attribute", "race")],
@@ -47,19 +62,21 @@ def banlist_limits(path: Path, section="2026.10") -> dict[int, int]:
 
 
 class NativeNormalEngine:
-    def __init__(self, root: Path, *, seed=7, scenario="normal", legacy_request_ids=False, deck_profile=None, selection_key=None):
+    def __init__(self, root: Path, *, seed=7, scenario="normal", legacy_request_ids=False, deck_profile=None, selection_key=None, cb_opening_hand=None):
         integer(seed, "seed", 0, 2**32 - 8)
-        if scenario not in ("normal", "effects-counter", "search-trigger", "search-condition", "count-reset", "count-shared", "search-lock", "lock-control", "effect-duel"):
+        if scenario not in ("normal", "effects-counter", "search-trigger", "search-condition", "count-reset", "count-shared", "search-lock", "lock-control", "effect-duel", "conditional-cb"):
             raise ContractError("unsupported scoped native scenario")
-        if (scenario == "effect-duel") != (deck_profile is not None):
+        self.cb_opening_hand = _validate_cb_opening_hand(scenario, cb_opening_hand)
+        if (scenario in ("effect-duel", "conditional-cb")) != (deck_profile is not None):
             raise ContractError("effect duel requires an explicit deck profile")
         if legacy_request_ids and scenario != "normal":
             raise ContractError("legacy requests are reserved for old normal replay")
         self.scenario, self._legacy_ids = scenario, legacy_request_ids
-        self.general_actions = scenario == "effect-duel"
+        self.general_actions = scenario in ("effect-duel", "conditional-cb")
         if self.general_actions:
             from .deck_profile import validate_profile
-            validate_profile(deck_profile)
+            decks = validate_profile(deck_profile)
+            _validate_cb_opening_hand(scenario, self.cb_opening_hand, decks[0])
         self.extended_actions = self.general_actions and deck_profile.get("schema_version") == 2
         self.modern_actions = self.general_actions and deck_profile.get("adapter_revision") in (3,4,5)
         self.private_actions = self.general_actions and deck_profile.get("adapter_revision") in (4,5)
@@ -125,7 +142,7 @@ class NativeNormalEngine:
             elif scenario == "lock-control":
                 self._allowed_pool.add(45812361)
                 self.player_decks = (self.deck[:39] + (45812361,), self.deck)
-            elif scenario == "effect-duel":
+            elif self.general_actions:
                 from .deck_profile import validate_profile
                 self.player_decks = validate_profile(deck_profile)
                 self._allowed_pool = set().union(*self.player_decks)
@@ -151,16 +168,7 @@ class NativeNormalEngine:
             if not self.handle:
                 raise NativeError("native create_duel_v2 failed")
             self._check_callbacks()
-            for player in (0, 1):
-                self.lib.set_player_info(self.handle, player, 8000, 5, 1)
-                # The host supplies initial deck order; start_duel does not shuffle it.
-                # Keep this deal RNG private and separate from the core's effect RNG.
-                order = list(self.player_decks[player])
-                random.Random(seed * 2 + player).shuffle(order)
-                for code in order:
-                    self.lib.new_card(self.handle, code, player, player, 1, 0, 8)
-                for code in self.player_extras[player]:
-                    self.lib.new_card(self.handle, code, player, player, 64, 0, 8)
+            self._setup_initial_cards(seed)
             self._check_callbacks()
             hashes = self.receipt["resources"]
             self.context = RunContext(f"native-{uuid4().hex}", Versions(self.lock["sources"]["core"]["commit"],
@@ -170,6 +178,26 @@ class NativeNormalEngine:
         except BaseException:
             self.close()
             raise
+
+    def _setup_initial_cards(self, seed):
+        for player in (0, 1):
+            opening = self.cb_opening_hand if player == 0 else None
+            # A controlled probe draws exactly its declared cards, without fillers.
+            start_count = len(opening) if opening is not None else 5
+            self.lib.set_player_info(self.handle, player, 8000, start_count, 1)
+            # The host supplies initial deck order; start_duel does not shuffle it.
+            # Keep this deal RNG private and separate from the core's effect RNG.
+            order = list(self.player_decks[player])
+            random.Random(seed * 2 + player).shuffle(order)
+            if opening is not None:
+                for code in opening:
+                    order.remove(code)
+                # Sequence 0 appends to the deck; the core draws from its back.
+                order.extend(opening)
+            for code in order:
+                self.lib.new_card(self.handle, code, player, player, 1, 0, 8)
+            for code in self.player_extras[player]:
+                self.lib.new_card(self.handle, code, player, player, 64, 0, 8)
 
     def _bind(self):
         if C.sizeof(CardData) != 80:

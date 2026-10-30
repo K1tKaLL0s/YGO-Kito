@@ -1,0 +1,167 @@
+{
+  "schema_version": "1.0",
+  "purpose": "官方已核实场景的验收预期；不是已执行引擎测试报告。",
+  "cases": [
+    {
+      "case_id": "use1_activation_negated",
+      "given": "破壊剣士融合①，发动被无效",
+      "expected": "已用①；同回合第二张不可再发动",
+      "source_id": "qa_17377",
+      "source_url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=17377&request_locale=ja"
+    },
+    {
+      "case_id": "use1_effect_negated",
+      "given": "破壊剣士の宿命①，效果被无效",
+      "expected": "已用①；同回合第二张不可再发动",
+      "source_id": "qa_17376",
+      "source_url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=17376&request_locale=ja"
+    },
+    {
+      "case_id": "use3_activation_negated",
+      "given": "タツノオトシオヤ本回合首次发动被无效",
+      "expected": "已用1次；另有2次，仍需条件合法",
+      "source_id": "qa_17200",
+      "source_url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=17200&request_locale=ja"
+    },
+    {
+      "case_id": "traptrick_activation_negated",
+      "given": "Trap Trick 适用后第一次陷阱卡发动被无效",
+      "expected": "允许再发动一张；前次费用不退款",
+      "source_id": "qa_22010",
+      "source_url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=22010&request_locale=ja"
+    },
+    {
+      "case_id": "traptrick_effect_negated",
+      "given": "Trap Trick 适用后第一次陷阱仅效果无效",
+      "expected": "次数已占，不允许再发动一张",
+      "source_id": "qa_22010",
+      "source_url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=22010&request_locale=ja"
+    },
+    {
+      "case_id": "caliga_activation_negated",
+      "given": "Caliga 适用时怪兽效果发动被无效",
+      "expected": "不能再发动另一次怪兽效果",
+      "source_id": "qa_7813",
+      "source_url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=7813&request_locale=ja"
+    },
+    {
+      "case_id": "use_duel_resolution_failure",
+      "given": "天羽々斬之巳剣①未无效但不能特殊召唤",
+      "expected": "决斗一次使用仍消耗",
+      "source_id": "qa_23336",
+      "source_url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=23336&request_locale=ja"
+    },
+    {
+      "case_id": "apply_duel_negated",
+      "given": "七皇之剑效果被无效",
+      "expected": "决斗一次适用未消耗；可在完整条件满足时再发动",
+      "source_id": "qa_18354",
+      "source_url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=18354&request_locale=ja"
+    },
+    {
+      "case_id": "apply_duel_failure",
+      "given": "七皇之剑未无效但不能特殊召唤",
+      "expected": "适用次数消耗，不能再发动",
+      "source_id": "qa_18354",
+      "source_url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=18354&request_locale=ja"
+    },
+    {
+      "case_id": "option_negated",
+      "given": "Volcanic Rimfire 选项发动被无效",
+      "expected": "该选项已选；不能重选，但其他选项另判",
+      "source_id": "qa_23977",
+      "source_url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=23977&request_locale=ja"
+    },
+    {
+      "case_id": "faceup_once_negated",
+      "given": "Baronne 等表侧存在期间一次效果发动无效",
+      "expected": "同一表侧期间一次已消耗",
+      "source_id": "qa_23438",
+      "source_url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=23438&request_locale=ja"
+    },
+    {
+      "case_id": "permission_negated",
+      "given": "用王家神殿许可发动当天盖放陷阱，发动无效",
+      "expected": "许可已适用，不能再次借该许可发动",
+      "source_id": "qa_14555",
+      "source_url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=14555&request_locale=ja"
+    },
+    {
+      "case_id": "microcoder_link_negated",
+      "given": "手牌 Micro Coder 作素材后连接召唤无效",
+      "expected": "其手牌素材效果使用次数不返还",
+      "source_id": "qa_21976",
+      "source_url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=21976&request_locale=ja"
+    },
+    {
+      "case_id": "cost_send_negated",
+      "given": "海皇送墓作水属性效果费用，发动无效",
+      "expected": "送墓费用事实保留，关联触发按条件可发动",
+      "source_id": "qa_13508",
+      "source_url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=13508&request_locale=ja"
+    },
+    {
+      "case_id": "cost_scheduled_return",
+      "given": "Cosmic Blazar 除外自己作费用后发动无效",
+      "expected": "不立即退款；结束阶段仍返回",
+      "source_id": "qa_20639",
+      "source_url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=20639&request_locale=ja"
+    },
+    {
+      "case_id": "xyz_summon_negated",
+      "given": "超量召唤被无效",
+      "expected": "材料送墓，不回场；按已作超量素材处理",
+      "source_id": "qa_11269",
+      "source_url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=11269&request_locale=ja"
+    },
+    {
+      "case_id": "capshell_tribute_negated",
+      "given": "Capshell 解放后上级召唤被无效",
+      "expected": "可满足其被解放触发条件",
+      "source_id": "qa_23083",
+      "source_url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=23083&request_locale=ja"
+    },
+    {
+      "case_id": "capshell_link_negated",
+      "given": "Capshell 作连接素材后连接召唤被无效",
+      "expected": "不满足其作为连接素材送墓触发；不把它退回",
+      "source_id": "qa_23083",
+      "source_url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=23083&request_locale=ja"
+    },
+    {
+      "case_id": "procedure_send_negated",
+      "given": "Ex Ryzeal 手续送 Aggregator 后召唤无效",
+      "expected": "送墓事实保留；Aggregator 触发按条件可发",
+      "source_id": "qa_24102",
+      "source_url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=24102&request_locale=ja"
+    },
+    {
+      "case_id": "nastens_effect_negated",
+      "given": "Nasten 召唤效果发动被无效",
+      "expected": "尚未特殊召唤成功；允许合法再次发动或其他方式特召",
+      "source_id": "qa_13891",
+      "source_url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=13891&request_locale=ja"
+    },
+    {
+      "case_id": "immediate_summon_cl1",
+      "given": "Chundra 在连锁1处理后立即同调",
+      "expected": "存在发动召唤无效卡的窗口",
+      "source_id": "qa_24054",
+      "source_url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=24054&request_locale=ja"
+    },
+    {
+      "case_id": "immediate_summon_cl2",
+      "given": "Chundra 在连锁2以上处理后立即同调且整链未结束",
+      "expected": "不能插入召唤无效响应",
+      "source_id": "qa_24054",
+      "source_url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=24054&request_locale=ja"
+    },
+    {
+      "case_id": "continuous_spell_destroyed",
+      "given": "K9 永续魔法发动时被 MST 连锁破坏",
+      "expected": "发动时检索不适用；不是卡发动无效",
+      "source_id": "qa_12624",
+      "source_url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=12624&request_locale=ja"
+    }
+  ]
+}

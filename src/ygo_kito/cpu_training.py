@@ -28,9 +28,22 @@ from .native import NativeError, NativeNormalEngine
 from .native_assets import verify_resources
 from .normal_duel import request_digest
 from .hierarchical_policy import score_requests, sample_index, validate_receipt
+from .duel_planning import DuelPlanner, VERSION as PLANNING_VERSION, replay_planning_bias
 from .device import (resolve_device, execution_metadata, checkpoint_device, optimizer_to,
                      capture_device_rng, restore_device_rng, checkpoint_execution)
 from .validation import ContractError, canonical_json, fields, integer
+
+
+class SampleBudgetExceeded(RuntimeError):
+    """Known compute boundary, with private evidence and no terminal target.
+
+    This is deliberately separate from NativeError. The evidence can be
+    inspected or replayed only by an explicit host recovery decision; it is
+    neither a completed episode nor a serializable native continuation.
+    """
+    def __init__(self, partial):
+        super().__init__("CPU sample compute budget exhausted; incomplete game preserved without reward/update")
+        self.partial = partial
 
 
 @dataclass(frozen=True)
@@ -131,7 +144,9 @@ class CpuTrainer:
         self._pending_episode_digest=None
 
     def sample_episode(self, root, profile, *, purpose="train", seed=None,
-                       policy_seed=None, opponent="visible-effects-first-v1",opponent_adapter=None,engine_factory=None):
+                       policy_seed=None, opponent="visible-effects-first-v1",opponent_adapter=None,engine_factory=None,
+                       combo_plans=(), planning_facts=None, planning_responses=None, planning_budget=None,
+                       effect_limit_bindings=(), training_attempt_cursor=None):
         if purpose not in ("train", "validation","final_eval") or opponent not in ("visible-effects-first-v1", "visible-effects-last-option-v1"):
             raise ContractError("unsupported sample purpose or fixed opponent")
         if opponent_adapter is not None:
@@ -141,23 +156,28 @@ class CpuTrainer:
             opponent_adapter.assert_runtime(root,profile,self.config.actor_seat)
         if purpose == "train" and (seed is not None or policy_seed is not None):
             raise ContractError("training seed/RNG must come from the checkpoint cursor")
-        if purpose == "train" and self.episode_cursor >= len(self.config.game_seeds):
+        if training_attempt_cursor is not None:
+            if purpose != "train": raise ContractError("training attempt cursor cannot select held-out seeds")
+            integer(training_attempt_cursor, "declared training attempt cursor", self.episode_cursor, len(self.config.game_seeds))
+        sample_cursor = (self.episode_cursor if training_attempt_cursor is None else training_attempt_cursor) if purpose == "train" else None
+        if purpose == "train" and sample_cursor >= len(self.config.game_seeds):
             raise ContractError("declared engineering episode budget exhausted")
         cfg = self.config
         curriculum=cfg.curriculum
         policy_hash, version = parameter_digest(self.model), self.updates
         if purpose == "train":
-            seed, sampler_rng = cfg.game_seeds[self.episode_cursor], self.policy_rng
+            seed, sampler_rng = cfg.game_seeds[sample_cursor], self.policy_rng
         else:
             integer(seed, "held-out game seed", 0, 2**32 - 8)
             integer(policy_seed, "held-out policy seed", 0, 2**32 - 8)
             if seed in cfg.game_seeds:
                 raise ContractError("validation seed overlaps training")
             sampler_rng = torch.Generator(device="cpu").manual_seed(policy_seed)
+        sampler_rng_before = sampler_rng.get_state().tolist()
         # Seeds and opponent versions are controller metadata, never model features.
         steps, audit, latencies = [], [], []
         self.model.eval()
-        started = time.monotonic()
+        started = time.perf_counter()
         # Independent view randomness is private controller state; use the
         # checkpointed sampler stream rather than leaking the duel RNG rank.
         selection_key=None
@@ -173,24 +193,55 @@ class CpuTrainer:
                 factory = partial(opponent_adapter.managed_engine_factory, factory)
         with factory(root, scenario="effect-duel", deck_profile=profile, seed=seed,selection_key=selection_key) as engine:
             facts = public_card_facts(root)
+            # The planner receives ONLY the actor's unordered inventory and
+            # sanitized own CB intents. Never pass profile/engine/seed/rows
+            # from the live engine or an opponent request into planning.
+            planner = DuelPlanner(own_deck=tuple(profile['decks'][cfg.actor_seat])+
+                tuple(profile.get('extras',[[],[]])[cfg.actor_seat]), plans=combo_plans,
+                facts=facts if planning_facts is None else planning_facts,
+                responses=planning_responses, budget=planning_budget,effect_limit_bindings=effect_limit_bindings)
             driver,assigned=(None,())
             if curriculum is not None:
                 from .private_cases import prompt_curriculum
                 driver,assigned=prompt_curriculum(curriculum,profile,engine._rows)
             request = engine.next_decision()
             while request is not None:
-                if len(audit) >= cfg.native_decision_limit or time.monotonic() - started > cfg.episode_seconds:
-                    raise NativeError("CPU sample budget exhausted; no terminal reward/update claimed")
+                elapsed = time.perf_counter() - started
+                if len(audit) >= cfg.native_decision_limit or elapsed > cfg.episode_seconds:
+                    raise SampleBudgetExceeded({"schema_version": 1, "kind": "private-incomplete-core-sample-v1",
+                        "source": "live-core-actor-seat", "purpose": purpose, "terminal": False, "truncated": True,
+                        "training_eligible": False, "terminal_reward": None, "outcome": None,
+                        "policy_version": version, "policy_sha256": policy_hash,
+                        "seed_audit_only": seed, "episode_cursor": self.episode_cursor if purpose == "train" else None,
+                        "sampling_attempt_cursor": sample_cursor if purpose == "train" else None,
+                        "actor_seat": cfg.actor_seat, "turns": engine.turn,
+                        "resource_boundary": {"kind": "compute_budget", "episode_seconds": cfg.episode_seconds,
+                            "native_decision_limit": cfg.native_decision_limit, "elapsed_seconds": elapsed,
+                            "native_decisions": len(audit), "actor_samples": len(steps),
+                            "limits_reached": [name for name, reached in (
+                                ("native_decision_limit", len(audit) >= cfg.native_decision_limit),
+                                ("episode_seconds", elapsed > cfg.episode_seconds)) if reached]},
+                        "steps": [{k: v.to_dict() if k == "request" else v for k, v in step.items()} for step in steps],
+                        "next_request": request.to_dict(), "responses": audit,
+                        "trajectory_sha256": hashlib.sha256(canonical_json(audit).encode()).hexdigest(),
+                        "actor_inference_ms": latencies,
+                        "sampler_rng_before": sampler_rng_before, "sampler_rng_after": sampler_rng.get_state().tolist(),
+                        "profile": profile, "resources": engine.receipt,
+                        "selection_key_audit_only": engine._selection_seed,
+                        "events": engine.events, "native_continuation_available": False})
                 if request.observation.observer == cfg.actor_seat and (driver is None or request.prompt.message in assigned):
                     tick = time.perf_counter()
                     with torch.no_grad():
                         logits, values = score_requests(self.model,self.encoder,[request])
+                        planned, planning = planner.evaluate(request,logits[0])
+                        logits = planned.unsqueeze(0)
                         distribution = Categorical(logits=logits)
                         index, hierarchy = sample_index(logits[0],generator=sampler_rng,max_actions=cfg.model.max_actions)
                     action = request.actions[index]
                     steps.append({"request": request, "action_index": index,
                                   "old_log_prob": float(distribution.log_prob(torch.tensor([index], device=logits.device))[0]),
-                                  "old_value": float(values[0]), "reward": 0., "hierarchy": hierarchy})
+                                  "old_value": float(values[0]), "reward": 0., "hierarchy": hierarchy,
+                                  "planning": planning})
                     latencies.append((time.perf_counter() - tick) * 1000)
                 else:
                     action = (opponent_adapter.policy.choose(request) if opponent_adapter is not None else
@@ -199,6 +250,8 @@ class CpuTrainer:
                         action = request.actions[-1]
                 audit.append({"player": request.observation.observer, "request_sha256": request_digest(request), "action_id": action.action_id})
                 engine.submit(ActionSelection(request.context.run_id, request.duel_id, request.decision_id, action.action_id))
+                if request.observation.observer == cfg.actor_seat:
+                    planner.accepted(request,action)
                 request = engine.next_decision()
             if engine.outcome is None or engine.events[-1]["kind"] != 5 or not steps:
                 raise NativeError("CPU sample lacks actual core terminal result")
@@ -209,9 +262,12 @@ class CpuTrainer:
                        "purpose": purpose, "opponent": opponent if driver is None else "engineering-prefix-then-visible-normal-v1",
                        "seed_audit_only": seed, "actor_seat": cfg.actor_seat, "turns": engine.turn,
                        "native_decisions": len(audit), "actor_samples": len(steps), "outcome": engine.outcome,
-                       "terminal_reward": reward, "elapsed_seconds": time.monotonic() - started,
+                       "terminal_reward": reward, "elapsed_seconds": time.perf_counter() - started,
                        "actor_inference_ms": latencies,
+                       "decision_policy": PLANNING_VERSION, "combo_plan_count": len(combo_plans),
+                       "planning_projection": "conditional-approximate-not-core-verified",
                        "trajectory_sha256": hashlib.sha256(canonical_json(audit).encode()).hexdigest()}
+            if training_attempt_cursor is not None: summary["sampling_attempt_cursor"] = sample_cursor
             if curriculum is not None:
                 summary['curriculum']={'kind':'engineering-scripted-prefix-and-baseline-continuation',
                                        'case':curriculum,'policy_messages':list(assigned),'competitive_evaluation':False}
@@ -237,6 +293,8 @@ class CpuTrainer:
         return episode
 
     def update(self, episode):
+        if episode.get("truncated") is True or episode.get("terminal") is False:
+            raise ContractError("PPO rejects an incomplete compute-truncated sample without a terminal target")
         if episode.get("purpose") != "train" or episode["source"] != "live-core-actor-seat" or episode["policy_version"] != self.updates or episode["policy_sha256"] != parameter_digest(self.model):
             raise ContractError("PPO rejects stale/off-policy or non-live-core data")
         steps, cfg = episode["steps"], self.config
@@ -275,6 +333,7 @@ class CpuTrainer:
             advantage = (advantage - advantage.mean()) / (advantage.std(unbiased=False) + 1e-8)
         self.model.train()
         logits, values = score_requests(self.model,self.encoder,[s["request"] for s in chosen])
+        logits = replay_planning_bias(logits,chosen)
         dist = Categorical(logits=logits)
         ratio = (dist.log_prob(actions) - old_log_probs).exp()
         policy_loss = -torch.minimum(ratio * advantage, ratio.clamp(1 - cfg.clip_ratio, 1 + cfg.clip_ratio) * advantage).mean()

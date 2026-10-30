@@ -1,5 +1,7 @@
 """CPU model/PPO/SQLite tests with explicitly fake native host and bot room.
 
+The fake engine contexts also isolate the formal CB admission boundary, whose
+real rejection contracts are exercised in test_training_admission.
 These test real model inference, base/LoRA updates and match transitions, not
 C#, core rules, actual bot qualification, game strength or formal training.
 """
@@ -21,13 +23,15 @@ from ygo_kito.bot_deployment import BotSourceRegistry
 from ygo_kito.build_contracts import DeckParts, digest
 from ygo_kito.build_pipeline import BuildAssets
 from ygo_kito.contracts import ActionSelection, DecisionRequest, Versions
-from ygo_kito.cpu_training import CpuTrainer, CpuTrainingConfig
+from ygo_kito.cpu_training import CpuTrainer, CpuTrainingConfig, SampleBudgetExceeded
 from ygo_kito.data_isolation import DataIndex
 from ygo_kito.duel_model import DuelModelConfig, FEATURE_VERSION, parameter_digest
+from ygo_kito.duel_effect_limits import EffectLimitBinding
 from ygo_kito.group_runner import GroupState
 from ygo_kito.lora import AdapterConfig, AdapterSession
 from ygo_kito.match_runner import MatchParticipant, MatchRules, MatchState, MatchRunner, GameSpec, FirstOrderPolicy
 from ygo_kito import model_opponents as neural
+from ygo_kito.native import NativeError
 from ygo_kito.contracts import validate_selection
 from ygo_kito.validation import ContractError
 from ygo_kito.windbot_projection import WindBotOpponent
@@ -54,7 +58,7 @@ class CourseGameAdapterTests(unittest.TestCase):
         q['rows'][0]['binding_sha256'] = digest(self.binding(options))
         self.qualification = h.write_json('course-qualification.json', q)
         self.runtime = course.CourseBotRuntime(self.registry, self.root, 'ice', 'FixtureExecutor',
-            h.spec['bot_sources']['audits']['ice'], self.qualification, self.qual_profile, '/fixture/mono',
+            h.spec['bot_sources']['audits']['ice'], self.qualification, self.qual_profile, str(self.root/'fixture-mono'),
             'fixture-opponent', source='engineering_fixture')
         self.config = CpuTrainingConfig(model=DuelModelConfig(width=8, card_width=4, heads=2, feedforward=16),
                                        game_seeds=(100, 101, 102), batch_size=1, episode_seconds=30)
@@ -132,7 +136,9 @@ class CourseGameAdapterTests(unittest.TestCase):
         with patch.object(BotSourceRegistry, 'training_adapter', construct), \
                 patch.object(course, '_CourseNativeEngine', side_effect=engine), \
                 patch.object(course, 'verify_resources', return_value=self.assets.receipt), \
-                patch('ygo_kito.cpu_training.public_card_facts', return_value={}):
+                patch('ygo_kito.cpu_training.public_card_facts', return_value={}), \
+                patch('ygo_kito.training_admission.require_training_admission',
+                      return_value={'status':'admitted','fixture':'synthetic-engine-only'}):
             yield
 
     @staticmethod
@@ -164,6 +170,19 @@ class CourseGameAdapterTests(unittest.TestCase):
         self.assertEqual([g['actual_first_participant_id'] for g in self.state.summary()['games']], ['actor', 'bot'])
         self.assertEqual(len(self.frames), 2)
         self.assertEqual(self.close_calls, ['fake-room', 'fake-engine']*2)
+
+    def test_exact_effect_limit_binding_reaches_actual_sampler_without_automatic_card_guessing(self):
+        # Synthetic identity/description binding exercises host plumbing only;
+        # it is not an assertion that fixture card 1 is the official named card.
+        binding=EffectLimitBinding('fixture-count','qa17200','fixture:shared-name:effect-1',
+            ((1,17),),((1,digest(self.assets.rows[1].get('desc',''))),),scope_complete=True)
+        with self.fake_execution():
+            adapter=self.adapter(effect_limit_bindings=(binding,))
+            result=adapter(self.state.issue_game_spec())
+        self.assertTrue(result.terminal)
+        self.assertEqual(adapter.last_receipt['before']['planning']['effect_limit_binding_count'],1)
+        view=adapter.last_episode['steps'][0]['planning']['interruption_rules']['counter_queries']
+        self.assertEqual(view[0]['rule_id'],'qa17200');self.assertEqual(view[0]['remaining'],3)
 
     def test_from_group_keeps_live_effective_lora_and_updates_only_adapter_each_game(self):
         session = AdapterSession(self.trainer.model, AdapterConfig('fixture-duel', 'duel', ('value_head.2',), rank=1, max_updates=3),
@@ -208,6 +227,7 @@ class CourseGameAdapterTests(unittest.TestCase):
             with self.assertRaisesRegex(ContractError, 'audit'): self.adapter()
         sample.assert_not_called()
 
+    @patch('ygo_kito.training_admission.require_training_admission', new=lambda **_: {'status': 'admitted'})
     def test_observed_first_player_required_and_failure_retains_actual_sampling(self):
         self.actual_first = None
         before = parameter_digest(self.trainer.model)
@@ -218,7 +238,135 @@ class CourseGameAdapterTests(unittest.TestCase):
         self.assertTrue(adapter.last_receipt['sample_completed'])
         self.assertEqual(parameter_digest(self.trainer.model), before)
         self.assertEqual(self.trainer.updates, 0)
+        self.assertEqual(adapter.last_receipt['sampling_attempt_cursor'], 0)
+        self.assertEqual(adapter.last_receipt['next_sampling_attempt_cursor'], 0)
 
+    @patch('ygo_kito.training_admission.require_training_admission',new=lambda **kwargs:{'status':'admitted'})
+    def test_decision_budget_preserves_partial_without_index_update_or_terminal_result(self):
+        self.config = replace(self.config, native_decision_limit=1)
+        self.trainer = CpuTrainer(self.config, list(range(1, 42)))
+        before = parameter_digest(self.trainer.model)
+        rng_before = self.trainer.policy_rng.get_state().tolist()
+        with self.fake_execution():
+            adapter = self.adapter(training_attempt_cursor=0)
+            with patch.object(adapter, '_index', side_effect=AssertionError('partial must not enter the data index')) as index_episode, \
+                    patch.object(CpuTrainer, 'update', side_effect=AssertionError('partial must not update')) as update:
+                result = adapter(self.state.issue_game_spec())
+        index_episode.assert_not_called(); update.assert_not_called()
+        self.assertFalse(result.terminal); self.assertIsNone(result.winner_core_seat)
+        self.assertEqual(result.anomaly, 'compute_budget_exhausted')
+        receipt = adapter.last_receipt; partial = adapter.last_partial_sample
+        self.assertEqual(receipt['status'], 'compute_truncated')
+        self.assertEqual(receipt['error']['type'], SampleBudgetExceeded.__name__)
+        self.assertEqual(receipt['sampling_attempt_cursor'], 0)
+        self.assertEqual(receipt['next_sampling_attempt_cursor'], 1)
+        self.assertFalse(receipt['sample_completed']); self.assertFalse(receipt['model_update_started'])
+        self.assertFalse(receipt['model_update_completed']); self.assertIsNone(adapter.last_episode)
+        self.assertFalse(partial['terminal']); self.assertTrue(partial['truncated'])
+        self.assertFalse(partial['training_eligible']); self.assertIsNone(partial['terminal_reward'])
+        self.assertIsNone(partial['outcome']); self.assertFalse(partial['native_continuation_available'])
+        self.assertEqual(partial['seed_audit_only'], 100)
+        self.assertEqual(len(partial['steps']), 1); self.assertEqual(partial['steps'][0]['reward'], 0.)
+        self.assertIsInstance(partial['steps'][0]['request'], dict)
+        self.assertEqual(partial['next_request']['decision_id'], 'fake-bot-window')
+        self.assertEqual(len(partial['responses']), 1)
+        self.assertEqual(partial['sampler_rng_before'], rng_before)
+        self.assertEqual(partial['sampler_rng_after'], self.trainer.policy_rng.get_state().tolist())
+        self.assertEqual(partial['resources'], self.assets.receipt)
+        boundary = partial['resource_boundary']
+        self.assertEqual(boundary['kind'], 'compute_budget')
+        self.assertEqual(boundary['limits_reached'], ['native_decision_limit'])
+        self.assertEqual(boundary['native_decision_limit'], 1)
+        self.assertEqual(boundary['native_decisions'], 1); self.assertEqual(boundary['actor_samples'], 1)
+        self.assertEqual(boundary['episode_seconds'], self.config.episode_seconds)
+        self.assertGreater(boundary['elapsed_seconds'], 0)
+        self.assertEqual(receipt['resource_boundary'], boundary)
+        self.assertEqual(parameter_digest(self.trainer.model), before)
+        self.assertEqual((self.trainer.updates, self.trainer.episode_cursor), (0, 0))
+        self.assertIsNone(self.trainer._pending_episode_digest)
+        self.assertEqual(self.index.summary()['by_purpose']['train'], 0)
+        self.assertEqual(self.close_calls, ['fake-room', 'fake-engine'])
+
+    @patch('ygo_kito.training_admission.require_training_admission',new=lambda **kwargs:{'status':'admitted'})
+    def test_native_error_remains_failed_or_uncertain_without_budget_reclassification(self):
+        before = parameter_digest(self.trainer.model)
+        with self.fake_execution(), patch.object(CpuTrainer, 'sample_episode', side_effect=NativeError('fixture genuine native failure')):
+            adapter = self.adapter()
+            with patch.object(adapter, '_index') as index_episode, patch.object(CpuTrainer, 'update') as update:
+                result = adapter(self.state.issue_game_spec())
+        index_episode.assert_not_called(); update.assert_not_called()
+        self.assertFalse(result.terminal); self.assertIsNone(result.winner_core_seat)
+        self.assertEqual(result.anomaly, NativeError.__name__, adapter.last_receipt.get('error'))
+        self.assertEqual(adapter.last_receipt['status'], 'failed_or_uncertain')
+        self.assertEqual(adapter.last_receipt['error']['type'], NativeError.__name__)
+        self.assertFalse(adapter.last_receipt['retry_allowed'])
+        self.assertFalse(adapter.last_receipt['sample_completed'])
+        self.assertFalse(adapter.last_receipt['model_update_started'])
+        self.assertIsNone(adapter.last_partial_sample); self.assertIsNone(adapter.last_episode)
+        self.assertEqual(parameter_digest(self.trainer.model), before)
+        self.assertEqual((self.trainer.updates, self.trainer.episode_cursor), (0, 0))
+        self.assertEqual(self.index.summary()['by_purpose']['train'], 0)
+
+    @patch('ygo_kito.training_admission.require_training_admission',new=lambda **kwargs:{'status':'admitted'})
+    def test_training_attempt_cursor_uses_next_declared_seed_without_advancing_update_cursor(self):
+        original_sample = CpuTrainer.sample_episode
+        seen_cursors, seen_seeds = [], []
+        def sample(trainer, *args, **kwargs):
+            seen_cursors.append((trainer.updates, trainer.episode_cursor))
+            factory = kwargs['engine_factory']
+            def engine(root, **options):
+                seen_seeds.append(options['seed'])
+                return factory(root, **options)
+            return original_sample(trainer, *args, **dict(kwargs, engine_factory=engine))
+        with self.fake_execution(), patch.object(CpuTrainer, 'sample_episode', sample):
+            adapter = self.adapter(training_attempt_cursor=1)
+            result = adapter(self.state.issue_game_spec())
+        self.assertEqual(seen_cursors, [(0, 0)])
+        self.assertEqual(seen_seeds, [101])
+        self.assertTrue(result.terminal)
+        self.assertEqual(adapter.last_episode['summary']['seed_audit_only'], 101)
+        self.assertEqual(adapter.last_receipt['sampling_attempt_cursor'], 1)
+        self.assertEqual(adapter.last_receipt['next_sampling_attempt_cursor'], 2)
+        self.assertTrue(adapter.last_receipt['model_update_completed'])
+        self.assertEqual((self.trainer.updates, self.trainer.episode_cursor), (1, 1))
+        self.assertEqual(self.index.summary()['by_purpose']['train'], 1)
+
+    @patch('ygo_kito.training_admission.require_training_admission',new=lambda **kwargs:{'status':'admitted'})
+    def test_ppo_rejects_preserved_compute_partial_before_optimizer_step(self):
+        self.config = replace(self.config, native_decision_limit=1)
+        self.trainer = CpuTrainer(self.config, list(range(1, 42)))
+        with self.fake_execution():
+            adapter = self.adapter(training_attempt_cursor=0)
+            result = adapter(self.state.issue_game_spec())
+        self.assertEqual(result.anomaly, 'compute_budget_exhausted')
+        before = parameter_digest(self.trainer.model)
+        with patch.object(self.trainer.optimizer, 'step', side_effect=AssertionError('partial must not reach optimizer')) as step:
+            with self.assertRaisesRegex(ContractError, 'incomplete.*terminal target'):
+                self.trainer.update(adapter.last_partial_sample)
+        step.assert_not_called()
+        self.assertEqual(parameter_digest(self.trainer.model), before)
+        self.assertEqual((self.trainer.updates, self.trainer.episode_cursor), (0, 0))
+
+    @patch('ygo_kito.training_admission.require_training_admission',new=lambda **kwargs:{'status':'admitted'})
+    def test_pre_update_failure_does_not_consume_attempt_or_publish_temporary_sample_cursor(self):
+        before = parameter_digest(self.trainer.model)
+        with self.fake_execution(), patch.object(CpuTrainer, 'update', side_effect=RuntimeError('fixture before optimizer step')):
+            adapter = self.adapter(training_attempt_cursor=0)
+            result = adapter(self.state.issue_game_spec())
+        receipt = adapter.last_receipt
+        self.assertFalse(result.terminal)
+        self.assertTrue(receipt['sample_completed']); self.assertTrue(receipt['model_update_started'])
+        self.assertFalse(receipt['model_update_completed'])
+        self.assertEqual(receipt['observed_sampler_cursor'], 1)
+        self.assertEqual(receipt['observed_sampler_updates'], 0)
+        self.assertEqual(receipt['sampling_attempt_cursor'], 0)
+        self.assertEqual(receipt['next_sampling_attempt_cursor'], 0)
+        self.assertEqual(receipt['after']['training_updates'], 0)
+        self.assertEqual((self.trainer.updates, self.trainer.episode_cursor), (0, 0))
+        self.assertEqual(parameter_digest(self.trainer.model), before)
+        self.assertEqual(receipt['status'], 'failed_or_uncertain')
+
+    @patch('ygo_kito.training_admission.require_training_admission', new=lambda **_: {'status': 'admitted'})
     def test_post_update_error_reports_changed_model_and_observed_optimizer_counter(self):
         original_update = CpuTrainer.update
         def fail_after_step(trainer, episode):
@@ -233,6 +381,8 @@ class CourseGameAdapterTests(unittest.TestCase):
         self.assertEqual(adapter.last_receipt['after']['observed_optimizer_step_max'], 1)
         self.assertNotEqual(parameter_digest(self.trainer.model), before)
         self.assertEqual(adapter.last_receipt['observed_sampler_updates'], 1)
+        self.assertEqual(adapter.last_receipt['sampling_attempt_cursor'], 0)
+        self.assertEqual(adapter.last_receipt['next_sampling_attempt_cursor'], 1)
 
     def test_attached_lora_cannot_be_omitted_and_base_course_seeds_must_match_saved_config(self):
         bad = CpuTrainingConfig(model=self.config.model, game_seeds=(200, 201), batch_size=1, episode_seconds=30)
@@ -326,7 +476,9 @@ class CourseGameAdapterTests(unittest.TestCase):
         with patch.object(neural, 'verify_resources', return_value=self.assets.receipt), \
                 patch.object(course, 'verify_resources', return_value=self.assets.receipt), \
                 patch.object(course, '_CourseNativeEngine', Engine), \
-                patch('ygo_kito.cpu_training.public_card_facts', return_value={}):
+                patch('ygo_kito.cpu_training.public_card_facts', return_value={}), \
+                patch('ygo_kito.training_admission.require_training_admission',
+                      return_value={'status':'admitted','fixture':'synthetic-engine-only'}):
             yield
 
     def test_two_neural_initial_models_use_actual_sampler_fresh_base_ppo_and_bo3_siding(self):

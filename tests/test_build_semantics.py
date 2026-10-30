@@ -80,6 +80,7 @@ class DataSplitContracts(unittest.TestCase):
         self.assertEqual(self.index._store('a',ds,{'synthetic':True},(9,)),record)
         with self.assertRaises(ContractError):self.index._store('a',ds,{'synthetic':False},(9,))
         with sqlite3.connect(self.index.path) as db:db.execute("UPDATE datasets SET payload=? WHERE id='train'",(json.dumps(dict(ds,purpose='validation')),))
+        db.close()  # The SQLite transaction context does not close its Windows file handle.
         with self.assertRaisesRegex(ContractError,'binding changed'):self.index.artifact('a')
 
     def test_nested_dto_tuple_json_roundtrip_is_idempotent_but_changes_still_fail(self):

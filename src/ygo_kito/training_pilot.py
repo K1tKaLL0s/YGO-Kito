@@ -124,6 +124,42 @@ def validate_pilot_spec(value):
     return deepcopy(d)
 
 
+def _check_foundation_source_compatibility(workspace, report, row, adapter, definition, options, variant):
+    """Retain the original normal-game proof across explicit non-driver source edits.
+    No normal-game result, actor/deck/tool/assembly field, or original binding is rewritten.
+    """
+    from .validation import parse_json
+    compat = row.get("foundation_source_compatibility")
+    if not isinstance(compat, dict) or compat.get("kind") != "non-driver-foundation-source-compatibility-v1" or compat.get("normal_game_reexecuted") is not False:
+        raise ContractError("qualification runtime binding changed; explicit source compatibility receipt required")
+    _, raw = _bytes(Path(workspace), compat["original_qualification"])
+    original = parse_json(raw.decode("utf-8"))
+    stripped = dict(report, rows=[{k:v for k,v in r.items() if k != "foundation_source_compatibility"} for r in report["rows"]])
+    if stripped != original:
+        raise ContractError("source compatibility must preserve the exact original normal-game report")
+    old_map, current_map = compat["original_source_map"], compat["current_source_map"]
+    actual = source_tree_snapshot(Path(__file__).resolve().parent)
+    permitted = {"construction_fill.py", "autonomous_construction.py", "course_feedback.py", "course_models.py", "scenario_course.py", "scenario_course_host.py", "semantic_training.py", "training_scenarios.py", "training_pilot.py"}
+    if set(old_map) != set(actual) or current_map != actual:
+        raise ContractError("source compatibility cannot change module membership or omit current sources")
+    changed = {k for k in actual if old_map[k] != actual[k]}
+    if not changed or not changed <= permitted or sorted(changed) != compat["changed_files"]:
+        raise ContractError("qualification compatibility is restricted to explicit foundation/controller edits")
+    old_binding = compat["original_binding"]
+    if digest(old_binding) != row["binding_sha256"] or compat["current_binding"] != adapter.binding:
+        raise ContractError("qualification compatibility lacks exact old/current binding preimages")
+    if ({k:v for k,v in old_binding.items() if k != "driver_implementation_sha256"} !=
+            {k:v for k,v in adapter.binding.items() if k != "driver_implementation_sha256"}):
+        raise ContractError("bot/deck/resource/profile/tool identity changed; source compatibility cannot admit it")
+    _, audit_raw = _bytes(Path(workspace), options["audit"] if "audit" in options else
+        {"path": str(options["build_audit_path"]), "sha256": options["build_audit_sha256"]})
+    audit = parse_json(audit_raw.decode("utf-8"))
+    material = {"source": definition["sha256"], "assembly": audit["assembly_sha256"],
+                **({"variant": variant} if variant is not None else {})}
+    if (old_binding["driver_implementation_sha256"] != digest(dict(material, python_modules=old_map)) or
+            adapter.binding["driver_implementation_sha256"] != digest(dict(material, python_modules=current_map))):
+        raise ContractError("qualification implementation digests do not match the unchanged real bot and source maps")
+
 def _check_qualification(workspace, case, profile, registry, adapter, adapter_options):
     """Verify an existing real normal-game receipt against today's exact host.
 
@@ -186,8 +222,10 @@ def _check_qualification(workspace, case, profile, registry, adapter, adapter_op
     options.update(environment_id="bot-current-engineering-qualification", opponent_id="qual-" + row["bot_id"][:32],
                    source="engineering_fixture", session_seconds=seconds)
     qualified_adapter = registry.training_adapter(case["executor_id"], **options)
-    if not isinstance(qualified_adapter, WindBotOpponent) or digest(qualified_adapter.binding) != row["binding_sha256"]:
-        raise ContractError("qualification runtime binding changed (source/implementation/audit/tools/profile)")
+    if not isinstance(qualified_adapter, WindBotOpponent):
+        raise ContractError("qualification requires the actual WindBot implementation")
+    if digest(qualified_adapter.binding) != row["binding_sha256"]:
+        _check_foundation_source_compatibility(workspace, report, row, qualified_adapter, definition, adapter_options, variant)
     qualified_adapter.assert_runtime(options["native_root"], profile, case["actor_seat"])
 
 

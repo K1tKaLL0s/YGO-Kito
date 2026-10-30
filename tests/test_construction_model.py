@@ -24,8 +24,10 @@ TRAINING_EVIDENCE=[]
 
 
 def graph_context(session, role="build_goal"):
+    from ygo_kito.construction_candidates import attributed_feedback
     return {"request":session.request,"task":session.task.to_dict(),"goal_sha256":session.goal_sha256,
-            "logic":session.logic.to_dict() if session.logic else None,"feedback":list(session.feedback),"role":role}
+            "logic":session.logic.to_dict() if session.logic else None,"feedback":list(session.feedback),"role":role,
+            "attributed_feedback":attributed_feedback(session)}
 
 
 class ConstructionModelTests(unittest.TestCase):
@@ -130,7 +132,7 @@ class ConstructionModelTests(unittest.TestCase):
         self.assets.receipt={"resources":{"cards":"a"*64}}
         tags=(LogicTag("effect","甲"),LogicTag("effect","乙"),LogicTag("effect","丙"))
         codec=LogicCodec(tags)
-        graph=rule_graph_candidates(graph_context(self.session),codec)[-1]
+        graph=rule_graph_candidates(graph_context(self.session),codec,required_tags=tags)[-1]
         records=tuple(CardTagAssessment(1,t,"satisfied","a"*64,digest(self.assets.rows[1]["desc"]),"Synthetic card text",
             "synthetic-review","Only code path") for t in tags)
         binder=CatalogBindingAdapter(self.assets,assessments=records)
@@ -172,4 +174,4 @@ class ConcreteControllerTests(unittest.TestCase):
             self.assertFalse(result["graph_execution_verified"])
             self.assertEqual(result["graph_model_selections"]["build_goal"]["selection"],"existing_BuildRanker")
             self.assertTrue(any(e["event"]=="route_decision" and e["advisory"] for e in host.history()))
-            self.assertEqual([p["role"] for p in result["phases"]],["build_goal","build_optimizer"])
+            self.assertEqual([p["role"] for p in result["phases"]],["build_goal","build_optimizer","build_goal","build_optimizer"])

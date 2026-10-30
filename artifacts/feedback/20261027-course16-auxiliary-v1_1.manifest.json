@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "kind": "actual-closed-model-auxiliary-proof-v1",
+  "metric_version": "actual-declared-goal-auxiliary-v1.1",
+  "archive_sha256": "a1a5810df75fcea9bde91ebb788ef76ca75cf358e82a042cf03588fb01b0b9e5",
+  "archive_bytes": 7685971,
+  "raw_sha256": "a274a9087dcaa96178d5fd2dd43947149a13031bcaf15fa71855c025c9b85ad4",
+  "raw_bytes": 20521032,
+  "auxiliary_sha256": "1b6994314da526ade42bf9ecbb5ddbe72a54e34fc49e61261103b880cb04e3c6",
+  "cases": 16,
+  "preferred_index": null,
+  "preference_reason": "no_strict_supported_auxiliary_dominance",
+  "original_win_comparison_sha256": "d3f64cea822590da26894af07861ad0b49f2bf650351a98ae9732b157013ccae",
+  "new_native_games_executed": 0,
+  "model_updates": 0,
+  "formal_course_credit": 0,
+  "competitive_improvement_verified": false,
+  "private_audit_rng_authorized_for_publication": true,
+  "third_party_runtime_blobs_included": false
+}

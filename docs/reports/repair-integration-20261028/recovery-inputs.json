@@ -1,0 +1,445 @@
+{
+  "utc": "2026-10-28T02:09:05.451056+00:00",
+  "argv": [
+    "E:\\CodexData\\2026-10-28\\task-13\\audit_recovery_inputs.py"
+  ],
+  "read_only": true,
+  "source_writes": 0,
+  "checkpoint_deserializations": 0,
+  "formal_training_runs": 0,
+  "wip_file_relationships": [
+    {
+      "path": "scripts/local-training.ps1",
+      "wip": {
+        "bytes": 4077,
+        "sha256": "fc27571c49ab9281814b054a7190f424849a88a19c29a1c6cb3f010633800514"
+      },
+      "source": {
+        "sha256": "fc27571c49ab9281814b054a7190f424849a88a19c29a1c6cb3f010633800514",
+        "bytes": 4077,
+        "mtime_ns": 1793148839670888900,
+        "stable_during_read": true
+      },
+      "source_matches_wip": true,
+      "github-source": {
+        "sha256": "fc27571c49ab9281814b054a7190f424849a88a19c29a1c6cb3f010633800514",
+        "bytes": 4077,
+        "mtime_ns": 1793148839676086600,
+        "stable_during_read": true
+      },
+      "github-source_matches_wip": true
+    },
+    {
+      "path": "scripts/local_training_worker.py",
+      "wip": {
+        "bytes": 6104,
+        "sha256": "22462144e6e24dbcffb2806a6a59ae3cc23931f33a19f2b3b86d03770a6f3f40"
+      },
+      "source": {
+        "sha256": "0efba885fa0f5590c5ac113992822fb0b48ade2c8bac769bc53e97ac6727cc81",
+        "bytes": 6352,
+        "mtime_ns": 1793148839674514300,
+        "stable_during_read": true
+      },
+      "source_matches_wip": false,
+      "github-source": {
+        "sha256": "22462144e6e24dbcffb2806a6a59ae3cc23931f33a19f2b3b86d03770a6f3f40",
+        "bytes": 6104,
+        "mtime_ns": 1793148839679862700,
+        "stable_during_read": true
+      },
+      "github-source_matches_wip": true
+    },
+    {
+      "path": "scripts/design_supervisor.py",
+      "wip": {
+        "bytes": 15950,
+        "sha256": "caf067a85434d354d42d4fdfa1cfb7b037d21d665d42d1eff796947df657f553"
+      },
+      "source": {
+        "sha256": "caf067a85434d354d42d4fdfa1cfb7b037d21d665d42d1eff796947df657f553",
+        "bytes": 15950,
+        "mtime_ns": 1793149009913069800,
+        "stable_during_read": true
+      },
+      "source_matches_wip": true,
+      "github-source": {
+        "sha256": "caf067a85434d354d42d4fdfa1cfb7b037d21d665d42d1eff796947df657f553",
+        "bytes": 15950,
+        "mtime_ns": 1793149009917867000,
+        "stable_during_read": true
+      },
+      "github-source_matches_wip": true
+    },
+    {
+      "path": "scripts/local_design_supervision.py",
+      "wip": {
+        "bytes": 4121,
+        "sha256": "024344bda4f0d79e611f0b9bbe325c0f0c9b6c8b05bbc2c0e5f5fdb2189cef2b"
+      },
+      "source": {
+        "sha256": "024344bda4f0d79e611f0b9bbe325c0f0c9b6c8b05bbc2c0e5f5fdb2189cef2b",
+        "bytes": 4121,
+        "mtime_ns": 1793147829141484100,
+        "stable_during_read": true
+      },
+      "source_matches_wip": true,
+      "github-source": {
+        "sha256": "024344bda4f0d79e611f0b9bbe325c0f0c9b6c8b05bbc2c0e5f5fdb2189cef2b",
+        "bytes": 4121,
+        "mtime_ns": 1793147829148219900,
+        "stable_during_read": true
+      },
+      "github-source_matches_wip": true
+    },
+    {
+      "path": "src/ygo_kito/autonomous_construction.py",
+      "wip": {
+        "bytes": 42481,
+        "sha256": "053f3d21dff19138e35d312067cb5cf6190f5607674a261a5e61b1f1a67cd4c8"
+      },
+      "source": {
+        "sha256": "1826a3a1849712f2604caa4cd2a6b0f4e2adc146fcbf706c24fd785382ec1c80",
+        "bytes": 40908,
+        "mtime_ns": 1793146242345324400,
+        "stable_during_read": true
+      },
+      "source_matches_wip": false,
+      "github-source": {
+        "sha256": "053f3d21dff19138e35d312067cb5cf6190f5607674a261a5e61b1f1a67cd4c8",
+        "bytes": 42481,
+        "mtime_ns": 1793148737719100300,
+        "stable_during_read": true
+      },
+      "github-source_matches_wip": true
+    },
+    {
+      "path": "src/ygo_kito/construction_controller.py",
+      "wip": {
+        "bytes": 4620,
+        "sha256": "271a51276a26b3d15ff2b93d12e2205c0124dffde1f080adf9c516395cb9fd5b"
+      },
+      "source": {
+        "sha256": "5513b6c18694db2b07fb1a6c9e07dd105a70a28886b38b05a888f1027a54fd1b",
+        "bytes": 4560,
+        "mtime_ns": 1793146242757837100,
+        "stable_during_read": true
+      },
+      "source_matches_wip": false,
+      "github-source": {
+        "sha256": "271a51276a26b3d15ff2b93d12e2205c0124dffde1f080adf9c516395cb9fd5b",
+        "bytes": 4620,
+        "mtime_ns": 1793148529141226700,
+        "stable_during_read": true
+      },
+      "github-source_matches_wip": true
+    },
+    {
+      "path": "src/ygo_kito/construction_fill.py",
+      "wip": {
+        "bytes": 24132,
+        "sha256": "98816ea95830ed44b18cfeb891a264032d85d3cea49ab4a094bd5f31f608ecf6"
+      },
+      "source": {
+        "sha256": "35449c7f8e20f047175037febf0d0f31be1d3f5dcfef8715db8da13b663078c4",
+        "bytes": 23839,
+        "mtime_ns": 1793146242843551600,
+        "stable_during_read": true
+      },
+      "source_matches_wip": false,
+      "github-source": {
+        "sha256": "98816ea95830ed44b18cfeb891a264032d85d3cea49ab4a094bd5f31f608ecf6",
+        "bytes": 24132,
+        "mtime_ns": 1793148529143814500,
+        "stable_during_read": true
+      },
+      "github-source_matches_wip": true
+    },
+    {
+      "path": "src/ygo_kito/construction_model.py",
+      "wip": {
+        "bytes": 21828,
+        "sha256": "85a502a8c7d0329c3f0dcb229f6a4dc1eb3bdce9a5f095ab187de6974be7144b"
+      },
+      "source": {
+        "sha256": "dea22233bcc79d45d465feea7f3512f258c6ea1425c0ff67d844c81b47bb4a6a",
+        "bytes": 20778,
+        "mtime_ns": 1793146242915807700,
+        "stable_during_read": true
+      },
+      "source_matches_wip": false,
+      "github-source": {
+        "sha256": "85a502a8c7d0329c3f0dcb229f6a4dc1eb3bdce9a5f095ab187de6974be7144b",
+        "bytes": 21828,
+        "mtime_ns": 1793148656134389500,
+        "stable_during_read": true
+      },
+      "github-source_matches_wip": true
+    },
+    {
+      "path": "src/ygo_kito/basic_cb_inference.py",
+      "wip": {
+        "bytes": 5803,
+        "sha256": "bcafb5988b9b1a076b553e24fedd4ddc9d8ddf0e36cfcecffd41664c60059eae"
+      },
+      "source": null,
+      "source_matches_wip": false,
+      "github-source": {
+        "sha256": "bcafb5988b9b1a076b553e24fedd4ddc9d8ddf0e36cfcecffd41664c60059eae",
+        "bytes": 5803,
+        "mtime_ns": 1793148529131633900,
+        "stable_during_read": true
+      },
+      "github-source_matches_wip": true
+    },
+    {
+      "path": "tests/test_construction_logic.py",
+      "wip": {
+        "bytes": 34517,
+        "sha256": "1873e25a9d43e9f79485d0019cfb028092b61f7bb65e68c3c3ed63b484c73354"
+      },
+      "source": {
+        "sha256": "92ff5f63e3f3ef00292de76d84ac3a673346365fc44d47300eedd490fdb0fab0",
+        "bytes": 29799,
+        "mtime_ns": 1793129614313042800,
+        "stable_during_read": true
+      },
+      "source_matches_wip": false,
+      "github-source": {
+        "sha256": "1873e25a9d43e9f79485d0019cfb028092b61f7bb65e68c3c3ed63b484c73354",
+        "bytes": 34517,
+        "mtime_ns": 1793149014043308300,
+        "stable_during_read": true
+      },
+      "github-source_matches_wip": true
+    },
+    {
+      "path": "tests/test_design_supervisor.py",
+      "wip": {
+        "bytes": 8378,
+        "sha256": "0b1227be1933b1edfe21c446443ac7be8c5647d3fa87c9521a71005e95df5820"
+      },
+      "source": null,
+      "source_matches_wip": false,
+      "github-source": {
+        "sha256": "0b1227be1933b1edfe21c446443ac7be8c5647d3fa87c9521a71005e95df5820",
+        "bytes": 8378,
+        "mtime_ns": 1793149009928822300,
+        "stable_during_read": true
+      },
+      "github-source_matches_wip": true
+    }
+  ],
+  "wip_match_counts": {
+    "source": 3,
+    "github-source": 11
+  },
+  "training_hold": {
+    "kind": "explicit-user-training-hold",
+    "created_utc": "2026-10-28T00:53:59.665515+00:00",
+    "reason": "Finish and integrate necessary repairs across windows before resuming training.",
+    "formal_training_authorized_now": false,
+    "nontraining_construction_and_isolated_validation_allowed": true,
+    "resume_owner": "parent coordination after integration",
+    "automatic_release": false
+  },
+  "checkpoint": {
+    "root": "N:\\YGO-Kito\\_local_cpu_20261027\\source\\.cache\\local-base-training-20261027\\2207-course-005\\course",
+    "latest": {
+      "active_seconds": 3975.8590677600023,
+      "path": "checkpoint-16.weights",
+      "revision": 16,
+      "sha256": "31784ea14850c4b458707af2f8b4b7fdda9f0c01d0e064acc3996125b7371e53"
+    },
+    "actual": {
+      "sha256": "31784ea14850c4b458707af2f8b4b7fdda9f0c01d0e064acc3996125b7371e53",
+      "bytes": 7837871,
+      "mtime_ns": 1793147262011195000,
+      "stable_during_read": true
+    },
+    "matches_latest": true,
+    "manifest": {
+      "sha256": "86af126788d6664512522952f6fa5a9226ee00f435a0985187e1c944ebbbf39a",
+      "bytes": 4374,
+      "mtime_ns": 1793147262258890900,
+      "stable_during_read": true
+    }
+  },
+  "index_file_fingerprints": {
+    "index\\data-index.sqlite3": {
+      "sha256": "1c759a973ce05b00aabc43c76efcf7104069fa5217ee3d7f4f08ed243054d4fa",
+      "bytes": 345133056,
+      "mtime_ns": 1793147118424447800,
+      "stable_during_read": true
+    }
+  },
+  "course_metadata_fingerprints": {
+    "course-config.json": {
+      "sha256": "efd37e05d0dd443be2a4ae378d8610fccc99cab537ef49d591148d425dc6b796",
+      "bytes": 138021,
+      "mtime_ns": 1793146241649435900,
+      "stable_during_read": true
+    },
+    "model-binding.json": {
+      "sha256": "77286031b6fb181163a31ec58af4a0176de73be6124b73437383f2d896a1618f",
+      "bytes": 21386,
+      "mtime_ns": 1793146241630305400,
+      "stable_during_read": true
+    },
+    "actual-forecast-ledger.json": {
+      "sha256": "12b84b8c561a1555a1b9218166fa7c68c4649311274d1cf5d734a4efcfab68ef",
+      "bytes": 15985,
+      "mtime_ns": 1793146998754851500,
+      "stable_during_read": true
+    },
+    "corrected-flow-continuation.json": {
+      "sha256": "688c1b5c96bda718144fb68a02ae9fd94f27c34822d7c69fa917da3184749e16",
+      "bytes": 4355,
+      "mtime_ns": 1793146245116243000,
+      "stable_during_read": true
+    },
+    "initial-full.weights": {
+      "sha256": "eac1ef7361e29a6d42979dbc72d93fe38033f492bcaa44783ef12c1b6314e1c2",
+      "bytes": 7439189,
+      "mtime_ns": 1793146241813105200,
+      "stable_during_read": true
+    }
+  },
+  "main_saved_status": {
+    "stage": "paused_at_boundary",
+    "desired": "paused",
+    "heartbeat_utc": "2026-10-28T00:27:43.338779+00:00",
+    "safe_boundary_confirmed": true,
+    "goal_updates": 5,
+    "optimizer_updates": 0,
+    "duel_updates": 27,
+    "coordinator_updates": 37,
+    "formal_matches": 2
+  },
+  "course_accounting": {
+    "complete_training_matches": {
+      "bo1": 2,
+      "bo3": 0
+    },
+    "prior_flow_training_matches": {
+      "bo1": 24,
+      "bo3": 0
+    },
+    "training_record_offset": 25,
+    "actual_small_game_attempts": 27,
+    "anomalous_matches": 1
+  },
+  "current_job_scripts": {
+    "scripts/local_foundation_course.py": {
+      "sha256": "83dac147977f5c8358322615578bec823cf28a636ee4cf6d8598bbf98dcc5057",
+      "bytes": 15418,
+      "mtime_ns": 1793146245094409900,
+      "stable_during_read": true
+    },
+    "scripts/local_training_worker.py": {
+      "sha256": "0efba885fa0f5590c5ac113992822fb0b48ade2c8bac769bc53e97ac6727cc81",
+      "bytes": 6352,
+      "mtime_ns": 1793148839674514300,
+      "stable_during_read": true
+    },
+    "scripts/local_course_collaboration.py": {
+      "sha256": "9a55b5caa05588c62a25b6c6d98f37026ed2d773a59f0ad7c3d9fa385140c5d8",
+      "bytes": 15374,
+      "mtime_ns": 1793146244864724000,
+      "stable_during_read": true
+    }
+  },
+  "old_runtime_source_binding": {
+    "declared_files": 115,
+    "current_source_mismatches": [],
+    "deserialization_or_restore_performed": false,
+    "source006_archive": "N:\\YGO-Kito\\_local_cpu_20261027\\cache\\formal-course-source-006.tar",
+    "source006_fingerprint": {
+      "sha256": "3e1296fd468e7fb51b7b34c89f37cd6091511e0e02f2bf215c5be0df6b5f75cc",
+      "bytes": 2293760,
+      "mtime_ns": 1793146009217287200,
+      "stable_during_read": true
+    },
+    "source006_compared_members": 115,
+    "source006_mismatches": [],
+    "model_binding_sha256": "77286031b6fb181163a31ec58af4a0176de73be6124b73437383f2d896a1618f",
+    "old_construction_flow": "four_concrete_handoffs_then_final_cb_v2",
+    "preassigned_route_present": true
+  },
+  "009": {
+    "directory": "N:\\YGO-Kito\\_local_cpu_20261027\\reports\\actual-postconstruction-basic-cb-009",
+    "progress": {
+      "stage": "actual_four_concrete_handoffs",
+      "training_started": false,
+      "selected_task_sha256": "16a9901988f55dfd6ad30ac3a39efb5b15f863bb32b919a3e16429d1f4dfd593"
+    },
+    "files": {
+      "clean-construction-task.json": {
+        "sha256": "cb7833a05c01cb1fd08c75d8139154175c65a56db270f861300ebe67e9fd3fad",
+        "bytes": 2523,
+        "mtime_ns": 1793149226467561600,
+        "stable_during_read": true
+      },
+      "construction-route-001.json": {
+        "sha256": "456b92e0e89fca7a2ee9b81571ad8ad2e4afca193eb20d8103d40898aa923f23",
+        "bytes": 4817,
+        "mtime_ns": 1793149245369458700,
+        "stable_during_read": true
+      },
+      "progress.json": {
+        "sha256": "2c43d166083d3ece308b87b95543b8f8fcb4170c583a249bd76df086bacfced2",
+        "bytes": 170,
+        "mtime_ns": 1793149237986714800,
+        "stable_during_read": true
+      },
+      "provenance.json": {
+        "sha256": "f39aa91ad9d613bd18258a248a9a2c9131faa08789533011e2e8a09dc4c65487",
+        "bytes": 13007,
+        "mtime_ns": 1793149226488679500,
+        "stable_during_read": true
+      }
+    },
+    "summary_exists": false,
+    "process_state": "unknown",
+    "process_inspection": "Win32_Process CIM query denied; no alternative enumeration attempted",
+    "launches_by_this_task": 0
+  },
+  "blocked_actions": [
+    {
+      "action": "read-only Git status/log",
+      "target": "N:\\YGO-Kito",
+      "state": "denied",
+      "reason": "Permission denied"
+    },
+    {
+      "action": "read-only Git status/log",
+      "target": "N:\\YGO-Kito\\_local_cpu_20261027\\github-source",
+      "state": "denied",
+      "reason": "Permission denied"
+    },
+    {
+      "action": "query relevant process identities",
+      "target": "Win32_Process",
+      "state": "denied",
+      "reason": "CIM client access denied"
+    },
+    {
+      "action": "start Linux Python --version for verification",
+      "target": "WSL",
+      "state": "denied",
+      "reason": "Wsl/E_ACCESSDENIED"
+    },
+    {
+      "action": "clone existing authorized PR8 branch",
+      "target": "https://github.com/K1tKaLL0s/YGO-Kito.git",
+      "state": "failed",
+      "reason": "configured 127.0.0.1 proxy connection failed"
+    },
+    {
+      "action": "materialize resolved rules Library file using current helper",
+      "target": "ocg-negation-rules-2026-10-28.zip",
+      "state": "failed",
+      "reason": "library file transfer failed: download failed"
+    }
+  ]
+}

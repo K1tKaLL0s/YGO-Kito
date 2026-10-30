@@ -1,0 +1,689 @@
+{
+  "schema_version": 1,
+  "kind": "closed-main-course-boundary-v1",
+  "created_utc": "2026-10-27T22:13:46.059279+00:00",
+  "archive_sha256": "068c299c079b81ca175d1b87c4e9000704714e2560f299801547a11f975f806b",
+  "archive_bytes": 30961554,
+  "checkpoint": {
+    "active_seconds": 1980.0872884980013,
+    "path": "checkpoint-76.weights",
+    "revision": 76,
+    "sha256": "eb14ef934208e46b63394fa8691913823d236d26bcb248f1733d09492e4f3233"
+  },
+  "data_index_logical_sha256": "7876e351204bfa19653faa67eb3b82a7879718b7f45682bd39b12c7df9a5161d",
+  "formal_complete_matches": {
+    "bo1": 16
+  },
+  "base_cursors": {
+    "build_updates": {
+      "build_goal": 4,
+      "build_optimizer": 0
+    },
+    "build_batch": 4,
+    "duel_updates": 17,
+    "duel_episodes": 17,
+    "coordinator_updates": 25
+  },
+  "learning_stage": "base",
+  "files": {
+    ".cache/local-base-training-20261027/2207-base-002/runtime-host.json": {
+      "size": 2450,
+      "sha256": "9dc0b3ccd133ea5759194a908e1a2104e13f839dd57598294c22433aeec8f04f"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/actual-forecast-ledger.json": {
+      "size": 7404,
+      "sha256": "8357f645f40cbd1dd682e5786da2d24210006f82cb329316c6175e4a05772ff2"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/collaboration-000000/actual-four-stage.json": {
+      "size": 476898,
+      "sha256": "481c4ac43215b202e533e3d050315acb7e8f29b7f4abb0bd8af9b64419f6a6c9"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/collaboration-000000/complete.json": {
+      "size": 326,
+      "sha256": "98cf873caf6151e778ac573511e2a13eac19a5e7e09003a42ba313c76ad4f738"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/collaboration-000000/native-goal.json": {
+      "size": 125732,
+      "sha256": "f11507eebcc8233272dc9633f0619ab17de89dfc0c51ce036d31698570e1baa1"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/collaboration-000016/actual-four-stage.json": {
+      "size": 485746,
+      "sha256": "65e138563dc36aeaf915c02fd4a6fa17cdccfda8516af0c35f2e870522c480b5"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/collaboration-000016/actual-four-stage.uncommitted-1793138863321830138.json": {
+      "size": 485758,
+      "sha256": "060e4eb478e5543f24051712e4f389f7fb40e9974dd0d6da9a6b5bfbe2ad8f74"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/collaboration-000016/native-goal.json": {
+      "size": 125737,
+      "sha256": "cf1dbce746c54f920d1f011b64e2be94383ad3899615c2db1e2f595a17b610bc"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/collaboration-000016/route-001.json": {
+      "size": 55186,
+      "sha256": "77c0c85787c9c51962bd53c6794447899be4dfcbc30b99f083885088d8dc3c79"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/collaboration-000016/route-002.json": {
+      "size": 55181,
+      "sha256": "4ec48063bae23a8e6c873f3ea6f758e6589f1c8cb51f2726d55b82606d29e1e9"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/collaboration-000016/route-003.json": {
+      "size": 55185,
+      "sha256": "33ba2367146a960cc9a97f1954a5a51c34766b8b19ad4a36cd46d4adcedb4bc9"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/collaboration-000016/route-004.json": {
+      "size": 55180,
+      "sha256": "0e545540936db75d0bdf473f6fe121b7936b6757be6ceab1353f389c97b293c9"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/collaboration-000016/route-005.json": {
+      "size": 55422,
+      "sha256": "c2d6e027bf0edfa5f01e0eff00d61461c2f894a89f760303c35d6ab9e3be4585"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/collaboration-000016/route-006.json": {
+      "size": 55410,
+      "sha256": "6b334522f6e193d7df6d5426955004c557332a2039b53ed4860b8cc277e0b831"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/collaboration-000016/route-007.json": {
+      "size": 55430,
+      "sha256": "6398b56cfcd4f778d6e90ba6c43364ba635c3d9d73da5bdcadf8051ba2d564c4"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/collaboration-000016/route-008.json": {
+      "size": 55418,
+      "sha256": "8dc75f31b563e9bc64488d4ca80a48dce759e873a9e983d77688b3295c62062d"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/construction-route-001.json": {
+      "size": 55181,
+      "sha256": "284f700377f78177ca7fe45728ad0b4510a6c0dc9da3f7fc89467d632e330ab1"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/construction-route-002.json": {
+      "size": 55181,
+      "sha256": "3f9e35ac28eb860993af76b5ad3196059f28607fae78fef7dededdfaf5e6df68"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/construction-route-003.json": {
+      "size": 55186,
+      "sha256": "3dda3b9e2743ce94fd917688ac21a285a73038093cc3beaa7894d8a3de8b87b2"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/construction-route-004.json": {
+      "size": 55174,
+      "sha256": "e439e2b3057a79a78dbd50b37dac3b84885831905d4d67e8255d0b633708f94c"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/course-config.json": {
+      "size": 137689,
+      "sha256": "4c7c1c2a5c4d17b59d4aab2dfd6c59575c68e0527c65424246fb39fd334ce550"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/course/checkpoint-1.weights": {
+      "size": 7816699,
+      "sha256": "9cdda10dd75640de0a09e6fbf5c5fc33fed38437f8acdc7c41343c7a1cad3247"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/course/checkpoint-74.weights": {
+      "size": 8166895,
+      "sha256": "eea86ed54aa702f9a1caa48d8aae5bb45ecdddabb76508c77635b9e54cf66f9c"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/course/checkpoint-75.weights": {
+      "size": 8168047,
+      "sha256": "a2fd880df90383affdb07a78fbdeec01a7f93f629ffb6570010a5969357c7a26"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/course/checkpoint-76.weights": {
+      "size": 8169199,
+      "sha256": "eb14ef934208e46b63394fa8691913823d236d26bcb248f1733d09492e4f3233"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/course/checkpoint-manifest.json": {
+      "size": 20214,
+      "sha256": "e1a1dadb67478daf8d930f3b1e187bf6544975496cd0d8667cff7715f41ba2a8"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/course/latest.json": {
+      "size": 159,
+      "sha256": "916eb0baa8440546b96e465e3c45e2d176b2e198532f0f678ac5b91812999936"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/current-course-status.json": {
+      "size": 2831,
+      "sha256": "455f59d466b057162d5897611a3699d9d72141cde365f247c62b0e4e0bcbe155"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/index/data-index.sqlite3": {
+      "size": 261681152,
+      "sha256": "9e220e5a8905b3e513bb98191d83c03e2d53e52d2eb68a1cbc197d155178c43e"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/initial-four-stage-construction.json": {
+      "size": 476898,
+      "sha256": "481c4ac43215b202e533e3d050315acb7e8f29b7f4abb0bd8af9b64419f6a6c9"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/initial-full.weights": {
+      "size": 7436803,
+      "sha256": "3a2285f42520dc3e149196aa8cf1e0711c11cbc4ac321cd1243a0944adbe250a"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/initial-pointer.json": {
+      "size": 212,
+      "sha256": "579dd7f3c0a7cba5694d0ecf80fbf8b5ea63e293f7abb043324ee041b6abc8c7"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/migration.json": {
+      "size": 778,
+      "sha256": "6ced120252ca492acbeb37f7c32443df4536be09e18f6d2e3ac6ceca647d10b7"
+    },
+    ".cache/local-base-training-20261027/2207-course-002/model-binding.json": {
+      "size": 20934,
+      "sha256": "5518555f3d264be5a35351cb38a1087cb4666363635f17192a1e0ca53a6de714"
+    },
+    "closed-boundary-observation.json": {
+      "size": 226,
+      "sha256": "aac92fefd42fd7fc8258c3188e2485bae2c9048a1a4457381af70694b4c94803"
+    },
+    "execution-scripts/local-training.ps1": {
+      "size": 3186,
+      "sha256": "40563cba1da7c3f172de4bfbe52b3761a0e00e11d1d85c20ef53a96b0b050c02"
+    },
+    "execution-scripts/local_course_collaboration.py": {
+      "size": 14865,
+      "sha256": "21c0c37d5ac5a1c0d36e8870b7c36973f43492d5b2c3e17a7c4ba4bc51d09916"
+    },
+    "execution-scripts/local_course_forecast.py": {
+      "size": 7547,
+      "sha256": "a29a22816d35250a3883ad70d1f779bb045243810552c0a78a4621f1e446c88c"
+    },
+    "execution-scripts/local_foundation_comparison.py": {
+      "size": 19214,
+      "sha256": "ab3786aef883b7f6186607bb1f040e43f0184d4bc973e59fd24691548794b5a1"
+    },
+    "execution-scripts/local_foundation_course.py": {
+      "size": 14147,
+      "sha256": "4030102ac81b682e521d6c5eeaf43dd54525eb6dc431c4d6010c491d974b7d94"
+    },
+    "execution-scripts/local_foundation_fusion.py": {
+      "size": 15764,
+      "sha256": "9c5da935e2c85fdc635eebbc72c326f79441d5c2ae782b5a13fb811dbf8242a0"
+    },
+    "execution-scripts/local_training_status.py": {
+      "size": 2105,
+      "sha256": "6b42e126afbf4e55e9214ceb4f6468568d555b8fac510fffdac0dfb25c4bcfa2"
+    },
+    "execution-scripts/local_training_worker.py": {
+      "size": 5961,
+      "sha256": "bfd7840ccd89efba8523d39fc1502276d078659e302ec91bb511efe36b128605"
+    },
+    "execution-scripts/pack_formal_course_source.py": {
+      "size": 1597,
+      "sha256": "39cd1060fd16553332c9c8fcc7e58917f47439d386c1768ab32e121c7158be1b"
+    },
+    "frozen-execution-source-003/configs/bot-sources-v1.json": {
+      "size": 217808,
+      "sha256": "b196165ee03d70d916c388cf6e146951132c145dcfe895d0ffab04e717e1f134"
+    },
+    "frozen-execution-source-003/configs/native-sources.lock.json": {
+      "size": 1467,
+      "sha256": "3b73a6f7594f1372fcc0b26e6dbe0bbd0e41392a6c9c453308819c85d88ecfc1"
+    },
+    "frozen-execution-source-003/scripts/BotAssemblyAudit.cs": {
+      "size": 10073,
+      "sha256": "2c2c6b3abc10e4743f3bc6f700862623ef04eefc1966d9be2f8fa71bd704e8e2"
+    },
+    "frozen-execution-source-003/src/ygo_kito/__init__.py": {
+      "size": 118,
+      "sha256": "81a2a8d256c266dfa553f3dd6189dc91bb36698f842386c3f481bf588861f599"
+    },
+    "frozen-execution-source-003/src/ygo_kito/__main__.py": {
+      "size": 48,
+      "sha256": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d"
+    },
+    "frozen-execution-source-003/src/ygo_kito/advanced_protocol.py": {
+      "size": 8691,
+      "sha256": "e9839ced2ccde96c045e395458a2ade9dfe4f7d8a31de0407be7729bdc1eb89a"
+    },
+    "frozen-execution-source-003/src/ygo_kito/agent_bridge.py": {
+      "size": 21377,
+      "sha256": "8a82180d06eb19ba55d3040258c188269110ee6ac5329219c2d3870176b6ef84"
+    },
+    "frozen-execution-source-003/src/ygo_kito/agent_driver.py": {
+      "size": 14798,
+      "sha256": "4403b127895d7918857d23c1884bc8d1543dde160353b9eb3448e2a40c1b875b"
+    },
+    "frozen-execution-source-003/src/ygo_kito/agent_monitor.py": {
+      "size": 6838,
+      "sha256": "4948e78016e182b5abe90ed28c87464f8aa9a2db87a4f774cba89547b68d216a"
+    },
+    "frozen-execution-source-003/src/ygo_kito/agent_registry.py": {
+      "size": 12181,
+      "sha256": "2bf5025b8ea21718c17be69a9d95796bfe51b9d29547ad1bd9e9bb070d3ed230"
+    },
+    "frozen-execution-source-003/src/ygo_kito/autonomous_construction.py": {
+      "size": 39929,
+      "sha256": "de956a95d7f516f85ab8aef3b11321bbbf61452d3946f40307a4adbba8103e26"
+    },
+    "frozen-execution-source-003/src/ygo_kito/bot_build_audit.py": {
+      "size": 17085,
+      "sha256": "c59c9da1a47090f82e7304fae8f3ef8ad59cccade84bf1cf4fed27e18a6c58b9"
+    },
+    "frozen-execution-source-003/src/ygo_kito/bot_deployment.py": {
+      "size": 47859,
+      "sha256": "cb38fc54c4170e382eee4eda87e77fe2b62c1ec625e407d179f2bfb82c07d6b2"
+    },
+    "frozen-execution-source-003/src/ygo_kito/bot_overlay.py": {
+      "size": 8693,
+      "sha256": "285cd804ae80c2cf25c6bd39abf1dfc6f977819bf7c845fb2fe5e4211d6158f5"
+    },
+    "frozen-execution-source-003/src/ygo_kito/bot_qualification.py": {
+      "size": 15063,
+      "sha256": "ebe419e678a82c24db4bcfe5c85aa8615cdb9325550af52eda19e55fcb226028"
+    },
+    "frozen-execution-source-003/src/ygo_kito/build_contracts.py": {
+      "size": 9590,
+      "sha256": "15cf3539d35ea0f155661e2b5f31eb5a6f0d9ac3f9690191a8be02ba5f3ed0ab"
+    },
+    "frozen-execution-source-003/src/ygo_kito/build_feedback.py": {
+      "size": 13078,
+      "sha256": "59e38018860893fa2bbda129365e540e594ac5db5d006145ae0e023e21c99f83"
+    },
+    "frozen-execution-source-003/src/ygo_kito/build_intent.py": {
+      "size": 15875,
+      "sha256": "be606627637616d68296954193bb1c3ecc0437d4d04b69539fca5c2b5f69262b"
+    },
+    "frozen-execution-source-003/src/ygo_kito/build_model.py": {
+      "size": 8559,
+      "sha256": "8d73c730e181c988daebd844fd4c40daf28d3858fd3af742ec551019a3040aa1"
+    },
+    "frozen-execution-source-003/src/ygo_kito/build_pipeline.py": {
+      "size": 18817,
+      "sha256": "9664cf3cbc03a55e48dcb7804d271c6bb51c2c0fa63205b1e4ed4fd9c3c5c5e6"
+    },
+    "frozen-execution-source-003/src/ygo_kito/build_semantics.py": {
+      "size": 12912,
+      "sha256": "7b3f33c7e166dfdd01fc2d0017bfe1cdc262be1826fe46320c753d97426cc8b2"
+    },
+    "frozen-execution-source-003/src/ygo_kito/build_training.py": {
+      "size": 26400,
+      "sha256": "6992fcd6cf9985f8babd0329e7ffe7117185f1468c9e63eeef738fbecbe36462"
+    },
+    "frozen-execution-source-003/src/ygo_kito/catalog_search.py": {
+      "size": 7169,
+      "sha256": "a23c7809f5beaf558c054057372976bdbd31682a734d95a9299accee4f411d6d"
+    },
+    "frozen-execution-source-003/src/ygo_kito/cli.py": {
+      "size": 42597,
+      "sha256": "214f8249943cb167b26e10af45daa44ea026c409a8d00e0ecc745ddce365afdb"
+    },
+    "frozen-execution-source-003/src/ygo_kito/coding_agent.py": {
+      "size": 2751,
+      "sha256": "8c896a3b8cecaea2e283e9d327504cd9bab6364f150193880c89241b467b4d9d"
+    },
+    "frozen-execution-source-003/src/ygo_kito/config.py": {
+      "size": 1763,
+      "sha256": "be30d9b4bddfc98f282449d7df2fa83a4540f47b7e83be405c511c4317bef0f6"
+    },
+    "frozen-execution-source-003/src/ygo_kito/construction_binding.py": {
+      "size": 14549,
+      "sha256": "0790b4c3f2a41931565c688110a0ca90988da16dcba3aa7774ff02623b50c59c"
+    },
+    "frozen-execution-source-003/src/ygo_kito/construction_controller.py": {
+      "size": 4387,
+      "sha256": "97e180cdeffd92bc19cb330fe12bbd1503ab78e7ca381096ef7587016cf16e74"
+    },
+    "frozen-execution-source-003/src/ygo_kito/construction_curriculum.py": {
+      "size": 15020,
+      "sha256": "3dfcfddbaab8708ebb0e273f6b79009ebc1844032a2a6f15ed7ac923588bb9a5"
+    },
+    "frozen-execution-source-003/src/ygo_kito/construction_effect_blocks.py": {
+      "size": 2173,
+      "sha256": "c4e3aa200c14b242bec0a47bc3c166cde5cebc7794bdf650e879c17cee2ed072"
+    },
+    "frozen-execution-source-003/src/ygo_kito/construction_fill.py": {
+      "size": 25445,
+      "sha256": "4696b8900df65cad6035ab885d22a4f14047d447f751426615454f756c34fffc"
+    },
+    "frozen-execution-source-003/src/ygo_kito/construction_logic.py": {
+      "size": 14540,
+      "sha256": "13781d8cfbe6513e3afbde573e17ee37bf4da71658c0be092887ace10cb5888b"
+    },
+    "frozen-execution-source-003/src/ygo_kito/construction_model.py": {
+      "size": 18900,
+      "sha256": "a66d963b90636b63d81dd08c9bb0fa6f27da4609b80a7c2c216ef46663d40051"
+    },
+    "frozen-execution-source-003/src/ygo_kito/construction_service.py": {
+      "size": 7772,
+      "sha256": "d52ee0239652bdfa4cb76d1e35dc3eb7d44efe6d3238d1eb3a593b03681756ef"
+    },
+    "frozen-execution-source-003/src/ygo_kito/contracts.py": {
+      "size": 30296,
+      "sha256": "ec3154df3850393adc92a7cad9cbc5ca5794496b980038a23f3b1ca77d36fd13"
+    },
+    "frozen-execution-source-003/src/ygo_kito/coord_contracts.py": {
+      "size": 7651,
+      "sha256": "dad3a007d4a58a37424f8f0495c879cd5354a3972d4f577971026c8dd154038b"
+    },
+    "frozen-execution-source-003/src/ygo_kito/coordinator.py": {
+      "size": 27823,
+      "sha256": "a424572c2e5d4d9ae36ebffea2d40c3388646da6eb8f3b9ff6efccc92d64586c"
+    },
+    "frozen-execution-source-003/src/ygo_kito/coordinator_model.py": {
+      "size": 11552,
+      "sha256": "4a8c54dbfb258bebbe63319200bd8d03643ef877cbad0e451475e682251a2956"
+    },
+    "frozen-execution-source-003/src/ygo_kito/course_feedback.py": {
+      "size": 16818,
+      "sha256": "203c0cc773ff1dc0c55ceb8480faffc0525d7f6a645ccf008c6e442d90305612"
+    },
+    "frozen-execution-source-003/src/ygo_kito/course_game_adapter.py": {
+      "size": 36122,
+      "sha256": "44ae836e68162597b0047b0e16e1dd1d5a7f4604e71e0b2bf2ec305b1d4f1248"
+    },
+    "frozen-execution-source-003/src/ygo_kito/course_models.py": {
+      "size": 22326,
+      "sha256": "9360080abfa70445a82b4a58a1e6719701d06f87de282bbeaf261d066d076507"
+    },
+    "frozen-execution-source-003/src/ygo_kito/cpu_training.py": {
+      "size": 27881,
+      "sha256": "38db6b708b548f549b67762b8a7d18851ca6e4a6a55b321f87e4c759dc403075"
+    },
+    "frozen-execution-source-003/src/ygo_kito/data.py": {
+      "size": 2878,
+      "sha256": "e50a14afbd57203334bbae5c34e76f39e2fdd9a282494b262b1e37af866b05d6"
+    },
+    "frozen-execution-source-003/src/ygo_kito/data_isolation.py": {
+      "size": 20927,
+      "sha256": "6c0728dc50d0735386e9d3977c6922f5e3de811836b6fce12a6f615e01ea6e19"
+    },
+    "frozen-execution-source-003/src/ygo_kito/deck_intake.py": {
+      "size": 16054,
+      "sha256": "45694afe47fc7bd7fa33c29156cbad9843a4e964f0cfe1dafae017be347faff9"
+    },
+    "frozen-execution-source-003/src/ygo_kito/deck_profile.py": {
+      "size": 3871,
+      "sha256": "4a2459a19dc1025a8e9cc5af20891d62b436b9247abeedf270cb0642a0ac6dfa"
+    },
+    "frozen-execution-source-003/src/ygo_kito/device.py": {
+      "size": 4518,
+      "sha256": "9fad5294e0bbca00ef919a689d34463decdd515d07cbdb784fae309084352e09"
+    },
+    "frozen-execution-source-003/src/ygo_kito/discovery_acceptance.py": {
+      "size": 12456,
+      "sha256": "fff2b47be07219b5c922ccabf9493c3cf481dd9df39ad3a6696a6e722670bafc"
+    },
+    "frozen-execution-source-003/src/ygo_kito/duel_model.py": {
+      "size": 17033,
+      "sha256": "562d35cae7e20c5578455e4b95993e46132d7694676929ee83fcc70e58c520d7"
+    },
+    "frozen-execution-source-003/src/ygo_kito/effect_cases.py": {
+      "size": 9011,
+      "sha256": "9191dcdcc6fae42b11c615c9998da43575a528ed1e282f26ec4ef2b5862c700d"
+    },
+    "frozen-execution-source-003/src/ygo_kito/effect_duel.py": {
+      "size": 14549,
+      "sha256": "71a1e2d76be80d9e747c329a5fbedb48f83e2081e4ea40ce3eea5123c35fdaa0"
+    },
+    "frozen-execution-source-003/src/ygo_kito/engine.py": {
+      "size": 1650,
+      "sha256": "2d7ace8c37e25f104eab1b830a75dcdf3c5b3f8cc84639142de300d023bfe6d0"
+    },
+    "frozen-execution-source-003/src/ygo_kito/engineering_acceptance.py": {
+      "size": 17893,
+      "sha256": "c8a114acd101496755128e004ddb936ca4b549e6fc0ffaf42470cba7d4a33d89"
+    },
+    "frozen-execution-source-003/src/ygo_kito/external_policy_bridge.py": {
+      "size": 18412,
+      "sha256": "79c07dc37dcd84298bdf865ffff5e1971b05a8e63914b6e58aa44527428382ef"
+    },
+    "frozen-execution-source-003/src/ygo_kito/extra_acceptance.py": {
+      "size": 13221,
+      "sha256": "673c3ddd94568022d957ea8003cd92b684cba7f04c36039517b0e701933ee284"
+    },
+    "frozen-execution-source-003/src/ygo_kito/extra_observation.py": {
+      "size": 7342,
+      "sha256": "41044ad8f4759ee1a1ff0c2912e2ea622a0a438c0b8ea11b53aeb845b8620f40"
+    },
+    "frozen-execution-source-003/src/ygo_kito/extra_routes.py": {
+      "size": 12849,
+      "sha256": "8d3d69d30d966cddba7865bce277d34873bb76939bbcc85b6f86b96a4b99f0b1"
+    },
+    "frozen-execution-source-003/src/ygo_kito/foundation_acceptance.py": {
+      "size": 12581,
+      "sha256": "81fad492177868b5f219a9cd1421969b55070e203901c28d4cd7fd773737b55f"
+    },
+    "frozen-execution-source-003/src/ygo_kito/fusion_witness.py": {
+      "size": 1870,
+      "sha256": "9e3776cab409bcc6d40bd6e088cdcd9da89784c156adc1b14f64588ba9c586c7"
+    },
+    "frozen-execution-source-003/src/ygo_kito/group_initialization.py": {
+      "size": 24006,
+      "sha256": "1d2864983548b8009e241c0aeaf0c9acf14f8c853bf4e872ec79a54bbf987aaa"
+    },
+    "frozen-execution-source-003/src/ygo_kito/group_runner.py": {
+      "size": 67130,
+      "sha256": "7982cce2166ecb230fc66ac9f34acdbdc694702141f5407f53fe2e569a4a17d2"
+    },
+    "frozen-execution-source-003/src/ygo_kito/group_runner_acceptance.py": {
+      "size": 11678,
+      "sha256": "e35fe0bfa7e18aaf3931ce583a969f5b881c1f558356adb1e678582ab11b82b4"
+    },
+    "frozen-execution-source-003/src/ygo_kito/hierarchical_policy.py": {
+      "size": 5317,
+      "sha256": "6b6077e66e6502b8664f70cacef3dfdc299fd59285e1678b7e2488d04c7517e8"
+    },
+    "frozen-execution-source-003/src/ygo_kito/historical_listing.py": {
+      "size": 17386,
+      "sha256": "e8bbd885283ac3da8de59b59ee55615316df9794d725c6cb63b98d51f8caa967"
+    },
+    "frozen-execution-source-003/src/ygo_kito/implementation_identity.py": {
+      "size": 1189,
+      "sha256": "bd741be663676fed12e28cdb5aff79ad408f41748a9972d4637954a9c812add1"
+    },
+    "frozen-execution-source-003/src/ygo_kito/intent_model.py": {
+      "size": 18488,
+      "sha256": "20d8fff916fcfbefb8c8112163404983971aaabc33bfb9e47598a03f3bcfcaed"
+    },
+    "frozen-execution-source-003/src/ygo_kito/knowledge_acceptance.py": {
+      "size": 8846,
+      "sha256": "acbed8874eb344dc5b12219c9dd16f6bc926be0256c4757b120ae223e64f553b"
+    },
+    "frozen-execution-source-003/src/ygo_kito/knowledge_cases.py": {
+      "size": 719,
+      "sha256": "8dce1a5bc6473e6c28882a8c8084a7e4e9cdbe5b2aeebe101c7c9fb14954004c"
+    },
+    "frozen-execution-source-003/src/ygo_kito/local_training.py": {
+      "size": 31353,
+      "sha256": "5edb71e8e7a0d783e36b80bbf99b9c0a0157f1ea0e7237a94a1cc015d7638056"
+    },
+    "frozen-execution-source-003/src/ygo_kito/lora.py": {
+      "size": 15049,
+      "sha256": "90cb30fd194575c0229092f30db76cd44672cfa6fda3c408194b9b265b745502"
+    },
+    "frozen-execution-source-003/src/ygo_kito/lora_group.py": {
+      "size": 18360,
+      "sha256": "337c2fd2049c08c7c219faef9f2ef6e418be226af92426aba3519409718e8861"
+    },
+    "frozen-execution-source-003/src/ygo_kito/match_runner.py": {
+      "size": 28702,
+      "sha256": "cf6312e29d3778ab12dd50a59ececdb100d42b7cf98ed6c307be0a50116dc9ca"
+    },
+    "frozen-execution-source-003/src/ygo_kito/model_build_feedback.py": {
+      "size": 12923,
+      "sha256": "5a74e9bcc3b3637da58da11ea0e4f964cd994d63ae6f071d0270a8d04bdcaea1"
+    },
+    "frozen-execution-source-003/src/ygo_kito/model_group.py": {
+      "size": 20227,
+      "sha256": "82cdef441d5bc2ef7d3b4075e8060e9123001f068d977d12bc9b353d5448c5c9"
+    },
+    "frozen-execution-source-003/src/ygo_kito/model_match_host.py": {
+      "size": 15413,
+      "sha256": "61d3ce18a1a7f303937d3cea6502cc8ad557665e5ced360d00e084f317817566"
+    },
+    "frozen-execution-source-003/src/ygo_kito/model_opponents.py": {
+      "size": 24688,
+      "sha256": "2c5c11cb91704774b11f29c793d07debebdf2699dc838d27ec2ba05179feeca3"
+    },
+    "frozen-execution-source-003/src/ygo_kito/mycard_staging.py": {
+      "size": 9497,
+      "sha256": "0908884b7484c44ba22b71e524a4c1926c4ef903f07ffebad910fac6c1633905"
+    },
+    "frozen-execution-source-003/src/ygo_kito/native.py": {
+      "size": 41420,
+      "sha256": "3cecd36295b1e13b97617ac31862fa2d07a61e1c5e11c554dc475caa3ad4bbeb"
+    },
+    "frozen-execution-source-003/src/ygo_kito/native_assets.py": {
+      "size": 1859,
+      "sha256": "b06c37599f0d4db0b56fda8f96f296a9b94e08d6a361dd78dc3ff4afdbf497ef"
+    },
+    "frozen-execution-source-003/src/ygo_kito/native_protocol.py": {
+      "size": 11862,
+      "sha256": "e9f1bb58dcc283873637d59e27b3f00745bf94fabb2f51bde98e09daf5c4ef37"
+    },
+    "frozen-execution-source-003/src/ygo_kito/native_response_guard.py": {
+      "size": 5983,
+      "sha256": "685846435d4f951324f36a04ff49ea67c4d70c2d4b2c974963e12a4a9e8df64b"
+    },
+    "frozen-execution-source-003/src/ygo_kito/normal_duel.py": {
+      "size": 7588,
+      "sha256": "043ec108826fb0eaaf4088185c06d02d8b6324534801f965f36baa402ae544f1"
+    },
+    "frozen-execution-source-003/src/ygo_kito/observed_bot_evidence.py": {
+      "size": 5270,
+      "sha256": "c3d68ad9e1cd5b7917b1d2f20c071e05e35e6a307b90bca88ddccbadf9193449"
+    },
+    "frozen-execution-source-003/src/ygo_kito/opponent_pool.py": {
+      "size": 11320,
+      "sha256": "c1272bd0197d52900a787cf11f432fbf85e905329bc47c9c2ae5a5cbdc5da1ca"
+    },
+    "frozen-execution-source-003/src/ygo_kito/period_host.py": {
+      "size": 15213,
+      "sha256": "35caa0bae33de73819cc8fd49c634917c78a6251c9cd7094405d97fb486ac7f7"
+    },
+    "frozen-execution-source-003/src/ygo_kito/period_runtime.py": {
+      "size": 29393,
+      "sha256": "add5a6512ba5766d533be81787794da63c8f86ed48737196978e9516fc05b316"
+    },
+    "frozen-execution-source-003/src/ygo_kito/place_classification.py": {
+      "size": 4047,
+      "sha256": "d683303c1e2f2fcac9b93f8f42a0a265bac651ab650b41da3f5def5bd12702db"
+    },
+    "frozen-execution-source-003/src/ygo_kito/private_acceptance.py": {
+      "size": 7467,
+      "sha256": "d9c85576b81f8ab4f01ba2f131b906981c9781f59b4b3ab857e074fee9937309"
+    },
+    "frozen-execution-source-003/src/ygo_kito/private_cases.py": {
+      "size": 1113,
+      "sha256": "b551e580a7b55087bd94677d9456a609ba96a50b605c4a497ec73602c4a7b6d7"
+    },
+    "frozen-execution-source-003/src/ygo_kito/private_knowledge.py": {
+      "size": 3646,
+      "sha256": "13762f7c054d22588587802c637db407538a1da5125c159f7b05cd179f155b76"
+    },
+    "frozen-execution-source-003/src/ygo_kito/private_selection.py": {
+      "size": 5464,
+      "sha256": "083b56e16a114cbafab4c5b46838f95db932bbe68c87d13ed18a7f9455ba2206"
+    },
+    "frozen-execution-source-003/src/ygo_kito/proof_visibility.py": {
+      "size": 610,
+      "sha256": "89c26bed58473bcdc0f2d24b171f76c26f30471d13c21ab30f1395c4794cf825"
+    },
+    "frozen-execution-source-003/src/ygo_kito/protocol_acceptance.py": {
+      "size": 4518,
+      "sha256": "a3af86cb9e8a27cf3729caadd88879020250b8c2e530e2cafeeaf94e4e1364c7"
+    },
+    "frozen-execution-source-003/src/ygo_kito/protocol_cases.py": {
+      "size": 12119,
+      "sha256": "6531f1c79c9f35d6baa1e993d49a34476e2f2e1f9bd81d791b83110f1bb0fce8"
+    },
+    "frozen-execution-source-003/src/ygo_kito/public_history.py": {
+      "size": 14213,
+      "sha256": "0fb55a1b6f9a2eb105ab60ddc3b80ab5703e2b386b8799caceaa6d2bdb477da6"
+    },
+    "frozen-execution-source-003/src/ygo_kito/route_search.py": {
+      "size": 21284,
+      "sha256": "2e40a120634047c31d316f9704845d5a98a12952b37946119d536f6f49fbacf4"
+    },
+    "frozen-execution-source-003/src/ygo_kito/runner_acceptance.py": {
+      "size": 12093,
+      "sha256": "ffbfdebdb6a17fc3a77e3089b1e261457c3bad8b3a0bcf96293aee08a44f92cb"
+    },
+    "frozen-execution-source-003/src/ygo_kito/scenario_course.py": {
+      "size": 54200,
+      "sha256": "3917cf6d61cd4f249212c5837c5bcdc217b7e31bbecbb1b1f9d0f068c6cca3e5"
+    },
+    "frozen-execution-source-003/src/ygo_kito/scenario_course_host.py": {
+      "size": 30525,
+      "sha256": "0969d7865902073031c0d2b86b6efdaacd56a1c237a53517ff80e6570d99d041"
+    },
+    "frozen-execution-source-003/src/ygo_kito/search_cases.py": {
+      "size": 12061,
+      "sha256": "5d5188fc9fd4b9d56a71895378956ff0415f857066909e9c40aa22a5b192f25e"
+    },
+    "frozen-execution-source-003/src/ygo_kito/selfplay_series.py": {
+      "size": 51347,
+      "sha256": "5e08ddc54c73a17b74971c38c3e0d6ad85e1b12b6a833feb5cc250563c4ff7b9"
+    },
+    "frozen-execution-source-003/src/ygo_kito/semantic_curriculum.py": {
+      "size": 12827,
+      "sha256": "74e83e6c5fc1c24bdab035f87a24ea74265617c6d644cc44bff0cc4155337b44"
+    },
+    "frozen-execution-source-003/src/ygo_kito/semantic_training.py": {
+      "size": 7923,
+      "sha256": "89805e7078363c088aed2624061fac4b900eb738e0bb909459bb3e058cb33c34"
+    },
+    "frozen-execution-source-003/src/ygo_kito/storage.py": {
+      "size": 6600,
+      "sha256": "461184b629ca2a3d1cdd583bf5bbef4f6d34aca74dfb1b52079b753b79690404"
+    },
+    "frozen-execution-source-003/src/ygo_kito/storage_envelope.py": {
+      "size": 18233,
+      "sha256": "b23b9bba2c7c250e2a685123aa3b8631f6eae16f9a050982770889735e8e72ae"
+    },
+    "frozen-execution-source-003/src/ygo_kito/sum_protocol.py": {
+      "size": 3768,
+      "sha256": "8504746600666d34929508f73118e3d8b47536ce0345ee1e9bb29cc1dbd995fa"
+    },
+    "frozen-execution-source-003/src/ygo_kito/takeover_readiness.py": {
+      "size": 17296,
+      "sha256": "cf8ae4cf2d9551021dbf66b7d76efc3dce4e0d37673a66fa45d71e8289dccc72"
+    },
+    "frozen-execution-source-003/src/ygo_kito/training_input.py": {
+      "size": 22119,
+      "sha256": "d48384ddf4b4277e131be81d9098a862d650b5961a609dbe86621ba815d4c029"
+    },
+    "frozen-execution-source-003/src/ygo_kito/training_pilot.py": {
+      "size": 35196,
+      "sha256": "b7c16f337932c1113fe38171a32b1e8edcf11f8219fb22dd237d460dc4d16812"
+    },
+    "frozen-execution-source-003/src/ygo_kito/training_plan.py": {
+      "size": 13980,
+      "sha256": "32dca0b2ff564c759520a507c08c4fd88e034c95fe70ebb2801cd31bb577b0b4"
+    },
+    "frozen-execution-source-003/src/ygo_kito/training_preflight.py": {
+      "size": 4971,
+      "sha256": "e49113ebc9fc48addc932d1ea2bfd89dc70f393a2a6c3736ab7a999c60ee8dd6"
+    },
+    "frozen-execution-source-003/src/ygo_kito/training_runner.py": {
+      "size": 24163,
+      "sha256": "8deba9699c9262b6080dbdad9d15223160fcafeddda2ebfbf71d4d8c67274fb2"
+    },
+    "frozen-execution-source-003/src/ygo_kito/training_scenarios.py": {
+      "size": 12200,
+      "sha256": "5e61ab6f6bf0949386f7646b00903c68e4919213781e1db35896c78f130bc5fe"
+    },
+    "frozen-execution-source-003/src/ygo_kito/unselect_case.py": {
+      "size": 7691,
+      "sha256": "9065fac372807955d8a18f56ac9ebd205560923608ff9ce68f4fc51e9c2c2440"
+    },
+    "frozen-execution-source-003/src/ygo_kito/validation.py": {
+      "size": 2906,
+      "sha256": "cec1354483dc1a38a02d5aa43c9cfb0e73516c036ee8511e5ca503129efdf6ba"
+    },
+    "frozen-execution-source-003/src/ygo_kito/windbot_projection.py": {
+      "size": 48657,
+      "sha256": "23f02af625d56ff1405936ad73242a3c1e783d748c718c3a9bab3024ef33a5f7"
+    },
+    "frozen-execution-source-003/src/ygo_kito/windbot_room.py": {
+      "size": 71871,
+      "sha256": "267e880f517a652d5d6eb3b9d5736aaaf1d6f78931b4d590a9c340603c816220"
+    },
+    "runtime-identities/formal-course-source-pack-003.json": {
+      "size": 18383,
+      "sha256": "355396d9ab41eaec0ff2bc03a2dcc4a3162ad4c31b1bbd5f88ef45323b5ae96f"
+    },
+    "runtime-identities/formal-source-003.tar": {
+      "size": 2273280,
+      "sha256": "2484aa8df9afe3416864bf46cca9b16bd120d43e307485787ad007260c3cf148"
+    }
+  },
+  "comparison_in_progress_included": false,
+  "third_party_runtime_blobs_included": false,
+  "credential_pattern_matches": 0,
+  "predecessor_asset": "20261027-local-foundation-003.tar.gz",
+  "execution_source": "frozen-execution-source-003",
+  "current_pr_source_requires_explicit_migration": true,
+  "formal_training_success_verified": false
+}

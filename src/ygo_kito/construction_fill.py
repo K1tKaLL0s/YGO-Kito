@@ -9,7 +9,7 @@ from copy import deepcopy
 import math
 
 from .build_contracts import DeckParts, digest
-from .construction_logic import LogicTag, reachable, select_main_axes, short
+from .construction_logic import ConstructionLogic, LogicTag, reachable, select_main_axes, short
 from .proof_visibility import without_private_selection_key
 from .validation import ContractError, array, fields, member
 
@@ -141,7 +141,7 @@ def _check_bindings(graph, proposal):
     return nodes
 
 
-def evaluate_fill(session, assets, proposal, *, scopes=(), text_reviewer=None, verifier=existing_goal_verifier):
+def evaluate_fill(session, assets, proposal, *, scopes=(), text_reviewer=None, verifier=existing_goal_verifier, defer_engine=False):
     """Reject/retain unknowns; fall back only to evidence for this task AND graph.
 
     text_reviewer(node, public_cards) returns NodeTextReview. public_cards contains
@@ -173,6 +173,8 @@ def evaluate_fill(session, assets, proposal, *, scopes=(), text_reviewer=None, v
             output["best_deck"] = deepcopy(prior["deck"])
             output["fallback"] = without_private_selection_key(prior)
         session.record_feedback("fill", message)
+        from .construction_candidates import record_fill_observation
+        record_fill_observation(session,proposal,output)
         return output
 
     axes = select_main_axes(task, assets, session.classification, scopes)
@@ -221,6 +223,15 @@ def evaluate_fill(session, assets, proposal, *, scopes=(), text_reviewer=None, v
             if evidence.effect_text_sha256 != digest(desc) or evidence.quote not in desc:
                 invalidate_binding()
                 return reject("text_evidence_mismatch", "effect-text evidence does not match the current card source")
+    if defer_engine:
+        # Intermediate phase outputs are concrete, text-reviewed handoffs.
+        # They are not CB proofs, deployed incumbents or competitive labels.
+        output.update(status="concrete_candidate_cb_pending",best_deck=proposal.deck.to_dict(),
+            concrete_proposal={"deck":proposal.deck.to_dict(),
+                "bindings":[{"node_id":b.node_id,"card_ids":list(b.card_ids)} for b in proposal.bindings],"connector_ids":list(proposal.connector_ids),
+                "logic_sha256":proposal.logic_sha256,"task_sha256":proposal.task_sha256},
+            text_assessment="source_bound_external_assessment_not_formal_effect_semantics")
+        return output
     if verifier is None:
         return reject("engine_validation_not_run", "concrete text was reviewed but the existing goal interface was not invoked")
     from .native import NativeError
@@ -252,13 +263,14 @@ def evaluate_fill(session, assets, proposal, *, scopes=(), text_reviewer=None, v
 
 
 def fill_with_existing(session, assets, *, role="build_goal", base=None, models=None, encoder=None,
-                       binding_provider=None, text_reviewer=None, scopes=(), verifier=existing_goal_verifier):
+                       binding_provider=None, text_reviewer=None, scopes=(), verifier=existing_goal_verifier, defer_engine=False,mechanism_groups=None):
     """Reuse existing fill/quantity generation and independent model ranking.
 
     Concrete CatalogBindingAdapter/LogicModelAdapter implementations can supply
     the providers. This fill function performs selection/checks, not training.
     """
     from .build_pipeline import edit_candidates, goal_candidates
+    from .construction_candidates import retained_order, attributed_feedback, evidence_order
     member(role, "fill role", ("build_goal", "build_optimizer"))
     session.check_goal()
     if session.logic is None:
@@ -266,18 +278,22 @@ def fill_with_existing(session, assets, *, role="build_goal", base=None, models=
     if binding_provider is None:
         return {"status": "binding_provider_unavailable", "training_status": "engineering_untrained", "best_deck": None}
     task = session.task
+    feedback=attributed_feedback(session)
     axes = select_main_axes(task, assets, session.classification, scopes)
     if axes["status"] not in ("selected", "skipped_broad"):
         return {"status": axes["status"], "stage_2": axes, "best_deck": None}
     if role == "build_optimizer" and base is None:
         raise ContractError("optimizer filling requires an existing concrete deck")
+    generation_trace = {}
     if role == "build_goal" and base is not None and task.goal["kind"] == "deck_constraints" and assets.accepts(task,base):
         # Existing valid lists can start from bounded old edits without requiring
         # the optional MILP solver used for construction from an empty list.
-        candidates = edit_candidates(task,assets,base)
+        candidates = edit_candidates(task,assets,base,feedback=feedback,return_portfolio=True,mechanism_groups=mechanism_groups,trace=generation_trace)
     else:
-        candidates = (goal_candidates(task, assets, base) if role == "build_goal"
-                      else edit_candidates(task, assets, base, require_edit=True))
+        candidates = (goal_candidates(task, assets, base,feedback=feedback,return_portfolio=True,mechanism_groups=mechanism_groups,trace=generation_trace) if role == "build_goal"
+                      else edit_candidates(task, assets, base, require_edit=False,feedback=feedback,return_portfolio=True,mechanism_groups=mechanism_groups,trace=generation_trace))
+    portfolio_rows=candidates
+    candidates=[row["deck"] for row in portfolio_rows]
     scores, ranking = [0.] * len(candidates), "engineering_order_untrained"
     if models is not None:
         if encoder is None or role not in models:
@@ -290,63 +306,175 @@ def fill_with_existing(session, assets, *, role="build_goal", base=None, models=
             if len(scores) != len(candidates) or any(not math.isfinite(s) for s in scores):
                 raise ContractError("invalid existing model candidate scores")
         ranking = "existing_role_model_uncalibrated"
-    results = []
-    for index in sorted(range(len(candidates)), key=lambda i: -scores[i]):
+    order = retained_order(portfolio_rows,scores,feedback,task.sha256)
+    preference = evidence_order(feedback,task.sha256,"deck")
+    trace_rows = [{"candidate_index":i,"strategy":row["strategy"],"changes":deepcopy(row["changes"]),
+        "portfolio_admission":deepcopy(row.get("portfolio_admission")),
+        "generation":deepcopy(row.get("generation")),"proposal_basis":row.get("proposal_basis","bounded_listing_or_single_edit"),
+        "proposal_source":row.get("proposal_source"),"goal_preserved":row["goal_preserved"],
+        "score_available":models is not None,"model_score_uncalibrated":scores[i] if models is not None else None,
+        "whole_candidate_evidence_order":preference.get(row["deck_sha256"],0),
+        "selection_order_position":order.index(i),"status":"not_attempted","retained":False,"selected":False}
+        for i,row in enumerate(portfolio_rows)]
+    candidate_trace = {"generation":generation_trace,"ranking":ranking,"calibration_status":"uncalibrated" if models is not None else "no_model_score",
+        "score_interpretation":"whole_candidate_score_not_card_credit_or_win_rate",
+        "target_constraints":{"goal":deepcopy(task.goal),"sizes":deepcopy(task.sizes),"requirements":deepcopy(task.requirements),"theme_axes":deepcopy(axes)},
+        "order_rule":"whole_candidate_evidence_then_score_with_strategy_diversity",
+        "selection_rule":"first_accepted_in_retained_order","candidate_order":order,"candidates":trace_rows,
+        "retained_limit":3 if defer_engine else 1,"selected_candidate_index":None,"selected_attempt_index":None,
+        "strength_status":"unknown"}
+    results, retained, selected = [], [], None
+    for index in order:
+        attempt_index = len(results)
+        item = trace_rows[index]
+        item["attempt_index"] = attempt_index
         try:
             proposal = binding_provider(session.logic, task, candidates[index])
         except ContractError as error:
             session.record_feedback("fill", "graph binding failed: " + str(error))
-            results.append({"status":"binding_unmatched","unmet":[str(error)],"best_deck":None})
+            results.append({"status":"binding_unmatched","unmet":[str(error)],"best_deck":None,
+                "candidate_index":index,"ranking":ranking,"model_score_uncalibrated":item["model_score_uncalibrated"]})
+            item.update(status="binding_unmatched",unmet=[str(error)])
             continue
         if not isinstance(proposal, FillProposal) or proposal.deck != candidates[index]:
             raise ContractError("binding provider must preserve the generated candidate and quantities")
-        result = evaluate_fill(session, assets, proposal, scopes=scopes, text_reviewer=text_reviewer, verifier=verifier)
-        result.update(role=role, ranking=ranking, model_score_uncalibrated=scores[index])
+        result = evaluate_fill(session, assets, proposal, scopes=scopes, text_reviewer=text_reviewer, verifier=verifier, defer_engine=defer_engine)
+        result.update(role=role, ranking=ranking, candidate_index=index, model_score_uncalibrated=item["model_score_uncalibrated"])
         results.append(result)
-        if result["status"] in ("task_goal_verified_logic_unproven", "list_constraints_verified_logic_unproven"):
-            return {"status": result["status"], "best_deck": result["best_deck"], "attempts": results,
-                    "ranking": ranking, "graph_execution_verified": False}
+        item.update(status=result["status"],unmet=deepcopy(result.get("unmet",[])),card_list_legal=result.get("card_list_legal"),
+            public_effect_evidence={"text_reviews_attempt_index":attempt_index,
+                "bindings":[{"node_id":b.node_id,"card_ids":list(b.card_ids)} for b in proposal.bindings],
+                "reviewed_card_ids":sorted({e["card_id"] for review in result.get("text_reviews",[]) for e in review["evidence"]}),
+                "interpretation":"source_bound_card_effect_assessment_not_model_score_attribution"})
+        if result["status"] in ("task_goal_verified_logic_unproven", "list_constraints_verified_logic_unproven", "concrete_candidate_cb_pending"):
+            item["retained"] = True
+            if selected is None:
+                selected=len(results)-1; item["selected"]=True
+                candidate_trace.update(selected_candidate_index=index,selected_attempt_index=selected)
+            row=portfolio_rows[index]
+            retained.append({"deck":candidates[index].to_dict(),"logic":session.logic.to_dict(),
+                "logic_sha256":session.logic.sha256,"goal_sha256":session.goal_sha256,
+                "candidate_index":index,"attempt_index":attempt_index,"generation":deepcopy(row.get("generation")),
+                "strategy":row["strategy"],"changes":row["changes"],
+                "proposal_basis":row.get("proposal_basis","bounded_listing_or_single_edit"),
+                "proposal_source":row.get("proposal_source"),
+                "protected_package":deepcopy(row.get("protected_package")),
+                "model_score_uncalibrated":item["model_score_uncalibrated"],"strength_status":"unknown",
+                "concrete_proposal":result.get("concrete_proposal")})
+            if len(retained)>=(3 if defer_engine else 1):break
+    if selected is not None:
+        best=results[selected]
+        return {"status":best["status"],"best_deck":best["best_deck"],"attempts":results,
+                "selected_attempt_index":selected,"portfolio":retained,
+                "ranking":ranking,"candidate_trace":candidate_trace,"graph_execution_verified":False}
     return {"status": "no_verified_fill_within_candidates", "best_deck": results[-1]["best_deck"] if results else None,
-            "attempts": results, "ranking": ranking, "graph_execution_verified": False}
+            "attempts": results, "ranking": ranking,"candidate_trace":candidate_trace,
+            "returned_deck_source":"last_attempt_or_its_prior_fallback" if results else "none", "graph_execution_verified": False}
+
+
+def _candidate_basic_cb(task,deck,assets,provider):
+    subject=digest(deck.to_dict())
+    if provider is None:
+        result={"kind":"basic_cb_inference_after_construction","status":"not_run","routes":[],
+                "inference_completed":False,"unknown_is_not_negative":True}
+    else:
+        result=deepcopy(provider(task,deck,assets))
+        if not isinstance(result,dict) or not isinstance(result.get("status"),str):
+            raise ContractError("basic CB provider must return a scoped inference result")
+    if (result.get("subject_deck_sha256",subject)!=subject or result.get("task_sha256",task.sha256)!=task.sha256):
+        raise ContractError("basic CB result belongs to a different task/deck")
+    result.update(subject_deck_sha256=subject,task_sha256=task.sha256,
+                  inference_scope="basic_cb_for_constructed_deck_not_whole_graph_acceptance")
+    return result
 
 
 def construction_cycle(session, assets, providers, *, scopes=(), base=None, models=None, encoder=None,
-                       binding_provider=None, text_reviewer=None, verifier=existing_goal_verifier):
-    """Coordinator: target stages 1/2/3 → optimizer stages 1/2/3.
+                       binding_provider=None, text_reviewer=None, verifier=existing_goal_verifier,basic_cb_provider=None,mechanism_groups=None):
+    """Pass four concrete outputs in order, then infer basic CB for the constructed deck.
 
-    Fill/duel/user feedback remains available to later cycles. A failed new
-    revision can return an earlier task-verified candidate only WITH its original
-    graph and proof; it never promotes it as evidence for the latest revision.
+    The working candidate is distinct from a deployed incumbent. An incumbent
+    cannot replace a phase handoff or lend its old CB proof to the final output.
     """
-    phases, best, current = [], None, base
-    for role in ("build_goal", "build_optimizer"):
-        revision = session.propose_logic(role, providers.get(role))
-        phase = {"role": role, "stage_1": revision}
+    from collections import Counter
+    roles=("build_goal","build_optimizer","build_goal","build_optimizer")
+    phases=[];current=base;final_proposal=None
+    if base is not None:assets.validate(session.task,base)
+    incumbent={"deck":base.to_dict(),"source":"external_deployment_incumbent",
+               "new_cb_claimed":False} if base is not None else None
+    for number,role in enumerate(roles,1):
+        phase={"phase_number":number,"role":role,"input_deck":None if current is None else current.to_dict(),
+               "feedback_before":deepcopy(session.feedback),"parameter_update_performed":False}
         phases.append(phase)
-        if revision["status"] != "logic_revised":
-            break
-        graph = session.logic
-        phase["stage_2"] = select_main_axes(session.task, assets, session.classification, scopes)
-        session.history.append({"stage": 2, "role": role, "logic_sha256": graph.sha256,
-                                "goal_sha256": session.goal_sha256, "result": deepcopy(phase["stage_2"])})
-        if phase["stage_2"]["status"] not in ("selected", "skipped_broad"):
-            session.record_feedback("fill", "theme-axis phase unresolved: " + phase["stage_2"]["status"])
-            break
-        # If a target fill fails, ask the target again after feedback rather than
-        # manufacture an optimizer base or silently relax the goal.
-        result = fill_with_existing(session, assets, role=role, base=current, models=models, encoder=encoder,
-            binding_provider=binding_provider, text_reviewer=text_reviewer, scopes=scopes, verifier=verifier)
-        phase["stage_3"] = result
-        session.history.append({"stage": 3, "role": role, "logic_sha256": graph.sha256,
-                                "goal_sha256": session.goal_sha256, "result": deepcopy(result)})
-        if result["status"] not in ("task_goal_verified_logic_unproven", "list_constraints_verified_logic_unproven"):
-            session.record_feedback(role, "fill phase unresolved: " + result["status"])
-            break
-        current = DeckParts.from_dict(result["best_deck"])
-        best = {"deck": result["best_deck"], "logic": graph.to_dict(), "logic_sha256": graph.sha256,
-                "validation": result, "goal_sha256": session.goal_sha256}
-        session.record_feedback(role, "concrete task goal checked; lightweight graph execution remains unverified")
-    return {"status": "task_checked_candidate" if best else "construction_unresolved", "phases": phases,
-            "best": best, "latest_logic_sha256": session.logic.sha256 if session.logic else None,
-            "goal_sha256": session.goal_sha256, "graph_execution_verified": False,
-            "training_status": "no_training_performed_by_this_cycle"}
+        if role=="build_optimizer" and current is None:
+            phase["status"]="no_concrete_goal_output";break
+        revision=session.propose_logic(role,providers.get(role));phase["stage_1"]=revision
+        if revision["status"]!="logic_revised":
+            session.record_feedback(role,"logic proposal unresolved; four-phase handoff incomplete");break
+        graph=session.logic
+        phase["stage_2"]=select_main_axes(session.task,assets,session.classification,scopes)
+        session.history.append({"stage":2,"role":role,"logic_sha256":graph.sha256,
+                                "goal_sha256":session.goal_sha256,"result":deepcopy(phase["stage_2"])})
+        if phase["stage_2"]["status"] not in ("selected","skipped_broad"):
+            session.record_feedback("fill","theme-axis unresolved: "+phase["stage_2"]["status"]);break
+        result=fill_with_existing(session,assets,role=role,base=current,models=models,encoder=encoder,
+            binding_provider=binding_provider,text_reviewer=text_reviewer,scopes=scopes,verifier=None,defer_engine=True,
+            mechanism_groups=mechanism_groups)
+        phase["stage_3"]=result
+        session.history.append({"stage":3,"role":role,"logic_sha256":graph.sha256,
+                                "goal_sha256":session.goal_sha256,"result":deepcopy(result)})
+        if result["status"]!="concrete_candidate_cb_pending":
+            session.record_feedback(role,"concrete fill unresolved: "+result["status"]);break
+        last=result["attempts"][result.get("selected_attempt_index",-1)]
+        final_proposal=FillProposal.from_dict(last["concrete_proposal"])
+        proposal=final_proposal.deck
+        phase["proposal_deck"]=proposal.to_dict()
+        phase["proposal_changes"]={z:{"added":list((Counter(getattr(proposal,z))-Counter(getattr(current,z) if current else ())).elements()),
+            "removed":list((Counter(getattr(current,z) if current else ())-Counter(getattr(proposal,z))).elements())}
+            for z in ("main","extra","side")}
+        # Always pass this phase's actual output to the next role. This says
+        # nothing about competitive superiority or deployment acceptance.
+        current=proposal;phase["accepted_deck"]=current.to_dict()
+        phase["acceptance"]="working_candidate_handoff_only"
+        phase["improvement_verified"]=False
+        session.record_feedback(role,"concrete output passed to next phase; changes "+str(phase["proposal_changes"])+
+            "; CB deferred until after all four phases; competitive comparison pending")
+    complete=len(phases)==4 and all(p.get("stage_3",{}).get("status")=="concrete_candidate_cb_pending" for p in phases)
+    candidate=None;cb=None;verified=False;retained_candidates=[]
+    if complete:
+        if final_proposal.deck.to_dict()!=phases[-1]["proposal_deck"]:
+            raise ContractError("basic CB input must be the constructed deck")
+        task_validation=evaluate_fill(session,assets,final_proposal,scopes=scopes,text_reviewer=text_reviewer,verifier=verifier)
+        cb=_candidate_basic_cb(session.task,current,assets,basic_cb_provider)
+        accepted=("task_goal_verified_logic_unproven","list_constraints_verified_logic_unproven")
+        verified=task_validation["status"] in accepted and task_validation["best_deck"]==current.to_dict()
+        validation={"status":task_validation["status"],"best_deck":current.to_dict() if verified else None,
+                    "attempts":[task_validation],"ranking":"constructed_deck_after_four_handoffs","graph_execution_verified":False}
+        candidate={"deck":current.to_dict(),"logic":session.logic.to_dict(),"logic_sha256":session.logic.sha256,
+                   "validation":validation,"goal_sha256":session.goal_sha256,"task_verified":verified,
+                   "basic_cb":cb,"cb_verified":cb.get("status")=="routes_inferred" and bool(cb.get("routes"))}
+        accepted_fill=deepcopy(session._accepted_fill)
+        # Every retained option is a concrete output of the fourth role. Infer
+        # its basic CB after the same four handoffs, before any quality label.
+        for row in phases[-1]["stage_3"].get("portfolio",[]):
+            proposal=FillProposal.from_dict(row["concrete_proposal"])
+            proof=task_validation if proposal.deck==current else evaluate_fill(session,assets,proposal,
+                scopes=scopes,text_reviewer=text_reviewer,verifier=verifier)
+            inference=cb if proposal.deck==current else _candidate_basic_cb(session.task,proposal.deck,assets,basic_cb_provider)
+            good=proof["status"] in accepted and proof["best_deck"]==row["deck"]
+            retained_candidates.append({**deepcopy(row),"basic_cb":inference,"task_verified":good,
+                "cb_verified":inference.get("status")=="routes_inferred" and bool(inference.get("routes")),
+                "validation":{"status":proof["status"],"best_deck":row["deck"] if good else None,
+                              "attempts":[proof],"graph_execution_verified":False}})
+        session._accepted_fill=accepted_fill
+        session.history.append({"stage":"basic_cb","kind":"construction_construction_candidate","role":"build_optimizer",
+            "goal_sha256":session.goal_sha256,"candidate":deepcopy(candidate),"verified_for_task":verified})
+        if not verified:session.record_feedback("fill","construction task unresolved: "+task_validation["status"])
+    return {"status":"task_checked_candidate" if verified else "construction_unresolved","phases":phases,
+        "best":deepcopy(candidate) if verified else None,"verified_best":deepcopy(candidate) if verified else None,
+        "construction_candidate":candidate,"basic_cb":cb,"retained_candidates":retained_candidates,"deployment_incumbent":incumbent,
+        "task_verified":verified,"cb_verified":bool(candidate and candidate["cb_verified"]),
+        "incumbent_verified_for_task":False,"latest_logic_sha256":session.logic.sha256 if session.logic else None,
+        "goal_sha256":session.goal_sha256,"task_goal_sha256":digest(session.task.goal),
+        "graph_execution_verified":False,"alternation_completed":complete,
+        "competitive_improvement_verified":False,"deployment_acceptance":"independent_comparison_pending" if incumbent else "initial_candidate_only",
+        "optimization_training":"pending_actual_attributable_comparison_labels","training_status":"no_training_performed_by_this_cycle"}

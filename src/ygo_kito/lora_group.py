@@ -24,6 +24,7 @@ from .coordinator_model import FEATURE_VERSION as COORD_FEATURES, context_tensor
 from .duel_model import FEATURE_VERSION as DUEL_FEATURES, parameter_digest
 from .device import model_device, move_batch
 from .lora import AdapterConfig, AdapterSession, ROLES, tensor_digest
+from .hierarchical_policy import score_requests,validate_receipt
 from .model_group import (ROOT, call, execute_duel_job, group_binding, restore_group, route_with_model,
                           run_model_group_smoke, save_group)
 from .validation import ContractError, canonical_json, fields, integer, read_json
@@ -69,15 +70,29 @@ def coordinator_loss(session, examples=None):
     rows, synthetic = supervision_rows(examples)
     rows = [rows[i] for i in torch.randperm(len(rows), generator=session.rng).tolist()]
     session.model.train()
-    logits, forecasts = session.model(torch.tensor([context_tensor(r["context"]) for r in rows]))
-    route_loss = F.cross_entropy(logits, torch.tensor([ROUTES.index(r["route_label"]) for r in rows], device=logits.device))
+    values = torch.tensor([context_tensor(r["context"]) for r in rows])
+    if any("scope_features" in r for r in rows):
+        logits, forecasts, allocations = session.model.forward_scoped(values,
+            torch.tensor([r.get("scope_features", [0.] * 64) for r in rows]))
+    else:
+        logits, forecasts = session.model(values)
+    routed = [i for i, r in enumerate(rows) if r["route_label"] is not None]
+    # Do not create a zero gradient for unlabelled heads: Adam momentum would
+    # otherwise move their adapters during forecast-only observations.
+    loss = (F.cross_entropy(logits[routed], torch.tensor([ROUTES.index(rows[i]["route_label"]) for i in routed], device=logits.device))
+            if routed else None)
     targets = [r["synthetic_probability_anchor" if synthetic else "forecast_target"] for r in rows]
     labelled = [i for i, target in enumerate(targets) if target is not None]
-    # Omitting this branch keeps forecast-head grads None, including after a
-    # labelled update has populated that adapter's Adam momentum.
-    if not labelled:
-        return route_loss
-    return route_loss + F.mse_loss(forecasts[labelled], torch.tensor([targets[i] for i in labelled], device=forecasts.device))
+    if labelled:
+        term = F.mse_loss(forecasts[labelled], torch.tensor([targets[i] for i in labelled], device=forecasts.device))
+        loss = term if loss is None else loss + term
+    budget = [i for i, r in enumerate(rows) if "budget_target" in r]
+    if budget:
+        term = F.mse_loss(allocations[budget], torch.tensor([rows[i]["budget_target"] for i in budget], device=allocations.device))
+        loss = term if loss is None else loss + term
+    if loss is None:
+        raise ContractError("coordinator feedback has no labelled target")
+    return loss
 
 
 def normalize_advantages(values):
@@ -88,6 +103,7 @@ def normalize_advantages(values):
 
 
 def ppo_inputs(episode, sampler, session):
+    from .duel_planning import replay_planning_bias
     if episode["policy_sha256"] != parameter_digest(session.model) or episode["source"] != "live-core-actor-seat":
         raise ContractError("LoRA PPO batch must originate from this initial live policy")
     if 'opponent_binding' in episode.get('summary',{}):
@@ -97,6 +113,11 @@ def ppo_inputs(episode, sampler, session):
             or not isinstance(admission,DataAdmission)):raise ContractError('registered LoRA PPO requires fresh indexed on-policy data')
         admission.assert_episode(episode)
     steps, cfg = episode["steps"], sampler.config
+    for step in steps:
+        if len(step['request'].actions)>cfg.model.max_actions:
+            if 'hierarchy' not in step:raise ContractError('large-action LoRA PPO requires its actual sampling receipt')
+            validate_receipt(step['hierarchy'],action_count=len(step['request'].actions),action_index=step['action_index'],
+                             old_log_prob=step['old_log_prob'],max_actions=cfg.model.max_actions)
     advantages, following, gae = [], 0., 0.
     for step in reversed(steps):
         delta = step["reward"] + cfg.gamma * following - step["old_value"]
@@ -109,16 +130,20 @@ def ppo_inputs(episode, sampler, session):
     chosen = [steps[i] for i in indices.tolist()]
     adv = advantages[indices]
     adv = normalize_advantages(adv)
-    return {"batch": sampler.encoder.batch([s["request"] for s in chosen]),
+    return {"requests": tuple(s["request"] for s in chosen), "encoder":sampler.encoder,
             "actions": torch.tensor([s["action_index"] for s in chosen]),
             "old_log_probs": torch.tensor([s["old_log_prob"] for s in chosen]),
+            "planning_bias": replay_planning_bias(torch.zeros(len(chosen),max(len(s["request"].actions) for s in chosen)),chosen),
             "advantages": adv, "returns": returns[indices], "samples": len(chosen)}
 
 
 def ppo_loss(session, values, config):
     values = move_batch(values, model_device(session.model))
     session.model.train()
-    logits, predicted = session.model(values["batch"])
+    if 'requests' in values:
+        logits,predicted=score_requests(session.model,values['encoder'],values['requests'])
+    else:logits,predicted=session.model(values['batch'])  # legacy already-encoded small batches
+    if "planning_bias" in values: logits = logits+values["planning_bias"]
     distribution = Categorical(logits=logits)
     ratio = (distribution.log_prob(values["actions"]) - values["old_log_probs"]).exp()
     policy = -torch.minimum(ratio * values["advantages"], ratio.clamp(1 - config.clip_ratio, 1 + config.clip_ratio) * values["advantages"]).mean()
@@ -128,7 +153,7 @@ def ppo_loss(session, values, config):
 def output(model, batch):
     model.eval()
     with torch.no_grad():
-        value = model(batch)
+        value = score_requests(model,batch['encoder'],batch['requests']) if isinstance(batch,dict) and 'requests' in batch else model(batch)
     return {str(i): x.detach().clone() for i, x in enumerate(value if isinstance(value, tuple) else (value,))}
 
 
@@ -179,7 +204,7 @@ def run_lora_group_smoke(root, state_root, run_id, task, lora_config, policy=Non
         ppo = ppo_inputs(training_episode, sampler, sessions["duel"])
         probe_decks = [DeckParts.from_dict(data["goals"][0]["deck"])]
         probes = {r: builder.encoder.batch(task, probe_decks) for r in builder.models}
-        probes["duel"] = ppo["batch"]
+        probes["duel"] = ppo
         probes["coordinator"] = torch.tensor([context_tensor(r["context"]) for r in engineering_examples()["records"]])
         baseline_outputs = {r: output(models[r], probes[r]) for r in ROLES}
         updates = []

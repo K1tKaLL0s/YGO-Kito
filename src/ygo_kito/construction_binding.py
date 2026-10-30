@@ -15,6 +15,7 @@ from .build_contracts import BuildTask, DeckParts, digest
 from .construction_fill import FillProposal, NodeBinding, NodeTextReview, TextEvidence
 from .construction_logic import ConstructionLogic, LogicNode, LogicTag, short
 from .validation import ContractError, array, fields, integer, member
+from .effect_mechanisms import MechanismCatalog, SEMANTIC_VERSION
 
 
 def _sha(value, label):
@@ -117,6 +118,7 @@ class CatalogBindingAdapter:
         except (AttributeError, KeyError, TypeError) as error:
             raise ContractError("binding requires a pinned cards source receipt") from error
         _sha(self.cards_sha256, "pinned cards source")
+        self.semantic_catalog = MechanismCatalog(assets)
         if (not isinstance(fact_tags, tuple) or len(fact_tags) > 256
                 or any(not isinstance(f, PublicFactTag) for f in fact_tags)
                 or len({f.tag for f in fact_tags}) != len(fact_tags)):
@@ -169,6 +171,9 @@ class CatalogBindingAdapter:
             return ("satisfied" if satisfied else "unsatisfied"), "public-fact:" + fact.source
         assessment = self.assessments.get((row["id"], tag))
         if assessment is None:
+            profile = self.semantic_catalog.card(row['id'])
+            if tag.dimension == 'effect' and tag.value in profile.tags:
+                return 'satisfied', SEMANTIC_VERSION+': source-bound effect semantics; execution unproved'
             return "unknown", "no source-bound assessment for " + tag.value
         if (assessment.cards_sha256 != self.cards_sha256 or assessment.effect_text_sha256 != digest(row["desc"])
                 or assessment.quote not in row["desc"]):
@@ -215,7 +220,8 @@ class CatalogBindingAdapter:
                 status = "supported" if all(s == "satisfied" for s in statuses) else "unknown"
                 hits.append({"card_id": code, "status": status, "lexical_terms": sorted(set(terms)),
                              "supported_tags": sum(s == "satisfied" for s in statuses),
-                             "reasons": list(dict.fromkeys(note for _, note in evaluations))})
+                              "reasons": list(dict.fromkeys(note for _, note in evaluations)),
+                              "effect_semantics": self.semantic_catalog.card(code).to_dict()})
             hits.sort(key=lambda h: (h["status"] != "supported", -h["supported_tags"], -len(h["lexical_terms"]), h["card_id"]))
             details.append({"node_id": node.node_id, "candidates": hits})
             if hits:

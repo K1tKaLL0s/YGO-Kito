@@ -250,7 +250,9 @@ class WindBotProjectionTests(unittest.TestCase):
         payload['decision_id']='fixture-actor-window';payload['observation']['observer']=1
         payload['observation']['cards']=[]
         actor_request=DecisionRequest.from_dict(payload)
-        profile={'fixture':'not-a-deck'};seen=[];closed=[]
+        profile={'fixture':'synthetic-managed-sampler-not-native',
+                 'decks':[[1]*40,[1]*40],'extras':[[],[]]};seen=[];closed=[]
+        profile_sha256=digest(profile)
         class FixtureRoom:
             observer=0;duel_rule=5
             def choose(self,req,frame):seen.append(frame);return req.actions[0]
@@ -262,7 +264,9 @@ class WindBotProjectionTests(unittest.TestCase):
         def host(root,**options):
             e,_=fixture_engine();del e._transport;del e._transport_sent
             e.pending=None;e.window=0;e.closed=False;e.modern_actions=True
-            e.player_decks=((1,)*40,(1,)*40);e.player_extras=((),());e.context=bot_request.context
+            self.assertEqual(options['deck_profile'],profile)
+            e.player_decks=tuple(tuple(d) for d in profile['decks'])
+            e.player_extras=tuple(tuple(d) for d in profile['extras']);e.context=bot_request.context
             e.receipt={'fixture':True};e._selection_seed=None;e.outcome=None;e.events=[]
             e.turn=1;e.life_points=[0,8000];windows=iter((bot_request,actor_request))
             def next_decision():
@@ -276,7 +280,7 @@ class WindBotProjectionTests(unittest.TestCase):
             try:yield e
             finally:closed.append('engine')
         opponent=WindBotOpponent(root='.',profile=profile,seat=0,versions=bot_request.context.versions,
-            binding={'profile_sha256':digest(profile),'driver_version':'explicit-room-fixture'},
+            binding={'profile_sha256':profile_sha256,'driver_version':'explicit-room-fixture'},
             runtime_validator=lambda:None,room_factory=rooms)
         trainer=CpuTrainer(CpuTrainingConfig(actor_seat=1,game_seeds=(1,),
             model=DuelModelConfig(width=8,card_width=4,heads=2,feedforward=16)),(1,))
@@ -285,6 +289,8 @@ class WindBotProjectionTests(unittest.TestCase):
                                            opponent_adapter=opponent,engine_factory=host)
         self.assertEqual(len(seen),1);self.assertEqual(len(episode['steps']),1)
         self.assertEqual(trainer.updates,0);self.assertEqual(trainer.episode_cursor,0)
+        self.assertEqual(digest(profile),profile_sha256)
+        self.assertEqual(opponent.binding['profile_sha256'],profile_sha256)
         self.assertEqual(closed,['room','engine']);self.assertIsNone(opponent._engine)
 
     def test_frozen_seat_versions_root_and_policy_cannot_drift(self):

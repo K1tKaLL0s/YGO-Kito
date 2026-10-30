@@ -65,6 +65,45 @@ def completed_special_summon(events, observation, player, code):
                     for c in observation.cards))
 
 
+def completed_fusion_summon(events, observation, player, code, fusion_effects):
+    """Bind a reviewed fusion effect, Fusion-reason materials and target summon.
+
+    MSG62/63 alone proves only Special Summon. Material moves are public zone/
+    reason facts; this function never reads identities returned to a hidden deck.
+    Core constants: REASON_MATERIAL=0x8, REASON_FUSION=0x40000.
+    """
+    if not completed_special_summon(events, observation, player, code):
+        return None
+    witness=fusion_effects
+    effect_ids={r['card_id'] for r in witness['effect_assessments']}
+    starts=[i for i,e in enumerate(events) if e['kind']==62 and
+            e.get('public_summoning_card')==code and e.get('player')==player]
+    start=starts[-1]
+    complete=next((i for i in range(start+1,len(events)) if events[i]['kind']==63),None)
+    solved=next((i for i in range((complete or start)+1,len(events)) if events[i]['kind'] in (73,74)),None)
+    if complete is None or solved is None or events[solved]['kind']!=73:
+        return None
+    boundary=max((i for i in range(start) if events[i]['kind']==74),default=-1)
+    link=events[solved].get('link')
+    chained=next((i for i in range(start-1,boundary,-1) if events[i]['kind']==70 and
+                  events[i].get('link')==link and events[i].get('player')==player and
+                  events[i].get('public_card') in effect_ids),None)
+    if chained is None or any(e['kind'] in (75,76) and e.get('link')==link for e in events[chained:solved+1]):
+        return None
+    # The next solved link owns this resolution window. Exclude earlier links.
+    window=max([chained]+[i for i in range(chained+1,start) if events[i]['kind'] in (72,73)])
+    materials=[{'event_index':i,**e} for i,e in enumerate(events[window+1:start],window+1)
+               if e['kind']==50 and e.get('player')==player and e.get('reason',0)&0x40008==0x40008 and
+               e.get('from_zone') in (1,2,4,8,16,32,64) and e.get('to_zone') in witness['allowed_destination_zones']]
+    if len(materials)<witness['minimum_materials'] or any(not any(e['from_zone']==z for e in materials) for z in witness['required_source_zones']):
+        return None
+    return {'kind':'resolved-fusion-effect-and-materials-v1','witness_sha256':digest(witness),'fusion_effect_card':events[chained]['public_card'],
+            'chain_link':link,'chaining_event_index':chained,'chain_solved_event_index':solved,
+            'target_card':code,'summon_start_event_index':start,'summon_complete_event_index':complete,
+            'materials':materials,'material_identity_in_hidden_deck_read':False,
+            'conditional_only':True,'whole_graph_execution_verified':False}
+
+
 def profile_for(deck, *, opponent=None):
     opponent = deck if opponent is None else opponent
     return {"schema_version": 2, "name": "conditional-extra-goal-engineering-v2",
@@ -100,11 +139,13 @@ def route_selection_key(assets, deck, evidence):
     return key
 
 
-def engine_for_goal(assets,deck,seed,*,selection_key=None):
+def engine_for_goal(assets,deck,seed,*,selection_key=None,cb_opening_hand=None):
     profile=goal_profile_for(assets,deck)
     validate_goal_selection_key(profile, selection_key)
     options = {"selection_key": selection_key} if selection_key is not None else {}
-    return getattr(assets,"engine_factory",NativeNormalEngine)(assets.root,scenario="effect-duel",deck_profile=profile,seed=seed,**options)
+    if cb_opening_hand is not None:options['cb_opening_hand']=cb_opening_hand
+    return getattr(assets,"engine_factory",NativeNormalEngine)(assets.root,
+        scenario="conditional-cb" if cb_opening_hand is not None else "effect-duel",deck_profile=profile,seed=seed,**options)
 
 
 def verify_extra_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budget=100, material_preference="first"):
@@ -115,7 +156,10 @@ def verify_extra_goal(task, deck, assets, *, seconds=10., attempts=16, decision_
     member(material_preference, "material preference", ("first", "last"))
     assets.validate(task, deck)
     kind, goal = task.goal["kind"], task.goal["card_id"]
-    mask = {"synchro_summon": 0x2000, "xyz_summon": 0x800000}.get(kind)
+    if kind == "fusion_summon":
+        return {"status":"unsupported_route", "card_list_legal":True, "core_attempts":[],
+                "unmet":["fusion requires v3 discovery with resolved-effect/material-return witness"]}
+    mask = {"synchro_summon": 0x2000, "xyz_summon": 0x800000, "fusion_summon": 0x40}.get(kind)
     if mask is None or not assets.rows[goal]["type"] & mask:
         return {"status": "unsupported_route", "card_list_legal": True, "unmet": ["goal kind and card type differ"], "core_attempts": []}
     started, trials = time.monotonic(), []

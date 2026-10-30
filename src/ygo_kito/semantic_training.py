@@ -50,7 +50,7 @@ def validate(task,assets,data,*,for_training=True):
         or data['unknown_routes_used_as_negative'] is not False or data['competitive_quality_labels'] is not False
         or data['public_effect_receipts']!=assets.effect_receipts(task)):
         raise ContractError('semantic supervision identity/source differs')
-    if not 1<=len(array(data['goals'],'semantic goals'))<=16 or not 1<=len(array(data['pairs'],'semantic pairs'))<=8:
+    if not 1<=len(array(data['goals'],'semantic goals'))<=16 or not 0<=len(array(data['pairs'],'semantic pairs'))<=8:
         raise ContractError('semantic supervision record budget exceeded')
     for row in data['goals']:
         fields(row,{'deck','label','source','evidence'});deck=DeckParts.from_dict(row['deck'])
@@ -79,12 +79,28 @@ def validate(task,assets,data,*,for_training=True):
             else:raise ContractError('semantic negative satisfies all constraints')
     verified={digest(r['deck']) for r in data['goals'] if r['label']==1}
     for pair in data['pairs']:
-        fields(pair,{'better','worse','better_value','worse_value','source','hard_constraints_checked'})
+        fields(pair,{'better','worse','better_value','worse_value','source','hard_constraints_checked'},{'evidence'})
         better,worse=(DeckParts.from_dict(pair[k]) for k in ('better','worse'))
         assets.validate(task,better);assets.validate(task,worse)
         if 'route_goal' in task.goal and any(digest(d.to_dict()) not in verified for d in (better,worse)):
             raise ContractError('combined optimizer comparisons require verified native goals on both sides')
-        if (pair['source']!='explicit_user_preference_not_strength' or pair['hard_constraints_checked'] is not True
-            or pair['better_value']!=preference_value(task,better,assets) or pair['worse_value']!=preference_value(task,worse,assets)
-            or pair['better_value']<=pair['worse_value']):raise ContractError('semantic preference label differs')
+        from .model_build_feedback import SOURCE as model_source,validate_model_comparison
+        from .model_auxiliary import SOURCES as auxiliary_sources,validate_auxiliary_comparison
+        if pair['source'] in auxiliary_sources:
+            comparison=pair.get('evidence');candidates=validate_auxiliary_comparison(task,assets,comparison)
+            preferred=comparison['preferred_index']
+            if (preferred is None or comparison['source']!=pair['source'] or
+                    pair['hard_constraints_checked'] is not True or better!=candidates[preferred] or worse!=candidates[1-preferred] or
+                    pair['better_value']!=1. or pair['worse_value']!=0.):
+                raise ContractError('Auxiliary rank must follow the actual paired goal evidence; 1/0 encodes order only')
+        elif pair['source']==model_source:
+            comparison=pair.get('evidence');candidates=validate_model_comparison(task,assets,comparison)
+            preferred=comparison['preferred_index']
+            if (preferred is None or comparison['plan']['purpose']!='construction_train' or
+                    pair['hard_constraints_checked'] is not True or better!=candidates[preferred] or worse!=candidates[1-preferred] or
+                    pair['better_value']!=comparison['mean_scores'][preferred] or pair['worse_value']!=comparison['mean_scores'][1-preferred]):
+                raise ContractError('actual frozen-model comparison label differs or is inconclusive')
+        elif (pair['source']!='explicit_user_preference_not_strength' or 'evidence' in pair or pair['hard_constraints_checked'] is not True
+              or pair['better_value']!=preference_value(task,better,assets) or pair['worse_value']!=preference_value(task,worse,assets)
+              or pair['better_value']<=pair['worse_value']):raise ContractError('semantic preference label differs')
     if data['supervision_sha256']!=digest(supervision_projection(data)):raise ContractError('semantic supervision digest differs')

@@ -90,6 +90,8 @@ class ModelMatchHostTests(unittest.TestCase):
         class Engine(course._FirstTurnObservation, NormalFixture): pass
         with patch.object(course, '_CourseNativeEngine', Engine), \
                 patch('ygo_kito.cpu_training.public_card_facts', return_value={}), \
+                patch('ygo_kito.training_admission.require_training_admission',
+                      return_value={'status':'admitted','fixture':'synthetic-engine-only'}), \
                 patch.object(CpuTrainer, 'update', side_effect=AssertionError('functional inference cannot train')), \
                 patch.object(AdapterSession, 'step', side_effect=AssertionError('functional inference cannot adapt')):
             yield

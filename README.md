@@ -1,5 +1,8 @@
 # YGO-Kito
 
+**2026-10-30 source publication:** current code, scope and remaining limits are recorded in [the publication handoff](docs/development/publication-20261030.md). Training remains paused. Checkpoint and feedback archives are supplied separately; historical sections below describe their original delivery.
+
+
 CPU接管与功能审计见[当前说明](docs/development/cpu-takeover-and-selfplay.md)：区分headless模型对战／对练和阶段3的GUI，沿用已确认慢档而不重新测时。新增冻结有效模型对手、独立自对抗历史池及仅热门主题的萌卡staging；正式训练仍需资产清单、资源／预算确认及用户通知。
 
 本轮新增[实际自主课程与 BO3 入口](docs/development/scenario-course-runner.md)：复用四模型与有效 LoRA，提供目录候选／模型选择、构筑逻辑及 CB 核验、合法换备、逐小局更新、完整场计数、冻结评估和恢复。CPU 机制回归与历史真实模型对机器人终局分开记录；完整分期课程仍缺实际资产与资格，沿用用户确认慢档，不重新测时。草稿 [PR #4](https://github.com/K1tKaLL0s/YGO-Kito/pull/4) 不自动合并或训练。

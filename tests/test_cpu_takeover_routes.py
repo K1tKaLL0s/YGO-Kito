@@ -41,13 +41,12 @@ def slow_basis():
 
 
 def config(period='2026-10'):
-    deck = DeckParts(tuple([c for c in range(1, 14) for _ in range(3)] + [14]))
     return {'course_id': 'cpu-takeover-route-fixture', 'period_id': period,
         'mode': 'autonomous' if period == '2026-10' else 'fixed_theme',
         'pilot_mean_seconds': None, 'timing_basis': slow_basis(), 'training_seeds': list(range(1800)),
         'evaluation_pairs': {'validation': [[3000, 4000]], 'final_eval': [[3001, 4001]]},
         'matches_per_invocation': 1, 'wall_seconds': 60, 'allocated_gpu_count': 0,
-        'fixed_deck': None if period == '2026-10' else deck.to_dict(), 'initial_first': 'alternate',
+        'fixed_deck': None, 'construction_theme_ids': None if period == '2026-10' else ['setcode-181'], 'initial_first': 'alternate',
         'evaluation_matches': 1, 'opponent_side': 'keep_original_baseline'}
 
 
@@ -119,6 +118,24 @@ def route_fixture():
 
 
 class ConfirmedSlowRouteTests(unittest.TestCase):
+    def test_production_host_binds_postconstruction_inference_without_a_preassigned_route(self):
+        from ygo_kito.course_models import CourseModels
+        with route_fixture() as (root, spec, course, save, timing):
+            # Only host routing is exercised; no Mono executable is launched.
+            for bot in spec['bots']: bot['mono']=str(root/'not-executed-fixture-mono')
+            # Calendar/catalog qualification is a separate fixture boundary;
+            # the production host must still forward the inference stage.
+            with patch.object(host, '_active_cutoff', return_value={'cutoff_reached': True}), \
+                    patch.object(CourseModels, 'initialize', wraps=CourseModels.initialize) as initialize:
+                result = host.prepare_course(root, spec).preflight()
+            self.assertEqual(result['status'], 'ready', result['blockers'])
+            binding = initialize.call_args.kwargs['source_binding']
+            self.assertEqual(binding['basic_cb_stage'], 'after_construction')
+            task = initialize.call_args.args[0]
+            self.assertNotIn('route_goal', task.goal)
+            self.assertEqual(task.requirements, ())
+            timing.assert_not_called()
+
     def test_explicit_branch_preserves_unknown_speed_and_exact_completed_match_ratio(self):
         c = config(); validate_config(c); validate_timing_basis(c['timing_basis'])
         rule = course_volume_requirements(c)

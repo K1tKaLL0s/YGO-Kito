@@ -1,0 +1,26 @@
+{
+  "status": "fulfilled",
+  "value": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Action completed."
+      }
+    ],
+    "structuredContent": {
+      "workflow_runs": [
+        {
+          "id": 40607096034,
+          "name": "Safe CPU contracts",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_number": 33,
+          "jobs_url": "https://api.github.com/repos/K1tKaLL0s/YGO-Kito/actions/runs/40607096034/jobs",
+          "logs_url": "https://api.github.com/repos/K1tKaLL0s/YGO-Kito/actions/runs/40607096034/logs",
+          "workflow_id": 395440896
+        }
+      ]
+    },
+    "isError": false
+  }
+}

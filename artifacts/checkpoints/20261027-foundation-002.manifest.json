@@ -1,0 +1,557 @@
+{
+  "kind": "full-base-resume-with-four-stage-construction-v1",
+  "created_utc": "2026-10-27T17:37:43.604455+00:00",
+  "checkpoint": {
+    "path": ".cache/base-training-20261027/2207-autonomous-v5/latest-after-four-stage.weights",
+    "sha256": "410c60009fb0748300fad8b2315fbf3ec9b1d696140c630a6894cecace77e3b5",
+    "duel_updates": 1
+  },
+  "checkpoint_bytes": 7490687,
+  "cursors": {
+    "build_updates": {
+      "build_goal": 1,
+      "build_optimizer": 0
+    },
+    "build_batch": 1,
+    "duel_updates": 1,
+    "duel_episodes": 1,
+    "coordinator_updates": 0
+  },
+  "execution": {
+    "schema_version": 1,
+    "device": "cpu",
+    "dtype": "float32"
+  },
+  "base_initialization": "fresh before independent source-compatible continuations",
+  "formal_course_bo1": 0,
+  "formal_course_bo3": 0,
+  "actual_foundation_bo1": 1,
+  "four_stage_inference_completed": true,
+  "optimizer_quality_training_completed": false,
+  "fusion_cb_verified": false,
+  "runtime_dependencies": {
+    "resources": {
+      "schema_version": 1,
+      "built_at_utc": "2026-10-25T17:04:00.857982+00:00",
+      "source_lock_sha256": "3b73a6f7594f1372fcc0b26e6dbe0bbd0e41392a6c9c453308819c85d88ecfc1",
+      "source_commits": {
+        "client": "0d76e26b30c5ddb0273ee746459506c5719fddb6",
+        "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+        "scripts": "b83db1cc3f512d3bec2faafb9ecf199143332be1",
+        "database": "217ae165c1886af2fc36b823fc08f9fc3ec13185",
+        "lua": "6e22fedb74cf0c9b6656e9fce8b7331db847c605"
+      },
+      "resources": {
+        "library": "2962736459794d5f5b716eaa3431563afa5d4d96e509700e41a096cff823838f",
+        "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+        "banlist": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+        "core_api": "cb7b33d709791e86be0b821152c1ca34c2a2c72847c3603b4a07826c88b802af",
+        "core_constants": "2c78c4c7c92306cd76f09cc111c28e6604e0e3d4fc16252ec31e8cb8d1493e17",
+        "card_data_abi": "754c750eb26e81eba44de3253c056a89de364f942ec5cd63ecd9d9791acff45e",
+        "client_config": "07f92954941343d33f38eae3986997cc620d595301e67adb9e473bfa3c254d0c",
+        "client_protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+        "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+      },
+      "compiler": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0",
+      "build_seconds": 52.347,
+      "command": [
+        "g++",
+        "-std=c++17",
+        "-O1",
+        "-fPIC",
+        "-shared",
+        "-DOCGCORE_EXPORT_FUNCTIONS",
+        "-DLUA_USE_LINUX",
+        "-I/workspace/.cache/engine-src/lua",
+        "/workspace/.cache/engine-src/core/card.cpp",
+        "/workspace/.cache/engine-src/core/duel.cpp",
+        "/workspace/.cache/engine-src/core/effect.cpp",
+        "/workspace/.cache/engine-src/core/field.cpp",
+        "/workspace/.cache/engine-src/core/group.cpp",
+        "/workspace/.cache/engine-src/core/interpreter.cpp",
+        "/workspace/.cache/engine-src/core/libcard.cpp",
+        "/workspace/.cache/engine-src/core/libdebug.cpp",
+        "/workspace/.cache/engine-src/core/libduel.cpp",
+        "/workspace/.cache/engine-src/core/libeffect.cpp",
+        "/workspace/.cache/engine-src/core/libgroup.cpp",
+        "/workspace/.cache/engine-src/core/ocgapi.cpp",
+        "/workspace/.cache/engine-src/core/operations.cpp",
+        "/workspace/.cache/engine-src/core/playerop.cpp",
+        "/workspace/.cache/engine-src/core/processor.cpp",
+        "/workspace/.cache/engine-src/core/scriptlib.cpp",
+        "/workspace/.cache/engine-src/lua/lapi.c",
+        "/workspace/.cache/engine-src/lua/lauxlib.c",
+        "/workspace/.cache/engine-src/lua/lbaselib.c",
+        "/workspace/.cache/engine-src/lua/lcode.c",
+        "/workspace/.cache/engine-src/lua/lcorolib.c",
+        "/workspace/.cache/engine-src/lua/lctype.c",
+        "/workspace/.cache/engine-src/lua/ldblib.c",
+        "/workspace/.cache/engine-src/lua/ldebug.c",
+        "/workspace/.cache/engine-src/lua/ldo.c",
+        "/workspace/.cache/engine-src/lua/ldump.c",
+        "/workspace/.cache/engine-src/lua/lfunc.c",
+        "/workspace/.cache/engine-src/lua/lgc.c",
+        "/workspace/.cache/engine-src/lua/liolib.c",
+        "/workspace/.cache/engine-src/lua/llex.c",
+        "/workspace/.cache/engine-src/lua/lmathlib.c",
+        "/workspace/.cache/engine-src/lua/lmem.c",
+        "/workspace/.cache/engine-src/lua/loadlib.c",
+        "/workspace/.cache/engine-src/lua/lobject.c",
+        "/workspace/.cache/engine-src/lua/lopcodes.c",
+        "/workspace/.cache/engine-src/lua/loslib.c",
+        "/workspace/.cache/engine-src/lua/lparser.c",
+        "/workspace/.cache/engine-src/lua/lstate.c",
+        "/workspace/.cache/engine-src/lua/lstring.c",
+        "/workspace/.cache/engine-src/lua/lstrlib.c",
+        "/workspace/.cache/engine-src/lua/ltable.c",
+        "/workspace/.cache/engine-src/lua/ltablib.c",
+        "/workspace/.cache/engine-src/lua/ltm.c",
+        "/workspace/.cache/engine-src/lua/lundump.c",
+        "/workspace/.cache/engine-src/lua/lutf8lib.c",
+        "/workspace/.cache/engine-src/lua/lvm.c",
+        "/workspace/.cache/engine-src/lua/lzio.c",
+        "-ldl",
+        "-lm",
+        "-o",
+        "/workspace/.cache/engine-build/libocgcore.so"
+      ]
+    },
+    "environment": {
+      "authority": "custom",
+      "environment_id": "period-runtime-2022-07",
+      "release_cutoff": "2022-09-30",
+      "versions": {
+        "banlist": "2022.7:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+        "card_pool": "native-private-knowledge-v5",
+        "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+        "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+        "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+        "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+      }
+    },
+    "period_context": {
+      "period_id": "2022-07",
+      "release_cutoff": "2022-09-30",
+      "catalog_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+      "release_manifest_sha256": "b93ea58a04e4e26f6e7b5106b00e905ebe31f2cdb91203965dd8ab63840936c8",
+      "banlist_sha256": "e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+      "banlist_section": "2022.7"
+    },
+    "limits": {
+      "91869203": 0,
+      "20663556": 0,
+      "44910027": 0,
+      "51858306": 0,
+      "25862681": 0,
+      "53804307": 0,
+      "7563579": 0,
+      "17330916": 0,
+      "34945480": 0,
+      "90411554": 0,
+      "8903700": 0,
+      "11384280": 0,
+      "17412721": 0,
+      "50588353": 0,
+      "67441435": 0,
+      "34124316": 0,
+      "88071625": 0,
+      "61665245": 0,
+      "52653092": 0,
+      "48905153": 0,
+      "85115440": 0,
+      "59537380": 0,
+      "86148577": 0,
+      "88581108": 0,
+      "21377582": 0,
+      "94677445": 0,
+      "16923472": 0,
+      "15341821": 0,
+      "37818794": 0,
+      "18326736": 0,
+      "79875176": 0,
+      "75732622": 0,
+      "22593417": 0,
+      "39064822": 0,
+      "3679218": 0,
+      "54719828": 0,
+      "58820923": 0,
+      "26400609": 0,
+      "71525232": 0,
+      "78706415": 0,
+      "93369354": 0,
+      "23558733": 0,
+      "9929398": 0,
+      "9047460": 0,
+      "70369116": 0,
+      "31178212": 0,
+      "63101919": 0,
+      "34206604": 0,
+      "4423206": 0,
+      "14702066": 0,
+      "96782886": 0,
+      "90809975": 0,
+      "3078576": 0,
+      "34086406": 0,
+      "85243784": 0,
+      "57421866": 0,
+      "41482598": 0,
+      "44763025": 0,
+      "17375316": 0,
+      "19613556": 0,
+      "74191942": 0,
+      "42829885": 0,
+      "45986603": 0,
+      "55144522": 0,
+      "4031928": 0,
+      "23557835": 0,
+      "31423101": 0,
+      "57953380": 0,
+      "54447022": 0,
+      "60682203": 0,
+      "69243953": 0,
+      "79571449": 0,
+      "70828912": 0,
+      "42703248": 0,
+      "76375976": 0,
+      "34906152": 0,
+      "46411259": 0,
+      "85602018": 0,
+      "27174286": 0,
+      "5851097": 0,
+      "93016201": 0,
+      "61740673": 0,
+      "3280747": 0,
+      "64697231": 0,
+      "80604091": 0,
+      "35316708": 0,
+      "32723153": 0,
+      "17178486": 0,
+      "28566710": 0,
+      "76794549": 1,
+      "40177746": 1,
+      "1561110": 1,
+      "30741503": 1,
+      "12289247": 1,
+      "49684352": 1,
+      "38814750": 1,
+      "74586817": 1,
+      "26889158": 1,
+      "74997493": 1,
+      "69811710": 1,
+      "78872731": 1,
+      "6602300": 1,
+      "28985331": 1,
+      "78080961": 1,
+      "81275020": 1,
+      "30680659": 1,
+      "63288573": 1,
+      "82385847": 1,
+      "15291624": 1,
+      "90953320": 1,
+      "69015963": 1,
+      "90448279": 1,
+      "69610326": 1,
+      "25538345": 1,
+      "33396948": 1,
+      "44519536": 1,
+      "7902349": 1,
+      "8124921": 1,
+      "70903634": 1,
+      "25725326": 1,
+      "35272499": 1,
+      "24094258": 1,
+      "33508719": 1,
+      "83107873": 1,
+      "89399912": 1,
+      "92746535": 1,
+      "3285551": 1,
+      "33782437": 1,
+      "1845204": 1,
+      "66957584": 1,
+      "81439173": 1,
+      "23701465": 1,
+      "83764718": 1,
+      "46060017": 1,
+      "52340444": 1,
+      "32807846": 1,
+      "72892473": 1,
+      "73628505": 1,
+      "1984618": 1,
+      "13035077": 1,
+      "35371948": 1,
+      "18144506": 1,
+      "75500286": 1,
+      "52947044": 1,
+      "7394770": 1,
+      "73468603": 1,
+      "93600443": 1,
+      "65681983": 1,
+      "46448938": 1,
+      "36637374": 1,
+      "27970830": 1,
+      "2295440": 1,
+      "21076084": 1,
+      "23002292": 1,
+      "64034255": 2,
+      "9411399": 2,
+      "87209160": 2,
+      "43694650": 2,
+      "57103969": 2,
+      "67723438": 2,
+      "84211599": 2,
+      "35261759": 2,
+      "54631665": 2,
+      "98338152": 2,
+      "63166095": 2,
+      "48130397": 2,
+      "11110587": 2,
+      "31434645": 2,
+      "24224830": 2,
+      "28126717": 2,
+      "47679935": 2,
+      "44362883": 2,
+      "20612097": 2
+    },
+    "catalog_sha256": "92d6c5800dd17f48cdf97c94b34ed39ae6e3f4f9ec11910c1008e1999d0c6707"
+  },
+  "source_patch": ".cache/base-training-20261027/source-final.patch",
+  "source_baseline": "c1157ca5add6c29149eccf7106226b1099e63d8c",
+  "excluded": "credentials, personal data, memory/core dumps, third-party runtime binaries, Python/CUDA environments",
+  "files": [
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v2/initial.weights",
+      "bytes": 3567445,
+      "sha256": "80f434c70cdb99d3361679809dfe17808c34abff59789b8809a6a3db282e4477"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v4/duel-001/closed-flight.json",
+      "bytes": 93,
+      "sha256": "717d7e6092c8197db138b4a66c0beed50630e3b7664942dc289714feb5d7f560"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v4/duel-001/restored-state.json",
+      "bytes": 600,
+      "sha256": "4cb352be54066feaa76cddeb756dc21401c35e0b6f6e76404682af3043978d2e"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v4/duel-001/result.json",
+      "bytes": 66595,
+      "sha256": "293b0f6bd3da1fadf25209bd67d95aa85950b90593e57ced8a202b339333edb6"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v4/duel-001/status.json",
+      "bytes": 196,
+      "sha256": "e3fd7282904cd308b435ccf33e0a42c1d9cdc9d34d6c5c3cb2877a4d5052a491"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v5/ability-scope.json",
+      "bytes": 233,
+      "sha256": "339cc94aee22819f70e1fe3f063ee838e8ad3119a9af0c49ee155380e8bf336c"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v5/actual-four-stage-cycle.json",
+      "bytes": 81216,
+      "sha256": "4e99ce93e3d8a7478451fc5dc8b6841908bf5a0822ba5373c29e4f5e5a0cedf4"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v5/binding.json",
+      "bytes": 16641,
+      "sha256": "5eaae65d533ba1dc049a4943d15a17bc5946b41278fa33e17017020a5e4fdb70"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v5/bootstrap-task.json",
+      "bytes": 2521,
+      "sha256": "b016e7d44d811d7788ffd2bb6d05f85eae0c49c907548b968c44cd4bae3a3ff9"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v5/cycle-proposals.json",
+      "bytes": 4452,
+      "sha256": "4f2a991fbb737c9aa17674fce6d48b2058fa3fd9bec15ddaac33cfe31ad79842"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v5/cycle-selection.json",
+      "bytes": 3655,
+      "sha256": "a2a72ba50c0673329c1e3409f7121eeb353f2574327fb543295936bd2c1d0939"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v5/feedback-state.json",
+      "bytes": 2012,
+      "sha256": "87f32f1efeedb9afabfedc159c0abb0c50dd9e473d7ef2776e7f7a3925422e94"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v5/four-stage-summary.json",
+      "bytes": 860,
+      "sha256": "6bd832242e900021ceca2515a4c5a47d911b225cb8f1a3e845d9609477176653"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v5/four-stage.log",
+      "bytes": 811,
+      "sha256": "e08ba275a56f44cf2cead5ed6e3eebcef334e821d4e121aec7c66de7a93f4037"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v5/generated-deck.json",
+      "bytes": 923,
+      "sha256": "e8a11aa992625b3405e2565d38bf10c34d234d3b4cc207f9bd600bcbd071387d"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v5/generation-provenance.json",
+      "bytes": 1727,
+      "sha256": "ad5c8048f6346b38e288789cb37f4f1df5e6a31043000dfeece1d900b71a9f33"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v5/index/data-index.sqlite3",
+      "bytes": 11001856,
+      "sha256": "7c82e1ad8acd07d6c379fd8ab657f740e1e828e96920dfdbf059194fb7d6b30b"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v5/latest-after-four-stage.weights",
+      "bytes": 7490687,
+      "sha256": "410c60009fb0748300fad8b2315fbf3ec9b1d696140c630a6894cecace77e3b5"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v5/latest-pointer.json",
+      "bytes": 198,
+      "sha256": "5c7c7e7bac456439f076c7e9df12f85fe87edb60d0155e57d5862a22f6cd0c81"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v5/pause.request",
+      "bytes": 90,
+      "sha256": "7a7a9c00f167a7a501913c10dc52aac44402d8e3364c00432b3a76c3fa6b49f7"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v5/prior-feedback-state.json",
+      "bytes": 2012,
+      "sha256": "9e5a82365502a9979dfc310db5cf7dd0fc44c496c9258faae321d4909648ac24"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v5/run_four_stage.py",
+      "bytes": 3671,
+      "sha256": "20a35569d000e3779ea7f2f73b55e1a85a5f1c0094eed011d01e6aa6460ba4e4"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v5/run_next_duel.py",
+      "bytes": 5636,
+      "sha256": "d5df799a1e7501b895230d390279e4fdf3e9cbc827a3fe0d92eba95aa6ce3ec3"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v5/runtime-host.json",
+      "bytes": 2450,
+      "sha256": "9dc0b3ccd133ea5759194a908e1a2104e13f839dd57598294c22433aeec8f04f"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v5/selected-task.json",
+      "bytes": 2312,
+      "sha256": "117e76a99e5d9bc212ef01c28755aeefa71b146d6d86f0394b5443c9e2f2427e"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v5/source-migration.json",
+      "bytes": 916,
+      "sha256": "341c3e376e3971d4dec8ff3609156229eb0e9d080d0ed5abf56795f6ed8b2d11"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v5/train_duel.py",
+      "bytes": 5335,
+      "sha256": "1751bb652ccabd9cac5c492aa0f588db807190c3e3018fef641513fa423aa878"
+    },
+    {
+      "path": ".cache/base-training-20261027/2207-autonomous-v5/updates.json",
+      "bytes": 1325,
+      "sha256": "7f9ea0d31a5507e7ba1621bdb3bbdc2aa704693ec602dd70c088088fc202afc4"
+    },
+    {
+      "path": ".cache/base-training-20261027/qualification-compatible-CyberDragon-0d484dbfde62.json",
+      "bytes": 338636,
+      "sha256": "b99f834ce53c8a56da3002e5f28e5075b68eec67d2666eae0abe4ab32132b1f8"
+    },
+    {
+      "path": ".cache/base-training-20261027/qualification-compatible-CyberDragon-58d128aec69c.json",
+      "bytes": 338602,
+      "sha256": "f7baa381d2454600d9b7d5f4550f1cb928151b983cfa74653710f94f65136a29"
+    },
+    {
+      "path": ".cache/base-training-20261027/source-final.patch",
+      "bytes": 53417,
+      "sha256": "15a43b3f43f2400ac84649b747b66cfb2aecda94363aa8a8e28292b9a1108c1a"
+    },
+    {
+      "path": ".cache/codex-takeover-20261027/availability/2022-07.json",
+      "bytes": 116973,
+      "sha256": "040589320fd4be3d747b0d325962c2b847fc9309482f0241109f89715b4d104a"
+    },
+    {
+      "path": ".cache/codex-takeover-20261027/first-learning-2207-budget300/duel.json",
+      "bytes": 22172,
+      "sha256": "e421d9e6d4442cf36778283dd3c389c0ccdb036bfb8e4f89441ba4d8e2e8439f"
+    },
+    {
+      "path": ".cache/codex-takeover-20261027/functional-configs/adapters-course-slow-1800-v1.json",
+      "bytes": 1529,
+      "sha256": "0e00a93f8052e0825196ae6c6fe2f076a7db58cc2f3760d8bb19178264aac98e"
+    },
+    {
+      "path": ".cache/codex-takeover-20261027/functional-configs/bots/2022-07/ice-cyberdragon-bots-bo1-train/deck.json",
+      "bytes": 771,
+      "sha256": "549b092da01e80d592fa0b724099fb192642f94f7e35be7e1cf4bde287276e6b"
+    },
+    {
+      "path": ".cache/codex-takeover-20261027/functional-configs/bots/2022-07/ice-cyberdragon-bots-bo1-train/profile.json",
+      "bytes": 1632,
+      "sha256": "05efd3e03d3443a936c41b25a47fd4652feef382ad660b71b10482b32c8cd8ff"
+    },
+    {
+      "path": ".cache/codex-takeover-20261027/resume-20261027T145505Z-768b/qualifications/case-1.json",
+      "bytes": 313747,
+      "sha256": "1b591f055d37cbb7ea96e0beaaf4982aff1ff1bce02de37764d0abf38889bb23"
+    },
+    {
+      "path": ".cache/evidence/ice-build-audit-dotnet6.json",
+      "bytes": 49665,
+      "sha256": "98202b21e39b75ebc8c85245e2a8bfeb6923eb38438401b438afd4360ab73419"
+    },
+    {
+      "path": ".cache/training-prep-20261027/environments/2022-07/active-environment.json",
+      "bytes": 821,
+      "sha256": "2cc70bd65340adbd05c9a9d2f0c22e1472d2541040adabcb17b73435aae663b7"
+    },
+    {
+      "path": ".cache/training-prep-20261027/environments/2022-07/available-cards.json",
+      "bytes": 116875,
+      "sha256": "1f4c8c9b0f56d92d4207c4c8b63461cce8cb5bf66ef9713d888bc6d65dc2de5b"
+    },
+    {
+      "path": ".cache/training-prep-20261027/environments/2022-07/candidates.json",
+      "bytes": 117853,
+      "sha256": "4ed61e2e1502de65f4820dc72ff89368d9eaf8736772513d6f0bc22f67f163de"
+    },
+    {
+      "path": ".cache/training-prep-20261027/environments/2022-07/releases.json",
+      "bytes": 821018,
+      "sha256": "b93ea58a04e4e26f6e7b5106b00e905ebe31f2cdb91203965dd8ab63840936c8"
+    },
+    {
+      "path": "configs/bot-sources-v1.json",
+      "bytes": 217808,
+      "sha256": "b196165ee03d70d916c388cf6e146951132c145dcfe895d0ffab04e717e1f134"
+    },
+    {
+      "path": "docs/plans/2026-10-27-training-design-current.md",
+      "bytes": 15080,
+      "sha256": "47db4dba65c277e0f0b143484b73e54683c72a4aedadbdf73122e8b686c4e930"
+    },
+    {
+      "path": "docs/reports/2026-10-27-actual-four-stage-construction.zh-CN.md",
+      "bytes": 10094,
+      "sha256": "40fd8e18b9614adc20b300430fdb69b853cf7f92cbcf23de4853ad68f7d27ede"
+    },
+    {
+      "path": "docs/reports/2026-10-27-base-foundation-learning.zh-CN.md",
+      "bytes": 4945,
+      "sha256": "7a44f4a7831a374658e1974b73f924da6be0f0714845689970356d9912915ae6"
+    },
+    {
+      "path": "docs/reports/2026-10-27-generated-pearl-base-deck.zh-CN.md",
+      "bytes": 1510,
+      "sha256": "78856ecf89c0244c63d3edd9506db3e8881eec3e1683b835c5e302ad93ea2fc4"
+    }
+  ]
+}

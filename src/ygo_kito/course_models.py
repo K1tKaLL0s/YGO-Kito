@@ -16,7 +16,8 @@ from .autonomous_construction import AutonomousConstructionKernel, initialize_co
 from .build_contracts import BuildTask, digest
 from .build_model import FEATURE_VERSION as BUILD_FEATURES
 from .build_training import BuildTrainer, BuildTrainingConfig, config_from_dict as build_config_from_dict
-from .coordinator_model import CoordinatorTrainer, CoordinatorModelConfig, FEATURE_VERSION as COORD_FEATURES
+from .coordinator_model import (CoordinatorTrainer, CoordinatorModelConfig, FEATURE_VERSION as COORD_FEATURES,
+                                MECHANISM_FEATURE_VERSION as COORD_MECHANISM_FEATURES)
 from .course_game_adapter import course_config_from_dict
 from .cpu_training import CpuTrainer, CpuTrainingConfig
 from .device import (resolve_device, execution_metadata, checkpoint_execution, capture_device_rng,
@@ -81,24 +82,39 @@ class CourseModels:
         if not isinstance(source_binding, dict) or not source_binding: raise ContractError("explicit course source binding required")
         obj = cls()
         obj.binding = deepcopy(source_binding); obj._binding_sha256 = digest(obj.binding)
+        obj.learning_stage = obj.binding.get("learning_stage", "lora_adaptation")
+        if obj.learning_stage not in ("base", "lora_adaptation"): raise ContractError("explicit supported learning stage required")
+        mechanisms = obj.binding.get("coordinator_mechanism_inputs", False)
+        if type(mechanisms) is not bool:
+            raise ContractError("explicit boolean coordinator mechanism input policy required")
+        if mechanisms and (obj.learning_stage != "base" or initialization is not None):
+            raise ContractError("new mechanism coordinator requires fresh base initialization; existing weights need explicit migration")
         obj.device = resolve_device(device); obj.adapter_configs = _configs(adapter_configs)
         obj.available_ids = tuple(sorted(set(available_ids)))
-        obj.builder = BuildTrainer(task, assets, BuildTrainingConfig(), device=obj.device)
+        obj.builder = BuildTrainer(task, assets, BuildTrainingConfig(batches=100000) if obj.learning_stage == "base" else BuildTrainingConfig(), device=obj.device)
         obj.duel = CpuTrainer(duel_config, sorted(c for c in assets.rows if 0 < c < 2**32), device=obj.device)
-        obj.coordinator = CoordinatorTrainer(device=obj.device)
+        obj.coordinator = CoordinatorTrainer(CoordinatorModelConfig(
+            steps=100000 if obj.learning_stage == "base" else 2, mechanism_inputs=mechanisms), device=obj.device)
         target = {"task_sha256": task.sha256, **deepcopy(assets.receipt),
                   "period_context": deepcopy(getattr(assets, "period_context", None))}
         obj.initialization_provenance = (initialize_group_weights(obj.builder, obj.duel, obj.coordinator,
             workspace=workspace, spec=initialization, target_binding=target) if initialization is not None else
             {"kind": "explicit-fresh-untrained-course-models", "ability_verified": False,
              "source_checkpoint": None, "optimizer_state_inherited": False})
+        if mechanisms:
+            obj.initialization_provenance["coordinator_mechanisms"] = {
+                "feature_version": COORD_MECHANISM_FEATURES, "new_untrained_parameters": ["mechanism_projection.weight"],
+                "initialization": "zero", "ability_verified": False}
         obj.vocabulary_migration = initialize_course_vocabulary(obj.builder, obj.available_ids)
         obj._assets_identity = _asset_identity(task, assets, obj.duel.encoder.card_ids)
         obj.policy_rng = torch.Generator(device="cpu").manual_seed(duel_config.policy_seed)
-        obj.sessions = {role: AdapterSession(model, obj.adapter_configs[role], obj._adapter_binding(role))
-                        for role, model in obj.models().items()}
+        obj.sessions = ({role: AdapterSession(model, obj.adapter_configs[role], obj._adapter_binding(role))
+                        for role, model in obj.models().items()} if obj.learning_stage == "lora_adaptation" else {})
+        if obj.learning_stage == "base":
+            for model in obj.models().values(): model.requires_grad_(True)
         obj.kernel = AutonomousConstructionKernel(obj.builder, obj.coordinator, assets=assets,
-            host_available_ids=obj.available_ids, source_binding=obj.binding)
+            host_available_ids=obj.available_ids, source_binding=obj.binding,
+            allowed_theme_ids=obj.binding.get("construction_theme_ids"))
         return obj
 
     def models(self): return dict(self.builder.models, duel=self.duel.model, coordinator=self.coordinator.model)
@@ -106,18 +122,29 @@ class CourseModels:
     def versions(self): return {r: parameter_digest(m) for r, m in self.models().items()}
 
     def _adapter_binding(self, role):
-        return {"base_version": "course-base", "feature_version": FEATURES[role],
+        feature = (COORD_MECHANISM_FEATURES if role == "coordinator" and self.coordinator.config.mechanism_inputs
+                   else FEATURES[role])
+        return {"base_version": "course-base", "feature_version": feature,
                 "context_sha256": digest({"source_binding": self.binding, "task": self.builder.task.sha256,
                     "encoder": self.builder.encoder.binding(), "initialization": self.initialization_provenance})}
 
     def _check(self):
         if digest(self.binding) != self._binding_sha256: raise ContractError("course model host binding changed")
+        mechanisms = self.binding.get("coordinator_mechanism_inputs", False)
+        if type(mechanisms) is not bool or mechanisms != self.coordinator.config.mechanism_inputs:
+            raise ContractError("course coordinator architecture/input binding differs")
+        if mechanisms and self.learning_stage != "base":
+            raise ContractError("v3 course LoRA needs an explicit adapter/loss migration; legacy adapters are not rebound")
         if _asset_identity(self.builder.task, self.builder.encoder.assets, self.duel.encoder.card_ids) != self._assets_identity:
             raise ContractError("course model assets/task changed")
         self.builder.encoder.assert_binding(); self.kernel._check()
-        if set(self.sessions) != set(ROLES): raise ContractError("course lacks a role adapter")
-        for role, model in self.models().items():
-            session = self.sessions[role]
+        expected = set(ROLES) if self.learning_stage == "lora_adaptation" else set()
+        if self.learning_stage != self.binding.get("learning_stage", "lora_adaptation") or set(self.sessions) != expected:
+            raise ContractError("course learning stage/adapter identities differ")
+        if self.learning_stage == "base" and any(not p.requires_grad for m in self.models().values() for p in m.parameters()):
+            raise ContractError("base learning parameters must remain trainable")
+        for role, session in self.sessions.items():
+            model = self.models()[role]
             if session.model is not model or session.detached or not session.enabled or session.config != self.adapter_configs[role]:
                 raise ContractError("course role/adapter identity changed")
             session.verify_base()
@@ -132,15 +159,16 @@ class CourseModels:
 
     def restore_rng(self, state):
         fields(state, {"device_rng", "python", "policy", "build_batch", "duel_policy", "duel_batch", "coordinator_batch", "adapter", "modes"})
-        fields(state["adapter"], set(ROLES)); fields(state["modes"], set(ROLES))
+        fields(state["adapter"], set(self.sessions)); fields(state["modes"], set(ROLES))
         generators = {"policy": self.policy_rng, "build_batch": self.builder.batch_rng,
             "duel_policy": self.duel.policy_rng, "duel_batch": self.duel.batch_rng, "coordinator_batch": self.coordinator.batch_rng}
         for key in generators:
             try: torch.Generator(device="cpu").set_state(state[key])
             except (RuntimeError, TypeError) as error: raise ContractError("course owned RNG differs") from error
-        for role in ROLES:
+        for role in self.sessions:
             try: torch.Generator(device="cpu").set_state(state["adapter"][role])
             except (RuntimeError, TypeError) as error: raise ContractError("course adapter RNG differs") from error
+        for role in ROLES:
             expected = dict(self.models()[role].named_modules())
             if set(state["modes"][role]) != set(expected) or any(type(v) is not bool for v in state["modes"][role].values()):
                 raise ContractError("course model mode schema differs")
@@ -210,6 +238,8 @@ class CourseModels:
         fields(state["vocabulary"], {"build", "duel", "duel_sha256", "migration"})
         obj = cls(); obj.device = device
         obj.binding = deepcopy(expected_binding); obj._binding_sha256 = digest(obj.binding)
+        obj.learning_stage = obj.binding.get("learning_stage", "lora_adaptation")
+        if obj.learning_stage not in ("base", "lora_adaptation"): raise ContractError("unsupported checkpoint learning stage")
         obj.available_ids = tuple(state["available_ids"]); obj.adapter_configs = _configs(state["configs"]["adapters"])
         obj.initialization_provenance = deepcopy(state["initialization_provenance"])
         obj.builder = BuildTrainer(task, assets, build_config_from_dict(state["configs"]["build"]), device=device)
@@ -252,8 +282,12 @@ class CourseModels:
         obj.duel._pending_episode_digest = state["duel_pending_episode_digest"]
         if obj.duel._pending_episode_digest is not None: raise ContractError("course checkpoint cannot contain an unconsumed base PPO episode")
         obj.coordinator.updates = cursors["coordinator_updates"]
-        fields(state["adapters"], set(ROLES)); obj.sessions = {}
-        for role, model in obj.models().items():
+        adapter_roles = set(ROLES) if obj.learning_stage == "lora_adaptation" else set()
+        fields(state["adapters"], adapter_roles); obj.sessions = {}
+        if obj.learning_stage == "base":
+            for model in obj.models().values(): model.requires_grad_(True)
+        for role in sorted(adapter_roles):
+            model = obj.models()[role]
             meta = state["adapters"][role]["compatibility"]
             if (tree_digest(state["adapters"][role]["rng"]) != tree_digest(state["rng"]["adapter"][role]) or
                     tree_digest(state["adapters"][role]["device_rng"]) != tree_digest(state["device_rng"])):
@@ -265,7 +299,8 @@ class CourseModels:
         if obj.versions() != state["effective_hashes"]: raise ContractError("course effective LoRA weights differ")
         obj.policy_rng = torch.Generator(device="cpu")
         obj.kernel = AutonomousConstructionKernel(obj.builder, obj.coordinator, assets=assets,
-            host_available_ids=obj.available_ids, source_binding=obj.binding)
+            host_available_ids=obj.available_ids, source_binding=obj.binding,
+            allowed_theme_ids=obj.binding.get("construction_theme_ids"))
         obj.kernel.load_state_dict(state["kernel"])
         obj.restore_rng(state["rng"]); obj._check()
         return obj

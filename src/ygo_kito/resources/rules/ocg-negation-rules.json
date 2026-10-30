@@ -1,0 +1,701 @@
+{
+  "schema_version": "1.0",
+  "title": "OCG 无效、次数与资源阶段处理：官方证据规则表",
+  "language": "zh-CN",
+  "jurisdiction": "Yu-Gi-Oh OCG Japanese official rules; not TCG or Duel Links",
+  "verified_on": "2026-10-28",
+  "authoring_scope": "研究资料；未修改训练、系统提示、项目代码或用户电脑。",
+  "default_policy": "未命中已核实的明确规则档案时，不从中文译文或“使用/发动”单一关键词猜测；要求完整日文卡文、版本、局面、连锁，并交真实规则引擎或指定官方 Q&A。",
+  "evidence_status_semantics": {
+    "direct_official_ruling": "所述核心分支有对应官方直接裁定；仍只在所列前提下适用。",
+    "official_rule_synthesis_direct_named_qa_not_found": "官方卡文与通用卡发动计数裁定的综合；本次未找到同名限制句的直接单卡问答。",
+    "official_legality_cases_plus_event_model_inference": "合法性案例由官方证实；事件记录/计数实现为标明的推论。",
+    "official_rule_plus_event_model_inference": "规则由官方修订证实；事件模型为推论。",
+    "official_examples_and_rulebook_synthesis": "官方实例和规则书共同支持的总结。",
+    "direct_official_ruling_with_unresolved_entitlement": "指定条件有直接裁定，但不同的行动机会账本未在本次完全核对。",
+    "direct_official_ruling_plus_count_cross_reference": "原案例直接裁定，次数部分与另一官方计数裁定交叉归纳。"
+  },
+  "rules": [
+    {
+      "rule_id": "USE_TURN_NEGATED",
+      "text_category": "このカード名の…効果は１ターンにＮ度しか使用できない",
+      "applicability_conditions": "效果已合法使用；其发动或效果被无效。",
+      "count_outcome": "仍计一次使用；N=1 用尽，N=3 使用第一次后余2。",
+      "retry_outcome": "仅未达到使用上限且时点、条件、费用仍合法时可再用。",
+      "resource_outcome": "不得因次数处理而自动恢复费用或已移动卡。",
+      "exceptions_or_unresolved": "不是任何被阻止的动作都叫使用；尚未发动的非法提议不同。",
+      "sources": [
+        "qa_17200",
+        "qa_17377",
+        "qa_17376"
+      ],
+      "evidence_status": "direct_official_ruling",
+      "scope_key_guidance": "玩家＋卡名＋效果编号或共享组＋该回合；同名多张是否共享按卡文。"
+    },
+    {
+      "rule_id": "USE_DUEL_FAIL",
+      "text_category": "デュエル中に１度しか使用できない",
+      "applicability_conditions": "指定已使用效果：发动无效、效果无效、效果被改写，或未无效但不能执行特殊召唤。",
+      "count_outcome": "均已使用；不恢复决斗使用次数。",
+      "retry_outcome": "决斗内不可再次使用同一受限效果。",
+      "resource_outcome": "各步骤已执行变化保持；未执行步骤不补执行。",
+      "exceptions_or_unresolved": "此条直接证据为天羽々斬之巳剣等所列效果，不把未合法发动算使用。",
+      "sources": [
+        "qa_23336"
+      ],
+      "evidence_status": "direct_official_ruling",
+      "scope_key_guidance": "玩家＋指定卡名/效果＋本次决斗。"
+    },
+    {
+      "rule_id": "CARD_ACTIVATION_COUNT",
+      "text_category": "魔法・罠カードを１枚しか発動できない（卡的发动次数）",
+      "applicability_conditions": "限制卡发动次数；已发动的魔法/陷阱之卡发动被无效，或仅效果被无效。",
+      "count_outcome": "卡发动无效：不占该卡发动次数；仅效果无效或效果处理不适用：仍占次数。",
+      "retry_outcome": "发动无效后在其他条件满足时可再发动一张；效果无效后不因无效恢复次数。",
+      "resource_outcome": "已付费用不由次数排除而恢复。",
+      "exceptions_or_unresolved": "卡发动与魔法/陷阱已表侧卡的效果发动必须区分；此处直接案例为 Trap Trick、紫炎限制。",
+      "sources": [
+        "qa_22010",
+        "qa_11730",
+        "qa_17363"
+      ],
+      "evidence_status": "direct_official_ruling",
+      "scope_key_guidance": "施加限制的玩家＋限制所覆盖的卡类别＋限制时段。"
+    },
+    {
+      "rule_id": "NAMED_CARD_ACTIVATION_ONCE",
+      "text_category": "このカード名のカードは１ターンに１枚しか発動できない",
+      "applicability_conditions": "命中的是卡名限定的卡发动上限，而不是“効果を使用”或另一效果发动限制。",
+      "count_outcome": "按官方卡发动语义综合：卡发动被无效不算已发动；仅效果无效仍算。",
+      "retry_outcome": "预计前者可重新发动同名卡，后者不可；还须满足费用、合法时点和所有独立限制。",
+      "resource_outcome": "即使可再发动，也不得自动退款；每次重新发动另付费用。",
+      "exceptions_or_unresolved": "未找到以该标准句直接问答的单卡 Q&A；此条为官方卡文＋通用卡发动计数裁定综合，非已获得的同名卡直接裁定。生产接入需对应真实引擎或指定单卡 Q&A 复核。",
+      "sources": [
+        "card_8428",
+        "card_8993",
+        "qa_22010",
+        "qa_11730",
+        "qa_17363"
+      ],
+      "evidence_status": "official_rule_synthesis_direct_named_qa_not_found",
+      "scope_key_guidance": "玩家＋卡名＋本回合；不是各实体独立。"
+    },
+    {
+      "rule_id": "EFFECT_ACTIVATION_COUNTEREXAMPLE",
+      "text_category": "モンスターの効果／特定範囲の効果を１ターンに１度しか発動できない",
+      "applicability_conditions": "召喚獣カリギュラ、マルチャミー、交差する魂等指定效果限制。",
+      "count_outcome": "这些案例中即使效果发动被无效，也计入限制。",
+      "retry_outcome": "不能仅以文本有“発動”而恢复次数、允许再发。",
+      "resource_outcome": "资源另按实际费用与步骤处理。",
+      "exceptions_or_unresolved": "这是反例族，不反向断言所有效果发动限制均不恢复；其他文本应独立裁定。",
+      "sources": [
+        "qa_7813",
+        "qa_23158"
+      ],
+      "evidence_status": "direct_official_ruling",
+      "scope_key_guidance": "按限制效果各自的覆盖范围和回合边界，不改写为永久禁用。"
+    },
+    {
+      "rule_id": "FACEUP_SESSION_ONCE",
+      "text_category": "表側表示で存在する限り１度だけ",
+      "applicability_conditions": "指定的表侧存在期间一次效果已经发动，其发动或效果被无效。",
+      "count_outcome": "同一表侧存在期间的一次仍被消耗。",
+      "retry_outcome": "保持该存在期间时以后回合也不可再用。",
+      "resource_outcome": "卡离场/返回后的状态与其他名称限制分别判断。",
+      "exceptions_or_unresolved": "不以此推导所有普通“１ターンに１度”软限制；本条只覆盖所列持续存在期间限制。",
+      "sources": [
+        "qa_23438"
+      ],
+      "evidence_status": "direct_official_ruling",
+      "scope_key_guidance": "卡实体＋指定区域/表侧存在会话；可另叠加名称使用限制。"
+    },
+    {
+      "rule_id": "MULTIPLE_LIMITS_INDEPENDENT",
+      "text_category": "区域存在期间一次＋卡名每回合使用一次",
+      "applicability_conditions": "Baronne 使用②后成为永续魔法，再特殊召唤回怪兽区域。",
+      "count_outcome": "怪兽区域表侧存在期间限制可以重新开始，但当回合卡名使用次数未恢复。",
+      "retry_outcome": "仍受名称每回合使用次数阻止，不能因区域重置忽略该限制。",
+      "resource_outcome": "按实际卡区移动保留。",
+      "exceptions_or_unresolved": "只有具体裁定支持的会话边界可重置，不能所有离场一概清计数。",
+      "sources": [
+        "qa_24028"
+      ],
+      "evidence_status": "direct_official_ruling",
+      "scope_key_guidance": "按原卡文与指定裁定确定；禁止只按关键词匹配。"
+    },
+    {
+      "rule_id": "CHOICE_ONCE",
+      "text_category": "以下の効果はそれぞれ１ターンに１度しか選択できない",
+      "applicability_conditions": "Volcanic Rimfire 已选择一项，发动或效果被无效。",
+      "count_outcome": "该项仍已被选择；其他选项的独立次数不因此消耗。",
+      "retry_outcome": "可在条件满足时再发动并选择尚未选过的选项；不能重选已用项。",
+      "resource_outcome": "费用和实际移动独立保留。",
+      "exceptions_or_unresolved": "此为选择次数，不是整个效果只能发动一次。",
+      "sources": [
+        "qa_23977"
+      ],
+      "evidence_status": "direct_official_ruling",
+      "scope_key_guidance": "玩家＋卡名＋选项ID＋回合。"
+    },
+    {
+      "rule_id": "APPLY_DUEL_ONCE",
+      "text_category": "デュエル中に１度しか適用できない",
+      "applicability_conditions": "RUM－七皇の剣等：①发动/效果无效；②效果被改写；③未无效但无法特殊召唤。",
+      "count_outcome": "①②不消耗此处适用限制；③已适用，不能再发动。",
+      "retry_outcome": "①②可依原发动条件再发动；③不可。",
+      "resource_outcome": "只有实际执行步骤改变资源；适用标记不等同成功召唤标记。",
+      "exceptions_or_unresolved": "不能将“适用”统一解释为完成目标、产生可见收益或成功特殊召唤。",
+      "sources": [
+        "qa_18354"
+      ],
+      "evidence_status": "direct_official_ruling",
+      "scope_key_guidance": "玩家＋指定效果的适用次数＋决斗。"
+    },
+    {
+      "rule_id": "PERMISSION_CONSUMED",
+      "text_category": "允许当回合发动盖放陷阱／一次替代解放等许可",
+      "applicability_conditions": "已利用王家の神殿许可发动陷阱后发动/效果无效，或已利用埋葬されし生け贄进行上级召唤后召唤无效。",
+      "count_outcome": "该许可已适用，不因后续无效返还。",
+      "retry_outcome": "不能把同一许可再用于第二次；新许可是否能产生由具体文本判断。",
+      "resource_outcome": "支付及召唤手续资源不自动回滚。",
+      "exceptions_or_unresolved": "原动作的发动次数是否计入与许可是否消费是两个不同账本。",
+      "sources": [
+        "qa_14555",
+        "qa_6249"
+      ],
+      "evidence_status": "direct_official_ruling",
+      "scope_key_guidance": "按原卡文与指定裁定确定；禁止只按关键词匹配。"
+    },
+    {
+      "rule_id": "HAND_MATERIAL_USE",
+      "text_category": "手牌作为连接素材的效果每回合使用限制",
+      "applicability_conditions": "Micro Coder 已用效果从手牌作为连接素材，随后连接召唤被无效。",
+      "count_outcome": "手牌作素材效果仍已使用。",
+      "retry_outcome": "同回合不能再用另一张 Micro Coder 的同名手牌作素材效果。",
+      "resource_outcome": "不能退还已作素材的卡。",
+      "exceptions_or_unresolved": "不要把效果使用计数绑定到最终召唤成功。",
+      "sources": [
+        "qa_21976"
+      ],
+      "evidence_status": "direct_official_ruling",
+      "scope_key_guidance": "按原卡文与指定裁定确定；禁止只按关键词匹配。"
+    },
+    {
+      "rule_id": "PROHIBITED_BEFORE_ACTIVATION",
+      "text_category": "不能发动／不能进行该召唤（合法性门）",
+      "applicability_conditions": "行动在发动或手续提交前即不合法；例如手续会重新适用特殊召唤禁止。",
+      "count_outcome": "不得生成“合法发动后被无效”事件；不应借非法提议消耗已使用次数。",
+      "retry_outcome": "只有合法性障碍消除并重新满足时点与条件后，才可提出新的合法动作。",
+      "resource_outcome": "在前置检查拒绝，不应先付费用再用普通撤销修正；已实际违法操作的裁判纠正不在此手册范围。",
+      "exceptions_or_unresolved": "不消耗未发生的合法动作是事件模型推论；具体合法性以 Q&A/真实引擎为准。",
+      "sources": [
+        "qa_7965",
+        "rulebook_20200401"
+      ],
+      "evidence_status": "official_legality_cases_plus_event_model_inference",
+      "scope_key_guidance": "按原卡文与指定裁定确定；禁止只按关键词匹配。"
+    },
+    {
+      "rule_id": "TRIGGER_SOURCE_LEFT",
+      "text_category": "触发条件成立后、发动机会到来前来源离开发动区域",
+      "applicability_conditions": "2020修订：诱发效果来源未留在可发动的原区域，例如三眼怪送墓后连锁处理中被除外。",
+      "count_outcome": "该诱发效果不能发动；不要创建一次已发动再被无效的记录。",
+      "retry_outcome": "不能补发失去的该次诱发机会；未来新的触发另判。",
+      "resource_outcome": "已经发生的送墓/除外等照常保留。",
+      "exceptions_or_unresolved": "不要混同发动以后离场；未发动不计使用为模型推论。",
+      "sources": [
+        "revision_20200401"
+      ],
+      "evidence_status": "official_rule_plus_event_model_inference",
+      "scope_key_guidance": "按原卡文与指定裁定确定；禁止只按关键词匹配。"
+    },
+    {
+      "rule_id": "COST_NOT_REFUNDED",
+      "text_category": "发动费用与效果处理分离",
+      "applicability_conditions": "已经合法支付费用，随后发动或效果被无效。",
+      "count_outcome": "次数按各自限制，不因费用已付而统一推断。",
+      "retry_outcome": "如规则允许重新发动，仍需重新支付费用。",
+      "resource_outcome": "支付费用事件保留；费用送墓的关联触发仍可能成立；不进行统一退款。",
+      "exceptions_or_unresolved": "特殊费用有自身持续时间/返回约定，见下一规则；非法发动纠正不是普通无效流程。",
+      "sources": [
+        "qa_13508",
+        "qa_8609",
+        "rulebook_20200401"
+      ],
+      "evidence_status": "official_examples_and_rulebook_synthesis",
+      "scope_key_guidance": "按原卡文与指定裁定确定；禁止只按关键词匹配。"
+    },
+    {
+      "rule_id": "COST_SCHEDULE_RETAINS",
+      "text_category": "作为费用除外至结束阶段",
+      "applicability_conditions": "Cosmic Blazar 以自身除外至结束阶段作为费用，发动被无效。",
+      "count_outcome": "不靠回滚次数或取消费用处理。",
+      "retry_outcome": "再发动合法性独立判断。",
+      "resource_outcome": "其结束阶段返回仍执行；不是立即把费用退回。",
+      "exceptions_or_unresolved": "资源模型需保存费用产生的期限/返回安排，不能把“不退款”误做永久消失。",
+      "sources": [
+        "qa_20639"
+      ],
+      "evidence_status": "direct_official_ruling",
+      "scope_key_guidance": "按原卡文与指定裁定确定；禁止只按关键词匹配。"
+    },
+    {
+      "rule_id": "XYZ_NEGATED_MATERIALS",
+      "text_category": "超量召唤无效",
+      "applicability_conditions": "已进行超量召唤手续，召唤被无效。",
+      "count_outcome": "召唤成功为 false；次数需各自规则判断。",
+      "retry_outcome": "可否再召唤另查同名限制和其他合法条件。",
+      "resource_outcome": "素材不回到原场上；以已作为超量素材的状态送墓。",
+      "exceptions_or_unresolved": "不能扩展为所有召唤方式的素材事件分类相同。",
+      "sources": [
+        "qa_11269"
+      ],
+      "evidence_status": "direct_official_ruling",
+      "scope_key_guidance": "按原卡文与指定裁定确定；禁止只按关键词匹配。"
+    },
+    {
+      "rule_id": "SUMMON_NEGATED_EVENT_CLASS",
+      "text_category": "上级／同调／连接召唤无效时的素材关联事件",
+      "applicability_conditions": "Capshell 作为解放或作为 S/L 材料后该召唤被无效。",
+      "count_outcome": "不产生召唤成功；触发条件逐项判断。",
+      "retry_outcome": "触发只按已确认事件分类开放。",
+      "resource_outcome": "解放事实成立可触发其解放效果；S/L 召唤无效时不满足其“作为 S/L 素材送墓”的专用触发；不是把卡退回。",
+      "exceptions_or_unresolved": "该分类证据限对应触发与召唤类别；不能由“卡送墓”自动补全部材料标志。",
+      "sources": [
+        "qa_23083"
+      ],
+      "evidence_status": "direct_official_ruling",
+      "scope_key_guidance": "按原卡文与指定裁定确定；禁止只按关键词匹配。"
+    },
+    {
+      "rule_id": "SUMMON_PROCEDURE_SEND",
+      "text_category": "召唤手续中先送墓的卡",
+      "applicability_conditions": "Ex Ryzeal 从额外送 Mereologic Aggregator 到墓地后，Ex Ryzeal 召唤被无效。",
+      "count_outcome": "召唤未成功，但手续送墓事件已发生。",
+      "retry_outcome": "墓地卡的触发可在裁定要求的时点/对象条件成立时发动。",
+      "resource_outcome": "已送墓卡留墓，不因召唤无效回额外。",
+      "exceptions_or_unresolved": "每一种手续的阶段与去向需对应卡文本，不能所有素材一律回滚。",
+      "sources": [
+        "qa_24102"
+      ],
+      "evidence_status": "direct_official_ruling",
+      "scope_key_guidance": "按原卡文与指定裁定确定；禁止只按关键词匹配。"
+    },
+    {
+      "rule_id": "SPECIAL_SUMMON_SUCCESS_LIMIT",
+      "text_category": "このカード名のモンスターは１ターンに１度しか特殊召喚できない／指定手续一次特殊召唤",
+      "applicability_conditions": "限制特殊召唤成功次数，且召唤本身被无效；Sword Ryzeal 类指定非连锁手续。",
+      "count_outcome": "该被无效召唤不计成功特殊召唤次数。",
+      "retry_outcome": "满足全部条件时允许再次特殊召唤；不等于恢复独立效果使用次数。",
+      "resource_outcome": "此前费用/手续卡移动不自动恢复。",
+      "exceptions_or_unresolved": "禁止套用到通常召唤行动机会、效果使用次数、许可适用次数；必须确认原文实际限制的是何种计数。",
+      "sources": [
+        "revision_20200401",
+        "card_20572"
+      ],
+      "evidence_status": "direct_official_ruling",
+      "scope_key_guidance": "玩家＋卡名/方法＋本回合的成功特殊召唤次数。"
+    },
+    {
+      "rule_id": "SUMMON_EFFECT_NEGATED",
+      "text_category": "特殊召唤效果发动被无效，但原文只限制该同名怪兽的特殊召唤次数",
+      "applicability_conditions": "Darklord Nasten 弃2手牌发动自身特殊召唤效果，该效果发动被无效。",
+      "count_outcome": "未特殊召唤成功，不占该同名特殊召唤次数。",
+      "retry_outcome": "可再次发动其该效果，或用其他允许的效果特殊召唤；各自合法性另查。",
+      "resource_outcome": "不能因为可重试而恢复前次已经弃掉的费用。",
+      "exceptions_or_unresolved": "不能扩展到另外带“效果每回合只能使用一次”的召唤效果。",
+      "sources": [
+        "qa_13891"
+      ],
+      "evidence_status": "direct_official_ruling",
+      "scope_key_guidance": "按原卡文与指定裁定确定；禁止只按关键词匹配。"
+    },
+    {
+      "rule_id": "NORMAL_SUMMON_NOT_GENERIC",
+      "text_category": "通常召唤被无效与“本回合未召唤”的条件",
+      "applicability_conditions": "通常召唤被无效，检查 Red-Eyes Wyvern 的未召唤条件。",
+      "count_outcome": "此条件按未进行成功召唤满足。",
+      "retry_outcome": "本证据不能证明通常召唤行动机会返还；不要自动允许再次通常召唤。",
+      "resource_outcome": "已解放卡/手续变化不由未成功条件回滚。",
+      "exceptions_or_unresolved": "通常召唤机会计数的完整规则未在本次直接核对；交真实引擎。",
+      "sources": [
+        "qa_8156",
+        "qa_6249"
+      ],
+      "evidence_status": "direct_official_ruling_with_unresolved_entitlement",
+      "scope_key_guidance": "按原卡文与指定裁定确定；禁止只按关键词匹配。"
+    },
+    {
+      "rule_id": "SUMMON_NEGATION_WINDOW",
+      "text_category": "效果处理后立即进行 S/X/L/P 等召唤",
+      "applicability_conditions": "天盃龍チュンドラ等效果立即于该连锁项处理后召唤。",
+      "count_outcome": "是否能无效召唤取决于连锁处理阶段，不是仅看召唤是否与效果有关。",
+      "retry_outcome": "连锁1处理后进行：可以有召唤无效窗口；连锁2以上且整条连锁仍处理中：不能插入此窗口。",
+      "resource_outcome": "资源严格依所处阶段提交；不能捏造链内响应。",
+      "exceptions_or_unresolved": "不同于效果处理过程中直接特殊召唤；需真实连锁/时点引擎。",
+      "sources": [
+        "qa_24054"
+      ],
+      "evidence_status": "direct_official_ruling",
+      "scope_key_guidance": "按原卡文与指定裁定确定；禁止只按关键词匹配。"
+    },
+    {
+      "rule_id": "LEFT_NOT_AUTO_NEGATED",
+      "text_category": "来源离场与发动/效果无效及破坏分离",
+      "applicability_conditions": "无效并破坏/除外类响应处理前，来源离开发动位置。",
+      "count_outcome": "来源离开不自动取消已发动效果；指定案例中无效仍成功，但破坏/除外未执行。",
+      "retry_outcome": "次数按是否已使用/发动及无效类型计算。",
+      "resource_outcome": "不得对新位置的卡盲目执行原地破坏/除外；分开记录无效、破坏、移动结果。",
+      "exceptions_or_unresolved": "目标效果、持续适用条件、特定卡裁定可改变结果，不是所有卡离场都继续正常处理。",
+      "sources": [
+        "qa_23949",
+        "qa_12482"
+      ],
+      "evidence_status": "direct_official_ruling",
+      "scope_key_guidance": "按原卡文与指定裁定确定；禁止只按关键词匹配。"
+    },
+    {
+      "rule_id": "CONTINUOUS_SOURCE_REQUIREMENT",
+      "text_category": "永续／场地等需要维持存在的处理",
+      "applicability_conditions": "K9 永续魔法卡发动后被 MST 连锁破坏，其发动时检索处理。",
+      "count_outcome": "该检索不适用；不要自动记为“发动被无效”。",
+      "retry_outcome": "如带卡发动上限，不能仅因未检索而恢复次数；相应计数按原规则。",
+      "resource_outcome": "破坏与送墓实际发生；其符合条件的被破坏触发可另开连锁。",
+      "exceptions_or_unresolved": "所列持续卡规则与普通魔法、一般怪兽效果不同，具体处理需要原文。",
+      "sources": [
+        "qa_12624",
+        "qa_22010"
+      ],
+      "evidence_status": "direct_official_ruling_plus_count_cross_reference",
+      "scope_key_guidance": "按原卡文与指定裁定确定；禁止只按关键词匹配。"
+    },
+    {
+      "rule_id": "SKILL_DRAIN_NOT_PROHIBITION",
+      "text_category": "技能抽取等持续效果无效 ≠ 不能发动",
+      "applicability_conditions": "Skill Drain 下场上表侧怪兽仍可发动；到处理时已不在其覆盖的表侧怪兽区域。",
+      "count_outcome": "合法发动仍计相应使用；是否无效在对应适用时点判断。",
+      "retry_outcome": "不能以“现在被无效”为由禁止一切发动；也不因最终避开无效重置次数。",
+      "resource_outcome": "费用与来源移动按实际处理。",
+      "exceptions_or_unresolved": "不能套用到已对具体怪兽适用且有不同离场规则的无效效果。",
+      "sources": [
+        "card_5740",
+        "qa_17200"
+      ],
+      "evidence_status": "direct_official_ruling",
+      "scope_key_guidance": "按原卡文与指定裁定确定；禁止只按关键词匹配。"
+    }
+  ],
+  "sources": {
+    "qa_17200": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "17200",
+      "title": "タツノオトシオヤ：发动或效果无效是否算使用一次",
+      "page_date": "2017-03-24",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=17200&request_locale=ja",
+      "verified_on": "2026-10-28",
+      "short_quote": "効果を1度使用した事になります"
+    },
+    "qa_17377": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "17377",
+      "title": "破壊剣士融合：卡发动被无效后能否再发动",
+      "page_date": "2017-03-24",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=17377&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_17376": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "17376",
+      "title": "破壊剣士の宿命：效果被无效后能否再发动",
+      "page_date": "2017-03-24",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=17376&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_22010": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "22010",
+      "title": "トラップトリック：后续陷阱发动被无效后的次数",
+      "page_date": "2022-12-30",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=22010&request_locale=ja",
+      "verified_on": "2026-10-28",
+      "short_quote": "罠カードの発動自体が行われています"
+    },
+    "qa_11730": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "11730",
+      "title": "大将軍 紫炎：魔法陷阱发动被无效后的次数",
+      "page_date": "2026-03-12",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=11730&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_17363": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "17363",
+      "title": "P区域魔法卡发动被无效，不视为已发动",
+      "page_date": "2017-03-24",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=17363&request_locale=ja",
+      "verified_on": "2026-10-28",
+      "short_quote": "発動した扱いにはなりません"
+    },
+    "qa_7813": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "7813",
+      "title": "召喚獣カリギュラ与マルチャミー：效果发动无效仍限制次数",
+      "page_date": "2025-03-27",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=7813&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_23158": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "23158",
+      "title": "交差する魂等效果发动次数限制与发动无效",
+      "page_date": "2025-11-27",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=23158&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_23336": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "23336",
+      "title": "天羽々斬之巳剣：决斗一次使用，无效、改写、不能特殊召唤",
+      "page_date": "2026-03-19",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=23336&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_18354": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "18354",
+      "title": "RUM－七皇の剣：决斗一次适用，无效、改写、不能特殊召唤",
+      "page_date": "2025-09-13",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=18354&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_23438": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "23438",
+      "title": "四花繚乱の霊使い等：表侧存在期间仅一次与无效",
+      "page_date": "2026-06-29",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=23438&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_24028": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "24028",
+      "title": "フルール・ド・バロネス：转为永续魔法再特殊召唤后的次数",
+      "page_date": "2026-04-09",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=24028&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_23977": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "23977",
+      "title": "ヴォルカニック・リムファイア：各选项只能选择一次与无效",
+      "page_date": "2026-08-07",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=23977&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_14555": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "14555",
+      "title": "王家の神殿：盖放当回合发动许可与无效",
+      "page_date": "2025-03-06",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=14555&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_21976": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "21976",
+      "title": "マイクロ・コーダー：手牌作为连接素材后召唤无效",
+      "page_date": "2022-12-30",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=21976&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_6249": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "6249",
+      "title": "埋葬されし生け贄：替代解放的适用与上级召唤无效",
+      "page_date": "2017-03-24",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=6249&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_8156": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "8156",
+      "title": "真紅眼の飛竜：通常召唤被无效后的未召唤条件",
+      "page_date": "2021-09-12",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=8156&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_13508": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "13508",
+      "title": "海皇等：作为发动费用送墓，无效后相关触发",
+      "page_date": "2025-09-27",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=13508&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_8609": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "8609",
+      "title": "誤作動使サンダー・ブレイク再次盖放：再发动需再次支付费用",
+      "page_date": "2017-03-24",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=8609&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_20639": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "20639",
+      "title": "コズミック・ブレイザー・ドラゴン：发动无效后的费用除外与返回",
+      "page_date": "2017-07-28",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=20639&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_11269": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "11269",
+      "title": "超量召唤被无效时素材的处理",
+      "page_date": "2017-03-24",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=11269&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_23083": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "23083",
+      "title": "カプシェル：上级／同调／连接召唤无效时的触发条件",
+      "page_date": "2022-12-30",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=23083&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_24102": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "24102",
+      "title": "エクス・ライゼオル：手续送墓后召唤被无效",
+      "page_date": "2024-09-23",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=24102&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_7965": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "7965",
+      "title": "会使禁止特殊召唤重新适用的手续或融合发动是否合法",
+      "page_date": "2025-11-27",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=7965&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_13891": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "13891",
+      "title": "堕天使ナスティン：召唤效果发动无效与同名特殊召唤次数",
+      "page_date": "2017-03-24",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=13891&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_24054": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "24054",
+      "title": "效果处理后立即进行召唤：连锁一与连锁二以上的召唤无效窗口",
+      "page_date": "2026-07-17",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=24054&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_23949": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "23949",
+      "title": "发动来源离开发动位置：无效与破坏／除外分别处理",
+      "page_date": "2026-07-17",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=23949&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_12624": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "12624",
+      "title": "永续魔法卡发动时即被破坏：发动时处理不适用",
+      "page_date": "2025-12-01",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=12624&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "qa_12482": {
+      "type": "official_japanese_ocg_database_qa",
+      "id": "12482",
+      "title": "No.22 不乱健：对象魔法离场后的无效与自身守备表示处理",
+      "page_date": "2017-03-24",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=12482&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "revision_20200401": {
+      "type": "official_rule_revision",
+      "title": "2020年4月1日適用ルール改訂",
+      "page_date": "2020-04-01",
+      "url": "https://www.yugioh-card.com/japan/revision/",
+      "verified_on": "2026-10-28"
+    },
+    "rulebook_20200401": {
+      "type": "official_rulebook",
+      "title": "遊戯王OCG 公式ルールブック マスタールール 2020年4月1日改訂版",
+      "page_date": "2020-04-01",
+      "url": "https://www.yugioh-card.com/japan/howto/data/rulebook_masterrule20200401_ver1.0.pdf",
+      "verified_on": "2026-10-28",
+      "printed_pages_used": [
+        67,
+        79,
+        80,
+        83,
+        85,
+        86
+      ]
+    },
+    "card_8428": {
+      "type": "official_card_text_and_supplement",
+      "id": "8428",
+      "title": "サイバー・エマージェンシー",
+      "page_date": "2024-03-23",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?cid=8428&ope=4&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "card_8993": {
+      "type": "official_card_text_and_supplement",
+      "id": "8993",
+      "title": "強欲で謙虚な壺",
+      "page_date": "2020-04-01",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?cid=8993&ope=4&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "card_20572": {
+      "type": "official_card_text_and_supplement",
+      "id": "20572",
+      "title": "ソード・ライゼオル",
+      "page_date": "2024-08-24",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?cid=20572&ope=4&request_locale=ja",
+      "verified_on": "2026-10-28"
+    },
+    "card_5740": {
+      "type": "official_card_text_and_supplement",
+      "id": "5740",
+      "title": "スキルドレイン",
+      "page_date": "2020-04-01",
+      "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?cid=5740&ope=4&request_locale=ja",
+      "verified_on": "2026-10-28"
+    }
+  },
+  "unresolved": [
+    {
+      "topic": "标准同名卡每回合只能发动一张的直接单卡 Q&A",
+      "status": "not_found_in_this_pass",
+      "handling": "已有卡文和一般卡发动计数官方依据；不得将综合引用冒充同名卡直接问答。"
+    },
+    {
+      "topic": "无卡名的普通“１ターンに１度…発動できる”全体软限制与无效后重试",
+      "status": "not_exhaustively_verified",
+      "handling": "未建立通用规则；须按具体卡与真实引擎确认。"
+    },
+    {
+      "topic": "通常召唤被无效后的通常召唤行动机会",
+      "status": "not_fully_verified_in_this_pass",
+      "handling": "不得由未召唤条件或特殊召唤成功计数推断机会返还。"
+    },
+    {
+      "topic": "所有召唤方式的素材事件分类、卡离场后的全部持续无效",
+      "status": "not_exhaustively_verified",
+      "handling": "仅实施已证具体分支；未知返回 unresolved，不做全局回滚或全局禁重试。"
+    }
+  ]
+}

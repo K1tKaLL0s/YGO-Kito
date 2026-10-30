@@ -1,0 +1,767 @@
+diff --git a/configs/training-scenarios-v1.json b/configs/training-scenarios-v1.json
+index c1674a4..052c332 100644
+--- a/configs/training-scenarios-v1.json
++++ b/configs/training-scenarios-v1.json
+@@ -3,26 +3,44 @@
+   "kind": "training_scenario_preparation_not_runner_recipe",
+   "execution_enabled": false,
+   "budget_plan": "configs/training-plan-v1.json",
+-  "model_roles": ["duel", "build_goal", "build_optimizer", "coordinator"],
++  "model_roles": [
++    "duel",
++    "build_goal",
++    "build_optimizer",
++    "coordinator"
++  ],
+   "common": {
+     "count_unit": "completed_matches",
+     "timing_unit": "actual_small_games_model_and_engine",
+     "timing_pilot_counts_toward_training": false,
+-    "fast": {"mean_seconds_at_most": 60, "bo1_min": 1000, "bo3_min": 100},
+-    "slow": {"mean_seconds_above": 60, "total_min": 1000, "bo1_ratio": 6, "bo3_ratio": 4},
++    "fast": {
++      "mean_seconds_at_most": 60,
++      "bo1_min": 1000,
++      "bo3_min": 100
++    },
++    "slow": {
++      "mean_seconds_above": 60,
++      "total_min": 1000,
++      "bo1_ratio": 6,
++      "bo3_ratio": 4
++    },
+     "frozen_evaluation_counts_toward_training": false,
+     "pilot_sample_recommendation": {
+       "actual_small_games": 12,
+       "status": "recommendation_not_user_minimum",
+-      "coverage": ["several actually qualified opponents", "both actual starting orders", "record model/device/decks and failed attempts"],
++      "coverage": [
++        "several actually qualified opponents",
++        "both actual starting orders",
++        "record model/device/decks and failed attempts"
++      ],
+       "window": "all attempted games in one declared fixed-checkpoint pilot; incomplete attempts reported separately",
+       "representative_of_unmeasured_bo3_or_gpu": false
+     }
+   },
+   "periods": {
+     "2022-07": {
+-      "construction_mode": "existing_tearlaments_reference",
+-      "main_slot": "main-01",
++      "construction_mode": "model_generated_fixed_tearlaments_theme",
++      "main_slot": null,
+       "release_cutoff": "2022-09-30",
+       "acceptance": {
+         "kind": "legacy_reference_bo3",
+@@ -36,11 +54,14 @@
+         "confidence_level": 0.95,
+         "confidence_decision_rule": null,
+         "draw_and_repeated_observation_rule": null
+-      }
++      },
++      "reference_slot": "main-01",
++      "fixed_theme": "tearlaments",
++      "user_deck_role": "independent_reference_evaluation_only"
+     },
+     "2022-10": {
+-      "construction_mode": "existing_tearlaments_reference",
+-      "main_slot": "main-02",
++      "construction_mode": "model_generated_fixed_tearlaments_theme",
++      "main_slot": null,
+       "release_cutoff": "2022-12-31",
+       "acceptance": {
+         "kind": "legacy_reference_bo3",
+@@ -54,7 +75,10 @@
+         "confidence_level": 0.95,
+         "confidence_decision_rule": null,
+         "draw_and_repeated_observation_rule": null
+-      }
++      },
++      "reference_slot": "main-02",
++      "fixed_theme": "tearlaments",
++      "user_deck_role": "independent_reference_evaluation_only"
+     },
+     "2026-10": {
+       "construction_mode": "model_selected_theme_build_and_cb",
+@@ -65,8 +89,20 @@
+       "eligible_pool": "confirmed_released_period_legal_catalogue_and_script_usable_subset",
+       "missing_card_policy": "exclude_missing_card_not_other_themes",
+       "stages": [
+-        {"stage_id": "available-bot-bo1", "format": "BO1", "opponents": "actually_runtime_qualified_available_bots", "requires": []},
+-        {"stage_id": "common-decks-bo3", "format": "BO3", "opponents": "explicit_2026_10_common_deck_pool", "requires": ["available-bot-bo1_completed"]}
++        {
++          "stage_id": "available-bot-bo1",
++          "format": "BO1",
++          "opponents": "actually_runtime_qualified_available_bots",
++          "requires": []
++        },
++        {
++          "stage_id": "common-decks-bo3",
++          "format": "BO3",
++          "opponents": "explicit_2026_10_common_deck_pool",
++          "requires": [
++            "available-bot-bo1_completed"
++          ]
++        }
+       ],
+       "acceptance": {
+         "kind": "actual_small_game_start_order_rates",
+@@ -89,7 +125,12 @@
+     }
+   },
+   "isolation": {
+-    "partitions": ["timing_pilot", "train", "validation", "final_eval"],
++    "partitions": [
++      "timing_pilot",
++      "train",
++      "validation",
++      "final_eval"
++    ],
+     "training_never_consumes_pilot_or_frozen_evaluation": true,
+     "freeze_model_deck_opponents_and_seeds_for_evaluation": true,
+     "stage1_results_are_stage2_acceptance": false
+diff --git a/src/ygo_kito/autonomous_construction.py b/src/ygo_kito/autonomous_construction.py
+index 8dabca4..682c025 100644
+--- a/src/ygo_kito/autonomous_construction.py
++++ b/src/ygo_kito/autonomous_construction.py
+@@ -182,7 +182,7 @@ def _referenced_ids(value):
+ 
+ class AutonomousConstructionKernel:
+     def __init__(self, builder, coordinator, *, assets, host_available_ids, source_binding,
+-                 theme_minimum=1, pool_limit=128, candidate_limit=32):
++                 theme_minimum=1, pool_limit=128, candidate_limit=32, allowed_theme_ids=None):
+         if not isinstance(builder, BuildTrainer) or not isinstance(builder.encoder, CourseBuildEncoder):
+             raise ContractError("explicitly initialized course BuildTrainer/encoder required")
+         if assets is not builder.encoder.assets or builder.task.goal["kind"] != "deck_constraints":
+@@ -198,6 +198,9 @@ class AutonomousConstructionKernel:
+         integer(pool_limit, "local task pool limit", 14, 128)
+         integer(candidate_limit, "returned ranked tasks", 2, 128)
+         self.theme_minimum, self.pool_limit, self.candidate_limit = theme_minimum, pool_limit, candidate_limit
++        if allowed_theme_ids is not None and (not isinstance(allowed_theme_ids, (list, tuple)) or not allowed_theme_ids or any(not isinstance(x, str) or not x for x in allowed_theme_ids)):
++            raise ContractError("explicit nonempty theme identifiers required")
++        self.allowed_theme_ids = tuple(sorted(set(allowed_theme_ids))) if allowed_theme_ids is not None else None
+         self.source_binding = deepcopy(source_binding)
+         self._models = dict(builder.models)
+         self._binding = self._current_binding()
+@@ -213,7 +216,8 @@ class AutonomousConstructionKernel:
+             "catalog_sha256": digest([{k: self.assets.rows[c].get(k) for k in fields} for c in self.available_ids]),
+             "resources": deepcopy(self.assets.receipt), "period_context": deepcopy(getattr(self.assets, "period_context", None)),
+             "available": list(self.available_ids), "limits": dict(self.assets.limits),
+-            "theme_minimum": self.theme_minimum, "pool_limit": self.pool_limit, "candidate_limit": self.candidate_limit}
++            "theme_minimum": self.theme_minimum, "pool_limit": self.pool_limit, "candidate_limit": self.candidate_limit,
++            **({"allowed_theme_ids": list(self.allowed_theme_ids)} if self.allowed_theme_ids is not None else {})}
+ 
+     def _check(self):
+         self.builder.encoder.assert_binding()
+@@ -345,6 +349,8 @@ class AutonomousConstructionKernel:
+         self._check()
+         mandatory = {r["card_id"] for r in self.builder.task.requirements} | _referenced_ids(self.builder.task.goal)
+         themes, candidates, omitted = self.enumerate_themes(), [], []
++        if self.allowed_theme_ids is not None:
++            themes = [t for t in themes if t["theme_id"] in self.allowed_theme_ids]
+         if not mandatory <= set(self.available_ids):
+             return {"status":"fixed_goal_card_unavailable","candidates":[],"omitted":[],"goal_preserved":True}
+         for theme in themes:
+@@ -410,11 +416,11 @@ class AutonomousConstructionKernel:
+             raise ContractError("task selection scores belong to stale source/model state")
+         candidates=proposals["candidates"]
+         if candidates:integer(rank,"actual model-ranked task position",0,len(candidates)-1)
+-        if not candidates or len({v["score"] for v in proposals["all_scores"]})<2:
++        if not candidates or (len({v["score"] for v in proposals["all_scores"]})<2 and not (len(candidates)==1 and self.allowed_theme_ids is not None)):
+             return {"status":"model_selection_unresolved","reason":"no discriminating model scores; no rule-theme fallback"}
+         selected=deepcopy(candidates[rank]);task=BuildTask.from_dict(selected["task"])
+         self.assets.check_task(task)
+-        selected.update(status="model_selected_task",binding_sha256=self._binding_sha256,
++        selected.update(status="model_selected_task", selection_method=("user_fixed_theme_single_task_model_scored" if len(candidates)==1 and self.allowed_theme_ids is not None else "model_ranked_task_choice"),binding_sha256=self._binding_sha256,
+                         selected_model_sha256=proposals["model_sha256"],goal_sha256=digest(task.goal))
+         self.selections[selected["candidate_id"]]=deepcopy(selected)
+         return selected
+diff --git a/src/ygo_kito/construction_fill.py b/src/ygo_kito/construction_fill.py
+index 8750549..61b883b 100644
+--- a/src/ygo_kito/construction_fill.py
++++ b/src/ygo_kito/construction_fill.py
+@@ -277,7 +277,7 @@ def fill_with_existing(session, assets, *, role="build_goal", base=None, models=
+         candidates = edit_candidates(task,assets,base)
+     else:
+         candidates = (goal_candidates(task, assets, base) if role == "build_goal"
+-                      else edit_candidates(task, assets, base, require_edit=True))
++                      else edit_candidates(task, assets, base, require_edit=False))
+     scores, ranking = [0.] * len(candidates), "engineering_order_untrained"
+     if models is not None:
+         if encoder is None or role not in models:
+@@ -312,41 +312,71 @@ def fill_with_existing(session, assets, *, role="build_goal", base=None, models=
+ 
+ def construction_cycle(session, assets, providers, *, scopes=(), base=None, models=None, encoder=None,
+                        binding_provider=None, text_reviewer=None, verifier=existing_goal_verifier):
+-    """Coordinator: target stages 1/2/3 → optimizer stages 1/2/3.
+-
+-    Fill/duel/user feedback remains available to later cycles. A failed new
+-    revision can return an earlier task-verified candidate only WITH its original
+-    graph and proof; it never promotes it as evidence for the latest revision.
++    """Run goal -> optimizer -> goal -> optimizer with explicit feedback and incumbent.
++    Model ranking proposes changes. Without an independent comparison it does
++    not prove competitive improvement and cannot replace a valid incumbent.
+     """
++    from collections import Counter
+     phases, best, current = [], None, base
+-    for role in ("build_goal", "build_optimizer"):
+-        revision = session.propose_logic(role, providers.get(role))
+-        phase = {"role": role, "stage_1": revision}
++    if base is not None:
++        assets.validate(session.task, base)
++        prior = next((e.get("candidate") for e in reversed(session.history)
++            if e.get("kind") == "construction_incumbent" and e.get("goal_sha256") == session.goal_sha256
++            and e.get("candidate", {}).get("deck") == base.to_dict()), None)
++        best = deepcopy(prior) if prior else {"deck": base.to_dict(), "logic": None, "logic_sha256": None,
++            "validation": {"status": "external_incumbent_retained_graph_proof_pending", "attempts": []},
++            "goal_sha256": session.goal_sha256}
++    roles = ("build_goal", "build_optimizer", "build_goal", "build_optimizer")
++    for number, role in enumerate(roles, 1):
++        phase = {"phase_number": number, "role": role, "input_deck": None if current is None else current.to_dict(),
++                 "feedback_before": deepcopy(session.feedback), "parameter_update_performed": False}
+         phases.append(phase)
++        if role == "build_optimizer" and current is None:
++            phase["status"] = "skipped_no_goal_preserving_incumbent"
++            session.record_feedback(role, "no goal-preserving incumbent; return to goal stage")
++            continue
++        revision = session.propose_logic(role, providers.get(role)); phase["stage_1"] = revision
+         if revision["status"] != "logic_revised":
+-            break
++            session.record_feedback(role, "logic proposal unresolved; retain goal and feed next stage")
++            continue
+         graph = session.logic
+         phase["stage_2"] = select_main_axes(session.task, assets, session.classification, scopes)
+         session.history.append({"stage": 2, "role": role, "logic_sha256": graph.sha256,
+                                 "goal_sha256": session.goal_sha256, "result": deepcopy(phase["stage_2"])})
+         if phase["stage_2"]["status"] not in ("selected", "skipped_broad"):
+-            session.record_feedback("fill", "theme-axis phase unresolved: " + phase["stage_2"]["status"])
+-            break
+-        # If a target fill fails, ask the target again after feedback rather than
+-        # manufacture an optimizer base or silently relax the goal.
++            session.record_feedback("fill", "theme-axis unresolved: " + phase["stage_2"]["status"])
++            continue
+         result = fill_with_existing(session, assets, role=role, base=current, models=models, encoder=encoder,
+             binding_provider=binding_provider, text_reviewer=text_reviewer, scopes=scopes, verifier=verifier)
+         phase["stage_3"] = result
+         session.history.append({"stage": 3, "role": role, "logic_sha256": graph.sha256,
+                                 "goal_sha256": session.goal_sha256, "result": deepcopy(result)})
+         if result["status"] not in ("task_goal_verified_logic_unproven", "list_constraints_verified_logic_unproven"):
+-            session.record_feedback(role, "fill phase unresolved: " + result["status"])
+-            break
+-        current = DeckParts.from_dict(result["best_deck"])
+-        best = {"deck": result["best_deck"], "logic": graph.to_dict(), "logic_sha256": graph.sha256,
+-                "validation": result, "goal_sha256": session.goal_sha256}
+-        session.record_feedback(role, "concrete task goal checked; lightweight graph execution remains unverified")
++            session.record_feedback(role, "fill unresolved: " + result["status"] + "; return feedback without relaxing the goal")
++            continue
++        proposal = DeckParts.from_dict(result["best_deck"])
++        phase["proposal_deck"] = proposal.to_dict()
++        phase["proposal_changes"] = {z: {"added": list((Counter(getattr(proposal,z))-Counter(getattr(current,z) if current else ())).elements()),
++            "removed": list((Counter(getattr(current,z) if current else ())-Counter(getattr(proposal,z))).elements())}
++            for z in ("main","extra","side")}
++        if best is None:
++            best = {"deck": proposal.to_dict(), "logic": graph.to_dict(), "logic_sha256": graph.sha256,
++                    "validation": result, "goal_sha256": session.goal_sha256}
++            phase["acceptance"] = "initial_goal_checked_incumbent"
++        else:
++            phase["acceptance"] = "retain_incumbent_independent_quality_comparison_pending"
++        current = DeckParts.from_dict(best["deck"])
++        phase["accepted_deck"] = current.to_dict()
++        phase["improvement_verified"] = False
++        session.record_feedback(role, "goal constraints checked; proposal changes " + str(phase["proposal_changes"]) +
++            "; independent quality comparison pending; incumbent retained; full graph execution unverified")
++        session.history.append({"stage": 3, "kind": "construction_incumbent", "role": role,
++            "goal_sha256": session.goal_sha256, "candidate": deepcopy(best)})
++    executed = [p["role"] for p in phases if p.get("stage_3",{}).get("status") in
++        ("task_goal_verified_logic_unproven", "list_constraints_verified_logic_unproven")]
+     return {"status": "task_checked_candidate" if best else "construction_unresolved", "phases": phases,
+             "best": best, "latest_logic_sha256": session.logic.sha256 if session.logic else None,
+             "goal_sha256": session.goal_sha256, "graph_execution_verified": False,
++            "alternation_completed": executed == list(roles), "competitive_improvement_verified": False,
++            "optimization_training": "pending_actual_attributable_comparison_labels",
+             "training_status": "no_training_performed_by_this_cycle"}
+diff --git a/src/ygo_kito/course_feedback.py b/src/ygo_kito/course_feedback.py
+index d961173..ee64e48 100644
+--- a/src/ygo_kito/course_feedback.py
++++ b/src/ygo_kito/course_feedback.py
+@@ -5,6 +5,7 @@ supplies an explicit training artifact/label; held-out artifacts fail before a
+ loss or update. The containing course transaction owns model/index checkpoints.
+ """
+ from copy import deepcopy
++from types import SimpleNamespace
+ 
+ from .agent_registry import identifier
+ from .build_contracts import BuildTask, DeckParts, digest
+@@ -29,11 +30,13 @@ class CourseFeedbackUpdater:
+             raise ContractError("existing course models and typed data index required")
+         sessions=models.sessions
+         actual=dict(models.builder.models,coordinator=models.coordinator.model)
+-        if any(not isinstance(sessions.get(r),AdapterSession) or sessions[r].model is not actual[r]
++        self.learning_stage = getattr(models,"learning_stage","lora_adaptation")
++        self._role_models = actual
++        if self.learning_stage != "base" and any(not isinstance(sessions.get(r),AdapterSession) or sessions[r].model is not actual[r]
+                or sessions[r].config.role!=r for r in (*BUILD_ROLES,"coordinator")):
+             raise ContractError("actual independent existing role LoRA sessions required")
+         self.models,self.index,self.experiment_id=models,data_index,experiment_id
+-        self._sessions={r:sessions[r] for r in (*BUILD_ROLES,"coordinator")}
++        self._sessions={r:sessions[r] for r in (*BUILD_ROLES,"coordinator")} if self.learning_stage != "base" else {}
+         self._models_binding=deepcopy(getattr(models,"binding",{}))
+         self.binding={"feature_version":FEATURE_VERSION,"experiment_id":experiment_id,
+             "models_binding":self._models_binding,"vocabulary_sha256":models.builder.encoder.vocabulary_sha256}
+@@ -48,6 +51,8 @@ class CourseFeedbackUpdater:
+                 any(self.models.sessions.get(r) is not s for r,s in self._sessions.items())):
+             raise ContractError("course feedback models/session/vocabulary binding changed")
+         actual=dict(self.models.builder.models,coordinator=self.models.coordinator.model)
++        if self.learning_stage != getattr(self.models,"learning_stage","lora_adaptation") or any(actual[r] is not m for r,m in self._role_models.items()):
++            raise ContractError("feedback base model or stage identity changed")
+         for role,session in self._sessions.items():
+             if session.model is not actual[role]:raise ContractError("feedback role model was replaced")
+             session.verify_base()
+@@ -82,12 +87,38 @@ class CourseFeedbackUpdater:
+         if (any(r["feedback_id"]==feedback_id or r["content_key"] in content_keys.values() for r in self.consumed)):
+             raise ContractError("feedback id or the same indexed feedback content was already consumed")
+         for role in roles:
++            if self.learning_stage == "base":
++                updates = self.models.builder.updates[role] if role in BUILD_ROLES else self.models.coordinator.updates
++                limit = self.models.builder.config.batches if role in BUILD_ROLES else self.models.coordinator.config.steps
++                if updates >= limit: raise ContractError("base feedback update capacity exhausted")
++                continue
+             session=self._sessions[role]
+             if session.detached or not session.enabled or session.updates>=session.config.max_updates:
+                 raise ContractError("feedback role adapter is inactive or its explicit update limit is exhausted")
+         return request_sha,content_keys
+ 
++    def _loss_context(self,role):
++        if self.learning_stage != "base": return self._sessions[role]
++        rng = self.models.builder.batch_rng if role in BUILD_ROLES else self.models.coordinator.batch_rng
++        return SimpleNamespace(model=self._role_models[role],rng=rng)
++    def _base_step(self,feedback_id,artifact,request_sha,content_key,role,update_factory,*,label_source):
++        model=self._role_models[role];before=parameter_digest(model)
++        self.pending={"feedback_id":feedback_id,"artifact_id":artifact["artifact_id"],"role":role,"before_sha256":before,"learning_stage":"base","outcome":"started"}
++        try:
++            update=update_factory();after=parameter_digest(model)
++            if before == after: raise ContractError("base feedback did not change parameters")
++            if role in BUILD_ROLES:
++                self.models.builder.batch_cursor=max(self.models.builder.updates.values())
++                self.models.kernel.record_update(role,before_sha256=before,after_sha256=after)
++            result={"feedback_id":feedback_id,"artifact_id":artifact["artifact_id"],"role":role,"artifact_payload_sha256":artifact["payload_sha256"],"request_sha256":request_sha,"content_key":content_key,"before_sha256":before,"after_sha256":after,"label_source":label_source,"indexed_purpose":"train","learning_stage":"base","update":update,"ability_verified":False,"quality_inferred_from_single_duel":False}
++            self.consumed.append(result);self.pending=None;return deepcopy(result)
++        except Exception:
++            self.pending["outcome"]="failed_or_uncertain_do_not_replay";self.pending["after_sha256"]=parameter_digest(model);raise
+     def _step(self,feedback_id,artifact,request_sha,content_key,role,loss_factory,*,label_source):
++        if self.learning_stage == "base":
++            if role not in BUILD_ROLES: raise ContractError("coordinator base feedback requires logged supervision updater")
++            loss=loss_factory()
++            return self._base_step(feedback_id,artifact,request_sha,content_key,role,lambda:self.models.builder._apply(role,loss),label_source=label_source)
+         session=self._sessions[role]
+         before=parameter_digest(session.model)
+         # Validation/loss construction does not consume an update. Only the
+@@ -119,10 +150,12 @@ class CourseFeedbackUpdater:
+         if not isinstance(roles,(list,tuple)) or not roles or len(set(roles))!=len(roles) or any(r not in BUILD_ROLES for r in roles):
+             raise ContractError("explicit distinct construction roles required")
+         artifact,_,admission=self._artifact(artifact_id,task=task)
++        if "build_optimizer" in roles and not artifact["payload"]["pairs"]:
++            raise ContractError("optimizer requires actual strict comparison labels; goal-only data cannot update it")
+         request={"kind":"indexed_semantic_construction","task_sha256":task.sha256}
+         request_sha,keys=self._prepare(feedback_id,artifact,request,roles)
+         return [self._step(feedback_id,artifact,request_sha,keys[role],role,
+-            lambda role=role:construction_loss(role,self._sessions[role],self.models.builder,task,artifact["payload"],data_admission=admission),
++            lambda role=role:construction_loss(role,self._loss_context(role),self.models.builder,task,artifact["payload"],data_admission=admission),
+             label_source="explicit_catalog_constraints_and_user_preferences_not_strength") for role in roles]
+ 
+     def apply_coordinator(self,feedback_id,artifact_id,examples):
+@@ -137,8 +170,10 @@ class CourseFeedbackUpdater:
+                 raise ContractError("coordinator label must reference the exact indexed training record")
+         request={"kind":"explicit_host_coordinator_labels","examples_sha256":digest(examples)}
+         request_sha,keys=self._prepare(feedback_id,artifact,request,("coordinator",))
++        if self.learning_stage == "base":
++            return self._base_step(feedback_id,artifact,request_sha,keys["coordinator"],"coordinator",lambda:self.models.coordinator.step(examples),label_source="explicit_host_logged_not_calibrated_win_rate")
+         return self._step(feedback_id,artifact,request_sha,keys["coordinator"],"coordinator",
+-            lambda:actual_coordinator_loss(self._sessions["coordinator"],examples),label_source="explicit_host_logged_not_calibrated_win_rate")
++            lambda:actual_coordinator_loss(self._loss_context("coordinator"),examples),label_source="explicit_host_logged_not_calibrated_win_rate")
+ 
+     def apply_task_preference(self,feedback_id,artifact_id,proposals,preferred_id,*,source="human_preference"):
+         kernel=getattr(self.models,"kernel",None)
+@@ -170,7 +205,7 @@ class CourseFeedbackUpdater:
+     def state_dict(self):
+         self._check()
+         state={"schema_version":1,"feature_version":FEATURE_VERSION,"binding_sha256":self.binding_sha256,
+-            "model_hashes":{r:parameter_digest(s.model) for r,s in self._sessions.items()},
++            "model_hashes":{r:parameter_digest(m) for r,m in self._role_models.items()},
+             "consumed":deepcopy(self.consumed),"pending":deepcopy(self.pending),"weights_owned_by_course_checkpoint":True}
+         state["metadata_sha256"]=digest(state)
+         return state
+@@ -179,7 +214,7 @@ class CourseFeedbackUpdater:
+         self._check()
+         if (not isinstance(state,dict) or state.get("schema_version")!=1 or state.get("feature_version")!=FEATURE_VERSION or
+                 state.get("binding_sha256")!=self.binding_sha256 or
+-                state.get("model_hashes")!={r:parameter_digest(s.model) for r,s in self._sessions.items()} or
++                state.get("model_hashes")!={r:parameter_digest(m) for r,m in self._role_models.items()} or
+                 state.get("metadata_sha256")!=digest({k:v for k,v in state.items() if k!="metadata_sha256"})):
+             raise ContractError("feedback restore requires exact model/index/course metadata")
+         rows=deepcopy(state["consumed"])
+@@ -187,7 +222,7 @@ class CourseFeedbackUpdater:
+             raise ContractError("duplicate/malformed consumed feedback records")
+         for row in rows:
+             artifact,_,_=self._artifact(row["artifact_id"])
+-            if artifact["payload_sha256"]!=row["artifact_payload_sha256"] or row["role"] not in self._sessions:
++            if artifact["payload_sha256"]!=row["artifact_payload_sha256"] or row["role"] not in self._role_models:
+                 raise ContractError("consumed feedback no longer has its exact indexed training record")
+         self.consumed=rows
+         self.pending=deepcopy(state["pending"])
+diff --git a/src/ygo_kito/course_models.py b/src/ygo_kito/course_models.py
+index e7ed889..4f721c3 100644
+--- a/src/ygo_kito/course_models.py
++++ b/src/ygo_kito/course_models.py
+@@ -81,11 +81,13 @@ class CourseModels:
+         if not isinstance(source_binding, dict) or not source_binding: raise ContractError("explicit course source binding required")
+         obj = cls()
+         obj.binding = deepcopy(source_binding); obj._binding_sha256 = digest(obj.binding)
++        obj.learning_stage = obj.binding.get("learning_stage", "lora_adaptation")
++        if obj.learning_stage not in ("base", "lora_adaptation"): raise ContractError("explicit supported learning stage required")
+         obj.device = resolve_device(device); obj.adapter_configs = _configs(adapter_configs)
+         obj.available_ids = tuple(sorted(set(available_ids)))
+-        obj.builder = BuildTrainer(task, assets, BuildTrainingConfig(), device=obj.device)
++        obj.builder = BuildTrainer(task, assets, BuildTrainingConfig(batches=100000) if obj.learning_stage == "base" else BuildTrainingConfig(), device=obj.device)
+         obj.duel = CpuTrainer(duel_config, sorted(c for c in assets.rows if 0 < c < 2**32), device=obj.device)
+-        obj.coordinator = CoordinatorTrainer(device=obj.device)
++        obj.coordinator = CoordinatorTrainer(CoordinatorModelConfig(steps=100000) if obj.learning_stage == "base" else CoordinatorModelConfig(), device=obj.device)
+         target = {"task_sha256": task.sha256, **deepcopy(assets.receipt),
+                   "period_context": deepcopy(getattr(assets, "period_context", None))}
+         obj.initialization_provenance = (initialize_group_weights(obj.builder, obj.duel, obj.coordinator,
+@@ -95,10 +97,13 @@ class CourseModels:
+         obj.vocabulary_migration = initialize_course_vocabulary(obj.builder, obj.available_ids)
+         obj._assets_identity = _asset_identity(task, assets, obj.duel.encoder.card_ids)
+         obj.policy_rng = torch.Generator(device="cpu").manual_seed(duel_config.policy_seed)
+-        obj.sessions = {role: AdapterSession(model, obj.adapter_configs[role], obj._adapter_binding(role))
+-                        for role, model in obj.models().items()}
++        obj.sessions = ({role: AdapterSession(model, obj.adapter_configs[role], obj._adapter_binding(role))
++                        for role, model in obj.models().items()} if obj.learning_stage == "lora_adaptation" else {})
++        if obj.learning_stage == "base":
++            for model in obj.models().values(): model.requires_grad_(True)
+         obj.kernel = AutonomousConstructionKernel(obj.builder, obj.coordinator, assets=assets,
+-            host_available_ids=obj.available_ids, source_binding=obj.binding)
++            host_available_ids=obj.available_ids, source_binding=obj.binding,
++            allowed_theme_ids=obj.binding.get("construction_theme_ids"))
+         return obj
+ 
+     def models(self): return dict(self.builder.models, duel=self.duel.model, coordinator=self.coordinator.model)
+@@ -115,9 +120,13 @@ class CourseModels:
+         if _asset_identity(self.builder.task, self.builder.encoder.assets, self.duel.encoder.card_ids) != self._assets_identity:
+             raise ContractError("course model assets/task changed")
+         self.builder.encoder.assert_binding(); self.kernel._check()
+-        if set(self.sessions) != set(ROLES): raise ContractError("course lacks a role adapter")
+-        for role, model in self.models().items():
+-            session = self.sessions[role]
++        expected = set(ROLES) if self.learning_stage == "lora_adaptation" else set()
++        if self.learning_stage != self.binding.get("learning_stage", "lora_adaptation") or set(self.sessions) != expected:
++            raise ContractError("course learning stage/adapter identities differ")
++        if self.learning_stage == "base" and any(not p.requires_grad for m in self.models().values() for p in m.parameters()):
++            raise ContractError("base learning parameters must remain trainable")
++        for role, session in self.sessions.items():
++            model = self.models()[role]
+             if session.model is not model or session.detached or not session.enabled or session.config != self.adapter_configs[role]:
+                 raise ContractError("course role/adapter identity changed")
+             session.verify_base()
+@@ -132,15 +141,16 @@ class CourseModels:
+ 
+     def restore_rng(self, state):
+         fields(state, {"device_rng", "python", "policy", "build_batch", "duel_policy", "duel_batch", "coordinator_batch", "adapter", "modes"})
+-        fields(state["adapter"], set(ROLES)); fields(state["modes"], set(ROLES))
++        fields(state["adapter"], set(self.sessions)); fields(state["modes"], set(ROLES))
+         generators = {"policy": self.policy_rng, "build_batch": self.builder.batch_rng,
+             "duel_policy": self.duel.policy_rng, "duel_batch": self.duel.batch_rng, "coordinator_batch": self.coordinator.batch_rng}
+         for key in generators:
+             try: torch.Generator(device="cpu").set_state(state[key])
+             except (RuntimeError, TypeError) as error: raise ContractError("course owned RNG differs") from error
+-        for role in ROLES:
++        for role in self.sessions:
+             try: torch.Generator(device="cpu").set_state(state["adapter"][role])
+             except (RuntimeError, TypeError) as error: raise ContractError("course adapter RNG differs") from error
++        for role in ROLES:
+             expected = dict(self.models()[role].named_modules())
+             if set(state["modes"][role]) != set(expected) or any(type(v) is not bool for v in state["modes"][role].values()):
+                 raise ContractError("course model mode schema differs")
+@@ -210,6 +220,8 @@ class CourseModels:
+         fields(state["vocabulary"], {"build", "duel", "duel_sha256", "migration"})
+         obj = cls(); obj.device = device
+         obj.binding = deepcopy(expected_binding); obj._binding_sha256 = digest(obj.binding)
++        obj.learning_stage = obj.binding.get("learning_stage", "lora_adaptation")
++        if obj.learning_stage not in ("base", "lora_adaptation"): raise ContractError("unsupported checkpoint learning stage")
+         obj.available_ids = tuple(state["available_ids"]); obj.adapter_configs = _configs(state["configs"]["adapters"])
+         obj.initialization_provenance = deepcopy(state["initialization_provenance"])
+         obj.builder = BuildTrainer(task, assets, build_config_from_dict(state["configs"]["build"]), device=device)
+@@ -252,8 +264,12 @@ class CourseModels:
+         obj.duel._pending_episode_digest = state["duel_pending_episode_digest"]
+         if obj.duel._pending_episode_digest is not None: raise ContractError("course checkpoint cannot contain an unconsumed base PPO episode")
+         obj.coordinator.updates = cursors["coordinator_updates"]
+-        fields(state["adapters"], set(ROLES)); obj.sessions = {}
+-        for role, model in obj.models().items():
++        adapter_roles = set(ROLES) if obj.learning_stage == "lora_adaptation" else set()
++        fields(state["adapters"], adapter_roles); obj.sessions = {}
++        if obj.learning_stage == "base":
++            for model in obj.models().values(): model.requires_grad_(True)
++        for role in sorted(adapter_roles):
++            model = obj.models()[role]
+             meta = state["adapters"][role]["compatibility"]
+             if (tree_digest(state["adapters"][role]["rng"]) != tree_digest(state["rng"]["adapter"][role]) or
+                     tree_digest(state["adapters"][role]["device_rng"]) != tree_digest(state["device_rng"])):
+@@ -265,7 +281,8 @@ class CourseModels:
+         if obj.versions() != state["effective_hashes"]: raise ContractError("course effective LoRA weights differ")
+         obj.policy_rng = torch.Generator(device="cpu")
+         obj.kernel = AutonomousConstructionKernel(obj.builder, obj.coordinator, assets=assets,
+-            host_available_ids=obj.available_ids, source_binding=obj.binding)
++            host_available_ids=obj.available_ids, source_binding=obj.binding,
++            allowed_theme_ids=obj.binding.get("construction_theme_ids"))
+         obj.kernel.load_state_dict(state["kernel"])
+         obj.restore_rng(state["rng"]); obj._check()
+         return obj
+diff --git a/src/ygo_kito/duel_model.py b/src/ygo_kito/duel_model.py
+index 422de70..6946c13 100644
+--- a/src/ygo_kito/duel_model.py
++++ b/src/ygo_kito/duel_model.py
+@@ -109,10 +109,17 @@ class PlayerEncoder:
+                 # This is past knowledge, not a current-position/card inventory.
+                 numbers.append([0.,0.,0.,0.])
+         current_and_private_tokens = len(tokens)
++        # History is a bounded window twice over: never older than the declared
++        # event count, and never wider than the remaining token budget. Whole
++        # events are kept newest-first so a request that already fitted encodes
++        # bit-identically, while a long duel can no longer fail on its late
++        # public history alone.
++        history = []
+         for event in obs.public_history[-cfg.history_events:]:
++            block, block_numbers = [], []
+             for code in event.card_ids or (None,):
+-                tokens.append([self._card(code), ZONES.index("history"), 2, 0, 0, 0, EVENTS.index(event.kind)])
+-                numbers.append([0.] * 4)
++                block.append([self._card(code), ZONES.index("history"), 2, 0, 0, 0, EVENTS.index(event.kind)])
++                block_numbers.append([0.] * 4)
+             if event.details is not None:
+                 d = event.details
+                 # Typed facts, not raw audit records. Distinct tokens preserve
+@@ -129,12 +136,24 @@ class PlayerEncoder:
+                 payloads += [[relative(p.controller), (0 if p.zone == "none" else ZONES.index(p.zone) if p.zone != "deck" else 12)/12,
+                               0. if p.sequence is None else (p.sequence+1)/256, (p.position or 0)/15] for p in d.locations]
+                 for payload in payloads:
+-                    tokens.append([0, ZONES.index("history"), 2, 0, 0, 0, EVENTS.index(event.kind)])
+-                    numbers.append(payload)
++                    block.append([0, ZONES.index("history"), 2, 0, 0, 0, EVENTS.index(event.kind)])
++                    block_numbers.append(payload)
++            history.append((block, block_numbers))
++        budget = cfg.max_tokens - current_and_private_tokens
++        keep, used = 0, 0
++        for block, _ in reversed(history):
++            if used + len(block) > budget:
++                break
++            used += len(block)
++            keep += 1
++        for block, block_numbers in history[len(history) - keep:]:
++            tokens.extend(block)
++            numbers.extend(block_numbers)
+         if len(tokens) > cfg.max_tokens or len(request.actions) > cfg.max_actions:
+             raise ContractError("player input exceeds model token/action budget: "
+                 f"tokens={len(tokens)} limit={cfg.max_tokens}, actions={len(request.actions)} limit={cfg.max_actions}, "
+-                f"current_and_private_tokens={current_and_private_tokens}, public_history_tokens={len(tokens)-current_and_private_tokens}")
++                f"current_and_private_tokens={current_and_private_tokens}, public_history_tokens={len(tokens)-current_and_private_tokens}, "
++                f"history_events_offered={len(history)} history_events_kept={keep}")
+         p, other = obs.observer, 1 - obs.observer
+         state = [obs.life_points[p] / 8000, obs.life_points[other] / 8000,
+                  obs.hand_counts[p] / 60, obs.hand_counts[other] / 60,
+diff --git a/src/ygo_kito/scenario_course.py b/src/ygo_kito/scenario_course.py
+index 0e304b8..933f478 100644
+--- a/src/ygo_kito/scenario_course.py
++++ b/src/ygo_kito/scenario_course.py
+@@ -37,15 +37,16 @@ from .validation import ContractError, canonical_json, fields, integer
+ def validate_config(value):
+     d = fields(value, {"course_id", "period_id", "mode", "pilot_mean_seconds", "training_seeds",
+         "evaluation_pairs", "matches_per_invocation", "wall_seconds", "allocated_gpu_count", "fixed_deck",
+-        "initial_first", "evaluation_matches", "opponent_side"}, {"timing_basis", "checkpoint_policy", "data_index_storage"})
++        "initial_first", "evaluation_matches", "opponent_side"}, {"timing_basis", "checkpoint_policy", "data_index_storage", "construction_theme_ids"})
+     identifier(d["course_id"])
+     if d["period_id"] not in ("2022-07", "2022-10", "2026-10"):
+         raise ContractError("explicit supported period required")
+     if d["mode"] != ("autonomous" if d["period_id"] == "2026-10" else "fixed_theme"):
+         raise ContractError("autonomous selection is scoped to 2610; historical themes stay fixed")
+-    if (d["mode"] == "autonomous") != (d["fixed_deck"] is None):
+-        raise ContractError("autonomous mode cannot require the reference Tear deck")
+-    if d["fixed_deck"] is not None: DeckParts.from_dict(d["fixed_deck"])
++    if d["fixed_deck"] is not None:
++        raise ContractError("reference decks belong to independent evaluation, never the learner")
++    if d["mode"] == "fixed_theme" and d.get("construction_theme_ids") != ["setcode-181"]:
++        raise ContractError("historical construction requires the Pearl theme and model-generated deck")
+     checkpoint_policy(d.get("checkpoint_policy"))
+     if "data_index_storage" in d:
+         from .data_isolation import validate_storage_limits
+@@ -236,12 +237,6 @@ class ScenarioCourse:
+             "formal_training_success_verified": False, "events": deepcopy(self.events[-8:])}
+ 
+     def _construct(self, *, feedback=()):
+-        if self.config["mode"] == "fixed_theme":
+-            self.deck = DeckParts.from_dict(self.config["fixed_deck"])
+-            self.assets.validate(self.models.builder.task, self.deck)
+-            self.construction = {"kind": "preserved_historical_theme", "task_sha256": self.models.builder.task.sha256,
+-                                 "cb_verified": False}
+-            return
+         kernel = self.models.kernel
+         if self.selection is None:
+             proposals = kernel.propose_tasks()
+diff --git a/src/ygo_kito/scenario_course_host.py b/src/ygo_kito/scenario_course_host.py
+index 6cf09d9..d4e34ff 100644
+--- a/src/ygo_kito/scenario_course_host.py
++++ b/src/ygo_kito/scenario_course_host.py
+@@ -32,7 +32,7 @@ TARGETS = {"2022-07": "2022-09-30", "2022-10": "2022-12-31", "2026-10": "2026-11
+ def validate_host_spec(value):
+     d = fields(value, {"schema_version", "kind", "period_id", "selected_target_cutoff", "active_environment",
+         "native_root", "source_group", "bootstrap_task", "duel_config", "adapter_configs", "available_cards",
+-        "timing_pilot", "pilot_pairs", "bots", "course", "state_root", "resume", "device"}, {"storage_envelope"})
++        "timing_pilot", "pilot_pairs", "bots", "course", "state_root", "resume", "device"}, {"storage_envelope", "learning_stage", "initialization_mode"})
+     integer(d["schema_version"], "course host schema", 1, 1)
+     member(d["kind"], "course host kind", ("scenario-course-host-v1",))
+     member(d["period_id"], "course period", tuple(TARGETS))
+@@ -42,7 +42,15 @@ def validate_host_spec(value):
+         raise ContractError("explicit CPU or indexed CUDA course device required")
+     if type(d["resume"]) is not bool: raise ContractError("explicit resume boolean required")
+     for key in ("native_root", "state_root"): text(d[key], "explicit " + key)
+-    validate_initialization_spec(d["source_group"])
++    stage = d.get("learning_stage", "lora_adaptation")
++    member(stage, "learning stage", ("base", "lora_adaptation"))
++    mode = d.get("initialization_mode", "source_group")
++    member(mode, "initialization mode", ("source_group", "fresh"))
++    if mode == "fresh":
++        if d["source_group"] is not None or stage != "base":
++            raise ContractError("fresh initialization requires explicit base stage and no source checkpoint")
++    else:
++        validate_initialization_spec(d["source_group"])
+     for key in ("active_environment", "bootstrap_task", "duel_config", "adapter_configs", "available_cards", "course"):
+         _reference(d[key])
+     if d["timing_pilot"] is not None: _reference(d["timing_pilot"])
+@@ -169,7 +177,8 @@ def _availability(workspace, reference, assets):
+     if not isinstance(codes, list) or not codes: raise ContractError("explicit available card candidates required")
+     for code in codes: integer(code, "available card ID", 1, 2**32-1)
+     if len(codes) != len(set(codes)): raise ContractError("duplicate availability candidate")
+-    # Actual files, not a caller's claim that a missing effect script works.
++    # Match the pinned core interpreter::is_load_script: normal tuners need no
++    # Lua script; normal Pendulum monsters still do. Missing effects stay closed.
+     script_names = {p.name for p in (assets.root / "engine-src/scripts").rglob("c*.lua") if p.is_file()}
+     available, excluded = [], []
+     for code in codes:
+@@ -177,7 +186,7 @@ def _availability(workspace, reference, assets):
+         reason = ("outside_period_catalog" if code not in assets.allowed_card_ids or row is None else
+             "non_ocg_or_token" if not row["ot"] & 1 or row["type"] & 0x4000 else
+             "forbidden" if assets.limits.get(row["alias"] or code, 3) == 0 else
+-            "script_missing" if row["type"] != 17 and f"c{code}.lua" not in script_names else None)
++            "script_missing" if (not row["type"] & 0x10 or row["type"] & 0x1000000) and f"c{code}.lua" not in script_names else None)
+         if reason: excluded.append({"card_id": code, "reason": reason})
+         else: available.append(code)
+     if not available: raise ContractError("no actually available card remains")
+@@ -292,7 +301,8 @@ class ScenarioCourseHost:
+         source_binding = {"host_model_inputs_sha256": digest(model_inputs), "period_context": deepcopy(assets.period_context),
+             "selected_target_cutoff": d["selected_target_cutoff"],
+             "resources": deepcopy(assets.receipt), "availability_artifact": deepcopy(d["available_cards"]),
+-            "available_ids_sha256": digest(available)}
++            "available_ids_sha256": digest(available), "learning_stage": d.get("learning_stage", "lora_adaptation"),
++            "construction_theme_ids": course.get("construction_theme_ids")}
+         from .course_models import CourseModels
+         saved = None
+         if d["resume"]:
+@@ -305,7 +315,7 @@ class ScenarioCourseHost:
+                 {r: c.to_dict() for r, c in models.adapter_configs.items()} != {a.role: a.to_dict() for a in adapters}):
+                 raise ContractError("self-contained saved model/task/config differs from explicit host artifacts")
+         else:
+-            _bytes(w, d["source_group"])
++            if d.get("initialization_mode", "source_group") == "source_group": _bytes(w, d["source_group"])
+             models = CourseModels.initialize(task, assets, duel, adapters, workspace=w, initialization=d["source_group"],
+                 available_ids=available, source_binding=source_binding, device=d["device"])
+         from .bot_deployment import BotSourceRegistry
+diff --git a/src/ygo_kito/semantic_training.py b/src/ygo_kito/semantic_training.py
+index 526f518..30e6a1b 100644
+--- a/src/ygo_kito/semantic_training.py
++++ b/src/ygo_kito/semantic_training.py
+@@ -50,7 +50,7 @@ def validate(task,assets,data,*,for_training=True):
+         or data['unknown_routes_used_as_negative'] is not False or data['competitive_quality_labels'] is not False
+         or data['public_effect_receipts']!=assets.effect_receipts(task)):
+         raise ContractError('semantic supervision identity/source differs')
+-    if not 1<=len(array(data['goals'],'semantic goals'))<=16 or not 1<=len(array(data['pairs'],'semantic pairs'))<=8:
++    if not 1<=len(array(data['goals'],'semantic goals'))<=16 or not 0<=len(array(data['pairs'],'semantic pairs'))<=8:
+         raise ContractError('semantic supervision record budget exceeded')
+     for row in data['goals']:
+         fields(row,{'deck','label','source','evidence'});deck=DeckParts.from_dict(row['deck'])
+diff --git a/src/ygo_kito/training_pilot.py b/src/ygo_kito/training_pilot.py
+index 7ed2324..a8e89ef 100644
+--- a/src/ygo_kito/training_pilot.py
++++ b/src/ygo_kito/training_pilot.py
+@@ -124,6 +124,42 @@ def validate_pilot_spec(value):
+     return deepcopy(d)
+ 
+ 
++def _check_foundation_source_compatibility(workspace, report, row, adapter, definition, options, variant):
++    """Retain the original normal-game proof across explicit non-driver source edits.
++    No normal-game result, actor/deck/tool/assembly field, or original binding is rewritten.
++    """
++    from .validation import parse_json
++    compat = row.get("foundation_source_compatibility")
++    if not isinstance(compat, dict) or compat.get("kind") != "non-driver-foundation-source-compatibility-v1" or compat.get("normal_game_reexecuted") is not False:
++        raise ContractError("qualification runtime binding changed; explicit source compatibility receipt required")
++    _, raw = _bytes(Path(workspace), compat["original_qualification"])
++    original = parse_json(raw.decode("utf-8"))
++    stripped = dict(report, rows=[{k:v for k,v in r.items() if k != "foundation_source_compatibility"} for r in report["rows"]])
++    if stripped != original:
++        raise ContractError("source compatibility must preserve the exact original normal-game report")
++    old_map, current_map = compat["original_source_map"], compat["current_source_map"]
++    actual = source_tree_snapshot(Path(__file__).resolve().parent)
++    permitted = {"construction_fill.py", "autonomous_construction.py", "course_feedback.py", "course_models.py", "scenario_course.py", "scenario_course_host.py", "semantic_training.py", "training_scenarios.py", "training_pilot.py"}
++    if set(old_map) != set(actual) or current_map != actual:
++        raise ContractError("source compatibility cannot change module membership or omit current sources")
++    changed = {k for k in actual if old_map[k] != actual[k]}
++    if not changed or not changed <= permitted or sorted(changed) != compat["changed_files"]:
++        raise ContractError("qualification compatibility is restricted to explicit foundation/controller edits")
++    old_binding = compat["original_binding"]
++    if digest(old_binding) != row["binding_sha256"] or compat["current_binding"] != adapter.binding:
++        raise ContractError("qualification compatibility lacks exact old/current binding preimages")
++    if ({k:v for k,v in old_binding.items() if k != "driver_implementation_sha256"} !=
++            {k:v for k,v in adapter.binding.items() if k != "driver_implementation_sha256"}):
++        raise ContractError("bot/deck/resource/profile/tool identity changed; source compatibility cannot admit it")
++    _, audit_raw = _bytes(Path(workspace), options["audit"] if "audit" in options else
++        {"path": str(options["build_audit_path"]), "sha256": options["build_audit_sha256"]})
++    audit = parse_json(audit_raw.decode("utf-8"))
++    material = {"source": definition["sha256"], "assembly": audit["assembly_sha256"],
++                **({"variant": variant} if variant is not None else {})}
++    if (old_binding["driver_implementation_sha256"] != digest(dict(material, python_modules=old_map)) or
++            adapter.binding["driver_implementation_sha256"] != digest(dict(material, python_modules=current_map))):
++        raise ContractError("qualification implementation digests do not match the unchanged real bot and source maps")
++
+ def _check_qualification(workspace, case, profile, registry, adapter, adapter_options):
+     """Verify an existing real normal-game receipt against today's exact host.
+ 
+@@ -186,8 +222,10 @@ def _check_qualification(workspace, case, profile, registry, adapter, adapter_op
+     options.update(environment_id="bot-current-engineering-qualification", opponent_id="qual-" + row["bot_id"][:32],
+                    source="engineering_fixture", session_seconds=seconds)
+     qualified_adapter = registry.training_adapter(case["executor_id"], **options)
+-    if not isinstance(qualified_adapter, WindBotOpponent) or digest(qualified_adapter.binding) != row["binding_sha256"]:
+-        raise ContractError("qualification runtime binding changed (source/implementation/audit/tools/profile)")
++    if not isinstance(qualified_adapter, WindBotOpponent):
++        raise ContractError("qualification requires the actual WindBot implementation")
++    if digest(qualified_adapter.binding) != row["binding_sha256"]:
++        _check_foundation_source_compatibility(workspace, report, row, qualified_adapter, definition, adapter_options, variant)
+     qualified_adapter.assert_runtime(options["native_root"], profile, case["actor_seat"])
+ 
+ 
+diff --git a/src/ygo_kito/training_scenarios.py b/src/ygo_kito/training_scenarios.py
+index e25db07..1227e9d 100644
+--- a/src/ygo_kito/training_scenarios.py
++++ b/src/ygo_kito/training_scenarios.py
+@@ -126,10 +126,11 @@ def validate_scenarios(config):
+     if set(periods) != {"2022-07", "2022-10", "2026-10"}:
+         raise ContractError("all three periods must retain separate scenarios")
+     for period, slot, cutoff in (("2022-07", "main-01", "2022-09-30"), ("2022-10", "main-02", "2022-12-31")):
+-        row = fields(periods[period], {"construction_mode", "main_slot", "release_cutoff", "acceptance"})
++        row = fields(periods[period], {"construction_mode", "main_slot", "reference_slot", "fixed_theme", "user_deck_role", "release_cutoff", "acceptance"})
+         a = fields(row["acceptance"], {"kind", "source", "metric_unit", "external_at_least", "mirror_target", "mirror_tolerance",
+              "frozen_external_bo3_min", "frozen_mirror_bo3_min", "confidence_level", "confidence_decision_rule", "draw_and_repeated_observation_rule"})
+-        if (row.get("construction_mode") != "existing_tearlaments_reference" or row.get("main_slot") != slot or
++        if (row.get("construction_mode") != "model_generated_fixed_tearlaments_theme" or row.get("main_slot") is not None or
++            row.get("reference_slot") != slot or row.get("fixed_theme") != "tearlaments" or row.get("user_deck_role") != "independent_reference_evaluation_only" or
+             row.get("release_cutoff") != cutoff or a.get("kind") != "legacy_reference_bo3" or
+             a.get("metric_unit") != "bo3_match_with_siding" or a.get("external_at_least") != .6 or
+             a.get("mirror_target") != .5 or a.get("frozen_external_bo3_min") != 200 or

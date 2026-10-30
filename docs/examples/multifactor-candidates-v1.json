@@ -1,0 +1,66 @@
+{
+  "schema_version": "multifactor-candidates-v1",
+  "candidates": [
+    {
+      "candidate_ref": "synthetic-interaction-package",
+      "target_key": "candidate-package",
+      "recall_source": "synthetic interaction-gap recall; no real card pool",
+      "legality": "unknown",
+      "legality_ref": "",
+      "example": {
+        "schema_version": "multifactor-input-v1",
+        "context_ref": "synthetic-goal-and-resource-protocol-v1",
+        "context": {
+          "family": "context",
+          "observations": {
+            "goal_engine_weight": {"value": 0.8, "confidence": 1, "uncertainty": 0, "source": "synthetic scenario"},
+            "goal_interaction_weight": {"value": 0.6, "confidence": 1, "uncertainty": 0, "source": "synthetic scenario"},
+            "remaining_main_space": {"value": 0.1, "confidence": 1, "uncertainty": 0, "source": "synthetic scenario: six slots / 60"},
+            "interaction_gap": {"value": 0.8, "confidence": 1, "uncertainty": 0, "source": "synthetic scenario"}
+          }
+        },
+        "groups": [
+          {
+            "key": "existing-core",
+            "factors": {
+              "family": "group",
+              "observations": {
+                "activation_access": {"value": 0.7, "confidence": 1, "uncertainty": 0, "source": "synthetic observation"},
+                "goal_contribution": {"value": 0.8, "confidence": 1, "uncertainty": 0, "source": "synthetic observation"}
+              }
+            },
+            "member_refs": ["synthetic-mechanism-A"],
+            "notes": ["Artificial partial construction; no real cards or role truth"]
+          },
+          {
+            "key": "candidate-package",
+            "factors": {
+              "family": "group",
+              "observations": {
+                "activation_access": {"value": 0.6, "confidence": 1, "uncertainty": 0, "source": "synthetic observation"},
+                "goal_contribution": {"value": 0.5, "confidence": 1, "uncertainty": 0, "source": "synthetic observation"},
+                "summon_lock_risk": {"value": null, "confidence": 0, "uncertainty": 1, "source": "synthetic not-yet-reviewed lock"},
+                "main_space": {"value": 0.05, "confidence": 1, "uncertainty": 0, "source": "synthetic observation: three slots / 60"},
+                "external_dependency": {"value": 0.3, "confidence": 1, "uncertainty": 0, "source": "synthetic observation"}
+              }
+            },
+            "member_refs": ["synthetic-mechanism-B"],
+            "notes": ["Role probabilities will be untrained diagnostics; unknown lock is deliberate"]
+          }
+        ],
+        "relations": [
+          {
+            "source": "existing-core",
+            "target": "candidate-package",
+            "factors": {
+              "family": "relation",
+              "observations": {
+                "enables": {"value": 0.7, "confidence": 1, "uncertainty": 0, "source": "synthetic relationship"}
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

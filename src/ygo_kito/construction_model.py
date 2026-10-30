@@ -6,7 +6,6 @@ position and kind projections, with no new network or card-embedding remapping.
 """
 from dataclasses import asdict
 from copy import deepcopy
-from itertools import islice, permutations
 import hashlib
 import math
 from pathlib import Path
@@ -15,6 +14,7 @@ import torch
 from torch.nn import functional as F
 
 from .build_contracts import digest
+from .construction_candidates import evidence_order, graph_signature, rejected_binding
 from .construction_logic import ConstructionLogic, LogicConnector, LogicMetadata, LogicNode, LogicTag
 from .duel_model import parameter_digest
 from .device import (model_device, execution_metadata, checkpoint_execution, optimizer_to,
@@ -74,50 +74,67 @@ class LogicCodec:
         return cls(tuple(LogicTag.from_dict(t) for t in array(d["tags"], "tags")), tuple(array(d["connector_kinds"], "connector kinds")))
 
 
-def rule_graph_candidates(context, codec, *, limit=8):
-    """Explicit program proposals, selected by the goal/optimizer model later.
+def logic_requirements(codec, tags=(), connector_kinds=()):
+    """Requested features are independent of the available evidence vocabulary."""
+    tags=tuple(sorted(set(tags),key=lambda t:(t.dimension,t.value)))
+    kinds=tuple(sorted(set(connector_kinds)))
+    if any(not isinstance(t,LogicTag) for t in tags) or not set(tags)<=set(codec.tags):
+        raise ContractError("requested logic tags must have an explicit codec entry")
+    if len(tags)>8 or not set(kinds)<=set(codec.kinds):
+        raise ContractError("requested graph features exceed the bounded vocabulary")
+    return {"tags":[asdict(t) for t in tags],"connector_kinds":list(kinds)}
 
-    Every vocabulary tag is a required requested feature. Candidate order/edges
-    vary; no topic enumeration and no exact card binding are used here.
-    """
+
+def rule_graph_candidates(context, codec, *, required_tags=(), required_connector_kinds=(), limit=8):
+    """Retain different resource/topology plans, not permutations of one chain."""
     integer(limit, "graph candidates", 2, 16)
-    previous = ConstructionLogic.from_dict(context["logic"]) if context.get("logic") else None
-    ident = previous.logic_id if previous else "logic-" + context["goal_sha256"][:16]
-    revision, parent = (previous.revision + 1, previous.sha256) if previous else (0, None)
-    tags = codec.tags
-    if len(tags) > 8:
-        raise ContractError("bounded graph proposal supports at most eight requested tags")
-    proposals = []
-    if previous:
-        # The existing proposal is one option, with a new explicit revision.
-        raw = previous.to_dict(); raw.update(revision=revision, parent_sha256=parent)
+    requirements=logic_requirements(codec,required_tags,required_connector_kinds)
+    requested=tuple(LogicTag.from_dict(t) for t in requirements["tags"])
+    kinds=tuple(requirements["connector_kinds"])
+    # An unspecified feature is an optional program proposal, not a new request.
+    tags=requested or codec.tags[:1]
+    previous=ConstructionLogic.from_dict(context["logic"]) if context.get("logic") else None
+    ident=previous.logic_id if previous else "logic-"+context["goal_sha256"][:16]
+    revision,parent=(previous.revision+1,previous.sha256) if previous else (0,None)
+    def covers(graph):
+        return (set(requested)<={t for n in graph.nodes for t in n.tags}
+                and set(kinds)<={e.kind for e in graph.connectors})
+    proposals=[]
+    if previous and covers(previous):
+        raw=previous.to_dict();raw.update(revision=revision,parent_sha256=parent)
         proposals.append(ConstructionLogic.from_dict(raw))
-    # Grouped and distributed views give a candidate even for one requested tag.
-    metadata = (LogicMetadata("rule-candidate-generator-v1", "engineering", "Program proposal; model ranking is separate."),)
-    proposals.append(ConstructionLogic(ident, (LogicNode("goal", tags, metadata),), (), ("goal",), ("goal",), revision, parent))
-    orders = list(islice(permutations(tags), min(6, limit)))
-    for order in orders:
-        nodes = tuple(LogicNode("n" + str(i), (tag,), metadata) for i, tag in enumerate(order))
-        # A role node is unnecessary: duplicate the feature to expose a coarse
-        # connector choice for a one-feature request, without adding a new goal.
-        if len(nodes) == 1:
-            nodes += (LogicNode("n1", nodes[0].tags, metadata),)
-        for kind in codec.kinds:
-            edges = tuple(LogicConnector("e" + str(i), nodes[i].node_id, nodes[i+1].node_id, kind) for i in range(len(nodes)-1))
-            proposals.append(ConstructionLogic(ident, nodes, edges, (nodes[0].node_id,), (nodes[-1].node_id,), revision, parent))
-            if len(proposals) >= limit:
-                break
-        if len(proposals) >= limit:
-            break
-    # A branch/merge proposal is an ordinary coarse graph, not a legal CB.
-    if len(tags) >= 3:
-        nodes = tuple(LogicNode("n"+str(i), (tag,), metadata) for i,tag in enumerate(tags))
-        pairs = [(0,1), (0,2), (1,len(nodes)-1), (2,len(nodes)-1)] if len(nodes)>3 else [(0,1),(0,2),(1,2)]
-        graph = ConstructionLogic(ident, nodes, tuple(LogicConnector("b"+str(i), nodes[a].node_id, nodes[b].node_id, codec.kinds[0])
-            for i,(a,b) in enumerate(pairs)), ("n0",), (nodes[-1].node_id,), revision, parent)
-        proposals[-1] = graph
-    unique = {g.sha256: g for g in proposals}
-    return list(unique.values())[:limit]
+    metadata=(LogicMetadata("rule-candidate-generator-v1","engineering","Program proposal; model ranking is separate."),)
+    edge_kinds=kinds or codec.kinds[:1]
+    def make(node_tags, pairs, entries, goals):
+        nodes=tuple(LogicNode("n"+str(i),tuple(t),metadata) for i,t in enumerate(node_tags))
+        edges=tuple(LogicConnector("e"+str(i),nodes[a].node_id,nodes[b].node_id,
+                                  edge_kinds[i%len(edge_kinds)]) for i,(a,b) in enumerate(pairs))
+        return ConstructionLogic(ident,nodes,edges,tuple(nodes[i].node_id for i in entries),
+                                 tuple(nodes[i].node_id for i in goals),revision,parent)
+    serial=[(t,) for t in tags]
+    while len(serial)<max(2,len(kinds)+1):serial.append(serial[-1])
+    proposals.append(make(serial,[(i,i+1) for i in range(len(serial)-1)],[0],[len(serial)-1]))
+    if not kinds:
+        proposals.append(make([tags],[],[0],[0]))
+    # One shared entry with independent resource branches and a merge, versus
+    # independent entries that feed a shared goal. These are coarse hypotheses.
+    branches=[(tags[0],),*((t,) for t in tags), (tags[-1],)]
+    end=len(branches)-1
+    proposals.append(make(branches,[(0,i) for i in range(1,end)]+[(i,end) for i in range(1,end)],[0],[end]))
+    if len(tags)>1:
+        merge=[(t,) for t in tags]+[(tags[-1],)]
+        proposals.append(make(merge,[(i,len(tags)) for i in range(len(tags))],list(range(len(tags))),[len(tags)]))
+    for optional in (t for t in codec.tags if t not in tags):
+        # Alternative support resources change the plan's content as well as
+        # topology. They never become new required user features.
+        optional_nodes=serial+[(optional,)]
+        n=len(serial)
+        proposals.append(make(optional_nodes,[(i,i+1) for i in range(n-1)]+[(0,n),(n,n-1)],[0],[n-1]))
+        if len(proposals)>=limit+2:break
+    distinct={}
+    for graph in proposals:
+        if covers(graph):distinct.setdefault(graph_signature(graph),graph)
+    return list(distinct.values())[:limit]
 
 
 def _numbers(value):
@@ -169,7 +186,7 @@ class LogicFeatureEncoder:
 
 
 class LogicModelAdapter:
-    def __init__(self, task, models, deck_encoder, codec, *, optimizers=None, learning_rate=.001):
+    def __init__(self, task, models, deck_encoder, codec, *, optimizers=None, learning_rate=.001, required_tags=(), required_connector_kinds=()):
         from .build_model import BuildRanker
         if set(models)!=set(ROLES) or any(not isinstance(m,BuildRanker) for m in models.values()):
             raise ContractError("existing independent BuildRanker roles required")
@@ -181,6 +198,8 @@ class LogicModelAdapter:
         if any(model_device(model) != self.device for model in models.values()):
             raise ContractError("graph role models require one execution device")
         self.codec_sha256=digest(codec.to_dict())
+        self.required_tags=tuple(required_tags);self.required_connector_kinds=tuple(required_connector_kinds)
+        self.requirements_sha256=digest(self.requirements())
         self.encoder=LogicFeatureEncoder(codec,deck_encoder.config.max_tokens)
         if type(learning_rate) not in (int,float) or not math.isfinite(learning_rate) or not 0<learning_rate<=.01:
             raise ContractError("graph learning rate outside CPU range")
@@ -197,8 +216,16 @@ class LogicModelAdapter:
         self.updates={r:0 for r in ROLES}; self.last_selection={}
 
     @classmethod
-    def from_builder(cls, builder, codec):
-        return cls(builder.task,builder.models,builder.encoder,codec,optimizers=builder.optimizers)
+    def from_builder(cls, builder, codec, *, required_tags=(), required_connector_kinds=()):
+        return cls(builder.task,builder.models,builder.encoder,codec,optimizers=builder.optimizers,
+                   required_tags=required_tags,required_connector_kinds=required_connector_kinds)
+
+    def requirements(self):
+        return logic_requirements(self.codec,self.required_tags,self.required_connector_kinds)
+
+    def candidates(self, context):
+        return rule_graph_candidates(context,self.codec,required_tags=self.required_tags,
+                                     required_connector_kinds=self.required_connector_kinds)
 
     def _check(self, context, graphs):
         if digest(self.codec.to_dict())!=self.codec_sha256:
@@ -206,10 +233,14 @@ class LogicModelAdapter:
         if (digest(context["task"]) != self.task.sha256 or context["role"] not in ROLES
                 or digest({"request":context["request"],"task":context["task"]}) != context["goal_sha256"]):
             raise ContractError("graph context changed original concrete task")
-        required=set(self.codec.tags)
+        if digest(self.requirements())!=self.requirements_sha256:
+            raise ContractError("requested logic features changed")
+        required=set(self.required_tags)
         for graph in graphs:
             if not required <= {t for n in graph.nodes for t in n.tags}:
                 raise ContractError("graph candidate drops a requested feature")
+            if not set(self.required_connector_kinds)<={e.kind for e in graph.connectors}:
+                raise ContractError("graph candidate drops a requested coarse connection")
             if context.get("logic"):
                 old=ConstructionLogic.from_dict(context["logic"])
                 if graph.parent_sha256!=old.sha256 or graph.revision!=old.revision+1 or graph.logic_id!=old.logic_id:
@@ -225,13 +256,29 @@ class LogicModelAdapter:
         return values
 
     def propose(self, context):
-        candidates=rule_graph_candidates(context,self.codec)
-        scores=self.scores(context,candidates); index=max(range(len(scores)),key=lambda i:scores[i])
+        candidates=self.candidates(context)
+        scores=self.scores(context,candidates)
+        preference=evidence_order(context.get("attributed_feedback",()),self.task.sha256,"graph")
+        eligible=list(range(len(scores)))
+        failed = context.get("logic") and rejected_binding(context.get("attributed_feedback",()),self.task.sha256,context["logic"])
+        if failed:
+            # A source-bound concrete binding failed. Explore another plan;
+            # neither a graph quality label nor goal impossibility follows.
+            alternatives=[i for i in eligible if graph_signature(candidates[i])!=graph_signature(context["logic"])]
+            if alternatives:eligible=alternatives
+        index=max(eligible,key=lambda i:(preference.get(graph_signature(candidates[i]),0),scores[i]))
         graph=candidates[index]
         self.last_selection[context["role"]]={"candidate_generation":"bounded_program_graphs", "selection":"existing_BuildRanker",
             "scores":scores,"selected_index":index,"model_sha256":parameter_digest(self.models[context["role"]]),
             "graph_training_updates":self.updates[context["role"]],"graph_sha256":graph.sha256,
-            "required_tags":[asdict(t) for t in self.codec.tags],"codec_sha256":self.codec_sha256,"feature_version":FEATURE_VERSION}
+            "required_tags":self.requirements()["tags"],"required_connector_kinds":list(self.required_connector_kinds),
+            "requirements_sha256":self.requirements_sha256,"codec_sha256":self.codec_sha256,"feature_version":FEATURE_VERSION}
+        self.last_selection[context["role"]].update(
+            graph_role_update_count=self.updates[context["role"]],
+            candidates=[{"logic":g.to_dict(),"signature":graph_signature(g),"score_uncalibrated":score}
+                        for g,score in zip(candidates,scores)],
+            feedback_attribution="whole_measured_candidate_not_graph_causality")
+        self.last_selection[context["role"]]["binding_counterexample_exploration"]=bool(failed)
         return {"logic":self.codec.decode(self.codec.encode(graph)).to_dict(),
                 "reason":"Existing role model selected a bounded program graph; scores are uncalibrated."}
 
@@ -258,7 +305,7 @@ class LogicModelAdapter:
 
     def save(self, path):
         if digest(self.codec.to_dict())!=self.codec_sha256:raise ContractError("requested logic vocabulary changed")
-        state={"kind":FEATURE_VERSION,"task_sha256":self.task.sha256,"codec":self.codec.to_dict(),
+        state={"kind":FEATURE_VERSION,"task_sha256":self.task.sha256,"codec":self.codec.to_dict(),"requirements":self.requirements(),
                "execution":execution_metadata(self.device),"device_rng":capture_device_rng(self.device),
                "deck_vocabulary_sha256":self.deck_encoder.vocabulary_sha256,
                "config":asdict(self.deck_encoder.config),"updates":self.updates,
@@ -270,10 +317,10 @@ class LogicModelAdapter:
     def load(self, path):
         if digest(self.codec.to_dict())!=self.codec_sha256:raise ContractError("requested logic vocabulary changed")
         state=torch.load(path,map_location="cpu",weights_only=True)
-        fields(state,{"kind","task_sha256","codec","deck_vocabulary_sha256","config","updates","models","model_hashes","optimizers"},{"execution","device_rng"})
+        fields(state,{"kind","task_sha256","codec","requirements","deck_vocabulary_sha256","config","updates","models","model_hashes","optimizers"},{"execution","device_rng"})
         checkpoint_execution(state,self.device)
         if any(state.get(k)!=v for k,v in {"kind":FEATURE_VERSION,"task_sha256":self.task.sha256,
-            "codec":self.codec.to_dict(),"deck_vocabulary_sha256":self.deck_encoder.vocabulary_sha256,"config":asdict(self.deck_encoder.config)}.items()):
+            "codec":self.codec.to_dict(),"requirements":self.requirements(),"deck_vocabulary_sha256":self.deck_encoder.vocabulary_sha256,"config":asdict(self.deck_encoder.config)}.items()):
             raise ContractError("graph checkpoint task/codec/model vocabulary differs")
         fields(state["updates"],set(ROLES))
         for key in ("models","model_hashes","optimizers"):fields(state[key],set(ROLES))

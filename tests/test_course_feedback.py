@@ -74,18 +74,27 @@ class CourseFeedbackTests(unittest.TestCase):
             task=BuildTask.from_dict(selection["task"])
             data=deepcopy(artifact["payload"]);data["task_sha256"]=task.sha256
             data["public_effect_receipts"]=assets.effect_receipts(task)
-            for row in data["goals"]:
-                if row["label"]==1:row["evidence"]=proof(task,DeckParts.from_dict(row["deck"]),assets)
+            from tests.test_effect_construction_integration import legal_base
+            selected=legal_base(task,assets)
+            data['goals'][0].update(deck=selected.to_dict(),evidence=proof(task,selected,assets))
+            data['goals'][1]['deck']=DeckParts(selected.main[:-1],selected.extra,selected.side).to_dict()
+            # A newly selected pool is a distinct task. Its constraint label
+            # does not inherit another task's decks or preference ordering.
+            data['pairs']=[]
             data["supervision_sha256"]=digest(supervision_projection(data))
             index.freeze({"dataset_id":"selected-data","experiment_id":"feedback-experiment","purpose":"train",
                 "family":"construction","versions":task.environment["versions"],"opponents":[],"task_sha256":task.sha256})
             selected_artifact=index.ingest_construction("selected-data","selected-record",task,assets,data,seeds=())
             updater=CourseFeedbackUpdater(models,index,"feedback-experiment")
             a=updater.apply_task_preference("task-choice","selected-record",proposals,selection["candidate_id"])
+            self.assertEqual(models.kernel.graph_updates["build_goal"],0)
             b=updater.apply_graph_preference("graph-choice","selected-record",selection,0,role="build_goal")
             self.assertNotEqual(a["before_sha256"],a["after_sha256"])
             self.assertNotEqual(b["before_sha256"],b["after_sha256"])
             self.assertEqual(models.kernel.updates["build_goal"],2)
+            self.assertEqual(models.kernel.graph_updates["build_goal"],1)
+            state=models.kernel.state_dict();models.kernel.load_state_dict(state)
+            self.assertEqual(models.kernel.graph_updates["build_goal"],1)
             self.assertEqual(models.sessions["build_goal"].updates,2)
             self.assertEqual(selected_artifact["purpose"],"train")
             with self.assertRaises(ContractError):updater.apply_task_preference("wrong-task","feedback-record",proposals,selection["candidate_id"])

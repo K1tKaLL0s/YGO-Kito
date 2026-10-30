@@ -57,6 +57,19 @@ class DecodedPrompt:
     selection_choices: tuple = ()
 
 
+def public_operation(request, action):
+    """Interpret a public effect confirmation without changing wire DTO kinds.
+
+    SELECT_EFFECTYN identifies a particular effect. Generic SELECT_YESNO
+    answers (including anonymous confirmations) establish no activation.
+    """
+    if request.search_choices and action.kind == 'select':return 'search'
+    if (action.kind == 'yes' and request.prompt and request.prompt.message == 12 and
+            action.card_refs and action.details and action.details.description is not None):
+        return 'activate'
+    return action.kind
+
+
 def visible_ref(player, controller, location, sequence, subsequence=None):
     if controller not in (0, 1) or (location == 2 and controller != player):
         raise NativeError("selection outside player-visible hand")

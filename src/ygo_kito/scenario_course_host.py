@@ -32,7 +32,7 @@ TARGETS = {"2022-07": "2022-09-30", "2022-10": "2022-12-31", "2026-10": "2026-11
 def validate_host_spec(value):
     d = fields(value, {"schema_version", "kind", "period_id", "selected_target_cutoff", "active_environment",
         "native_root", "source_group", "bootstrap_task", "duel_config", "adapter_configs", "available_cards",
-        "timing_pilot", "pilot_pairs", "bots", "course", "state_root", "resume", "device"}, {"storage_envelope"})
+        "timing_pilot", "pilot_pairs", "bots", "course", "state_root", "resume", "device"}, {"storage_envelope", "learning_stage", "initialization_mode", "coordinator_mechanism_inputs"})
     integer(d["schema_version"], "course host schema", 1, 1)
     member(d["kind"], "course host kind", ("scenario-course-host-v1",))
     member(d["period_id"], "course period", tuple(TARGETS))
@@ -42,7 +42,20 @@ def validate_host_spec(value):
         raise ContractError("explicit CPU or indexed CUDA course device required")
     if type(d["resume"]) is not bool: raise ContractError("explicit resume boolean required")
     for key in ("native_root", "state_root"): text(d[key], "explicit " + key)
-    validate_initialization_spec(d["source_group"])
+    stage = d.get("learning_stage", "lora_adaptation")
+    member(stage, "learning stage", ("base", "lora_adaptation"))
+    mode = d.get("initialization_mode", "source_group")
+    member(mode, "initialization mode", ("source_group", "fresh"))
+    mechanisms = d.get("coordinator_mechanism_inputs", False)
+    if type(mechanisms) is not bool or mechanisms and stage != "base":
+        raise ContractError("mechanism coordinator is an explicit base-course input policy")
+    if mechanisms and not d["resume"] and mode != "fresh":
+        raise ContractError("old coordinator weights require explicit mechanism migration, not host initialization")
+    if mode == "fresh":
+        if d["source_group"] is not None or stage != "base":
+            raise ContractError("fresh initialization requires explicit base stage and no source checkpoint")
+    else:
+        validate_initialization_spec(d["source_group"])
     for key in ("active_environment", "bootstrap_task", "duel_config", "adapter_configs", "available_cards", "course"):
         _reference(d[key])
     if d["timing_pilot"] is not None: _reference(d["timing_pilot"])
@@ -169,7 +182,8 @@ def _availability(workspace, reference, assets):
     if not isinstance(codes, list) or not codes: raise ContractError("explicit available card candidates required")
     for code in codes: integer(code, "available card ID", 1, 2**32-1)
     if len(codes) != len(set(codes)): raise ContractError("duplicate availability candidate")
-    # Actual files, not a caller's claim that a missing effect script works.
+    # Match the pinned core interpreter::is_load_script: normal tuners need no
+    # Lua script; normal Pendulum monsters still do. Missing effects stay closed.
     script_names = {p.name for p in (assets.root / "engine-src/scripts").rglob("c*.lua") if p.is_file()}
     available, excluded = [], []
     for code in codes:
@@ -177,7 +191,7 @@ def _availability(workspace, reference, assets):
         reason = ("outside_period_catalog" if code not in assets.allowed_card_ids or row is None else
             "non_ocg_or_token" if not row["ot"] & 1 or row["type"] & 0x4000 else
             "forbidden" if assets.limits.get(row["alias"] or code, 3) == 0 else
-            "script_missing" if row["type"] != 17 and f"c{code}.lua" not in script_names else None)
+            "script_missing" if (not row["type"] & 0x10 or row["type"] & 0x1000000) and f"c{code}.lua" not in script_names else None)
         if reason: excluded.append({"card_id": code, "reason": reason})
         else: available.append(code)
     if not available: raise ContractError("no actually available card remains")
@@ -292,7 +306,12 @@ class ScenarioCourseHost:
         source_binding = {"host_model_inputs_sha256": digest(model_inputs), "period_context": deepcopy(assets.period_context),
             "selected_target_cutoff": d["selected_target_cutoff"],
             "resources": deepcopy(assets.receipt), "availability_artifact": deepcopy(d["available_cards"]),
-            "available_ids_sha256": digest(available)}
+            "available_ids_sha256": digest(available), "learning_stage": d.get("learning_stage", "lora_adaptation"),
+            "basic_cb_stage": "after_construction",
+            "construction_theme_ids": course.get("construction_theme_ids")}
+        # Do not inject a default False into legacy host inputs or bindings.
+        if "coordinator_mechanism_inputs" in d:
+            source_binding["coordinator_mechanism_inputs"] = d["coordinator_mechanism_inputs"]
         from .course_models import CourseModels
         saved = None
         if d["resume"]:
@@ -305,7 +324,7 @@ class ScenarioCourseHost:
                 {r: c.to_dict() for r, c in models.adapter_configs.items()} != {a.role: a.to_dict() for a in adapters}):
                 raise ContractError("self-contained saved model/task/config differs from explicit host artifacts")
         else:
-            _bytes(w, d["source_group"])
+            if d.get("initialization_mode", "source_group") == "source_group": _bytes(w, d["source_group"])
             models = CourseModels.initialize(task, assets, duel, adapters, workspace=w, initialization=d["source_group"],
                 available_ids=available, source_binding=source_binding, device=d["device"])
         from .bot_deployment import BotSourceRegistry

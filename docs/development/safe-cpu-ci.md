@@ -23,3 +23,9 @@ stage2 四模型 group runner 已有宿主配方显式选择 CPU/CUDA 的代码�
 本地测试回执会记录实际 Python/Torch/Numpy 版本，不能把既有云端 Torch2.14.1 的结果称为这个2.9.1锁的重建结果。源码与CI配置本地通过，也不能称远端Actions通过；以对应提交的实际workflow结果为准。收据 `ci_verified:false` 保持这一边界，平台的workflow结论另行核对。
 
 依据：[GitHub workflow语法](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax)、[完整历史检出](https://github.com/actions/checkout)、[Python依赖缓存](https://github.com/actions/setup-python)、[PyTorch官方CPU安装](https://pytorch.org/get-started/previous-versions/)。
+
+## 2026-10-30 publication coverage
+
+The explicit allowlist now includes course admission, controlled CB setup (fake library only), prospective 20/50 feedback, mechanism recall, reference scoring and the optional multifactor module. The private reference audit test remains a separately named class and requires local reports; public CI excludes it and does not upload reference reports.
+
+The native byte audit also accepts the exact reviewed `da1dd3a` conditional-CB setup implementation. This extension validates a 1–5-card own-hand inventory and preserves the default shuffled five-card setup; ABI declarations, callbacks and response handling are unchanged. Its complete bytes are pinned alongside the original DP implementation and period hook. Any further native or guard change is still rejected. This static review and the fake-library setup tests do not execute the native core.

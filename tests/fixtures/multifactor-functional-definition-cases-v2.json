@@ -1,0 +1,326 @@
+{
+  "kind": "definition_development_only_not_independent_evaluation",
+  "checked_on": "2026-10-28",
+  "period_status": "unknown historical eligibility; current official English text only",
+  "records": [
+    {
+      "schema_version": "multifactor-annotation-v2",
+      "record_id": "user-definition-joint",
+      "example": {
+        "schema_version": "multifactor-input-v2",
+        "context_ref": "definition-gamma-response-current-text-only",
+        "context": {
+          "family": "context",
+          "observations": {}
+        },
+        "groups": [
+          {
+            "key": "joint",
+            "factors": {
+              "family": "group",
+              "observations": {}
+            },
+            "member_refs": [
+              "official-db:12070",
+              "official-db:12067"
+            ],
+            "notes": [
+              "Definition/development case approved by user; not independent evaluation; historical OCG eligibility unknown"
+            ],
+            "unit": {
+              "key": "gamma-driver-declared-response",
+              "context_ref": "definition-gamma-response-current-text-only",
+              "function_ref": "the discussed reactive monster-activation negation/destruction function",
+              "roots": [
+                {
+                  "ref": "official-db:12070",
+                  "quantity": 1
+                }
+              ],
+              "dependencies": [
+                {
+                  "owner": "official-db:12070",
+                  "required": [
+                    {
+                      "ref": "official-db:12067",
+                      "quantity": 1
+                    }
+                  ],
+                  "source": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12070&ope=2&request_locale=en"
+                }
+              ],
+              "reviewed_members": [
+                "official-db:12070",
+                "official-db:12067"
+              ],
+              "conditions": [
+                {
+                  "key": "opponent activates monster effect",
+                  "status": "satisfied",
+                  "source": "development scenario assumption; no engine run"
+                },
+                {
+                  "key": "self controls no monsters",
+                  "status": "satisfied",
+                  "source": "development scenario assumption; no engine run"
+                },
+                {
+                  "key": "initiator in hand",
+                  "status": "satisfied",
+                  "source": "development scenario assumption; no engine run"
+                },
+                {
+                  "key": "required companion reachable from hand/deck/grave",
+                  "status": "satisfied",
+                  "source": "development scenario assumption; no engine run"
+                },
+                {
+                  "key": "activation window and summon space permit the declared action",
+                  "status": "satisfied",
+                  "source": "development scenario assumption; no engine run"
+                }
+              ],
+              "source": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12070&ope=2&request_locale=en",
+              "period_ref": null,
+              "function_tags": [
+                "negate_activation",
+                "destroy"
+              ]
+            }
+          }
+        ],
+        "relations": []
+      },
+      "target_key": "joint",
+      "role_labels": [
+        null,
+        null,
+        null,
+        null,
+        1
+      ],
+      "source_refs": [
+        "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12070&ope=2&request_locale=en",
+        "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12067&ope=2&request_locale=en",
+        "user-approved-definition:Sentinel_3f32243d70588191a2fb1d7e0cf89dfe"
+      ],
+      "period_ref": null,
+      "annotator_ref": "user concept calibration; developer structuring",
+      "partition": "development",
+      "definition_case": true,
+      "label_protocol_sha256": "8a1e7a02ed13e34d7c546c6e5ffe1b5e60d7debeebc35ab29066f2611383cd1a"
+    },
+    {
+      "schema_version": "multifactor-annotation-v2",
+      "record_id": "user-definition-initiator-alone",
+      "example": {
+        "schema_version": "multifactor-input-v2",
+        "context_ref": "definition-gamma-response-current-text-only",
+        "context": {
+          "family": "context",
+          "observations": {}
+        },
+        "groups": [
+          {
+            "key": "initiator-alone",
+            "factors": {
+              "family": "group",
+              "observations": {}
+            },
+            "member_refs": [
+              "official-db:12070"
+            ],
+            "notes": [
+              "Definition/development case approved by user; not independent evaluation; historical OCG eligibility unknown"
+            ],
+            "unit": {
+              "key": "gamma-driver-declared-response",
+              "context_ref": "definition-gamma-response-current-text-only",
+              "function_ref": "the discussed reactive monster-activation negation/destruction function",
+              "roots": [
+                {
+                  "ref": "official-db:12070",
+                  "quantity": 1
+                }
+              ],
+              "dependencies": [
+                {
+                  "owner": "official-db:12070",
+                  "required": [
+                    {
+                      "ref": "official-db:12067",
+                      "quantity": 1
+                    }
+                  ],
+                  "source": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12070&ope=2&request_locale=en"
+                }
+              ],
+              "reviewed_members": [
+                "official-db:12070",
+                "official-db:12067"
+              ],
+              "conditions": [
+                {
+                  "key": "opponent activates monster effect",
+                  "status": "satisfied",
+                  "source": "development scenario assumption; no engine run"
+                },
+                {
+                  "key": "self controls no monsters",
+                  "status": "satisfied",
+                  "source": "development scenario assumption; no engine run"
+                },
+                {
+                  "key": "initiator in hand",
+                  "status": "satisfied",
+                  "source": "development scenario assumption; no engine run"
+                },
+                {
+                  "key": "required companion reachable from hand/deck/grave",
+                  "status": "satisfied",
+                  "source": "development scenario assumption; no engine run"
+                },
+                {
+                  "key": "activation window and summon space permit the declared action",
+                  "status": "satisfied",
+                  "source": "development scenario assumption; no engine run"
+                }
+              ],
+              "source": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12070&ope=2&request_locale=en",
+              "period_ref": null,
+              "function_tags": [
+                "negate_activation",
+                "destroy"
+              ]
+            }
+          }
+        ],
+        "relations": []
+      },
+      "target_key": "initiator-alone",
+      "role_labels": [
+        null,
+        null,
+        null,
+        null,
+        0
+      ],
+      "source_refs": [
+        "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12070&ope=2&request_locale=en",
+        "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12067&ope=2&request_locale=en",
+        "user-approved-definition:Sentinel_3f32243d70588191a2fb1d7e0cf89dfe"
+      ],
+      "period_ref": null,
+      "annotator_ref": "user concept calibration; developer structuring",
+      "partition": "development",
+      "definition_case": true,
+      "label_protocol_sha256": "8a1e7a02ed13e34d7c546c6e5ffe1b5e60d7debeebc35ab29066f2611383cd1a"
+    },
+    {
+      "schema_version": "multifactor-annotation-v2",
+      "record_id": "user-definition-companion-alone",
+      "example": {
+        "schema_version": "multifactor-input-v2",
+        "context_ref": "definition-gamma-response-current-text-only",
+        "context": {
+          "family": "context",
+          "observations": {}
+        },
+        "groups": [
+          {
+            "key": "companion-alone",
+            "factors": {
+              "family": "group",
+              "observations": {}
+            },
+            "member_refs": [
+              "official-db:12067"
+            ],
+            "notes": [
+              "Definition/development case approved by user; not independent evaluation; historical OCG eligibility unknown"
+            ],
+            "unit": {
+              "key": "gamma-driver-declared-response",
+              "context_ref": "definition-gamma-response-current-text-only",
+              "function_ref": "the discussed reactive monster-activation negation/destruction function",
+              "roots": [
+                {
+                  "ref": "official-db:12070",
+                  "quantity": 1
+                }
+              ],
+              "dependencies": [
+                {
+                  "owner": "official-db:12070",
+                  "required": [
+                    {
+                      "ref": "official-db:12067",
+                      "quantity": 1
+                    }
+                  ],
+                  "source": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12070&ope=2&request_locale=en"
+                }
+              ],
+              "reviewed_members": [
+                "official-db:12070",
+                "official-db:12067"
+              ],
+              "conditions": [
+                {
+                  "key": "opponent activates monster effect",
+                  "status": "satisfied",
+                  "source": "development scenario assumption; no engine run"
+                },
+                {
+                  "key": "self controls no monsters",
+                  "status": "satisfied",
+                  "source": "development scenario assumption; no engine run"
+                },
+                {
+                  "key": "initiator in hand",
+                  "status": "satisfied",
+                  "source": "development scenario assumption; no engine run"
+                },
+                {
+                  "key": "required companion reachable from hand/deck/grave",
+                  "status": "satisfied",
+                  "source": "development scenario assumption; no engine run"
+                },
+                {
+                  "key": "activation window and summon space permit the declared action",
+                  "status": "satisfied",
+                  "source": "development scenario assumption; no engine run"
+                }
+              ],
+              "source": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12070&ope=2&request_locale=en",
+              "period_ref": null,
+              "function_tags": [
+                "negate_activation",
+                "destroy"
+              ]
+            }
+          }
+        ],
+        "relations": []
+      },
+      "target_key": "companion-alone",
+      "role_labels": [
+        null,
+        null,
+        null,
+        null,
+        0
+      ],
+      "source_refs": [
+        "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12070&ope=2&request_locale=en",
+        "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12067&ope=2&request_locale=en",
+        "user-approved-definition:Sentinel_3f32243d70588191a2fb1d7e0cf89dfe"
+      ],
+      "period_ref": null,
+      "annotator_ref": "user concept calibration; developer structuring",
+      "partition": "development",
+      "definition_case": true,
+      "label_protocol_sha256": "8a1e7a02ed13e34d7c546c6e5ffe1b5e60d7debeebc35ab29066f2611383cd1a"
+    }
+  ]
+}

@@ -202,12 +202,12 @@ class DataIndex:
     def freeze(self,value):
         d=dict(fields(value,{'dataset_id','experiment_id','purpose','family','versions','opponents','task_sha256'}))
         identifier(d['dataset_id']);identifier(d['experiment_id']);Versions.from_dict(d['versions'])
-        if d['purpose'] not in PURPOSES or d['family'] not in ('duel','construction'):raise ContractError('unknown data split/family')
+        if d['purpose'] not in PURPOSES or d['family'] not in ('duel','construction','coordinator'):raise ContractError('unknown data split/family')
         if d['family']=='construction':
             if not isinstance(d['task_sha256'],str) or len(d['task_sha256'])!=64:raise ContractError('construction task hash required')
-        elif d['task_sha256'] is not None:raise ContractError('duel data cannot claim a construction goal')
+        elif d['task_sha256'] is not None:raise ContractError('non-construction data cannot claim a construction goal')
         opponents=array(d['opponents'],'frozen data opponents')
-        if not (0 if d['family']=='construction' else 1)<=len(opponents)<=32:raise ContractError('bounded actual opponent versions required')
+        if not (1 if d['family']=='duel' else 0)<=len(opponents)<=32:raise ContractError('bounded actual opponent versions required')
         identities=[opponent_identity(o) for o in opponents]
         if len(identities)!=len(set(identities)):raise ContractError('opponent aliases repeat the same actual version')
         d=json.loads(json.dumps(d))
@@ -268,6 +268,32 @@ class DataIndex:
             raise ContractError('episode environment differs from dataset')
         result=self._store(artifact_id,dataset,episode_projection(episode),(summary['seed_audit_only'],))
         return result
+
+    def ingest_coordinator_trace(self,dataset_id,artifact_id,trace):
+        """Index an actual host transition; no synthetic forecast or quality label."""
+        from .coordinator_model import context_tensor
+        from .coord_contracts import ROUTES
+        dataset=self.dataset(dataset_id)
+        if dataset['family']!='coordinator':
+            raise ContractError('coordinator trace requires its own frozen data family')
+        fields(trace,{'source','trace_sha256','from_phase','to_phase','context',
+                      'route_label','forecast_target','evidence'})
+        sha=trace['trace_sha256']
+        if (trace['source']!='host_logged_workflow_transition_v1' or
+                not isinstance(sha,str) or len(sha)!=64 or any(c not in '0123456789abcdef' for c in sha)):
+            raise ContractError('actual host workflow trace source/hash required')
+        integer(trace['from_phase'],'source phase',1)
+        integer(trace['to_phase'],'destination phase',trace['from_phase']+1,trace['from_phase']+1)
+        context_tensor(trace['context'])
+        evidence=fields(trace['evidence'],{'from_phase','to_phase'})
+        if (trace['route_label'] not in ROUTES or trace['forecast_target'] is not None or
+                evidence['from_phase'].get('phase_number')!=trace['from_phase'] or
+                evidence['to_phase'].get('phase_number')!=trace['to_phase'] or
+                evidence['to_phase'].get('role')!=trace['route_label']):
+            raise ContractError('route label must be the actual recorded next phase; forecasts remain absent')
+        keys=[digest({'coordinator_trace':sha}),
+              digest({'coordinator_transition':sha,'phase':trace['from_phase']})]
+        return self._store(artifact_id,dataset,trace,(),content_keys=keys)
 
     def ingest_construction(self,dataset_id,artifact_id,task,assets,data,*,seeds):
         from .build_training import validate_supervision
