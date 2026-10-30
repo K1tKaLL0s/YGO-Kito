@@ -70,7 +70,7 @@ class JointAdapterAdmissionTests(unittest.TestCase):
         with self.assertRaisesRegex(ContractError,'exact frozen model opponent'):
             CourseGameAdapter(assets=helper.assets,match_state=wrong,actor_participant_id='actor',trainer=models.duel,
                 model_runtime=runtime,data_index=helper.index,experiment_id='fixture-course',purpose='validation',evaluation_pairs=((1000,2000),))
-        course=SimpleNamespace(models=models,assets=helper.assets,deck=actor,_task=lambda:task,binding={'fixture':'joint-no-real-engine'},
+        course=SimpleNamespace(models=models,assets=helper.assets,deck=actor,construction=None,_task=lambda:task,binding={'fixture':'joint-no-real-engine'},
             stage=lambda:'common-decks-bo3',rules=helper.rules,data_index=helper.index,active_seconds=0.,save=lambda:None,
             config={'course_id':'fixture-course','evaluation_pairs':{'validation':[[1000+i,2000+i] for i in range(30)]}},
             bots={'fixture-opponent':{'runtime':runtime,'deck':opponent,'stage':'common-decks-bo3','purpose':'train',
