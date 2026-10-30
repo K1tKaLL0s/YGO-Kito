@@ -330,22 +330,40 @@ class CourseAdmissionPolicy:
                 if (c.key,b.kind,b.fact_id) in scored_facts and b.status in ('reviewed','unavailable')
                 and 'unknown' not in b.knowledge.values()]
             audit['active_priced_context_reviewed_functions']=len(known_scored_facts)
-            if any('missing_card_text' in c.unknowns for c in reviews) or not known_scored_facts:
+            # An unresolved condition/cost/limit/resource/conflict is not a
+            # numeric low score. It needs supplemented context and re-scoring.
+            active_unknown=[(c.key,b.kind) for c in reviews if c.zone in ('main','extra')
+                            for b in c.blocks if b.factor() is None]
+            if (any('missing_card_text' in c.unknowns for c in reviews) or
+                    not known_scored_facts):
                 audit.update(score=None, score_threshold_met=None,
-                    force_optimization=self.manifest is not None,
-                    construction_semantics_status='unknown')
+                    force_optimization=False,
+                    context_review_required=self.manifest is not None,
+                    construction_semantics_status='unknown',
+                    active_unknown_functions=len(active_unknown))
+            elif active_unknown:
+                # Keep the partial numeric score for information, but do not
+                # turn unresolved functions into a low-score failure or a hint.
+                audit.update(force_optimization=False,
+                    context_review_required=self.manifest is not None,
+                    construction_semantics_status='scoped_functions_partially_reviewed',
+                    active_unknown_functions=len(active_unknown))
             else:
                 audit['construction_semantics_status']='scoped_functions_reviewed'
+                audit['context_review_required']=False
+                audit['active_unknown_functions']=0
             if self.tracker is not None:
                 result = record_scoring_feedback(audit, self.tracker, evaluation_id=evaluation_id,
                     candidate_digest=identity['deck_multiset_sha256'], cycle_id=cycle_id,
                     goal_id=task.sha256, period_id=self.period_id)
                 feedback = {'score': result['score'], 'force_optimization': result['force_optimization'],
+                    'context_review_required': result.get('context_review_required', False),
                     'optimization_reason': result['optimization_reason'],
                     'hint': deepcopy((result.get('hint_event') or {}).get('hint')),
                     'reference_comparison_applicable': True, 'construction_strength_status': 'unknown'}
             else:
                 feedback = {'score': public_result(audit), 'force_optimization': audit['force_optimization'],
+                    'context_review_required': audit.get('context_review_required', False),
                     'hint': None, 'reference_comparison_applicable': False,
                     'construction_strength_status': 'unknown'}
         private_audit = self.path.parent / (evaluation_id + '.private-audit.json')
@@ -374,12 +392,16 @@ class CourseAdmissionPolicy:
         reasons = []
         if self.period_id in HISTORICAL_PERIODS:
             if feedback is None: reasons.append('actual_candidate_construction_score_required')
+            elif feedback.get('context_review_required'): reasons.append('construction_context_review_required')
+            elif isinstance(feedback.get('score'), dict) and feedback['score'].get('score') is None:
+                reasons.append('actual_candidate_construction_score_required')
             elif feedback['force_optimization']:
                 reasons.append(feedback.get('optimization_reason') or 'construction_optimization_required')
         requested = trigger is not None or bool(feedback and feedback['force_optimization'])
         return {**self._identity(task, deck), 'status': 'deferred' if reasons else 'admitted',
             'policy_epoch': self.policy_epoch, 'reasons': reasons, 'evidence_refs': refs,
             'signals': {'optimization_requested': requested, 'mandatory_rebuild': False,
+                        'context_review_required': bool(feedback and feedback.get('context_review_required')),
                         'hint_permission': bool(feedback and feedback.get('hint'))}}
 
     def public_feedback(self, *, task, deck):

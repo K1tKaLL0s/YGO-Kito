@@ -155,7 +155,8 @@ class CourseAdmissionPolicyTests(unittest.TestCase):
             partial=host.record_completed_construction(task=task,deck=deck,assets=assets,
                 basic_cb=None,cycle_id='partial-known')
             self.assertGreater(partial['score']['score'],0.)
-            self.assertEqual(host.tracker.to_dict()['scopes'][0]['evaluations_counted'],2)
+            self.assertTrue(partial['context_review_required'])
+            self.assertEqual(host.tracker.to_dict()['scopes'][0]['evaluations_counted'],1)
 
     def test_new_independent_low_scores_release_hint_once_and_guards_stay_pure(self):
         task,deck,assets=fixture()
@@ -182,7 +183,7 @@ class CourseAdmissionPolicyTests(unittest.TestCase):
         row={'id':1};block=Block('mill','effect-1','unmatched text',feasibility=1.,resource_factor=1.)
         catalog=SimpleNamespace(card=lambda code:SimpleNamespace(effects=()))
         reviewed=ActualCandidateContext(catalog)(row,block,{'main':[1]}, {1:row})
-        self.assertEqual(reviewed.status,'unknown');self.assertEqual(reviewed.factor(),0.)
+        self.assertEqual(reviewed.status,'unknown');self.assertIsNone(reviewed.factor())
         self.assertEqual(reviewed.knowledge['resources'],'unknown')
         actual_row={'id':1,'type':33,'desc':'①：未知条件才能发动。从自己卡组上面把3张卡送去墓地。'}
         actual=MechanismCatalog(SimpleNamespace(rows={1:actual_row}))
@@ -191,7 +192,7 @@ class CourseAdmissionPolicyTests(unittest.TestCase):
         self.assertEqual(unresolved.knowledge['costs'],'unknown')
         self.assertEqual(unresolved.knowledge['resources'],'unknown')
         self.assertEqual(unresolved.knowledge['conditions'],'unknown')
-        self.assertEqual(unresolved.factor(),0.)
+        self.assertIsNone(unresolved.factor())
 
     def test_factory_uses_explicit_historical_theme_and_rejects_scope_changes(self):
         with TemporaryDirectory() as temporary:

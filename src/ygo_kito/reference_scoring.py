@@ -92,9 +92,16 @@ class Block:
         if set(self.knowledge) != domains or any(v not in ("known", "not_applicable", "unknown")
                                                for v in self.knowledge.values()):
             raise ValueError("every function requires scoped knowledge statuses")
+        # An explicit unavailability is a known zero. An unresolved condition,
+        # cost, limit, resource or conflict is not a zero: it must be
+        # supplemented and re-scored rather than punished as a low score.
+        if self.status == "unavailable":
+            return 0.0
+        if self.status != "reviewed" or "unknown" in self.knowledge.values():
+            return None
         factors = [_number(getattr(self, k), k) for k in
                    ("feasibility", "cost_factor", "count_factor", "resource_factor", "conflict_factor")]
-        return math.prod(factors) if self.status == "reviewed" and "unknown" not in self.knowledge.values() else 0.0
+        return math.prod(factors)
 
 
 @dataclass(frozen=True)
@@ -230,7 +237,11 @@ def score_construction(cards: Sequence[CardReview], units: Sequence[FunctionalUn
             if not block.fact_id or not block.quote or block.quote not in card.text:
                 raise ValueError("block must quote its exact source fact: " + card.key)
             base, family, cap = policy.priors[block.kind]
-            value = base * block.factor()
+            factor = block.factor()
+            if factor is None:
+                unknowns.append(card.key + ":unknown:" + block.kind)
+                continue
+            value = base * factor
             identity = (block.fact_id, family)
             if identity not in unique or value > unique[identity][0]:
                 unique[identity] = (value, base, block, cap)
@@ -353,7 +364,9 @@ def score_construction(cards: Sequence[CardReview], units: Sequence[FunctionalUn
             "reference_comparison_applicable": reference_applicable,
             "reference_raw": policy.reference_raw, "raw_score": round(raw_score, 6),
             "calibrated": calibrated, "legality": legality,
-            "force_optimization": legality == "illegal" or bool(reference_applicable and (score is None or score < threshold)),
+            "force_optimization": legality == "illegal" or bool(
+                reference_applicable and score is not None and score < threshold),
+            "context_review_required": False,
             "score_threshold_met": bool(score is not None and score >= threshold and legality != "illegal") if reference_applicable else None,
             "raw_block_points": block_total,
             "categories": {k: sum(r["awarded"] for r in unit_rows if r["category"] == k) for k in policy.category_caps},
@@ -364,9 +377,11 @@ def score_construction(cards: Sequence[CardReview], units: Sequence[FunctionalUn
 
 def public_result(audit):
     """Minimal feedback before authorized hint escalation; no reference list."""
-    return {k: audit[k] for k in ("version", "theme", "scope", "score", "reference_score", "threshold",
-                                  "calibrated", "legality", "force_optimization", "score_threshold_met",
-                                  "basic_cb_verified", "interpretation")}
+    result = {k: audit[k] for k in ("version", "theme", "scope", "score", "reference_score", "threshold",
+                                    "calibrated", "legality", "force_optimization",
+                                    "score_threshold_met", "basic_cb_verified", "interpretation")}
+    result["context_review_required"] = bool(audit.get("context_review_required", False))
+    return result
 
 
 def inventory_digest(cards):

@@ -188,7 +188,8 @@ class ReferenceScoringTest(unittest.TestCase):
         audit = evaluate(rows, policy=policy(reference_raw=None))
         self.assertFalse(audit["calibrated"])
         self.assertIsNone(audit["score"])
-        self.assertTrue(audit["force_optimization"])
+        self.assertFalse(audit["force_optimization"])
+        self.assertFalse(audit["context_review_required"])
         self.assertFalse(audit["score_threshold_met"])
         with self.assertRaises(ValueError):
             evaluate(rows, scope="2022-10/anonymous-goal/other-reference")

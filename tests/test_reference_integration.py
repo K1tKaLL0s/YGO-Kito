@@ -57,7 +57,7 @@ class IntegrationTest(unittest.TestCase):
             review_deck({"main": [1]}, {1: {"desc": text}}, semantic_registry=registry)
         reviewed = review_deck({"main": [1]}, {1: {"desc": text}}, semantic_registry=registry,
                               contextualize=lambda row, block, deck, rows: replace(block, status="unknown"))
-        self.assertEqual(reviewed[0].blocks[0].factor(), 0)
+        self.assertIsNone(reviewed[0].blocks[0].factor())
 
     def test_shared_mode_keeps_multiple_independent_operations(self):
         from ygo_kito.reference_scoring import CardReview
