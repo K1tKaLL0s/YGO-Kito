@@ -159,7 +159,7 @@ class CpuTrainer:
         if training_attempt_cursor is not None:
             if purpose != "train": raise ContractError("training attempt cursor cannot select held-out seeds")
             integer(training_attempt_cursor, "declared training attempt cursor", self.episode_cursor, len(self.config.game_seeds))
-        sample_cursor = self.episode_cursor if training_attempt_cursor is None else training_attempt_cursor
+        sample_cursor = (self.episode_cursor if training_attempt_cursor is None else training_attempt_cursor) if purpose == "train" else None
         if purpose == "train" and sample_cursor >= len(self.config.game_seeds):
             raise ContractError("declared engineering episode budget exhausted")
         cfg = self.config
@@ -212,7 +212,7 @@ class CpuTrainer:
                         "source": "live-core-actor-seat", "purpose": purpose, "terminal": False, "truncated": True,
                         "training_eligible": False, "terminal_reward": None, "outcome": None,
                         "policy_version": version, "policy_sha256": policy_hash,
-                        "seed_audit_only": seed, "episode_cursor": self.episode_cursor,
+                        "seed_audit_only": seed, "episode_cursor": self.episode_cursor if purpose == "train" else None,
                         "sampling_attempt_cursor": sample_cursor if purpose == "train" else None,
                         "actor_seat": cfg.actor_seat, "turns": engine.turn,
                         "resource_boundary": {"kind": "compute_budget", "episode_seconds": cfg.episode_seconds,

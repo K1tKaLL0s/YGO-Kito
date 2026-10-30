@@ -13,6 +13,7 @@ from ygo_kito.course_game_adapter import CourseTrainingConfig
 from ygo_kito.duel_model import DuelModelConfig
 from ygo_kito.lora import AdapterConfig
 from ygo_kito.build_contracts import digest
+from ygo_kito.coord_contracts import FeedbackPolicy
 from ygo_kito.group_runner import tree_digest
 from ygo_kito.validation import ContractError
 from local_course_forecast import CourseForecast
@@ -44,7 +45,9 @@ class CourseMechanismInputTests(unittest.TestCase):
             course=SimpleNamespace(models=SimpleNamespace(builder=builder(),coordinator=trainer,
                 versions=lambda:{'duel':'3'*64,'build_goal':'1'*64,'build_optimizer':'2'*64}),
                 _task=lambda:TASK,deck=DECK,stage=lambda:'bots-bo1',pending=None,records=[],config={'course_id':'test-course'})
-            f=object.__new__(CourseForecast);f.course=course
+            f=object.__new__(CourseForecast);f.course=course;f.policy=FeedbackPolicy()
+            # This test isolates feature generation; actual policy guards are tested separately.
+            f.require_formal_duel=lambda purpose: {'status':'admitted','fixture':'features-only'}
             f.feature_version=MECHANISM_FEATURE_VERSION if mechanisms else FEATURE_VERSION
             f.host=SimpleNamespace(forecast_status=lambda fid:{'matches':0,'pending_review':False,'mandatory_rebuild':False})
             f.value={'candidates':{},'forecasts':{},'active_candidate':None,'active_forecast':None,'pending_training':None}

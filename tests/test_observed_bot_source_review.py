@@ -76,7 +76,9 @@ class ObservedBotSourceReviewTests(unittest.TestCase):
         _,_,review,_=fixture()
         course=object.__new__(scenario_course.ScenarioCourse)
         runtime=object.__new__(scenario_course.CourseBotRuntime)
-        course.pending={'state':SimpleNamespace(status='ready'),'bot_id':'bot','purpose':'train'}
+        course.pending={'state':SimpleNamespace(status='ready',_current={'actor':object()}),'bot_id':'bot','purpose':'train'}
+        course._require_training_admission=lambda *args: {'status':'admitted','fixture':'review-routing-only'}
+        course.training_attempt_cursor=0;course.comparison_policy=None
         course.bots={'bot':{'runtime':runtime}}
         course.models=SimpleNamespace(duel=object(),sessions={},policy_rng=object(),binding={'observed_bot_source_review':review})
         course.assets=object();course.data_index=object();course.config={'course_id':'fixture','evaluation_pairs':{}}

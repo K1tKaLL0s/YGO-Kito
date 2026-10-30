@@ -54,7 +54,8 @@ class CrossWindowAdapterTests(unittest.TestCase):
                 if 'route_goal' in current.goal:
                     seen.append(options['seconds'])
                     return {'status':'bounded_inference_unknown','task_sha256':current.sha256,
-                            'deck_sha256':digest(deck.to_dict())}
+                            'deck_sha256':digest(deck.to_dict()),
+                            'exploration':{'nodes_expanded':1},'search_started':True}
                 return proof(current,deck,current_assets)
             # Only the unavailable live guard is replaced here; a separate
             # integration test runs the actual observer audit subprocess.
@@ -96,7 +97,9 @@ class CrossWindowAdapterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);stop=root/'stop';saved=[]
             course=SimpleNamespace(root=root/'course',deck=object(),active_seconds=0.,desired='ready',
-                config={'wall_seconds':100.},save=lambda:saved.append(True),
+                config={'wall_seconds':100.},save=lambda:saved.append(True),status=lambda:{},
+                models=SimpleNamespace(builder=SimpleNamespace(updates={'build_goal':0,'build_optimizer':0}),
+                    duel=SimpleNamespace(updates=0),coordinator=SimpleNamespace(updates=0)),
                 run=lambda *a:(_ for _ in ()).throw(AssertionError('learning must not start')))
             forecast=SimpleNamespace(decide=lambda n:{'action':'train_duel','budget_units':1},
                                      status=lambda:{'mandatory_rebuild':False})

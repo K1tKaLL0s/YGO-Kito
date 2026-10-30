@@ -1,4 +1,4 @@
-"""Joint controller/real adapter admission with only the native engine faked."""
+"""Joint controller/real model binding with synthetic engine and formal-admission boundaries."""
 from copy import deepcopy
 from dataclasses import asdict,replace
 from pathlib import Path
@@ -50,7 +50,7 @@ class JointAdapterAdmissionTests(unittest.TestCase):
         helper.assets.receipt['resources']['cards']=digest(helper.assets.rows)
         helper.assets.environment['versions']['cards']=helper.assets.receipt['resources']['cards']
         helper.assets.adapter_revision=5
-        self.enterContext(helper.fake_model_execution())  # Only native resources/engine are faked; adapter admission stays real.
+        self.enterContext(helper.fake_model_execution())  # Model identity/constructor checks stay real; formal CB admission is isolated.
         issue_game_spec=MatchState.issue_game_spec
         def issue_for_fixture(state):
             spec=issue_game_spec(state)  # Preserve the real issuer token, seat mapping and integrity checks.
@@ -85,6 +85,8 @@ class JointAdapterAdmissionTests(unittest.TestCase):
                 if ident not in snapshots:snapshots[ident]=deepcopy(models)
                 return snapshots[ident]
             controller=CourseForecast(course,root,host=host,snapshot_factory=capture)
+            self.enterContext(patch.object(controller,'require_formal_duel',
+                return_value={'status':'admitted','fixture':'frozen-model-binding-only'}))
             controller.before();first=controller.value['active_forecast'];frozen_actor=controller.status()['forecast']['scope']['actor_policy_sha256']
             self.assertEqual(controller.evaluate(1),1)
             with torch.no_grad():next(models.duel.model.parameters()).add_(.01)

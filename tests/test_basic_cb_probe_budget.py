@@ -45,8 +45,9 @@ class BasicCbProbeBudgetTests(unittest.TestCase):
 
     def test_infer_keeps_ten_second_slice_deadline_family_order_and_not_run(self):
         task = SimpleNamespace(sha256='construction')
-        deck = SimpleNamespace(to_dict=lambda: {'main': [1] * 40, 'extra': [], 'side': []})
-        assets = SimpleNamespace(validate=lambda *args: None)
+        deck = SimpleNamespace(main=(1,)*40,extra=(),side=(),
+                               to_dict=lambda: {'main': [1] * 40, 'extra': [], 'side': []})
+        assets = SimpleNamespace(rows={},validate=lambda *args: None)
         candidates = []
         for i in range(8):
             goal = {'route_goal': {'kind': 'fusion_summon' if i < 4 else 'xyz_summon'}}

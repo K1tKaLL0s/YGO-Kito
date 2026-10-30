@@ -48,7 +48,8 @@ class LiveGuardTests(unittest.TestCase):
                 builder=SimpleNamespace(updates={'build_goal':0,'build_optimizer':0}),coordinator=SimpleNamespace(updates=0)),
             stage=lambda:'bots-bo1')
         forecast=SimpleNamespace(decide=lambda n:{'action':'train_duel','budget_units':2},
-            status=lambda:{'mandatory_rebuild':False},before_training=lambda:None,train_closed_outcomes=lambda:None)
+            status=lambda:{'mandatory_rebuild':False},before_training=lambda:None,train_closed_outcomes=lambda:None,
+            require_formal_duel=lambda purpose:{'status':'admitted','fixture':'observer-process-only'})
         result=execute_cycle(course,forecast,None,base,fixture.course,stop,lambda *a,**k:None,2,
                              unit_boundary=make_unit_boundary(base,stop))
         self.assertEqual(calls,[1]);self.assertEqual(result['executed_units'],1)

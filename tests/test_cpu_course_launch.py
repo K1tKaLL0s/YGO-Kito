@@ -106,10 +106,10 @@ class CpuCourseLaunchTests(unittest.TestCase):
                 (root/'reports').mkdir(parents=True,exist_ok=True)
                 (root/'reports/model-pair-runtime-pack.json').write_text(json.dumps({'archive_sha256':'fixture'}),encoding='utf-8')
             with patch.dict(sys.modules,{'local_foundation_comparison':comparison}):
-                with self.assertRaises(StopBeforeRuntime):course.run(base,None,None,None,execution_source_root=None,resource_base=None)
+                with self.assertRaises(StopBeforeRuntime):course.run(base,None,None,lambda *args,**kwargs:None,execution_source_root=None,resource_base=None)
                 self.assertEqual(archives[-1],base/'cache/model-pair-runtime-001.tar')
                 with self.assertRaises(StopBeforeRuntime):
-                    course.run(base,None,None,None,resume=True,continuation=continuation,
+                    course.run(base,None,None,lambda *args,**kwargs:None,resume=True,continuation=continuation,
                                execution_source_root=source,resource_base=resources)
                 self.assertEqual(archives[-1],resources/'cache/model-pair-runtime-001.tar')
             # Reach the explicit saved-bot branch without loading any model,

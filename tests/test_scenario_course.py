@@ -251,7 +251,7 @@ class ScenarioCourseTests(unittest.TestCase):
                 self.turn, self.events, self.done = 1, [], False
                 # A deterministic offered-action fixture over this constructed
                 # deck, not a native shuffle or a preassigned construction CB.
-                opening = kwargs['deck_profile']['decks'][0][:5]
+                opening = kwargs.get('cb_opening_hand', kwargs['deck_profile']['decks'][0][:5])
                 self.extra = kwargs['deck_profile']['extras'][0]
                 assert self.extra == [42], 'synthetic target must belong to the constructed extra deck'
                 payload = decision_payload()
@@ -307,6 +307,10 @@ class ScenarioCourseTests(unittest.TestCase):
             'first_order': 'always_first', 'source': 'engineering_fixture', 'coverage_label': 'fake-room-only'}
             for stage in ('bots-bo1', 'common-decks-bo3')}
         self.bots['heldout-common'] = dict(self.bots['common-decks-bo3'], purpose='final_eval')
+        # These fake-engine lifecycle tests isolate formal admission. The real
+        # CB/policy rejection paths have dedicated training_admission tests.
+        self.enterContext(patch('ygo_kito.training_admission.require_training_admission',
+            return_value={'status':'admitted','fixture':'synthetic-engine-only'}))
         self.course = self.new_course()
 
     def new_course(self):
@@ -403,7 +407,9 @@ class ScenarioCourseTests(unittest.TestCase):
         self.assertNotIn('route_goal',self.course._task().goal)
         self.assertEqual(self.course._task().requirements,())
         needed=Counter(inferred['routes'][0]['task']['goal']['route_goal']['starting_conditions']['requires_opening_hand'])
-        self.assertFalse(needed-Counter(self.course.deck.main[:5]))
+        self.assertFalse(needed-Counter(self.course.deck.main))
+        self.assertEqual(inferred['initial_state_mode'],'hypothetical_exact_hand_v1')
+        self.assertFalse(inferred['opening_probability_evaluated'])
         self.assertEqual(policy['version'],'player-view-cb-expectimax-v1')
         self.assertEqual(self.course.records[0]['games'][0]['actual_first_participant_id'], 'actor')
         self.assertFalse((self.course.root/'in-flight.json').exists())

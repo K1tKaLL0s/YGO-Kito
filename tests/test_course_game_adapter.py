@@ -1,5 +1,7 @@
 """CPU model/PPO/SQLite tests with explicitly fake native host and bot room.
 
+The fake engine contexts also isolate the formal CB admission boundary, whose
+real rejection contracts are exercised in test_training_admission.
 These test real model inference, base/LoRA updates and match transitions, not
 C#, core rules, actual bot qualification, game strength or formal training.
 """
@@ -134,7 +136,9 @@ class CourseGameAdapterTests(unittest.TestCase):
         with patch.object(BotSourceRegistry, 'training_adapter', construct), \
                 patch.object(course, '_CourseNativeEngine', side_effect=engine), \
                 patch.object(course, 'verify_resources', return_value=self.assets.receipt), \
-                patch('ygo_kito.cpu_training.public_card_facts', return_value={}):
+                patch('ygo_kito.cpu_training.public_card_facts', return_value={}), \
+                patch('ygo_kito.training_admission.require_training_admission',
+                      return_value={'status':'admitted','fixture':'synthetic-engine-only'}):
             yield
 
     @staticmethod
@@ -472,7 +476,9 @@ class CourseGameAdapterTests(unittest.TestCase):
         with patch.object(neural, 'verify_resources', return_value=self.assets.receipt), \
                 patch.object(course, 'verify_resources', return_value=self.assets.receipt), \
                 patch.object(course, '_CourseNativeEngine', Engine), \
-                patch('ygo_kito.cpu_training.public_card_facts', return_value={}):
+                patch('ygo_kito.cpu_training.public_card_facts', return_value={}), \
+                patch('ygo_kito.training_admission.require_training_admission',
+                      return_value={'status':'admitted','fixture':'synthetic-engine-only'}):
             yield
 
     def test_two_neural_initial_models_use_actual_sampler_fresh_base_ppo_and_bo3_siding(self):

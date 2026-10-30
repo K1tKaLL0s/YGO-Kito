@@ -183,7 +183,7 @@ class DuelPlanningTests(unittest.TestCase):
     def test_negated_step_replans_from_actual_graveyard_and_keeps_other_branch(self):
         plans = (ComboPlan('spell',9,(20,),(('activate',(20,)),('search',(1,)),('summon',(1,)),('special_summon',(9,)))),PLANS[1])
         p = planner(plans)
-        start = window(extra_cards=(card(20,'hand'),),actions=[dict(action_id='spell',kind='activate',card_refs=['own-20'])])
+        start = window(extra_cards=(card(20,'hand'),),actions=[dict(action_id='spell',kind='activate',card_refs=['own-20'],details={'description':321})])
         p.evaluate(start,torch.zeros(1)); p.accepted(start,start.actions[0])
         self.assertEqual(p.memory.goal,9)
         hist = (event('chain-start','activate',70,(20,),player=0,link=1),
@@ -199,7 +199,7 @@ class DuelPlanningTests(unittest.TestCase):
     def test_staged_search_does_not_lose_unresolved_activation_or_incremental_materials(self):
         plans = (ComboPlan('spell',9,(20,),(('activate',(20,)),('search',(1,)),('special_summon',(9,)))),)
         p = planner(plans,own_deck=(1,2,9,20))
-        start = window(extra_cards=(card(20,'hand'),),actions=[dict(action_id='spell',kind='activate',card_refs=['own-20'])])
+        start = window(extra_cards=(card(20,'hand'),),actions=[dict(action_id='spell',kind='activate',card_refs=['own-20'],details={'description':321})])
         p.evaluate(start,torch.zeros(1)); p.accepted(start,start.actions[0])
         d = json.loads(json.dumps(start.to_dict())); d['decision_id']='search'; d['prompt']=dict(message=15)
         d['search_choices']=[dict(ref='legal-search',card_id=1,owner=0)]

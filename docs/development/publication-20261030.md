@@ -21,6 +21,6 @@ One-off publication/migration scripts, private evaluator generators/reports, his
 
 ## Validation and remaining limitations
 
-The final PR commit must pass Safe CPU contracts before merging. Local CPU and remote CI results are reported independently in the PR. No native engine, C# bot, GPU run, production checkpoint migration or formal training is performed by this publication.
+The initial expanded CI ran 1014 tests and exposed a held-out sampler cursor regression plus synthetic fixtures that predated formal admission and controlled-opening contracts. The sampler now reads training cursors only for training; affected fake-engine fixtures isolate the formal-admission seam while dedicated admission-rejection tests remain active. The final PR commit must pass Safe CPU contracts before merging. Local CPU and remote CI results are reported independently in the PR. No native engine, C# bot, GPU run, production checkpoint migration or formal training is performed by this publication.
 
 The existing learner's construction score and CB result remain unknown, so training admission remains deferred. Optional multifactor scoring is an isolated module and is not represented as a validated replacement for the active pipeline. Previously unstarted optimization work is outside this publication.

@@ -186,7 +186,7 @@ class MultifactorStructureTests(unittest.TestCase):
             input_path, output_path = Path(directory) / "input.json", Path(directory) / "output.json"
             input_path.write_text(json.dumps(dict(schema_version="multifactor-candidates-v2", candidates=[candidate.to_dict()])), encoding="utf-8")
             subprocess.run((sys.executable, "-m", "ygo_kito.multifactor", "--input", str(input_path),
-                            "--output", str(output_path), "--without-explanations"), env=os.environ.copy(),
+                            "--output", str(output_path), "--without-explanations"), env=dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1]/"src")),
                            capture_output=True, text=True, check=True, timeout=60)
             output = json.loads(output_path.read_text(encoding="utf-8"))
             self.assertFalse(output["training_started"])
@@ -196,7 +196,7 @@ class MultifactorStructureTests(unittest.TestCase):
 
     def test_lightweight_contract_import_does_not_load_torch_or_active_modules(self):
         code = "import sys,json; import ygo_kito.multifactor; print(json.dumps(sorted(n for n in sys.modules if n=='torch' or n.startswith(('ygo_kito.build_', 'ygo_kito.construction_', 'ygo_kito.effect_', 'ygo_kito.autonomous_construction', 'ygo_kito.native')))))"
-        result = subprocess.run((sys.executable, "-c", code), env=os.environ.copy(),
+        result = subprocess.run((sys.executable, "-c", code), env=dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1]/"src")),
                                 capture_output=True, text=True, check=True, timeout=30)
         self.assertEqual(json.loads(result.stdout), [])
 
