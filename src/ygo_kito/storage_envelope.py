@@ -6,7 +6,10 @@ writers require their own integration; finishing the training volume is unknown.
 """
 from contextlib import contextmanager
 from copy import deepcopy
-import fcntl
+try:  # POSIX reservation locking; Windows CPU inspection may only read the module.
+    import fcntl
+except ImportError:  # pragma: no cover - platform guard
+    fcntl = None
 import hashlib
 import os
 from pathlib import Path
@@ -172,6 +175,7 @@ class StorageEnvelope:
         lock=self.control/'reservation.lock'
         if lock.is_symlink():raise ContractError('storage reservation lock cannot be a symlink')
         with lock.open('a+b') as stream:
+            if fcntl is None: raise ContractError('POSIX storage reservation locking is required')
             fcntl.flock(stream,fcntl.LOCK_EX)
             try:self._check();yield
             finally:fcntl.flock(stream,fcntl.LOCK_UN)

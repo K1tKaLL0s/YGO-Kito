@@ -8,7 +8,10 @@ qualify common-deck coverage, or resume an interrupted native half-game.
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import asdict, dataclass
-import fcntl
+try:  # POSIX series locking; Windows CPU inspection may only read the module.
+    import fcntl
+except ImportError:  # pragma: no cover - platform guard
+    fcntl = None
 import hashlib
 import io
 import json
@@ -348,6 +351,7 @@ class SelfPlaySeries:
     @contextmanager
     def _operation(self):
         with (self.root/'.series.lock').open('a') as lock:
+            if fcntl is None: raise ContractError('POSIX self-play locking is required')
             try: fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError as error: raise ContractError('another self-play worker owns this series') from error
             self._latest()

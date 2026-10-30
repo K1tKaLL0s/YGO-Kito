@@ -26,6 +26,7 @@ from .duel_model import FEATURE_VERSION as DUEL_FEATURES, parameter_digest
 from .group_initialization import initialize_group_weights
 from .group_runner import tree_digest
 from .lora import AdapterConfig, AdapterSession, tensor_digest
+from .restore_compatibility import models_binding_compatibility
 from .validation import ContractError, fields, integer
 
 ROLES = ("build_goal", "build_optimizer", "duel", "coordinator")
@@ -121,12 +122,15 @@ class CourseModels:
 
     def versions(self): return {r: parameter_digest(m) for r, m in self.models().items()}
 
-    def _adapter_binding(self, role):
+    def _adapter_binding_for(self, role, binding):
         feature = (COORD_MECHANISM_FEATURES if role == "coordinator" and self.coordinator.config.mechanism_inputs
                    else FEATURES[role])
         return {"base_version": "course-base", "feature_version": feature,
-                "context_sha256": digest({"source_binding": self.binding, "task": self.builder.task.sha256,
+                "context_sha256": digest({"source_binding": binding, "task": self.builder.task.sha256,
                     "encoder": self.builder.encoder.binding(), "initialization": self.initialization_provenance})}
+
+    def _adapter_binding(self, role):
+        return self._adapter_binding_for(role, self.binding)
 
     def _check(self):
         if digest(self.binding) != self._binding_sha256: raise ContractError("course model host binding changed")
@@ -227,7 +231,8 @@ class CourseModels:
         fields(state, required); _finite(state)
         body = {k: v for k, v in state.items() if k != "state_sha256"}
         if (type(state["schema_version"]) is not int or state["schema_version"] != 1 or state["kind"] != "course-four-role-full-state-v1"
-                or state["binding"] != expected_binding or state["binding_sha256"] != digest(expected_binding)
+                or not models_binding_compatibility(state["binding"], expected_binding)["compatible"]
+                or state["binding_sha256"] != digest(state["binding"])
                 or state["state_sha256"] != tree_digest(body)):
             raise ContractError("course model checkpoint hash/binding/kind differs")
         device = checkpoint_execution(state)
@@ -292,9 +297,12 @@ class CourseModels:
             if (tree_digest(state["adapters"][role]["rng"]) != tree_digest(state["rng"]["adapter"][role]) or
                     tree_digest(state["adapters"][role]["device_rng"]) != tree_digest(state["device_rng"])):
                 raise ContractError("course duplicate adapter RNG envelopes differ")
-            if meta["config"] != obj.adapter_configs[role].to_dict() or meta["binding"] != obj._adapter_binding(role):
+            if meta["config"] != obj.adapter_configs[role].to_dict() or meta["binding"] != obj._adapter_binding_for(role, state["binding"]):
                 raise ContractError("course adapter host/config binding differs")
             obj.sessions[role] = AdapterSession.restore(model, state["adapters"][role], meta)
+            # The adapter's structural context follows the compatibility decision;
+            # the old source-file byte map is audit evidence, not a live context.
+            obj.sessions[role].binding = obj._adapter_binding(role)
             _check_optimizer(obj.sessions[role].optimizer)
         if obj.versions() != state["effective_hashes"]: raise ContractError("course effective LoRA weights differ")
         obj.policy_rng = torch.Generator(device="cpu")

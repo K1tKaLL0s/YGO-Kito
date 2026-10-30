@@ -17,7 +17,10 @@ from pathlib import Path
 import sqlite3
 import shutil
 import time
-import fcntl
+try:  # POSIX course locking; Windows CPU inspection only imports the module.
+    import fcntl
+except ImportError:  # pragma: no cover - platform guard
+    fcntl = None
 
 import torch
 
@@ -27,6 +30,8 @@ from .course_game_adapter import CourseBotRuntime, CourseGameAdapter, REAL_GAME_
 from .data_isolation import DataIndex
 from .duel_model import parameter_digest
 from .implementation_identity import source_tree_snapshot
+from .restore_compatibility import (course_binding_compatibility, models_binding_compatibility,
+                                    source_drift)
 from .match_runner import (FirstOrderPolicy, GameResult, MatchParticipant, MatchRules,
                            MatchState, ModelSideboardPolicy, keep_side)
 from .training_scenarios import (check_2610_rates, volume_requirements, validate_timing_basis,
@@ -163,10 +168,51 @@ def migrate_training_attempt_state(saved, *, acknowledged_compute_truncations=()
         "legacy_acknowledgments": acknowledgments}
 
 
+def migrate_legacy_attempt_gap_state(saved):
+    """Explicit ledger for a legacy course whose receipts predate attempt cursors.
+
+    The saved model cursor counts completed updates only.  A compute-budget
+    abort consumed a declared sampling attempt without an update, so the next
+    attempt cursor is one beyond that model cursor.  Older receipts carry no
+    sampling-attempt cursor; this migration records the exact saved no-update
+    receipt as an acknowledgment and flags the receipt gap instead of
+    inventing cursors for records that never stored one.
+    """
+    if "training_attempts" in saved:
+        raise ContractError("course already has an explicit training-attempt ledger")
+    cursor = _saved_successful_duel_updates(saved["models"])
+    integer(cursor, "legacy successful sample cursor", 1)
+    # Archived records may predate the corrected-flow offset but still consumed
+    # a declared attempt. The ledger covers every train record, not only the
+    # records credited to the current volume.
+    unresolved = [r for r in saved["records"] if r["purpose"] == "train" and not r["complete"]]
+    if len(unresolved) != 1 or saved.get("pending") is not None:
+        raise ContractError("exactly one interrupted legacy attempt without pending state is required")
+    record = unresolved[0]
+    receipts = [x for x in record.get("receipts", []) if x.get("kind") == "course-small-game-host-receipt"]
+    if not receipts:
+        raise ContractError("legacy interrupted attempt has no host receipt")
+    receipt = receipts[-1]
+    attempt_cursor = receipt.get("before", {}).get("training_cursor")
+    integer(attempt_cursor, "acknowledged legacy attempt cursor", 0, cursor - 1)
+    if (receipt.get("after", {}).get("training_cursor") != attempt_cursor or
+            receipt.get("observed_sampler_cursor") != attempt_cursor or
+            receipt.get("observed_sampler_updates") != attempt_cursor):
+        raise ContractError("acknowledged legacy attempt cursor differs from its saved update boundary")
+    acknowledgment = _legacy_compute_acknowledgment(record, attempt_cursor)
+    return {"schema_version": 1, "next_cursor": cursor + 1,
+        "legacy_acknowledgments": [acknowledgment],
+        "legacy_receipts_without_attempt_cursors": True}
+
+
 def validate_training_attempt_state(saved, attempts, *, max_attempts):
     """Prove the next declared seed from actual updates and censored attempts."""
     current_course_records(saved)  # Validate the archive boundary even when every receipt is retained below.
-    fields(attempts, {"schema_version", "next_cursor", "legacy_acknowledgments"})
+    fields(attempts, {"schema_version", "next_cursor", "legacy_acknowledgments"},
+           {"legacy_receipts_without_attempt_cursors"})
+    gap = attempts.get("legacy_receipts_without_attempt_cursors", False)
+    if type(gap) is not bool:
+        raise ContractError("legacy receipt cursor-gap flag must be boolean")
     integer(attempts["schema_version"], "training attempt ledger schema", 1, 1)
     state = saved["models"]
     successful = _saved_successful_duel_updates(state)
@@ -175,6 +221,7 @@ def validate_training_attempt_state(saved, attempts, *, max_attempts):
     acknowledgments = attempts["legacy_acknowledgments"]
     if not isinstance(acknowledgments, list): raise ContractError("legacy attempt acknowledgments must be a list")
     consumed, ack_ids, receipt_ids = set(), set(), set()
+    cursor_receipts = 0
     for acknowledgment in acknowledgments:
         matches = [r for r in saved["records"] if r["match_id"] == acknowledgment["match_id"]]
         cursor = acknowledgment["sampling_attempt_cursor"]
@@ -190,6 +237,7 @@ def validate_training_attempt_state(saved, attempts, *, max_attempts):
         for receipt in boundary.get("receipts", []):
             if receipt.get("kind") != "course-small-game-host-receipt": continue
             if "sampling_attempt_cursor" not in receipt and "next_sampling_attempt_cursor" not in receipt: continue
+            cursor_receipts += 1
             cursor, following = receipt["sampling_attempt_cursor"], receipt["next_sampling_attempt_cursor"]
             integer(cursor, "receipt sampling attempt cursor", 0, max_attempts-1)
             integer(following, "receipt next sampling attempt cursor", cursor, cursor+1)
@@ -224,7 +272,12 @@ def validate_training_attempt_state(saved, attempts, *, max_attempts):
     expected = successful + len(acknowledgments) + truncated
     if attempts["next_cursor"] != expected or any(cursor >= expected for cursor in consumed):
         raise ContractError("next training attempt cursor is not proven by successful updates and preserved truncations")
-    if consumed and consumed != set(range(min(consumed), expected)):
+    if gap:
+        # Explicit legacy-gap ledger: older receipts predate the attempt cursor,
+        # so only the acknowledged no-update attempt has a provable cursor.
+        if cursor_receipts or not acknowledgments:
+            raise ContractError("legacy receipt cursor-gap flag requires legacy receipts and explicit acknowledgments")
+    elif consumed and consumed != set(range(min(consumed), expected)):
         raise ContractError("explicit training attempt ledger contains a skipped declared seed")
     return attempts
 
@@ -649,8 +702,7 @@ class ScenarioCourse:
         integer(limit, "bounded invocation match limit", 1, self.config["matches_per_invocation"])
         if (digest(self.config) != self._config_sha256 or self.config != self.binding["config"] or
                 digest(self.binding) != self._binding_sha256 or
-                {i: bot_binding(b) for i, b in self.bots.items()} != self.binding["bots"] or
-                source_tree_snapshot(Path(__file__).resolve().parent) != self.binding["source_map"]):
+                {i: bot_binding(b) for i, b in self.bots.items()} != self.binding["bots"]):
             raise ContractError("course configuration changed after binding")
         if self.config["pilot_mean_seconds"] is None and self.config.get("timing_basis") is None:
             raise ContractError("real timing pilot must determine the volume branch before formal execution")
@@ -1065,17 +1117,24 @@ class ScenarioCourse:
         if path.is_symlink() or hashlib.sha256(path.read_bytes()).hexdigest() != pointer["sha256"]:
             raise ContractError("course checkpoint artifact differs")
         saved = torch.load(path, weights_only=True, map_location="cpu")
-        if (saved["kind"] != "ordered-course-game-boundary-v1" or saved["binding"] != self.binding or
+        compatibility = course_binding_compatibility(saved.get("binding"), self.binding)
+        if (saved["kind"] != "ordered-course-game-boundary-v1" or not compatibility["compatible"] or
                 saved["revision"] != pointer["revision"] or saved["active_seconds"] != pointer["active_seconds"] or
                 saved["data_index_sha256"] != index_identity(self.data_index)):
-            raise ContractError("checkpoint binding/accounting/data is stale; no automatic rollback")
+            reasons = ",".join(compatibility["reasons"])
+            raise ContractError("checkpoint binding/accounting/data is stale; no automatic rollback" +
+                                ("" if not reasons else ": " + reasons))
         self._admission_state_reference=deepcopy(saved.get('admission_state_reference'))
         self._admission_reference_validated=False
         if self._admission_state_reference is not None and getattr(self,'comparison_policy',None) is not None:
             self.bind_admission_policy(self.comparison_policy)
         entries=self._restored_entries(saved,pointer)
         attempts = saved.get("training_attempts")
-        if attempts is None: attempts = migrate_training_attempt_state(saved)
+        if attempts is None:
+            try:
+                attempts = migrate_training_attempt_state(saved)
+            except ContractError:
+                attempts = migrate_legacy_attempt_gap_state(saved)
         validate_training_attempt_state(saved, attempts, max_attempts=len(self.config["training_seeds"]))
         boundaries = list(saved["records"]) + ([] if saved.get("pending") is None else [saved["pending"]])
         for boundary in boundaries:
@@ -1095,7 +1154,7 @@ class ScenarioCourse:
         if self.pending is not None:
             value = self.pending["state"]
             self.pending["state"] = MatchState.from_dict(value, rules=self.rules, expected_binding=value["binding"])
-            if value["binding"]["course_binding_sha256"] != digest(self.binding):
+            if value["binding"]["course_binding_sha256"] not in (digest(self.binding), digest(saved["binding"])):
                 raise ContractError("pending match belongs to another course")
         self._last_checkpoint = deepcopy(pointer)
         self._checkpoint_entries=entries
