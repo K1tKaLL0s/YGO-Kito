@@ -10,6 +10,7 @@ from .validation import ContractError, array, fields, integer, member, text
 SOURCES = ("real_engine", "synthetic_contract_test")
 OUTCOMES = ("win", "loss", "draw", "timeout", "crash", "invalid_action")
 ROUTES = ("build_goal", "build_optimizer", "register_forecast", "evaluate_duel", "train_duel", "diagnose", "stop")
+TWENTY_FIFTY_POLICY_EPOCH = "course-forecast-twenty-fifty-v2"
 
 
 def probability(value, label):
@@ -27,23 +28,74 @@ def sha256(value):
 @dataclass(frozen=True)
 class FeedbackPolicy:
     checkpoints: tuple = (25, 50, 75, 100, 125, 250, 500, 750, 1000)
-    minimum_matches: int = 25
+    minimum_matches: int | None = 25
     margin: float = .1
     family_alpha: float = .05
     draw_score: float = 0.
     calibration: str = "pending"
     schema_version: int = 1
+    review_horizon: int = 100
+    rebuild_horizon: int = 1000
+    policy_epoch: str | None = None
+    count_definition_id: str | None = None
+    significance_definition_id: str | None = None
+
+    @classmethod
+    def twenty_fifty(cls):
+        """A prospective policy, never a reinterpretation of a legacy ledger.
+
+        The user supplied the 20/50 horizons and conditional responses. Five
+        match looks, minimum five matches, margin .1, alpha .05, Hoeffding and
+        forecast alpha spending are explicit engineering choices, pending
+        calibration. They do not define an unconditional periodic rebuild.
+        """
+        return cls(checkpoints=tuple(range(5,51,5)),minimum_matches=5,
+            review_horizon=20,rebuild_horizon=50,policy_epoch=TWENTY_FIFTY_POLICY_EPOCH,
+            count_definition_id='completed-native-terminal-matches-only-v2',
+            significance_definition_id='engineering-hoeffding-margin-0.1-alpha-0.05-finite-looks-forecast-spending-v2')
+
+    @property
+    def terminal_matches_only(self):
+        return self.policy_epoch == TWENTY_FIFTY_POLICY_EPOCH
+
+    def alert_kinds(self, check):
+        """Apply a conditional within-window response at a declared look."""
+        if check is None or not check['low']:return ()
+        n=check['matches']
+        if n <= self.review_horizon:return ('reevaluate',)
+        if n <= self.rebuild_horizon:return ('reevaluate','mandatory_rebuild')
+        return ()
+
+    def _legacy_layout(self):
+        return (self.review_horizon==100 and self.rebuild_horizon==1000 and
+                self.policy_epoch is None and self.count_definition_id is None and self.significance_definition_id is None)
+
+    @property
+    def missing_definitions(self):
+        missing=[]
+        if not self.checkpoints:missing.append('predeclared_look_schedule')
+        if self.minimum_matches is None:missing.append('minimum_matches_definition')
+        if not self._legacy_layout():
+            for name in ('policy_epoch','count_definition_id','significance_definition_id'):
+                if not isinstance(getattr(self,name),str) or not getattr(self,name).strip():missing.append(name)
+        return tuple(missing)
+
+    @property
+    def definitions_ready(self):return not self.missing_definitions
 
     def __post_init__(self):
         integer(self.schema_version, "feedback schema", 1, 1)
-        integer(self.minimum_matches, "minimum matches", 1, 100)
+        integer(self.review_horizon,'forecast review horizon',2,10000)
+        integer(self.rebuild_horizon,'forecast reconstruction horizon',self.review_horizon+1,10000)
+        if self.minimum_matches is not None:integer(self.minimum_matches, "minimum matches", 1, self.review_horizon)
         if not isinstance(self.checkpoints, tuple) or list(self.checkpoints) != sorted(set(self.checkpoints)):
             raise ContractError("feedback checkpoints must be sorted and unique")
         for n in self.checkpoints:
-            integer(n, "feedback checkpoint", self.minimum_matches, 1000)
-        if (100 not in self.checkpoints or 1000 not in self.checkpoints or
-                not any(n < 100 for n in self.checkpoints) or not any(100 < n < 1000 for n in self.checkpoints)):
-            raise ContractError("predeclare checks before and between the 100/1000 horizons")
+            integer(n, "feedback checkpoint", self.minimum_matches if self.minimum_matches is not None else 1, self.rebuild_horizon)
+        if (self.checkpoints or self._legacy_layout()) and (self.review_horizon not in self.checkpoints or self.rebuild_horizon not in self.checkpoints or
+                not any(n < self.review_horizon for n in self.checkpoints) or
+                not any(self.review_horizon < n < self.rebuild_horizon for n in self.checkpoints)):
+            raise ContractError("predeclare checks before and between the fixed forecast horizons")
         if not 0 < probability(self.margin, "margin") < 1 or not 0 < probability(self.family_alpha, "family alpha") < 1:
             raise ContractError("margin/alpha must be strictly between zero and one")
         probability(self.draw_score, "draw score")
@@ -58,7 +110,10 @@ class FeedbackPolicy:
         return cls(**d)
 
     def to_dict(self):
-        return dict(asdict(self), checkpoints=list(self.checkpoints))
+        result=dict(asdict(self), checkpoints=list(self.checkpoints))
+        if self._legacy_layout():
+            for name in ('review_horizon','rebuild_horizon','policy_epoch','count_definition_id','significance_definition_id'):result.pop(name)
+        return result
 
     def assess(self, n, score_sum, forecast, ordinal):
         """One-sided Hoeffding + finite looks + summable forecast alpha spending.
@@ -67,6 +122,7 @@ class FeedbackPolicy:
         mean, each forecast gets alpha/(k(k+1)), then divides it over its looks.
         Operational calibration/independence is not proven by a unit test.
         """
+        if not self.definitions_ready:raise ContractError('forecast policy definitions missing: '+','.join(self.missing_definitions))
         integer(n, "observed matches", 1)
         integer(ordinal, "forecast ordinal", 1)
         probability(forecast, "forecast")

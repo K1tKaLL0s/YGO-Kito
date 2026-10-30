@@ -7,9 +7,18 @@ from pathlib import Path
 POLICY_SHA='e8679b1ba4ebb68bc056e17b1c86bd6008b03574f1bb32d6b06905588c3c7327'
 
 
+def auxiliary_applicability(task):
+    from ygo_kito.model_auxiliary import auxiliary_capability
+    return {'schema_version':1,'kind':'declared_goal_auxiliary_applicability',
+        'task_sha256':task.sha256,**auxiliary_capability(task.to_dict()),
+        'unknown_is_not_negative':True,'quality_label_created':False}
+
+
 def completed_auxiliary(task,assets,comparison,index,root,base,formal_matches):
     from ygo_kito.build_contracts import digest
     from ygo_kito.model_auxiliary import pack_requests,make_auxiliary_comparison,validate_auxiliary_comparison
+    if not auxiliary_applicability(task)['supported']:
+        return None
     read=lambda p:json.loads(p.read_text(encoding='utf-8'))
     policy=read(base/'reports/auxiliary-evaluation-v1'/('plan-v2-future32.json' if formal_matches>=32 else 'plan-corrected-future-v1_1.json'))
     expected=POLICY_SHA if formal_matches>=32 else '29a40e8c12143effd5ba60d439717a119a6fdb231ab17ed82a08cd34b8d4b589'
@@ -39,7 +48,7 @@ def completed_auxiliary(task,assets,comparison,index,root,base,formal_matches):
     summary={'kind':'actual-goal-auxiliary-v2-summary','auxiliary_sha256':value['auxiliary_sha256'],
         'preferred_index':value['preferred_index'],'reason':value['preference_reason'],'cases':len(value['cases']),
         'original_win_comparison_sha256':comparison['comparison_sha256'],'original_win_comparison_changed':False,
-        'policy_sha256':POLICY_SHA,'metric_names':value['metrics'],'formal_credit_for_comparison':0,
+        'policy_sha256':policy['plan_sha256'],'metric_names':value['metrics'],'formal_credit_for_comparison':0,
         'raw_file_sha256':hashlib.sha256(output.read_bytes()).hexdigest()}
     (root/'actual-goal-auxiliary-v2-summary.json').write_text(json.dumps(summary,indent=2)+'\n',encoding='utf-8')
     return value

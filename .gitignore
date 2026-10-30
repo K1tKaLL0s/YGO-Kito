@@ -45,3 +45,13 @@ dist/
 *.sqlite3-journal
 *.sqlite3-wal
 *.sqlite3-shm
+
+# Local migration, runtime and publication checkouts
+/_migrated/
+/_local_cpu_20261027/
+/_publish_*/
+
+# Runtime payloads remain in local recovery storage
+/artifacts/checkpoints/*.tar.gz
+/artifacts/feedback/*.json.gz
+/docs/reports/repair-integration-20261028/*.log

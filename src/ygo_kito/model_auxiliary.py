@@ -16,6 +16,17 @@ digest=lambda v:hashlib.sha256(canon(v).encode()).hexdigest()
 read=lambda p:json.loads(Path(p).read_text(encoding='utf-8'))
 
 
+def auxiliary_capability(task):
+    """Classify the declared objective without inventing a ranking metric."""
+    goal=task['goal'];kind=goal.get('route_goal',goal).get('kind')
+    supported=kind in ('fusion_summon','normal_summon')
+    return {'goal_kind':kind,'supported':supported,
+        'status':'requires_registered_policy' if supported else 'not_applicable',
+        'reason':('declared_proper_summon_objective' if supported else
+                  'declared_auxiliary_objective_absent' if kind=='deck_constraints' else
+                  'unsupported_declared_goal')}
+
+
 def request_sha(value):
     value=deepcopy(value);value['context']['run_id']='native-smoke'
     return digest(value)
@@ -71,7 +82,7 @@ def evaluate_game(task,trace,episode,actor):
     events=trace['events'];goal=task['goal'];route=goal.get('route_goal',goal)
     target=route.get('card_id');kind=route.get('kind')
     frames=align_observations(trace,episode,actor)
-    if kind not in ('fusion_summon','normal_summon'):
+    if not auxiliary_capability(task)['supported']:
         return {'status':'unsupported_proper_summon_witness','metrics':{k:None for k in METRICS},'goal_kind':kind}
     relevant_kind=62 if kind=='fusion_summon' else 60
     starts=[i for i,e in enumerate(events) if e['kind']==relevant_kind and e.get('player')==actor

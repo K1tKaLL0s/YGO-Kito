@@ -34,6 +34,18 @@ from .device import (resolve_device, execution_metadata, checkpoint_device, opti
 from .validation import ContractError, canonical_json, fields, integer
 
 
+class SampleBudgetExceeded(RuntimeError):
+    """Known compute boundary, with private evidence and no terminal target.
+
+    This is deliberately separate from NativeError. The evidence can be
+    inspected or replayed only by an explicit host recovery decision; it is
+    neither a completed episode nor a serializable native continuation.
+    """
+    def __init__(self, partial):
+        super().__init__("CPU sample compute budget exhausted; incomplete game preserved without reward/update")
+        self.partial = partial
+
+
 @dataclass(frozen=True)
 class CpuTrainingConfig:
     model: DuelModelConfig = field(default_factory=DuelModelConfig)
@@ -134,7 +146,7 @@ class CpuTrainer:
     def sample_episode(self, root, profile, *, purpose="train", seed=None,
                        policy_seed=None, opponent="visible-effects-first-v1",opponent_adapter=None,engine_factory=None,
                        combo_plans=(), planning_facts=None, planning_responses=None, planning_budget=None,
-                       effect_limit_bindings=()):
+                       effect_limit_bindings=(), training_attempt_cursor=None):
         if purpose not in ("train", "validation","final_eval") or opponent not in ("visible-effects-first-v1", "visible-effects-last-option-v1"):
             raise ContractError("unsupported sample purpose or fixed opponent")
         if opponent_adapter is not None:
@@ -144,19 +156,24 @@ class CpuTrainer:
             opponent_adapter.assert_runtime(root,profile,self.config.actor_seat)
         if purpose == "train" and (seed is not None or policy_seed is not None):
             raise ContractError("training seed/RNG must come from the checkpoint cursor")
-        if purpose == "train" and self.episode_cursor >= len(self.config.game_seeds):
+        if training_attempt_cursor is not None:
+            if purpose != "train": raise ContractError("training attempt cursor cannot select held-out seeds")
+            integer(training_attempt_cursor, "declared training attempt cursor", self.episode_cursor, len(self.config.game_seeds))
+        sample_cursor = self.episode_cursor if training_attempt_cursor is None else training_attempt_cursor
+        if purpose == "train" and sample_cursor >= len(self.config.game_seeds):
             raise ContractError("declared engineering episode budget exhausted")
         cfg = self.config
         curriculum=cfg.curriculum
         policy_hash, version = parameter_digest(self.model), self.updates
         if purpose == "train":
-            seed, sampler_rng = cfg.game_seeds[self.episode_cursor], self.policy_rng
+            seed, sampler_rng = cfg.game_seeds[sample_cursor], self.policy_rng
         else:
             integer(seed, "held-out game seed", 0, 2**32 - 8)
             integer(policy_seed, "held-out policy seed", 0, 2**32 - 8)
             if seed in cfg.game_seeds:
                 raise ContractError("validation seed overlaps training")
             sampler_rng = torch.Generator(device="cpu").manual_seed(policy_seed)
+        sampler_rng_before = sampler_rng.get_state().tolist()
         # Seeds and opponent versions are controller metadata, never model features.
         steps, audit, latencies = [], [], []
         self.model.eval()
@@ -189,8 +206,29 @@ class CpuTrainer:
                 driver,assigned=prompt_curriculum(curriculum,profile,engine._rows)
             request = engine.next_decision()
             while request is not None:
-                if len(audit) >= cfg.native_decision_limit or time.perf_counter() - started > cfg.episode_seconds:
-                    raise NativeError("CPU sample budget exhausted; no terminal reward/update claimed")
+                elapsed = time.perf_counter() - started
+                if len(audit) >= cfg.native_decision_limit or elapsed > cfg.episode_seconds:
+                    raise SampleBudgetExceeded({"schema_version": 1, "kind": "private-incomplete-core-sample-v1",
+                        "source": "live-core-actor-seat", "purpose": purpose, "terminal": False, "truncated": True,
+                        "training_eligible": False, "terminal_reward": None, "outcome": None,
+                        "policy_version": version, "policy_sha256": policy_hash,
+                        "seed_audit_only": seed, "episode_cursor": self.episode_cursor,
+                        "sampling_attempt_cursor": sample_cursor if purpose == "train" else None,
+                        "actor_seat": cfg.actor_seat, "turns": engine.turn,
+                        "resource_boundary": {"kind": "compute_budget", "episode_seconds": cfg.episode_seconds,
+                            "native_decision_limit": cfg.native_decision_limit, "elapsed_seconds": elapsed,
+                            "native_decisions": len(audit), "actor_samples": len(steps),
+                            "limits_reached": [name for name, reached in (
+                                ("native_decision_limit", len(audit) >= cfg.native_decision_limit),
+                                ("episode_seconds", elapsed > cfg.episode_seconds)) if reached]},
+                        "steps": [{k: v.to_dict() if k == "request" else v for k, v in step.items()} for step in steps],
+                        "next_request": request.to_dict(), "responses": audit,
+                        "trajectory_sha256": hashlib.sha256(canonical_json(audit).encode()).hexdigest(),
+                        "actor_inference_ms": latencies,
+                        "sampler_rng_before": sampler_rng_before, "sampler_rng_after": sampler_rng.get_state().tolist(),
+                        "profile": profile, "resources": engine.receipt,
+                        "selection_key_audit_only": engine._selection_seed,
+                        "events": engine.events, "native_continuation_available": False})
                 if request.observation.observer == cfg.actor_seat and (driver is None or request.prompt.message in assigned):
                     tick = time.perf_counter()
                     with torch.no_grad():
@@ -229,6 +267,7 @@ class CpuTrainer:
                        "decision_policy": PLANNING_VERSION, "combo_plan_count": len(combo_plans),
                        "planning_projection": "conditional-approximate-not-core-verified",
                        "trajectory_sha256": hashlib.sha256(canonical_json(audit).encode()).hexdigest()}
+            if training_attempt_cursor is not None: summary["sampling_attempt_cursor"] = sample_cursor
             if curriculum is not None:
                 summary['curriculum']={'kind':'engineering-scripted-prefix-and-baseline-continuation',
                                        'case':curriculum,'policy_messages':list(assigned),'competitive_evaluation':False}
@@ -254,6 +293,8 @@ class CpuTrainer:
         return episode
 
     def update(self, episode):
+        if episode.get("truncated") is True or episode.get("terminal") is False:
+            raise ContractError("PPO rejects an incomplete compute-truncated sample without a terminal target")
         if episode.get("purpose") != "train" or episode["source"] != "live-core-actor-seat" or episode["policy_version"] != self.updates or episode["policy_sha256"] != parameter_digest(self.model):
             raise ContractError("PPO rejects stale/off-policy or non-live-core data")
         steps, cfg = episode["steps"], self.config

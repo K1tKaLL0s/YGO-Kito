@@ -4,7 +4,7 @@
 
 ## 版本与来源
 
-集成目录：E:\CodexData\2026-10-28\task-13\integration；分支 codex/integration-20261028。基线为 PR8 的 5cf3dc1ca189e794a5bd5a915b2e24a0070a4095，tree 9376d994c733862461029e622a026787b4cadcaf。通过授权 GitHub GET 和可读本地缓存构成单提交浅仓，757 blob、802 对象核对。这不是完整 clone，没有读取被拒绝的原 .git。
+集成目录：N:\YGO-Kito\_migrated\CodexData\2026-10-28\task-13\integration；分支 codex/integration-20261028。基线为 PR8 的 5cf3dc1ca189e794a5bd5a915b2e24a0070a4095，tree 9376d994c733862461029e622a026787b4cadcaf。通过授权 GitHub GET 和可读本地缓存构成单提交浅仓，757 blob、802 对象核对。这不是完整 clone，没有读取被拒绝的原 .git。
 
 | 输入 | 独立复核后的版本 | 集成方式 |
 | --- | --- | --- |

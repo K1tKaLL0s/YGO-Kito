@@ -31,7 +31,8 @@ class BasicCbDuelIntegrationTests(unittest.TestCase):
         calls=[]
         def synthetic_verifier(derived,current,current_assets,**kwargs):
             target=derived.goal['route_goal']['card_id'];calls.append(derived.sha256)
-            if unknown:return {'status':'not_found_within_budget','unmet':['synthetic bounded search, not impossibility']}
+            if unknown:return {'status':'not_found_within_budget','exploration':{'nodes_expanded':1},
+                               'unmet':['synthetic bounded search, not impossibility']}
             proof=deepcopy(next(row['proof'] for row in fixture['basic_cb']['routes']
                                 if row['task']['goal']['route_goal']['card_id']==target))
             native_task=route_task(derived)

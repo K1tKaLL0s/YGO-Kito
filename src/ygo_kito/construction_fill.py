@@ -270,7 +270,7 @@ def fill_with_existing(session, assets, *, role="build_goal", base=None, models=
     the providers. This fill function performs selection/checks, not training.
     """
     from .build_pipeline import edit_candidates, goal_candidates
-    from .construction_candidates import retained_order, attributed_feedback
+    from .construction_candidates import retained_order, attributed_feedback, evidence_order
     member(role, "fill role", ("build_goal", "build_optimizer"))
     session.check_goal()
     if session.logic is None:
@@ -284,13 +284,14 @@ def fill_with_existing(session, assets, *, role="build_goal", base=None, models=
         return {"status": axes["status"], "stage_2": axes, "best_deck": None}
     if role == "build_optimizer" and base is None:
         raise ContractError("optimizer filling requires an existing concrete deck")
+    generation_trace = {}
     if role == "build_goal" and base is not None and task.goal["kind"] == "deck_constraints" and assets.accepts(task,base):
         # Existing valid lists can start from bounded old edits without requiring
         # the optional MILP solver used for construction from an empty list.
-        candidates = edit_candidates(task,assets,base,feedback=feedback,return_portfolio=True,mechanism_groups=mechanism_groups)
+        candidates = edit_candidates(task,assets,base,feedback=feedback,return_portfolio=True,mechanism_groups=mechanism_groups,trace=generation_trace)
     else:
-        candidates = (goal_candidates(task, assets, base,feedback=feedback,return_portfolio=True,mechanism_groups=mechanism_groups) if role == "build_goal"
-                      else edit_candidates(task, assets, base, require_edit=False,feedback=feedback,return_portfolio=True,mechanism_groups=mechanism_groups))
+        candidates = (goal_candidates(task, assets, base,feedback=feedback,return_portfolio=True,mechanism_groups=mechanism_groups,trace=generation_trace) if role == "build_goal"
+                      else edit_candidates(task, assets, base, require_edit=False,feedback=feedback,return_portfolio=True,mechanism_groups=mechanism_groups,trace=generation_trace))
     portfolio_rows=candidates
     candidates=[row["deck"] for row in portfolio_rows]
     scores, ranking = [0.] * len(candidates), "engineering_order_untrained"
@@ -305,38 +306,70 @@ def fill_with_existing(session, assets, *, role="build_goal", base=None, models=
             if len(scores) != len(candidates) or any(not math.isfinite(s) for s in scores):
                 raise ContractError("invalid existing model candidate scores")
         ranking = "existing_role_model_uncalibrated"
+    order = retained_order(portfolio_rows,scores,feedback,task.sha256)
+    preference = evidence_order(feedback,task.sha256,"deck")
+    trace_rows = [{"candidate_index":i,"strategy":row["strategy"],"changes":deepcopy(row["changes"]),
+        "portfolio_admission":deepcopy(row.get("portfolio_admission")),
+        "generation":deepcopy(row.get("generation")),"proposal_basis":row.get("proposal_basis","bounded_listing_or_single_edit"),
+        "proposal_source":row.get("proposal_source"),"goal_preserved":row["goal_preserved"],
+        "score_available":models is not None,"model_score_uncalibrated":scores[i] if models is not None else None,
+        "whole_candidate_evidence_order":preference.get(row["deck_sha256"],0),
+        "selection_order_position":order.index(i),"status":"not_attempted","retained":False,"selected":False}
+        for i,row in enumerate(portfolio_rows)]
+    candidate_trace = {"generation":generation_trace,"ranking":ranking,"calibration_status":"uncalibrated" if models is not None else "no_model_score",
+        "score_interpretation":"whole_candidate_score_not_card_credit_or_win_rate",
+        "target_constraints":{"goal":deepcopy(task.goal),"sizes":deepcopy(task.sizes),"requirements":deepcopy(task.requirements),"theme_axes":deepcopy(axes)},
+        "order_rule":"whole_candidate_evidence_then_score_with_strategy_diversity",
+        "selection_rule":"first_accepted_in_retained_order","candidate_order":order,"candidates":trace_rows,
+        "retained_limit":3 if defer_engine else 1,"selected_candidate_index":None,"selected_attempt_index":None,
+        "strength_status":"unknown"}
     results, retained, selected = [], [], None
-    for index in retained_order(portfolio_rows,scores,feedback,task.sha256):
+    for index in order:
+        attempt_index = len(results)
+        item = trace_rows[index]
+        item["attempt_index"] = attempt_index
         try:
             proposal = binding_provider(session.logic, task, candidates[index])
         except ContractError as error:
             session.record_feedback("fill", "graph binding failed: " + str(error))
-            results.append({"status":"binding_unmatched","unmet":[str(error)],"best_deck":None})
+            results.append({"status":"binding_unmatched","unmet":[str(error)],"best_deck":None,
+                "candidate_index":index,"ranking":ranking,"model_score_uncalibrated":item["model_score_uncalibrated"]})
+            item.update(status="binding_unmatched",unmet=[str(error)])
             continue
         if not isinstance(proposal, FillProposal) or proposal.deck != candidates[index]:
             raise ContractError("binding provider must preserve the generated candidate and quantities")
         result = evaluate_fill(session, assets, proposal, scopes=scopes, text_reviewer=text_reviewer, verifier=verifier, defer_engine=defer_engine)
-        result.update(role=role, ranking=ranking, model_score_uncalibrated=scores[index])
+        result.update(role=role, ranking=ranking, candidate_index=index, model_score_uncalibrated=item["model_score_uncalibrated"])
         results.append(result)
+        item.update(status=result["status"],unmet=deepcopy(result.get("unmet",[])),card_list_legal=result.get("card_list_legal"),
+            public_effect_evidence={"text_reviews_attempt_index":attempt_index,
+                "bindings":[{"node_id":b.node_id,"card_ids":list(b.card_ids)} for b in proposal.bindings],
+                "reviewed_card_ids":sorted({e["card_id"] for review in result.get("text_reviews",[]) for e in review["evidence"]}),
+                "interpretation":"source_bound_card_effect_assessment_not_model_score_attribution"})
         if result["status"] in ("task_goal_verified_logic_unproven", "list_constraints_verified_logic_unproven", "concrete_candidate_cb_pending"):
-            if selected is None:selected=len(results)-1
+            item["retained"] = True
+            if selected is None:
+                selected=len(results)-1; item["selected"]=True
+                candidate_trace.update(selected_candidate_index=index,selected_attempt_index=selected)
             row=portfolio_rows[index]
             retained.append({"deck":candidates[index].to_dict(),"logic":session.logic.to_dict(),
                 "logic_sha256":session.logic.sha256,"goal_sha256":session.goal_sha256,
+                "candidate_index":index,"attempt_index":attempt_index,"generation":deepcopy(row.get("generation")),
                 "strategy":row["strategy"],"changes":row["changes"],
                 "proposal_basis":row.get("proposal_basis","bounded_listing_or_single_edit"),
                 "proposal_source":row.get("proposal_source"),
                 "protected_package":deepcopy(row.get("protected_package")),
-                "model_score_uncalibrated":scores[index],"strength_status":"unknown",
+                "model_score_uncalibrated":item["model_score_uncalibrated"],"strength_status":"unknown",
                 "concrete_proposal":result.get("concrete_proposal")})
             if len(retained)>=(3 if defer_engine else 1):break
     if selected is not None:
         best=results[selected]
         return {"status":best["status"],"best_deck":best["best_deck"],"attempts":results,
                 "selected_attempt_index":selected,"portfolio":retained,
-                "ranking":ranking,"graph_execution_verified":False}
+                "ranking":ranking,"candidate_trace":candidate_trace,"graph_execution_verified":False}
     return {"status": "no_verified_fill_within_candidates", "best_deck": results[-1]["best_deck"] if results else None,
-            "attempts": results, "ranking": ranking, "graph_execution_verified": False}
+            "attempts": results, "ranking": ranking,"candidate_trace":candidate_trace,
+            "returned_deck_source":"last_attempt_or_its_prior_fallback" if results else "none", "graph_execution_verified": False}
 
 
 def _candidate_basic_cb(task,deck,assets,provider):

@@ -16,7 +16,8 @@ from .autonomous_construction import AutonomousConstructionKernel, initialize_co
 from .build_contracts import BuildTask, digest
 from .build_model import FEATURE_VERSION as BUILD_FEATURES
 from .build_training import BuildTrainer, BuildTrainingConfig, config_from_dict as build_config_from_dict
-from .coordinator_model import CoordinatorTrainer, CoordinatorModelConfig, FEATURE_VERSION as COORD_FEATURES
+from .coordinator_model import (CoordinatorTrainer, CoordinatorModelConfig, FEATURE_VERSION as COORD_FEATURES,
+                                MECHANISM_FEATURE_VERSION as COORD_MECHANISM_FEATURES)
 from .course_game_adapter import course_config_from_dict
 from .cpu_training import CpuTrainer, CpuTrainingConfig
 from .device import (resolve_device, execution_metadata, checkpoint_execution, capture_device_rng,
@@ -83,17 +84,27 @@ class CourseModels:
         obj.binding = deepcopy(source_binding); obj._binding_sha256 = digest(obj.binding)
         obj.learning_stage = obj.binding.get("learning_stage", "lora_adaptation")
         if obj.learning_stage not in ("base", "lora_adaptation"): raise ContractError("explicit supported learning stage required")
+        mechanisms = obj.binding.get("coordinator_mechanism_inputs", False)
+        if type(mechanisms) is not bool:
+            raise ContractError("explicit boolean coordinator mechanism input policy required")
+        if mechanisms and (obj.learning_stage != "base" or initialization is not None):
+            raise ContractError("new mechanism coordinator requires fresh base initialization; existing weights need explicit migration")
         obj.device = resolve_device(device); obj.adapter_configs = _configs(adapter_configs)
         obj.available_ids = tuple(sorted(set(available_ids)))
         obj.builder = BuildTrainer(task, assets, BuildTrainingConfig(batches=100000) if obj.learning_stage == "base" else BuildTrainingConfig(), device=obj.device)
         obj.duel = CpuTrainer(duel_config, sorted(c for c in assets.rows if 0 < c < 2**32), device=obj.device)
-        obj.coordinator = CoordinatorTrainer(CoordinatorModelConfig(steps=100000) if obj.learning_stage == "base" else CoordinatorModelConfig(), device=obj.device)
+        obj.coordinator = CoordinatorTrainer(CoordinatorModelConfig(
+            steps=100000 if obj.learning_stage == "base" else 2, mechanism_inputs=mechanisms), device=obj.device)
         target = {"task_sha256": task.sha256, **deepcopy(assets.receipt),
                   "period_context": deepcopy(getattr(assets, "period_context", None))}
         obj.initialization_provenance = (initialize_group_weights(obj.builder, obj.duel, obj.coordinator,
             workspace=workspace, spec=initialization, target_binding=target) if initialization is not None else
             {"kind": "explicit-fresh-untrained-course-models", "ability_verified": False,
              "source_checkpoint": None, "optimizer_state_inherited": False})
+        if mechanisms:
+            obj.initialization_provenance["coordinator_mechanisms"] = {
+                "feature_version": COORD_MECHANISM_FEATURES, "new_untrained_parameters": ["mechanism_projection.weight"],
+                "initialization": "zero", "ability_verified": False}
         obj.vocabulary_migration = initialize_course_vocabulary(obj.builder, obj.available_ids)
         obj._assets_identity = _asset_identity(task, assets, obj.duel.encoder.card_ids)
         obj.policy_rng = torch.Generator(device="cpu").manual_seed(duel_config.policy_seed)
@@ -111,12 +122,19 @@ class CourseModels:
     def versions(self): return {r: parameter_digest(m) for r, m in self.models().items()}
 
     def _adapter_binding(self, role):
-        return {"base_version": "course-base", "feature_version": FEATURES[role],
+        feature = (COORD_MECHANISM_FEATURES if role == "coordinator" and self.coordinator.config.mechanism_inputs
+                   else FEATURES[role])
+        return {"base_version": "course-base", "feature_version": feature,
                 "context_sha256": digest({"source_binding": self.binding, "task": self.builder.task.sha256,
                     "encoder": self.builder.encoder.binding(), "initialization": self.initialization_provenance})}
 
     def _check(self):
         if digest(self.binding) != self._binding_sha256: raise ContractError("course model host binding changed")
+        mechanisms = self.binding.get("coordinator_mechanism_inputs", False)
+        if type(mechanisms) is not bool or mechanisms != self.coordinator.config.mechanism_inputs:
+            raise ContractError("course coordinator architecture/input binding differs")
+        if mechanisms and self.learning_stage != "base":
+            raise ContractError("v3 course LoRA needs an explicit adapter/loss migration; legacy adapters are not rebound")
         if _asset_identity(self.builder.task, self.builder.encoder.assets, self.duel.encoder.card_ids) != self._assets_identity:
             raise ContractError("course model assets/task changed")
         self.builder.encoder.assert_binding(); self.kernel._check()

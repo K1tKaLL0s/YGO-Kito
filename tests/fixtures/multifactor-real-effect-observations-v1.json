@@ -1,0 +1,62 @@
+{
+  "kind": "manual_partial_official_effect_observations_not_role_training_data",
+  "checked_on": "2026-10-28",
+  "samples": [
+    {
+      "key": "ash-blossom",
+      "display_name": "Ash Blossom & Joyous Spring",
+      "official_source": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12950&ope=2&request_locale=en",
+      "source_summary": "A response to certain deck-affecting effects pays by discarding itself and negates the responding effect; its named usage is capped each turn.",
+      "snapshot": {
+        "semantic_version": "public-effect-clauses-v2", "card_id": null, "text_sha256": null,
+        "unknown": ["manual partial observation; no full card-text digest; no OCG-period or engine certification"],
+        "restrictions": [],
+        "effects": [{
+          "index": 0,
+          "trigger": {"event": "qualifying_effect_activation", "additional_conditions": "qualifying opponent/card effect required; no universal opening asserted"},
+          "costs": [{"kind": "send_grave", "reason": "cost", "from_zones": ["hand"], "quantity": 1, "source": "discarding this card is the payment"}],
+          "operations": [{"kind": "negate", "reason": "effect", "source": "resolution negates the effect that prompted the response"}],
+          "count_limits": [{"status": "known", "maximum": 1, "period": "turn", "scope": "same_name_this_effect", "count_event": "use", "source": "named effect usage cap for each turn"}],
+          "restrictions": [], "unknown": ["activation access depends on context; qualifying effects are conditions, not this card performing those operations"]
+        }]
+      }
+    },
+    {
+      "key": "pot-of-desires",
+      "display_name": "Pot of Desires",
+      "official_source": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=12465&ope=2&request_locale=en",
+      "source_summary": "The activation payment removes ten top-deck cards into face-down banishment; resolving it draws two, subject to a named activation cap each turn.",
+      "snapshot": {
+        "semantic_version": "public-effect-clauses-v2", "card_id": null, "text_sha256": null,
+        "unknown": ["manual partial observation; no full card-text digest; no OCG-period or engine certification"],
+        "restrictions": [],
+        "effects": [{
+          "index": 0, "trigger": {"event": "spell_activation", "additional_conditions": "payment availability not measured"},
+          "costs": [{"kind": "banish", "reason": "cost", "from_zones": ["deck"], "quantity": 10, "face_down": true, "source": "activation payment removes ten top-deck cards into face-down banishment"}],
+          "operations": [{"kind": "draw", "reason": "effect", "quantity": 2, "owner": "self", "source": "resolution increases hand by drawing two"}],
+          "count_limits": [{"status": "known", "maximum": 1, "period": "turn", "scope": "same_name_all_effects", "count_event": "activation", "source": "named card activation cap for each turn"}],
+          "restrictions": [], "unknown": ["risk to required engine pieces and utility require the actual deck and goal"]
+        }]
+      }
+    },
+    {
+      "key": "branded-fusion",
+      "display_name": "Branded Fusion",
+      "official_source": "https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=17066&ope=2&request_locale=en",
+      "source_summary": "It performs a fusion using two qualifying materials, may access hand/deck/field, and imposes a fusion-only Extra Deck restriction for the activation turn.",
+      "snapshot": {
+        "semantic_version": "public-effect-clauses-v2", "card_id": null, "text_sha256": null,
+        "unknown": ["manual partial observation; no full card-text digest; no OCG-period or engine certification"],
+        "restrictions": [],
+        "effects": [{
+          "index": 0, "trigger": {"event": "spell_activation", "additional_conditions": "eligible Fusion Monster must name Fallen of Albaz as material"},
+          "costs": [],
+          "operations": [{"kind": "fusion_summon", "reason": "effect", "from_zones": ["extra"], "materials_from": ["hand", "deck", "field"], "material_count": 2, "source": "a material-constrained fusion summon is performed during resolution"}],
+          "count_limits": [{"status": "known", "maximum": 1, "period": "turn", "scope": "same_name_all_effects", "count_event": "activation", "source": "named card activation cap for each turn"}],
+          "restrictions": [{"kind": "extra_fusion_only", "scope": "player", "duration": "turn", "whole_turn": true, "condition": "card_activation", "source": "Extra Deck summons during its activation turn must be Fusion Monsters"}],
+          "unknown": ["actual compatible materials, route success, non-fusion plan conflicts and role require a concrete deck/context"]
+        }]
+      }
+    }
+  ]
+}

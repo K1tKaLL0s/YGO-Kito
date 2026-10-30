@@ -34,6 +34,39 @@ def _readonly_index_identity(root):
                        for table in ('datasets','seeds','artifacts','contents')})
 
 
+def _preserved_monitor_bundle(parent,saved,state,review):
+    controller_path=parent/'scoped-forecast-controller.json'
+    if controller_path.is_symlink():raise ContractError('frozen controller must be an original regular file')
+    controller=json.loads(controller_path.read_text(encoding='utf-8'))
+    if controller.get('kind')!='scoped-course-controller-v3' or not isinstance(controller.get('forecasts'),dict):
+        raise ContractError('unsupported frozen controller preserved without conversion')
+    database=parent/'coordinator-scoped.sqlite3'
+    if not database.is_file() or database.is_symlink() or any(Path(str(database)+suffix).exists() for suffix in ('-wal','-shm','-journal')):
+        raise ContractError('frozen coordinator requires its closed original database')
+    with sqlite3.connect(database.resolve().as_uri()+'?mode=ro',uri=True) as db:
+        if str(db.execute('PRAGMA journal_mode').fetchone()[0]).lower()!='delete':
+            raise ContractError('frozen coordinator requires a closed DELETE journal boundary')
+        pending=controller.get('pending_evaluation')
+        if pending is not None:
+            job=db.execute('SELECT state FROM jobs WHERE id=?',(pending['job_id'],)).fetchone()
+            if job is None or job[0]!='completed':raise ContractError('uncertain frozen monitoring job cannot be migrated')
+    files={'scoped-forecast-controller.json':sha(controller_path),'coordinator-scoped.sqlite3':sha(database)}
+    snapshots={}
+    for window in controller['forecasts'].values():
+        receipt=window['snapshot'];name=receipt['path'];path=parent/name
+        if Path(name).name!=name or name!=window['id']+'.weights' or path.is_symlink() or not path.is_file() or sha(path)!=receipt['sha256']:
+            raise ContractError('frozen monitor snapshot differs from its original receipt')
+        files[name]=receipt['sha256'];snapshots[window['id']]=deepcopy(receipt)
+    pending=controller.get('pending_training')
+    result={'kind':'source-only-frozen-monitor-preservation-v1','parent_root':str(parent),
+        'files':files,'snapshots':snapshots,'controller_bytes_preserved':True,'frozen_model_bindings_preserved':True,
+        'scope_rebaselined':False,'observed_bot_source_review_sha256':digest(review),
+        'pending_training_sha256':None if pending is None else digest(pending),
+        'next_training_match_id':saved['binding']['config']['course_id']+'-train-'+str(sum(r['purpose']=='train' for r in saved['records'])+1),
+        'duel_model_sha256':state['effective_hashes']['duel']}
+    return result
+
+
 def export_closed_course(old_course, destination):
     old_course.restore_latest()  # All original binding, manifest/index and RNG checks.
     old_course._assert_registry()
@@ -116,13 +149,17 @@ def _upgrade_construction(state, export, assets, binding, *, transition_to_postc
 
 
 def migrate_closed_course(export_receipt, destination, *, assets, bots, source_files, allowed_changed_files,
-                          storage_envelope=None,transition_to_postconstruction_cb=False):
+                          storage_envelope=None,transition_to_postconstruction_cb=False,
+                          enable_coordinator_mechanisms=False,observed_bot_source_review=None,
+                          preserve_frozen_monitor_windows=False, acknowledged_compute_truncations=()):
     from ygo_kito.coordinator_model import CoordinatorTrainer
     from ygo_kito.course_models import CourseModels
     from ygo_kito.course_feedback import CourseFeedbackUpdater
     from ygo_kito.data_isolation import DataIndex
-    from ygo_kito.scenario_course import ScenarioCourse,index_identity
+    from ygo_kito.scenario_course import (ScenarioCourse,index_identity,migrate_training_attempt_state,
+        current_course_records,validate_training_attempt_state,verify_partial_game_artifact)
     import sys
+    if type(preserve_frozen_monitor_windows) is not bool:raise ContractError('explicit boolean frozen-window preservation policy required')
     path=Path(export_receipt['path'])
     if sha(path)!=export_receipt['sha256']:raise ContractError('old export checksum differs')
     export=torch.load(path,weights_only=True,map_location='cpu')
@@ -138,6 +175,24 @@ def migrate_closed_course(export_receipt, destination, *, assets, bots, source_f
         raise ContractError('uncertain parent transaction preserved')
     if saved['pending'] is not None or saved['feedback']['pending'] is not None or saved['frozen_evaluation'] is not None:
         raise ContractError('cannot migrate unfinished work or an active final evaluation')
+    if 'training_attempts' in saved:
+        if acknowledged_compute_truncations:raise ContractError('existing attempt ledger cannot receive a second legacy acknowledgment')
+        training_attempts=deepcopy(saved['training_attempts'])
+    else:
+        training_attempts=migrate_training_attempt_state(saved,
+            acknowledged_compute_truncations=acknowledged_compute_truncations)
+    validate_training_attempt_state(saved,training_attempts,max_attempts=len(saved['binding']['config']['training_seeds']))
+    known_legacy={(a['match_id'],a['record_sha256']) for a in training_attempts['legacy_acknowledgments']}
+    for record in current_course_records(saved):
+        if record['purpose']!='train' or record['complete']:continue
+        if (record['match_id'],digest(record)) in known_legacy:continue
+        receipts=record.get('receipts',[]);last=receipts[-1] if receipts else {}
+        if (record.get('status')!='compute_truncated' or last.get('termination_kind')!='compute_budget' or
+                last.get('sample_completed') is not False or last.get('model_update_started') is not False or
+                last.get('model_update_completed') is not False or last.get('partial_game') is None):
+            raise ContractError('unresolved native/model transaction cannot be cleared by a source-only migration')
+    if saved.get('desired')=='needs_inspection' and not acknowledged_compute_truncations:
+        raise ContractError('inspection stop requires an explicit proven legacy compute-truncation acknowledgment')
     # DataIndex.__init__ performs an application-id/schema write transaction.
     # Never open the parent through that constructor, even for an identity read.
     if _readonly_index_identity(parent/'index')!=saved['data_index_sha256']:raise ContractError('parent data index differs')
@@ -155,6 +210,20 @@ def migrate_closed_course(export_receipt, destination, *, assets, bots, source_f
     changed={p for p in set(binding['source_files'])|set(source_files) if binding['source_files'].get(p)!=source_files.get(p)}
     if changed!=set(allowed_changed_files):raise ContractError('source changes differ from the explicitly reviewed migration set')
     binding['source_files']=deepcopy(source_files)
+    if observed_bot_source_review is not None:
+        from ygo_kito.observed_bot_evidence import validate_source_review_schema
+        review=validate_source_review_schema(observed_bot_source_review)
+        if review['to_source_map']!={Path(name).name:value for name,value in source_files.items()}:
+            raise ContractError('observed bot source review target differs from the migrated source')
+        if not any(getattr(bot['runtime'],'qualification',{}).get('sha256')==review['qualification_sha256'] for bot in bots.values()):
+            raise ContractError('observed bot source review qualification is absent from the migrated bots')
+        binding['observed_bot_source_review']=review
+    if type(enable_coordinator_mechanisms) is not bool:
+        raise ContractError('explicit boolean mechanism migration policy required')
+    if enable_coordinator_mechanisms:
+        if state['configs']['coordinator'].get('mechanism_inputs',False):
+            raise ContractError('coordinator already uses mechanisms; no implicit repeat migration')
+        binding['coordinator_mechanism_inputs']=True
     if type(transition_to_postconstruction_cb) is not bool:raise ContractError('explicit boolean construction policy transition required')
     previous_policy={k:deepcopy(binding.get(k)) for k in ('construction_goal','construction_flow','basic_cb_stage',
         'construction_card_requirements','construction_logic_requirements')}
@@ -182,6 +251,32 @@ def migrate_closed_course(export_receipt, destination, *, assets, bots, source_f
             if name in modes:raise ContractError('legacy mode metadata already contains a new module')
             modes[name]=modes['']
     else:upgrade={'kind':'source-only-coordinator-course-migration','training_executed':False}
+    mechanism_upgrade=None
+    if enable_coordinator_mechanisms:
+        from ygo_kito.coordinator_model import FEATURE_VERSION
+        previous_model=deepcopy(component['models']['coordinator'])
+        previous_optimizer=deepcopy(component['coordinator_optimizer'])
+        upgraded,mechanism_upgrade=CoordinatorTrainer.upgrade_mechanism_state({
+            'config':state['configs']['coordinator'],'feature_version':FEATURE_VERSION,
+            'execution':state['execution'],'device_rng':state['device_rng'],
+            'model':previous_model,'model_sha256':component['model_hashes']['coordinator'],
+            'optimizer':previous_optimizer,'scheduler':component['coordinator_scheduler'],
+            'batch_rng':state['rng']['coordinator_batch'],'updates':state['cursors']['coordinator_updates']})
+        if any(not torch.equal(value,upgraded['model'][name]) for name,value in previous_model.items()):
+            raise ContractError('mechanism extension changed an existing coordinator tensor')
+        if tree_digest(previous_optimizer['state'])!=tree_digest(upgraded['optimizer']['state']):
+            raise ContractError('mechanism extension changed existing coordinator Adam moments')
+        if tree_digest(upgraded['batch_rng'])!=tree_digest(state['rng']['coordinator_batch']):
+            raise ContractError('mechanism extension changed coordinator sampling RNG')
+        component['models']['coordinator']=upgraded['model']
+        component['model_hashes']['coordinator']=upgraded['model_sha256']
+        component['coordinator_optimizer']=upgraded['optimizer']
+        component['coordinator_scheduler']=upgraded['scheduler']
+        state['configs']['coordinator']=upgraded['config']
+        state['effective_hashes']['coordinator']=upgraded['model_sha256']
+        modes=state['rng']['modes']['coordinator']
+        if 'mechanism_projection' in modes:raise ContractError('legacy modes already contain mechanism projection')
+        modes['mechanism_projection']=modes['']
     construction_upgrade,archived_kernel=_upgrade_construction(state,export,assets,binding,
         transition_to_postconstruction_cb=transition_to_postconstruction_cb)
     if construction_upgrade is None:
@@ -202,6 +297,8 @@ def migrate_closed_course(export_receipt, destination, *, assets, bots, source_f
             expected_rng['modes']['coordinator'][name]=expected_rng['modes']['coordinator']['']
     if construction_upgrade is not None:
         for role in ('build_goal','build_optimizer'):expected_rng['modes'][role]['mechanism']=expected_rng['modes'][role]['']
+    if mechanism_upgrade is not None:
+        expected_rng['modes']['coordinator']['mechanism_projection']=expected_rng['modes']['coordinator']['']
     if tree_digest(state['rng'])!=tree_digest(expected_rng):raise ContractError('migration changed an RNG stream or an existing module mode')
     for role in ('duel','build_goal','build_optimizer'):
         if construction_upgrade is not None and role.startswith('build_'):
@@ -218,9 +315,23 @@ def migrate_closed_course(export_receipt, destination, *, assets, bots, source_f
         if construction_upgrade is not None and key=='build_optimizers':continue
         if tree_digest(component[key])!=tree_digest(original['components'][key]):
             raise ContractError('migration changed another role optimizer or scheduler')
+    monitor_preservation=None
     if (parent/'scoped-forecast-controller.json').exists():
-        raise ContractError('existing frozen monitor windows require an explicit window-preserving migration')
+        if not preserve_frozen_monitor_windows:
+            raise ContractError('existing frozen monitor windows require an explicit window-preserving migration')
+        from ygo_kito.scenario_course import bot_binding
+        if (observed_bot_source_review is None or upgrade['kind']!='source-only-coordinator-course-migration' or
+                enable_coordinator_mechanisms or transition_to_postconstruction_cb or mechanism_upgrade is not None or
+                construction_upgrade is not None or {name:bot_binding(bot) for name,bot in bots.items()}!=saved['binding']['bots']):
+            raise ContractError('frozen windows require an explicitly reviewed source-only migration with the same models, task and bots')
+        monitor_preservation=_preserved_monitor_bundle(parent,saved,state,binding['observed_bot_source_review'])
+    elif preserve_frozen_monitor_windows:
+        raise ContractError('frozen-window preservation requires the existing original controller')
     new.mkdir()
+    if monitor_preservation is not None:
+        for name,expected in monitor_preservation['files'].items():
+            shutil.copyfile(parent/name,new/name)
+            if sha(new/name)!=expected:raise ContractError('preserved frozen monitoring bytes changed during copy')
     if archived_kernel is not None:
         with (new/'pre-mechanism-kernel.weights').open('xb') as output:torch.save(archived_kernel,output)
     if transition_to_postconstruction_cb:
@@ -239,6 +350,16 @@ def migrate_closed_course(export_receipt, destination, *, assets, bots, source_f
         state_root=new/'course',bots=bots,storage_envelope=storage_envelope)
     for key in ('records','events','active_seconds','selection','construction','evaluation_cursor','desired','initial_model_execution'):
         setattr(course,key,deepcopy(saved[key]))
+    course.training_attempt_cursor=training_attempts['next_cursor']
+    course._legacy_attempt_acknowledgments=deepcopy(training_attempts['legacy_acknowledgments'])
+    for record in saved['records']:
+        for game_receipt in record.get('receipts',[]):
+            artifact=game_receipt.get('partial_game')
+            if artifact is None:continue
+            source=verify_partial_game_artifact(parent/'course',artifact)
+            target=course.root/artifact['path']
+            if target.exists():raise ContractError('partial-game migration target already exists')
+            shutil.copyfile(source,target)
     if course.selection is not None:course.selection['binding_sha256']=models.kernel._binding_sha256
     course.deck=None if saved['deck'] is None else __import__('ygo_kito.build_contracts',fromlist=['DeckParts']).DeckParts.from_dict(saved['deck'])
     if transition_to_postconstruction_cb:course.selection=course.deck=course.construction=None
@@ -252,11 +373,17 @@ def migrate_closed_course(export_receipt, destination, *, assets, bots, source_f
     course.feedback.load_state_dict(feedback)  # Re-check every consumed indexed artifact.
     receipt={'kind':'explicit-full-integrated-course-migration-v2','parent_checkpoint_sha256':pointer['sha256'],
         'parent_data_index_sha256':saved['data_index_sha256'],'source_changes':sorted(changed),'upgrade':upgrade,
+        'coordinator_mechanism_upgrade':mechanism_upgrade,
         'construction_upgrade':construction_upgrade,
         'archived_kernel_file_sha256':sha(new/'pre-mechanism-kernel.weights') if archived_kernel is not None else None,
         'invalidated_old_proposal_seals':invalidated,'training_executed':False,'old_root_modified':False,
         'resume_authorized':False,'source_objective_transition_performed':transition_to_postconstruction_cb,
         'previous_construction_policy':previous_policy,
+        'training_attempts':deepcopy(training_attempts),
+        'acknowledged_compute_truncations':list(acknowledged_compute_truncations),
+        'legacy_compute_truncations_are_terminal':False,'legacy_match_records_preserved':True,
+        'optimizer_steps_added':0,'active_seconds_added':0,
+        'frozen_monitor_preservation':monitor_preservation,
         'active_construction_archive_sha256':sha(new/'pre-policy-construction.weights') if transition_to_postconstruction_cb else None,
         'old_match_records_relabelled_as_repaired_flow':False}
     course.events.append(receipt);course.desired='paused'

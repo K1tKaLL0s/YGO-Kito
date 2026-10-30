@@ -26,6 +26,14 @@ FACTS = {1:{'type':0x1001,'level':4,'attack':1000},2:{'type':1,'level':4,'attack
 PLANS = (ComboPlan('long',9,(1,2),(('summon',(1,)),('special_summon',(9,)))),
          ComboPlan('short',3,(3,),(('summon',(3,)),)))
 
+# These tests model explicit, synthetic cost-free search effects. Missing
+# catalog semantics in production must stay unknown rather than inherit them.
+PROJECTION_EFFECTS={c:(dict(card_id=c,
+    knowledge=dict(activation_boundary='recognized',costs='not_observed_in_recognized_activation',
+                   restrictions='not_observed_in_recognized_effect'),
+    trigger=dict(event='unconditional',additional_conditions='none_in_recognized_activation_clause'),
+    costs=[],restrictions=[],operations=[dict(kind='search_or_recover',reason='effect')]),) for c in (1,20,21)}
+
 
 def card(code, zone, ref=None, controller=0, visibility=None):
     return dict(ref=ref or 'own-'+str(code), owner=controller, controller=controller, zone=zone,
@@ -45,10 +53,12 @@ def window(*, fuel=True, history=(), extra_cards=(), actions=None, message=11, d
 
 
 def planner(plans=PLANS, **options):
-    return DuelPlanner(plans=plans,facts=FACTS,budget=PlanningBudget(seconds=1,nodes=180,depth=4,roots=8),**options)
+    return DuelPlanner(plans=plans,facts=FACTS,effect_records=PROJECTION_EFFECTS,
+                       budget=PlanningBudget(seconds=1,nodes=180,depth=4,roots=8),**options)
 
 
 def event(ident, kind, message, codes=(), **details):
+    if kind=='activate' and message==70:details.setdefault('description',321)
     return dict(event_id=ident,kind=kind,card_ids=list(codes),details=dict(message=message,**details))
 
 
@@ -57,7 +67,7 @@ class DuelPlanningTests(unittest.TestCase):
         facts=dict(FACTS); facts[10]=dict(FACTS[9],attack=6000)
         plans=(ComboPlan('first',9,(1,2),(('special_summon',(9,)),)),
                ComboPlan('alternative',10,(1,2),(('special_summon',(10,)),)))
-        p=DuelPlanner(plans=plans,facts=facts,responses={20:('negate',)},
+        p=DuelPlanner(plans=plans,facts=facts,effect_records=PROJECTION_EFFECTS,responses={20:('negate',)},
                       budget=PlanningBudget(nodes=180,seconds=1,depth=4,roots=8))
         before=_State(((1,'monster',1000),(2,'monster',1000),(9,'extra',5000),(10,'extra',6000)),(0,0))
         attempted=p._project(before,'special_summon',(9,))

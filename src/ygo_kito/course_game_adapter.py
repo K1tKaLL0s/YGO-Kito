@@ -21,7 +21,7 @@ from .bot_deployment import BotSourceRegistry
 from .build_contracts import DeckParts, digest
 from .build_pipeline import BuildAssets
 from .contracts import Versions
-from .cpu_training import CpuTrainer, CpuTrainingConfig, config_from_dict as legacy_config_from_dict
+from .cpu_training import CpuTrainer, CpuTrainingConfig, SampleBudgetExceeded, config_from_dict as legacy_config_from_dict
 from .data_isolation import DataIndex, episode_digest
 from .deck_profile import validate_deck_parts, validate_profile
 from .device import capture_device_rng, model_device
@@ -207,7 +207,8 @@ class CourseGameAdapter:
     def __init__(self, *, assets, match_state, actor_participant_id, trainer, bot_runtime=None, model_runtime=None,
                  data_index, experiment_id, purpose, config=None, adapter_session=None,
                  policy_rng=None, evaluation_pairs=(), evaluation_cursor=0, opponent_policy_rng=None,
-                 combo_plans=(), planning_budget=None,effect_limit_bindings=()):
+                 combo_plans=(), planning_budget=None,effect_limit_bindings=(),observed_bot_source_review=None,
+                 training_attempt_cursor=None,admission_task=None,admission_basic_cb=None,comparison_policy=None):
         from .match_runner import MatchState
         if not isinstance(assets, BuildAssets) or not isinstance(match_state, MatchState):
             raise ContractError("typed rule assets and authorized MatchState required")
@@ -249,6 +250,10 @@ class CourseGameAdapter:
             if pair[0] in cfg.game_seeds or pair[0] in seen: raise ContractError("held-out seed overlaps training or another held-out game")
             seen.add(pair[0])
         integer(evaluation_cursor, "held-out cursor", 0, len(evaluation_pairs))
+        if training_attempt_cursor is not None:
+            if purpose != "train": raise ContractError("training attempt cursor is only valid for training")
+            integer(training_attempt_cursor, "course training attempt cursor",
+                trainer.episode_cursor if adapter_session is None else adapter_session.updates, len(cfg.game_seeds))
         actual_rng = trainer.policy_rng if policy_rng is None else policy_rng
         if not isinstance(actual_rng, torch.Generator) or actual_rng.device.type != "cpu":
             raise ContractError("checkpointed CPU sampling generator required")
@@ -272,6 +277,9 @@ class CourseGameAdapter:
         self._response_catalog = response_catalog(assets.rows)
         self.trainer, self.session, self.config, self.policy_rng = trainer, adapter_session, cfg, actual_rng
         self.bot, self.model_runtime = bot_runtime, model_runtime
+        self._observed_bot_source_review=copy.deepcopy(observed_bot_source_review)
+        self._admission_task=admission_task;self._admission_basic_cb=copy.deepcopy(admission_basic_cb)
+        self._comparison_policy=comparison_policy
         self.opponent_policy_rng = opponent_policy_rng
         self._opponent_rng_object = opponent_policy_rng
         self.data_index, self.experiment_id, self.purpose = data_index, experiment_id, purpose
@@ -279,7 +287,8 @@ class CourseGameAdapter:
         self._bot_seal = self._bot_identity() if bot_runtime is not None else None
         self._model_seal = None if model_runtime is None else digest(model_runtime.identity())
         self.evaluation_pairs, self.evaluation_cursor = tuple(evaluation_pairs), evaluation_cursor
-        self.last_receipt = self.last_episode = self.last_partial_diagnostics = None
+        self.training_attempt_cursor = training_attempt_cursor
+        self.last_receipt = self.last_episode = self.last_partial_diagnostics = self.last_partial_sample = None
         self._actor_objects = (trainer.model, trainer.encoder, adapter_session, actual_rng)
         self._used_specs = set()
         self._config_sha256 = digest(asdict(cfg))
@@ -346,7 +355,8 @@ class CourseGameAdapter:
                 raise ContractError('observed period evidence requires its actual period assets')
             options = self._runtime_options(profile, actor_seat)
             opponent = self.bot.registry.training_adapter(self.bot.executor_id, **options)
-            validate_observed_bot_evidence(self.assets, self.bot, proof, profile, opponent)
+            validate_observed_bot_evidence(self.assets, self.bot, proof, profile, opponent,
+                source_review=self._observed_bot_source_review)
             self._qualification_sha256 = self.bot.qualification['sha256']
             return
         options = self._runtime_options(profile, actor_seat, qualification=True)
@@ -395,6 +405,7 @@ class CourseGameAdapter:
             "lora": None if self.session is None else {"version": self.session.version_id(),
                 "base_sha256": self.session.verify_base(), "updates": self.session.updates, "enabled": self.session.enabled},
             "training_cursor": self.trainer.episode_cursor if self.session is None else self.session.updates,
+            "training_updates": self.trainer.updates if self.session is None else self.session.updates,
             "observed_optimizer_step_max": max(steps, default=0),
             "evaluation_cursor": self.evaluation_cursor, "config_sha256": self._config_sha256,
             "source_map_sha256": digest(self._source_map)}
@@ -424,6 +435,11 @@ class CourseGameAdapter:
         from .match_runner import GameSpec, GameResult
         if not isinstance(spec, GameSpec): raise ContractError("typed authorized game spec required")
         self.match_state.assert_game_spec(spec)
+        from .training_admission import require_training_admission,TrainingAdmissionDeferred
+        actor=next(p for p in spec.participants if p.participant_id==self.actor_id)
+        admission=require_training_admission(task=self._admission_task,deck=actor.deck,basic_cb=self._admission_basic_cb,
+            assets=self.assets,purpose=self.purpose,comparison_policy=self._comparison_policy)
+        if admission['status']!='admitted':raise TrainingAdmissionDeferred(admission)
         key = (spec.match_id, spec.game_number)
         if key in self._used_specs: raise ContractError("small game already attempted; no implicit replay")
         self._used_specs.add(key)
@@ -432,7 +448,11 @@ class CourseGameAdapter:
             "match_id": spec.match_id, "game_number": spec.game_number, "partition": self.purpose,
             "model_update_started": False, "model_update_completed": False, "sample_completed": False,
             "formal_match_completion_claimed": False}
-        self.last_episode = self.last_partial_diagnostics = None
+        if self.purpose == "train":
+            cursor = self.training_attempt_cursor
+            if cursor is None: cursor = self.trainer.episode_cursor if self.session is None else self.session.updates
+            record.update(sampling_attempt_cursor=cursor, next_sampling_attempt_cursor=cursor)
+        self.last_episode = self.last_partial_diagnostics = self.last_partial_sample = None
         watched = {"constructor_started": False, "constructor_completed": False,
                    "actual_first_core_seat": None, "decision_windows": 0}
         started = time.monotonic(); elapsed = None; native_decisions = 0; result_winner = None
@@ -490,6 +510,8 @@ class CourseGameAdapter:
                     return _CoursePeriodEngine(self.assets, course_observations=watched, **options)
                 return _CourseNativeEngine(root, course_observations=watched, **options)
             kwargs = {}
+            if self.purpose == "train" and self.training_attempt_cursor is not None:
+                kwargs["training_attempt_cursor"] = self.training_attempt_cursor
             if self.purpose != "train":
                 if self.evaluation_cursor >= len(self.evaluation_pairs): raise ContractError("held-out schedule exhausted")
                 kwargs["seed"], kwargs["policy_seed"] = self.evaluation_pairs[self.evaluation_cursor]
@@ -523,9 +545,22 @@ class CourseGameAdapter:
                 record.update(model_update_completed=True, update=update)
             else: self.evaluation_cursor += 1
             record["status"] = "completed"
+            if self.purpose == "train": record["next_sampling_attempt_cursor"] = record["sampling_attempt_cursor"] + 1
+        except SampleBudgetExceeded as error:
+            anomaly = "compute_budget_exhausted"
+            self.last_partial_sample = copy.deepcopy(error.partial)
+            boundary = self.last_partial_sample["resource_boundary"]
+            elapsed, native_decisions = boundary["elapsed_seconds"], boundary["native_decisions"]
+            record.update(status="compute_truncated", termination_kind="compute_budget", retry_allowed=False,
+                error={"type": type(error).__name__, "message": str(error)},
+                resource_boundary=copy.deepcopy(boundary), native_continuation_available=False,
+                same_seed_recovery_requires_explicit_host_decision=True)
+            if self.purpose == "train": record["next_sampling_attempt_cursor"] = record["sampling_attempt_cursor"] + 1
+            else: self.evaluation_cursor += 1
         except (ContractError, OSError, ValueError, KeyError, TypeError, RuntimeError, KeyboardInterrupt) as error:
             anomaly = type(error).__name__
-            record.update(status="failed_or_uncertain", error={"type": anomaly, "message": str(error)}, retry_allowed=False)
+            record.update(status="failed_or_uncertain", termination_kind="native_protocol_or_host_failure",
+                error={"type": anomaly, "message": str(error)}, retry_allowed=False)
         finally:
             if isinstance(opponent, ModelSnapshotOpponent) and self.model_runtime.policy_mode == "sample":
                 record["opponent_sampling"]["after"] = opponent.policy.sampling_state()
@@ -535,7 +570,8 @@ class CourseGameAdapter:
             if current is not None:
                 record["observed_sampler_cursor"] = current.episode_cursor
                 record["observed_sampler_updates"] = current.updates
-                if self.session is None and record["model_update_started"]:
+                if (self.session is None and record["model_update_started"] and
+                        current.updates > self.trainer.updates):
                     # The optimizer is shared with the actual trainer. Even if
                     # a post-step check failed, retain observed counters instead
                     # of describing changed weights as an unexecuted update.
@@ -549,6 +585,8 @@ class CourseGameAdapter:
                     anomaly = "frozen_training_state_changed"; record["status"] = "failed_or_uncertain"
             record.update(after=self.state_metadata(), observations={k: v for k, v in watched.items() if k != "private_diagnostics"},
                 wall_seconds=time.monotonic()-started)
+            if (self.purpose == "train" and record["after"]["training_updates"] == before["training_updates"]+1):
+                record["next_sampling_attempt_cursor"] = record["sampling_attempt_cursor"] + 1
         return GameResult(game_number=spec.game_number, winner_core_seat=result_winner if anomaly is None else None,
             actual_first_core_seat=watched["actual_first_core_seat"], terminal=anomaly is None,
             evidence_source=REAL_GAME_SOURCE if self.bot is not None else MODEL_GAME_SOURCE,

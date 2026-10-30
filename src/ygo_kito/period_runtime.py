@@ -252,7 +252,7 @@ class PeriodBuildAssets(BuildAssets):
 
 class PeriodNativeEngine(NativeNormalEngine):
     def __init__(self, assets, *, deck_profile, scenario="effect-duel", **options):
-        if not isinstance(assets, PeriodBuildAssets) or scenario != "effect-duel":
+        if not isinstance(assets, PeriodBuildAssets) or scenario not in ("effect-duel", "conditional-cb"):
             raise ContractError("period native execution requires typed assets and an explicit effect-duel profile")
         # All source/date/allowed-list checks happen before NativeNormalEngine
         # loads the library or creates a core duel; no response or ABI is changed.

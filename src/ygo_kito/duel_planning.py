@@ -5,9 +5,12 @@ explicit hypotheses, not cloned native state or effect execution proofs. This
 module has no engine, profile, seed, opponent deck, or deck-order argument.
 """
 from collections import Counter
+from copy import deepcopy
 from dataclasses import asdict, dataclass, field, replace
 from itertools import combinations, islice
+from types import SimpleNamespace
 import math
+import re
 import time
 
 import torch
@@ -15,7 +18,9 @@ import torch
 from .build_contracts import BuildTask, DeckParts, digest
 from .contracts import DecisionRequest
 from .duel_effect_limits import EffectLimitTracker, RULES
+from .rule_references import library_reference
 from .normal_duel import request_digest
+from .native_protocol import public_operation
 from .validation import ContractError, integer
 
 VERSION = "player-view-cb-expectimax-v1"
@@ -193,6 +198,7 @@ class PlanMemory:
     interruptions: int = 0
     normal_used: bool = False
     interruption_context: list = field(default_factory=list)
+    summon_locks: set = field(default_factory=set)
 
 
 @dataclass(frozen=True)
@@ -207,6 +213,10 @@ class _State:
     uncertain_limit_subjects: tuple = ()
     material_events: tuple = ()  # (card_id, procedure, event_class), independent of resource zone
     unverified_material_effects: tuple = ()
+    summon_locks: tuple = ()
+    effect_events: tuple = ()  # (card, trigger event, reason)
+    phase: str | None = None
+    life_points: int | None = None
 
 
 @dataclass(frozen=True)
@@ -221,10 +231,11 @@ class _Projection:
     limit_bindings: tuple = ()
     material_indices: tuple = ()
     material_kind: str | None = None
+    effect_description: int | None = None
 
 
 class DuelPlanner:
-    def __init__(self, *, own_deck=(), plans=(), facts=None, responses=None, budget=None,effect_limit_bindings=()):
+    def __init__(self, *, own_deck=(), plans=(), facts=None, responses=None, budget=None,effect_limit_bindings=(),effect_records=None):
         self.inventory = Counter(own_deck)  # own unordered contents only
         self.plans = tuple(plans)
         if (len(self.plans) > 8 or any(not isinstance(p, ComboPlan) for p in self.plans) or
@@ -233,6 +244,22 @@ class DuelPlanner:
         self.facts = {c: {k: row[k] for k in ("type", "level", "attack", "defense") if k in row}
                       for c, row in (facts or {}).items()}
         self.responses, self.budget = dict(responses or {}), budget or PlanningBudget()
+        # Consume individual parsed effects, independently of the coarse model
+        # vector. Explicit descriptions bind multi-effect cards; never infer an
+        # effect number from its native string-table position.
+        if effect_records is None:
+            from .effect_mechanisms import MechanismCatalog
+            public_rows={c:dict(row,id=c) for c,row in (facts or {}).items()}
+            catalog=MechanismCatalog(SimpleNamespace(rows=public_rows,receipt={}))
+            effect_records={c:catalog.effect_records(c) for c,row in public_rows.items() if row.get('desc')}
+        self.effect_records={c:tuple(deepcopy(records)) for c,records in effect_records.items()}
+        for c,records in self.effect_records.items():
+            for record in records:
+                if (record.get('card_id',c)!=c or ('text_sha256' in record and c in (facts or {}) and
+                        'desc' in facts[c] and record['text_sha256']!=digest(facts[c]['desc']))):
+                    raise ContractError('planning effect record public card/text binding differs')
+        self.card_restrictions={c:tuple(r for e in records for r in e.get('card_restrictions',()))
+                                for c,records in self.effect_records.items()}
         self.memory = PlanMemory()
         self.limits = EffectLimitTracker(effect_limit_bindings)
         for binding in self.limits.bindings:binding.assert_catalog(facts or {})
@@ -248,11 +275,19 @@ class DuelPlanner:
         if m.turn != obs.turn:
             m.turn = obs.turn; m.progress.clear(); m.pending.clear(); m.selected.clear(); m.goal = None
             m.normal_used = False
+            m.summon_locks.clear()
         fresh = [e for e in obs.public_history if e.event_id not in m.seen_events]
         m.seen_events.update(e.event_id for e in fresh)
         for event in fresh:
             d = event.details
             if d is None: continue
+            if event.kind=='activate' and d.message==70 and d.player==obs.observer:
+                for code in event.card_ids:
+                    record=self._effect_record(code,d.description)
+                    if record:
+                        m.summon_locks.update(r['kind'] for r in record.get('restrictions',())
+                            if r.get('condition')=='effect_use' and r.get('duration')=='turn'
+                            and r.get('kind') in ('cannot_normal_summon','extra_fusion_only'))
             if event.kind == "move" and len(d.locations) == 2:
                 src, dst = d.locations
                 if src.controller == 1-obs.observer and src.zone == "hand":
@@ -271,6 +306,7 @@ class DuelPlanner:
         current_hand = Counter(c.card_id for c in obs.cards if c.controller == 1-obs.observer and
                                c.zone == "hand" and c.card_id is not None)
         for code,n in current_hand.items(): m.known_hand[code] = max(n,m.known_hand[code])
+        interrupted_submissions = set()
         for pending in list(m.pending):
             if pending not in m.pending: continue
             code = pending["codes"][0]
@@ -284,7 +320,11 @@ class DuelPlanner:
             for event in fresh:
                 d = event.details
                 if d is None: continue
-                if event.kind == "activate" and code in event.card_ids and d.player == obs.observer:
+                if d.message == 74:
+                    pending.pop('link',None)
+                if (event.kind == "activate" and d.message == 70 and code in event.card_ids and
+                        d.player == obs.observer and pending.get('effect_description') is not None and
+                        d.description == pending['effect_description']):
                     pending["link"] = d.link
                 if pending.get("link") is not None and d.link == pending["link"]:
                     if d.message in (75, 76): pending["interruption_message"] = d.message
@@ -293,15 +333,19 @@ class DuelPlanner:
                     pending["operation"] in ("summon","special_summon")):
                 pending["interruption_message"] = None  # unsuccessful observed attempt, reason unproved
             if "interruption_message" in pending:
-                m.interruptions += 1
+                submission=pending.get('submission',(pending['plan'],pending['cursor']))
+                first=submission not in interrupted_submissions
+                interrupted_submissions.add(submission)
+                m.interruptions += int(first)
                 # Preserve distinct raw messages/effect descriptions for the
                 # source-bound official rule table. No use/activation counter
                 # or retry prohibition is inferred from an interruption alone.
-                m.interruption_context.append({"native_message":pending["interruption_message"],
+                context={"native_message":pending["interruption_message"],
                     "operation":pending["operation"],"card_ids":list(pending["codes"]),
                     "effect_description":pending.get("effect_description"),"turn":obs.turn,
                     "count_rule_status":"explicit_binding_required", "retry_legality":"engine_legal_options",
-                    "bound_counters":self.limits.view()})
+                    "bound_counters":self.limits.view()}
+                if first:m.interruption_context.append(context)
                 m.interruption_context[:] = m.interruption_context[-8:]
                 m.progress[pending["plan"]] = pending["cursor"]
                 m.pending[:] = [p for p in m.pending if p["plan"] != pending["plan"] or p["cursor"] < pending["cursor"]]
@@ -350,14 +394,76 @@ class DuelPlanner:
             if any(code == goal and zone == "monster" for code,zone,_ in state.cards): value += 2.5
         return value
 
+    def _effect_record(self,code,description):
+        records=self.effect_records.get(code,())
+        exact=[e for e in records if e.get('effect_description') is not None and
+               e['effect_description']==description]
+        if len(exact)==1:return exact[0]
+        if len(records)==1 and records[0].get('effect_description') is None:return records[0]
+        return None
+
+    def _pay_effect(self,state,code,record,*,root):
+        """Known payments/locks only; None means unmodeled, never illegal."""
+        knowledge=record.get('knowledge',{})
+        if knowledge.get('costs') not in ('observed','not_observed_in_recognized_activation'):
+            return None
+        if knowledge.get('restrictions') not in ('observed','not_observed_in_recognized_effect'):
+            return None
+        trigger=record.get('trigger',{})
+        if not root:
+            if (knowledge.get('activation_boundary')!='recognized' or
+                    trigger.get('additional_conditions')!='none_in_recognized_activation_clause'):
+                return None
+            event=trigger.get('event')
+            if event=='unconditional':pass
+            elif event=='own_main_phase':
+                if state.phase not in ('main1','main2'):return None
+            elif not any(c==code and e==event and
+                    (trigger.get('reason') in ('not_applicable','unknown',reason))
+                    for c,e,reason in state.effect_events):return None
+        cards=list(state.cards);paid=[];lp=state.life_points
+        aliases={'grave':'graveyard','field':'monster'}
+        for cost in record.get('costs',()):
+            quantity=cost.get('quantity');origins=tuple(aliases.get(z,z) for z in cost.get('from_zones',()))
+            if cost.get('owner')!='self' or type(quantity) is not int or quantity<1:
+                return None
+            if cost.get('kind')=='pay_lp':
+                if lp is None or lp<=quantity:return None
+                lp-=quantity;continue
+            if cost.get('kind') not in ('send_grave','discard','banish'):return None
+            selectors=cost.get('card_ids')
+            self_cost=cost.get('subject')=='this_card'
+            # Unknown selectors cannot turn into free or arbitrary fuel.
+            generic_discard=re.fullmatch(r'(?:\u4e22\u5f03|\u820d\u5f03)\d+\u5f20\u624b\u5361',cost.get('source',''))
+            if not self_cost and selectors is None and cost.get('selector')!='any' and not generic_discard:return None
+            choices=[i for i,(c,z,_) in enumerate(cards) if z in origins and
+                     (not self_cost or c==code) and (selectors is None or c in selectors)]
+            if len(choices)<quantity:return None
+            chosen=sorted(choices,key=lambda i:(self._power(cards[i][0]),i))[:quantity]
+            for i in chosen:
+                paid.append(cards[i][0]);cards[i]=(cards[i][0],'banished' if cost['kind']=='banish' else 'graveyard',cards[i][2])
+        locks=list(state.summon_locks)
+        for restriction in record.get('restrictions',()):
+            kind=restriction.get('kind')
+            if kind not in ('cannot_normal_summon','extra_fusion_only'):return None
+            if restriction.get('condition')!='effect_use' or restriction.get('duration')!='turn':return None
+            if not root and restriction.get('whole_turn') is None:return None
+            if not root and restriction.get('whole_turn'):
+                if kind=='cannot_normal_summon' and state.normal_used:return None
+                if kind=='extra_fusion_only' and any(p not in ('fusion',) for _,p,_ in state.material_events):return None
+            if kind not in locks:locks.append(kind)
+        return replace(state,cards=tuple(cards),summon_locks=tuple(sorted(locks)),life_points=lp),tuple(paid)
+
     def _project(self, state, operation, codes, *, root=False,effect_description=None):
         """Separate committed resources from hypothetical resolution benefits.
 
         None can mean unmodeled/unknown, not a ruling that a real action is
         illegal. Every newly offered root remains governed by the engine.
         """
-        if not root and (operation,tuple(codes)) in state.unverified_retries:
-            return None  # retry count/timing unknown; await another real legal window
+        if not root and any(op == operation and cs == tuple(codes) and
+                (description is None or effect_description is None or description == effect_description)
+                for op,cs,description in state.unverified_retries):
+            return None  # exact failed effect, or unresolved identity; await engine
         if not root and operation=='activate' and codes[0] in state.unverified_material_effects:
             return None  # GY presence alone does not establish the required material-trigger event
         bindings=self.limits.matching(codes[0],effect_description) if operation=='activate' else ()
@@ -370,7 +476,14 @@ class DuelPlanner:
         for subject in {b.subject_key for b in bindings if self.limits.remaining(b) is not None}:
             spends[subject]=spends.get(subject,0)+1
         with_counts=replace(state,limit_spends=tuple(sorted(spends.items())))
-        cards = list(state.cards); used = state.normal_used
+        effect=None;effect_paid=()
+        if operation=='activate':
+            effect=self._effect_record(codes[0],effect_description)
+            if effect is None:return None
+            payment=self._pay_effect(with_counts,codes[0],effect,root=root)
+            if payment is None:return None
+            with_counts,effect_paid=payment
+        cards = list(with_counts.cards); used = state.normal_used
         def find(code, zones):
             return next((i for i,c in enumerate(cards) if c[0] == code and c[1] in zones), None)
         if operation == "search":
@@ -379,11 +492,11 @@ class DuelPlanner:
                 i = find(code, ("deck",))
                 if i is None: return None
                 cards[i] = (code, "hand", cards[i][2])
-            resolved = replace(state, cards=tuple(cards), enabled_search=False)
+            resolved = replace(state, cards=tuple(cards), enabled_search=False,effect_events=())
             return _Projection(state,resolved,operation,tuple(codes),"effect_before_resolution")
         i = find(codes[0], ("hand",) if operation == "summon" else
                  ("extra", "hand", "graveyard") if operation == "special_summon" else
-                 ("hand", "monster", "spell_trap", "graveyard"))
+                 ("hand", "monster", "spell_trap", "graveyard", "banished"))
         if i is None: return None
         code, zone, attack = cards[i]
         if (not root and operation == "special_summon" and zone != "extra" and
@@ -392,6 +505,9 @@ class DuelPlanner:
         committed = with_counts; paid = (); chosen = (); material_kind=None
         resolved_events=state.material_events;stage = "response_timing_unknown"
         if operation == "summon":
+            if not root and 'cannot_normal_summon' in state.summon_locks:return None
+            if not root and any(r.get('kind')=='cannot_normal_summon_this_card'
+                                for r in self.card_restrictions.get(code,())):return None
             if used and not root: return None
             used = True
             committed = replace(with_counts,normal_used=True)
@@ -401,6 +517,7 @@ class DuelPlanner:
             if zone == "extra":
                 materials = [j for j,c in enumerate(cards) if c[1] == "monster"]
                 kind = self.facts.get(code, {}).get("type", 0)
+                if not root and 'extra_fusion_only' in state.summon_locks and not kind&0x40:return None
                 level = self.facts.get(code, {}).get("level", 0) & 255
                 chosen = None
                 # Bounded structural necessary conditions, not effect legality.
@@ -431,9 +548,15 @@ class DuelPlanner:
             # spell is NOT evidence that its activation cost was paid to GY.
             if zone == "hand" and self.facts.get(code, {}).get("type", 0)&2:
                 cards[i] = (code, "graveyard", attack)
-        resolved = replace(with_counts,cards=tuple(cards),normal_used=used,enabled_search=operation == "activate",
-                           material_events=resolved_events)
-        return _Projection(committed,resolved,operation,tuple(codes),stage,i,paid,bindings,tuple(chosen),material_kind)
+        effect_events=()
+        if operation in ('summon','special_summon'):
+            effect_events+=((code,'normal_or_special_summon','not_applicable'),)
+            if operation=='special_summon':effect_events+=((code,'special_summon','not_applicable'),)
+        resolved = replace(with_counts,cards=tuple(cards),normal_used=used,
+                           enabled_search=bool(effect and any(o.get('kind')=='search_or_recover' for o in effect.get('operations',()))),
+                           material_events=resolved_events,effect_events=effect_events)
+        if operation=='activate':paid=effect_paid
+        return _Projection(committed,resolved,operation,tuple(codes),stage,i,paid,bindings,tuple(chosen),material_kind,effect_description)
 
     def _failure(self, projection,*,interruption=None):
         """Keep paid resources; discard only benefits absent at this stage."""
@@ -450,7 +573,7 @@ class DuelPlanner:
             # they go to GY from that material state, not back to the field.
             for j in projection.material_indices:cards[j]=(cards[j][0],'graveyard',cards[j][2])
             material_events+=tuple((c,'xyz','sent_to_gy_from_material_after_failed_summon') for c in projection.paid_materials)
-        retry = (projection.operation,projection.codes)
+        retry = (projection.operation,projection.codes,projection.effect_description)
         spends=dict(committed.limit_spends);uncertain=set(committed.uncertain_limit_subjects)
         seen_subjects=set()
         for b in projection.limit_bindings:
@@ -468,11 +591,13 @@ class DuelPlanner:
                        unverified_retries=committed.unverified_retries+(retry,),
                        limit_spends=tuple(sorted(spends.items())),uncertain_limit_subjects=tuple(sorted(uncertain)),
                        material_events=material_events,
-                       unverified_material_effects=committed.unverified_material_effects+projection.paid_materials)
+                       unverified_material_effects=committed.unverified_material_effects+
+                           (projection.paid_materials if projection.material_kind is not None else ()))
 
     def _continuation(self, state, depth, risk):
         best, path = self._value(state), []  # stopping/reserving is a real alternative
         if depth == 0 or self._exhausted(): return best, path
+        seen=set()
         for n, plan in enumerate(self.plans):
             cursor = state.cursors[n]
             if cursor >= len(plan.steps): continue
@@ -480,9 +605,15 @@ class DuelPlanner:
             description=plan.effect_descriptions[cursor] if plan.effect_descriptions else None
             projection = self._project(state,operation,codes,effect_description=description)
             if projection is None or self._exhausted(): continue
-            self._nodes += 1
-            cursors = list(state.cursors); cursors[n] += 1
+            cursors = list(state.cursors)
+            for matched in self._matches(operation,codes,state,effect_description=description):
+                cursors[matched] += 1
             projected = replace(projection.resolved, cursors=tuple(cursors))
+            # Include both outcome states, exact effect and all cursors. Equal
+            # prefixes share a node; distinct costs/counters/timings do not.
+            key=(replace(projection,resolved=projected),tuple(cursors))
+            if key in seen:continue
+            seen.add(key);self._nodes += 1
             good, suffix = self._continuation(projected, depth-1, risk)
             p = risk if operation in ("activate", "summon", "special_summon") else 0.
             bad = self._value(state)
@@ -493,6 +624,7 @@ class DuelPlanner:
             expected = (1-p)*good+p*bad
             if expected > best:
                 best, path = expected, [{"plan": plan.plan_id, "operation": operation, "card_ids": list(codes),
+                    "effect_description":description,
                     "success_value": good, "response_value": bad, "response_probability": p,
                     "response_stage":projection.stage,"committed_materials":list(projection.paid_materials)
                         if projection.stage == "summon_attempt_after_material_commitment" else [],
@@ -519,7 +651,7 @@ class DuelPlanner:
         return tuple(result)
 
     def _operation(self, request, action):
-        return "search" if request.search_choices and action.kind == "select" else action.kind
+        return public_operation(request,action)
 
     def _materials(self, request, action, ids):
         """Conditional compatibility using the retained target AND prior picks."""
@@ -553,9 +685,17 @@ class DuelPlanner:
             return .4 if all(n==target for n in levels) else -.4
         return 0.  # unknown Fusion/Link material text stays with the neural head
 
-    def _matches(self, operation, codes, state):
-        return [n for n,p in enumerate(self.plans) if state.cursors[n] < len(p.steps) and
-                p.steps[state.cursors[n]][0] == operation and Counter(p.steps[state.cursors[n]][1]) == Counter(codes)]
+    @staticmethod
+    def _step_matches(plan,cursor,operation,codes,effect_description=None):
+        if cursor >= len(plan.steps):return False
+        op,expected=plan.steps[cursor]
+        description=plan.effect_descriptions[cursor] if plan.effect_descriptions else None
+        return (op == operation and Counter(expected) == Counter(codes) and
+                (operation != 'activate' or description is None or description == effect_description))
+
+    def _matches(self, operation, codes, state, *, effect_description=None):
+        return [n for n,p in enumerate(self.plans)
+                if self._step_matches(p,state.cursors[n],operation,codes,effect_description)]
 
     def evaluate(self, request, neural_logits):
         if not isinstance(request, DecisionRequest): raise ContractError("validated player request required")
@@ -573,12 +713,14 @@ class DuelPlanner:
                  for c in obs.cards if c.controller == obs.observer and c.card_id is not None]
         counts = Counter(c for c,_,_ in cards)
         for code,n in (self.inventory-counts).items(): cards.extend([(code,"deck",self.facts.get(code,{}).get("attack",0))]*n)
-        state = _State(tuple(cards), self._cursors(request),normal_used=m.normal_used)
+        state = _State(tuple(cards), self._cursors(request),normal_used=m.normal_used,phase=obs.phase,
+                       summon_locks=tuple(sorted(m.summon_locks)),life_points=obs.life_points[obs.observer])
         belief = self._belief(request); risk = belief["response_probability"]
         values = neural_logits.detach().cpu().tolist()
         def rank(i):
             a = request.actions[i]; codes = tuple(ids[r] for r in a.card_refs if r in ids)
-            matches = self._matches(self._operation(request,a), codes, state)
+            matches = self._matches(self._operation(request,a), codes, state,
+                                    effect_description=None if a.details is None else a.details.description)
             return values[i]+(2. if matches else 0.)
         # Keep a neural shortlist plus CB-compatible roots found within the
         # SAME time budget. Large declaration/selection windows cannot turn a
@@ -590,7 +732,8 @@ class DuelPlanner:
                 if scanned >= 1024 or time.perf_counter() >= self._deadline: break
                 scanned += 1
                 codes = tuple(ids[r] for r in a.card_refs if r in ids)
-                if self._matches(self._operation(request,a),codes,state): pool.add(i)
+                if self._matches(self._operation(request,a),codes,state,
+                        effect_description=None if a.details is None else a.details.description): pool.add(i)
         roots = sorted(pool,key=lambda i:(-rank(i),i))[:self.budget.roots]
         baseline = self._value(state); scores = {}; branches = []
         for i in roots:
@@ -601,7 +744,7 @@ class DuelPlanner:
             operation = self._operation(request,a)
             description=None if a.details is None else a.details.description
             projection = self._project(state,operation,codes,root=True,effect_description=description) if codes and operation in ("summon","special_summon","activate","search") else None
-            matching = self._matches(operation, codes, state)
+            matching = self._matches(operation, codes, state,effect_description=description)
             if operation == "activate" and not matching:
                 # Unsupported effect semantics retain the neural prior. A cost
                 # without its unknown benefit would systematically suppress it.
@@ -649,6 +792,9 @@ class DuelPlanner:
             if a.details and a.details.operation == "shuffle": value -= 2.
             scores[i] = 4*math.tanh(value*self.budget.strength/4)
             branches.append({"action_index":i,"projected_gain":value,"success_value":good,"response_value":bad,
+                             "effect_description":description,
+                             "effect_projection_status":('unknown_costs_conditions_or_restrictions' if
+                                 operation=='activate' and projection is None else 'conditional'),
                              "response_probability":p,"continuation":path,"recovery":recovery,"combat":combat,
                              "response_stage":None if projection is None else projection.stage,
                              "response_status":response_status,
@@ -664,8 +810,9 @@ class DuelPlanner:
             "interruption_context":list(m.interruption_context),
             "interruption_rules":{"status":"exact_bindings_only",
                 "use_vs_activation_counts_inferred":False,"root_legality":"engine_provided",
-                "counter_queries":self.limits.view(),"standard_named_card_activation_limit":"pending_direct_official_evidence"},
-            "projection_revision":2,
+                "counter_queries":self.limits.view(),"reference_library":library_reference(),
+                "standard_named_card_activation_limit":"pending_direct_official_evidence"},
+            "projection_revision":3,
             "nodes":self._nodes,"node_limit":self.budget.nodes,"depth_limit":self.budget.depth,
             "cb_roots_scanned":scanned,"cb_scan_limit":1024,
             "root_count":len(branches),"budget_exhausted":self._nodes >= self.budget.nodes or time.perf_counter() >= self._deadline,"branches":branches,
@@ -696,13 +843,14 @@ class DuelPlanner:
             elif action.kind == "select": m.selected.extend(codes)
         if action.kind == "special_summon" and codes: m.goal = codes[0]
         operation = self._operation(request,action)
-        for plan,cursor in zip(self.plans,self._cursors(request)):
-            if cursor < len(plan.steps) and plan.steps[cursor][0] == operation and Counter(plan.steps[cursor][1]) == Counter(codes):
-                m.goal = plan.goal_card
-                m.pending.append({"plan":plan.plan_id,"cursor":cursor,"operation":operation,"codes":codes,
-                    "effect_description":None if action.details is None else action.details.description,
-                    "hand_before":[c.card_id for c in request.observation.cards if c.controller == request.observation.observer and c.zone == "hand"]})
-                break
+        description=None if action.details is None else action.details.description
+        matched=[(p,c) for p,c in zip(self.plans,self._cursors(request))
+                 if self._step_matches(p,c,operation,codes,description)]
+        if matched and m.goal not in {p.goal_card for p,_ in matched}:m.goal=matched[0][0].goal_card
+        for plan,cursor in matched:
+            m.pending.append({"plan":plan.plan_id,"cursor":cursor,"operation":operation,"codes":codes,
+                "effect_description":description,"submission":(request.decision_id,action.action_id),
+                "hand_before":[c.card_id for c in request.observation.cards if c.controller == request.observation.observer and c.zone == "hand"]})
 
 
 def replay_planning_bias(logits, steps):

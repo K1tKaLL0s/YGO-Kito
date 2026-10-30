@@ -94,6 +94,160 @@ def _exclusive_json(path, value):
         output.write(canonical_json(value) + "\n"); output.flush(); os.fsync(output.fileno())
 
 
+def current_course_records(saved):
+    """The corrected-flow boundary archives old failures without relabeling them."""
+    records = saved["records"]
+    offset = saved.get("binding", {}).get("config", {}).get("training_record_offset", 0)
+    integer(offset, "saved corrected-flow record offset", 0, len(records))
+    return records[offset:]
+
+
+def _legacy_compute_acknowledgment(record, cursor):
+    receipts = record.get("receipts", [])
+    receipt = receipts[-1] if receipts else {}
+    before, after = receipt.get("before", {}), receipt.get("after", {})
+    if (record.get("purpose") != "train" or record.get("complete") is not False or
+            record.get("winner") is not None or not record.get("games") or
+            any(g.get("terminal") is not False or g.get("completed") is not False or
+                g.get("winner_participant_id") is not None for g in record["games"][-1:]) or
+            receipt.get("status") != "failed_or_uncertain" or
+            receipt.get("error") != {"type": "NativeError", "message": "CPU sample budget exhausted; no terminal reward/update claimed"} or
+            receipt.get("sample_completed") is not False or receipt.get("model_update_started") is not False or
+            receipt.get("model_update_completed") is not False or receipt.get("retry_allowed") is not False or
+            receipt.get("observations", {}).get("constructor_completed") is not True or
+            receipt.get("observed_sampler_cursor") != cursor or receipt.get("observed_sampler_updates") != cursor or
+            before.get("training_cursor") != cursor or after.get("training_cursor") != cursor or
+            any(key not in before or key not in after or before[key] != after[key]
+                for key in ("model_sha256", "lora", "observed_optimizer_step_max"))):
+        raise ContractError("legacy attempt is not a proven pre-update compute truncation; no replay or skip authorized")
+    return {"match_id": record["match_id"], "record_sha256": digest(record),
+        "sampling_attempt_cursor": cursor, "next_sampling_attempt_cursor": cursor + 1,
+        "kind": "explicit-legacy-compute-truncation-acknowledgment-v1",
+        "original_record_preserved": True, "partial_game_available": False,
+        "model_update_claimed": False, "automatic_replay": False}
+
+
+def _saved_successful_duel_updates(state):
+    if "duel" in state["adapters"]:
+        return state["adapters"]["duel"]["updates"]
+    updates = state["cursors"]["duel_updates"]
+    if state["cursors"]["duel_episodes"] != updates:
+        raise ContractError("saved duel episode cursor is not an actual update boundary")
+    return updates
+
+
+def migrate_training_attempt_state(saved, *, acknowledged_compute_truncations=()):
+    """Explicit metadata-only migration; original records are never rewritten.
+
+    The old sampler advanced only on a complete sample. An old incomplete
+    transaction cannot be inferred safe from its cursor. Only the exact old
+    budget error with observed unchanged update/model evidence may be
+    acknowledged as a consumed attempt; all other failures remain blocked.
+    """
+    if "training_attempts" in saved:
+        raise ContractError("course already has an explicit training-attempt ledger")
+    if not isinstance(acknowledged_compute_truncations, (tuple, list)) or len(set(acknowledged_compute_truncations)) != len(acknowledged_compute_truncations):
+        raise ContractError("explicit unique legacy compute-truncation match IDs required")
+    model_state = saved["models"]
+    cursor = _saved_successful_duel_updates(model_state)
+    integer(cursor, "legacy successful sample cursor", 0)
+    unresolved = [r for r in current_course_records(saved) if r["purpose"] == "train" and not r["complete"]]
+    if {r["match_id"] for r in unresolved} != set(acknowledged_compute_truncations):
+        raise ContractError("legacy incomplete training attempts require exact explicit acknowledgments")
+    acknowledgments = []
+    for record in unresolved:
+        if len(unresolved) != 1 or record is not saved["records"][-1] or saved.get("pending") is not None:
+            raise ContractError("legacy attempt is not a proven pre-update compute truncation; no replay or skip authorized")
+        acknowledgments.append(_legacy_compute_acknowledgment(record, cursor))
+    return {"schema_version": 1, "next_cursor": cursor + len(acknowledgments),
+        "legacy_acknowledgments": acknowledgments}
+
+
+def validate_training_attempt_state(saved, attempts, *, max_attempts):
+    """Prove the next declared seed from actual updates and censored attempts."""
+    current_course_records(saved)  # Validate the archive boundary even when every receipt is retained below.
+    fields(attempts, {"schema_version", "next_cursor", "legacy_acknowledgments"})
+    integer(attempts["schema_version"], "training attempt ledger schema", 1, 1)
+    state = saved["models"]
+    successful = _saved_successful_duel_updates(state)
+    integer(successful, "saved successful sample cursor", 0, max_attempts)
+    integer(attempts["next_cursor"], "next training attempt cursor", successful, max_attempts)
+    acknowledgments = attempts["legacy_acknowledgments"]
+    if not isinstance(acknowledgments, list): raise ContractError("legacy attempt acknowledgments must be a list")
+    consumed, ack_ids, receipt_ids = set(), set(), set()
+    for acknowledgment in acknowledgments:
+        matches = [r for r in saved["records"] if r["match_id"] == acknowledgment["match_id"]]
+        cursor = acknowledgment["sampling_attempt_cursor"]
+        integer(cursor, "acknowledged sampling attempt cursor", 0, max_attempts-1)
+        if (len(matches) != 1 or acknowledgment["match_id"] in ack_ids or cursor in consumed or
+                acknowledgment != _legacy_compute_acknowledgment(matches[0], cursor)):
+            raise ContractError("acknowledged legacy compute-truncation record or semantics changed")
+        ack_ids.add(acknowledgment["match_id"]); consumed.add(cursor)
+    truncated = 0
+    boundaries = list(saved["records"]) + ([] if saved.get("pending") is None else [saved["pending"]])
+    for boundary in boundaries:
+        if boundary["purpose"] != "train": continue
+        for receipt in boundary.get("receipts", []):
+            if receipt.get("kind") != "course-small-game-host-receipt": continue
+            if "sampling_attempt_cursor" not in receipt and "next_sampling_attempt_cursor" not in receipt: continue
+            cursor, following = receipt["sampling_attempt_cursor"], receipt["next_sampling_attempt_cursor"]
+            integer(cursor, "receipt sampling attempt cursor", 0, max_attempts-1)
+            integer(following, "receipt next sampling attempt cursor", cursor, cursor+1)
+            if following == cursor:
+                if receipt.get("status") in ("completed", "compute_truncated"):
+                    raise ContractError("completed or compute-truncated sample did not consume its declared attempt")
+                continue  # A true fault may stop before a consumed sample/update.
+            if cursor in consumed: raise ContractError("declared training attempt was consumed more than once")
+            identity = (boundary.get("match_id", boundary.get("state", {}).get("match_id")), receipt.get("game_number"))
+            integer(receipt.get("game_number"), "receipt small game number", 1, 3)
+            if identity in receipt_ids: raise ContractError("small-game attempt receipt was counted more than once")
+            receipt_ids.add(identity)
+            consumed.add(cursor)
+            if receipt.get("status") == "compute_truncated":
+                before, after = receipt.get("before", {}), receipt.get("after", {})
+                if (receipt.get("termination_kind") != "compute_budget" or receipt.get("partial_game") is None or
+                        receipt.get("resource_boundary", {}).get("kind") != "compute_budget" or
+                        any(receipt.get(key) is not False for key in ("sample_completed", "model_update_started", "model_update_completed")) or
+                        type(before.get("training_cursor")) is not int or not 0 <= before["training_cursor"] <= successful or
+                        receipt.get("observed_sampler_cursor") != before["training_cursor"] or
+                        receipt.get("observed_sampler_updates") != before["training_cursor"] or
+                        any(key not in before or key not in after or before[key] != after[key]
+                            for key in ("training_cursor", "model_sha256", "lora", "observed_optimizer_step_max"))):
+                    raise ContractError("compute-truncated receipt lacks its unchanged pre-update boundary")
+                truncated += 1
+            else:
+                before, after = receipt.get("before", {}), receipt.get("after", {})
+                if (receipt.get("model_update_started") is not True or
+                        type(before.get("training_cursor")) is not int or
+                        after.get("training_cursor") != before["training_cursor"]+1 or after["training_cursor"] > successful):
+                    raise ContractError("consumed training attempt has neither an observed update nor a proven compute truncation")
+    expected = successful + len(acknowledgments) + truncated
+    if attempts["next_cursor"] != expected or any(cursor >= expected for cursor in consumed):
+        raise ContractError("next training attempt cursor is not proven by successful updates and preserved truncations")
+    if consumed and consumed != set(range(min(consumed), expected)):
+        raise ContractError("explicit training attempt ledger contains a skipped declared seed")
+    return attempts
+
+
+def verify_partial_game_artifact(root, artifact):
+    """Validate the retained private evidence before accepting its checkpoint."""
+    fields(artifact, {"path", "bytes", "sha256", "training_eligible", "native_continuation_available"})
+    name = artifact["path"]
+    if (not isinstance(name, str) or Path(name).name != name or not name.startswith("partial-game-") or not name.endswith(".json") or
+            artifact["training_eligible"] is not False or artifact["native_continuation_available"] is not False):
+        raise ContractError("private partial-game evidence path or eligibility differs")
+    integer(artifact["bytes"], "private partial-game bytes", 1)
+    path = Path(root) / name
+    if path.is_symlink() or not path.is_file() or path.stat().st_size != artifact["bytes"]:
+        raise ContractError("private partial-game evidence is missing or its bytes differ")
+    actual = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024*1024), b""): actual.update(chunk)
+    if actual.hexdigest() != artifact["sha256"]:
+        raise ContractError("private partial-game evidence hash differs")
+    return path
+
+
 def checkpoint_policy(value=None):
     """Explicit per-course retention; absent/null means no deletion or quota."""
     policy={"keep_last":None,"milestone_every":None,"min_free_bytes":0,"max_state_bytes":None}
@@ -139,11 +293,12 @@ def validate_common_deck_evidence(evidence, deck, period):
 
 class ScenarioCourse:
     """Concrete caller, retaining the existing four networks and LoRA modules."""
-    def __init__(self, models, *, assets, data_index, config, state_root, bots, storage_envelope=None):
+    def __init__(self, models, *, assets, data_index, config, state_root, bots, storage_envelope=None,comparison_policy=None):
         from .course_models import CourseModels
         if not isinstance(models, CourseModels) or not isinstance(data_index, DataIndex):
             raise ContractError("actual course models and data index required")
         self.models, self.assets, self.data_index = models, assets, data_index
+        self.comparison_policy=comparison_policy
         self.config = validate_config(config)
         if config.get("data_index_storage") is not None:
             from .data_isolation import validate_storage_limits
@@ -203,6 +358,9 @@ class ScenarioCourse:
         self.records, self.events, self.active_seconds = [], [], 0.
         self.selection = self.deck = self.construction = None
         self.pending = None
+        self.training_attempt_cursor = (models.sessions["duel"].updates if "duel" in models.sessions
+            else models.duel.episode_cursor)
+        self._legacy_attempt_acknowledgments = []
         self.evaluation_cursor = {"validation": 0, "final_eval": 0}
         self.frozen_evaluation = None
         self.revision, self.desired = 0, "ready"
@@ -214,6 +372,36 @@ class ScenarioCourse:
         from .course_feedback import CourseFeedbackUpdater
         self.feedback = CourseFeedbackUpdater(models, data_index, config["course_id"])
         self.initial_model_execution = self.model_execution()
+        self._admission_state_reference = None
+        self._admission_reference_validated = False
+
+    def bind_admission_policy(self, policy):
+        """Attach the private host ledger without embedding its counters in models."""
+        previous=getattr(self,'_admission_state_reference',None)
+        descriptor=getattr(policy,'checkpoint_descriptor',None)
+        if previous is not None:
+            validate=getattr(policy,'validate_checkpoint_descriptor',None)
+            if not callable(validate):
+                raise ContractError('saved private admission ledger requires its original host provider')
+            validate(previous)  # Missing, rolled-back, changed or ahead private state needs inspection.
+        if callable(descriptor):
+            reference=descriptor()
+            if previous is None:
+                self.events.append({'kind':'explicit-prospective-admission-policy-epoch-boundary-v1',
+                    'admission_state_reference':deepcopy(reference),'legacy_failure_counts_imported':False,
+                    'historical_unknowns_counted':False})
+            self._admission_state_reference=deepcopy(reference)
+        self.comparison_policy=policy
+        self._admission_reference_validated=True
+
+    def _admission_checkpoint_reference(self):
+        previous=getattr(self,'_admission_state_reference',None)
+        if previous is not None and not getattr(self,'_admission_reference_validated',False):
+            raise ContractError('saved private admission ledger must be validated before another checkpoint')
+        descriptor=getattr(getattr(self,'comparison_policy',None),'checkpoint_descriptor',None)
+        if callable(descriptor):
+            return deepcopy(descriptor())
+        return deepcopy(previous)
 
     def counts(self):
         # Earlier real engine records remain intact but cannot silently
@@ -238,6 +426,8 @@ class ScenarioCourse:
                 for r in self.records[:self.config.get("training_record_offset",0)]) for kind in ("bo1","bo3")},
             "training_record_offset":self.config.get("training_record_offset",0), "actual_small_game_attempts": sum(len(r["games"]) for r in self.records),
             "anomalous_matches": sum(not r["complete"] for r in self.records),
+            "compute_truncated_matches": sum(r.get("status") == "compute_truncated" for r in self.records),
+            "next_training_attempt_cursor": self.training_attempt_cursor,
             "active_seconds": self.active_seconds, "wall_limit_seconds": self.config["wall_seconds"],
             "pilot_matches_credited": 0, "evaluation_matches_credited": 0,
             "timing_basis": deepcopy(self.config.get("timing_basis")),
@@ -287,6 +477,7 @@ class ScenarioCourse:
         stage = self.stage() if purpose == "train" else "common-decks-bo3"
         if stage == "complete": return
         if self.deck is None: self._construct()
+        self._require_training_admission(self.deck,purpose)
         choices = sorted(i for i, b in self.bots.items() if b["stage"] == stage and b["purpose"] == purpose)
         if not choices: raise ContractError("no actual qualified opponents for this stage and partition")
         ordinal = sum(r["purpose"] == purpose for r in self.records)
@@ -315,6 +506,24 @@ class ScenarioCourse:
             if self.models.fingerprint() != before:
                 raise ContractError("frozen evaluation changed a model, optimizer or training cursor")
 
+    def _require_training_admission(self,deck,purpose):
+        from .training_admission import require_training_admission,TrainingAdmissionDeferred
+        if (getattr(self,'_admission_state_reference',None) is not None and
+                not getattr(self,'_admission_reference_validated',False)):
+            raise TrainingAdmissionDeferred({'reasons':['saved_private_admission_ledger_requires_host_validation']})
+        best=(self.construction or {}).get('best') or {}
+        cb=best.get('basic_cb') if best.get('deck')==deck.to_dict() else None
+        verdict=require_training_admission(task=self._task(),deck=deck,basic_cb=cb,assets=self.assets,
+            purpose=purpose,comparison_policy=self.comparison_policy)
+        if verdict['status']!='admitted':
+            error=TrainingAdmissionDeferred(verdict)
+            if not any((self.root/name).exists() for name in ('in-flight.json','feedback-in-flight.json')):
+                self.desired='paused'
+                self.save()
+                error.safe_boundary_saved=True;error.pause_requested=True
+            raise error
+        return verdict
+
     def _game(self):
         from .duel_planning import plans_from_construction
         self._storage_guard()
@@ -336,6 +545,7 @@ class ScenarioCourse:
             match.abort_intermission(type(error).__name__)
             return
         if match.status != "ready": return
+        self._require_training_admission(match._current['actor'],purpose)
         runtime_options = ({"bot_runtime": bot["runtime"]} if isinstance(bot["runtime"], CourseBotRuntime)
                            else {"model_runtime": bot["runtime"]})
         if not isinstance(bot["runtime"], CourseBotRuntime) and bot["runtime"].policy_mode == "sample":
@@ -348,7 +558,11 @@ class ScenarioCourse:
             purpose=purpose, policy_rng=self.models.policy_rng,
             evaluation_pairs=tuple(tuple(v) for v in self.config["evaluation_pairs"].get(purpose, [])),
             evaluation_cursor=self.evaluation_cursor.get(purpose, 0),
-            combo_plans=plans_from_construction(self._task(),self.construction,deck=self.deck))
+            combo_plans=plans_from_construction(self._task(),self.construction,deck=self.deck),
+            observed_bot_source_review=self.models.binding.get('observed_bot_source_review'),
+            training_attempt_cursor=self.training_attempt_cursor if purpose == "train" else None,
+            admission_task=self._task(),admission_basic_cb=(self.construction or {}).get('best',{}).get('basic_cb'),
+            comparison_policy=self.comparison_policy)
         spec = match.issue_game_spec()
         _exclusive_json(self.root / "in-flight.json", {"course_binding_sha256": digest(self.binding),
             "revision": self.revision, "match_id": spec.match_id, "game": spec.game_number,
@@ -356,8 +570,38 @@ class ScenarioCourse:
         started = time.monotonic()
         result = adapter(spec)
         self.active_seconds += time.monotonic() - started
+        if adapter.last_partial_sample is not None:
+            # Persist private incomplete evidence before closing the durable
+            # host boundary. Failure leaves in-flight.json in place, so neither
+            # an uncertain write nor a half-game can be replayed automatically.
+            payload = {"kind": "course-private-compute-truncation-v1",
+                "course_binding_sha256": digest(self.binding), "match_id": spec.match_id,
+                "game_number": spec.game_number, "game_spec_sha256": spec.sha256,
+                "partial": adapter.last_partial_sample, "diagnostics": adapter.last_partial_diagnostics}
+            raw = (canonical_json(payload) + "\n").encode("utf-8")
+            name = "partial-game-" + digest([spec.match_id, spec.game_number, purpose])[:40] + ".json"
+            path = self.root / name
+            block = max(1, os.statvfs(self.root).f_frsize)
+            self._storage_guard(((len(raw)+block-1)//block)*block+8*block)
+            if self.storage_envelope is None:
+                with path.open("xb") as output:
+                    output.write(raw); output.flush(); os.fsync(output.fileno())
+            else:
+                reservation = "partial-" + digest([self._binding_sha256, name])[:40]
+                with self.storage_envelope.reserve_file(reservation, path, len(raw), purpose="trajectory") as output:
+                    output.write(raw); output.commit()
+            adapter.last_receipt["partial_game"] = {"path": name, "bytes": len(raw),
+                "sha256": hashlib.sha256(raw).hexdigest(), "training_eligible": False,
+                "native_continuation_available": False}
         match.record_game(spec, result)
         p["receipts"].append(deepcopy(adapter.last_receipt))
+        if purpose == "train":
+            receipt = adapter.last_receipt
+            if receipt.get("sampling_attempt_cursor") != self.training_attempt_cursor:
+                raise ContractError("course sampling-attempt ledger changed during a game")
+            following = receipt.get("next_sampling_attempt_cursor")
+            integer(following, "next declared training attempt", self.training_attempt_cursor, self.training_attempt_cursor+1)
+            self.training_attempt_cursor = following
         if purpose != "train": self.evaluation_cursor[purpose] = adapter.evaluation_cursor
         self.save()  # weights, data admission, score and cursor close together
         (self.root / "in-flight.json").unlink()
@@ -368,15 +612,24 @@ class ScenarioCourse:
         complete = bo1_done or p["format"] == "bo3" and view["status"] == "complete"
         terminal = complete or view["status"] in ("aborted", "pending_draw_policy")
         if not terminal: return False
+        receipt = p["receipts"][-1] if p["receipts"] else {}
+        compute_truncated = (not complete and receipt.get("status") == "compute_truncated" and
+            receipt.get("sample_completed") is False and receipt.get("model_update_started") is False and
+            receipt.get("model_update_completed") is False and receipt.get("partial_game") is not None)
         self.records.append({"match_id": view["match_id"], "format": p["format"], "stage": p["stage"],
             "purpose": p["purpose"], "bot_id": p["bot_id"], "complete": bool(complete),
-            "status": "complete" if complete else view["status"], "games": deepcopy(view["games"]),
+            "status": "complete" if complete else "compute_truncated" if compute_truncated else view["status"], "games": deepcopy(view["games"]),
             "winner": view["games"][0]["winner_participant_id"] if bo1_done else view["match_winner"],
             "match_state": p["state"].to_dict(), "receipts": p["receipts"]})
         self.pending = None
         if not complete:
-            self.desired = "needs_inspection"
-            self.events.append({"kind": "unresolved_match", "status": view["status"], "automatic_retry": False})
+            # A known resource boundary consumes its predeclared attempt, not
+            # an optimizer step. The invocation may use its remaining bounded
+            # allocation on the next scheduled seed. Genuine faults still stop.
+            if not compute_truncated: self.desired = "needs_inspection"
+            self.events.append({"kind": "compute_truncated_match" if compute_truncated else "unresolved_match",
+                "status": self.records[-1]["status"], "automatic_retry": False,
+                "same_seed_recovery_requires_explicit_host_decision": compute_truncated})
         # Real prediction discrepancies are handled with their registered scope
         # and actual outcomes by the host; a round number alone is no review or
         # evidence that reconstruction is warranted.
@@ -432,6 +685,8 @@ class ScenarioCourse:
                 if self.desired == "needs_inspection" or closed >= limit: break
             if (self.root / "pause.request").exists(): self.desired = "paused"; break
             if purpose == "train" and self.stage() == "complete": break
+            if purpose == "train" and self.training_attempt_cursor >= len(self.config["training_seeds"]):
+                self.desired = "training_seed_schedule_exhausted"; break
             if purpose != "train" and sum(r["purpose"] == purpose for r in self.records) >= self.config["evaluation_matches"]: break
             if self.active_seconds + self.models.duel.config.episode_seconds > self.config["wall_seconds"]:
                 self.desired = "budget_insufficient_for_next_game"; break
@@ -745,6 +1000,7 @@ class ScenarioCourse:
     def save(self):
         self._assert_registry()
         self._storage_guard()
+        admission_reference=self._admission_checkpoint_reference()
         if self.pending is not None: match = self.pending["state"].to_dict()
         else: match = None
         revision=self.revision+1
@@ -756,10 +1012,14 @@ class ScenarioCourse:
             "construction": self.construction, "pending": None if self.pending is None else {
                 **{k:v for k,v in self.pending.items() if k != "state"}, "state": match},
             "evaluation_cursor": self.evaluation_cursor, "frozen_evaluation": self.frozen_evaluation,
+            "training_attempts": {"schema_version": 1, "next_cursor": self.training_attempt_cursor,
+                "legacy_acknowledgments": deepcopy(self._legacy_attempt_acknowledgments)},
             "desired": self.desired, "feedback": self.feedback.state_dict(),
             "data_index_sha256": index_identity(self.data_index),
             "checkpoint_storage":{"schema_version":1,"policy":deepcopy(self.checkpoint_policy),
                 "prior_entries":deepcopy(self._checkpoint_entries)}}
+        if admission_reference is not None:
+            payload['admission_state_reference']=admission_reference
         # Know the serialized byte count before writing disk. This is an actual
         # envelope size, not an estimate from neural tensor parameters.
         buffer=io.BytesIO();torch.save(payload,buffer);raw=buffer.getbuffer()
@@ -791,6 +1051,7 @@ class ScenarioCourse:
         self.revision=revision
         self._checkpoint_entries=entries
         self._last_checkpoint = deepcopy(pointer)
+        self._admission_state_reference=deepcopy(admission_reference)
         self._prune_checkpoints()
         return pointer
 
@@ -808,8 +1069,21 @@ class ScenarioCourse:
                 saved["revision"] != pointer["revision"] or saved["active_seconds"] != pointer["active_seconds"] or
                 saved["data_index_sha256"] != index_identity(self.data_index)):
             raise ContractError("checkpoint binding/accounting/data is stale; no automatic rollback")
+        self._admission_state_reference=deepcopy(saved.get('admission_state_reference'))
+        self._admission_reference_validated=False
+        if self._admission_state_reference is not None and getattr(self,'comparison_policy',None) is not None:
+            self.bind_admission_policy(self.comparison_policy)
         entries=self._restored_entries(saved,pointer)
+        attempts = saved.get("training_attempts")
+        if attempts is None: attempts = migrate_training_attempt_state(saved)
+        validate_training_attempt_state(saved, attempts, max_attempts=len(self.config["training_seeds"]))
+        boundaries = list(saved["records"]) + ([] if saved.get("pending") is None else [saved["pending"]])
+        for boundary in boundaries:
+            for receipt in boundary.get("receipts", []):
+                if receipt.get("partial_game") is not None: verify_partial_game_artifact(self.root, receipt["partial_game"])
         self.models.restore_state(saved["models"], assets=self.assets, expected_binding=self.models.binding)
+        self.training_attempt_cursor = attempts["next_cursor"]
+        self._legacy_attempt_acknowledgments = deepcopy(attempts["legacy_acknowledgments"])
         from .course_feedback import CourseFeedbackUpdater
         self.feedback = CourseFeedbackUpdater(self.models, self.data_index, self.config["course_id"])
         self.feedback.load_state_dict(saved["feedback"])

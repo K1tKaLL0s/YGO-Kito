@@ -10,7 +10,7 @@ from ygo_kito.contracts import DecisionRequest
 from ygo_kito.duel_effect_limits import EffectLimitBinding,EffectLimitTracker,rule_reference,RULES
 from ygo_kito.duel_planning import DuelPlanner,ComboPlan,PlanningBudget,_State
 from ygo_kito.validation import ContractError
-from tests.test_duel_planning import window,card,event,FACTS
+from tests.test_duel_planning import window,card,event,FACTS,PROJECTION_EFFECTS
 
 TEXT='engineering fixture: exact description already reviewed for test binding only'
 ROWS={**FACTS,20:dict(FACTS[20],desc=TEXT),21:dict(FACTS[21],desc=TEXT)}
@@ -93,13 +93,13 @@ class EffectLimitTests(unittest.TestCase):
         with self.assertRaises(ContractError):binding('qa22010',last_turn=2)
         missing=replace(binding(),scope_complete=False);m=EffectLimitTracker((missing,));m.observe(view())
         self.assertIsNone(m.remaining(missing))
-        p=DuelPlanner(facts=ROWS,effect_limit_bindings=(missing,));p.evaluate(view(),torch.zeros(3))
+        p=DuelPlanner(facts=ROWS,effect_records=PROJECTION_EFFECTS,effect_limit_bindings=(missing,));p.evaluate(view(),torch.zeros(3))
         state=_State(((20,'monster',0),),())
         self.assertIsNone(p._project(state,'activate',(20,),effect_description=321))
         self.assertIsNotNone(p._project(state,'activate',(20,),effect_description=321,root=True))
 
     def test_bound_counter_is_consulted_in_future_projection_and_does_not_mask_real_roots(self):
-        b=binding();p=DuelPlanner(facts=ROWS,effect_limit_bindings=(b,))
+        b=binding();p=DuelPlanner(facts=ROWS,effect_records=PROJECTION_EFFECTS,effect_limit_bindings=(b,))
         p.evaluate(view(),torch.zeros(3))
         state=_State(((20,'monster',0),),())
         for remaining in (2,1,0):
@@ -115,7 +115,7 @@ class EffectLimitTests(unittest.TestCase):
     def test_failure_counter_and_resource_payment_are_independent(self):
         for rule,expected in (('qa17200',1),('qa22010',0)):
             with self.subTest(rule=rule):
-                b=binding(rule);p=DuelPlanner(facts=ROWS,effect_limit_bindings=(b,))
+                b=binding(rule);p=DuelPlanner(facts=ROWS,effect_records=PROJECTION_EFFECTS,effect_limit_bindings=(b,))
                 h=(event('applied','chain',73,link=9),) if rule=='qa22010' else ()
                 p.evaluate(view(h),torch.zeros(3))
                 before=_State(((20,'monster',0),),())

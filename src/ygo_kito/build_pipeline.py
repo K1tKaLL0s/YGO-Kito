@@ -149,35 +149,83 @@ def _goal_candidates(task, assets, base=None):
     return found
 
 
-def goal_candidates(task, assets, base=None, *, feedback=(), return_portfolio=False,mechanism_groups=None):
+def goal_candidates(task, assets, base=None, *, feedback=(), return_portfolio=False,mechanism_groups=None,trace=None):
     from .construction_candidates import portfolio
     initial = _goal_candidates(task, assets, base)
-    rows = portfolio(task, assets, base=base, initial=initial, feedback=feedback,mechanism_groups=mechanism_groups)
+    portfolio_trace = {}
+    rows = portfolio(task, assets, base=base, initial=initial, feedback=feedback,mechanism_groups=mechanism_groups,trace=portfolio_trace)
+    if trace is not None:
+        trace.update(generator="existing_goal_solver_and_portfolio", initial_candidates=len(initial),
+                     portfolio_candidates=len(rows), candidate_budget=task.candidate_budget,
+                     portfolio=portfolio_trace,internal_solver_filter_trace="not_available")
     return rows if return_portfolio else [row["deck"] for row in rows]
 
 
-def edit_candidates(task, assets, base, *, require_edit=False, feedback=(), return_portfolio=False,mechanism_groups=None):
+def edit_candidates(task, assets, base, *, require_edit=False, feedback=(), return_portfolio=False,mechanism_groups=None,trace=None):
     assets.validate(task, base)
     from .construction_candidates import portfolio
-    found = []
-    for zone in ZONES:
-        count = 0
+    found, origins, families, zone_limits = [], {}, {}, {}
+
+    def substitutions(zone):
         for removed in sorted(set(getattr(base, zone))):
             for added in task.pool:
-                if added == removed:
+                if added != removed:
+                    parts = base.to_dict()
+                    parts[zone].remove(removed); parts[zone].append(added)
+                    yield _parts(parts), {"kind":"single_zone_substitution", "zones":[zone],
+                        "removed":{zone:removed}, "added":{zone:added}}
+
+    def exchanges(zone, other):
+        # Validate the complete exchange, never its copy-limit-breaking halfway
+        # state. Every listed copy stays in the inventory and section sizes stay
+        # fixed; target requirements and destination legality still apply.
+        for removed in sorted(set(getattr(base, zone))):
+            for added in sorted(set(getattr(base, other))):
+                if added != removed:
+                    parts = base.to_dict()
+                    parts[zone].remove(removed); parts[other].remove(added)
+                    parts[zone].append(added); parts[other].append(removed)
+                    yield _parts(parts), {"kind":"atomic_cross_zone_exchange", "zones":[zone,other],
+                        "removed":{zone:removed,other:added}, "added":{zone:added,other:removed},
+                        "combined_inventory_preserved":True}
+
+    for position, zone in enumerate(ZONES):
+        streams = [("single:"+zone, iter(substitutions(zone)))]
+        streams += [("exchange:"+zone+"+"+other, iter(exchanges(zone,other))) for other in ZONES[position+1:]]
+        count = 0
+        while streams and count < 32:
+            for name, stream in streams[:]:
+                stats = families.setdefault(name, {"attempted":0,"accepted":0,"filtered":{},"rejection_samples":[]})
+                try:
+                    candidate, origin = next(stream)
+                except StopIteration:
+                    streams.remove((name,stream)); continue
+                stats["attempted"] += 1
+                try:
+                    assets.validate(task, candidate)
+                    reason = "duplicate_candidate" if candidate in origins else None
+                except ContractError as error:
+                    reason = str(error)
+                if reason is not None:
+                    stats["filtered"][reason] = stats["filtered"].get(reason,0)+1
+                    if len(stats["rejection_samples"]) < 2:
+                        stats["rejection_samples"].append({"edit":origin,"reason":reason})
                     continue
-                parts = base.to_dict()
-                parts[zone].remove(removed)
-                parts[zone].append(added)
-                candidate = _parts(parts)
-                if assets.accepts(task, candidate) and candidate not in found:
-                    found.append(candidate)
-                    count += 1
-                if count >= 32:
-                    break
-            if count >= 32:
-                break
-    rows = portfolio(task, assets, base=base, singles=found, feedback=feedback, require_edit=require_edit,mechanism_groups=mechanism_groups)
+                found.append(candidate); origins[candidate] = origin
+                stats["accepted"] += 1; count += 1
+                if count == 32: break
+        zone_limits[zone] = {"accepted":count,"limit":32,"enumeration_complete":not streams}
+    portfolio_trace = {}
+    rows = portfolio(task, assets, base=base, singles=found, feedback=feedback, require_edit=require_edit,mechanism_groups=mechanism_groups,trace=portfolio_trace)
+    for row in rows:
+        if row["deck"] in origins:
+            row["generation"] = origins[row["deck"]]
+    if trace is not None:
+        trace.update(generator="bounded_substitutions_and_atomic_exchanges", families=families,
+            zone_limits=zone_limits, legal_edit_candidates=len(found), portfolio_candidates=len(rows),
+            legal_edits_outside_portfolio=sum(deck not in [r["deck"] for r in rows] for deck in found),
+            candidate_budget=task.candidate_budget,portfolio=portfolio_trace,
+            constraints_checked=["section_sizes","destination_zone","combined_alias_copy_limits","explicit_task_constraints"])
     return rows if return_portfolio else [row["deck"] for row in rows]
 
 

@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 import unittest
 
-from scripts.check_merge_candidate import (DP_HASHES, LIMIT_HOOK, LIMIT_READ,
+from scripts.check_merge_candidate import (DP_HEAD, DP_HASHES, LIMIT_HOOK, LIMIT_READ,
     approved_period_hook, audit_native_pair, checkout_context)
 from scripts.deployment_prepare import MANIFEST, REQUIRED_FILES, fingerprint
 from ygo_kito.validation import ContractError
@@ -41,7 +41,7 @@ class MergeCandidateSourceTests(unittest.TestCase):
         self.assertEqual(context,{"checkout_kind":"source_archive","tested_head":None,"source_archive_commit":"a"*40})
         pair=audit_native_pair(self.root,context)
         self.assertTrue(pair["src/ygo_kito/native_response_guard.py"]["matches_pinned_dp_sha256"])
-        self.assertTrue(pair["src/ygo_kito/native.py"]["matches_reviewed_period_hook"])
+        self.assertTrue(pair["src/ygo_kito/native.py"]["matches_reviewed_conditional_cb"])
         self.assertTrue(all(item["matches_dp_commit"] is None for item in pair.values()))
 
     def test_parent_git_does_not_supply_archive_head(self):
@@ -76,9 +76,13 @@ class MergeCandidateSourceTests(unittest.TestCase):
     def test_original_and_only_the_exact_approved_hook_pass_pinned_audit(self):
         name="src/ygo_kito/native.py"
         current=(self.root/name).read_bytes()
-        original=current.decode("utf-8").replace(LIMIT_HOOK,"").replace('limits = self._deck_limits()',LIMIT_READ).encode("utf-8")
+        original=subprocess.check_output(["git","show",DP_HEAD+":"+name],cwd=ROOT)
         self.assertEqual(fingerprint(original),DP_HASHES[name])
-        self.assertEqual(approved_period_hook(original),current)
+        self.assertNotEqual(approved_period_hook(original),current)
+        (self.root/name).write_bytes(approved_period_hook(original));self.write_manifest()
+        hook_pair=audit_native_pair(self.root,checkout_context(self.root))
+        self.assertTrue(hook_pair[name]["matches_reviewed_period_hook"])
+        self.assertFalse(hook_pair[name]["matches_reviewed_conditional_cb"])
         (self.root/name).write_bytes(original);self.write_manifest()
         pair=audit_native_pair(self.root,checkout_context(self.root))
         self.assertTrue(pair[name]["matches_pinned_dp_sha256"])

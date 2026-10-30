@@ -32,7 +32,7 @@ TARGETS = {"2022-07": "2022-09-30", "2022-10": "2022-12-31", "2026-10": "2026-11
 def validate_host_spec(value):
     d = fields(value, {"schema_version", "kind", "period_id", "selected_target_cutoff", "active_environment",
         "native_root", "source_group", "bootstrap_task", "duel_config", "adapter_configs", "available_cards",
-        "timing_pilot", "pilot_pairs", "bots", "course", "state_root", "resume", "device"}, {"storage_envelope", "learning_stage", "initialization_mode"})
+        "timing_pilot", "pilot_pairs", "bots", "course", "state_root", "resume", "device"}, {"storage_envelope", "learning_stage", "initialization_mode", "coordinator_mechanism_inputs"})
     integer(d["schema_version"], "course host schema", 1, 1)
     member(d["kind"], "course host kind", ("scenario-course-host-v1",))
     member(d["period_id"], "course period", tuple(TARGETS))
@@ -46,6 +46,11 @@ def validate_host_spec(value):
     member(stage, "learning stage", ("base", "lora_adaptation"))
     mode = d.get("initialization_mode", "source_group")
     member(mode, "initialization mode", ("source_group", "fresh"))
+    mechanisms = d.get("coordinator_mechanism_inputs", False)
+    if type(mechanisms) is not bool or mechanisms and stage != "base":
+        raise ContractError("mechanism coordinator is an explicit base-course input policy")
+    if mechanisms and not d["resume"] and mode != "fresh":
+        raise ContractError("old coordinator weights require explicit mechanism migration, not host initialization")
     if mode == "fresh":
         if d["source_group"] is not None or stage != "base":
             raise ContractError("fresh initialization requires explicit base stage and no source checkpoint")
@@ -304,6 +309,9 @@ class ScenarioCourseHost:
             "available_ids_sha256": digest(available), "learning_stage": d.get("learning_stage", "lora_adaptation"),
             "basic_cb_stage": "after_construction",
             "construction_theme_ids": course.get("construction_theme_ids")}
+        # Do not inject a default False into legacy host inputs or bindings.
+        if "coordinator_mechanism_inputs" in d:
+            source_binding["coordinator_mechanism_inputs"] = d["coordinator_mechanism_inputs"]
         from .course_models import CourseModels
         saved = None
         if d["resume"]:

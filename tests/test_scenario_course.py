@@ -7,7 +7,9 @@ are not core/C# execution, historical qualification or training ability.
 from copy import deepcopy
 from dataclasses import replace
 import json
+import hashlib
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
@@ -24,7 +26,9 @@ from ygo_kito.course_models import CourseModels
 from ygo_kito.duel_model import DuelModelConfig
 from ygo_kito.lora import AdapterConfig
 from ygo_kito.match_runner import GameResult
-from ygo_kito.scenario_course import ScenarioCourse
+from ygo_kito.scenario_course import (ScenarioCourse, migrate_training_attempt_state,
+    validate_training_attempt_state)
+from ygo_kito.cpu_training import CpuTrainer
 from ygo_kito.validation import ContractError
 
 
@@ -79,6 +83,148 @@ class ScenarioConstructionCompletionTests(unittest.TestCase):
             c.selection = selection; result[missing] = False
             with self.subTest(missing=missing), self.assertRaises(ContractError): c._construct()
             self.assertIsNone(c.deck)
+
+
+class TrainingAttemptMigrationTests(unittest.TestCase):
+    def legacy(self):
+        observed = {"training_cursor": 45, "model_sha256": "a"*64, "lora": None,
+                    "observed_optimizer_step_max": 45}
+        receipt = {"before": deepcopy(observed), "after": deepcopy(observed), "status": "failed_or_uncertain",
+            "sample_completed": False, "model_update_started": False, "model_update_completed": False,
+            "retry_allowed": False, "observations": {"constructor_completed": True},
+            "observed_sampler_cursor": 45, "observed_sampler_updates": 45,
+            "error": {"type": "NativeError", "message": "CPU sample budget exhausted; no terminal reward/update claimed"}}
+        return {"models": {"adapters": {}, "cursors": {"duel_episodes": 45, "duel_updates": 45}}, "pending": None,
+            "records": [{"match_id": "legacy-train-46", "purpose": "train", "complete": False, "winner": None,
+                "games": [{"terminal": False, "completed": False, "winner_participant_id": None}], "receipts": [receipt]}]}
+
+    def test_legacy_known_no_update_budget_requires_exact_acknowledgment_and_keeps_original_record(self):
+        saved = self.legacy(); original = deepcopy(saved)
+        with self.assertRaisesRegex(ContractError, "exact explicit acknowledgments"):
+            migrate_training_attempt_state(saved)
+        migrated = migrate_training_attempt_state(saved, acknowledged_compute_truncations=("legacy-train-46",))
+        self.assertEqual(saved, original)
+        self.assertEqual(migrated["next_cursor"], 46)
+        ack = migrated["legacy_acknowledgments"][0]
+        self.assertEqual(ack["record_sha256"], digest(saved["records"][0]))
+        self.assertFalse(ack["partial_game_available"]); self.assertFalse(ack["automatic_replay"])
+
+    def test_uncertain_or_changed_optimizer_transaction_cannot_be_acknowledged_as_compute_truncation(self):
+        for mutation in ("model_update_started", "error", "optimizer"):
+            saved = self.legacy(); receipt = saved["records"][0]["receipts"][0]
+            if mutation == "model_update_started": receipt[mutation] = True
+            elif mutation == "error": receipt[mutation]["message"] = "unrelated native protocol failure"
+            else: receipt["after"]["observed_optimizer_step_max"] = 46
+            with self.subTest(mutation=mutation), self.assertRaisesRegex(ContractError, "not a proven"):
+                migrate_training_attempt_state(saved, acknowledged_compute_truncations=("legacy-train-46",))
+
+    def test_corrected_flow_offset_keeps_archived_anomaly_and_only_acknowledges_current_46(self):
+        saved = self.legacy(); last = saved["records"][0]
+        prior = [{"match_id": "legacy-train-"+str(i), "purpose": "train", "complete": True}
+                 for i in range(1, 25)]
+        prior.append({"match_id": "legacy-train-25", "purpose": "train", "complete": False,
+                      "status": "aborted", "receipts": []})
+        active = [{"match_id": "legacy-train-"+str(i), "purpose": "train", "complete": True}
+                  for i in range(26, 46)]
+        saved["records"] = prior + active + [last]
+        saved["binding"] = {"config": {"training_record_offset": 25}}
+        original = deepcopy(saved)
+        attempts = migrate_training_attempt_state(saved, acknowledged_compute_truncations=("legacy-train-46",))
+        validate_training_attempt_state(saved, attempts, max_attempts=100)
+        self.assertEqual(sum(not r["complete"] for r in saved["records"]), 2)
+        self.assertEqual(attempts["next_cursor"], 46)
+        self.assertEqual([a["match_id"] for a in attempts["legacy_acknowledgments"]], ["legacy-train-46"])
+        self.assertEqual(saved, original)
+        saved["records"][25]["complete"] = False
+        with self.assertRaisesRegex(ContractError, "exact explicit acknowledgments"):
+            migrate_training_attempt_state(saved, acknowledged_compute_truncations=("legacy-train-46",))
+
+    def test_corrected_flow_offset_cannot_hide_records_beyond_the_saved_boundary(self):
+        saved = self.legacy(); saved["binding"] = {"config": {"training_record_offset": 2}}
+        with self.assertRaisesRegex(ContractError, "corrected-flow record offset"):
+            migrate_training_attempt_state(saved)
+
+    def test_sample_cursor_without_an_actual_update_is_not_a_resumable_boundary(self):
+        saved = self.legacy(); saved['models']['cursors']['duel_episodes'] = 46
+        with self.assertRaisesRegex(ContractError, 'actual update boundary'):
+            migrate_training_attempt_state(saved, acknowledged_compute_truncations=('legacy-train-46',))
+
+    def host_receipt(self, cursor, successful, game, *, truncated):
+        before = {"training_cursor": successful, "model_sha256": "a"*64, "lora": None,
+                  "observed_optimizer_step_max": successful}
+        after = deepcopy(before)
+        if not truncated:
+            after.update(training_cursor=successful+1, model_sha256="b"*64, observed_optimizer_step_max=successful+1)
+        return {"kind": "course-small-game-host-receipt", "game_number": game,
+            "sampling_attempt_cursor": cursor, "next_sampling_attempt_cursor": cursor+1,
+            "status": "compute_truncated" if truncated else "completed",
+            "termination_kind": "compute_budget" if truncated else None,
+            "sample_completed": not truncated, "model_update_started": not truncated,
+            "model_update_completed": not truncated, "before": before, "after": after,
+            "observed_sampler_cursor": successful, "observed_sampler_updates": successful,
+            "resource_boundary": {"kind": "compute_budget"},
+            "partial_game": {"path": "partial-game-"+"a"*40+".json", "bytes": 1, "sha256": "0"*64,
+                "training_eligible": False, "native_continuation_available": False} if truncated else None}
+
+    def test_next_cursor_requires_successes_and_exact_acknowledgments_without_silent_seed_skip(self):
+        saved = self.legacy()
+        attempts = migrate_training_attempt_state(saved, acknowledged_compute_truncations=("legacy-train-46",))
+        attempts["next_cursor"] += 1
+        with self.assertRaisesRegex(ContractError, "not proven"):
+            validate_training_attempt_state(saved, attempts, max_attempts=100)
+
+    def test_pending_bo3_counts_only_truncated_attempt_beyond_actual_successful_update(self):
+        saved = self.legacy()
+        attempts = migrate_training_attempt_state(saved, acknowledged_compute_truncations=("legacy-train-46",))
+        saved["models"]["cursors"]["duel_episodes"] = 46
+        saved["models"]["cursors"]["duel_updates"] = 46
+        saved["pending"] = {"purpose": "train", "state": {"match_id": "pending-bo3"}, "receipts": [
+            self.host_receipt(46, 45, 1, truncated=False), self.host_receipt(47, 46, 2, truncated=True)]}
+        attempts["next_cursor"] = 48
+        validate_training_attempt_state(saved, attempts, max_attempts=100)
+        attempts["next_cursor"] = 49
+        with self.assertRaisesRegex(ContractError, "not proven"):
+            validate_training_attempt_state(saved, attempts, max_attempts=100)
+
+    def test_archiving_new_compute_receipt_does_not_erase_its_consumed_attempt(self):
+        saved = {"models": {"adapters": {}, "cursors": {"duel_episodes": 1, "duel_updates": 1}}, "pending": None,
+            "binding": {"config": {"training_record_offset": 2}}, "records": [
+                {"match_id": "new-train-1", "purpose": "train", "complete": False,
+                 "receipts": [self.host_receipt(0, 0, 1, truncated=True)]},
+                {"match_id": "new-train-2", "purpose": "train", "complete": True,
+                 "receipts": [self.host_receipt(1, 0, 1, truncated=False)]}]}
+        validate_training_attempt_state(saved, {"schema_version": 1, "next_cursor": 2,
+            "legacy_acknowledgments": []}, max_attempts=100)
+
+
+class PartialEvidenceRestoreTests(unittest.TestCase):
+    def test_restore_rejects_missing_or_changed_partial_before_restoring_any_model(self):
+        for state in ("missing", "changed", "escaped_path"):
+            with self.subTest(state=state), TemporaryDirectory() as temporary:
+                root = Path(temporary); raw = b"private partial fixture\n"
+                name = "partial-game-"+"a"*40+".json"
+                artifact = {"path": name, "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest(),
+                    "training_eligible": False, "native_continuation_available": False}
+                if state == "changed": (root/name).write_bytes(b"X"+raw[1:])
+                if state == "escaped_path": artifact["path"] = "../"+name
+                checkpoint = root/"checkpoint-1.weights"; checkpoint.write_bytes(b"synthetic metadata fixture")
+                pointer = {"path": checkpoint.name, "sha256": hashlib.sha256(checkpoint.read_bytes()).hexdigest(),
+                           "revision": 1, "active_seconds": 0.}
+                (root/"latest.json").write_text(json.dumps(pointer), encoding="utf-8")
+                saved = {"kind": "ordered-course-game-boundary-v1", "binding": {}, "revision": 1,
+                    "active_seconds": 0., "data_index_sha256": "fixture-index", "pending": None,
+                    "models": {"adapters": {}, "cursors": {"duel_episodes": 0, "duel_updates": 0}},
+                    "training_attempts": {"schema_version": 1, "next_cursor": 0, "legacy_acknowledgments": []},
+                    "records": [{"purpose": "validation", "receipts": [{"partial_game": artifact}]}]}
+                course = object.__new__(ScenarioCourse)
+                course.root, course.binding, course.config = root, {}, {"training_seeds": [100, 101]}
+                course.models = SimpleNamespace(binding={}, restore_state=Mock())
+                course.data_index = SimpleNamespace(); course._restored_entries = Mock(return_value=[])
+                with patch("ygo_kito.scenario_course.torch.load", return_value=saved), \
+                        patch("ygo_kito.scenario_course.index_identity", return_value="fixture-index"):
+                    with self.assertRaisesRegex(ContractError, "private partial-game evidence"):
+                        course.restore_latest()
+                course.models.restore_state.assert_not_called()
 
 
 class ScenarioCourseTests(unittest.TestCase):
@@ -166,6 +312,64 @@ class ScenarioCourseTests(unittest.TestCase):
     def new_course(self):
         return ScenarioCourse(self.models, assets=self.host.assets, data_index=self.host.index,
             config=self.config, state_root=self.host.root/'scenario-state', bots=self.bots)
+
+    def install_sampling_deck_fixture(self):
+        # These tests isolate attempt accounting, not construction/CB search.
+        # The admission seam is explicitly patched by each caller. No success
+        # receipt is fabricated and this data cannot satisfy the real guard.
+        self.course.deck = DeckParts(self.deck.main, (42,), self.deck.side)
+        self.host.assets.validate(self.models.builder.task, self.course.deck)
+        self.course.construction = {'best': {'deck': self.course.deck.to_dict(), 'basic_cb': None}}
+
+    @patch('ygo_kito.training_admission.require_training_admission',new=lambda **kwargs:{'status':'admitted'})
+    def test_compute_truncation_is_saved_once_and_restore_uses_next_declared_attempt_without_extra_update(self):
+        self.install_sampling_deck_fixture()
+        original = CpuTrainer.sample_episode; seen = []
+        def sample(trainer, *args, **kwargs):
+            seen.append(kwargs.get("training_attempt_cursor"))
+            if kwargs.get("training_attempt_cursor") == 0:
+                trainer.config = replace(trainer.config, native_decision_limit=1)
+            return original(trainer, *args, **kwargs)
+        with self.host.fake_execution(), patch.object(CpuTrainer, "sample_episode", sample):
+            status = self.course.run(1)
+        self.assertEqual(status["desired"], "ready")
+        self.assertEqual(status["compute_truncated_matches"], 1)
+        self.assertEqual(self.course.counts(), {"bo1": 0, "bo3": 0})
+        self.assertEqual(self.course.training_attempt_cursor, 1)
+        self.assertEqual(self.models.sessions["duel"].updates, 0)
+        record = self.course.records[0]; preserved = digest(record)
+        self.assertEqual(record["status"], "compute_truncated"); self.assertIsNone(record["winner"])
+        receipt = record["receipts"][-1]; artifact = receipt["partial_game"]
+        raw = (self.course.root/artifact["path"]).read_bytes()
+        import hashlib
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), artifact["sha256"])
+        partial = json.loads(raw)["partial"]
+        self.assertEqual(partial["seed_audit_only"], 100)
+        self.assertFalse(partial["training_eligible"]); self.assertFalse(partial["terminal"])
+        resumed = self.new_course(); resumed.restore_latest()
+        self.assertEqual(resumed.training_attempt_cursor, 1)
+        with self.host.fake_execution(), patch.object(CpuTrainer, "sample_episode", sample): resumed.run(1)
+        self.assertEqual(seen, [0, 1]); self.assertEqual(digest(resumed.records[0]), preserved)
+        self.assertEqual(resumed.training_attempt_cursor, 2)
+        self.assertEqual(self.models.sessions["duel"].updates, 1)
+        self.assertEqual(resumed.counts(), {"bo1": 1, "bo3": 0})
+
+    @patch('ygo_kito.training_admission.require_training_admission',new=lambda **kwargs:{'status':'admitted'})
+    def test_repeated_compute_truncations_are_bounded_by_invocation_and_declared_seed_schedule(self):
+        self.install_sampling_deck_fixture()
+        original = CpuTrainer.sample_episode; seen = []
+        def sample(trainer, *args, **kwargs):
+            seen.append(kwargs["training_attempt_cursor"])
+            trainer.config = replace(trainer.config, native_decision_limit=1)
+            return original(trainer, *args, **kwargs)
+        with self.host.fake_execution(), patch.object(CpuTrainer, "sample_episode", sample):
+            self.course.run(3)
+            status = self.course.run(1)
+        self.assertEqual(seen, [0, 1, 2])
+        self.assertEqual(status["desired"], "training_seed_schedule_exhausted")
+        self.assertEqual(self.course.training_attempt_cursor, 3)
+        self.assertEqual(self.models.sessions["duel"].updates, 0)
+        self.assertEqual(self.course.counts(), {"bo1": 0, "bo3": 0})
 
     def test_route_free_task_passes_actual_handoffs_and_inferred_route_to_the_planner(self):
         from ygo_kito.duel_planning import plans_from_construction

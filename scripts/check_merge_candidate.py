@@ -53,10 +53,41 @@ MODULES=(
     "tests.test_duel_runtime_interfaces", "tests.test_integrated_course_migration",
     "tests.test_coordinator_joint", "tests.test_coordinator_shared_adapters.ScopedLoraTests",
     "tests.test_design_supervisor", "tests.test_live_supervisor_guard",
+    "tests.test_basic_cb_probe_budget",
+    "tests.test_cb_chain_regressions",
+    "tests.test_cb_controlled_context",
+    "tests.test_cb_controlled_native_setup",
+    "tests.test_cb_resume_four_handoffs",
+    "tests.test_construction_edit_trace",
+    "tests.test_course_admission_loop",
+    "tests.test_course_admission_policy",
+    "tests.test_course_mechanism_inputs",
+    "tests.test_cpu_course_launch",
+    "tests.test_current_goal_comparison_contracts",
+    "tests.test_duel_effect_limits",
+    "tests.test_duel_planning",
+    "tests.test_forecast_twenty_fifty",
+    "tests.test_mechanism_records_recall",
+    "tests.test_observed_bot_source_review",
+    "tests.test_rule_references",
+    "tests.test_training_admission",
+    "tests.test_multifactor_structure",
+    "tests.test_multifactor_synthetic",
+    "tests.test_multifactor_real_effects",
+    "tests.test_multifactor_units",
+    "tests.test_multifactor_adapters",
+    "tests.test_multifactor_adapter_transactions",
+    "tests.test_reference_hints",
+    "tests.test_reference_scoring",
+    "tests.test_reference_scope_revision",
+    "tests.test_reference_integration.IntegrationTest",
 )
 DP_HEAD="a7085e23a74fb04bff571c1c679e0097dd1ae430"
 DP_HASHES={"src/ygo_kito/native.py":"0a2f40c99e3e14bb1eb0446c89c8b80175cd6f1893c8207ee8496deb6725139e",
            "src/ygo_kito/native_response_guard.py":"685846435d4f951324f36a04ff49ea67c4d70c2d4b2c974963e12a4a9e8df64b"}
+# Reviewed 2026-10-30: exact conditional-CB hand validation/setup from da1dd3a.
+# ABI declarations, callbacks and response guard retain the pinned DP behavior.
+REVIEWED_CONDITIONAL_CB_SHA256="5dadff3c9cff016274ce9c9729ad6b66a51b9baa92e615940242a6f12f845943"
 LIMIT_READ='limits = banlist_limits(self.sources / "client/lflist.conf")'
 LIMIT_HOOK=('    def _deck_limits(self):\n'
             '        """Host period adapters may select a separately checked historical section."""\n'
@@ -111,11 +142,12 @@ def audit_native_pair(root,context):
         else:
             matches_dp=None  # A source archive has no local Git commit evidence.
             reviewed=matches_pinned_native_hook(current) if name.endswith("/native.py") else False
+        conditional=(name=="src/ygo_kito/native.py" and sha==REVIEWED_CONDITIONAL_CB_SHA256)
         pair[name]={"sha256":sha,"dp_baseline_sha256":expected_sha,"matches_dp_commit":matches_dp,
-                    "matches_pinned_dp_sha256":sha==expected_sha,"matches_reviewed_period_hook":reviewed,
+                    "matches_pinned_dp_sha256":sha==expected_sha,"matches_reviewed_period_hook":reviewed,"matches_reviewed_conditional_cb":conditional,
                     "comparison_source":"git-show-pinned-commit" if context["checkout_kind"]=="git" else "pinned-dp-sha256-without-git"}
-        if not (sha==expected_sha or reviewed):
-            raise SystemExit("DP binding/guard or reviewed period hook differs; review before running")
+        if not (sha==expected_sha or reviewed or conditional):
+            raise SystemExit("DP binding/guard or explicitly reviewed native extension differs; review before running")
     return pair
 
 
@@ -170,7 +202,8 @@ def main():
         "dependencies":dependencies,"skipped_tests":[{"test":str(test),"reason":reason} for test,reason in result.skipped],
         "resources":resources,
         "elapsed_seconds":elapsed,"by_module":dict(by_module),"dp_native_pair":native_pair,
-        "excluded_modules":["tests.test_native_response_buffer","integration_tests"],
+        "excluded_modules":["tests.test_native_response_buffer","integration_tests",
+            "tests.test_reference_integration.PrivateReferenceIntegrationTest"],
         "exclusion_reason":"This explicit CPU allowlist performs no native calls. Ordinary native tests are checked separately; fault reproduction and unscreened discovery remain excluded.",
         "evidence_scope":"local CPU contracts and explicitly synthetic model/composition tests",
         "native_executed":False,"external_provider_verified":False,"ci_verified":False}

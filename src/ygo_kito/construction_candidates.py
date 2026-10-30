@@ -205,7 +205,7 @@ def axis_edits(task, assets, base, *, mechanism_groups=()):
                     break
 
 
-def portfolio(task, assets, *, base=None, initial=(), singles=(), feedback=(), require_edit=False,mechanism_groups=None):
+def portfolio(task, assets, *, base=None, initial=(), singles=(), feedback=(), require_edit=False,mechanism_groups=None,trace=None):
     """Keep distinct generation families before truncation or learned scoring."""
     buckets = defaultdict(list)
     if base is not None and not require_edit:
@@ -219,8 +219,13 @@ def portfolio(task, assets, *, base=None, initial=(), singles=(), feedback=(), r
         for row in axis_edits(task, assets, start,mechanism_groups=mechanism_groups):
             buckets[row["strategy"]].append(row)
     for deck in singles:
-        zone = next((z for z in ZONES if getattr(base, z) != getattr(deck, z)), "main")
-        buckets["single:" + zone].append({"deck": deck, "strategy": "single:" + zone})
+        zones = [z for z in ZONES if Counter(getattr(base,z)) != Counter(getattr(deck,z))]
+        if not zones:continue
+        same_inventory = Counter(base.main+base.extra+base.side)==Counter(deck.main+deck.extra+deck.side)
+        strategy = ("single:" if len(zones)==1 else "transfer:" if same_inventory else "multi_zone:")+"+".join(zones)
+        buckets[strategy].append({"deck": deck, "strategy": strategy,"edited_zones":zones,
+            "proposal_basis":"atomic_cross_zone_inventory_exchange" if len(zones)>1 and same_inventory else
+                "bounded_multi_zone_edit" if len(zones)>1 else "bounded_single_zone_substitution"})
     # Replay an observed whole edit only in the exact original context. This
     # proposes a candidate; it is not a transferable per-card value estimate.
     if base is not None:
@@ -238,24 +243,50 @@ def portfolio(task, assets, *, base=None, initial=(), singles=(), feedback=(), r
                 continue
             if digest(deck.to_dict()) == row["deck"] and assets.accepts(task, deck):
                 buckets["observed-package"].append({"deck": deck, "strategy": "observed-package"})
-    keys = list(buckets)
-    # Small budgets still reserve space for a group and each playable region.
-    keys.sort(key=lambda k: (0 if k == "incumbent" else 1 if k == "observed-package" else
-                             2 if k.startswith("axis:") else 3 if k.startswith("single:") else 4, k))
-    result, seen = [], set()
-    while keys and len(result) < min(32, task.candidate_budget):
-        for key in keys[:]:
-            if not buckets[key]:
-                keys.remove(key); continue
-            row = buckets[key].pop(0); deck = row["deck"]; identity = digest(deck.to_dict())
-            if identity in seen or require_edit and deck == base:
-                continue
-            assets.validate(task, deck); seen.add(identity)
-            row.update(deck_sha256=identity, changes=None if base is None else changes(base, deck),
-                       strength_status="unknown", goal_preserved=True)
-            result.append(row)
-            if len(result) == min(32, task.candidate_budget):
+    families = {}
+    for key in sorted(buckets):
+        if key.startswith("axis:"):
+            names = ["axis_and_mechanism_packages"]
+        elif key.startswith(("single:","transfer:","multi_zone:")):
+            names = ["edit:"+z for z in ZONES if z in buckets[key][0]["edited_zones"]]
+        else:names = [key]
+        for name in names:families.setdefault(name,[]).append(key)
+    # A catalog with many axes must not consume all slots before a playable
+    # editing region is reached. Each family gets one admission per round;
+    # strategies within it rotate too. This allocates search opportunity, not
+    # a zone bonus in the learned score or the final retention order.
+    family_order = [name for name in ("incumbent","observed-package","fresh","axis_and_mechanism_packages",
+        *("edit:"+z for z in ZONES)) if name in families]
+    generated_counts = {key:len(rows) for key,rows in buckets.items()}
+    admitted = dict.fromkeys(family_order,0)
+    result, seen, filtered, rounds = [], set(), Counter(), 0
+    while families and len(result) < min(32, task.candidate_budget):
+        rounds += 1
+        for name in family_order:
+            keys = families.get(name,[])
+            while keys:
+                key = keys.pop(0)
+                if not buckets[key]:continue
+                row = buckets[key].pop(0)
+                if buckets[key]:keys.append(key)
+                deck = row["deck"]; identity = digest(deck.to_dict())
+                if identity in seen:
+                    filtered["duplicate_deck"] += 1; continue
+                if require_edit and deck == base:
+                    filtered["unchanged_when_edit_required"] += 1; continue
+                assets.validate(task, deck); seen.add(identity)
+                row.update(deck_sha256=identity, changes=None if base is None else changes(base, deck),
+                    strength_status="unknown", goal_preserved=True,
+                    portfolio_admission={"family":name,"round":rounds,"basis":"generation_opportunity_not_quality"})
+                result.append(row); admitted[name] += 1
                 break
+            if not keys:families.pop(name,None)
+            if len(result) == min(32, task.candidate_budget):break
+    if trace is not None:
+        trace.update(candidate_budget=task.candidate_budget,generated_strategy_counts=generated_counts,
+            family_order=family_order,admitted_by_family=admitted,rounds=rounds,filtered=dict(filtered),
+            remaining_generated_rows=sum(map(len,buckets.values())),
+            axis_internal_filter_trace="not_available",budget_order_is_quality_label=False)
     preference = evidence_order(feedback, task.sha256, "deck")
     result.sort(key=lambda r: -preference.get(r["deck_sha256"], 0))
     return result

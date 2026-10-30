@@ -18,9 +18,12 @@ from .duel_model import parameter_digest
 from .device import (resolve_device, model_device, move_batch, execution_metadata,
                      checkpoint_execution, optimizer_to, capture_device_rng, restore_device_rng)
 from .validation import ContractError, fields, integer
+from .effect_records import SUMMARY_WIDTH, SUMMARY_VERSION
 
 FEATURE_VERSION = "coordinator-public-scope-context-v2"
+MECHANISM_FEATURE_VERSION = "coordinator-public-mechanism-context-v3"
 SCOPE_WIDTH = 64
+MECHANISM_SCOPE_WIDTH = 2 * SUMMARY_WIDTH
 
 
 def scope_tensor(value):
@@ -28,6 +31,23 @@ def scope_tensor(value):
             any(type(x) not in (int, float) or not math.isfinite(x) for x in value)):
         raise ContractError("coordinator requires 64 finite public scope features")
     return [float(x) for x in value]
+
+
+def mechanism_tensor(value):
+    if (not isinstance(value, list) or len(value) != MECHANISM_SCOPE_WIDTH or
+            any(type(x) not in (int, float) or not math.isfinite(x) for x in value)):
+        raise ContractError('coordinator requires finite versioned mechanism features')
+    return [float(x) for x in value]
+
+
+def scope_input(value):
+    """Legacy 64-vector or explicit v3 input; never reinterpret old slots."""
+    if isinstance(value, list):
+        return scope_tensor(value), None
+    fields(value, {'feature_version', 'summary_version', 'scope_features', 'mechanism_features'})
+    if value['feature_version'] != MECHANISM_FEATURE_VERSION or value['summary_version'] != SUMMARY_VERSION:
+        raise ContractError('coordinator mechanism input version differs')
+    return scope_tensor(value['scope_features']), mechanism_tensor(value['mechanism_features'])
 
 
 def public_scope_features(builder, task, deck, scope, opponent_decks):
@@ -61,6 +81,23 @@ def public_scope_features(builder, task, deck, scope, opponent_decks):
                            (task.sha256, 4), (digest(deck.to_dict()), 8), (digest(scope["opponents"]), 4)):
         values.extend(b / 255 for b in bytes.fromhex(identity)[:size])
     return scope_tensor(values)
+
+
+def public_scope_input(builder, task, deck, scope, opponent_decks):
+    """Supplement old public features with own/weighted-opponent mechanisms.
+
+    Inputs are concrete registered public decks, never live hidden observations
+    or reference-construction labels. Callers opt into a new coordinator state.
+    """
+    legacy = public_scope_features(builder, task, deck, scope, opponent_decks)
+    own = builder.encoder.public_mechanism_summary(deck)
+    other = [0.] * SUMMARY_WIDTH
+    for opponent in scope['opponents']:
+        summary = builder.encoder.public_mechanism_summary(opponent_decks[opponent['opponent_id']])
+        for i, value in enumerate(summary):
+            other[i] += value * opponent['weight']
+    return {'feature_version': MECHANISM_FEATURE_VERSION, 'summary_version': SUMMARY_VERSION,
+            'scope_features': legacy, 'mechanism_features': mechanism_tensor(own + other)}
 
 
 def context_tensor(context):
@@ -103,7 +140,7 @@ def supervision_rows(examples):
         if row["route_label"] is not None and row["route_label"] not in ROUTES:
             raise ContractError("unknown logged route target")
         if "scope_features" in row:
-            scope_tensor(row["scope_features"])
+            scope_input(row["scope_features"])
         if "budget_target" in row:
             target_budget = row["budget_target"]
             if type(target_budget) not in (int, float) or not math.isfinite(target_budget) or not 0 <= target_budget <= 1:
@@ -133,8 +170,11 @@ class CoordinatorModelConfig:
     batch_seed: int = 2468
     learning_rate: float = .003
     steps: int = 2
+    mechanism_inputs: bool = False
 
     def __post_init__(self):
+        if type(self.mechanism_inputs) is not bool:
+            raise ContractError('coordinator mechanism input opt-in must be boolean')
         integer(self.hidden, "coordinator hidden width", 4, 64)
         integer(self.model_seed, "coordinator model seed", 0, 2**32 - 8)
         integer(self.batch_seed, "coordinator batch seed", 0, 2**32 - 8)
@@ -151,6 +191,11 @@ class CoordinatorNetwork(nn.Module):
         self.forecast_head = nn.Linear(config.hidden, 1)
         self.scope_projection = nn.Linear(SCOPE_WIDTH, config.hidden, bias=False)
         self.budget_head = nn.Linear(config.hidden, 1)
+        if config.mechanism_inputs:
+            # Appended only for a new explicit architecture. A zero extension
+            # preserves legacy predictions before any mechanism supervision.
+            self.mechanism_projection = nn.Linear(MECHANISM_SCOPE_WIDTH, config.hidden, bias=False)
+            nn.init.zeros_(self.mechanism_projection.weight)
 
     def forward(self, values):
         values = move_batch(values, model_device(self))
@@ -159,12 +204,17 @@ class CoordinatorNetwork(nn.Module):
         hidden = self.encoder(values)
         return self.route_head(hidden), self.forecast_head(hidden).squeeze(-1).sigmoid()
 
-    def forward_scoped(self, values, scope_values):
-        values, scope_values = move_batch((values, scope_values), model_device(self))
+    def forward_scoped(self, values, scope_values, mechanism_values=None):
+        values, scope_values, mechanism_values = move_batch((values, scope_values, mechanism_values), model_device(self))
         if (values.ndim != 2 or values.shape[1] != 14 or scope_values.shape != (len(values), SCOPE_WIDTH)
                 or not torch.isfinite(values).all() or not torch.isfinite(scope_values).all()):
             raise ContractError("invalid aggregate/public-scope batch")
         hidden = self.encoder(values) + self.scope_projection(scope_values).tanh()
+        if mechanism_values is not None:
+            if (not hasattr(self, 'mechanism_projection') or mechanism_values.shape != (len(values), MECHANISM_SCOPE_WIDTH)
+                    or not torch.isfinite(mechanism_values).all()):
+                raise ContractError('mechanism input requires the explicit v3 coordinator architecture')
+            hidden = hidden + self.mechanism_projection(mechanism_values).tanh()
         return (self.route_head(hidden), self.forecast_head(hidden).squeeze(-1).sigmoid(),
                 self.budget_head(hidden).squeeze(-1).sigmoid())
 
@@ -196,8 +246,11 @@ class CoordinatorTrainer:
         self.model.train()
         scoped = any("scope_features" in r for r in rows)
         if scoped:
-            scope_values = torch.tensor([rows[i].get("scope_features", [0.] * SCOPE_WIDTH) for i in order])
-            logits, predictions, allocations = self.model.forward_scoped(values, scope_values)
+            inputs = [scope_input(rows[i].get('scope_features', [0.] * SCOPE_WIDTH)) for i in order]
+            scope_values = torch.tensor([item[0] for item in inputs])
+            mechanisms = (torch.tensor([item[1] if item[1] is not None else [0.] * MECHANISM_SCOPE_WIDTH for item in inputs])
+                          if any(item[1] is not None for item in inputs) else None)
+            logits, predictions, allocations = self.model.forward_scoped(values, scope_values, mechanisms)
         else:
             logits, predictions = self.model(values)
         route_loss = F.cross_entropy(logits[routed], routes) if routed else logits.sum() * 0
@@ -245,9 +298,11 @@ class CoordinatorTrainer:
         if not allowed_routes or any(r not in ROUTES for r in allowed_routes):
             raise ContractError("explicit eligible cycle routes required")
         self.model.eval()
+        scope_values, mechanism_values = scope_input(features)
         with torch.no_grad():
             logits, forecast, allocation = self.model.forward_scoped(
-                torch.tensor([context_tensor(context)]), torch.tensor([scope_tensor(features)]))
+                torch.tensor([context_tensor(context)]), torch.tensor([scope_values]),
+                torch.tensor([mechanism_values]) if mechanism_values is not None else None)
         route = max(allowed_routes, key=lambda r: float(logits[0, ROUTES.index(r)]))
         units = 0 if route == "stop" or not max_units else max(1, min(max_units, math.ceil(float(allocation[0]) * max_units)))
         return {"route": route, "budget_units": units, "probability": float(forecast[0]),
@@ -256,6 +311,42 @@ class CoordinatorTrainer:
 
     def forecast(self, context, features):
         return self.control(context, features, allowed_routes=("evaluate_duel",), max_units=1)
+
+    @classmethod
+    def upgrade_mechanism_state(cls, state, *, device=None):
+        """Return a separate v3 state; preserve the supplied checkpoint intact."""
+        from copy import deepcopy
+        if state.get('feature_version') != FEATURE_VERSION:
+            raise ContractError('mechanism upgrade requires a legacy v2 coordinator state')
+        with torch.random.fork_rng():
+            legacy = cls.restore(deepcopy(state), device=device)
+            config = dict(asdict(legacy.config), mechanism_inputs=True)
+            trainer = cls(CoordinatorModelConfig(**config), device=legacy.device)
+        incompatible = trainer.model.load_state_dict(legacy.model.state_dict(), strict=False)
+        if set(incompatible.missing_keys) != {'mechanism_projection.weight'} or incompatible.unexpected_keys:
+            raise ContractError('unsupported coordinator architecture for explicit mechanism upgrade')
+        optimizer = deepcopy(state['optimizer'])
+        if len(optimizer['param_groups']) != 1:
+            raise ContractError('unsupported coordinator optimizer groups for mechanism upgrade')
+        if len(optimizer['param_groups'][0]['params']) != len(list(legacy.model.parameters())):
+            raise ContractError('legacy coordinator optimizer ordering differs')
+        previous = optimizer['param_groups'][0]['params']
+        if len(set(previous)) != len(previous):
+            raise ContractError('duplicate legacy coordinator optimizer parameter identifiers')
+        previous.append(max(previous, default=-1) + 1)
+        trainer.optimizer.load_state_dict(optimizer)
+        optimizer_to(trainer.optimizer, trainer.device)
+        trainer.scheduler.load_state_dict(state['scheduler'])
+        trainer.batch_rng.set_state(state['batch_rng'])
+        trainer.updates = legacy.updates
+        migrated = trainer.state()
+        if 'device_rng' in state:
+            migrated['device_rng'] = deepcopy(state['device_rng'])
+        return migrated, {'kind': 'explicit-coordinator-v2-to-v3-mechanisms',
+            'parent_sha256': state['model_sha256'], 'model_sha256': migrated['model_sha256'],
+            'new_untrained_parameters': ['mechanism_projection.weight'],
+            'old_parameters_and_optimizer_moments_preserved': True,
+            'projection_initialization': 'zero', 'training_executed': False, 'ability_verified': False}
 
     @classmethod
     def upgrade_aggregate_state(cls, state, *, device=None):
@@ -297,7 +388,7 @@ class CoordinatorTrainer:
             "old_parameters_and_optimizer_moments_preserved": True, "training_executed": False}
 
     def state(self):
-        return {"config": asdict(self.config), "feature_version": FEATURE_VERSION,
+        return {"config": asdict(self.config), "feature_version": MECHANISM_FEATURE_VERSION if self.config.mechanism_inputs else FEATURE_VERSION,
                 "execution": execution_metadata(self.device), "device_rng": capture_device_rng(self.device),
                 "model": self.model.state_dict(), "optimizer": self.optimizer.state_dict(), "scheduler": self.scheduler.state_dict(),
                 "batch_rng": self.batch_rng.get_state(), "updates": self.updates, "model_sha256": parameter_digest(self.model)}
@@ -305,9 +396,11 @@ class CoordinatorTrainer:
     @classmethod
     def restore(cls, state, *, device=None):
         fields(state, {"config", "feature_version", "model", "optimizer", "scheduler", "batch_rng", "updates", "model_sha256"}, {"execution", "device_rng"})
-        if state["feature_version"] != FEATURE_VERSION:
+        config = CoordinatorModelConfig(**state['config'])
+        expected_version = MECHANISM_FEATURE_VERSION if config.mechanism_inputs else FEATURE_VERSION
+        if state["feature_version"] != expected_version:
             raise ContractError("coordinator feature version differs")
-        trainer = cls(CoordinatorModelConfig(**state["config"]), device=checkpoint_execution(state, device))
+        trainer = cls(config, device=checkpoint_execution(state, device))
         trainer.model.load_state_dict(state["model"], strict=True)
         trainer.optimizer.load_state_dict(state["optimizer"])
         optimizer_to(trainer.optimizer, trainer.device)

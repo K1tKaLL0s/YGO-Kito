@@ -9,6 +9,7 @@ from dataclasses import dataclass
 
 from .build_contracts import digest
 from .validation import ContractError, integer
+from .rule_references import bound_counter_reference, library_reference
 
 
 def _source(fid):
@@ -167,12 +168,15 @@ class EffectLimitTracker:
         return [{"binding_id":b.binding_id,"rule_id":b.rule_id,"source":RULES[b.rule_id]['source'],
             "subject_key":b.subject_key,"counter_subject":RULES[b.rule_id]['subject'],
             "reset":RULES[b.rule_id]['reset'],"first_turn":b.first_turn,"last_turn":b.last_turn,
-            "remaining":self.remaining(b),"status":"known" if self.remaining(b) is not None else "unknown_requires_engine"}
+            "remaining":self.remaining(b),"status":"known" if self.remaining(b) is not None else "unknown_requires_engine",
+            "rule_review":bound_counter_reference(b,[dict(event_id=event_id,**record)
+                for (subject,event_id),record in self.records.items() if subject==b.subject_key])}
             for b in self.bindings]
 
 
 def rule_reference():
     """Reviewable metadata for the model host; unbound entries are not applied."""
-    return {"rules":deepcopy(RULES),"standard_named_card_activation_limit":"pending_direct_official_evidence",
+    return {"rules":deepcopy(RULES),"reference_library":library_reference(),
+        "standard_named_card_activation_limit":"pending_direct_official_evidence",
         "native_negation_messages":{"75":"activation_negated","76":"effect_negated"},
         "native_protocol_source":"locked ocgcore/common.h MSG_CHAIN_NEGATED/MSG_CHAIN_DISABLED"}

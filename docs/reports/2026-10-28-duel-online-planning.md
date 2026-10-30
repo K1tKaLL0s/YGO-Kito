@@ -1,6 +1,6 @@
 # 决斗在线规划隔离修复
 
-本次按 U06/C32/C33 接入真实采样路径，不启动正式训练、不发布原始数据，不新增完整图执行验收或“最终 CB”。只修改独立 worktree `E:/CodexData/2026-10-28/task-6/duel-planning`；分支 `codex/duel-online-planning-20261028`。
+本次按 U06/C32/C33 接入真实采样路径，不启动正式训练、不发布原始数据，不新增完整图执行验收或“最终 CB”。只修改独立 worktree `N:/YGO-Kito/_migrated/CodexData/2026-10-28/task-6/duel-planning`；分支 `codex/duel-online-planning-20261028`。
 
 基线提交 `74fb123268cdf757f69c2a2c6a77f107c6541c71` 是从当前本机 source 复制的执行源码，不是旧 HEAD。与冻结执行快照 008 比较，原有 `construction_fill.py` 已存在其他窗口的差异；本修复补丁不修改该文件。集成时只取基线之后的修复提交，不把基线提交直接合入其他窗口。
 

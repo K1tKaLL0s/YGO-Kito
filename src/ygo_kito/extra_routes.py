@@ -139,11 +139,13 @@ def route_selection_key(assets, deck, evidence):
     return key
 
 
-def engine_for_goal(assets,deck,seed,*,selection_key=None):
+def engine_for_goal(assets,deck,seed,*,selection_key=None,cb_opening_hand=None):
     profile=goal_profile_for(assets,deck)
     validate_goal_selection_key(profile, selection_key)
     options = {"selection_key": selection_key} if selection_key is not None else {}
-    return getattr(assets,"engine_factory",NativeNormalEngine)(assets.root,scenario="effect-duel",deck_profile=profile,seed=seed,**options)
+    if cb_opening_hand is not None:options['cb_opening_hand']=cb_opening_hand
+    return getattr(assets,"engine_factory",NativeNormalEngine)(assets.root,
+        scenario="conditional-cb" if cb_opening_hand is not None else "effect-duel",deck_profile=profile,seed=seed,**options)
 
 
 def verify_extra_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budget=100, material_preference="first"):

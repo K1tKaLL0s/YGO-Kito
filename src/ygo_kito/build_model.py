@@ -47,6 +47,15 @@ class BuildEncoder:
         self.vocabulary_sha256 = digest({"cards": self.card_ids, "annotations": self.tags})
         self.mechanisms = MechanismCatalog(assets)
 
+    def effect_records(self, code):
+        """Versioned structured observations; the legacy 18 slots stay intact."""
+        return self.mechanisms.effect_records(code)
+
+    def public_mechanism_summary(self, deck):
+        if not isinstance(deck, DeckParts):
+            raise ContractError('mechanism summary requires a typed public deck')
+        return self.mechanisms.mechanism_summary(deck.main + deck.extra + deck.side)
+
     def mechanism_features(self, task, deck, tokens):
         """Source semantics enter the actual ranker, without changing ID slots.
 

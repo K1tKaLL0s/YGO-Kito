@@ -12,6 +12,7 @@ from .effect_count_limits import parse_count_limits
 
 SEMANTIC_VERSION = "public-effect-clauses-v2"
 MECHANISM_WIDTH = 18
+RECALL_VERSION = "public-material-recall-v1"
 EXTRA_TYPES = 0x40 | 0x2000 | 0x800000 | 0x4000000
 RACES = {"战士族": 1, "魔法师族": 2, "天使族": 4, "恶魔族": 8,
          "不死族": 16, "机械族": 32, "水族": 64, "炎族": 128,
@@ -296,6 +297,64 @@ class MechanismCatalog:
             self._texts[code]=text
         return cached
 
+    def effect_records(self, code):
+        """Detached, versioned per-effect observations for public planning."""
+        from .effect_records import effect_records
+        return effect_records(self.card(code), semantic_version=SEMANTIC_VERSION)
+
+    def rule_reference(self, rule_id=None):
+        """Read local evidence for review, without certifying applicability."""
+        from .rule_references import library_reference, lookup_rule
+        return library_reference() if rule_id is None else lookup_rule(rule_id)
+
+    def mechanism_summary(self, codes):
+        from .effect_records import mechanism_summary
+        return mechanism_summary(self, codes)
+
+    def attribute_material_pairs(self, target, pool, *, available_counts=None, required_material=None, limit=None):
+        """Recall existing two-material synchro/xyz attribute hypotheses.
+
+        Levels/tuner flags do not certify material text, access, conditions or
+        legal summons. Those uncertainties remain for the engine to resolve.
+        Fusion uses its separately recognized material predicates instead.
+        """
+        row = self.assets.rows[target]
+        if not row['type'] & (0x2000 | 0x800000):
+            return ()
+        if required_material is not None:
+            material = self.assets.rows[required_material]
+            if (not material['type'] & 1 or material['type'] & EXTRA_TYPES
+                    or row['type'] & 0x800000 and material['level'] & 255 != row['level'] & 255
+                    or row['type'] & 0x2000 and not 0 < material['level'] & 255 < row['level'] & 255):
+                return ()
+            candidates = ((required_material, c) for c in pool if self.assets.rows[c]['type'] & 1
+                          and not self.assets.rows[c]['type'] & EXTRA_TYPES)
+        else:
+            mains = tuple(dict.fromkeys(c for c in pool if self.assets.rows[c]['type'] & 1
+                                        and not self.assets.rows[c]['type'] & EXTRA_TYPES))
+            candidates = ((a, b) for i, a in enumerate(mains) for b in mains[i:])
+        result = []
+        for a, b in candidates:
+            left, right = self.assets.rows[a], self.assets.rows[b]
+            # Multiple IDs sharing an alias share the listing limit.
+            aliases = (left.get('alias') or a, right.get('alias') or b)
+            if any(aliases.count(alias) > self.assets.limits.get(alias, 3) for alias in aliases):
+                continue
+            if available_counts is not None and any((a, b).count(c) > available_counts.get(c, 0) for c in (a, b)):
+                continue
+            level = row.get('level', 0) & 255
+            if row['type'] & 0x800000:
+                suitable = level > 0 and left['level'] & 255 == right['level'] & 255 == level
+            else:
+                suitable = (bool(left['type'] & 0x1000) != bool(right['type'] & 0x1000)
+                            and 0 < left['level'] & 255 and 0 < right['level'] & 255
+                            and (left['level'] & 255) + (right['level'] & 255) == level)
+            if suitable:
+                result.append((a, b) if left['type'] & 0x1000 or row['type'] & 0x800000 else (b, a))
+                if limit is not None and len(result) >= limit:
+                    break
+        return tuple(result)
+
     def summarize(self, core_ids):
         ids = tuple(core_ids)
         profiles = [self.card(c) for c in ids]
@@ -310,7 +369,10 @@ class MechanismCatalog:
         player_locks=[r for r in restrictions if r['scope']=='player']
         return {"semantic_version": SEMANTIC_VERSION, "core_ids": list(ids),
                 "grave_effect_triggers": grave, "fusion_effects": fusion,
-                "core_summon_mechanisms": ["fusion"] if fusion else [],
+                "core_summon_mechanisms": [name for name, flag in
+                    (("fusion", 0x40), ("synchro", 0x2000), ("xyz", 0x800000))
+                    if any(self.assets.rows[c]['type'] & flag for c in ids) or name == "fusion" and fusion],
+                "recall_version": RECALL_VERSION,
                 "resource_returns": sum("return_fusion_materials" in e.kinds or "search_or_recover" in e.kinds for e in effects),
                 "observed_restrictions": restrictions,
                 "summon_lock_assessment":{'status':'observed_scoped_locks' if player_locks else
@@ -340,13 +402,17 @@ class MechanismCatalog:
             # Repeated copies are only proposals; listing limits/core validate them.
             if all(any(material_matches(m,r) for m in monsters) for r in p.materials):
                 score+=5;reasons.append("fusion_material_predicates_match_core")
-        if row.get('type',0)&1 and not row['type']&EXTRA_TYPES and summary['fusion_effects']:
+        if row.get('type',0)&1 and not row['type']&EXTRA_TYPES and (
+                summary['fusion_effects'] or any(self.assets.rows[c]['type'] & 0x40 for c in core)):
             if any(material_matches(row,r) for c in core for r in self.card(c).materials):
                 score+=2;reasons.append('public_fusion_material_predicate_match')
-        if row.get('type',0)&0x800000:
-            matches=[c for c in core if self.assets.rows[c]['type']&1 and not self.assets.rows[c]['type']&EXTRA_TYPES
-                     and self.assets.rows[c]['level']&255==row['level']&255]
-            if len(matches)>=2:score+=1;reasons.append('public_xyz_level_proposal_not_route_proof')
+        if row.get('type',0) & (0x2000 | 0x800000) and self.attribute_material_pairs(code, core, limit=1):
+            score += 5; reasons.append('public_' + ('xyz' if row['type'] & 0x800000 else 'synchro') + '_material_compatibility_not_route_proof')
+        if row.get('type',0) & 1 and not row['type'] & EXTRA_TYPES:
+            for mechanism, flag in (('synchro', 0x2000), ('xyz', 0x800000)):
+                if any(code in pair for target in core if self.assets.rows[target]['type'] & flag
+                       for pair in self.attribute_material_pairs(target, self.ids, required_material=code, limit=1)):
+                    score += 2; reasons.append('public_' + mechanism + '_material_predicate_match_not_route_proof')
         for e in p.effects:
             for op in e.observed_operations:
                 if op["kind"]=="search_or_recover":
@@ -422,18 +488,45 @@ class MechanismCatalog:
         """
         groups=[];seen=set();allowed=frozenset(pool)
         core_ids=tuple(c for c in core_ids if c in allowed)
-        for goal in self.fusion_goals(pool,core_ids,limit=limit):
+        for goal in self.summon_goals(pool,core_ids,limit=limit):
             main=list(goal['starting_conditions']['requires_opening_hand'])
-            for review in goal['fusion_witness']['effect_assessments']:
+            for review in goal.get('fusion_witness',{}).get('effect_assessments',()):
                 if review['card_id'] not in main:main.append(review['card_id'])
             zones={'main':sorted(main),'extra':[goal['card_id']],'side':[]}
             if any(c not in allowed for cards in zones.values() for c in cards):continue
             identity=digest({'semantic_version':SEMANTIC_VERSION,'cards':self.cards_sha256,'goal':goal})
             if identity in seen:continue
             seen.add(identity)
-            groups.append({'group_id':'fusion-'+identity[:20], 'zones':zones,
+            groups.append({'group_id':goal['kind'].removesuffix('_summon')+'-'+identity[:20], 'zones':zones,
                            'source':SEMANTIC_VERSION+':'+identity})
         return tuple(groups)
+
+    def summon_goals(self, pool, core_ids, *, limit=8):
+        """Interleave supported summon proposals without a fusion-first gate."""
+        pool = tuple(dict.fromkeys(pool)); core_ids = tuple(core_ids)
+        buckets = [self.fusion_goals(pool, core_ids, limit=limit), [], []]
+        for index, flag in ((1, 0x2000), (2, 0x800000)):
+            for target in pool:
+                if not self.assets.rows[target]['type'] & flag:
+                    continue
+                pairs = self.attribute_material_pairs(target, pool)
+                # Prefer a public connection to the requested core when one is
+                # available. Unrelated pairs remain bounded proposals only.
+                pairs = sorted(pairs, key=lambda pair: -sum(c in core_ids for c in pair))
+                if pairs:
+                    buckets[index].append({'kind': 'synchro_summon' if index == 1 else 'xyz_summon',
+                        'card_id': target, 'starting_conditions': {'player': 0, 'turn': 1,
+                            'requires_opening_hand': list(pairs[0])}})
+                if len(buckets[index]) >= limit:
+                    break
+        goals = []
+        for offset in range(max(map(len, buckets), default=0)):
+            for bucket in buckets:
+                if offset < len(bucket):
+                    goals.append(bucket[offset])
+                    if len(goals) >= limit:
+                        return goals
+        return goals
 
     def vector(self, code, summary=None):
         p=self.card(code);effects=p.effects

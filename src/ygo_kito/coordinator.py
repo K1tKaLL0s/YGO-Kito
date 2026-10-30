@@ -43,6 +43,7 @@ class Coordinator:
         member(source, "coordinator evidence source", SOURCES)
         if not isinstance(policy, FeedbackPolicy):
             raise ContractError("typed feedback policy required")
+        if not policy.definitions_ready:raise ContractError('forecast policy definitions missing: '+','.join(policy.missing_definitions))
         requested = Path(path).absolute()
         if requested.is_symlink():
             raise ContractError("coordinator database symlinks unsupported")
@@ -362,11 +363,22 @@ class Coordinator:
             db.execute("BEGIN IMMEDIATE")
             for result in rows:
                 d = fields(result, {"result_id", "job_id", "worker_id", "forecast_id", "candidate_id", "scope_sha256",
-                                    "source", "unit", "outcome", "audit_sha256", "diagnosis"})
+                                    "source", "unit", "outcome", "audit_sha256", "diagnosis"},
+                    {'core_terminal_received','termination_kind','sample_completed','model_update_started','model_update_completed'}
+                    if self.policy.terminal_matches_only else set())
                 identifier(d["result_id"])
-                member(d["outcome"], "duel outcome", OUTCOMES)
+                member(d["outcome"], "duel outcome", OUTCOMES + (('compute_truncated',) if self.policy.terminal_matches_only else ()))
                 member(d["diagnosis"], "duel diagnosis", ("none", "unknown", "operation_error", "system_error", "construction_unstable"))
                 sha256(d["audit_sha256"])
+                if self.policy.terminal_matches_only:
+                    if type(d.get('core_terminal_received')) is not bool:
+                        raise ContractError('new policy results require an explicit native terminal boundary')
+                    if d['outcome'] in ('win','loss','draw') and d['diagnosis']=='none' and d['core_terminal_received'] is not True:
+                        raise ContractError('a completed match outcome requires a native terminal event')
+                    if d['outcome']=='compute_truncated' and (d['core_terminal_received'] is not False or
+                            d.get('termination_kind')!='compute_budget' or
+                            any(d.get(flag) is not False for flag in ('sample_completed','model_update_started','model_update_completed'))):
+                        raise ContractError('compute truncation requires an explicit nonterminal no-update boundary')
                 encoded = canonical_json(d)
                 old = db.execute("SELECT payload FROM results WHERE id=? OR job_id=?", (d["result_id"], d["job_id"])).fetchone()
                 if old:
@@ -380,21 +392,21 @@ class Coordinator:
                         any(d[k] != info[k] for k in ("forecast_id", "candidate_id", "scope_sha256")) or d["unit"] != info["scope"]["unit"]):
                     raise ContractError("result differs from leased source/version/seat/unit scope")
                 f = self._row(db, "forecasts", d["forecast_id"])
-                n, wins = f["n"] + 1, f["wins"] + int(d["outcome"] == "win")
-                score = 1. if d["outcome"] == "win" else self.policy.draw_score if d["outcome"] == "draw" else 0.
+                counted=(not self.policy.terminal_matches_only or
+                    (d['core_terminal_received'] is True and d['outcome'] in ('win','loss','draw') and d['diagnosis']=='none'))
+                n, wins = f["n"] + int(counted), f["wins"] + int(counted and d["outcome"] == "win")
+                score = (1. if d["outcome"] == "win" else self.policy.draw_score if d["outcome"] == "draw" else 0.) if counted else 0.
                 total = f["score_sum"] + score
                 counts = json.loads(f["counts"])
                 counts[d["outcome"]] = counts.get(d["outcome"], 0) + 1
                 db.execute("INSERT INTO results VALUES(?,?,?,?)", (d["result_id"], d["job_id"], d["forecast_id"], encoded))
                 db.execute("UPDATE jobs SET state='completed' WHERE id=?", (d["job_id"],))
                 db.execute("UPDATE forecasts SET n=?,wins=?,score_sum=?,counts=? WHERE id=?", (n, wins, total, canonical_json(counts), d["forecast_id"]))
-                check = self.policy.assess(n, total, json.loads(f["payload"])["probability"], f["ordinal"])
+                check = self.policy.assess(n, total, json.loads(f["payload"])["probability"], f["ordinal"]) if counted else None
                 if check is not None:
                     db.execute("INSERT INTO checks VALUES(?,?,?)", (d["forecast_id"], n, canonical_json(check)))
-                    if check["low"]:
-                        kinds = ("reevaluate",) if n <= 100 else ("reevaluate", "mandatory_rebuild")
-                        for kind in kinds:
-                            db.execute("INSERT OR IGNORE INTO alerts VALUES(?,?,?,?)", (d["forecast_id"], kind, n, canonical_json(dict(check, source=self.source))))
+                    for kind in self.policy.alert_kinds(check):
+                        db.execute("INSERT OR IGNORE INTO alerts VALUES(?,?,?,?)", (d["forecast_id"], kind, n, canonical_json(dict(check, source=self.source))))
                 affected.add(d["forecast_id"])
         return {fid: self.forecast_status(fid) for fid in sorted(affected)}
 
@@ -452,17 +464,17 @@ class Coordinator:
                 # child may only validate, never resume ordinary training yet.
                 if not cap:
                     action, reason = "stop", "host_allocation_exhausted; required rebuild stays queued"
-                elif required and rebuild_eligible and not own_review and status is not None and status["matches"] < 1000 and context["goal_valid"] and not context["system_error"] and not context["operation_error"]:
+                elif required and rebuild_eligible and not own_review and status is not None and status["matches"] < self.policy.rebuild_horizon and context["goal_valid"] and not context["system_error"] and not context["operation_error"]:
                     action, reason = "evaluate_duel", "new_reconstruction_requires_scoped_validation"
                 elif (warning and not required and cap and context["goal_valid"] and not context["system_error"] and
-                      not context["operation_error"] and review_eligible and status is not None and status["matches"] < 1000):
+                      not context["operation_error"] and review_eligible and status is not None and status["matches"] < self.policy.rebuild_horizon):
                     action, reason = "evaluate_duel", "new_reevaluation_candidate_requires_scoped_validation"
                 elif (cap and context["goal_valid"] and not required and not warning and not context["operation_error"]
                       and not context["system_error"] and context["has_forecast"]):
                     if d["advisory"]["route"] not in allowed:
                         raise ContractError("learned action outside host eligibility mask")
                     action, reason, mode = d["advisory"]["route"], "learned_complete_cycle_choice", "learned_control"
-                    if action == "evaluate_duel" and status["matches"] >= 1000:
+                    if action == "evaluate_duel" and status["matches"] >= self.policy.rebuild_horizon:
                         action, reason, mode = "stop", "monitor_window_exhausted; choose a new complete-cycle action", "rule_authoritative"
                 units = 0 if action == "stop" or not cap else max(1, min(cap, d["advisory"]["budget_units"]))
         event = {"event": "route_decision", "candidate_id": d["candidate_id"], "forecast_id": d["forecast_id"],

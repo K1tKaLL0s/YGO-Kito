@@ -92,7 +92,21 @@ def comparison_dataset_id(binding,namespace=None):
 
 
 def compare_model_candidates(task,assets,candidates,opponent,*,trainer,registry,bot,audit,workspace,
-                             seeds,directory,data_index,experiment_id,stop,status,seconds=7200.,artifact_namespace=None,budget=None):
+                             seeds,directory,data_index,experiment_id,stop,status,seconds=7200.,artifact_namespace=None,budget=None,
+                             comparison_policy=None,candidate_basic_cbs=None):
+    from .training_admission import require_training_admission
+    if candidate_basic_cbs is not None and not isinstance(candidate_basic_cbs,dict):
+        raise ContractError('candidate basic CB evidence must be keyed by exact deck digest')
+    admissions=[]
+    for deck in candidates:
+        basic_cb=(candidate_basic_cbs or {}).get(digest(deck.to_dict()))
+        verdict=require_training_admission(task=task,deck=deck,basic_cb=basic_cb,assets=assets,
+            purpose='construction_comparison',comparison_policy=comparison_policy)
+        if verdict['status']!='admitted':
+            raise ContractError('Candidate comparison deferred by training admission: '+str(verdict.get('reasons',[])))
+        admissions.append(verdict)
+    if len({row['policy_epoch'] for row in admissions})!=1:
+        raise ContractError('Candidate comparison requires one bound training policy epoch')
     if not isinstance(trainer,CpuTrainer) or trainer.updates<1:raise ContractError('actual separately started duel base required')
     if budget is not None:budget.check('paired_comparison_start')
     if artifact_namespace is not None and (not isinstance(artifact_namespace,str) or not 1<=len(artifact_namespace)<=128):
@@ -110,6 +124,15 @@ def compare_model_candidates(task,assets,candidates,opponent,*,trainer,registry,
         temp=p.with_name(p.name+'.tmp');temp.write_text(json.dumps(value,ensure_ascii=False,indent=2)+'\n',encoding='utf-8');temp.replace(p)
     plan_path=directory/'plan.json'
     if plan_path.exists() and json.loads(plan_path.read_text())!=plan:raise ContractError('existing frozen comparison plan differs')
+    admission_path=directory/'training-admission.json'
+    admission={'task_sha256':task.sha256,'purpose':'construction_comparison','candidates':admissions}
+    if admission_path.exists():
+        if json.loads(admission_path.read_text())!=admission:
+            raise ContractError('Existing comparison training admission differs')
+    elif any(directory.glob('candidate-*-seed-*-seat-*.json')):
+        raise ContractError('Existing comparison cases predate the required training admission; no retrospective relabelling')
+    else:
+        write(admission_path,admission)
     write(plan_path,plan)
     original_rng=torch.get_rng_state().clone();modes=[(m,m.training) for m in trainer.model.modules()]
     original_cursor=(trainer.updates,trainer.episode_cursor,trainer._pending_episode_digest)

@@ -275,33 +275,10 @@ class AutonomousConstructionKernel:
         fixed = self.source_binding.get('construction_goal', self.builder.task.goal).get('route_goal')
         if fixed is not None: return [deepcopy(fixed)]
         core = [c for c in (theme['card_ids'] if theme else pool) if c in pool]
-        mechanism = self.mechanisms.summarize(core)
-        if mechanism['fusion_effects']:
-            return self.mechanisms.fusion_goals(pool, core) or [None]
-        rows = self.assets.rows
-        # Existing semantic combined goals support synchro/xyz, not a nested
-        # normal-summon objective. No unsupported route shape is manufactured.
-        goals = []
-        # Public material attributes propose conditions, never prove a route.
-        mains = [c for c in pool if rows[c]["type"] & 1 and not rows[c]["type"] & EXTRA_TYPES]
-        for target in (c for c in pool if rows[c]["type"] & (0x2000 | 0x800000)):
-            target_row = rows[target]
-            opening = None
-            if target_row["type"] & 0x800000:
-                eligible = [c for c in mains if rows[c]["level"] & 255 == target_row["level"] & 255]
-                for a in eligible:
-                    b = next((b for b in eligible if b != a or self.assets.limits.get(rows[a]["alias"] or a,3) >= 2), None)
-                    if b is not None: opening = [a,b]; break
-            else:
-                for a in (c for c in mains if rows[c]["type"] & 0x1000):
-                    b = next((b for b in mains if not rows[b]["type"] & 0x1000 and
-                              (rows[a]["level"] & 255)+(rows[b]["level"] & 255)==target_row["level"] & 255), None)
-                    if b is not None: opening = [a,b]; break
-            if opening is not None and self.builder.task.sizes["extra"]:
-                goals.append({"kind": "xyz_summon" if target_row["type"] & 0x800000 else "synchro_summon",
-                    "card_id": target, "starting_conditions": {"player":0,"turn":1,"requires_opening_hand":opening}})
-            if len(goals) >= 4: break
-        return goals or [None]
+        # All existing supported summon families share the same bounded recall
+        # seam. A fusion observation must not hide synchro/xyz alternatives.
+        return (self.mechanisms.summon_goals(pool, core, limit=4)
+                if self.builder.task.sizes['extra'] else []) or [None]
 
     def _task(self, theme, pool, route):
         base = self.builder.task.to_dict()
@@ -348,8 +325,9 @@ class AutonomousConstructionKernel:
         current=list(sorted(mandatory))
         def core_priority(code):
             p=self.mechanisms.card(code)
-            return 10*bool(p.grave_fusion)+8*any(e.trigger.get('event')=='normal_or_special_summon' and
-                'send_grave' in e.kinds for e in p.effects)+6*bool(p.materials)+4*('卡组送墓' in p.tags)
+            # Equal treatment of observed effects and supported summon targets;
+            # curriculum/theme preferences belong to the explicit task.
+            return int(bool(p.kinds)) + int(bool(self.assets.rows[code]['type'] & (0x40 | 0x2000 | 0x800000)))
         core_order=sorted(theme['card_ids'],key=lambda c:(-core_priority(c),self.mechanisms.card(c).text_sha256,c))
         for code in core_order[:min(32,max(1,self.pool_limit//2))]:
             if code not in current and len(current)<self.pool_limit:current.append(code)
