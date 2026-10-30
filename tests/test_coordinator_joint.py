@@ -26,6 +26,7 @@ import torch
 
 class Bundle:
     def __init__(self,helper,task):
+        self.binding={'fixture':'synthetic-frozen-model-bundle'}
         self.duel=helper.trainer
         self.builder=BuildTrainer(task,helper.assets,BuildTrainingConfig(batches=2))
         self.coordinator=CoordinatorTrainer()
