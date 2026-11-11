@@ -55,3 +55,7 @@ GPU补检结果见 [GPU环境报告](2026-11-11-gpu-environment.md)：四角色C
 后两棵由Codex应用创建和登记，只含受版本控制的源码与文档；模型、数据、运行日志和大体积生成物继续使用N盘现有资源路径，不复制进新树。三分支以本次整合提交统一，main用于稳定整合基线。统筹树保留并行认知工作的未提交内容；其未完成部分不进入另两树。
 
 文档迁移附带3处代码/配置同步：deployment_prepare.PREFIXES加入docs/current与docs/examples，课程配置与ScenarioCourse的验收来源指向现行训练正文，未改评分或训练数值。Python语法、JSON及打包收录/缓存排除检查通过。Windows定向20项中17通过，2项因该Windows Python缺少锁定Torch/Scipy依赖失败，1项因沙箱无创建symlink权限错误；训练场景7项全部通过。完整CPU白名单在具有锁定依赖的WSL环境独立执行，结果另记。
+
+真实打包入口已从干净决斗树执行：571个成员验证通过，现行设计包含在包内，缓存排除。Windows中文路径需PYTHONUTF8=1或-X utf8；初次默认GBK解码失败后以UTF-8重试通过。整合文档相对链接最终检查无断链。
+
+清理后入口核验发现local-training.ps1的supervisor旧路径，已改为当前$linuxSource。PowerShell解析通过，真实只读Check返回source_root=/mnt/n/YGO-Kito/_publish_20261030、resource_base=/mnt/n/YGO-Kito/_local_cpu_20261027、training_held=true、worker_started=false，既有course-006状态仍可定位。对应旧操作说明已改为当前入口；未启动/恢复作业。外层独立插件保存提交为49cd2b6，archive/outer/main已包含。

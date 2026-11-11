@@ -35,7 +35,7 @@ if ($Action -eq 'Status') {
  if ($LASTEXITCODE -ne 0) { throw 'WSL state is unknown; no process was started.' }
  if (@($running | ForEach-Object {$_.Trim()}) -contains $Distro) {
   if ($Job -eq 'supervisor') {
-   & "$env:WINDIR\System32\wsl.exe" -d $Distro --exec $python ($linuxBase+'/source/scripts/design_supervisor.py') --base $linuxBase --run-id $RunId --policy $policy --status
+   & "$env:WINDIR\System32\wsl.exe" -d $Distro --exec $python ($linuxSource+'/scripts/design_supervisor.py') --base $linuxBase --run-id $RunId --policy $policy --status
   } else {
    & "$env:WINDIR\System32\wsl.exe" -d $Distro --exec $python ($linuxSource+'/scripts/local_training_status.py') --base $linuxBase --run-id $RunId
   }
@@ -61,10 +61,10 @@ if ($Job -eq 'course') {
 }
 New-Item -ItemType Directory -Path $runDirectory -Force | Out-Null
 if ($Job -eq 'supervisor') {
- $entry=$linuxBase+'/source/scripts/design_supervisor.py'
+ $entry=$linuxSource+'/scripts/design_supervisor.py'
  $arguments=@('-d',$Distro,'--exec','/usr/bin/setsid','--wait',$python,'-u',$entry,'--base',$linuxBase,'--run-id',$RunId,'--policy',$policy)
 } else {
- $entry=$linuxBase+'/source/scripts/local_training_worker.py'
+ $entry=$linuxSource+'/scripts/local_training_worker.py'
  if ($Job -eq 'course') { $entry=$linuxSource+'/scripts/local_training_worker.py' }
  $arguments=@('-d',$Distro,'--exec','/usr/bin/setsid','--wait',$python,'-u',$entry,'--base',$linuxBase,'--run-id',$RunId,'--job',$Job)
  if ($Job -eq 'course') { $arguments+=@('--source-root',$linuxSource,'--resource-base',$linuxBase) }

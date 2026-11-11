@@ -35,3 +35,5 @@ pyproject.toml要求Python>=3.12，而当前GPU环境为3.10.20；源码路径�
 旧duel-train-cpu/build-train-cpu等命令及local_foundation_course.py保留CPU工程语义。CourseModels.from_state、checkpoint_execution严格绑定设备/RNG，不能通过改元数据冒充CPU→GPU训练迁移。后续正式课程需显式GPU初始化或经过验证的训练状态迁移；本次检查没有完成这项入口改造，也未恢复暂停课程。
 
 CPU白名单环境为WSL Python3.12/Torch2.9.1+cpu，仅作软件回归。GPU原生引擎整链路、真实课程吞吐、显存容量边界、长时间稳定性与正式能力验收仍按实际课程测试。
+
+仓库现有requirements仅ci-cpu.txt；deployment-host-template-v1.json虽写runtime_device=cuda，dependency_lock.path仍指CPU锁且版本/哈希/硬件阈值为空，属于未完成模板，不能直接作为GPU部署配方。后续GPU环境应有独立依赖锁和实测配方，保留CPU锁供软件CI使用。
