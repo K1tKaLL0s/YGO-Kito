@@ -16,7 +16,7 @@
 
 `NORMALIZATION_VERSION` 升为 `construction-function-normalization-v8`。缓存与恢复继续消费同一个常量，v7/v6/v5/v4/v3/v2/v1 评价不再满足当前规范化版本绑定。默认 `QUALITY_VERSION` 仍旧 v3，生产政策、指定参考、旧档迁移和旧层回退退出均未开始。
 
-本批承接[第八批跨区生命周期报告](2026-11-09-construction-functional-zone-lifecycle-phase8.md)和[正式方案](../plans/2026-11-08-construction-model-formal-optimization-plan.md)第 12 节步骤三、四。第八批的跨区物理槽位、有限牌组端点、离场除外及成功/失败证据继续复用，没有重做。
+本批承接[第八批跨区生命周期报告](2026-11-09-construction-functional-zone-lifecycle-phase8.md)和[正式方案](../current/construction-scoring.md)第 12 节步骤三、四。第八批的跨区物理槽位、有限牌组端点、离场除外及成功/失败证据继续复用，没有重做。
 
 ## 授权、执行及真实文件状态
 

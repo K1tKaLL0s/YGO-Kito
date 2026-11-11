@@ -71,7 +71,7 @@ tests.test_construction_functional_quality.FunctionalQualityTests.test_correlate
 
 ## 固定清单状态
 
-[验收对齐表](../plans/2026-11-09-construction-acceptance-alignment.md)的 A17 已闭合，当前为 21 条已完成、12 条证据待补、5 条含实现缺口。W1-1 已完成；原固定 13 项中剩余 12 项，不增加按卡名或卡组拆分的工作项。
+[验收对齐表](execution/2026-11-09-construction-acceptance-alignment.md)的 A17 已闭合，当前为 21 条已完成、12 条证据待补、5 条含实现缺口。W1-1 已完成；原固定 13 项中剩余 12 项，不增加按卡名或卡组拆分的工作项。
 
 上述为 W1-1 完成时的记录。随后已完成 W1-2，继续原六包清单，没有待答问题，不因局部完成要求另开聊天。
 

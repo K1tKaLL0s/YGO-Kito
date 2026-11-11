@@ -44,7 +44,7 @@
       "release_cutoff": "2022-09-30",
       "acceptance": {
         "kind": "legacy_reference_bo3",
-        "source": "docs/plans/2026-10-22-unified-development-spec.md section 12.1",
+        "source": "docs/current/training-and-acceptance.md#正式能力验收",
         "metric_unit": "bo3_match_with_siding",
         "external_at_least": 0.6,
         "mirror_target": 0.5,
@@ -65,7 +65,7 @@
       "release_cutoff": "2022-12-31",
       "acceptance": {
         "kind": "legacy_reference_bo3",
-        "source": "docs/plans/2026-10-22-unified-development-spec.md section 12.1",
+        "source": "docs/current/training-and-acceptance.md#正式能力验收",
         "metric_unit": "bo3_match_with_siding",
         "external_at_least": 0.6,
         "mirror_target": 0.5,

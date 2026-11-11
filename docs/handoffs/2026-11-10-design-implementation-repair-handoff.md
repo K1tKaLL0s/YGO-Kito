@@ -33,9 +33,9 @@ S0固定任务目标、硬约束、路线/必需发动、全时期卡池、区�
 资料入口：`docs/current/README.md`。重点文件：
 
 1. [完整审查报告](../reports/2026-11-10-design-implementation-audit.md)：设计—代码—证据矩阵、19项问题、已完成/待验边界。
-2. [修复方案与逐包验收](../plans/2026-11-10-design-implementation-repair-plan.md)：R0—R11，目标文件/符号、动作、依赖、不变量、验证、通过/停止条件。
-3. [本轮排查执行书](../plans/2026-11-10-design-implementation-audit-execution.md)：授权仅审查。
-4. [统一规范](../plans/2026-10-22-unified-development-spec.md)、[S0—S6](../plans/2026-11-10-construction-s0-s6-workflow.md)、[正式评分方案](../plans/2026-11-08-construction-model-formal-optimization-plan.md)、[验收对齐表](../plans/2026-11-09-construction-acceptance-alignment.md)。有效原件/后续修订按资料入口读取；不读取或运行Pro辅助代码。
+2. [修复方案与逐包验收](../reports/execution/2026-11-10-design-implementation-repair-plan.md)：R0—R11，目标文件/符号、动作、依赖、不变量、验证、通过/停止条件。
+3. [本轮排查执行书](../reports/execution/2026-11-10-design-implementation-audit-execution.md)：授权仅审查。
+4. [统一规范](../current/architecture.md)、[S0—S6](../current/construction-workflow.md)、[正式评分方案](../current/construction-scoring.md)、[验收对齐表](../reports/execution/2026-11-09-construction-acceptance-alignment.md)。有效原件/后续修订按资料入口读取；不读取或运行Pro辅助代码。
 
 ## 已完成检查与核心发现
 

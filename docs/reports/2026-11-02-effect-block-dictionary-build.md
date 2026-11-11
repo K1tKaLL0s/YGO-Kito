@@ -10,8 +10,8 @@
 - [原 3,164 组固定基线](2026-11-02-effect-block-unresolved-baseline.json)与[逐组补齐结果](2026-11-02-effect-block-unresolved-resolution.json)
 - [Windows 定点回归记录](2026-11-02-effect-block-dictionary-tests.json)
 - [全库读回检查](2026-11-02-effect-block-dictionary-readback.json)
-- [实施执行书](../development/2026-11-02-effect-block-dictionary-implementation.md)
-- [用户确认案例](../plans/2026-11-02-effect-block-random10-examples.md)
+- [实施执行书](execution/2026-11-02-effect-block-dictionary-implementation.md)
+- [用户确认案例](../examples/effect-block-random10.md)
 
 运行时入口 `MechanismCatalog.effect_blocks(card_id)` 与离线建库调用同一个投影函数。`BuildEncoder.effect_blocks` 将它暴露给现有模型宿主；`reviewed_effect_blocks`、构筑标签绑定、库存依赖和关系检查已接入。本次没有新增第二套构筑评价、评分账本或另行建立牌表答案。
 

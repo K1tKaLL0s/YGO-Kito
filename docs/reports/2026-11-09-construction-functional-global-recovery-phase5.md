@@ -12,7 +12,7 @@
 
 这些结果已接入功能规范化：全局共同证明支持绑定用途；对原任务必需条件，已成立的全局证明可消去其子组资源未知。`NORMALIZATION_VERSION` 升为 `construction-function-normalization-v4`，旧 v3/v2/v1 规范化评价应失效。默认 `QUALITY_VERSION` 仍是旧 v3；真实生产政策、既定参考与旧档迁移没有推进。
 
-本批承接[第四批完整基线](2026-11-09-construction-functional-subsets-recovery-phase4.md)及[正式方案](../plans/2026-11-08-construction-model-formal-optimization-plan.md)第 12 节步骤三、四。先完整读取第四批报告、代码执行细则、preserve-intent-and-execute 和 anti-overengineering；没有重新盘点全项目，没有追索、检查或运行 Pro 辅助演示代码。
+本批承接[第四批完整基线](2026-11-09-construction-functional-subsets-recovery-phase4.md)及[正式方案](../current/construction-scoring.md)第 12 节步骤三、四。先完整读取第四批报告、代码执行细则、preserve-intent-and-execute 和 anti-overengineering；没有重新盘点全项目，没有追索、检查或运行 Pro 辅助演示代码。
 
 ## 授权与机械执行书
 

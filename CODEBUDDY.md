@@ -35,7 +35,7 @@ da7d4d8 的本地及同提交远端安全 CPU CI 均为 **727/727，零失败／
 | 2210 | 珠泪；2022-12-31 | 与2207相同规则，单独训练与评估，不合并分母 |
 | 2610 | 模型自主选主题／构筑／CB；设计截止2026-11-01，日本当地含当日 | 先合格现成人机 BO1，完成后才当期合法常见卡组 BO3；第二阶段冻结评测按实际小局实际先后手，先手胜率严格>49%且后手严格>39%，两项同时满足 |
 
-来源为[统一设计§12.1](docs/plans/2026-10-22-unified-development-spec.md)及 `configs/training-scenarios-v1.json`。49%／39%不套给2207／2210；2610不以先手开局的大场胜率替代小局分组。平局不算胜利，异常／超时保留，不剔除美化分母。历史“接近50%”容差、置信区间通过规则、重复观察、BO3 draw 裁决，以及旧200外＋200内向2610自主主题的映射仍未冻结，保留 pending，不能自行宣告达标。
+来源为[统一设计§12.1](docs/current/architecture.md)及 `configs/training-scenarios-v1.json`。49%／39%不套给2207／2210；2610不以先手开局的大场胜率替代小局分组。平局不算胜利，异常／超时保留，不剔除美化分母。历史“接近50%”容差、置信区间通过规则、重复观察、BO3 draw 裁决，以及旧200外＋200内向2610自主主题的映射仍未冻结，保留 pending，不能自行宣告达标。
 
 三个环境共同沿用已确认慢档：**每环境至少600完整 BO1＋400完整 BO3大场**，不跨环境抵扣；`pilot_mean_seconds:null`，`timing_pilot:null`，将 `configs/cpu-takeover-slow-basis-v1.json` 完整对象放入 course 的 `timing_basis`。不重新测时，不填假均值。BO3含合法换备、输者选下局先后、先得两胜；预跑、独立冻结评测和新增自对抗不抵正式最低场数。
 
@@ -81,7 +81,7 @@ Codex额度只用当时实读值，剩余≤20%保存停止，确认重置到账
 
 用户现已授权迁移到本机 N:\YGO-Kito、安装必要项目隔离依赖、持续真实训练，并将 CloudStudio
 增量与恢复资产保存为独立草稿 PR。当前权威设计见
-[设计复核](docs/plans/2026-10-27-training-design-reconciled.md)、
+[设计复核](docs/reports/design-sources/2026-10-27-user-requirements.md)、
 [基准源码差异复核](docs/reports/2026-10-27-training-design-code-gaps.md)；
 实际本机入口与恢复源见[本机接续](docs/development/local-cpu-continuation.md)。
 旧文中的正式训练审批、固定 learner 参考表或 LoRA-only 解释不能覆盖后续用户纠正。

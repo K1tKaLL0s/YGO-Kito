@@ -1,0 +1,50 @@
+[
+  {
+    "path": "N:\\YGO-Kito\\.agents\\worktrees\\dsh-e4ce9369-5f87",
+    "commit": "433022958d9d45968ad657ada9de108324b6161a",
+    "removed_tracked_files": 16,
+    "local_evidence_retained": true
+  },
+  {
+    "path": "N:\\YGO-Kito\\_local_cpu_20261027\\source",
+    "commit": "d9856ba8fef1ce2e36bbe03755830dc6103a1d3d",
+    "removed_tracked_files": 741,
+    "local_evidence_retained": true
+  },
+  {
+    "path": "N:\\YGO-Kito\\_migrated\\CodexData\\2026-10-28\\task-14\\multifactor-analysis",
+    "commit": "edae0efc70256aee4526f2e5fd6cd1124e93615b",
+    "removed_tracked_files": 758,
+    "local_evidence_retained": true
+  },
+  {
+    "path": "N:\\YGO-Kito\\_migrated\\CodexData\\2026-10-28\\task-3\\construction-planning",
+    "commit": "041c72bbc6a2fb3288e0aec419c12fd3be9a641b",
+    "removed_tracked_files": 736,
+    "local_evidence_retained": true
+  },
+  {
+    "path": "N:\\YGO-Kito\\_migrated\\CodexData\\2026-10-28\\task-4\\coordinator-repair",
+    "commit": "77b5c5551dc15191c796aaea9f707e536ac36e36",
+    "removed_tracked_files": 713,
+    "local_evidence_retained": true
+  },
+  {
+    "path": "N:\\YGO-Kito\\_migrated\\CodexData\\2026-10-28\\task-6\\duel-planning",
+    "commit": "99567f4acea775e1627ba4d2249594d71afa2562",
+    "removed_tracked_files": 749,
+    "local_evidence_retained": true
+  },
+  {
+    "path": "N:\\YGO-Kito\\_migrated\\CodexData\\2026-10-28\\task-7\\effect-mechanisms",
+    "commit": "45fb85a224b4c99a723bc9cd1bb9a2051c5bd54e",
+    "removed_tracked_files": 736,
+    "local_evidence_retained": true
+  },
+  {
+    "path": "N:\\YGO-Kito\\_local_cpu_20261027\\github-source",
+    "commit": "4b701919257e3fefaedc38b90398b0cf1fecc542",
+    "removed_tracked_files": 761,
+    "local_evidence_retained": true
+  }
+]

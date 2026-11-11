@@ -1,6 +1,6 @@
 # Schema4长周期、索引恢复与真实CB语义增量
 
-本批按[统一设计](../plans/2026-10-22-unified-development-spec.md)继续同一云端、工作分支与[PR #1](https://github.com/K1tKaLL0s/YGO-Kito/pull/1)。[可重复命令及边界](../development/schema4-course-and-cb.md)承接此前已通过的基础接口，没有改原始设计、学习TODO、main、权限或开启付费资源。
+本批按[统一设计](../current/architecture.md)继续同一云端、工作分支与[PR #1](https://github.com/K1tKaLL0s/YGO-Kito/pull/1)。[可重复命令及边界](../development/schema4-course-and-cb.md)承接此前已通过的基础接口，没有改原始设计、学习TODO、main、权限或开启付费资源。
 
 **发布更新（2026-10-23 18:34 UTC+8之后）：用户明确批准本批静态工程测试配置随代码存储到原私密仓库。完整代码/config已发布[bb50555](https://github.com/K1tKaLL0s/YGO-Kito/commit/bb50555136c8d7bf40b7626a68ffb698587177e7)，树6930b1c48eeddfb4dd3b443b2f99665989987676与云端受测代码40d3e65＋原文档保存点一致；原审批阻碍已解除，PR未合并。** 下文保留审批拒绝及测试发生时的历史记录；完整私有对局轨迹仍不上传。T06-03/MG03-03/D08-02已按各自有界验收勾选，不表示阶段1或能力通过。
 

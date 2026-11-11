@@ -1,6 +1,6 @@
 # 不透明选择、完整候选策略与关键机制 v4
 
-2026-10-23，执行位置 `/workspace/YGO-Kito`，工作分支 `codex/phase-1-cpu-foundation`。承接[统一设计1.1](../plans/2026-10-22-unified-development-spec.md)、[总清单](../plans/MASTER-CHECKLIST.md)与[v3交接](2026-10-23-protocol-history-v3.md)，没有改变四模型分工、LoRA、学习实践或验收标准。
+2026-10-23，执行位置 `/workspace/YGO-Kito`，工作分支 `codex/phase-1-cpu-foundation`。承接[统一设计1.1](../current/architecture.md)、[总清单](../plans/MASTER-CHECKLIST.md)与[v3交接](2026-10-23-protocol-history-v3.md)，没有改变四模型分工、LoRA、学习实践或验收标准。
 
 最终生产源 `71cb9fe4c8dc32ef8700876ec7695bf8d697f958`，对应[远端同树源码](https://github.com/K1tKaLL0s/YGO-Kito/commit/4a64d025679f5c2b14ddace75e915af07751d944)；实现SHA-256按既有绑定算法为 `c050c3ffec24a7bbf0380ae7fbd0ee4660c01b30fd90366930374543b77cd1b4`。首批实现c2e6601对应[68673718](https://github.com/K1tKaLL0s/YGO-Kito/commit/686737185630e3f7d457c0424102ebc217ce8fba)，奖励修复e7ae4ae对应[fea152c6](https://github.com/K1tKaLL0s/YGO-Kito/commit/fea152c6711e5a8f078e7d613f70b7ce79f6ee20)；各次测试分源记录。PR发布不等于合并。
 

@@ -4,7 +4,7 @@
 
 ## 交付
 
-仓库根的 [Start-Axis-Training.cmd](../../Start-Axis-Training.cmd) 为双击正式启动/恢复入口；[PowerShell 入口](../../scripts/axis-generic-training.ps1) 默认只准备，`-Start` 明确启动，`-Status` 只读保存状态。[使用说明](../development/axis-generic-automatic-training.md) 给出完整路径、命令和恢复方法。[机械执行书](../plans/2026-11-09-axis-generic-automatic-training.md) 包含原范围和实际准备暴露问题的实施补充。
+仓库根的 [Start-Axis-Training.cmd](../../Start-Axis-Training.cmd) 为双击正式启动/恢复入口；[PowerShell 入口](../../scripts/axis-generic-training.ps1) 默认只准备，`-Start` 明确启动，`-Status` 只读保存状态。[使用说明](../development/axis-generic-automatic-training.md) 给出完整路径、命令和恢复方法。[机械执行书](execution/2026-11-09-axis-generic-automatic-training.md) 包含原范围和实际准备暴露问题的实施补充。
 
 新增 automatic_v3.py 和 config.automatic.v3.json，只编排现有 v3 API。配置、输出身份、来源组、实际 best、完整预测工件和后处理绑定保持；同一命令可恢复，完成后再次启动没有新训练更新。默认记录本地日志、事件、阶段、错误、耗时、CPU 用时、CUDA/磁盘与峰值分配，运行时不调用 Codex 或外部模型/API。校准/评估明确配置，消融/环境实验使用既有独立显式入口。
 

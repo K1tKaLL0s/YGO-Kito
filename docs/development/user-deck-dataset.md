@@ -1,6 +1,6 @@
 # 已收到的用户数字牌表
 
-2026-11-01更新：用户明确纠正原2210参考，当前main-02已切换为[main-02-source-v2](../../configs/user-deck-references/main-02-source-v2.json)，从本次本地YDK直接解析，40主卡/15额外/15Side。收件内容、source指向和版本登记同步更新，数据集标识为received-user-decks-20261101-v2；旧v1保留为历史输入。具体差异与用户提供的基础CB见[2210参考修正与CB分析](../plans/2026-11-01-2210-tearlaments-cb.md)。其他时期、对手及训练开关保持原值。
+2026-11-01更新：用户明确纠正原2210参考，当前main-02已切换为[main-02-source-v2](../../configs/user-deck-references/main-02-source-v2.json)，从本次本地YDK直接解析，40主卡/15额外/15Side。收件内容、source指向和版本登记同步更新，数据集标识为received-user-decks-20261101-v2；旧v1保留为历史输入。具体差异与用户提供的基础CB见[2210参考修正与CB分析](../examples/2210-tearlaments-cb.md)。其他时期、对手及训练开关保持原值。
 
 `configs/user-deck-intake-received-v1.json` 沿用现有收件 schema，填写三主和六对手；对手 7、8 留空。编号为 Runick、Floo 补版、Spright、升月、巳剑精确修订版、狱神奥艺。Floo、Spright 的 41 张主卡照实保留。环境资源和实际控制方仍为 `null`，DeepSeek 只是既有偏好，源码机器人登记也不等于驱动可用。这份文件不是可执行训练配方，不隐含启用训练。
 

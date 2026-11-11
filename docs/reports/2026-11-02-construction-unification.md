@@ -4,7 +4,7 @@
 
 本次验收的是构筑、两层比较、候选召回、学习标签、重选和准入接口。实际展开、对局强度以及正式学习后的能力尚未验证。当前优化角色累计更新仍为 0，不能把学习样本接通写成模型已经学过。
 
-工作检出：`N:\YGO-Kito\_publish_20261030`，分支 `codex/optimization-20261031`，基线 `3f57198`。原有其他变更没有重置；本轮没有提交、推送或远端 CI。依据和逐项验收见[机械执行书](../development/2026-11-02-construction-unification.md)，可携带证据见[机器回执](2026-11-02-construction-unification.json)，最终牌表见[中文清单](2026-11-02-2207-unified-deck.md)和[原样 YDK](2026-11-02-2207-unified.ydk)。
+工作检出：`N:\YGO-Kito\_publish_20261030`，分支 `codex/optimization-20261031`，基线 `3f57198`。原有其他变更没有重置；本轮没有提交、推送或远端 CI。依据和逐项验收见[机械执行书](execution/2026-11-02-construction-unification.md)，可携带证据见[机器回执](2026-11-02-construction-unification.json)，最终牌表见[中文清单](2026-11-02-2207-unified-deck.md)和[原样 YDK](2026-11-02-2207-unified.ydk)。
 
 ## 根因与已完成修复
 

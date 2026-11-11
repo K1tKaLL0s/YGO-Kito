@@ -19,7 +19,7 @@
 - 当前继续目录：`.cache/base-training-20261027/2207-autonomous-v4/`。两次显式源码迁移保留所有角色参数、基础优化器、调度器、RNG和游标；原文件保留，`source-migration.json`记录来源。搜索缓存按新绑定重建，实际更新数保留。
 - 保留完整checkpoint、`index/`、`feedback-state.json`、binding、配置、迁移收据和运行结果。`train_duel.py`以`adapter_session=None`执行全参PPO；已有in-flight/result时禁止自动重放同场。
 
-直接继续真实构筑/基础学习，出错修该错误，不新增预检、资格批次或测时。四角色分别起步后协作；LoRA用于后续适配。优化竞技比较须固定策略、对手和预算。三期顺序、每期600完整BO1+400完整BO3与独立验收保持，见[需求复核](../plans/2026-10-27-training-design-current.md)。
+直接继续真实构筑/基础学习，出错修该错误，不新增预检、资格批次或测时。四角色分别起步后协作；LoRA用于后续适配。优化竞技比较须固定策略、对手和预算。三期顺序、每期600完整BO1+400完整BO3与独立验收保持，见[需求复核](../current/training-and-acceptance.md)。
 
 ## 预算
 

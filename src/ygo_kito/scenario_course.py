@@ -768,7 +768,7 @@ class ScenarioCourse:
                 groups[group] = {"completed_bo3_matches": n, "wins": w, "rate": rate,
                     "wilson_95_interval": interval, "sample_minimum_met": n >= 200}
             result["thresholds"] = {"kind": "historical_external_bo3_60_mirror_near_50",
-                "source": "docs/plans/2026-10-22-unified-development-spec.md#12.1",
+                "source": "docs/current/training-and-acceptance.md#正式能力验收",
                 "groups": groups, "external_at_least_60_met": groups["external"]["rate"] is not None and groups["external"]["rate"] >= .6,
                 "mirror_target": .5, "ci_decision_rule_unconfirmed": True,
                 "mirror_tolerance_unconfirmed": True, "formal_training_success_verified": False}

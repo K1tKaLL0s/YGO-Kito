@@ -1,4 +1,6 @@
-# 构筑逻辑与非 LLM 入口
+# 构筑实现与历次运行记录
+
+本页是历史实现与执行记录，各日期段落只描述当时状态。当前设计统一见 [构筑流程](../current/construction-workflow.md)、[评分与扣分](../current/construction-scoring.md)；后续修订以现行正文为准。
 
 本轮最终状态：用户最新要求已改为结束试运营，run-007进程已停止，不自动续跑。12份候选Evaluation与完整一致的kernel／session均保留；参考Evaluation和S5未完成。“静态不完整”的设计问题留待后续优化，本轮不展开新工作。[停止记录](../reports/2026-11-10-construction-condition-selection.md#按用户最新要求结束本轮)优先于下方历史运行状态。
 
@@ -8,15 +10,15 @@
 
 2026-11-10 静态用途纠正：默认构筑读取卡文、牌表、规则与配套关系，不要求当前手卡、场上状态、具体堆墓结果、对方当前对象或实际操作序列。规范化v19／积木b5为完整印刷条件提供静态适用来源，默认候选适配器与最终Evaluation均消费；已识别召唤手续为非计分能力，分支条件／代价／对象独立，融合素材按完整谓词和不同实体检查。随机送墓的兼容配合可计入，但不能作指定调用。61个必要定点静态方法同组通过；实现、失败记录和原资源重跑见[本轮报告](../reports/2026-11-10-construction-static-entries.md)。旧报告中把当前对局状态未给归为正常输入unknown的口径已撤回。
 
-2026-11-10 当前源码及实际重跑见[本轮修复记录](../reports/2026-11-10-construction-workflow-repair.md)，资料先读[统一入口](../current/README.md)。按[S0—S6](../plans/2026-11-10-construction-s0-s6-workflow.md)修正：完整环境固定任务，通用积木词表先生成无卡ID图，狭义再筛轴；优化在原卡池内持续检索，候选与参考同口径评价、选择和Gate。当前质量v4、准入v3、规范化v15。旧预筛封池及默认珠泪CB加分已退出；CB正常失败按候选归属，预算内两次正常失败回S2。本次实际运行关闭CB和训练，最终结果以本轮报告为准；下方各日期段落保留历史，不覆盖本段。
+2026-11-10 当前源码及实际重跑见[本轮修复记录](../reports/2026-11-10-construction-workflow-repair.md)，资料先读[统一入口](../current/README.md)。按[S0—S6](../current/construction-workflow.md)修正：完整环境固定任务，通用积木词表先生成无卡ID图，狭义再筛轴；优化在原卡池内持续检索，候选与参考同口径评价、选择和Gate。当前质量v4、准入v3、规范化v15。旧预筛封池及默认珠泪CB加分已退出；CB正常失败按候选归属，预算内两次正常失败回S2。本次实际运行关闭CB和训练，最终结果以本轮报告为准；下方各日期段落保留历史，不覆盖本段。
 
 2026-11-09 当前模块已完成原方案逐项源码核对及旧入口清理，见[核对报告](../reports/2026-11-09-construction-module-code-review.md)和[当前准入与学习接口](construction-admission.md)。质量 v4、准入 v3、规范化 v13 是活动版本；固定任务和自主主题共用 `construction_cycle`。本轮补齐连续不足提示，修正监督、预算和模式恢复，删除未调用评分草稿及旧排序；147 个不同静态方法均取得最终通过记录，原始失败和定点修正完整保留。训练、CB、真实模型推理未启动。下列按日期的批次段落和旧运行成绩是历史记录，当前调用以本段及准入说明为准。
 
 2026-11-09 动态加权补正完成：此前无依据的“13／13 全部完成”确认保持撤回，本次以实际自动入口证据重新关闭 W3-2、W4-1、W6-2。规则从原任务、固定卡池和真实配合归纳，主要目标额外 +100%、次要目标额外 +50%，保持原公式；同一处理取高档，完整代价、数量、限制及换备容量决定实际投入。默认入口、排序、偏好样本、参考重评、政策修订与准入已接通。当前 68 个不同定向静态方法整组通过（含 17 个自动主题用例），未加载 Torch。用户已授权仅修公开接口，复查时现有导出已修正，本轮未再修改并行模块。固定六包 13 项、38 条验收及 12 行补充结构均已对齐；无待答问题，无训练／CB／真实模型推理或子代理。见[补正与实际验证](../reports/2026-11-09-construction-theme-weighting-correction.md)。以下历史批次保留其当时状态。
 
-2026-11-09 W1-1 已完成：未采用的可选零正分效果不再因所带未知限制造成全局 deferred，原始明细保留；最终采用/支撑条件决定限制是否相关。已补明确处理限制的作用方、区域、代价/效果原因、时限及顺序，本卡素材限制不阻断无关抽卡效果。规范化 v10，默认质量版本仍旧 v3；27 个不同静态方法取得通过结果。A17 已闭合，验收状态为 21 已完成、12 证据待补、5 含实现缺口；固定 13 项剩余 12 项，按用户新授权继续 W1-2。见[W1 实施记录](../reports/2026-11-09-construction-w1-restrictions-and-selection.md)和[验收固定清单](../plans/2026-11-09-construction-acceptance-alignment.md)。以下对齐与批次段落保留当时状态。
+2026-11-09 W1-1 已完成：未采用的可选零正分效果不再因所带未知限制造成全局 deferred，原始明细保留；最终采用/支撑条件决定限制是否相关。已补明确处理限制的作用方、区域、代价/效果原因、时限及顺序，本卡素材限制不阻断无关抽卡效果。规范化 v10，默认质量版本仍旧 v3；27 个不同静态方法取得通过结果。A17 已闭合，验收状态为 21 已完成、12 证据待补、5 含实现缺口；固定 13 项剩余 12 项，按用户新授权继续 W1-2。见[W1 实施记录](../reports/2026-11-09-construction-w1-restrictions-and-selection.md)和[验收固定清单](../reports/execution/2026-11-09-construction-acceptance-alignment.md)。以下对齐与批次段落保留当时状态。
 
-2026-11-09 验收与剩余工作已逐项收敛：[38 条验收及补充结构对齐](../plans/2026-11-09-construction-acceptance-alignment.md)记录当前 20 条已完成、12 条仅待指定证据、6 条含实际实现缺口，并固定六包 13 项剩余。已区分真实输入未知与漏接实现；自动主题目前偏向墓地处理、未适配限制的全局 deferred、通常召唤次数及参考版本绑定等缺口已明确列项。该清单替代下面历史批次宽泛的“继续扩展”描述，保留历史运行证据；本次未改源码、未运行测试，代码实施暂停。后续沿用游戏王常用术语，通用构筑不套用珠泪主题或参考政策。
+2026-11-09 验收与剩余工作已逐项收敛：[38 条验收及补充结构对齐](../reports/execution/2026-11-09-construction-acceptance-alignment.md)记录当前 20 条已完成、12 条仅待指定证据、6 条含实际实现缺口，并固定六包 13 项剩余。已区分真实输入未知与漏接实现；自动主题目前偏向墓地处理、未适配限制的全局 deferred、通常召唤次数及参考版本绑定等缺口已明确列项。该清单替代下面历史批次宽泛的“继续扩展”描述，保留历史运行证据；本次未改源码、未运行测试，代码实施暂停。后续沿用游戏王常用术语，通用构筑不套用珠泪主题或参考政策。
 
 2026-11-09 功能评价迁移第十批：固有通常/特殊召唤禁用已接到被召唤实体与本卡召唤成功触发，融合素材改为按实际用途、目标召唤类型和完整区域条件检查，不再凭粗标签全局排除。确定/可能候选复用原不同实体匹配，确定替代足够则库存通过，仅可能候选能补齐则 unknown；完整句、跨句例外和未解析前言保留。完整玩家通召、明确盖放和攻击锁沿用实际行动方、起点、时限及 before 顺序；未绑定具体效果的顶层攻击限制保留 deferred。NORMALIZATION_VERSION 升为 `construction-function-normalization-v9`，默认质量版本仍旧 v3；14 个不同静态业务方法取得通过结果，6 个 Python 文件语法/行尾通过。真实文件、逐组成功/失败、剩余边界及完整续接摘要见[第十批固有召唤/条件素材报告](../reports/2026-11-09-construction-functional-summon-material-restrictions-phase10.md)。以下各批保留当时状态。
 
@@ -32,13 +34,13 @@
 
 2026-11-09 功能评价迁移第四批：带前置费用的部分供给改为独立的整数数量/子集分支，同池替代来源分别保留；显式返回可跨重叠库存池复用同一实体，并在现有分配器的三个消费阶段内检查连续返回、次数、费用与宿主顺序。零正分但原任务必需采用的来源可触发强制影响并进入损失解释，原任务必需绑定已传给规范用途。规范化版本升为 `construction-function-normalization-v3`；默认质量政策仍是旧 v3。15 个不同定点用例最终通过，6 个 Python 文件语法/行尾检查通过。完整结果、剩余语义和独立续接摘要见[第四批供给与回收状态](../reports/2026-11-09-construction-functional-subsets-recovery-phase4.md)。以下第三批段落保留其当时范围；复杂跨层返回、未映射限制、自动调用/主题、方向组合及真实政策迁移仍未闭合。
 
-2026-11-09 功能评价迁移第三批：显式 v4 候选链新增独立资源分支、重叠库存整数分配、明确顺序的单次回收、共同用途到 V2 的绑定、来源级强制影响、Side 隔离与完整 R/X 重算，以及逐功能损失/修复条件记录。定向墓地调用和已完整识别的主题接收方开始自动适配，墓地与堆墓双通道保留；本批 16 个不同定点静态用例、7 个 Python 文件语法检查通过。复杂供给子集、多池回收、未映射限制及复杂主题/Side 组合仍为 unknown/deferred；真实政策与参考未迁移，默认旧 v3 保留。当前文件、证据和续接摘要见[第三批资源与 Side 状态](../reports/2026-11-09-construction-functional-resources-side-phase3.md)，已有候选链见[第二批](../reports/2026-11-08-construction-functional-production-wiring-phase2.md)，完整目标见[正式优化方案](../plans/2026-11-08-construction-model-formal-optimization-plan.md)。训练和 CB 继续禁止。
+2026-11-09 功能评价迁移第三批：显式 v4 候选链新增独立资源分支、重叠库存整数分配、明确顺序的单次回收、共同用途到 V2 的绑定、来源级强制影响、Side 隔离与完整 R/X 重算，以及逐功能损失/修复条件记录。定向墓地调用和已完整识别的主题接收方开始自动适配，墓地与堆墓双通道保留；本批 16 个不同定点静态用例、7 个 Python 文件语法检查通过。复杂供给子集、多池回收、未映射限制及复杂主题/Side 组合仍为 unknown/deferred；真实政策与参考未迁移，默认旧 v3 保留。当前文件、证据和续接摘要见[第三批资源与 Side 状态](../reports/2026-11-09-construction-functional-resources-side-phase3.md)，已有候选链见[第二批](../reports/2026-11-08-construction-functional-production-wiring-phase2.md)，完整目标见[正式优化方案](../current/construction-scoring.md)。训练和 CB 继续禁止。
 
-2026-11-02 最新职责设计：[目标模型完成第一层轴骨架，优化模型完成第二层、多轮修订及泛用配置](../plans/2026-11-02-construction-role-reassignment.md)。优化模型接收统筹、决斗和外接 AI 反馈；训练模式未达构筑门槛持续迭代，达标后才进入线性基础 CB，允许固定随机堆墓而不展开命中分支。该分工已接入实际入口，验证见[当前报告](../reports/2026-11-02-construction-role-basic-cb.md)。完整质量指标与阈值尚未配置，未通关时保存并挂起。效果词典与实际 CB 归属见[核验](../reports/2026-11-02-effect-block-dictionary-and-cb-owner-audit.md)；训练和 CB 继续暂停。
+2026-11-02 最新职责设计：[目标模型完成第一层轴骨架，优化模型完成第二层、多轮修订及泛用配置](../current/construction-workflow.md)。优化模型接收统筹、决斗和外接 AI 反馈；训练模式未达构筑门槛持续迭代，达标后才进入线性基础 CB，允许固定随机堆墓而不展开命中分支。该分工已接入实际入口，验证见[当前报告](../reports/2026-11-02-construction-role-basic-cb.md)。完整质量指标与阈值尚未配置，未通关时保存并挂起。效果词典与实际 CB 归属见[核验](../reports/2026-11-02-effect-block-dictionary-and-cb-owner-audit.md)；训练和 CB 继续暂停。
 
 2026-11-02 统一修复：费用／对象／素材未知不再算覆盖，全牌表必要配套与图内用途分开核算；池外配套按合法词表有界召回，字段归属使用同一卡库的代码映射。固定任务与自主主题均进入同一职责分离和持续优化入口。旧 `alternate_build`、70/56 参考评分、提示模块、私有准入账本绑定及一次性迁移实现已删除。当前行为见[统一修复报告](../reports/2026-11-02-construction-unification.md)与[构筑准入及学习接口](construction-admission.md)；原[核验报告](../reports/2026-11-02-construction-design-audit.md)记录的是修复前状态。
 
-两层事实由 `ConstructionController → construction_cycle → fill_with_existing` 调用。当前唯一路径在质量选择前评价全部本轮候选，以完整、硬条件成立的最终 S 排序；模型只安排待评顺序和同分取舍。学习 source 为 `construction_quality_preference_v2`，不从旧 layer_comparisons 产生新标签。旧最终层排序及非 v4 回退已删除，层投影只供当前诊断和骨架依据；未评完时保存待评队列。两层设计与首轮 GPU 历史记录见[第一层](../plans/2026-11-01-effect-block-axis-layer.md)、[第二层](../plans/2026-11-01-relationship-closure-layer.md)及[首轮实施书](2026-11-01-construction-layers-implementation.md)。
+两层事实由 `ConstructionController → construction_cycle → fill_with_existing` 调用。当前唯一路径在质量选择前评价全部本轮候选，以完整、硬条件成立的最终 S 排序；模型只安排待评顺序和同分取舍。学习 source 为 `construction_quality_preference_v2`，不从旧 layer_comparisons 产生新标签。旧最终层排序及非 v4 回退已删除，层投影只供当前诊断和骨架依据；未评完时保存待评队列。两层设计与首轮 GPU 历史记录见[第一层](../current/construction-workflow.md)、[第二层](../current/construction-scoring.md)及[首轮实施书](../reports/execution/2026-11-01-construction-layers-implementation.md)。
 
 正常目录绑定器从当前任务／图、有来源的判断和效果记录投影两层。字段／种族单独只给 q=0.5；未提供的发动、费用／对象可用性和材料取得条件保留 unknown。宿主可通过 `ConstructionController(..., layer_context_provider=provider)` 提供固定用途的 `LayerContext`，不允许改变原目标。直接 `fill_with_existing` 使用目录绑定器也自动接入；无来源契约的自定义 callable 报告 `source_context_unavailable`。现有权重结构未变，当前优化计数仍为 0；学习标签接通不等于权重已经学习。训练与 CB 继续暂停。下面三阶段是既有工作步骤，与两层评价分工分别使用。
 

@@ -137,7 +137,7 @@
 - “从最近完整检查点恢复，沿用原预算和数据分区。”
 - “接续2610自主主题训练，先核BO1完成条件再进入BO3。”
 
-详细协议与配方格式见所选工作树 docs/development/training-handoff.md、period-runtime.md、group-initialization.md；原设计规则见 docs/plans/2026-10-22-unified-development-spec.md 第7、12、18节。
+详细协议与配方格式见所选工作树 docs/development/training-handoff.md、period-runtime.md、group-initialization.md；原设计规则见 docs/current/architecture.md、model-interfaces.md与training-and-acceptance.md。
 
 ## 9. 最终交付与真实复验
 

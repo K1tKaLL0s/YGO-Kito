@@ -1,6 +1,8 @@
 # 统筹规则、学习原型与四模型工程闭环
 
-本页落实[统一说明](../plans/2026-10-22-unified-development-spec.md)第2、5、6节。当前范围为固定真实核心与工程牌组的有界CPU流程；[M3c报告](../reports/2026-10-23-coordinator-m3c.md)区分实际更新、真实对局和合成统计，[M3d](lora-and-cloud-handoff.md)补充实际LoRA接口。完整模型能力、正式统计方案、LoRA迁移能力及PC门槛仍待验。
+本页记录早期 CPU 工程原型和操作接口，参数、训练规模及当时未完成项不作为现行设计。现行分工与接口见 [模型接口](../current/model-interfaces.md)，训练与正式运行采用 GPU。
+
+本页落实[统一说明](../current/architecture.md)第2、5、6节。当前范围为固定真实核心与工程牌组的有界CPU流程；[M3c报告](../reports/2026-10-23-coordinator-m3c.md)区分实际更新、真实对局和合成统计，[M3d](lora-and-cloud-handoff.md)补充实际LoRA接口。完整模型能力、正式统计方案、LoRA迁移能力及PC门槛仍待验。
 
 ## 控制与模型分工
 

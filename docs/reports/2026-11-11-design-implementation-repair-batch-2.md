@@ -1,6 +1,6 @@
 # 设计实现修复第二批
 
-2026-11-11，Asia/Hong_Kong。用户重启电脑后明确“继续修复”。本批沿唯一完整检出实施，由主进程执行，没有子代理。继续应用preserve-intent-and-execute和anti-overengineering，依据[原逐包方案](../plans/2026-11-10-design-implementation-repair-plan.md)、[原执行书](../plans/2026-11-10-design-implementation-repair-execution.md)和[R1补充执行书](../plans/2026-11-11-design-implementation-repair-r1-execution.md)。
+2026-11-11，Asia/Hong_Kong。用户重启电脑后明确“继续修复”。本批沿唯一完整检出实施，由主进程执行，没有子代理。继续应用preserve-intent-and-execute和anti-overengineering，依据[原逐包方案](execution/2026-11-10-design-implementation-repair-plan.md)、[原执行书](execution/2026-11-10-design-implementation-repair-execution.md)和[R1补充执行书](execution/2026-11-11-design-implementation-repair-r1-execution.md)。
 
 ## 实际结果与开放边界
 

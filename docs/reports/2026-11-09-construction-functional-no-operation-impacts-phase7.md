@@ -10,7 +10,7 @@
 
 原始来源经“记录→关系事实→非计分用途→原任务必需绑定→强制影响→Evaluation”闭合。静态场景中，两个独立正分用途的分数上界原为 2，必需采用该来源后为 1，非计分来源没有抬高 P。删除来源或仅放 Side 会使常驻原任务要求失败；不再把这种真实缺件当成用途绑定格式错误。关系要求已支持却指向无关缺失用途时，仍拒绝错误绑定。
 
-本批承接[第六批实体转移报告](2026-11-09-construction-functional-physical-transfers-phase6.md)与[正式方案](../plans/2026-11-08-construction-model-formal-optimization-plan.md)第 12 节步骤三、四。未重新盘点项目、重做旧研究，也未追索、检查或运行 Pro 辅助演示代码。
+本批承接[第六批实体转移报告](2026-11-09-construction-functional-physical-transfers-phase6.md)与[正式方案](../current/construction-scoring.md)第 12 节步骤三、四。未重新盘点项目、重做旧研究，也未追索、检查或运行 Pro 辅助演示代码。
 
 `NORMALIZATION_VERSION` 现为 `construction-function-normalization-v6`；旧 v5/v4/v3/v2/v1 规范化评价不得复用。现有缓存和恢复检查继续读取同一常量。默认 `QUALITY_VERSION` 仍旧 v3；生产政策、指定参考、旧档迁移和旧层回退退出尚未实施。
 

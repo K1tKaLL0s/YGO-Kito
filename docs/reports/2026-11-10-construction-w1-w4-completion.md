@@ -1,6 +1,6 @@
 # W1／W4通用卡文、限制和内部续算补齐
 
-2026-11-10，Asia/Hong_Kong。实际源码为`N:\YGO-Kito\_publish_20261030`，沿用现有检出并保留全部既有修改、删除和未跟踪文件。按用户授权由主进程实施，无子代理、训练或CB。执行依据为[本轮执行书](../plans/2026-11-10-construction-w1-w4-completion-execution.md)及已回读的本聊天原文；压缩后先回读实际对话，再恢复实施。
+2026-11-10，Asia/Hong_Kong。实际源码为`N:\YGO-Kito\_publish_20261030`，沿用现有检出并保留全部既有修改、删除和未跟踪文件。按用户授权由主进程实施，无子代理、训练或CB。执行依据为[本轮执行书](execution/2026-11-10-construction-w1-w4-completion-execution.md)及已回读的本聊天原文；压缩后先回读实际对话，再恢复实施。
 
 ## 已实施及静态证据
 
@@ -44,7 +44,7 @@
 
 ## 尚须继续的真实程序问题
 
-[原始11月3日方案P0031—P0032](../current/2026-11-03-construction-optimization-source.md)明确：静态构筑评价配置功能、投入和配套；具体起手及操作验证属于基础CB。当前`_functional_relations`仍在没有host关系事实时，为未被效果直接提供的activation／payment／target前提统一补`functional:unresolved`。明确的发动时点、通常召唤等规则入口与固定用途情境并未完整自动接入。[正式方案第6.1节](../plans/2026-11-08-construction-model-formal-optimization-plan.md)也要求保留正常召唤等真实入口，不能把未找到入口当作没有入口。这部分需要继续按原始配置用途补齐，不能要求用户给当前起手或盘面，也不能把所有条件置真。
+[原始11月3日方案P0031—P0032](../current/construction-scoring.md)明确：静态构筑评价配置功能、投入和配套；具体起手及操作验证属于基础CB。当前`_functional_relations`仍在没有host关系事实时，为未被效果直接提供的activation／payment／target前提统一补`functional:unresolved`。明确的发动时点、通常召唤等规则入口与固定用途情境并未完整自动接入。[正式方案第6.1节](../current/construction-scoring.md)也要求保留正常召唤等真实入口，不能把未找到入口当作没有入口。这部分需要继续按原始配置用途补齐，不能要求用户给当前起手或盘面，也不能把所有条件置真。
 
 完整来源原文仍须继续细化：复杂触发条件、融合素材及多区域选择、择一效果内部条件／指代／代价的作用范围。当前已支持简单完整句、实际对象和完整数量，并不等于这些组合都已支持。后续必须继续使用既有积木、InventoryDependencies及关系层，不新建通用决斗求解器；默认规则与候选／参考需同口径。
 
@@ -58,7 +58,7 @@
 
 验证：45个不同定向静态方法最后同组通过，15个源码／测试文件语法及行尾通过；记录绑定在`static-targeted-v18.json`。全任务池12237卡号／18631效果的接口检查0异常；27条原参考条件直接转换成功。真实4次尝试与失败全部保留；最后v18实际13份候选、0内部待评、40／15／15到S5，Gate未通过。最终核对为`run-004/inspection.json`，实际代码与静态源码摘要相同。所有构筑进程已经结束，没有后台训练／CB或等待的内部续算。`run-004`虽有kernel存档，但没有待评队列，直接resume会进入下一轮S2，不能声称是在接续尚未算完的13份候选。
 
-下一阶段先读本报告、[资料总入口](../current/README.md)、[原始11月3日正文](../current/2026-11-03-construction-optimization-source.md)P0031—P0032和[正式方案](../plans/2026-11-08-construction-model-formal-optimization-plan.md)第6—8节。不要只承接旧阶段摘要中“缺盘面”的错误归因。定点检查`construction_layer_flow._functional_relations`的`seeds`、`_record_facts/_record_applicability`、`InventoryDependencies`的完整选择和召唤检查、`effect_records._refine_record`、`effect_blocks.record_operations`及静态默认入口。已识别的召唤手续还需作为配置用途入口供后续功能使用，不能只以记录里有字段作为落地。
+下一阶段先读本报告、[资料总入口](../current/README.md)、[原始11月3日正文](../current/construction-scoring.md)P0031—P0032和[正式方案](../current/construction-scoring.md)第6—8节。不要只承接旧阶段摘要中“缺盘面”的错误归因。定点检查`construction_layer_flow._functional_relations`的`seeds`、`_record_facts/_record_applicability`、`InventoryDependencies`的完整选择和召唤检查、`effect_records._refine_record`、`effect_blocks.record_operations`及静态默认入口。已识别的召唤手续还需作为配置用途入口供后续功能使用，不能只以记录里有字段作为落地。
 
 剩余实施与完成标准：
 

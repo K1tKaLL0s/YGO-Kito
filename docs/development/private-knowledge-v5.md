@@ -1,6 +1,6 @@
 # 合法私有记忆与盖放宿主 v5
 
-本增量沿[统一设计](../plans/2026-10-22-unified-development-spec.md)，承接[v4私有选择/分层策略](private-selection-hierarchy.md)。固定的core/scripts/cards.cdb/客户端及禁表均未更换。v2牌组显式设置`adapter_revision:5`，绑定`native-private-knowledge-v5`；旧v1/v2/v3/v4轨迹格式保留。工程示例位于`configs/private-knowledge-engineering-v5.json`，不是用户3＋8套牌表。
+本增量沿[统一设计](../current/architecture.md)，承接[v4私有选择/分层策略](private-selection-hierarchy.md)。固定的core/scripts/cards.cdb/客户端及禁表均未更换。v2牌组显式设置`adapter_revision:5`，绑定`native-private-knowledge-v5`；旧v1/v2/v3/v4轨迹格式保留。工程示例位于`configs/private-knowledge-engineering-v5.json`，不是用户3＋8套牌表。
 
 ```bash
 .venv/bin/python -m ygo_kito private-knowledge-acceptance --root .cache --output .cache/knowledge-repro-01

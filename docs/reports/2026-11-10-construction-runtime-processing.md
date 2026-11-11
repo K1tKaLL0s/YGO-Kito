@@ -1,6 +1,6 @@
 # W1／W4 时间推进与完整处理实体占用
 
-2026-11-10，Asia/Hong_Kong。主进程执行，实际源码 `N:\YGO-Kito\_publish_20261030`，现有分支 `codex/optimization-20261031`、HEAD `3f57198`。未提交／推送，全部既有修改、删除和未跟踪成果保留。实施依据为[机械执行书](../plans/2026-11-10-construction-runtime-processing-execution.md)。
+2026-11-10，Asia/Hong_Kong。主进程执行，实际源码 `N:\YGO-Kito\_publish_20261030`，现有分支 `codex/optimization-20261031`、HEAD `3f57198`。未提交／推送，全部既有修改、删除和未跟踪成果保留。实施依据为[机械执行书](execution/2026-11-10-construction-runtime-processing-execution.md)。
 
 已回读来源聊天 `01a1c341-36c0-7530-a5fd-3bc02c6c23bc` 的实际时间纠正与“允许新开”，以及 `01a1bc6f-1bc7-7952-8f03-3ac9d27ce0b6` 的静态纠正、S0—S6、主进程及验证授权。原始设计定稿的时间条款再次核对：训练不受默认3–30分钟时限约束。历史run-002的600秒／一轮由助手传入，不能作为开发完成条件。
 

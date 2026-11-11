@@ -17,7 +17,7 @@
 
 “377 个语法检查通过”是语法覆盖，不是逐行语义正确性证明。下表和问题项明确区分本轮反例、源码检查、历史运行证据及阶段待验；未执行的动态验证没有记为通过。
 
-审查执行书见[本轮执行书](../plans/2026-11-10-design-implementation-audit-execution.md)，修复动作与验收见[修复方案](../plans/2026-11-10-design-implementation-repair-plan.md)，新任务边界见[交接文件](../handoffs/2026-11-10-design-implementation-repair-handoff.md)。
+审查执行书见[本轮执行书](execution/2026-11-10-design-implementation-audit-execution.md)，修复动作与验收见[修复方案](execution/2026-11-10-design-implementation-repair-plan.md)，新任务边界见[交接文件](../handoffs/2026-11-10-design-implementation-repair-handoff.md)。
 
 ## 设计基准
 
@@ -26,10 +26,10 @@
 | 基准 | 本次采用的约束 |
 | --- | --- |
 | [原始设计与原件位置](../current/README.md) | 三执行模型、统筹、共享数据、合法观察、分阶段开发与训练、LoRA、性能与资源记录；三份活动 DOCX 只读提取，原件未改 |
-| [统一规范](../plans/2026-10-22-unified-development-spec.md) | 独立模型职责、持续召回、数据与时期隔离、课程和 BO3、统筹反馈、外部服务边界；GPU/正式训练及 PC 产品按所属阶段验收 |
-| [S0—S6](../plans/2026-11-10-construction-s0-s6-workflow.md)及实际用户原话 | 先无卡 ID 粗逻辑，再狭义筛轴；优化保留目标；所有候选与参考同一评价器；静态完整后才准入，显式授权后才做 CB |
-| [11月3日评分原文](../current/2026-11-03-construction-optimization-source.md)、11月4日扣分原件、[正式方案](../plans/2026-11-08-construction-model-formal-optimization-plan.md) | 保留 log2、P/V1/V2/S、Main/Extra 参数、实际 Main 张数、主题增益、Side 方向和参考比例；不可改成模型裸分或降低门槛 |
-| [验收对齐表](../plans/2026-11-09-construction-acceptance-alignment.md)及最新静态澄清 | 构筑评价配置能力与配套，不索要实际手牌、盘面、随机命中、对方当前对象或执行顺序；完整卡文未消费属于实现缺口 |
+| [统一规范](../current/architecture.md) | 独立模型职责、持续召回、数据与时期隔离、课程和 BO3、统筹反馈、外部服务边界；GPU/正式训练及 PC 产品按所属阶段验收 |
+| [S0—S6](../current/construction-workflow.md)及实际用户原话 | 先无卡 ID 粗逻辑，再狭义筛轴；优化保留目标；所有候选与参考同一评价器；静态完整后才准入，显式授权后才做 CB |
+| [11月3日评分原文](../current/construction-scoring.md)、11月4日扣分原件、[正式方案](../current/construction-scoring.md) | 保留 log2、P/V1/V2/S、Main/Extra 参数、实际 Main 张数、主题增益、Side 方向和参考比例；不可改成模型裸分或降低门槛 |
+| [验收对齐表](execution/2026-11-09-construction-acceptance-alignment.md)及最新静态澄清 | 构筑评价配置能力与配套，不索要实际手牌、盘面、随机命中、对方当前对象或执行顺序；完整卡文未消费属于实现缺口 |
 | 最新时间模式澄清 | 开发/训练没有整个任务的上线时限或迭代上限；内部计算片应自动续接。上线到期停止产生候选，完成当前评价、选择和真实 Gate 后交付 |
 | 当前授权 | run-007 已停止；仅排查和交接，不修复，不重启，不丢数据；仅 GPT-6.1 Sol Max，主进程执行，不用子代理 |
 

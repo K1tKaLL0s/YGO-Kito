@@ -275,9 +275,9 @@ client.training_control("run-a", "pause", expected_revision=7, request_id="ctl-p
 
 ## 11. 构筑逻辑、分类器与本地 Agent 的实际接续
 
-宿主构筑控制器沿 S0—S5 运行，按宿主固定输入和资源评价候选及参考。同步和持久化会话均返回实际构筑结果或停止原因。2026-11-02 的骨架、优化、反馈与基础 CB 接线记录保留历史。 [S0—S6 设计](../plans/2026-11-10-construction-s0-s6-workflow.md) · [原接线报告](../reports/2026-11-02-construction-role-basic-cb.md)
+宿主构筑控制器沿 S0—S5 运行，按宿主固定输入和资源评价候选及参考。同步和持久化会话均返回实际构筑结果或停止原因。2026-11-02 的骨架、优化、反馈与基础 CB 接线记录保留历史。 [S0—S6 设计](../current/construction-workflow.md) · [原接线报告](../reports/2026-11-02-construction-role-basic-cb.md)
 
-2026-11-01：现有宿主控制器的填卡主流程已自动采用两层评价和配置比较，无须新RPC开关。逐候选记录位于`phase.stage_3.candidate_trace.candidates[*].layer_evaluation`，选择理由位于`layer_selection`，最终`construction_candidate`携带所选评价。正常目录来源缺少具体执行条件时保留unknown；宿主代码可提供`layer_context_provider`，RPC不能选择provider或任意文件。原模型分数、训练/native权限及checkpoint绑定不变，详见[接线说明](2026-11-01-construction-layers-implementation.md#11-主流程接线机械执行补充)。
+2026-11-01：现有宿主控制器的填卡主流程已自动采用两层评价和配置比较，无须新RPC开关。逐候选记录位于`phase.stage_3.candidate_trace.candidates[*].layer_evaluation`，选择理由位于`layer_selection`，最终`construction_candidate`携带所选评价。正常目录来源缺少具体执行条件时保留unknown；宿主代码可提供`layer_context_provider`，RPC不能选择provider或任意文件。原模型分数、训练/native权限及checkpoint绑定不变，详见[接线说明](../reports/execution/2026-11-01-construction-layers-implementation.md#11-主流程接线机械执行补充)。
 
 现在可用的调用链是 **DP `Client` → JSON Lines/Loopback → `AgentBridge` manager → `HostConstructionBackend` → 已有分类器/构筑控制器/统筹网络**。这证明本地协议和CPU代码组合，不证明CodeBuddy、DeepSeek、DSH等实际外部模型已经连接。
 

@@ -55,4 +55,4 @@ run-004 原始 deck.ydk 保留了修复前的一张骨架导出，是缺陷证�
 
 设备、候选预算、暂停/恢复共 6 项回归通过；导出补修后的 CheckpointTests 3 项通过，合计 7 个不同测试方法，无失败或跳过。4 个受影响编程文件 AST 通过，按既有 CRLF 行尾检查无新增空白错误。未运行全量 CI 或原生故障测试。工作树原有大量未提交、未跟踪修改，本次没有把它们合并成提交，也没有远程推送。
 
-[执行书](../plans/2026-11-11-construction-gpu-trial-execution.md)记录实施范围及实际补修。
+[执行书](execution/2026-11-11-construction-gpu-trial-execution.md)记录实施范围及实际补修。

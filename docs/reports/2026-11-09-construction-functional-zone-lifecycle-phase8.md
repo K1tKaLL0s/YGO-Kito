@@ -14,7 +14,7 @@
 
 `NORMALIZATION_VERSION` 升为 `construction-function-normalization-v7`，旧 v6/v5/v4/v3/v2/v1 规范化评价不得复用。缓存与恢复检查继续消费同一常量。默认 `QUALITY_VERSION` 仍为旧 v3，生产政策、指定参考及旧档迁移没有开始。
 
-本批承接[第七批无操作来源报告](2026-11-09-construction-functional-no-operation-impacts-phase7.md)与[正式方案](../plans/2026-11-08-construction-model-formal-optimization-plan.md)第 12 节步骤三、四。没有重新盘点项目、重做旧研究，未追索、检查或运行 Pro 辅助演示代码。
+本批承接[第七批无操作来源报告](2026-11-09-construction-functional-no-operation-impacts-phase7.md)与[正式方案](../current/construction-scoring.md)第 12 节步骤三、四。没有重新盘点项目、重做旧研究，未追索、检查或运行 Pro 辅助演示代码。
 
 ## 授权、执行与真实文件状态
 

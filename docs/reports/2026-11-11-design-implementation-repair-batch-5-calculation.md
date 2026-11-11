@@ -14,6 +14,6 @@
 
 固定参考和候选通过同一单库存归一化及评分。参考从固定任务、真实牌表和宿主必需用途计算。可选候选图变动后复用同一参考 Evaluation，实际参考卡文、宿主证据、来源或政策变化时重新评价。参考续算沿独立阶段恢复，保存的候选 Evaluation ID、次序和选择在 12 个候选、66 对比较及三片 JSON 恢复中保持一致。F08 原普通失败已转绿，缺少原任务必需用途和参考分零的用例仍得到相应门槛拒绝。规范化 v27、字典 b11。
 
-首次扩大验证误纳入一个包含临时 CPU 模型 forward 的既有测试，在到达该测试后中止批次，保留 `verification-reference-v27.log`。后续按完整方法名剔除它并阻止 Torch 导入。八模块静态组执行 153 项，152 项通过，一条旧随机主题测试仍以实际命中为计分前提。依据用户 11 月 10 日明确纠正更新该验收，只调整这条测试。定向复验中，主题测试及默认静态入口对照均通过。保留随机标记、指定调用见证缺席、Main 浓度和精确分数的断言。六个本批文件的 AST 和空白检查通过。 [用户纠正后的静态执行书](../plans/2026-11-10-construction-static-entries-execution.md)
+首次扩大验证误纳入一个包含临时 CPU 模型 forward 的既有测试，在到达该测试后中止批次，保留 `verification-reference-v27.log`。后续按完整方法名剔除它并阻止 Torch 导入。八模块静态组执行 153 项，152 项通过，一条旧随机主题测试仍以实际命中为计分前提。依据用户 11 月 10 日明确纠正更新该验收，只调整这条测试。定向复验中，主题测试及默认静态入口对照均通过。保留随机标记、指定调用见证缺席、Main 浓度和精确分数的断言。六个本批文件的 AST 和空白检查通过。 [用户纠正后的静态执行书](execution/2026-11-10-construction-static-entries-execution.md)
 
 证据前缀为 `verification-reference-v27-static` 和 `verification-reference-v27-static-theme-correction`，文件检查为 `artifact-validation-reference-final-v27.json`。R6 及后续未完成项目按独立接续继续。 [R6 起独立接续](../handoffs/2026-11-11-design-implementation-repair-after-reference.md)

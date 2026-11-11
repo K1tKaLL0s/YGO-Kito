@@ -25,7 +25,7 @@
 
 本次仅修改 `autonomous_construction.py` 的必需要求归属及对应说明字段，并在 `test_autonomous_construction.py` 增加超过8项识别信息、同时存在墓地触发／融合且保留明确请求的对照。原非请求标签候选检查与新增边界检查共2项通过，用时46.383秒；两个修改文件的语法检查通过。没有运行整组训练或模型测试，也没有增加模型更新。
 
-[执行书](../plans/2026-11-09-construction-runtime-boundary-fix.md)已记录修复范围；[机器摘要](../../.cache/construction-run-2207-20261109/summary.json)、[两次运行日志](../../.cache/construction-run-2207-20261109/run.log)、[最后一次完整错误](../../.cache/construction-run-2207-20261109/failure.json)、[模型选定任务](../../.cache/construction-run-2207-20261109/task.json)、[模型选择记录](../../.cache/construction-run-2207-20261109/selection.json)及[参考池差异](../../.cache/construction-run-2207-20261109/reference-pool-difference.json)均保留。日志含两次失败摘要，错误JSON保存最后一次堆栈。临时调用脚本在尝试结束后删除，不留下第二个产品入口。
+[执行书](execution/2026-11-09-construction-runtime-boundary-fix.md)已记录修复范围；[机器摘要](../../.cache/construction-run-2207-20261109/summary.json)、[两次运行日志](../../.cache/construction-run-2207-20261109/run.log)、[最后一次完整错误](../../.cache/construction-run-2207-20261109/failure.json)、[模型选定任务](../../.cache/construction-run-2207-20261109/task.json)、[模型选择记录](../../.cache/construction-run-2207-20261109/selection.json)及[参考池差异](../../.cache/construction-run-2207-20261109/reference-pool-difference.json)均保留。日志含两次失败摘要，错误JSON保存最后一次堆栈。临时调用脚本在尝试结束后删除，不留下第二个产品入口。
 
 ## 全卡池范围与同名卡号排查
 

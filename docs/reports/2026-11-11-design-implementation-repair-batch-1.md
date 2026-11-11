@@ -1,6 +1,6 @@
 # 设计实现修复第一批
 
-日期：2026-11-11，Asia/Hong_Kong。承接用户“现在启动修复，严格依照设计和 R0—R11 方案逐包推进并验收”的新指令；由主进程执行，未启动子代理。本批按[机械执行书](../plans/2026-11-10-design-implementation-repair-execution.md)实施，当前为分包进度，不是R0—R11全部完成。
+日期：2026-11-11，Asia/Hong_Kong。承接用户“现在启动修复，严格依照设计和 R0—R11 方案逐包推进并验收”的新指令；由主进程执行，未启动子代理。本批按[机械执行书](execution/2026-11-10-design-implementation-repair-execution.md)实施，当前为分包进度，不是R0—R11全部完成。
 
 ## 包与缺陷状态
 

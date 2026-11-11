@@ -15,7 +15,7 @@
 | T5 环境 | 固定底座外 head_only/lora_head/full_copy 三路，反馈隔离、来源等权损失、独立保存与恢复、校准/评估入口、默认 disabled 及显式环境 provider。 |
 | CB 提示接口 | 核对 _candidate_basic_cb 只调用传入 callable；人工 callable 支持握手通过。真实搜索、provider 和原生入口被 guard 拦截，禁止调用计数 0。 |
 
-主要新增为 multifactor/calibration.py、multifactor/environment.py、training/axis_generic/workflow_v3.py、environment_v3.py 和两份仍暂停的配置。完整 API/CLI、输入字段、恢复和真实阶段顺序见[使用说明](../development/axis-generic-software-v3.md)；修改前已交付[机械执行补充](../plans/2026-11-09-axis-generic-software-completion.md)。
+主要新增为 multifactor/calibration.py、multifactor/environment.py、training/axis_generic/workflow_v3.py、environment_v3.py 和两份仍暂停的配置。完整 API/CLI、输入字段、恢复和真实阶段顺序见[使用说明](../development/axis-generic-software-v3.md)；修改前已交付[机械执行补充](execution/2026-11-09-axis-generic-software-completion.md)。
 
 ## 实际工程证据
 

@@ -4,7 +4,7 @@
 
 当前实际状态：本轮run-007已从run-006异常处理保存的最新完整kernel立即续算；run-006在保存替换时一次PermissionError自行退出，未主动停止。规范化v21／积木b7，94个必要方法同组通过、23文件检查通过；本次23文件源码摘要再次一致，没有修改代码或重复测试，绑定仍为`source-binding-quality-boundary.json`。原任务、图、12份牌表和顺序保留，原3个Evaluation ID保持；12份候选已全部返回Evaluation并通过同口径不变量核对，当前正在评价原指定参考。12份均仍有静态覆盖缺口，尚未宣布参考完成／Gate通过／整体W1／W4完成。下方run-001—006均按各自阶段保留真实证据；最新行为和路径以本段及本报告末节为准。
 
-2026-11-10，Asia/Hong_Kong。源码 `N:\YGO-Kito\_publish_20261030`，分支 `codex/optimization-20261031`、HEAD `3f57198`；主进程实施，无子代理，不提交推送，全部既有修改、删除和未跟踪成果保留。[机械执行书](../plans/2026-11-10-construction-condition-selection-execution.md)已在修改生产代码前交付。
+2026-11-10，Asia/Hong_Kong。源码 `N:\YGO-Kito\_publish_20261030`，分支 `codex/optimization-20261031`、HEAD `3f57198`；主进程实施，无子代理，不提交推送，全部既有修改、删除和未跟踪成果保留。[机械执行书](execution/2026-11-10-construction-condition-selection-execution.md)已在修改生产代码前交付。
 
 已实际回读来源聊天 `01a1c384-5067-7c73-8bb9-6c08ff5ed05f` 的最新运行阶段约束、`01a1c341-36c0-7530-a5fd-3bc02c6c23bc` 的时间纠正，以及 `01a1bc6f-1bc7-7952-8f03-3ac9d27ce0b6` 的静态纠正与 S0—S6。没有待答问题。本次新开继续已经授权；进入尝试跑通构筑流程后，不为上下文、交接或新开聊天主动停止进程。
 

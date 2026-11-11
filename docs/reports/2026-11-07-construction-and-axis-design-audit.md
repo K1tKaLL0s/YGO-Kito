@@ -11,7 +11,7 @@
 - 当前权威检出 `N:\YGO-Kito\_publish_20261030` 及其历史工作树。
 - 第一段会话 `session-1c303d24-b107-4076-a24b-10ff1b27ef4d`（构筑设计与评分）。
 - 第二段会话 `session-73fc4d5a-a19f-4b63-b130-e23359162b79`（轴与泛用识别）。
-- 原始设计定稿 [游戏王AI项目设计定稿.docx](../current/游戏王AI项目设计定稿.docx)。
+- 原始设计定稿 [游戏王AI项目设计定稿.docx](../current/architecture.md)。
 - 新上传构筑文档 `C:\Users\27499\Desktop\YGO-Kito_构筑流程与评分机制_完整优化方案_2026-11-03.docx`（修订版 2.0，SHA256 `72704f08f977f7f20fa2c6005774c26e940dfd48ee8db84cbab4fcc23c0d12bf`）。
 - 新上传问题陈述 `C:\Users\27499\Desktop\YGO-Kito_问题陈述_路线目标与基础CB_2026-11-04.docx`。
 
@@ -101,7 +101,7 @@
 
 [construction_quality.py:934](../../src/ygo_kito/construction_quality.py#L934-L963) 比较毛收益 value／bounds，忽略 net／loss／slot penalty；全树只有定义与测试调用。属潜在 API 问题，不能描述成"当前候选排序必然忽略扣分"。
 
-**边界纠正**：未跟踪的 [construction_contract.py](../../src/ygo_kito/construction_contract.py) 是无运行时消费者的未授权 M1 草案，其 70/56 与时期 substring 不能当在用缺陷。严格偏好学习确有消费链路（[construction_learning.py:114](../../src/ygo_kito/construction_learning.py#L114-L149)、[local_course_collaboration.py:261](../../scripts/local_course_collaboration.py#L261-L275)）；当前暂停与 updates=0 ≠ 代码永不训练。
+**边界纠正**：未跟踪的 construction_contract.py（历史源码路径：`../../src/ygo_kito/construction_contract.py`，现行已替代） 是无运行时消费者的未授权 M1 草案，其 70/56 与时期 substring 不能当在用缺陷。严格偏好学习确有消费链路（[construction_learning.py:114](../../src/ygo_kito/construction_learning.py#L114-L149)、[local_course_collaboration.py:261](../../scripts/local_course_collaboration.py#L261-L275)）；当前暂停与 updates=0 ≠ 代码永不训练。
 
 ## 4. 轴／泛用模块：设计完善度、实现程度与质量
 
@@ -117,8 +117,8 @@
 
 ### 4.2 实现程度
 
-- P0 是实改，但不是全迁移：主动入口已无 `site.addsitedir`（仅历史 `diagnose_existing.py` 保留）；`actor_absent`→None、`plan_known` 硬门控已撤（[prepare_base.py:120](../../training/axis_generic/prepare_base.py#L120-L148)、[scoring.py:145](../../src/ygo_kito/multifactor/scoring.py#L145-L149)）；数据配置指向 N 盘。但默认 [config.json:10](../../training/axis_generic/config.json#L10) 仍指旧 `v7-repo-001`，[prepare_base.py:60](../../training/axis_generic/prepare_base.py#L60-L61) 发现已有 dataset 就直接返回，旧缓存不会自动迁移。
-- 确定性只条件性成立：`resolve_plan` 与 SQL 排序已稳定、种子已固定，但 `extra_ids` 仍按 set 遍历，`PYTHONHASHSEED` 只警告，`gzip.open` 未固定 mtime（[runtime.py:8](../../training/axis_generic/runtime.py#L8-L30)、[prepare_base.py:193](../../training/axis_generic/prepare_base.py#L193-L201)）。固定启动环境下逻辑内容稳定，不能宣称无前提的逐字节可复现。
+- P0 是实改，但不是全迁移：主动入口已无 `site.addsitedir`（仅历史 `diagnose_existing.py` 保留）；`actor_absent`→None、`plan_known` 硬门控已撤（prepare_base.py:120（历史源码路径：`../../training/axis_generic/prepare_base.py#L120-L148`，现行已替代）、[scoring.py:145](../../src/ygo_kito/multifactor/scoring.py#L145-L149)）；数据配置指向 N 盘。但默认 config.json:10（历史源码路径：`../../training/axis_generic/config.json#L10`，现行已替代） 仍指旧 `v7-repo-001`，prepare_base.py:60（历史源码路径：`../../training/axis_generic/prepare_base.py#L60-L61`，现行已替代） 发现已有 dataset 就直接返回，旧缓存不会自动迁移。
+- 确定性只条件性成立：`resolve_plan` 与 SQL 排序已稳定、种子已固定，但 `extra_ids` 仍按 set 遍历，`PYTHONHASHSEED` 只警告，`gzip.open` 未固定 mtime（[runtime.py:8](../../training/axis_generic/runtime.py#L8-L30)、prepare_base.py:193（历史源码路径：`../../training/axis_generic/prepare_base.py#L193-L201`，现行已替代））。固定启动环境下逻辑内容稳定，不能宣称无前提的逐字节可复现。
 - 新契约未进活动链路：[analysis.py:99](../../src/ygo_kito/multifactor/analysis.py#L99-L125) 的 `migrate_v2_input` 只加 v3 envelope，[contracts.py:450](../../src/ygo_kito/multifactor/contracts.py#L450-L455) 的活动 `RoleInput.from_dict` 仍拒绝该产物（纯 CPU 探针证实）；训练仍读 legacy 五头浮点目标（[training.py:54](../../src/ygo_kito/multifactor/training.py#L54-L82)），不消费 `LabelCell`；conditions／splits／新 metrics 无 prepare／train／inference 消费者；mechanism 只是序列化元数据，未成监督或预测头。
 - 应保留的旧能力：None 损失掩码、五独立角色输出、结构与构筑双 view、整包不广播成员标签都是真实现，不能说模型不存在。
 

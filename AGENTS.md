@@ -2,7 +2,7 @@
 
 先读[资料与实际运行位置](docs/current/README.md)，其中链接设计原件、有效修订和当前源码；构筑按最新S0—S6及后续有效评分细节执行，不从预筛卡片反推逻辑或封闭整副卡池。历史报告不能覆盖用户后续确认。
 
-先读 README、`docs/plans/2026-10-22-unified-development-spec.md`（包括第18节）、MASTER-CHECKLIST，以及当前 `docs/development/generic-agent-integration.md` 和 `construction-logic.md`。原件/历史报告不是当前能力证明，当前明确用户指令优先。
+先读 README、`docs/current/README.md` 及其总体、流程、评分、接口、训练正文；操作接口见 `docs/development/generic-agent-integration.md`。原件/历史报告不是当前能力证明，当前明确用户指令优先。
 
 - 本仓库是完整项目；DP 的 `_work` 为部分审查副本，不能独立启动。使用当前完整检出及已安装 CPU Python，不依赖关闭的本机。
 - 构筑逻辑为无卡 ID 轻量图，标签与粗连接独立。狭义才筛主轴；广义跳过第二阶段但保留图。目标→优化不得静默改变用户目标；未知卡效/未验图边不得宣传为合法 CB。

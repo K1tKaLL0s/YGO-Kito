@@ -32,7 +32,7 @@ from ygo_kito.validation import ContractError, fields, parse_json
 
 MANIFEST = "deployment-manifest.json"
 PREFIXES = ("src/", "scripts/", "tests/", "integration_tests/", "configs/", "requirements/",
-            "docs/development/", "docs/plans/")
+            "docs/development/", "docs/plans/", "docs/current/", "docs/examples/")
 ROOT_FILES = {"README.md", "AGENTS.md", "pyproject.toml"}
 REQUIRED_FILES = ROOT_FILES | {"src/ygo_kito/__main__.py", "src/ygo_kito/cli.py",
     "scripts/deployment_prepare.py", "scripts/training_handoff.py", "scripts/check_merge_candidate.py",

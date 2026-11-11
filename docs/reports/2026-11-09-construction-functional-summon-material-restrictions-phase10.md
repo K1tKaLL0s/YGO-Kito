@@ -14,7 +14,7 @@
 
 `NORMALIZATION_VERSION` 升为 `construction-function-normalization-v9`。默认 `QUALITY_VERSION` 仍为 `construction-quality-evaluation-v3`。旧 v8 及更早规范化评价不能复用到当前绑定；生产政策、2207/2210 参考、2610 显式无参考和旧档迁移仍未开始。
 
-本批承接[第九批报告](2026-11-09-construction-functional-hand-restrictions-phase9.md)与[正式方案](../plans/2026-11-08-construction-model-formal-optimization-plan.md)第 12 节。第八批实体生命周期、离场除外与第九批抽卡/加手限制继续复用。
+本批承接[第九批报告](2026-11-09-construction-functional-hand-restrictions-phase9.md)与[正式方案](../current/construction-scoring.md)第 12 节。第八批实体生命周期、离场除外与第九批抽卡/加手限制继续复用。
 
 ## 原始记录、数据流与边界
 

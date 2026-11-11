@@ -4,7 +4,7 @@
 2026-10-27。本分支从 `c1157ca5add6c29149eccf7106226b1099e63d8c` 接入用户导出的
 `20261027-foundation-002`，保留原始包、清单、源码补丁和恢复状态。后续以本仓库分支为来源。
 
-当前设计依据为 [训练设计复核](../plans/2026-10-27-training-design-reconciled.md)
+当前设计依据为 [训练设计复核](../reports/design-sources/2026-10-27-user-requirements.md)
 和 [源码差异复核](../reports/2026-10-27-training-design-code-gaps.md)。后者描述基准提交，
 其中部分缺口已由此分支的源码补丁处理，不能把历史差异全部当作当前仍缺。
 

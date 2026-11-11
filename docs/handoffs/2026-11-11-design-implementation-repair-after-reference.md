@@ -6,13 +6,13 @@
 
 唯一完整源码检出是 `N:\YGO-Kito\_publish_20261030`，分支 `codex/optimization-20261031`，HEAD `3f57198e5e366152bbb672be8910e6800f8adbb4`。工具默认可能落在外层，所有源码及运行命令显式使用完整检出。现有工作树混杂，大量功能文件为原有 untracked；继续实际文件，不 reset、clean、restore、从 HEAD 重建、清理既有成果或提交、推送、合并。跳过 Pro 附带辅助核验代码的读取、运行及重建。训练、权重推理、参数更新、完整构筑、CB/native、GPU/PC 实测、安装和 run-007 处于既有暂停。授权范围包含纯静态软件测试、调度替身和离线标签合同。不改原生 ABI/guard，不做越界、SIGSEGV、故障注入、全局杀 Python、重启、凭据或权限变更。
 
-从 [当前索引](../current/README.md) 进入 S0—S6、正式评分、统一规范和 11 月 4 日扣分设计，再看 [逐包方案](../plans/2026-11-10-design-implementation-repair-plan.md)、[机械执行书](../plans/2026-11-10-design-implementation-repair-execution.md) 及 [F01—F19 审计](../reports/2026-11-10-design-implementation-audit.md)。旧的待命、权限待答和 run-007 运行中记录是历史。
+从 [当前索引](../current/README.md) 进入 S0—S6、正式评分、统一规范和 11 月 4 日扣分设计，再看 [逐包方案](../reports/execution/2026-11-10-design-implementation-repair-plan.md)、[机械执行书](../reports/execution/2026-11-10-design-implementation-repair-execution.md) 及 [F01—F19 审计](../reports/2026-11-10-design-implementation-audit.md)。旧的待命、权限待答和 run-007 运行中记录是历史。
 
 S0固定任务、硬条件、路线/必需发动、全时期池和区域。S1先做无卡 ID 逻辑，狭义才筛必需系列/种族轴，广义保留图。S2多轮优化及继续召回。S3候选和用户固定参考共享评价器及政策。S4完整合法候选按最终S排序，模型用于调度及同分辅助，选择、反馈和学习使用同一 Evaluation。S5保留合法性、配套、完整性和0.8参考比例，完成失败回S2，连续两次才提示。S6仅在静态通过且另获授权后执行 CB，两次正常失败回S2。开发无上线总时限/总次数，上线到期停新增并排空 S3—S5，用户停止优先。保留 log2、P/V1/V2/S、Main E1/0.9、Extra1/0.8、实际 Main 40–60、主题 +100%/+50%、Side 方向及参考比例。ID 用于实体及出处，代码沿同一事实、共享分配和唯一评分，不按具体卡名/ID补丁。静态配置从印刷能力和固定库存判断，不要求实际手牌、盘面、对方对象、特定随机命中或实际操作顺序。区分待算、语义未知和硬失败。
 
 ## 已完成、真实文件和证据
 
-第一至第四批已关闭 R0、R1/R2 已报告的语义回归、R3 中的共享 DFS 和关系 facts→uses→joint 续算、R4/F06/F07、R8/F12。第四批 F04 原 129 替代反例已通过。首批、空墓和第四批验证结果只说明当时源码，不需重复。此后的真实工作见 [第五批计算和卡文记录](../reports/2026-11-11-design-implementation-repair-batch-5-calculation.md) 及 [固定参考执行书](../plans/2026-11-11-design-implementation-repair-reference-execution.md)。
+第一至第四批已关闭 R0、R1/R2 已报告的语义回归、R3 中的共享 DFS 和关系 facts→uses→joint 续算、R4/F06/F07、R8/F12。第四批 F04 原 129 替代反例已通过。首批、空墓和第四批验证结果只说明当时源码，不需重复。此后的真实工作见 [第五批计算和卡文记录](../reports/2026-11-11-design-implementation-repair-batch-5-calculation.md) 及 [固定参考执行书](../reports/execution/2026-11-11-design-implementation-repair-reference-execution.md)。
 
 R3 收口文件为 `src/ygo_kito/multifactor/conditions.py`、`construction_layer_flow.py`、`construction_quality.py`、`effect_records.py`、`effect_blocks.py`、`effect_block_rules.py` 及 `tests/test_multifactor_conditions.py`、`test_construction_static_entries.py`、`test_construction_functional_quality.py`、`test_construction_calculation_resume.py`、`test_construction_text_completion.py`。状态安排和随机实体分别保存 DFS/分配游标，随机全真/全假/混合保留对应确定性，费用及后续依赖的实际去向经替代核对。质量用 `functional-quality-work-v1` 保存一致补全索引和已解释失分；同一公式、完成才生成 Evaluation。卡片炮击士同形卡文的 1..N 随机费用、按实付量增益、破坏且送达墓地触发已接默认入口。三个支付选择共享一项功能。对实际中文库核对后，将有明确投入措辞的条款归为投入限制，未绑定选取数量仍有来源及局部作用域，已知费用范围消费原文片段。v26/b11 的合并静态 360 项无失败、错误、跳过、Torch 加载，11 个文件的 AST 与空白通过。字典保持 b11，当前规范化已因 R5 的原任务必要库存判定升为 v27，评分仍 v4。KONAMI 官方牌顶、翻开后选择、去向替代、卡片炮击士资料及差异详见第五批记录。已识别的具体余项直接按原文修，不能用待问代替实施；官方和原设计仍无法定界的少数内容等其他修复完成后一次问。
 

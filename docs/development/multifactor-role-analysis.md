@@ -140,7 +140,7 @@ v1 不自动从文本估计以上量尺；不兼容的测量协议须分开数�
 
 2026-10-28 读取共享快照 `fefd44c` 的原训练设计，以及效果窗口 `0850819` 的 `CardSemantics.to_dict()` / `EffectSemantics`（`public-effect-clauses-v2`）和构筑窗口 `041c72b` 的 `BuildTask` / `FillProposal` / `construction_candidates`。它们不是本模块的运行依赖，后续提交也不能假定已经部署。效果适配器只接收 dict 快照；数量/空间/可达性须调用方用当前资产补充。`construction_mechanism_groups()` 的 group_id/zones/source 可由宿主映射到本模块节点，不能从其存在推导角色真值。
 
-原需求依据：[训练设计复核](../plans/2026-10-27-training-design-reconciled.md)、[构筑逻辑](construction-logic.md)。本次只新增专属包、测试、说明及本地证据，不改四个活跃模型/管线或原 checkpoint。
+原需求依据：[训练设计复核](../reports/design-sources/2026-10-27-user-requirements.md)、[构筑逻辑](construction-logic.md)。本次只新增专属包、测试、说明及本地证据，不改四个活跃模型/管线或原 checkpoint。
 
 ## 调用与恢复
 

@@ -8,7 +8,7 @@
 
 一个真实记录解析路径的静态场景已闭合：己方墓地具名回收到手卡，连接宿主明确声明的“手卡消费到墓地→回收→再次手卡消费”。返回见证包含原始来源、起止区域、所有方、控制方、有限候选实体与实际分配槽位，并进入绑定用途、原任务硬条件及最终 Evaluation。把此前消费去向改成除外，返回来源仍在牌表中，原共同要求会失败，最终分数上界下降。将实际对象只放在 Side，同样不能支撑常驻要求。
 
-本批承接[第五批完整基线](2026-11-09-construction-functional-global-recovery-phase5.md)和[正式方案](../plans/2026-11-08-construction-model-formal-optimization-plan.md)第 12 节步骤三、四。先完整读取第五批报告、代码执行细则、preserve-intent-and-execute 和 anti-overengineering；未重新盘点项目，未追索、检查或运行 Pro 辅助演示代码。第五批已有的全局资源重查、单返回事件、费用顺序和消费者失效继续复用。
+本批承接[第五批完整基线](2026-11-09-construction-functional-global-recovery-phase5.md)和[正式方案](../current/construction-scoring.md)第 12 节步骤三、四。先完整读取第五批报告、代码执行细则、preserve-intent-and-execute 和 anti-overengineering；未重新盘点项目，未追索、检查或运行 Pro 辅助演示代码。第五批已有的全局资源重查、单返回事件、费用顺序和消费者失效继续复用。
 
 `NORMALIZATION_VERSION` 现为 `construction-function-normalization-v5`，旧 v4/v3/v2/v1 规范化评价应失效。现有评价缓存和恢复检查已经读取该常量，本批未另建缓存机制。默认 `QUALITY_VERSION` 仍为旧 v3；真实生产政策、指定参考、旧档迁移和旧层回退退出尚未实施。
 

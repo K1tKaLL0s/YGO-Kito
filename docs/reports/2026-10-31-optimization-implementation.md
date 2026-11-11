@@ -1,6 +1,6 @@
 # 2026-10-31 A/B/C 优化实施与隔离验证
 
-对应用户要求：先交付机械执行书，再完成 A 线收尾、B 线评分与基础 CB、C 线真实学习闭环；正式训练继续暂停。执行书见 [mechanical execution](../development/optimization-20261031-execution.md)。代码基线为 `3f57198`，工作分支 `codex/optimization-20261031`，修改尚未提交。
+对应用户要求：先交付机械执行书，再完成 A 线收尾、B 线评分与基础 CB、C 线真实学习闭环；正式训练继续暂停。执行书见 [mechanical execution](execution/optimization-20261031-execution.md)。代码基线为 `3f57198`，工作分支 `codex/optimization-20261031`，修改尚未提交。
 
 ## 已实现行为
 

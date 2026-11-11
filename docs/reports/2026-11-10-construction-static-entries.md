@@ -1,6 +1,6 @@
 # W1／W4 默认静态用途、分支和融合素材
 
-2026-11-10，Asia/Hong_Kong。实际源码为 `N:\YGO-Kito\_publish_20261030`，沿用分支 `codex/optimization-20261031`、HEAD `3f57198` 的现有检出，保留全部未提交成果。主进程实施，无子代理、训练或CB，不提交推送。[机械执行书](../plans/2026-11-10-construction-static-entries-execution.md)已在修改长期代码前交付。
+2026-11-10，Asia/Hong_Kong。实际源码为 `N:\YGO-Kito\_publish_20261030`，沿用分支 `codex/optimization-20261031`、HEAD `3f57198` 的现有检出，保留全部未提交成果。主进程实施，无子代理、训练或CB，不提交推送。[机械执行书](execution/2026-11-10-construction-static-entries-execution.md)已在修改长期代码前交付。
 
 ## 用户纠正与实现
 

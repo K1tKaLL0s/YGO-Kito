@@ -1,6 +1,6 @@
 # 固定区域协议、构筑语义和对手工程验收
 
-本批沿[统一设计](../plans/2026-10-22-unified-development-spec.md)，在同一云端、分支与[PR #1](https://github.com/K1tKaLL0s/YGO-Kito/pull/1)继续。原始设计及学习TODO保持，main不改、不合并、不付费、不配凭据或改权限。执行和[复现入口](../development/semantic-indexed-opponents.md)均在`/workspace/YGO-Kito`；[总表](../plans/MASTER-CHECKLIST.md)保留各阶段门槛。
+本批沿[统一设计](../current/architecture.md)，在同一云端、分支与[PR #1](https://github.com/K1tKaLL0s/YGO-Kito/pull/1)继续。原始设计及学习TODO保持，main不改、不合并、不付费、不配凭据或改权限。执行和[复现入口](../development/semantic-indexed-opponents.md)均在`/workspace/YGO-Kito`；[总表](../plans/MASTER-CHECKLIST.md)保留各阶段门槛。
 
 ## 本批实际交付
 

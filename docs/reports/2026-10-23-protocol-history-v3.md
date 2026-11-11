@@ -1,6 +1,6 @@
 # MSG23 特殊求和、其余常规提示与合法公开历史
 
-日期：2026-10-23（UTC+8）。执行位置 `/workspace/YGO-Kito`，分支 `codex/phase-1-cpu-foundation`；承接[统一设计 1.1](../plans/2026-10-22-unified-development-spec.md)、[总清单](../plans/MASTER-CHECKLIST.md)和[上一批交接](2026-10-23-discovery-curriculum.md)。本批不改变原设计、用户学习角色、三执行模型／统筹分工、LoRA 路线或手机暂缓范围。
+日期：2026-10-23（UTC+8）。执行位置 `/workspace/YGO-Kito`，分支 `codex/phase-1-cpu-foundation`；承接[统一设计 1.1](../current/architecture.md)、[总清单](../plans/MASTER-CHECKLIST.md)和[上一批交接](2026-10-23-discovery-curriculum.md)。本批不改变原设计、用户学习角色、三执行模型／统筹分工、LoRA 路线或手机暂缓范围。
 
 ## 本批实际交付
 

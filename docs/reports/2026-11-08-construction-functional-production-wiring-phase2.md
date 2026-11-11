@@ -8,7 +8,7 @@
 
 这是生产接线的一批实现，不是整个正式方案完成。真实效果的共同资源、主题配套及 Side 情境尚未全部适配，相关范围保留 unknown/deferred。真实 2207/2210 参考、2610 政策配置未写入或重评。`QUALITY_VERSION` 仍为旧 v3；公开 `evaluate_quality/compare_quality` 已能按显式 v4 输入分派，旧百分制实现和非 v4 候选路径仍保留。没有默认启用未完成的 v4 生产政策。
 
-继续依据[正式方案](../plans/2026-11-08-construction-model-formal-optimization-plan.md)第 12 节。上一批内核证据见[phase1](2026-11-08-construction-functional-core-phase1.md)，不要重新盘点项目或重跑其未变化的全部用例。
+继续依据[正式方案](../current/construction-scoring.md)第 12 节。上一批内核证据见[phase1](2026-11-08-construction-functional-core-phase1.md)，不要重新盘点项目或重跑其未变化的全部用例。
 
 ## 授权与执行边界
 

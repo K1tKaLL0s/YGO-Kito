@@ -22,7 +22,7 @@ M0 保存、M1–M6 源码及 M7 文档/专用源码已经交付。M7 的 Q1–Q
 
 关键入口：
 
-- [主执行书](../plans/2026-11-08-axis-generic-execution-plan.md)，特别第 4、8 节的整个模块设计与 T1–T5；[M7 索引](2026-11-09-axis-generic-m7.md)记录 A01–A10、V01–V30 的已验子范围。
+- [主执行书](execution/2026-11-08-axis-generic-execution-plan.md)，特别第 4、8 节的整个模块设计与 T1–T5；[M7 索引](2026-11-09-axis-generic-m7.md)记录 A01–A10、V01–V30 的已验子范围。
 - [当前开发说明](../development/multifactor-role-analysis.md)；仓库 `AGENTS.md` 及其引用的统一规范、构筑/训练说明。用户最新权限优先于历史说明。
 - `src/ygo_kito/multifactor/{contracts,conditions,semantics,axis_candidates,network,graph_network,task_queries,training,graph_training,scoring,adapters,analysis}.py`。
 - `training/axis_generic/{prepare_v3,train_v3,assessment}.py`、`config.v3.json`、`config.train.v3.json`、`ASSESSMENT_PROTOCOL.v3.json`。

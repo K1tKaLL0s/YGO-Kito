@@ -1,6 +1,6 @@
 # 空状态联合消费修复
 
-2026-11-11，Asia/Hong_Kong。主进程在原完整检出继续，无子代理、新工作树、提交或安装。依据[状态专项执行书](../plans/2026-11-11-design-implementation-repair-state-execution.md)，原空墓联合反例已转绿。当前十个明确安全静态模块按完整测试ID去重292项全部通过，0失败/错误/跳过、`torch_loaded=false`。R3、R5及后续包尚未完成，完整CI未执行，训练/推理/CB/native/完整构筑/run-007仍暂停。
+2026-11-11，Asia/Hong_Kong。主进程在原完整检出继续，无子代理、新工作树、提交或安装。依据[状态专项执行书](execution/2026-11-11-design-implementation-repair-state-execution.md)，原空墓联合反例已转绿。当前十个明确安全静态模块按完整测试ID去重292项全部通过，0失败/错误/跳过、`torch_loaded=false`。R3、R5及后续包尚未完成，完整CI未执行，训练/推理/CB/native/完整构筑/run-007仍暂停。
 
 ## 接入的实际行为
 
@@ -28,4 +28,4 @@ AST/空白检查覆盖这四个实际程序文件，Git差异按项目CRLF口径
 
 本批最后明确复验的R3/F04、R5/F08仍为两个普通失败，0错误/跳过、未加载Torch；见同证据目录`open-regressions.log/json`。AST/行尾最后复验仍零错误。所有本主进程测试command sessions均已结束。
 
-R3仍须使共享分配、状态安排及其实体分配预算真正续接，保留随机身份分支的影响，不以有利随机命中或避开替代确定结论；R3关系与质量阶段的128截断/重算也未在本批修改。R5参考仍须独立于候选可选图。下一步按[真实续算执行书](../plans/2026-11-11-design-implementation-repair-resume-execution.md)和[完整独立接续](../handoffs/2026-11-11-design-implementation-repair-batch-3-continuation.md)实施，不能将本专项通过写成全部软件完成或完整构筑通过。
+R3仍须使共享分配、状态安排及其实体分配预算真正续接，保留随机身份分支的影响，不以有利随机命中或避开替代确定结论；R3关系与质量阶段的128截断/重算也未在本批修改。R5参考仍须独立于候选可选图。下一步按[真实续算执行书](execution/2026-11-11-design-implementation-repair-resume-execution.md)和[完整独立接续](../handoffs/2026-11-11-design-implementation-repair-batch-3-continuation.md)实施，不能将本专项通过写成全部软件完成或完整构筑通过。

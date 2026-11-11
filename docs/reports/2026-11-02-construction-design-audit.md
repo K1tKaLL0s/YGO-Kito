@@ -8,7 +8,7 @@
 
 核验前已交付执行书：主进程对照设计，追踪真实入口和消费者；发现疑点后只做明确的隔离复现；CB、原生引擎或训练所需步骤不执行；产出可追溯问题和保留／迁移／删除判断。没有子代理或待答问题。
 
-依据包括[原设计定稿](../current/游戏王AI项目设计定稿.docx)（特别是缺口再检索与构筑迭代）、[统一规范](../plans/2026-10-22-unified-development-spec.md)第2、3、5、18节、[第一层r3.1](../plans/2026-11-01-effect-block-axis-layer.md)、[第二层r3](../plans/2026-11-01-relationship-closure-layer.md)，以及现行[构筑入口说明](../development/construction-logic.md)。新明确设计优先；旧设计的基础CB步骤本轮受用户禁止CB指令约束，不运行它来补验。
+依据包括[原设计定稿](../current/architecture.md)（特别是缺口再检索与构筑迭代）、[统一规范](../current/architecture.md)第2、3、5、18节、[第一层r3.1](../current/construction-workflow.md)、[第二层r3](../current/construction-scoring.md)，以及现行[构筑入口说明](../development/construction-logic.md)。新明确设计优先；旧设计的基础CB步骤本轮受用户禁止CB指令约束，不运行它来补验。
 
 ## 2. 发现的问题
 
@@ -28,7 +28,7 @@
 
 最小复现使用相同匿名候选和固定模型分数9／1：两层已明确选择有配套的候选1；`rank_after_update`选择缺件候选0；`select_retained`接受并重新带回已知缺口，还写入“完成公平比较”。复现没有执行优化器更新，也没有实际公平对局比较，证明的是该生产重选函数的控制流。真实课程只有在取得完整rubric分差并执行该分支后才会触发，本次未启动课程。
 
-位置：[课程重选及写入](../../scripts/local_course_collaboration.py#L247)、[纯模型argmax](../../src/ygo_kito/rubric_learning.py#L9)、[无条件比较来源](../../src/ygo_kito/construction_candidates.py#L352)。第一层设计第4.5节明确仅在取舍、等价和未知时继续使用旧模型次序；当前分支超出了该范围。
+位置：[课程重选及写入](../../scripts/local_course_collaboration.py#L247)、纯模型argmax（历史源码路径：`../../src/ygo_kito/rubric_learning.py#L9`，现行已替代）、[无条件比较来源](../../src/ygo_kito/construction_candidates.py#L352)。第一层设计第4.5节明确仅在取舍、等价和未知时继续使用旧模型次序；当前分支超出了该范围。
 
 处置方向：统一候选重选接口，模型分数重选保留两层已确定的优先关系；真实对局比较改选单独记录其来源和范围。不要让模型重排冒用已完成公平比较的来源。
 

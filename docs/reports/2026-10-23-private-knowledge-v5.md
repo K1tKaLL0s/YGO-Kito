@@ -1,6 +1,6 @@
 # 私有确认、隐藏卡组与盖放宿主 v5 验收
 
-本批沿[统一设计](../plans/2026-10-22-unified-development-spec.md)，继续同一云端、同一工作分支与[PR #1](https://github.com/K1tKaLL0s/YGO-Kito/pull/1)。[可重复入口](../development/private-knowledge-v5.md)、[总清单](../plans/MASTER-CHECKLIST.md)和[公开证据索引](private-knowledge-v5-evidence/README.md)为当前交接入口。没有修改main、合并、付费资源/外部调用、凭据权限或学习TODO。
+本批沿[统一设计](../current/architecture.md)，继续同一云端、同一工作分支与[PR #1](https://github.com/K1tKaLL0s/YGO-Kito/pull/1)。[可重复入口](../development/private-knowledge-v5.md)、[总清单](../plans/MASTER-CHECKLIST.md)和[公开证据索引](private-knowledge-v5-evidence/README.md)为当前交接入口。没有修改main、合并、付费资源/外部调用、凭据权限或学习TODO。
 
 ## 本批交付与边界
 

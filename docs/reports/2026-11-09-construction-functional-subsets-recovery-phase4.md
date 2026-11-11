@@ -6,7 +6,7 @@
 
 本批闭合了第三批留下的部分供给子集问题，并在已有整数分配器上接通多池重叠及三个消费阶段内的连续返回。返回事实、数量、前置费用、独立分支与宿主顺序共同参与检查。增加了原任务必需采用、但不计正分的显式来源，使其强制影响和损失解释不再依赖虚构一份正收益。
 
-这是[正式方案](../plans/2026-11-08-construction-model-formal-optimization-plan.md)第 12 节步骤三、四的继续实施，承接[第三批完整基线](2026-11-09-construction-functional-resources-side-phase3.md)。`NORMALIZATION_VERSION` 现为 `construction-function-normalization-v3`，旧 v2 规范化评价必须失效。默认 `QUALITY_VERSION` 仍为旧 v3；没有迁移生产政策或参考，没有把显式 v4 路径宣布为默认上线。
+这是[正式方案](../current/construction-scoring.md)第 12 节步骤三、四的继续实施，承接[第三批完整基线](2026-11-09-construction-functional-resources-side-phase3.md)。`NORMALIZATION_VERSION` 现为 `construction-function-normalization-v3`，旧 v2 规范化评价必须失效。默认 `QUALITY_VERSION` 仍为旧 v3；没有迁移生产政策或参考，没有把显式 v4 路径宣布为默认上线。
 
 ## 授权与执行书
 

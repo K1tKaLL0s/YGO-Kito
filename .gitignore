@@ -55,3 +55,7 @@ dist/
 /artifacts/checkpoints/*.tar.gz
 /artifacts/feedback/*.json.gz
 /docs/reports/repair-integration-20261028/*.log
+
+# Local source downloads and historical publication request payloads
+/data/staging/
+/tree-batch-*.json

@@ -1,6 +1,6 @@
 # R0—R11 设计修复与定向验收
 
-2026-11-11，Asia/Hong_Kong。使用 `N:\YGO-Kito\_publish_20261030` 的现有工作树，分支 `codex/optimization-20261031`，HEAD `3f57198`。当前为构筑规范化 v30、效果字典 b13、质量评分 v4。评分公式、主题权重及指定参考比例 0.8 沿原设计。 [逐包方案](../plans/2026-11-10-design-implementation-repair-plan.md) · [F01—F19 审计](2026-11-10-design-implementation-audit.md) · [S0—S6](../plans/2026-11-10-construction-s0-s6-workflow.md)
+2026-11-11，Asia/Hong_Kong。使用 `N:\YGO-Kito\_publish_20261030` 的现有工作树，分支 `codex/optimization-20261031`，HEAD `3f57198`。当前为构筑规范化 v30、效果字典 b13、质量评分 v4。评分公式、主题权重及指定参考比例 0.8 沿原设计。 [逐包方案](execution/2026-11-10-design-implementation-repair-plan.md) · [F01—F19 审计](2026-11-10-design-implementation-audit.md) · [S0—S6](../current/construction-workflow.md)
 
 按原方案的软件通过条件，R0—R11 已完成本轮修复和定向验收。末次复核补齐了 R10 的 GPU 采样入口和阶段耗时记录，并核对其余包的源码入口与已有回执。完整构筑、训练、真实 CB／原生引擎及实机指标按原方案继续单列待验。
 
@@ -53,7 +53,7 @@ R0—R5 的阶段性证据保留在各批报告。v26/b11 的 360 项静态验�
 
 `probe-038:floo_full_primary` 与 `probe-039:floo_full_support_goal` 用同一组六张牌，分别问主轴和支援轴。程序能找到部分配合，例如谜之地图先展示手卡中的怪兽，从卡组除外异名本家卡，然后通常召唤刚才展示的怪兽。两例各生成了 109 个候选，均未命中指定六张。牌表里还投入了巨嘴鸟、鸵鸟和未知之风，这些卡也为本家提供配合。 [KONAMI 帝企](https://www.db.yugioh-card.com/yugiohdb/card_search.action?cid=16503&ope=2&request_locale=ja) · [谜之地图问答](https://www.db.yugioh-card.com/yugiohdb/faq_search.action?cid=16544&ope=4&request_locale=ja)
 
-用户进一步明确，构筑在认知模块接入前可以具备基本认知能力，识别水平不足不使本轮修复失败。当前基本判断来自卡文、实际投入的卡和配套关系。认知模块由用户独立设计和训练，后续接入更强的体系识别能力。R8 按原定程序和标签合同验收，16/18 和两例旅鸟漏检继续如实记录。 [识别与构筑的接口分工](../plans/2026-11-08-axis-generic-execution-plan.md)
+用户进一步明确，构筑在认知模块接入前可以具备基本认知能力，识别水平不足不使本轮修复失败。当前基本判断来自卡文、实际投入的卡和配套关系。认知模块由用户独立设计和训练，后续接入更强的体系识别能力。R8 按原定程序和标签合同验收，16/18 和两例旅鸟漏检继续如实记录。 [识别与构筑的接口分工](execution/2026-11-08-axis-generic-execution-plan.md)
 
 ## 调度、保存和验证范围
 

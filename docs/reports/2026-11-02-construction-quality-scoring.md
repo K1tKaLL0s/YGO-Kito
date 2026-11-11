@@ -66,7 +66,7 @@
 
 ## 5 未定细则与结构闸门
 
-未定项缩减为 Q1–Q10（目标值、功能权重、评分项权重、饱和曲线、通过线、泛用范围、Side 粒度、占位效率、未知优先级、阶段划分）；2026-11-02 评审已确定 C8–C15（覆盖/深度分离、三态、限制未验证、全局权重、必要条件分离、未知给范围、事实复用收益一次、未分配不自动泛用），C16–C18 为实现方向。详见[登记表](../development/2026-11-02-unsettled-scoring-decisions.md)。
+未定项缩减为 Q1–Q10（目标值、功能权重、评分项权重、饱和曲线、通过线、泛用范围、Side 粒度、占位效率、未知优先级、阶段划分）；2026-11-02 评审已确定 C8–C15（覆盖/深度分离、三态、限制未验证、全局权重、必要条件分离、未知给范围、事实复用收益一次、未分配不自动泛用），C16–C18 为实现方向。详见[登记表](execution/2026-11-02-unsettled-scoring-decisions.md)。
 
 结构选择写入 `UNSETTLED_STRUCTURE` 并随记录输出；`structure_accepted` 未置真时门槛返回 `quality_structure_not_accepted`；`require_complete_scope` 为真且存在 deferred 时返回 `quality_scope_deferred:<items>`。
 
