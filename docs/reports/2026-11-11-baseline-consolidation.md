@@ -28,11 +28,11 @@
 
 ## 并行工作边界
 
-本轮保存提交形成后，另一项认知训练工作新增 docs/plans/2026-11-11-axis-generic-v30-b19-training.md，并修改training/axis_generic/automatic_v3.py、full18_sources.py、prepare_v3.py、readiness_v3.py，随后还修改full18_annotations.json。它们属于进行中的训练工作，保留当前目录原位，不纳入本次整理提交、不覆盖、不重启或终止其作业。基线提交以本轮保存的版本为准，待该工作完成后按实际结果合入。
+本轮保存提交形成后，另一项认知训练工作新增 docs/plans/2026-11-11-axis-generic-v30-b19-training.md，并修改training/axis_generic/automatic_v3.py、full18_sources.py、prepare_v3.py、readiness_v3.py，随后还修改full18_annotations.json。其后新增的replay_sources.py、replay_supervision.py同样属于进行中的训练工作，保留当前目录原位，不纳入本次整理提交、不覆盖、不重启或终止其作业。基线提交以本轮保存的版本为准，待该工作完成后按实际结果合入。
 
 ## 验证与剩余运行问题
 
-安全CPU白名单正在项目已有Linux CPU-only Torch2.9.1环境执行，结果将写入本报告。源码语法已核对；文档迁移链接和工作树登记在清理后核对。
+本次变更定向20项全部通过，0失败/错误/跳过；源码语法、文档链接、真实打包和课程只读入口通过。完整CPU白名单在固定提交、Linux原生临时依赖环境运行10分14秒（进程CPU9分37秒）仍未结束，本任务已停止该检查，未取得全组通过或失败汇总。未将其记为CI通过。
 
 既有GPU短试运行仅完成24次前向和两份40/15/15候选，静态评价/参考/S4/S5/CB未完成；静态评价性能瓶颈仍为后续工作，本次不开展性能优化。run-007保持原停止存档；构筑/卡库历史局部测试不替代完整运行成绩。
 
@@ -52,10 +52,20 @@ GPU补检结果见 [GPU环境报告](2026-11-11-gpu-environment.md)：四角色C
 | 决斗 | codex/duel | C:\Users\27499\.codex\worktrees\ygo-duel\_publish_20261030 |
 | 构筑 | codex/construction | C:\Users\27499\.codex\worktrees\ygo-construction\_publish_20261030 |
 
-后两棵由Codex应用创建和登记，只含受版本控制的源码与文档；模型、数据、运行日志和大体积生成物继续使用N盘现有资源路径，不复制进新树。三分支以本次整合提交统一，main用于稳定整合基线。统筹树保留并行认知工作的未提交内容；其未完成部分不进入另两树。
+后两棵由Codex应用创建和登记，只含受版本控制的源码与文档；模型、数据、运行日志和大体积生成物继续使用N盘现有资源路径，不复制进新树。三分支以本次整合提交统一，main用于稳定整合基线。发布代码基线1a9e1d2包含保存297da84、设计归一2e9aaad和入口修正2ea50bf。统筹树保留并行认知工作的未提交内容；其未完成部分不进入另两树。三个树的既有配置引用同一批N盘资源与状态路径；需要并行运行时，给各作业使用独立run_id/output，避免同时写入现有训练状态。
 
-文档迁移附带3处代码/配置同步：deployment_prepare.PREFIXES加入docs/current与docs/examples，课程配置与ScenarioCourse的验收来源指向现行训练正文，未改评分或训练数值。Python语法、JSON及打包收录/缓存排除检查通过。Windows定向20项中17通过，2项因该Windows Python缺少锁定Torch/Scipy依赖失败，1项因沙箱无创建symlink权限错误；训练场景7项全部通过。完整CPU白名单在具有锁定依赖的WSL环境独立执行，结果另记。
+文档迁移附带3处代码/配置同步：deployment_prepare.PREFIXES加入docs/current与docs/examples，课程配置与ScenarioCourse的验收来源指向现行训练正文，未改评分或训练数值。Python语法、JSON及打包收录/缓存排除检查通过。Windows定向20项中17通过，2项因该Windows Python缺少锁定Torch/Scipy依赖失败，1项因沙箱无创建symlink权限错误；训练场景7项全部通过。随后在版本一致的Linux CPU环境执行同20项，全通过，解决上述Windows环境限制。
 
 真实打包入口已从干净决斗树执行：571个成员验证通过，现行设计包含在包内，缓存排除。Windows中文路径需PYTHONUTF8=1或-X utf8；初次默认GBK解码失败后以UTF-8重试通过。整合文档相对链接最终检查无断链。
 
 清理后入口核验发现local-training.ps1的supervisor旧路径，已改为当前$linuxSource。PowerShell解析通过，真实只读Check返回source_root=/mnt/n/YGO-Kito/_publish_20261030、resource_base=/mnt/n/YGO-Kito/_local_cpu_20261027、training_held=true、worker_started=false，既有course-006状态仍可定位。对应旧操作说明已改为当前入口；未启动/恢复作业。外层独立插件保存提交为49cd2b6，archive/outer/main已包含。
+
+最终部署源码包修正还纳入已提交training目录与.ps1/.cmd启动脚本，共612成员验证通过。完整白名单依赖部署包范围外的历史报告夹具，因此CPU整组验证使用本地Git共享对象的完整临时检出/tmp/ygo-verification-20261111-CWlRS3/source，固定1a9e1d2，避免并行WIP和DrvFS逐文件开销。原N盘测试在长时I/O等待后由本任务精确停止，未产出全组结论；精简包检查在装载历史夹具时失败，未视作业务测试失败或通过。
+
+## 最终验证范围
+
+测试代码基线为1a9e1d2；最终收尾提交只更新修订表和本报告。tests.test_deployment_prepare与tests.test_training_scenarios共20项在9.757秒内通过，0失败、0错误、0跳过，回执位于.cache/consolidation-20261111/targeted-results.json。实际源码包612成员验证通过；四角色GPU小样更新/恢复通过；PowerShell解析及真实只读Check通过；本次文档链接无断链，差异空白检查通过。
+
+完整CPU白名单未完成，未提交远程CI或原生/正式训练验收结论。需要复跑全组时，在干净的该提交检出上使用Python3.12.14与requirements/ci-cpu.txt对应CPU依赖，执行OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 python scripts/check_merge_candidate.py --output <N盘结果目录>；当前结果不足以定位哪个用例耗时，后续宜保留逐例进度再运行。
+
+临时CPU依赖来自既有环境的本地复制，版本为Torch2.9.1+cpu、NumPy2.3.5、SciPy1.16.3。原环境和GPU环境未修改。依赖传输tar已删除，N盘WSL内临时依赖副本与临时检出在结束后清理；只保留小型结果、脚本及源码包。
