@@ -41,6 +41,8 @@ def selector(text):
     while text:
         before=text
         level = re.match(r"(\d+)星(?P<bound>以上|以下)?(?:的)?", text)
+        rank = re.match(r'(\d+)阶(?:的)?', text)
+        link = re.match(r'连接(\d+)(?:的)?', text)
         attribute=re.match(r'(地|水|炎|风|光|暗|神)属性(?:的)?',text)
         stat=re.match(r'(攻击力|守备力)(\d+)(以上|以下)(?:的)?',text)
         quoted=re.match(r'「([^」]+)」',text)
@@ -52,6 +54,10 @@ def selector(text):
             value=int(level[1]);bound=level['bound']
             query['level_between' if bound else 'level']=([value,13] if bound=='以上' else [1,value]) if bound else value
             text=text[level.end():]
+        elif rank and 'rank' not in query:
+            query['rank']=int(rank[1]);text=text[rank.end():]
+        elif link and 'link_rating' not in query:
+            query['link_rating']=int(link[1]);text=text[link.end():]
         elif attribute and 'attribute_any' not in query:
             query['attribute_any']={'地':1,'水':2,'炎':4,'风':8,'光':16,'暗':32,'神':64}[attribute[1]]
             text=text[attribute.end():]
@@ -83,7 +89,7 @@ def query_supported(query):
     if set(query) <= {'selector','face_up'} and query.get('selector') != '卡':
         return False
     strings = {'selector', 'exact_name', 'name_contains', 'exclude_name', 'mentions_name'}
-    numbers = {'level', 'setcode', 'type', 'race', 'type_all', 'race_any', 'attribute_any',
+    numbers = {'level', 'rank', 'link_rating', 'setcode', 'type', 'race', 'type_all', 'race_any', 'attribute_any',
                'atk_min','atk_max','def_min','def_max'}
     if set(query) - strings - numbers - {'predicate', 'level_between', 'face_up', 'any'}:
         return False
@@ -128,6 +134,9 @@ def matches(row, query):
         if not any(query['name_contains'] in name for name in aliases):return False
     if 'level' in query and row.get('level', 0) & 255 != query['level']:return False
     if ('level' in query or 'level_between' in query) and row.get('type',0)&(0x800000|0x4000000):return False
+    for field, kind in (('rank', 0x800000), ('link_rating', 0x4000000)):
+        if field in query and (not row.get('type', 0) & kind or row.get('level', 0) & 255 != query[field]):
+            return False
     for stat in ('atk','def'):
         value=row.get(stat)
         if value is not None and value>=0:
@@ -140,6 +149,29 @@ def matches(row, query):
         if key in query and not predicate_matches(row, {'field':key,'value':query[key]}):
             return False
     return 'predicate' not in query or predicate_matches(row, query['predicate'])
+
+
+def printed_extra_material_slots(row):
+    """Parse complete ordinary Xyz or inclusion-based Link material lines."""
+    source = row.get('desc', '').partition('\n')[0].strip().rstrip('。')
+    card_type = row.get('type', 0)
+    if card_type & 0x800000:
+        clause = re.fullmatch(r'(?P<selector>.+?)\s*[×x](?P<count>[2-9])(?:只)?(?:以上)?', source)
+        if clause:
+            query = selector(clause['selector'])
+            if query_supported(query):
+                return [dict(selector_query=query, count=int(clause['count']), source=source, summon_type='xyz')]
+    if card_type & 0x4000000:
+        clause = re.fullmatch(r'包含(?P<selector>.+?)在内的怪兽(?P<count>[2-6])只(?:以上)?', source)
+        if clause:
+            selected = clause['selector']
+            ratings = re.fullmatch(r'((?:\d+(?:星|阶)|连接\d+)(?:[·、](?:\d+(?:星|阶)|连接\d+))+)的怪兽', selected)
+            query = dict(any=[selector(part + '怪兽') for part in re.split('[·、]', ratings[1])],
+                         selector=selected) if ratings else selector(selected)
+            if query_supported(query):
+                return [dict(selector_query=query, count=1, source=source, summon_type='link'),
+                        dict(selector_query={'type': 1}, count=int(clause['count'])-1, source=source, summon_type='link')]
+    return []
 
 
 def printed_link_material(row):
@@ -480,7 +512,7 @@ class InventoryDependencies:
         understood = {r['source'].strip() for r in observed_rules if _restriction_contract(r)}
         understood.update(limit['source'].strip() for record in entry.get('source_records', ())
             for limit in record['count_limits'] if limit.get('status') == 'known')
-        if self.catalog.card(code).materials and entry.get('summon_material_source'):
+        if entry.get('summon_materials') and entry.get('summon_material_source'):
             understood.add(entry['summon_material_source'].strip())
         rules = []
         for observed in observed_rules:
@@ -529,6 +561,19 @@ class InventoryDependencies:
             if rule and not (material and target is None):
                 if action == 'normal_set' and not rule.get('includes_set'):
                     allowed = True
+                elif rule['condition'] == 'summoned_this_turn':
+                    history = req.get('summon_history')
+                    if history is None or history.get('this_turn') is False:
+                        allowed = True
+                    else:
+                        previous = history.get('kind')
+                        prohibited = rule['summon_kind']
+                        special_methods = ('fusion_summon', 'synchro_summon', 'xyz_summon', 'link_summon',
+                                           'ritual_summon', 'pendulum_summon')
+                        if previous == prohibited or prohibited == 'special_summon' and previous in special_methods:
+                            allowed = False if history.get('this_turn') is True else None
+                        elif previous is not None and not (previous == 'special_summon' and prohibited in special_methods):
+                            allowed = True
                 elif rule.get('from_zones'):
                     zones, applies = set(origins), set(rule['from_zones'])
                     if zones and not zones & applies:
@@ -929,6 +974,40 @@ class InventoryDependencies:
         return self._check_counts(Counter(deck.main + deck.extra), Counter(deck.extra), specs,
                                   joint=joint, target=target, distinct=distinct)
 
+    def summon_material_check(self, deck, code, *, costs=()):
+        return self._summon_material_check_counts(Counter(deck.main + deck.extra), Counter(deck.extra), code, costs=costs)
+
+    def _summon_material_check_counts(self, resident, extra, code, *, costs=()):
+        """Test each printed material method independently and stop at a legal assignment."""
+        effects, materials = self.specs(code)
+        def check(rows):
+            return self._check_counts(resident, extra, [*costs, *rows], joint=not costs,
+                                      target=code, distinct=bool(costs))
+
+        best = check(materials) if materials else None
+        if best and best['status'] == 'inventory_present':
+            return best
+        for effect in effects:
+            procedure = effect['record'].get('summon_procedure', {})
+            if procedure.get('kind') != 'xyz_overlay':
+                continue
+            material = procedure['material']
+            query = self.resolve_query(material['query'])
+            checked = check([dict(material, query=query)])
+            checked['summon_procedure'] = procedure
+            if checked['status'] == 'inventory_present':
+                family = self.rows[code].get('alias') or code
+                bases = checked['requirements'][-1]['matching_card_ids']
+                if all((self.rows[base].get('alias') or base) == family for base in bases):
+                    checked.update(status='unknown', unknown_restrictions=[dict(category='material',
+                        source=procedure['source'], reason='overlay_base_requires_independent_access')])
+            if checked['status'] == 'inventory_present':
+                return checked
+            if (best is None or checked['status'] == 'unknown' and best['status'] == 'missing'
+                    or checked['status'] == best['status'] and checked['shortfall'] < best['shortfall']):
+                best = checked
+        return best
+
     def _check_counts(self, resident, extra, specs, *, joint=False, target=None, distinct=False):
         # Printed materials are distinct physical monsters; one card cannot
         # satisfy both an exact-name slot and an overlapping race slot.
@@ -1036,7 +1115,7 @@ class InventoryDependencies:
                         target_deficits=deficits if scope=='candidate_component' else scoped
                         target_deficits[key+':shortfall'] = value['shortfall']
                         target_deficits[key+':blocked_copies'] = resident[code]
-            material = self._check_counts(resident, extra, materials, joint=True, target=code) if materials else None
+            material = self._summon_material_check_counts(resident, extra, code)
             if material and (material['unknown_selectors'] or material['unknown_restrictions']):
                 unknowns[f'materials:{code}']=[*material['unknown_selectors'], *material['unknown_restrictions']]
             formula=next((s.strip() for s in self.rows[code].get('desc','').splitlines() if '＋' in s or '+' in s),'')

@@ -249,9 +249,19 @@ class AutomaticThemeTests(unittest.TestCase):
         self.assertEqual(inventory.simultaneous_processing(deck, record, send, card_id=kitkallos)['status'],
                          'inventory_present')
 
-        def pairs_for(candidate):
+        def pairs_for(candidate, *, summoned_ids=None):
             work = {}
             facts = normalize_function_uses(task, candidate, binder.semantic_catalog, policy=policy, work_state=work)
+            if summoned_ids is not None:
+                from ygo_kito.construction_layer_flow import _restriction_match
+                fusion_use = next(u for u in facts['use_details'].values()
+                    if u['card_id'] == merrli and (u['operation'] or {}).get('kind') == 'fusion_summon')
+                self.assertEqual(fusion_use['summoned_card_ids'], summoned_ids)
+                properties = {str(code): row for code, row in assets.rows.items()}
+                rule = dict(kind='cannot_special_summon', allowed_summons=dict(field='race_any', value=64))
+                self.assertIs(_restriction_match(rule, fusion_use, properties), False)
+                self.assertIs(_restriction_match(dict(rule, allowed_summons=dict(field='race_any', value=1)),
+                                                fusion_use, properties), True)
             relation = work['projections']['resident']['relation']
             self.assertFalse(any(key.startswith('theme:') for key in relation['uses']))
             self.assertFalse(any(':receiver:' in key for key in relation['fact_records']))
@@ -263,7 +273,7 @@ class AutomaticThemeTests(unittest.TestCase):
             return {(indexed(p['source']), indexed(p['receiver'])[:2]) for p in relation['theme_pairs']
                 if p['connection']['kind'] == 'trigger' and not p['connection']['gaps']}
 
-        pairs = pairs_for(deck)
+        pairs = pairs_for(deck, summoned_ids=[kitkallos])
         fusion = (merrli, 2, 'fusion_summon')
         self.assertIn((fusion, (kitkallos, 1)), pairs)
         self.assertNotIn((fusion, (decoy, 1)), pairs)
@@ -317,6 +327,18 @@ class AutomaticThemeTests(unittest.TestCase):
                 else:
                     self.assertEqual(p['quality']['theme_profile']['status'], 'unknown')
                     self.assertNotIn(SECONDARY, card_use(facts, 1).theme_eligible)
+
+    def test_unresolved_movement_selector_does_not_invent_theme_recipients(self):
+        from ygo_kito.construction_inventory import InventoryDependencies
+        from ygo_kito.construction_theme import direct_connection
+        _, assets, _, binder, decks, _ = theme_fixture('banished')
+        assets.rows[1]['desc'] = LIMIT + PHASE + '从自己墓地把满足特殊条件的卡除外。'
+        dependencies = InventoryDependencies(binder.semantic_catalog)
+        source, receiver = (dependencies.specs(code)[0][0] for code in (1, 3))
+        self.assertTrue(any(row['category'] == 'operations' for row in source['unknown']))
+        entries = [(code, 0, 0, spec['record'], spec['record']['operations'][0])
+                   for code, spec in ((1, source), (3, receiver))]
+        self.assertIsNone(direct_connection(*entries, dependencies, decks[0], {}))
 
     def test_primary_precedence_and_duplicate_counterparts_never_stack_bonuses(self):
         f = theme_fixture('banished')

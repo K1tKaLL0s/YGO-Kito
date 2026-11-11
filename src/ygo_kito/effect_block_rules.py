@@ -194,17 +194,35 @@ RESTRICTIONS = (
 )
 
 
+_MATERIAL_METHODS = {'融合': 'fusion', '同调': 'synchro', '超量': 'xyz', '连接': 'link', '仪式': 'ritual'}
+
+
+def summon_turn_material_restriction(source):
+    clause = re.fullmatch(
+        r'这张卡在(?P<summon>融合|同调|超量|连接|仪式|灵摆|特殊|通常)召唤的回合[，,]?不能作为'
+        r'(?P<material>融合|同调|超量|连接|仪式)(?:召唤的)?素材', source.strip())
+    if clause is None:
+        return None
+    methods = {**_MATERIAL_METHODS, '灵摆': 'pendulum', '特殊': 'special', '通常': 'normal'}
+    return dict(kind='cannot_be_' + methods[clause['material']] + '_material', source=source,
+        scope='this_card', duration='summon_turn', condition='summoned_this_turn',
+        summon_kind=methods[clause['summon']] + '_summon')
+
+
 def structural_records(text, row, scope, *, resolved_quantities=()):
     restrictions=[]
-    material_types = {'融合': 'fusion', '同调': 'synchro', '超量': 'xyz', '连接': 'link', '仪式': 'ritual'}
     for sentence in re.finditer(r'[^。\r\n]+',text):
         raw=sentence[0].strip()
+        timed_material = summon_turn_material_restriction(raw)
+        if timed_material:
+            restrictions.append(dict(timed_material, tag={'dimension': 'restriction', 'value': '素材限制'}))
+            continue
         material = re.fullmatch(r'(?:(?P<condition>这张卡(?:在(?:手卡|墓地|场上|怪兽区域)存在(?:的场合)?'
                                 r'|[^，,。]+的场合))[，,]|这张卡)?不能作为'
                                 r'(?P<method>融合|同调|超量|连接|仪式)(?:召唤的)?素材', raw)
         intrinsic_summon = re.fullmatch(r'这张卡不能(?:(通常)召唤(?:（盖放）|\(盖放\))?|(特殊)召唤)', raw)
         if material and raw.count('不能') == 1:
-            rule = dict(kind='cannot_be_' + material_types[material['method']] + '_material',
+            rule = dict(kind='cannot_be_' + _MATERIAL_METHODS[material['method']] + '_material',
                 tag={'dimension': 'restriction', 'value': '素材限制'}, source=raw,
                 scope='this_card', duration='while_applicable', condition='this_card')
             if material['condition']:

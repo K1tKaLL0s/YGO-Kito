@@ -654,7 +654,7 @@ def _restriction_contract(restriction):
     """Adapt complete observed clauses; coarse labels never discharge qualifiers."""
     allowed = {"kind", "source", "scope", "controller", "owner", "condition", "duration", "whole_turn",
         "includes_set", "from_zones", "to_zone", "reason", "tag", "block_id", "group", "source_span",
-        "evidence_refs", "observed_source", "context_source", "unknown", "allowed_summons"}
+        "evidence_refs", "observed_source", "context_source", "unknown", "allowed_summons", "summon_kind"}
     if set(restriction) - allowed:
         return None
     kind = restriction["kind"]
@@ -669,6 +669,16 @@ def _restriction_contract(restriction):
         kind = _RESTRICTION_ALIASES.get(kind, kind)
     if kind in _INTRINSIC_RESTRICTIONS:
         rule = dict(restriction)
+        if rule.get("duration") == "summon_turn":
+            from .effect_block_rules import summon_turn_material_restriction
+            observed = summon_turn_material_restriction(source)
+            if (observed is not None and all(rule.get(key) == value for key, value in observed.items())
+                    and not any(rule.get(key) for key in ("controller", "owner", "whole_turn", "from_zones",
+                        "to_zone", "reason", "unknown", "allowed_summons", "includes_set"))):
+                return rule
+            return None
+        if "summon_kind" in rule:
+            return None
         if (rule.get("scope") != "this_card" or rule.get("duration") not in ("intrinsic", "while_applicable")
                 or any(rule.get(k) for k in ("selector", "selector_query", "exceptions", "except", "unknown",
                                             "controller", "owner", "whole_turn", "to_zone", "reason"))):
@@ -2157,14 +2167,19 @@ def _group(group, index, states, counts, capacities, prefix, blocked=None, *, ex
             if not alternatives:
                 continue
             state = _combine(alternatives, "any", prefix+":cycle-free", index, capacities, states)
-        amount = fact.quantity
+        # A functional operation is a Boolean proof when used as a
+        # prerequisite. Its movement quantity stays on the original fact.
+        existence = (fact.output.kind == 'functional_operation' and fact.output_pool is None
+                     and need.mode == 'presence' and need.quantity == 1)
+        amount = 1 if existence else fact.quantity
         if amount is not None and fact.inventory_scaled:
             amount *= counts[(fact.zone, fact.card_id)]
         capacity = capacities.get(fact.output_pool) if fact.output_pool else amount
         if amount is not None and capacity is not None:
             amount = min(amount, capacity)
         row = deepcopy(state)
-        pool = fact.output_pool or "output:" + fact.effect_ref + ":" + fact.output.kind
+        pool = ('operation-proof:' + fid if existence else
+                fact.output_pool or "output:" + fact.effect_ref + ":" + fact.output.kind)
         if amount is None:
             unbounded = True
         else:

@@ -33,6 +33,62 @@ def fixture():
 
 
 class InventoryDependencyTests(unittest.TestCase):
+    def test_xyz_overlay_is_an_alternative_and_keeps_its_battle_condition(self):
+        value, dependencies, _ = fixture()
+        assets, deck = value[1], value[4][0]
+        assets.rows[101].update(type=0x800021, level=12, desc=
+            '12星怪兽×2\n这张卡在超量怪兽进行过战斗的回合有1次也能在自己场上的超量怪兽上面重叠来超量召唤。'
+            '\n①：自己主要阶段才能发动。抽1张。')
+        assets.rows[102] = dict(assets.rows[101], id=102, name='匿名超量怪兽', desc='4星怪兽×2', level=4)
+        assets.rows[2]['level'] = 12
+        procedures = [r for r in dependencies.catalog.effect_records(101) if 'summon_procedure' in r]
+        record, = procedures
+        self.assertEqual(record['unknown'], [])
+        procedure = record['summon_procedure']
+        self.assertEqual(procedure['condition'], {'kind': 'xyz_monster_battled_this_turn'})
+        self.assertTrue(procedure['transfers_xyz_materials'])
+        self.assertFalse(procedure['starts_chain'])
+        self.assertEqual(procedure['per_turn_maximum'], 1)
+        self.assertEqual(dependencies.summon_material_check(deck, 101)['status'], 'missing')
+        overlay = dependencies.summon_material_check(replace(deck, extra=(101,102)), 101)
+        self.assertEqual(overlay['status'], 'inventory_present')
+        self.assertEqual(overlay['requirements'][0]['matching_card_ids'], [102])
+        same_name = dependencies.summon_material_check(replace(deck, extra=(101,101)), 101)
+        self.assertEqual(same_name['status'], 'unknown')
+        normal = dependencies.summon_material_check(replace(deck, main=(*deck.main,2,2)), 101)
+        self.assertEqual(normal['status'], 'inventory_present')
+        self.assertNotIn('summon_procedure', normal)
+
+    def test_inclusion_link_materials_and_same_turn_restrictions(self):
+        value, dependencies, _ = fixture()
+        assets, deck = value[1], value[4][0]
+        assets.rows[101].update(type=0x4000021, level=2, desc=
+            '包含2星·2阶·连接2的怪兽在内的怪兽2只\n这张卡在连接召唤的回合不能作为连接素材。'
+            '这个卡名的①的效果1回合只能使用1次。\n①：自己主要阶段才能发动。抽1张。')
+        assets.rows[102] = dict(assets.rows[101], id=102, name='匿名2阶怪兽', desc='2星怪兽×2',
+                               level=2, type=0x800021)
+        assets.rows[103] = dict(assets.rows[101], id=103, name='匿名连接2怪兽', desc='效果怪兽2只')
+        assets.rows[104] = dict(assets.rows[101], id=104, name='匿名4阶怪兽', desc='4星怪兽×2',
+                               level=4, type=0x800021)
+        assets.rows[2]['level'] = 2
+        for base in (102,103):
+            with self.subTest(base=base):
+                self.assertEqual(dependencies.summon_material_check(replace(deck, extra=(101,base)), 101)['status'],
+                                 'inventory_present')
+        self.assertEqual(dependencies.summon_material_check(replace(deck, extra=(101,104)), 101)['status'], 'missing')
+        self.assertEqual(dependencies.summon_material_check(replace(deck, main=(*deck.main,2)), 101)['status'],
+                         'inventory_present')
+        only_one = replace(deck, main=(2,), extra=(101,))
+        self.assertEqual(dependencies.summon_material_check(only_one, 101)['status'], 'missing')
+        req = dict(category='material', origin='field', summon_type='link')
+        self.assertTrue(dependencies.candidate_status(101, req, target=103)[0])
+        same_turn = dict(req, summon_history={'kind': 'link_summon', 'this_turn': True})
+        self.assertFalse(dependencies.candidate_status(101, same_turn, target=103)[0])
+        later = dict(req, summon_history={'kind': 'link_summon', 'this_turn': False})
+        self.assertTrue(dependencies.candidate_status(101, later, target=103)[0])
+        different = dict(req, summon_history={'kind': 'pendulum_summon', 'this_turn': True})
+        self.assertTrue(dependencies.candidate_status(101, different, target=103)[0])
+
     def test_extra_cost_uses_actual_section_and_complete_integer_payment(self):
         value, dependencies, _ = fixture()
         assets, deck = value[1], value[4][0]
@@ -85,6 +141,14 @@ class InventoryDependencyTests(unittest.TestCase):
                 q = dependencies.resolve_query({'type':kind})
                 self.assertTrue(matches(value[1].rows[101],q))
                 self.assertFalse(matches(value[1].rows[2],q))
+
+    def test_summon_only_by_a_named_effect_is_not_a_summon_function(self):
+        value, dependencies, _ = fixture()
+        value[1].rows[2]['desc'] = '「指定之门」的效果才能特殊召唤。①：自己主要阶段才能发动。抽1张。'
+        records = dependencies.catalog.effect_records(2)
+        self.assertEqual([op['kind'] for record in records for op in record['operations']], ['draw'])
+        descriptions = [d for record in records for d in record['block_view']['description_blocks']]
+        self.assertTrue(any(d['kind'] == 'summon_condition' for d in descriptions))
 
     def test_intrinsic_summon_prohibitions_check_the_recipient_and_keep_other_uses(self):
         value, dependencies, _ = fixture()

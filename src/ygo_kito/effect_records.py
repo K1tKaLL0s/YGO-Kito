@@ -264,6 +264,44 @@ def _bind_revealed_summon(record):
                       quantity=1, owner='self', random=False, subject_ref=reference, selection_method='revealed_card')
 
 
+def _xyz_overlay_procedure(record, row):
+    from .construction_inventory import selector
+    view = record['block_view']
+    if len(view['procedure_blocks']) != 1 or record['operations'] or record['costs'] or record['targets']:
+        return None
+    block, = view['procedure_blocks']
+    if block['kind'] != 'xyz_summon' or block['phase'] != 'summon_procedure':
+        return None
+    source = block['source']
+    clause = re.fullmatch(
+        r'(?:这张卡|「(?P<subject>[^」]+)」)'
+        r'(?:(?P<battle>在超量怪兽进行过战斗的回合)有(?P<battle_count>\d+)次|'
+        r'(?P<main2>在自己主要阶段2)有(?P<main2_count>\d+)次|1回合(?P<turn_count>\d+)次)?'
+        r'也能在自己场上的(?P<selector>[^。；;，,]+?)上面(?:把这张卡)?重叠来超量召唤[。.]?', source)
+    if clause is None or clause['subject'] not in (None, row.get('name')):
+        return None
+    query = selector(clause['selector'])
+    if query is None:
+        return None
+    remainder = record['source_text'].replace(source, '', 1)
+    for description in view['description_blocks']:
+        if description['kind'] == 'printed_materials':
+            remainder = remainder.replace(description['source'], '', 1)
+    if remainder.strip(' \r\n\t。.'):
+        return None
+    condition = ('xyz_monster_battled_this_turn' if clause['battle'] else
+                 'own_main_phase_2' if clause['main2'] else 'unconditional')
+    maximum = clause['battle_count'] or clause['main2_count'] or clause['turn_count']
+    procedure = dict(kind='xyz_overlay', source=source, from_zone='extra', to_zone='field',
+        quantity=1, starts_chain=False, condition={'kind': condition}, transfers_xyz_materials=True,
+        material=dict(query=query, minimum=1, source=clause['selector'], origin='field',
+            owner='self', category='material', summon_type='xyz'))
+    if maximum:
+        procedure['per_turn_maximum'] = int(maximum)
+    block['qualifiers'].update(deepcopy(procedure))
+    return procedure
+
+
 def _refine_record(record,row,head,body,mode):
     """Refine public observations; leave the checkpoint's legacy features intact."""
     from .effect_blocks import source_zones
@@ -685,6 +723,11 @@ def _refine_record(record,row,head,body,mode):
                 'comparison':{'多':'greater','少':'less'}[procedure['comparison']],
                 'right':{'自己':'self','对方':'opponent'}[procedure['right']]},
             source=record['source_text'],starts_chain=False)
+    if mode != 'activated' and record.get('scope') == 'monster' and row.get('type', 0) & 0x800000:
+        overlay = _xyz_overlay_procedure(record, row)
+        if overlay:
+            record['summon_procedure'] = overlay
+    if record.get('summon_procedure'):
         record['block_view']['status']='summon_procedure'
         record['knowledge']['activation_boundary']='not_applicable_summon_procedure'
         record['unknown']=[v for v in record['unknown'] if v not in ('activation_boundary','activation_condition',
@@ -959,6 +1002,7 @@ def _scope_choices(record, row):
 def effect_records(profile, *, semantic_version, row=None):
     """Return detached records; source/card identity is provenance, not a feature."""
     from .effect_blocks import activation_parts, block_view, record_operations
+    from .construction_inventory import printed_extra_material_slots
     row = row or {'id':profile.card_id,'type':0}
     scope = 'monster' if row.get('type',0)&1 else 'spell_trap'
     from .effect_count_limits import parse_count_limits
@@ -981,6 +1025,9 @@ def effect_records(profile, *, semantic_version, row=None):
         if len(scoped)>1:
             sections=re.split(r'【怪兽(?:效果|描述)】',section_text,maxsplit=1)
             section_text=sections[0] if scope=='pendulum' else sections[1]
+        materials = list(section.materials)
+        if not materials and scope == 'monster':
+            materials = printed_extra_material_slots(dict(row, desc=section_text.lstrip()))
         prelude=NUMBERED.split(section_text,maxsplit=1)[0] if NUMBERED.search(section_text) else ''
         section_limits = []
         if ('灵摆效果' if scope == 'pendulum' else '怪兽效果') in prelude:
@@ -1019,7 +1066,7 @@ def effect_records(profile, *, semantic_version, row=None):
                 "count_limits": deepcopy([*effect.count_limits, *section_limits]),
                 "restrictions": deepcopy(list(effect.restrictions)),
                 "card_restrictions": deepcopy(list(section.restrictions)),
-                "printed_materials": deepcopy(list(section.materials)),
+                "printed_materials": deepcopy(materials),
                 "knowledge": deepcopy(effect.knowledge),
                 "unknown": list(dict.fromkeys((*section.unknown, *effect.unknown))),
                 "legality_verified": False,

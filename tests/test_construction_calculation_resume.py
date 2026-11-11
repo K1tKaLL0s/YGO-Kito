@@ -626,6 +626,43 @@ class CalculationResumeTests(unittest.TestCase):
                          2 ** len(values[0]['quality_evaluation']['unknowns']))
         self.assertIn('evaluation_id', values[0]['quality_evaluation'])
 
+    def test_large_condition_space_returns_the_same_conservative_score_in_formal_mode(self):
+        from ygo_kito.construction_layer_flow import normalize_function_uses
+        from ygo_kito.construction_quality import evaluate_functional_quality, validate_evaluation
+        from tests.test_construction_functional_flow import fixture
+
+        task, assets, graph, binder, decks, policy = fixture()
+        deck = decks[-1]
+        layer = {'axis': {'task': task.to_dict(), 'inventory': deck.to_dict(), 'logic': graph.to_dict()}}
+        facts = normalize_function_uses(task, deck, binder.semantic_catalog, policy=policy, layer_evaluation=layer)
+        keys = [f'fixture-condition-{i}' for i in range(17)]
+        facts['variables'].update(dict.fromkeys(keys))
+        index = next(i for i, use in enumerate(facts['uses']) if use.contributes)
+        facts['uses'][index] = replace(facts['uses'][index], self_condition={'all': keys})
+        preview = evaluate_functional_quality(layer, policy=policy, facts=facts)
+        formal = evaluate_functional_quality(layer, policy=policy, facts=facts, resumable=True)
+        self.assertEqual(preview, formal)
+        validate_evaluation(formal)
+        self.assertTrue(formal['scope_complete'])
+        self.assertFalse(formal['complete'])
+        self.assertEqual(set(formal['unknowns']), set(keys))
+        self.assertEqual(formal['score']['bound_kind'], 'conservative')
+        self.assertGreater(formal['score']['upper'], 0)
+        self.assertEqual(formal['completion_evaluated_count'], 2)
+        self.assertNotIn('calculation_pending', formal)
+
+    def test_operation_presence_does_not_infer_a_movement_quantity(self):
+        from ygo_kito.construction_relations import Need, Resource
+
+        output = Resource('functional_operation', attributes=('printed movement',))
+        source = fact('source', None, output=output, quantity=None)
+        context = RelationContext((use('effect', Need('exists', output, mode='presence')),
+            use('actual_stock', Need('requires-two', output, quantity=2))), (source,))
+        result = evaluate_relations(skeleton((1,)), context, relation_index(None, context)).data
+        self.assertEqual(result['uses']['effect']['status'], 'supported')
+        self.assertEqual(result['uses']['actual_stock']['status'], 'unknown')
+        self.assertIsNone(result['fact_records']['source']['quantity'])
+
     def test_known_coverage_gap_ends_scoring_without_starting_reference(self):
         from ygo_kito.build_contracts import DeckParts, digest
         from ygo_kito.construction_binding import CatalogBindingAdapter

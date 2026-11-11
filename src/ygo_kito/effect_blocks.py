@@ -16,7 +16,7 @@ import tempfile
 from .effect_block_rules import FUNCTIONS, structural_records
 
 BLOCK_VERSION = "public-effect-blocks-v1"
-BLOCK_REVISION = 'local-library-review-20261112-b21'
+BLOCK_REVISION = 'local-library-review-20261112-b22'
 LABELS = {
     "send_grave": "送墓", "search": "检索", "recover": "回收", "add_hand": "加入手牌",
     "draw": "抽卡", "special_summon": "特召", "fusion_summon": "融合召唤",
@@ -664,6 +664,10 @@ def card_blocks(catalog, code, *, set_names=None):
     for r in records:
         for restriction in r['card_restrictions']:
             if restriction not in restrictions:restrictions.append(deepcopy(restriction))
+    materials = next((deepcopy(r['printed_materials']) for r in records if r['scope']=='monster'), [])
+    material_source = next((s.strip() for s in prelude.splitlines() if re.search(r"[＋+×]",s)),None)
+    if materials and not material_source and materials[0].get('summon_type') == 'link':
+        material_source = materials[0]['source']
     if '这张卡不能特殊召唤' in prelude:
         restrictions.append(dict(kind='cannot_special_summon_this_card',scope='this_card',duration='intrinsic',source='这张卡不能特殊召唤'))
     if re.search(r'效果发动的回合[，,]自己不能攻击宣言',prelude):
@@ -671,8 +675,7 @@ def card_blocks(catalog, code, *, set_names=None):
     return dict(dictionary_version=BLOCK_VERSION,dictionary_revision=BLOCK_REVISION,card_id=code,name=row.get('name',''),
                 cards_sha256=profile.cards_sha256,text_sha256=profile.text_sha256,
                 identity_tags=identity_tags(row,set_names), effects=effects, compatibility_tags=aliases,
-                summon_materials=next((deepcopy(r['printed_materials']) for r in records if r['scope']=='monster'),[]),
-                summon_material_source=next((s.strip() for s in prelude.splitlines() if re.search(r"[＋+×]",s)),None),
+                summon_materials=materials,summon_material_source=material_source,
                 card_restrictions=restrictions,card_prelude=prelude,
                 source_records=[{k:v for k,v in r.items() if k!='block_view'} for r in records])
 

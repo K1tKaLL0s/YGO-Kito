@@ -278,7 +278,9 @@ def complete_structure(text, row, scope, blocks, costs, procedures, restrictions
             if re.search(r'(?:召唤|反转召唤|特殊召唤)之际',local):
                 instruction=re.search(r'那个无效|那次无效',source)
                 add(blocks,'negate_summon',instruction[0],start+instruction.start(),'resolution','effect',summon_negation=True)
-        specific_effect=scope=='monster' and bool(re.search(r'这张卡在用[^。]{0,90}的效果[^。]{0,100}的场合才能特殊召唤|用把[^。]{0,90}解放发动的[^。]{0,90}的效果可以特殊召唤',source))
+        named_effect_only = re.fullmatch(
+            r'(?:这张卡)?(?:只能用|用)?「[^」]+」的效果(?:才能|可以)特殊召唤', source)
+        specific_effect=scope=='monster' and bool(named_effect_only or re.search(r'这张卡在用[^。]{0,90}的效果[^。]{0,100}的场合才能特殊召唤|用把[^。]{0,90}解放发动的[^。]{0,90}的效果可以特殊召唤',source))
         from .effect_blocks import ACTIVATION
         is_procedure = scope=='monster' and not specific_effect and not ACTIVATION.search(masked) and not re.search(r'[；;]|(?:场合|时)[：:]',masked) and bool(
             re.search(r'这张卡(?:也)?可以从(?:手卡|墓地|额外卡组)特殊召唤',masked)

@@ -74,11 +74,7 @@ def _movement_domain(source, dependencies, available, profile_cards, *, fusion_p
     if (not origins or any(z not in ('hand', 'deck', 'grave', 'field', 'extra', 'banished', 'xyz_material')
             for z in origins) or type(operation.get('quantity')) is not int or operation['quantity'] < 1):
         gaps.append('movement_origin_or_quantity')
-    query = operation_query(operation, dependencies)
-    target_ref = operation.get('target_ref')
-    if query is None and type(target_ref) is int and 0 <= target_ref < len(scoped['targets']):
-        requirement = dependencies.item_requirement(scoped['targets'][target_ref], 'targets')
-        query = requirement['query'] if requirement else None
+    query = dependencies.draft_operation_query(scoped, operation)
 
     if operation['kind'] == 'fusion_summon':
         if profile_cards is None:
@@ -105,15 +101,22 @@ def _movement_domain(source, dependencies, available, profile_cards, *, fusion_p
                             for r in materials):
                         known.add(target)
         cards = known | uncertain
-    else:
+    elif operation.get('generation'):
+        return set(), set(), gaps  # A generated token is not a card in the inventory.
+    elif operation.get('subject') == 'this_card':
+        cards = known = {code}
+    elif query is not None or (operation.get('random') and not (
+            operation.get('selector') or operation.get('selector_query'))):
         cards = set(available.main + available.extra)
         if origins and set(origins) <= {'hand', 'deck'}:
             cards.intersection_update(available.main)
         elif list(origins) == ['extra']:
             cards.intersection_update(available.extra)
-        if query is None and not operation.get('random'):
-            gaps.append('complete_movement_selector')
         known = cards
+    else:
+        # The source effect's selector gap is reported by its own coverage.
+        # A movement with no recipient evidence cannot certify a theme pair.
+        return set(), set(), ['complete_movement_selector', *gaps]
     if query is not None:
         cards = {c for c in cards if matches(dependencies.rows[c], query)}
     if profile_cards is None and operation.get('simultaneous_group'):

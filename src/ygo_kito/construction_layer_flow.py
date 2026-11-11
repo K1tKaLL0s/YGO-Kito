@@ -25,7 +25,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v33"
+NORMALIZATION_VERSION = "construction-function-normalization-v34"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -95,7 +95,7 @@ def _configuration_relations(available, records, dependencies, aliases, operatio
         entries = []
         for ri, record in enumerate(records[code]):
             procedure = record.get('summon_procedure')
-            if not procedure:
+            if not procedure or procedure.get('kind') == 'xyz_overlay':
                 continue
             permitted, _ = dependencies.candidate_status(code, dict(category='operations',
                 operation=dict(kind='special_summon', from_zones=[procedure['from_zone']], controller='self')))
@@ -265,8 +265,9 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
                                for f in context.relations.facts)
                 checks[1] = dependencies._check(available,[r for r in cost_rows if not supplied_external(r)],distinct=True)
                 checks[2] = dependencies._check(available,[r for r in rows if r['category']!='costs' and not supplied_external(r)])
-            if materials:
-                checks.append(dependencies._check(available, materials, joint=True, target=code))
+            material = dependencies.summon_material_check(available, code)
+            if material:
+                checks.append(material)
             inventory_port = Resource("functional_inventory", attributes=(fact.fact_id,))
             inventory_key = fact.fact_id+":inventory"
             if not any(r["status"] == "missing" for r in checks):
@@ -712,7 +713,28 @@ def _side_joint_capacity(group, bound, facts, scope, relation, sources, *, requi
     return {**group,'status':'missing','gaps':[*group['gaps'],'swap_capacity']}
 
 
-def _restriction_match(rule, detail, card_properties=None, inventory=None):
+_SPECIAL_SUMMONS = {"special_summon", "fusion_summon", "synchro_summon", "xyz_summon",
+                    "link_summon", "pendulum_summon", "ritual_summon"}
+
+
+def _summoned_inventory(record, operation, objects, fusion):
+    """Read the selected summon object from the same static check as scoring."""
+    if operation.get('kind') not in _SPECIAL_SUMMONS:
+        return ()
+    if operation['kind'] == 'fusion_summon' and fusion is not None:
+        return sorted({option['target'] for option in fusion['options']} | set(fusion['uncovered_targets']))
+    if operation.get('subject') == 'this_card':
+        return [record['card_id']]
+    requirements = objects['requirements']
+    selected = [r for r in requirements if r['category'] == 'operations' and r.get('operation') == operation]
+    target_ref = operation.get('target_ref')
+    if type(target_ref) is int and 0 <= target_ref < len(record['targets']):
+        source = record['targets'][target_ref]['source']
+        selected.extend(r for r in requirements if r['category'] == 'targets' and r['source'] == source)
+    return sorted(set.intersection(*(set(r['matching_card_ids']) for r in selected))) if selected else ()
+
+
+def _restriction_match(rule, detail, card_properties=None):
     """Match the actual processing or payment, with unknown kept local."""
     kind = rule["kind"]
     if kind=='cannot_activate' and rule.get('required_state')=='special_summoned':
@@ -728,8 +750,7 @@ def _restriction_match(rule, detail, card_properties=None, inventory=None):
             return True
         supported=detail.get('special_summon_supported')
         return not supported if type(supported) is bool else None
-    special = {"special_summon", "fusion_summon", "synchro_summon", "xyz_summon", "link_summon",
-               "pendulum_summon", "ritual_summon"}
+    special = _SPECIAL_SUMMONS
     actions = {
         "cannot_normal_summon": {"normal_summon", "tribute_summon"},
         "cannot_special_summon": special,
@@ -791,36 +812,16 @@ def _restriction_match(rule, detail, card_properties=None, inventory=None):
         if excluded:
             continue
         if rule.get('allowed_summons') and action in special:
-            from .construction_inventory import selector,query_supported,matches as selector_matches
             from .build_semantics import matches as predicate_matches
-            query=raw.get('selector_query') or (selector(raw['selector']) if raw.get('selector') else None)
-            properties=card_properties or {}
-            stock=inventory or {}
-            if query is not None and not query_supported(query):
-                unknown=True
-                candidates=[]
+            properties = card_properties or {}
+            candidates = [properties.get(str(code)) for code in detail.get('summoned_card_ids', ())]
+            if candidates and all(row is not None for row in candidates):
+                permitted = [predicate_matches(row, rule['allowed_summons']) for row in candidates]
+                if all(permitted):
+                    continue
+                unknown |= any(permitted)
             else:
-                ids={c for z in ('main','extra') for c in stock.get(z,())}
-                if '这张卡' in raw.get('source',''):
-                    ids={detail['card_id']}
-                elif origins=={'extra'}:
-                    ids=set(stock.get('extra',()))
-                elif origins and origins<={'hand','deck','grave','banished'}:
-                    ids=set(stock.get('main',()))
-                required_type={'fusion_summon':0x40,'synchro_summon':0x2000,'xyz_summon':0x800000,
-                    'link_summon':0x4000000,'ritual_summon':0x80}.get(action)
-                candidates=[properties[str(c)] for c in ids if str(c) in properties
-                    and properties[str(c)].get('type',0)&1
-                    and (not required_type or properties[str(c)]['type']&required_type)
-                    and (query is None or selector_matches(properties[str(c)],query))]
-                if query is None and '这张卡' not in raw.get('source','') and not required_type:
-                    unknown=True
-            if candidates:
-                allowed=[predicate_matches(row,rule['allowed_summons']) for row in candidates]
-                if all(allowed):continue
-                unknown |= any(allowed)
-            else:
-                unknown=True
+                unknown = True
         player = rule.get("controller", rule.get("owner"))
         actor = operation.get("owner") if kind in ("cannot_draw", "cannot_add_hand") else (
             operation.get("controller", raw.get("controller", "self")))
@@ -943,7 +944,7 @@ def _bind_mandatory_impacts(facts, context, condition):
                 if target.scope_id != use.scope_id or target.use_id == use.use_id or target.use_id not in relevant:
                     continue
                 other = facts["use_details"][target.use_id]
-                affected = _restriction_match(rule, other, facts.get('card_properties'),facts.get('inventory'))
+                affected = _restriction_match(rule, other, facts.get('card_properties'))
                 if affected is False:
                     continue
                 check["affected_use_ids"].append(target.use_id)
@@ -968,7 +969,11 @@ def _bind_mandatory_impacts(facts, context, condition):
                             elif whole is False:
                                 group_edges[group_id].add((target.use_id,use.use_id))
                 impact_id = "impact:" + digest((use.use_id, target.use_id, restriction))
-                expr = condition(impact_id, value, "mandatory_restriction:" + kind, (restriction["source"],))
+                applicability = impact_id
+                if whole is True and affected is None:
+                    # Multiple results of one effect adopt the same whole-turn restriction.
+                    applicability = "impact:" + digest((use.effect_id, target.use_id, restriction))
+                expr = condition(applicability, value, "mandatory_restriction:" + kind, (restriction["source"],))
                 facts["impacts"].append(UseImpact(impact_id, use.use_id, (target.use_id,),
                     ("base", *target.theme_eligible), (kind,), (restriction["source"],), expr,
                     use.scope_id, target.source_ids))
@@ -1070,9 +1075,8 @@ def _special_summon_supported(code, available, records, dependencies, relation, 
                     return True
                 possible |= status == 'unknown'
     if code in available.extra:
-        _, materials = dependencies.specs(code)
-        if materials:
-            checked=dependencies._check(available,materials,joint=True,target=code)
+        checked = dependencies.summon_material_check(available, code)
+        if checked:
             if checked['status']=='inventory_present':return True
             possible |= checked['status']=='unknown'
     return None if possible else False
@@ -1336,10 +1340,10 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                         checked = dependencies._check(view, costs, distinct=True) if costs else None
                         summon_trigger = dependencies.summon_trigger_check(code, scoped_record)
                         objects = dependencies._check(view, other)
-                        material = dependencies._check(view, materials, joint=True, target=code) if materials else None
+                        material = dependencies.summon_material_check(view, code)
                         fusion=dependencies.fusion_check(view,code,scoped_record)
                         processing=dependencies.processing_check(view,scoped_record,operation,physical_inventory=deck)
-                        complete_payment = dependencies._check(view, [*costs, *materials], distinct=True, target=code) if costs and material else None
+                        complete_payment = dependencies.summon_material_check(view, code, costs=costs) if costs and material else None
                         if complete_payment and complete_payment["status"] == "missing" and checked["status"] != "missing" and material["status"] != "missing":
                             complete_payment["status"] = "unknown"
                             complete_payment["reason"] = "cost_material_transfer_order"
@@ -1352,12 +1356,10 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                                 dependencies,current_relation,operation_facts)
                         state = current_relation["uses"].get(operation_facts.get((code, ri, oi)), {})
                         support = _relation_support(state, key, scope, condition, refs)
-                        unresolved = [r for r in effect_specs[ri]["unknown"] if ("operation" not in r or r["operation"] == operation)
-                            and r.get('choice') in (None, (operation or {}).get('choice'))]
-                        complete_inputs = condition(key + ":selectors", None if unresolved else True, "complete_object_cost_material_semantics", refs)
+                        # The relation already binds unresolved inventory selectors to their source.
                         transfer = condition(key+":cost_material_transfer", None if complete_payment and complete_payment["status"] == "unknown" else True,
                                              "cost_material_transfer_order", refs)
-                        self_condition = _all_support([own, support, complete_inputs, transfer])
+                        self_condition = _all_support([own, support, transfer])
                         if processing and processing['status'] == 'unknown':
                             self_condition = _all_support([self_condition,
                                 condition(key+':processing', None, processing['reason'], refs)])
@@ -1396,13 +1398,16 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                             count_limits=deepcopy(record["count_limits"]),
                             restrictions=deepcopy([*record["card_restrictions"], *record["restrictions"]]),
                             unknown_theme_predicates=unknown_theme_predicates,
-                            self_reason_codes=[name for name, value in (("inventory",own),("execution",support),("selectors",complete_inputs)) if value is False],
+                            self_reason_codes=[name for name, value in (("inventory",own),("execution",support)) if value is False],
                             inventory_checks=dict(costs=checked, objects=objects, materials=material,
                                 complete_payment=complete_payment, summon_trigger=summon_trigger, fusion=fusion,
                                 processing=processing), relation=state)
                         from .construction_theme import function_goal, primary_goal
                         facts['use_details'][key].update(operation_key=(code, ri, oi),
                             goal_id=digest(function_goal(record, operation)) if operation is not None else None)
+                        if operation is not None and operation['kind'] in _SPECIAL_SUMMONS:
+                            facts['use_details'][key]['summoned_card_ids'] = _summoned_inventory(
+                                scoped_record, operation, objects, fusion)
                         if config.get('theme_profile'):
                             facts['use_details'][key]['explicit_task_goal'] = primary_goal(
                                 config['theme_profile'],code,record,operation,dependencies)

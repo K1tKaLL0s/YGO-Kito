@@ -801,9 +801,10 @@ def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, 
     budget = config["completion_budget"]
     full_count = 1 << len(unknown)
     upper_unknown = bool(facts.get("unknown_scope") or unknown_coverage or deferred)
-    fits_slice = len(unknown) <= 16 and full_count <= budget
-    # Exhausting Boolean cases cannot recover a missing card or scoring scope.
-    exact_search = fits_slice or (not upper_unknown and (resumable or continuation is not None))
+    # The same exact-search ceiling applies to a preview and to sliced
+    # evaluation. Larger spaces use the existing conservative score bounds.
+    exact_search = len(unknown) <= 16 and (full_count <= budget
+        or (not upper_unknown and (resumable or continuation is not None)))
     case_count = full_count if exact_search else min(2, budget)
     facts_sha = digest({**facts, "uses": [asdict(u) for u in uses], "impacts": [asdict(i) for i in facts["impacts"]]})
     policy_sha, logic_sha = digest(policy), digest(axis.get("logic"))
