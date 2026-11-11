@@ -6,15 +6,16 @@ The paired JSON below is an explicitly fabricated protocol consistency fixture.
 from copy import deepcopy
 from dataclasses import replace
 import unittest
+from unittest.mock import patch
 
 import torch
 
 from ygo_kito.build_contracts import BuildTask, DeckParts, digest
-from ygo_kito.build_pipeline import edit_candidates
+from ygo_kito.build_pipeline import DeckEdits, edit_candidates
 from ygo_kito.build_training import BuildTrainer, BuildTrainingConfig
 from ygo_kito.construction_binding import CatalogBindingAdapter, CardTagAssessment
 from ygo_kito.construction_candidates import (changes, evidence_order, graph_signature,
-    record_comparison, comparable_candidates, select_retained, strict_portfolio_winner, attributed_feedback)
+    record_comparison, attributed_feedback)
 from ygo_kito.construction_fill import (construction_cycle, existing_goal_verifier, evaluate_fill,
     FillProposal, NodeBinding, NodeTextReview, TextEvidence)
 from ygo_kito.construction_logic import ConstructionLogic, LogicTag
@@ -114,6 +115,25 @@ class ConstructionPortfolioTests(unittest.TestCase):
         self.assertTrue({"incumbent","axis:setcode-222","single:main","single:extra"}<=strategies)
         self.assertLessEqual(len(rows),6)
 
+    def test_complete_lists_are_built_only_after_selection_in_each_round(self):
+        actual = DeckEdits.materialize
+        constructed = []
+        def count(edits, change):
+            deck = actual(edits, change)
+            constructed.append(deck)
+            return deck
+        with patch.object(DeckEdits, 'materialize', count):
+            for offset in (0, 5):
+                trace = {}
+                before = len(constructed)
+                rows = edit_candidates(self.task, self.assets, self.base, return_portfolio=True,
+                                       trace=trace, search_offset=offset)
+                self.assertLessEqual(len(rows), 5)
+                self.assertEqual(len(constructed) - before, trace['materialized_edit_count'])
+                self.assertLessEqual(trace['materialized_edit_count'], 5)
+                self.assertGreater(trace['legal_edit_ideas'], 5)
+        self.assertGreater(len(constructed), 5)
+
     def test_sourced_mechanism_input_preserves_a_complete_package(self):
         self.assets.construction_mechanism_groups=[{"group_id":"synthetic-coupled","source":"synthetic-unit-facts",
             "zones":{"main":[20,22],"extra":[21],"side":[]}}]
@@ -170,8 +190,6 @@ class ConstructionPortfolioTests(unittest.TestCase):
         wrong=deepcopy(contexts);wrong[1]["deck"]=self.base.to_dict()
         with self.assertRaises(ContractError):record_comparison(self.session,self.assets,unknown,wrong)
         self.assertEqual(before,self.session.feedback)
-        self.assertIsNone(strict_portfolio_winner(3,[(0,1,None),(0,2,None),(1,2,None)]))
-        self.assertEqual(strict_portfolio_winner(3,[(0,1,1),(0,2,None),(1,2,0)]),1)
 
     def test_binding_counterexample_requests_a_new_plan_but_budget_exhaustion_is_unknown(self):
         graph=self.graphs()[0]

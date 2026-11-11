@@ -85,13 +85,14 @@ def static_cycle(test, f, session, **options):
     adapter = ConstructionLayerAdapter(binder, context_provider=lambda t, g: LayerContext(t, g, (), relations=relations))
     options.setdefault('seconds', 30)
     options.setdefault('run_mode', 'slice')
+    cb = options.pop('basic_cb_provider', lambda *_a, **_k: test.fail('CB forbidden'))
     with patch('ygo_kito.construction_fill.build_axis_skeleton', side_effect=skeleton), \
          patch('ygo_kito.build_pipeline._goal_candidates', return_value=decks), \
          patch('ygo_kito.build_pipeline.edit_candidates', return_value=rows_for(task, decks)), \
          patch('ygo_kito.construction_candidates.portfolio', return_value=rows_for(task, decks)):
         return construction_cycle(session, assets, {r:provider for r in ('build_goal', 'build_optimizer')},
             binding_provider=binder, text_reviewer=binder.reviewer, layer_adapter=adapter, verifier=None,
-            basic_cb_provider=lambda *_a, **_k: test.fail('CB forbidden'), **options)
+            basic_cb_provider=cb, **options)
 
 
 class AutomaticThemeTests(unittest.TestCase):

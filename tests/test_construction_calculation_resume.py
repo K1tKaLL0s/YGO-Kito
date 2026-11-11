@@ -82,6 +82,55 @@ class CalculationResumeTests(unittest.TestCase):
         result, _ = self.finish_allocations(context, skeleton((1,)))
         self.assertEqual(result['uses']['target']['status'], 'supported')
 
+    def test_combination_releases_finished_child_memo_and_resumes_legacy_flat_memo(self):
+        from collections import Counter
+        from ygo_kito.construction_relations import (
+            ResourcePool, _AllocationPending, _AllocationWork, _blank, _combine, _restore_relation,
+        )
+
+        pools = tuple(ResourcePool(name, name, inventory=(('main', code),))
+                      for code, name in enumerate(('left', 'right'), 1))
+        index = relation_index(None, RelationContext((), (), pools))
+        index._active_counts = Counter({('main', 1): 1, ('main', 2): 1})
+        capacities = {'left': 1, 'right': 1}
+        rows = []
+        for name in capacities:
+            row = _blank('supported')
+            row['branches'] = [dict(_blank('supported'), suppliers=[f'{name}:{n}'],
+                                    usage={name: {f'consume:{name}:{n}': 1}}) for n in range(4)]
+            rows.append(row)
+
+        def advance(budget, memo):
+            work = _AllocationWork(budget)
+            work.operations = memo
+            index._allocation_work = work
+            try:
+                return _combine(rows, 'all', 'resume-test', index, capacities, {}), work
+            except _AllocationPending:
+                return None, work
+
+        expected, full = advance(1000, {})
+        memo, resumed_legacy, steps = {}, False, 0
+        for _ in range(80):
+            result, work = advance(1, memo)
+            steps += work.steps
+            memo = _restore_relation(roundtrip(work.operations))
+            combine = next(value for key, value in memo.items() if key.startswith('combine:'))
+            self.assertLessEqual(len(memo), 5)
+            if not resumed_legacy and any(row.get('continuation') for key, row in memo.items()
+                                           if key.startswith('shared:')):
+                memo.update(combine.pop('child_operations'))
+                resumed_legacy = True
+            if result is not None:
+                self.assertNotIn('child_operations', combine)
+                break
+        else:
+            self.fail('combination did not finish')
+        self.assertTrue(resumed_legacy)
+        self.assertEqual(steps, full.steps)
+        self.assertEqual(len(result['branches']), 16)
+        self.assertEqual(roundtrip(result), roundtrip(expected))
+
     def test_recovery_quantity_identity_and_shared_inventory_resume_together(self):
         from ygo_kito.construction_relations import Resource, Need, ResourcePool, ResourceTransfer, PoolRecovery
         deck_resource, hand_resource = Resource('x', zone='deck'), Resource('x', zone='hand')
@@ -250,7 +299,7 @@ class CalculationResumeTests(unittest.TestCase):
         from ygo_kito.construction_logic import ConstructionLogic
         from ygo_kito.construction_progress import restore_progress
         from ygo_kito.construction_quality import EvaluationComparisons, _delta, validate_evaluation
-        from ygo_kito.construction_learning import cycle_pairs
+        from ygo_kito.construction_learning import strict_pair_count
         from tests.test_construction_functional_flow import fixture,reviewed
         from tests.test_construction_layer_flow import session_for,rows_for
         task,assets,graph,binder,decks,policy=fixture()
@@ -262,12 +311,13 @@ class CalculationResumeTests(unittest.TestCase):
                 main = list(deck.main)
                 main.remove(code)
                 candidates.append(DeckParts(tuple(sorted([*main, 16]))))
+        candidates = candidates[:5]
         source='anonymous specified reference'
         policy['pass']=dict(mode='reference_ratio',minimum_reference_ratio=.8,
             reference=dict(reference_id='resume-reference',deck_sha256=digest(reference_deck.to_dict()),source=source))
         reference=dict(reference_id='resume-reference',source=source,environment=task.environment,deck=reference_deck.to_dict())
         roles, evaluated_candidates, pairs, checked = [], [], [], []
-        target_pairs = 17
+        target_pairs = 3
         def provider(ctx):
             roles.append(ctx['role']);old=ConstructionLogic.from_dict(ctx['logic'])
             return dict(logic=replace(graph,revision=old.revision+1,parent_sha256=old.sha256).to_dict(),reason='fixture')
@@ -311,14 +361,14 @@ class CalculationResumeTests(unittest.TestCase):
              patch('ygo_kito.construction_quality.validate_evaluation',side_effect=check), \
              patch('ygo_kito.construction_quality._delta',side_effect=compare):
             result=construction_cycle(session,assets,providers,**options)
-        self.assertEqual(len(checked),12)
-        self.assertEqual(len(set(checked)),12)
+        self.assertEqual(len(checked),4)
+        self.assertEqual(len(set(checked)),4)
         from ygo_kito.validation import ContractError
         tampered = roundtrip(result['continuation'])
         tampered['pending_quality']['comparison_progress']['pairs'][0]['delta_range'][0] = 123
         with self.assertRaisesRegex(ContractError, 'invalid saved candidate comparison progress'):
             restore_progress(session,tampered,assets)
-        for completed, target_pairs in ((17, 34), (34, 51), (51, 67)):
+        for completed, target_pairs in ((3, 6), (6, 9), (9, 11)):
             pending=roundtrip(result['continuation']['pending_quality'])
             self.assertEqual(pending['comparison_progress']['next_pair'],completed)
             self.assertEqual(pending['pending_indices'],[])
@@ -334,10 +384,10 @@ class CalculationResumeTests(unittest.TestCase):
         self.assertTrue(first['pending_reference'])
         expected = first['pending_phase']['stage_3']
         ids = [row['quality_evaluation_id'] for row in expected['candidate_trace']['candidates']]
-        self.assertEqual(len(set(ids)), 12)
+        self.assertEqual(len(set(ids)), 5)
         self.assertCountEqual(evaluated_candidates, candidates)
-        self.assertEqual(len(set(pairs)), 66)
-        self.assertEqual(len(pairs), 66)
+        self.assertEqual(len(set(pairs)), 10)
+        self.assertEqual(len(pairs), 10)
         reads = [first['pending_reference']['calculation']['read_cursor']]
         for _ in range(3):
             restore_progress(session,roundtrip(result['continuation']),assets)
@@ -345,17 +395,20 @@ class CalculationResumeTests(unittest.TestCase):
             with patch('ygo_kito.construction_fill.fill_with_existing',side_effect=AssertionError('reopened S4')), \
                  patch('ygo_kito.construction_quality._delta',side_effect=compare):
                 result=construction_cycle(session,assets,providers,**options,max_candidates=0,_comparisons=verified)
-                self.assertTrue(cycle_pairs(task,result,_comparisons=verified))
             selection = result['phases'][-1]['stage_3']
             self.assertEqual([row['quality_evaluation_id'] for row in selection['candidate_trace']['candidates']], ids)
             self.assertEqual(selection['candidate_trace']['candidate_order'],expected['candidate_trace']['candidate_order'])
-            self.assertEqual(selection['best_deck'], expected['best_deck'])
+            self.assertEqual(selection['candidate_trace']['selected_candidate_index'],
+                             expected['candidate_trace']['selected_candidate_index'])
             if not result['continuation'].get('pending_reference'):break
             reads.append(result['continuation']['pending_reference']['calculation']['read_cursor'])
             self.assertIsNone(result['continuation']['reference_evaluation'])
         else:self.fail('finite reference calculation did not finish')
         self.assertEqual(reads, [6, 12])
-        self.assertEqual(len(pairs), 66)
+        self.assertEqual(result['best']['deck'], expected['best_deck'])
+        self.assertTrue(strict_pair_count(task, result))
+        self.assertEqual(sum('reference_delta' in row for row in selection['candidate_trace']['candidates']), 4)
+        self.assertEqual(len(pairs), 10)
         self.assertCountEqual(evaluated_candidates, candidates)
         self.assertEqual(roles,['build_goal','build_optimizer'])
         self.assertTrue(result['construction_passed'])

@@ -334,6 +334,37 @@ class FunctionalQualityTests(unittest.TestCase):
         self.assertTrue(all(row['lower'] == 0. for row in result['loss_records']))
         self.assertEqual(sum(row['upper'] for row in result['loss_records']), 1.)
 
+    def test_equivalent_condition_results_reuse_scoring_and_keep_every_shared_completion(self):
+        from unittest.mock import patch
+        from ygo_kito import construction_quality as quality
+
+        variables = dict.fromkeys('abcdefgh')
+        condition = {'all': list(variables)}
+        layer, facts = fixture([use(condition=condition)], variables=variables)
+        p = policy()
+        p['pass'] = p.pop('pass_')
+        with (patch.object(quality, '_functional_inputs', wraps=quality._functional_inputs) as inputs,
+              patch.object(quality, '_accumulate_functional_losses', wraps=quality._accumulate_functional_losses) as losses):
+            result = evaluate_functional_quality(layer, policy=p, facts=facts)
+        self.assertEqual(result['completion_evaluated_count'], 256)
+        self.assertEqual([row['value'] for row in result['completion_results']], [0.] * 255 + [1.])
+        self.assertEqual(inputs.call_count, 21)  # Three contexts at P and at each of two outcomes in V1/V2/S.
+        self.assertEqual(losses.call_count, 2)
+        self.assertEqual((result['losses'][0]['lower'], result['losses'][0]['upper']), (0., 1.))
+
+    def test_constraint_skips_untouched_facts_and_keeps_the_original_resume_index(self):
+        variables = dict.fromkeys('abcd')
+        layer, facts = fixture([use(condition={'all': list(variables)})], variables=variables)
+        facts['constraints'] = ['a']
+        p = policy(budget=1)
+        p['pass'] = p.pop('pass_')
+        first = evaluate_functional_quality(layer, policy=p, facts=facts, resumable=True)
+        progress = first['calculation_pending']
+        self.assertEqual(progress['next_completion'], 8)
+        self.assertEqual(progress['completion_scores'], [])
+        second = evaluate_functional_quality(layer, policy=p, facts=facts, continuation=progress)
+        self.assertEqual(second['calculation_pending']['completion_scores'], [[8, 0.]])
+
     def test_quality_work_rejects_changed_facts_and_crosses_policy_slice_budget(self):
         import json
         layer, facts = fixture([use(condition='p')], variables={'p': None})

@@ -1,5 +1,6 @@
 """S0--S5 and CB signal contracts, without model forward, training or search."""
 import ast
+from collections import Counter
 from copy import copy, deepcopy
 from contextlib import nullcontext
 from dataclasses import replace
@@ -112,6 +113,30 @@ class WorkflowTests(unittest.TestCase):
                 else:
                     self.assertNotIn('original-draw', requirements)
 
+    def test_fixed_reference_preparation_reuses_valid_inventory(self):
+        from ygo_kito.construction_layer_flow import ConstructionLayerAdapter
+
+        (task, assets, graph, binder, *_), policy, reference, deck = reference_fixture()
+        descriptor = policy['pass']['reference']
+        adapter = ConstructionLayerAdapter(binder)
+        with patch.object(assets, 'validate', wraps=assets.validate) as validate:
+            prepared_deck, binding, inputs = adapter.reference_inputs(task, graph, reference, descriptor,
+                policy=policy)
+            self.assertEqual(prepared_deck, deck)
+            self.assertIs(adapter.reference_inputs(task, graph, reference, descriptor, policy=policy)[2], inputs)
+
+            resumed = ConstructionLayerAdapter(binder)
+            self.assertEqual(resumed.reference_inputs(task, graph, reference, descriptor,
+                policy=policy, completed_binding=binding), (deck, binding, None))
+            validate.assert_called_once_with(task, deck)
+
+            code = deck.main[0]
+            assets.limits[assets.rows[code]['alias'] or code] = 0
+            with self.assertRaises(ContractError):
+                resumed.reference_inputs(task, graph, reference, descriptor,
+                    policy=policy, completed_binding=binding)
+            self.assertEqual(validate.call_count, 2)
+
     def test_fixed_reference_reuses_evaluation_until_its_inputs_change(self):
         from ygo_kito.construction_layer_flow import ConstructionLayerAdapter
         from ygo_kito.construction_progress import revise_quality_policy
@@ -184,20 +209,20 @@ class WorkflowTests(unittest.TestCase):
                     self.assertTrue(any(support_state(u.self_condition,facts['variables']) is None for u in protected))
                     self.assertFalse(q['complete'])
 
-    def test_resume_keeps_reselection_evidence_and_learning_keeps_full_evaluations(self):
+    def test_completed_round_saves_evaluation_receipts_and_winner(self):
         from ygo_kito.construction_progress import restore_progress
-        f=theme_fixture();session=session_for(f[0],f[2])
-        result=static_cycle(self,f,session,max_iterations=1)
-        stage=result['phases'][-1]['stage_3']
-        saved=result['continuation']['last_optimizer_phase']['stage_3']
-        self.assertTrue(stage['learning_candidates'])
-        self.assertTrue(stage['portfolio'])
-        self.assertNotIn('learning_candidates',saved)
-        self.assertNotIn('portfolio',saved)
-        self.assertEqual(saved['attempts'],stage['attempts'])
-        evaluations={row['quality_evaluation']['evaluation_id'] for row in stage['learning_candidates']}
-        self.assertTrue(all(row['quality_evaluation_id'] in evaluations for row in stage['candidate_trace']['candidates']))
-        restore_progress(session,json.loads(json.dumps(result['continuation'])),f[1])
+        f = theme_fixture()
+        session = session_for(f[0], f[2])
+        result = static_cycle(self, f, session, max_iterations=1)
+        stage = result['phases'][-1]['stage_3']
+        saved = result['continuation']['last_optimizer_phase']['stage_3']
+        for key in ('learning_candidates', 'portfolio', 'attempts'):
+            self.assertNotIn(key, stage)
+        self.assertEqual(saved, stage)
+        self.assertTrue(all(row['quality_evaluation_id'] for row in stage['candidate_trace']['candidates']))
+        self.assertEqual(result['best']['quality_evaluation']['deck_sha256'],
+                         result['continuation']['candidate']['deck_sha256'])
+        restore_progress(session, json.loads(json.dumps(result['continuation'])), f[1])
 
     def test_fixed_task_uses_only_required_series_or_race_to_select_axes(self):
         from ygo_kito.construction_fill import construct_task
@@ -516,11 +541,10 @@ class StaticEncoderTests(unittest.TestCase):
         stub = SimpleNamespace(assert_binding=lambda:None,assets=assets,
             available_ids=frozenset(original),card_index=dict(original),
             annotations_sha256=digest(list(task.annotations)),environment_sha256=digest(task.environment))
-        namespace = dict(copy=copy,BuildTask=BuildTask,digest=digest,ContractError=ContractError,
-                         BuildEncoder=SimpleNamespace(encode=lambda view,t,d:dict(view.card_index)))
-        encode = source_method('autonomous_construction.py','CourseBuildEncoder','encode',namespace)
-        encoded = encode(stub,task,DeckParts((200,)))
-        self.assertEqual(encoded[200],original[1])
+        namespace = dict(copy=copy,BuildTask=BuildTask,digest=digest,ContractError=ContractError)
+        encoding_view = source_method('autonomous_construction.py','CourseBuildEncoder','_encoding_view',namespace)
+        view = encoding_view(stub,task)
+        self.assertEqual(view.card_index[200],original[1])
         self.assertEqual(stub.card_index,original)
 
     def test_environment_context_does_not_encode_the_entire_pool(self):
@@ -529,10 +553,10 @@ class StaticEncoderTests(unittest.TestCase):
         stub = SimpleNamespace(assets=assets,environment_sha256=digest(task.environment),card_ids=task.pool,
             card_index={c:i for i,c in enumerate(task.pool,1)},config=SimpleNamespace(max_tokens=192),
             tag_index={canonical_json(a):i+1 for i,a in enumerate(task.annotations)})
-        encode = source_method('build_model.py','BuildEncoder','encode',dict(BuildTask=BuildTask,DeckParts=DeckParts,
+        encode = source_method('build_model.py','BuildEncoder','_encode_inventory',dict(
             digest=digest,ContractError=ContractError,canonical_json=canonical_json,ZONES=('main','extra','side')))
         deck = DeckParts(tuple([1]*3+[c for c in range(2,20) for _ in range(2)]+[20]))
-        tokens,_,_ = encode(stub,task,deck)
+        tokens,_,_ = encode(stub,task,{zone: Counter(getattr(deck, zone)) for zone in ('main','extra','side')})
         self.assertLess(len(tokens),192)
         self.assertTrue({stub.card_index[c] for c in deck.main} <= {r[0] for r in tokens})
 

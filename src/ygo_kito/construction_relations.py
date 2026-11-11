@@ -1074,12 +1074,14 @@ class _AllocationWork:
         self.should_stop = should_stop
         self.steps = 0
         self.operations = {}
+        self.shared_operations = None
         self.preview = preview
 
     def record(self, kind, inputs):
         from .build_contracts import digest
         key = kind + ':' + digest(_cursor_value(inputs))
-        return self.operations.setdefault(key, {})
+        operations = self.shared_operations if kind == 'shared' and self.shared_operations is not None else self.operations
+        return operations.setdefault(key, {})
 
     def check(self):
         if self.remaining <= 0 or self.should_stop is not None and self.should_stop():
@@ -1127,7 +1129,8 @@ def _shared_allocation(index, tree, stock, *, existential):
         states = max(1, min(1000000, work.remaining if work is not None else index.context.budget.allocations))
         value = solve_requirements(tree, stock, coverage=True,
             budget=SolverBudget(max_states=states, max_solutions=1 if existential else 128),
-            continuation=record.get('continuation'), should_stop=work.should_stop if work is not None else None)
+            continuation=record.get('continuation'), should_stop=work.should_stop if work is not None else None,
+            existential=existential)
         if work is not None:
             work.remaining -= value['explored_states']
             work.steps += value['explored_states']
@@ -1940,6 +1943,9 @@ def _combine(rows, operator, key, index, capacities, states):
         if work is not None and work.preview and any(b['status'] == 'supported' for b in branches):
             exhausted = True
             break
+        # Old saves recorded the in-flight child's work in the outer memo.
+        # Finish that choice there before starting a cursor-local memo.
+        legacy_child = record.get('started') and 'child_operations' not in record
         if work is not None:
             try:
                 work.tick(record)
@@ -1951,6 +1957,13 @@ def _combine(rows, operator, key, index, capacities, states):
         cursor = record['cursor']
         selected = [options[cursor[0]][cursor[1]]] if operator == 'any' else [
             choices[i] for choices, i in zip(options, cursor)]
+        parent_operations = work.operations if work is not None else None
+        parent_shared = work.shared_operations if work is not None else None
+        if work is not None and not legacy_child:
+            work.operations = record.setdefault('child_operations', {})
+            # Identical allocator inputs can recur across distinct branches.
+            if parent_shared is None:
+                work.shared_operations = parent_operations
         try:
             branch = _combine_summary(list(selected), "all", key, index, capacities, states)
         except _AllocationPending:
@@ -1958,6 +1971,10 @@ def _combine(rows, operator, key, index, capacities, states):
                 raise
             exhausted = True
             break
+        finally:
+            if work is not None:
+                work.operations = parent_operations
+                work.shared_operations = parent_shared
         branches.extend(branch.get('branches', [branch]))
         if operator == 'any':
             row, item = cursor
@@ -1965,6 +1982,7 @@ def _combine(rows, operator, key, index, capacities, states):
                 [row + 1, 0] if row + 1 < len(options) else None)
         else:
             record['cursor'] = _next_product(cursor, [len(v) for v in options])
+        record.pop('child_operations', None)
         record.pop('started', None)
     result = _combine_summary(branches, 'any', key, index, capacities, states) if branches or not exhausted else _blank('unknown')
     # Failed branches cannot supply a later ALL. Keep uncertain branches even
@@ -2211,7 +2229,8 @@ def evaluate_relations(skeleton, context, index, *, previous=None, inventory_cou
         validate_inventory(skeleton, context)
     started = perf_counter()
     counts = _inventory(skeleton) if inventory_counts is None else Counter(inventory_counts)
-    if inventory_counts is not None and (hasattr(context, "task") or previous is not None
+    if inventory_counts is not None and (hasattr(context, "task")
+            or previous is not None and previous.data.get('inventory_projection') is None
             or any(z not in ("main", "extra") or type(n) is not int or n < 0 for (z, _), n in counts.items())):
         raise ContractError("direction inventory projection requires isolated static relation context")
     if inventory_counts is not None:

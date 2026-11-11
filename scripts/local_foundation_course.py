@@ -490,7 +490,7 @@ def run(base,directory,stop,status,*,resume=False,unit_boundary=None,continuatio
             initial_budget.check('after_initial_task_or_basic_cb_verifier')
             write(target/('construction-route-'+str(attempts).zfill(3)+'.json'),{'task':task.to_dict(),'deck':deck.to_dict(),'proof':proof})
             return proof
-        from local_course_collaboration import record_basic_cb_inference,basic_cb_completed
+        from local_course_collaboration import record_basic_cb_inference,basic_cb_completed,retire_candidate_proofs
         def recorder(t,d,value):
             from local_course_forecast import record_conditional_cb_signal
             path=record_basic_cb_inference(target,t,d,value)
@@ -499,30 +499,26 @@ def run(base,directory,stop,status,*,resume=False,unit_boundary=None,continuatio
         result=models.kernel.run_selected(selection,verifier=verifier,budget=initial_budget,basic_cb_verifier=verifier,
             basic_cb_recorder=recorder,basic_cb_enabled=True,pause_requested=stop.exists)
         prior=target/'initial-construction.json'
-        if prior.exists():prior.rename(prior.with_name('initial-construction.prior-'+str(time.time_ns())+'.json'))
-        write(prior,result)
         from ygo_kito.construction_candidates import task_checked
         if (not task_checked(result.get('best')) or result.get('construction_passed') is not True
                 or not basic_cb_completed(result)):
             from ygo_kito.construction_learning import consume_optimizer_slice
+            from ygo_kito.construction_progress import ConstructionSuspended, construction_report
             consume_optimizer_slice(course,result,status=status,pause_requested=stop.exists)
-            course.construction=result;course.desired='paused';course.save()
-            from ygo_kito.construction_progress import ConstructionSuspended
+            course.construction=construction_report(result)
+            write(prior,course.construction)
+            course.desired='paused';course.save()
             error=ConstructionSuspended(result);error.safe_boundary_saved=True;raise error
         if result['best']['logic_sha256']!=result['latest_logic_sha256']:
             raise RuntimeError('Final candidate and final optimizer graph differ')
         course.construction=result;course.deck=DeckParts.from_dict(result['best']['deck']);course.rules.validate(course.deck)
+        retire_candidate_proofs(target, result['best']['deck'], route_prefix='construction-route-')
+        write(prior,result)
         score_completed=getattr(comparison_policy,'record_completed_construction',None)
         if callable(score_completed):
             cycle_id='initial-construction-'+digest(result)
-            seen=set()
-            for candidate in [result['best'],*result.get('retained_candidates',[])]:
-                if not isinstance(candidate,dict) or not isinstance(candidate.get('deck'),dict):continue
-                key=digest(candidate['deck'])
-                if key in seen:continue
-                seen.add(key)
-                score_completed(task=course._task(),deck=DeckParts.from_dict(candidate['deck']),assets=assets,
-                    basic_cb=candidate.get('basic_cb'),cycle_id=cycle_id)
+            score_completed(task=course._task(),deck=course.deck,assets=assets,
+                basic_cb=result['best'].get('basic_cb'),cycle_id=cycle_id)
         course.save()
         if unit_boundary('after',course,None,{'action':'build_goal'},1) is not True:
             course.desired='paused';course.save()

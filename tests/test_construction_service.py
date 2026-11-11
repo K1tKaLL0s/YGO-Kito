@@ -89,8 +89,7 @@ class ConstructionServiceTests(unittest.TestCase):
         self.assertEqual(result["status"], "construction_suspended")
         self.assertEqual(result["classification"]["kind"], "broad")
         self.assertEqual(result["phases"][0]["stage_2"]["status"], "skipped_broad")
-        attempts = result["phases"][0]["stage_3"]["attempts"]
-        self.assertTrue(any(a["status"] == "axis_skeleton_ready" for a in attempts))
+        self.assertEqual(result["phases"][0]["stage_3"]["status"], "axis_skeleton_ready")
         self.assertEqual(result["basic_cb"]["status"],"not_run")
         self.assertEqual(result["construction_candidate"]["validation"]["status"],"construction_pending")
         self.assertFalse(result["construction_passed"])
@@ -196,7 +195,7 @@ class ConstructionSessionRPCTests(unittest.TestCase):
             self.assertFalse(cb_authorized)
             return construction_cycle(session, self.assets, {}, cb_authorized=cb_authorized, **options)
 
-        backend._controller = lambda *_args: (self.assets, SimpleNamespace(run=run))
+        backend._controller = lambda *_args: (self.assets, SimpleNamespace(run=run, graph_adapter=SimpleNamespace(device='cpu')))
         backend._model_binding = lambda *_args: 'fixed static test model binding'
         bridge = AgentBridge(self.root, self.root/directory, self.root/'no-native', role='manager',
                              construction_backend=backend)
@@ -214,7 +213,7 @@ class ConstructionSessionRPCTests(unittest.TestCase):
 
     def test_rpc_cancellation_retry_restart_and_binding_isolation(self):
         from ygo_kito.build_contracts import DeckParts
-        from ygo_kito.construction_checkpoint import ConstructionCheckpoint
+        from ygo_kito.construction_checkpoint import ConstructionCheckpoint, LEGACY_KERNEL_FILENAME
 
         client, bridge, backend = self.host(mode='development', slice_seconds=2., iterations=1)
         entered, resumed, release = Event(), Event(), Event()
@@ -270,10 +269,14 @@ class ConstructionSessionRPCTests(unittest.TestCase):
             paused = self.wait_for(client, ident)
             self.assertEqual((paused['status'], paused['stop_reason']), ('paused', 'user_pause'))
             self.assertEqual(paused['candidate'], partial)
-            path = self.root/'manager'/'construction'/ident/'kernel.json'
-            self.assertEqual(ConstructionCheckpoint.read(path)['revision'], paused['revision'])
+            path = self.root/'manager'/'construction'/ident/'kernel.json.gz'
+            saved = ConstructionCheckpoint.read(path)
+            self.assertEqual(saved['revision'], paused['revision'])
             bridge.close()
 
+            legacy = ConstructionCheckpoint(path.with_name(LEGACY_KERNEL_FILENAME), revision=saved['revision']-1)
+            legacy.commit(saved['state'], stop_reason=saved['stop_reason'])
+            path.unlink()
             next_client, next_bridge, _ = self.host(mode='development', slice_seconds=2., iterations=1)
             self.assertEqual(next_client.call('construction.progress', {'session_id': ident})['candidate'], partial)
             resume = dict(session_id=ident, revision=paused['revision'])

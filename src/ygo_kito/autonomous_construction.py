@@ -76,7 +76,7 @@ class CourseBuildEncoder(BuildEncoder):
                 or self.tag_index != {t: i + 1 for i, t in enumerate(self.tags)}):
             raise ContractError("course encoder vocabulary/identity was changed")
 
-    def encode(self, task, deck):
+    def _encoding_view(self, task):
         self.assert_binding()
         from .card_identity import canonical_card_id
         if (not isinstance(task, BuildTask) or any(c not in self.available_ids and
@@ -93,7 +93,7 @@ class CourseBuildEncoder(BuildEncoder):
         for code in task.pool:
             if code not in view.card_index:
                 view.card_index[code] = self.card_index[canonical_card_id(self.assets.rows, code)]
-        return BuildEncoder.encode(view, task, deck)
+        return view
 
 
 def initialize_course_vocabulary(builder, host_available_ids, *, seed=45881):
@@ -515,7 +515,8 @@ class AutonomousConstructionKernel:
                 return without_private_selection_key(inference)
         if any(iteration_options.get(k) is not None for k in ('quality_criteria','quality_reference','quality_factory')):
             raise ContractError('candidate options cannot replace host construction quality policy/reference')
-        iteration_options['quality_factory'] = lambda: self.quality_for_task(session.task)
+        from functools import cache
+        iteration_options['quality_factory'] = cache(lambda: self.quality_for_task(session.task))
         iteration_options.setdefault('retrieval_limit',max(16,self.pool_limit))
         from .construction_quality import EvaluationComparisons
         comparisons = EvaluationComparisons()
@@ -529,8 +530,6 @@ class AutonomousConstructionKernel:
         result.update(selected_task_sha256=session.task.sha256,selected_theme_id=theme["theme_id"],
             internal_task_assignment=True,text_classifier_inference=False,goal_preserved=True,
              mechanisms=self.mechanisms.summarize(theme['card_ids']),
-             construction_mechanism_groups=list({g['group_id']:g for p in result.get('phases',())
-                 for g in p.get('stage_3',{}).get('candidate_trace',{}).get('generation',{}).get('mechanism_groups',())}.values()),
              mechanism_inference='bounded_card_text_recognition_not_trained_model_claim',
             ability_verified=False,
             effect_blocks={'status':'dictionary_available' if effect_tags else 'effect_vocabulary_unavailable',
@@ -541,14 +540,16 @@ class AutonomousConstructionKernel:
                             'requirements_include_inferred_mechanism_proposals':False,
                             'requested':adapter.requirements(),'reviews_define_requirements':False})
         result["basic_cb_inference_performed"]=bool((result.get("basic_cb") or {}).get("inference_completed"))
-        from .construction_learning import cycle_pairs
-        pairs=cycle_pairs(session.task, result, _comparisons=comparisons)
-        result['optimizer_learning']={'eligible_strict_pairs':len(pairs),
+        from .construction_learning import strict_pair_count
+        pairs = strict_pair_count(session.task, result, _comparisons=comparisons)
+        result['optimizer_learning']={'eligible_strict_pairs':pairs,
             'parameter_update_performed':False,'cumulative_updates':self.builder.updates['build_optimizer'],
-            'reason':'awaiting_authorized_sample_consumption' if pairs else 'no_strict_layer_preferences_in_this_slice'}
+            'reason':'strict_preferences_recorded_without_candidate_inventories' if pairs else 'no_strict_layer_preferences_in_this_slice'}
         result['basic_cb_execution']={'enabled':basic_cb_enabled,
             'reason':'normal_course_policy' if basic_cb_enabled else 'disabled_by_host'}
-        return deepcopy(result)
+        # The checkpoint writer already owns this live progress. The CLI
+        # consumes it immediately and writes a compact report.
+        return result if iteration_options.get('_checkpoint') is not None else deepcopy(result)
 
     def preference_loss(self, proposals, preferred_id, *, source, purpose="train"):
         """Actual differentiable task-choice loss; host applies its own updater."""

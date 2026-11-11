@@ -18,7 +18,7 @@ from threading import Event, Lock
 
 from .build_contracts import BuildTask, DeckParts, digest
 from .build_intent import classify_build_intent
-from .construction_checkpoint import ConstructionCheckpoint
+from .construction_checkpoint import ConstructionCheckpoint, KERNEL_FILENAME, LEGACY_KERNEL_FILENAME
 from .construction_logic import ConstructionLogic, ConstructionSession, LogicTag, ThemeScope
 from .intent_model import LinearIntentClassifier
 from .validation import ContractError, array, canonical_json, fields, integer, member, parse_json, read_json, text
@@ -68,7 +68,7 @@ class _Job:
 
 class HostConstructionBackend:
     def __init__(self, classifier, *, assets=None, binding_data=None, logic_checkpoint=None, assets_factory=None,
-                 runtime=None):
+                 runtime=None, device="cpu"):
         if not isinstance(classifier, LinearIntentClassifier):
             raise ContractError("host must supply a fixed typed intent classifier")
         if assets is not None and assets_factory is not None:
@@ -88,6 +88,7 @@ class HostConstructionBackend:
         self._builders = {}
         self._adapters = {}
         self._runtime = _runtime_options(runtime)
+        self._device = text(device, "host construction device")
         self._state_root = None
         self._owner = None
         self._executor = None
@@ -98,9 +99,9 @@ class HostConstructionBackend:
 
     @classmethod
     def from_config(cls, workspace, native_root, value):
-        config = fields(value, {"intent_model", "binding_data"}, {"logic_checkpoint", "runtime"})
+        config = fields(value, {"intent_model", "binding_data"}, {"logic_checkpoint", "runtime", "device"})
         workspace = Path(workspace).resolve()
-        paths = {name: _workspace_file(workspace, config[name]) for name in config.keys() - {'runtime'}}
+        paths = {name: _workspace_file(workspace, config[name]) for name in config.keys() - {'runtime', 'device'}}
         try:
             classifier = LinearIntentClassifier.load(paths["intent_model"])
         except (OSError, ContractError) as error:
@@ -111,7 +112,7 @@ class HostConstructionBackend:
             return BuildAssets(native_root)
 
         backend = cls(classifier, assets_factory=assets_factory, logic_checkpoint=paths.get("logic_checkpoint"),
-                      runtime=config.get('runtime'))
+                      runtime=config.get('runtime'), device=config.get('device', 'cuda:0'))
         backend._binding_path = paths["binding_data"]
         return backend
 
@@ -172,7 +173,7 @@ class HostConstructionBackend:
         codec = LogicCodec(tags)
         key = (task.sha256, digest(codec.to_dict()))
         if task.sha256 not in self._builders:
-            self._builders[task.sha256] = BuildTrainer(task, assets, BuildTrainingConfig())
+            self._builders[task.sha256] = BuildTrainer(task, assets, BuildTrainingConfig(), device=self._device)
         if key not in self._adapters:
             adapter = LogicModelAdapter.from_builder(self._builders[task.sha256], codec, required_tags=tags)
             if self._logic_checkpoint is not None:
@@ -184,14 +185,14 @@ class HostConstructionBackend:
         adapter = self._adapters[key]
         adapter.last_selection.clear()  # Each RPC owns its evidence, while weights are reused.
         if self._coordinator is None:
-            self._coordinator = CoordinatorTrainer()
+            self._coordinator = CoordinatorTrainer(device=self._device)
         return assets, ConstructionController(adapter, binder, self._coordinator)
 
     def _execute(self, controller, session, base, scopes, **options):
         result = controller.run(session, scopes=scopes, base=base, verifier=None, cb_authorized=False, **options)
         result.update(classification=session.classification.to_dict(), native_execution=False,
                       training_performed=False, coordinator_ledger_submission=False,
-                      service_scope="host_configured_cpu_construction_inference")
+                      service_scope="host_configured_construction_inference", inference_device=str(controller.graph_adapter.device))
         return result
 
     def run(self, params):
@@ -235,10 +236,14 @@ class HostConstructionBackend:
     def _checkpoint_path(self, session_id):
         if not isinstance(session_id, str) or re.fullmatch(r'construction-[0-9a-f]{32}', session_id) is None:
             raise ContractError('invalid construction session identifier')
-        path = self._state_root/session_id/'kernel.json'
-        if path.resolve() != path or path.with_suffix('.json.tmp').is_symlink():
-            raise ContractError('construction session state must stay in its host directory')
-        return path
+        root = self._state_root/session_id
+        current, legacy = root/KERNEL_FILENAME, root/LEGACY_KERNEL_FILENAME
+        for path in (current, legacy):
+            if path.resolve() != path or path.is_symlink() or path.with_suffix(path.suffix + '.tmp').is_symlink():
+                raise ContractError('construction session state must stay in its host directory')
+        if legacy.exists() and current.exists():
+            raise ContractError('construction session has two committed kernels')
+        return legacy if legacy.exists() else current
 
     def _job(self, session_id):
         path = self._checkpoint_path(session_id)

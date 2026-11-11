@@ -14,7 +14,7 @@ import sys
 
 from ygo_kito.build_contracts import BuildTask, DeckParts
 from ygo_kito.build_pipeline import edit_candidates
-from ygo_kito.construction_candidates import portfolio
+from ygo_kito.construction_candidates import changes, portfolio
 from ygo_kito.construction_fill import fill_with_existing
 from ygo_kito.construction_layer_flow import ConstructionLayerAdapter
 from ygo_kito.construction_layers import LayerContext
@@ -86,11 +86,15 @@ class ConstructionEditTraceTests(unittest.TestCase):
 
     def test_small_budget_shares_a_round_with_axis_and_each_edit_region_without_score_bonus(self):
         task, assets, base = saturated_sections(budget=5)
-        singles = [replacement(base,"main",2,15),replacement(base,"extra",101,107),replacement(base,"side",20,15)]
-        axes = [{"deck":replacement(base,"main",old,new),"strategy":"axis:mechanism:synthetic-"+str(new),
+        singles = [
+            {'changes': changes(base, replacement(base, zone, old, new)), 'strategy': 'single:' + zone,
+             'edited_zones': [zone]}
+            for zone, old, new in (('main', 2, 15), ('extra', 101, 107), ('side', 20, 15))
+        ]
+        axes = [{"changes":changes(base,replacement(base,"main",old,new)),"strategy":"axis:mechanism:synthetic-"+str(new),
             "proposal_basis":"explicit_synthetic_public_package","proposal_source":"synthetic-unit"}
             for old,new in ((3,16),(4,17),(5,18),(6,19))]
-        with patch("ygo_kito.construction_candidates.axis_edits",return_value=iter(axes)):
+        with patch("ygo_kito.construction_candidates.axis_ideas",return_value=iter(axes)):
             rows = portfolio(task,assets,base=base,singles=singles)
         strategies = {r["strategy"] for r in rows}
         self.assertEqual(len(rows),5)

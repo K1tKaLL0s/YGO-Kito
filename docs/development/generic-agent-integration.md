@@ -300,11 +300,12 @@ PYTHONPATH=src /workspace/YGO-Kito/.venv/bin/python -m ygo_kito agent-serve \
   "intent_model": ".cache/approved/intent.json",
   "binding_data": ".cache/approved/binding.json",
   "logic_checkpoint": ".cache/approved/graph.weights",
+  "device": "cuda:0",
   "runtime": {"mode": "online", "seconds": 600, "slice_seconds": 30, "iterations": 4}
 }
 ```
 
-`intent_model` 和 `binding_data` 必需，`logic_checkpoint` 与 `runtime` 可省略。文件路径含符号链接解析后须位于 workspace 内。分类器在宿主配置时加载，卡库和审核表在构筑时加载。省略图检查点时使用明示的随机初始化评分器。已有检查点需要任务、图词表与特征绑定一致。
+`intent_model` 和 `binding_data` 必需，`logic_checkpoint` 与 `runtime` 可省略。文件路径含符号链接解析后须位于 workspace 内。分类器在宿主配置时加载，卡库和审核表在构筑时加载。省略图检查点时使用明示的随机初始化评分器。正式宿主默认使用 CUDA。已有检查点需要任务、图词表、特征和设备绑定一致。
 
 持久会话默认 `development`，每片 30 秒、4 轮，开发模式按片持续推进。`online` 可配置总时间，默认 600 秒，到期停止新增候选，完成在途评价和准入。`iterations` 接受 1 到 64。`seconds` 仅适用于 `online`，续接使用剩余预算。配置由宿主选择。
 
@@ -331,7 +332,7 @@ if caps.get("construction_backend_configured"):
 | `construction.cancel` | 接收 `session_id` 和 `attempt`。向对应尝试发暂停信号，待安全提交后进度为 `paused`。 |
 | `construction.continue` | 接收 `session_id` 和当前 `revision`。从未达标且非活动的会话继续，同一信封 `id` 与版本的重试复用该次请求。 |
 
-Python 客户端可通过 `Client.call(..., request_id=...)` 复用原信封 ID。宿主在 `state-root/construction/<session_id>/kernel.json` 提交任务、模型及资源绑定、候选和计算进度。每个状态根由一个宿主持有，持久会话串行使用模型。服务关闭时暂停并等待已接收会话到安全边界。 [实现及验证](../reports/2026-11-11-design-implementation-repair-runtime.md)
+Python 客户端可通过 `Client.call(..., request_id=...)` 复用原信封 ID。宿主在 `state-root/construction/<session_id>/kernel.json.gz` 提交任务、模型及资源绑定、候选和计算进度。每个状态根由一个宿主持有，持久会话串行使用模型。服务关闭时暂停并等待已接收会话到安全边界。 [实现及验证](../reports/2026-11-11-design-implementation-repair-runtime.md)
 
 后续编程Agent先读取：`AGENTS.md`、MASTER中CL-00/MP条目、当前合并报告及source commit。用 `coding.prepare_handoff` 可以生成带明确模型ID的接续包，但 `executed:false / model_verified:false`，准备包不会执行外部CLI。选定宿主、真实provider配置和相应授权仍是外部依赖。
 

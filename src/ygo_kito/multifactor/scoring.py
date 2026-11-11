@@ -92,9 +92,10 @@ class CandidateScorer:
                 for start in range(0, len(queries), 32):
                     block = queries[start:start + 32]
                     logits = model.score_queries(encoded, batch, [(0, *q) for q in block])
-                    for (_, subject, coordinate), value in zip(block, logits):
-                        prediction = ({name: float(v) for name, v in zip(TASK_DOMAINS[task], value.softmax(-1))}
-                                      if task in CATEGORY_COORDINATES else float(value.sigmoid()))
+                    categorical = task in CATEGORY_COORDINATES
+                    values = (logits.softmax(-1) if categorical else logits.sigmoid()).tolist()
+                    for (_, subject, coordinate), value in zip(block, values):
+                        prediction = dict(zip(TASK_DOMAINS[task], value)) if categorical else value
                         rows.append(dict(task=task, subject=list(subject), coordinate=coordinate, value=prediction))
         finally:
             model.train(prior_mode)

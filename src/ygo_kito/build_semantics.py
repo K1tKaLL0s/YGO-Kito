@@ -107,7 +107,7 @@ def preference_value(task,deck,assets):
 def solve_candidates(task,assets,base=None,*,max_edits=None,seconds=3.,candidate_count=None,skeleton=None,candidate_ids=None):
     from .build_contracts import DeckParts,ZONES
     from .deck_profile import validate_deck_parts
-    from .build_pipeline import EXTRA_TYPES
+    from .build_pipeline import EXTRA_TYPES, candidate_limit
     assets.check_task(task)
     if task.goal['kind']!='deck_constraints':raise ContractError('semantic task required')
     if type(seconds) not in (int,float) or not math.isfinite(seconds) or not 0<=seconds<=10:
@@ -120,7 +120,8 @@ def solve_candidates(task,assets,base=None,*,max_edits=None,seconds=3.,candidate
         if any(len(getattr(base,z))!=task.sizes[z] for z in ZONES):raise ContractError('existing section sizes differ')
     if skeleton is not None:
         assets.validate_skeleton(task, skeleton)
-    wanted=min(task.candidate_budget,8) if candidate_count is None else integer(candidate_count,'semantic candidates',1,min(task.candidate_budget,8))
+    limit = candidate_limit(task)
+    wanted = limit if candidate_count is None else integer(candidate_count, 'semantic candidates', 1, limit)
     if not seconds:return {'status':'not_found_within_budget','candidates':[],'solver_calls':0,'solver_statuses':[]}
     try:
         import numpy as np

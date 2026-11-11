@@ -64,7 +64,7 @@
 | 解释 | P/V1/V2/S、各功能基础及主题投入、各方向 R/X/增量、统一损失记录、未定价负担 |
 | 消费索引 | 各卡/轴/泛用/组合到同一功能记录的引用，以及实际候选版本 |
 
-一份候选记录保存 `deck`、`layer_evaluation`、`quality_evaluation`、评价状态及绑定。candidate trace、learning_candidates、portfolio、当前 candidate、retained_candidates 都必须保留自己的结果。`total.value/min/max` 若因兼容保留，只能是新 `score` 的同值投影并显式带单位，不能维护第二套计算。
+一份候选记录保存 `deck`、`layer_evaluation`、`quality_evaluation`、评价状态及绑定。评价与排序期间各候选使用自己的结果。批次完成后保存最优构筑及评价，其他候选只保留标识、状态、分值和比较记录。`total.value/min/max` 若因兼容保留，只能是新 `score` 的同值投影并显式带单位，不能维护第二套计算。
 
 绑定分为共同口径与候选输入两部分：共同口径包含 task、policy、评价器、规范字典、资产和事实契约版本、评价范围；候选输入包含 deck、logic 和实际使用的事实内容。比较双方时要求共同口径一致，不要求不同牌表具有相同事实内容。`evaluation_id` 复用现有 digest 对绑定与规范结果生成，供保存和消费引用；无需另造文件校验台账。参考与候选各自绑定自己的输入，不能互换结果。
 
@@ -90,7 +90,7 @@ construction_gate(..., quality=None, reference_quality=None) -> Gate
 
 ### 9.1 评价必须先于质量选择
 
-保留 `portfolio` 的有界候选生成、合法池过滤和依赖修复提案。生成预算只定义本轮提出了哪些候选，不是质量判断。模型分可以安排待评顺序和预算，不再替代最终有效分。
+保留 `portfolio` 的有界候选生成、合法池过滤和依赖修复提案。生成预算只定义本轮提出了哪些候选，不是质量判断。模型分可以在生成前批量排序换卡方案，并安排待评顺序和预算，不再替代最终有效分。
 
 `ConstructionLayerAdapter.evaluate` 改为：对已入本轮候选集合的每个候选完成绑定及层事实，组装规范用途，调用统一质量入口，然后调用统一比较器。旧 `compare_layer_candidates` 的缺口和优劣原因继续可用于诊断及修复建议，但不再产生最终质量优先边。
 
@@ -104,11 +104,11 @@ construction_gate(..., quality=None, reference_quality=None) -> Gate
 | deferred / 预算未覆盖 | 保留候选、待评索引和原因；不填零、不算连续失败 |
 | 配置/解析接口错误或绑定错误 | 返回可定位错误；不生成构筑负样本；已知语义资料不足仍用 unknown |
 
-全部已生成且进入本轮比较的候选必须在最终排序和保留裁剪前取得自己的评价。预算耗尽时保存 `pending_candidates` 和评价游标；可以记录当前已评最优作为 working candidate，但结果标为选择尚未完成。只有剩余候选均已评价，或有可靠上界证明不会影响所需的前若干名，才能提交本轮最终保留集。这里不要求枚举所有可能牌表。
+全部已生成且进入本轮比较的候选必须在最终排序和保留裁剪前取得自己的评价。预算耗尽时保存 `pending_candidates` 和评价游标；可以记录当前已评最优作为 working candidate，但结果标为选择尚未完成。只有剩余候选均已评价，或有可靠上界证明不会影响所需的前若干名，才能确定本轮最优构筑。这里不要求枚举所有可能牌表。
 
-完整且硬条件成立的候选按 S 降序，真实同分才使用现有模型顺序和稳定候选索引。原有策略多样性可以用于生成和同分取舍，不能让更低 S 覆盖已确定的更高 S。各保留候选带自己的 Evaluation；三份保留上限不等于只评前三份。
+完整且硬条件成立的候选按 S 降序，真实同分才使用现有模型顺序和稳定候选索引。原有策略多样性可以用于生成和同分取舍，不能让更低 S 覆盖已确定的更高 S。本轮最优构筑保存自己的 Evaluation，所有候选各自完成静态评价和适用的参考比较。
 
-`fill_with_existing` 返回 `quality_evaluation`、`quality_comparisons`、完整 `learning_candidates`、待评候选和选择状态。`construction_cycle` 直接使用该结果，不再在选中后另算 quality。包括学习后重选在内的所有静态构筑选择使用同一比较器。后续已获授权的真实对战部署比较保留原职责，其结果不得反写静态 S。
+`fill_with_existing` 提供本轮候选评价、比较、待评游标和选择状态，供 `construction_cycle` 消费。`construction_cycle` 直接使用该结果，不再在选中后另算 quality。静态构筑选择使用同一比较器。后续已获授权的真实对战部署比较保留原职责，其结果不得反写静态 S。
 
 ### 9.2 统一比较和反馈
 
@@ -122,9 +122,9 @@ construction_gate(..., quality=None, reference_quality=None) -> Gate
 
 `construction_learning.SOURCE` 迁移为 `construction_quality_preference_v2`。`comparisons/candidate_pairs/cycle_pairs/validate_pair` 读取新质量比较，继续使用已有成对偏好训练接口的 1/0 标签；1/0 只表示明确顺序，不表示胜率或 CB 成功。
 
-每对样本绑定 task、双方 deck、双方 Evaluation、政策/评价器/事实版本和实际优化轮次。来自被裁掉但已经完整评价的候选也可进入样本，不能只留下幸存者。沿用每轮限额、跨轮公平取样和去重；同一评价重复恢复或消费不重复增加更新。存在反向冲突的旧记录先检查版本和绑定，不投票决定真值。
+每对样本绑定 task、双方 deck、双方 Evaluation、政策/评价器/事实版本和实际优化轮次。已完整评价的落选候选只保存严格偏好、分值与标识。已获授权的后续真实对战训练仍可使用最优构筑与既有部署构筑。沿用每轮限额、跨轮公平取样和去重；同一评价重复恢复或消费不重复增加更新。存在反向冲突的旧记录先检查版本和绑定，不投票决定真值。
 
-`rank_candidates` 学习后重选仍以有效分的已确认顺序为约束；模型分只处理真实同分。`semantic_training.validate` 和现有监督投影接纳新 source 并验证评价绑定，不能继续接受一条旧 `layer_comparisons` 作为新质量标签。历史旧标签保留原版本，不混入新版课程样本。
+选定构筑以有效分的已确认顺序为准，模型分只处理真实同分。`semantic_training.validate` 和现有监督投影接纳新 source 并验证评价绑定，不能继续接受一条旧 `layer_comparisons` 作为新质量标签。历史旧标签保留原版本，不混入新版课程样本。
 
 本次不把最终 S 当作 BuildRanker 的预测输入，也不扩大网络规模。现有卡片与机制特征保持；新评价提供监督和修复反馈。若实施时确实改变已有机制向量的含义，必须走现有 feature/version 兼容检查，不能宣称权重布局相同便自动兼容。
 
@@ -140,13 +140,13 @@ construction_gate(..., quality=None, reference_quality=None) -> Gate
 
 参考必须是事先指定且合法有效的牌表，使用同一政策和评价器重新评价。新政策不接受裸 `reference.score` 替代 Evaluation，不把参考重新标成 70。参考为零分、非法、缺失或不完整时给出具体参考状态；不除以零、不任选当前低分候选充当参考、不自动降级到无参考模式。
 
-`construction_gate`、`CourseAdmissionPolicy.record_completed_construction` 和保留候选重选读取同一 Evaluation。记录入口缺该候选结果时标为待评价，不读取别的候选分，也不回退到旧七项评分。
+`construction_gate` 和 `CourseAdmissionPolicy.record_completed_construction` 读取最优构筑的同一份 Evaluation。记录入口缺该候选结果时标为待评价，不读取别的候选分，也不回退到旧七项评分。
 
 相对门槛失败计数只累计已正常完成、确认低于比例门槛的构筑尝试。复读、重试、预算耗尽、unknown、配置或资产错误不增加次数。沿用现有 cycle/attempt 归属，连续两次确认不足后的主轴→副轴→泛用提示给功能和配套建议，不泄露参考的卡名配方或精确投入。CB 失败计数另行保留，不转为静态扣分。
 
 ### 10.2 恢复与政策变更
 
-扩展现有 continuation 为 schema 3，保存当前候选、每个 retained/pending 候选的评价状态、评价游标、参考结果、原目标骨架、交接链及优化游标。只在候选评价原子步骤完成后提交结果；暂停时保存尚未评价项，不发布半份完整分。
+扩展现有 continuation 为 schema 3，保存当前候选、待评候选的评价状态、评价游标、参考结果、原目标骨架、交接链及优化游标。只在候选评价原子步骤完成后提交结果；暂停时保存尚未评价项，不发布半份完整分。
 
 恢复先核对任务、牌表和交接链，再核对评价器、政策、功能字典、资产/事实、图及范围绑定。只有绑定一致的质量记录可复用。旧 v3 百分分、旧 gate 或事实版本变化导致的分数标为 stale，保留牌表和优化进度，作废旧通过状态，安排候选与参考同口径重评。
 

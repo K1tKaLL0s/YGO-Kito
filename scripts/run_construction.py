@@ -7,44 +7,60 @@ import argparse
 import json
 import os
 from pathlib import Path
+import re
 import signal
 import time
 import traceback
 
-from ygo_kito.construction_checkpoint import ConstructionCheckpoint, write_json
+from ygo_kito.construction_checkpoint import (ConstructionCheckpoint, KERNEL_FILENAME,
+    LEGACY_KERNEL_FILENAME, write_json)
 
 
 def export_candidate_artifacts(output, task, candidate, progress):
-    """Keep a partial skeleton distinct from full, unevaluated optimizer lists."""
+    """Export the working list and report pending candidates by identity only."""
     output = Path(output)
+    from ygo_kito.build_contracts import digest
+
     def complete(deck):
         return all(len(deck.get(z, ())) == task['sizes'][z] for z in ('main', 'extra', 'side'))
+
     def ydk(path, deck):
         path.write_text('#created by construction model\n#main\n'+
             '\n'.join(map(str, deck['main']))+'\n#extra\n'+
             '\n'.join(map(str, deck['extra']))+'\n!side\n'+
             '\n'.join(map(str, deck['side']))+'\n', encoding='utf-8')
+
     listing_complete = bool(candidate and complete(candidate.get('deck', {})))
+    current_artifact = 'candidate.json' if listing_complete else 'skeleton.json' if candidate else None
     if candidate:
-        write_json(output/('candidate.json' if listing_complete else 'skeleton.json'), candidate)
+        write_json(output/current_artifact, {key: candidate[key] for key in
+            ('deck', 'deck_sha256', 'candidate_version', 'strategy', 'evaluation_status') if key in candidate})
         if listing_complete:
             write_json(output/'deck.json', candidate['deck'])
             ydk(output/'deck.ydk', candidate['deck'])
-    pending = (progress or {}).get('pending_quality') or {}
+    if current_artifact != 'skeleton.json':
+        (output/'skeleton.json').unlink(missing_ok=True)
+    if not listing_complete:
+        for name in ('candidate.json', 'deck.json', 'deck.ydk'):
+            (output/name).unlink(missing_ok=True)
+    for path in output.iterdir():
+        if re.fullmatch(r'pending-candidate-\d{2}\.(?:json(?:\.tmp)?|ydk)', path.name) and not path.is_dir():
+            path.unlink()
+
+    progress = progress or {}
+    reference_stage = progress.get('pending_reference') or {}
+    pending = progress.get('pending_quality') or reference_stage.get('candidate_batch') or {}
     exports = []
     for index, row in enumerate(pending.get('candidates', ())):
         if not complete(row['deck']):
             raise RuntimeError('pending optimizer candidate is not a complete listing')
-        evaluation = pending.get('evaluations', {}).get(str(index), pending.get('evaluations', {}).get(index))
-        name = 'pending-candidate-'+str(index+1).zfill(2)
-        status = 'evaluated_awaiting_batch_selection' if evaluation is not None else 'static_evaluation_pending'
-        write_json(output/(name+'.json'), dict(candidate_index=index, status=status,
-            candidate=row, evaluation=evaluation, selected=False))
-        ydk(output/(name+'.ydk'), row['deck'])
-        exports.append(dict(candidate_index=index, status=status, file=name+'.ydk'))
+        evaluations = pending.get('evaluations', {})
+        status = ('awaiting_reference' if reference_stage else 'evaluated_awaiting_batch_selection'
+                  if str(index) in evaluations or index in evaluations else 'static_evaluation_pending')
+        exports.append(dict(candidate_index=index, status=status,
+                            deck_sha256=row.get('deck_sha256') or digest(row['deck'])))
     write_json(output/'candidate-exports.json', dict(listing_complete=listing_complete,
-        current_artifact='candidate.json' if listing_complete else 'skeleton.json' if candidate else None,
-        pending_candidates=exports))
+        current_artifact=current_artifact, pending_candidates=exports))
     return listing_complete, exports
 
 
@@ -127,24 +143,32 @@ def main(argv=None):
     parser.add_argument('--seconds', type=float, help='Online task deadline; development has no deadline')
     parser.add_argument('--slice-seconds', type=float, default=30., help='Internal calculation/checkpoint slice')
     parser.add_argument('--iterations', type=int, default=4, help='Optimizer iterations per internal slice')
-    parser.add_argument('--resume', type=Path, help='kernel.json from a previous slice using these weights')
-    parser.add_argument('--device', help='Explicit inference device, e.g. cuda:0; no fallback or checkpoint rewrite')
+    parser.add_argument('--resume', type=Path, help='kernel.json.gz or kernel.json from a previous slice using these weights')
+    parser.add_argument('--device', default='cuda:0', help='Inference device (default cuda:0)')
     parser.add_argument('--basic-cb', action='store_true', help='Run existing basic CB only after static admission')
-    parser.add_argument('--candidate-budget', type=int, choices=range(2,33), help='Host per-batch candidate count; preserves the full pool')
+    parser.add_argument('--candidate-budget', type=int, choices=range(2,33), metavar='N',
+        help='Generate at most N candidates per round (2–5 for new runs)')
     args = parser.parse_args(argv)
     if args.mode == 'development' and args.seconds is not None:
         parser.error('--seconds is an online deadline; development uses --slice-seconds internally')
     if args.iterations < 1 or args.iterations > 64:
         parser.error('--iterations must be 1..64 per internal slice')
-    if args.output.exists() and any(args.output.iterdir()):
-        parser.error('--output must be new or empty; retain previous slice artifacts')
+    if args.resume is None and args.candidate_budget is not None and args.candidate_budget > 5:
+        parser.error('--candidate-budget must be 2..5 for a new run')
+    compressed, legacy = args.output/KERNEL_FILENAME, args.output/LEGACY_KERNEL_FILENAME
+    resume_path = args.resume.resolve() if args.resume is not None else None
+    in_place = next((path for path in (compressed, legacy) if path.resolve() == resume_path), None)
+    if args.output.exists() and any(args.output.iterdir()) and in_place is None:
+        parser.error('--output must be new, empty, or the directory containing the resumed kernel')
+    if in_place is not None and compressed.exists() and legacy.exists():
+        parser.error('--output contains two construction kernels')
     args.output.mkdir(parents=True, exist_ok=True)
     started = time.monotonic()
     def status(event, **details):
         payload = dict(event=event,elapsed_seconds=round(time.monotonic()-started,3))
         payload.update(details)
         print(json.dumps(payload,ensure_ascii=False), flush=True)
-    checkpoint = ConstructionCheckpoint(args.output/'kernel.json')
+    checkpoint = ConstructionCheckpoint(in_place or compressed)
     pause = False
 
     def request_pause(_signal, _frame):
@@ -224,12 +248,17 @@ def main(argv=None):
             device_receipt['peak_allocated_bytes'] = torch.cuda.max_memory_allocated(models.device)
             device_receipt['peak_reserved_bytes'] = torch.cuda.max_memory_reserved(models.device)
         write_json(args.output/'device.json', device_receipt)
-        write_json(args.output/'result.json',result)
+        from ygo_kito.construction_progress import construction_report
+        write_json(args.output/'result.json', construction_report(result))
         session = kernel.sessions.get(selection['candidate_id'])
         export_error = None
         if session:
             try:
-                checkpoint.export_session(args.output/'session.json', session._snapshot())
+                snapshot = session._snapshot()
+                progress = snapshot.pop('construction_progress') or {}
+                snapshot['construction_progress'] = {key: progress[key] for key in
+                    ('status', 'stop_reason', 'iteration', 'candidate_version', 'task_sha256') if key in progress}
+                checkpoint.export_session(args.output/'session.json', snapshot)
             except OSError as error:
                 export_error = str(error)
                 status('session_export_failed', checkpoint_revision=checkpoint.revision, message=export_error)

@@ -1,11 +1,13 @@
 """Static source/inventory regressions. No CB, engines, training or card recipes."""
 from dataclasses import replace
 import unittest
+from unittest.mock import patch
 
 from ygo_kito.build_contracts import BuildTask, DeckParts
+from ygo_kito.build_pipeline import DeckEdits
 from ygo_kito.construction_binding import CatalogBindingAdapter
 from ygo_kito.construction_candidates import portfolio
-from ygo_kito.construction_inventory import InventoryDependencies, repair_candidates, selector
+from ygo_kito.construction_inventory import InventoryDependencies, repair_ideas, selector
 from ygo_kito.construction_logic import LogicTag
 from ygo_kito.effect_mechanisms import MechanismCatalog
 from tests.test_construction_layer_flow import flow_fixture
@@ -251,19 +253,24 @@ class InventoryDependencyTests(unittest.TestCase):
     def test_generated_repairs_use_original_pool_and_atomic_side_exchange(self):
         value,catalog,_=fixture()
         value[1].limits[2]=1
-        repairs=list(repair_candidates(value[0],value[1],value[4][0],limit=2))
+        task, assets, base = value[0], value[1], value[4][0]
+        edits = DeckEdits(task, assets, base)
+        with patch.object(DeckParts, '__init__', side_effect=AssertionError('generated a complete deck')):
+            repairs = list(repair_ideas(task, assets, base, limit=2, edits=edits))
         self.assertTrue(repairs)
-        self.assertIn(2,repairs[0]['deck'].main)
-        self.assertNotIn(2,repairs[0]['deck'].side)
-        self.assertFalse(catalog.evaluate(repairs[0]['deck'])['known_deficits'])
-        for row in repairs:
-            value[1].validate(value[0],row['deck'])
-            self.assertTrue(set(row['deck'].main+row['deck'].extra+row['deck'].side)<=set(value[0].pool))
+        self.assertEqual(repairs[0]['changes']['side']['removed'], [2])
+        decks = [edits.materialize(row['changes']) for row in repairs]
+        self.assertIn(2, decks[0].main)
+        self.assertNotIn(2, decks[0].side)
+        self.assertFalse(catalog.evaluate(decks[0])['known_deficits'])
+        for deck in decks:
+            assets.validate(task, deck)
+            self.assertTrue(set(deck.main + deck.extra + deck.side) <= set(task.pool))
 
     def test_repair_is_bounded_and_never_uses_an_unavailable_external_card(self):
         value,_,_=fixture()
         value[1].rows[2]['level']=6
-        self.assertEqual(list(repair_candidates(value[0],value[1],value[4][0],checks=0)),[])
+        self.assertEqual(list(repair_ideas(value[0],value[1],value[4][0],checks=0)),[])
 
     def test_extra_only_gap_does_not_spend_its_budget_on_unrelated_main_edits(self):
         value,_,_=fixture();task,assets=value[:2]
@@ -274,18 +281,23 @@ class InventoryDependencyTests(unittest.TestCase):
         assets.rows[102]=dict(assets.rows[101],id=102,name='替代目标',
             desc='「已有素材」＋植物族怪兽\n①：自己主要阶段才能发动。抽1张。')
         raw=task.to_dict();raw['pool'].append(102);task=BuildTask.from_dict(raw)
-        rows=list(repair_candidates(task,assets,value[4][0],checks=2))
+        rows=list(repair_ideas(task,assets,value[4][0],checks=2))
         self.assertTrue(rows)
-        self.assertEqual(rows[0]['deck'].extra,(102,))
+        self.assertEqual(rows[0]['changes']['extra'], dict(added=[102], removed=[101]))
 
     def test_generator_uses_the_same_function_scope_as_the_evaluator(self):
         value,_,_=fixture();task,assets=value[:2]
         assets.rows[1]['desc']='①：自己主要阶段才能发动。抽1张。那之后，可以从卡组把1张「熔岩」卡送去墓地。'
         draw=one_node(LogicTag('effect_type','draw'))
-        rows=list(repair_candidates(task,assets,value[4][0],graph=draw))
         # The draw stays usable, while the separate printed recipient remains
         # visible to whole-inventory repair instead of disappearing from it.
-        self.assertTrue(InventoryDependencies(MechanismCatalog(assets)).evaluate(value[4][0],draw)['known_deficits'])
+        original = InventoryDependencies(MechanismCatalog(assets)).evaluate(value[4][0], draw)
+        self.assertTrue(original['known_deficits'])
+        with patch.object(InventoryDependencies, 'evaluate_counts',
+                          autospec=True, side_effect=InventoryDependencies.evaluate_counts) as evaluate:
+            list(repair_ideas(task, assets, value[4][0], graph=draw))
+        self.assertTrue(evaluate.called)
+        self.assertTrue(all(call.args[3] is draw for call in evaluate.call_args_list))
 
     def test_small_portfolio_keeps_chain_endpoint_not_only_first_copy_edit(self):
         value,catalog,_=fixture();task,assets=value[:2]

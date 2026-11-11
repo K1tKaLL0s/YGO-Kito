@@ -12,7 +12,8 @@ from unittest.mock import patch
 from ygo_kito.build_contracts import BuildTask,DeckParts,digest
 from ygo_kito.build_semantics import proof
 from ygo_kito.build_training import supervision_projection
-from ygo_kito.construction_candidates import axis_edits
+from ygo_kito.build_pipeline import DeckEdits
+from ygo_kito.construction_candidates import axis_ideas
 from ygo_kito.construction_course_evidence import cycle_identity,task_supervision,supervision_seeds
 from ygo_kito.construction_fill import _candidate_basic_cb
 from ygo_kito.data_isolation import DataIndex
@@ -31,14 +32,16 @@ class ConstructionReviewFixes(unittest.TestCase):
     def test_completing_group_preserves_existing_anchor_and_its_quantity(self):
         group={'group_id':'anchored','source':'synthetic-reviewed-package',
             'zones':{'main':[1,1,1,20,22],'extra':[21],'side':[]}}
-        rows=[r for r in axis_edits(self.task,self.assets,self.base,mechanism_groups=[group])
+        rows=[r for r in axis_ideas(self.task,self.assets,self.base,mechanism_groups=[group])
               if r['strategy']=='axis:mechanism:anchored']
         self.assertTrue(rows)
+        edits = DeckEdits(self.task, self.assets, self.base)
         for row in rows:
-            self.assertGreaterEqual(row['deck'].main.count(1),3)
-            for z in ('main','extra','side'):
-                self.assertFalse(Counter(group['zones'][z])-Counter(getattr(row['deck'],z)))
-            self.assets.validate(self.task,row['deck'])
+            deck = edits.materialize(row['changes'])
+            self.assertGreaterEqual(deck.main.count(1), 3)
+            for z in ('main', 'extra', 'side'):
+                self.assertFalse(Counter(group['zones'][z]) - Counter(getattr(deck, z)))
+            self.assets.validate(self.task, deck)
 
     def test_full_three_region_package_is_kept_after_joint_replacements(self):
         for code in range(200,206):self.assets.rows[code]=dict(self.assets.rows[1],id=code,alias=0,setcode=0x333)
@@ -47,12 +50,14 @@ class ConstructionReviewFixes(unittest.TestCase):
         self.assets.validate(task,base)
         group={'group_id':'three-regions','source':'synthetic-reviewed-package',
             'zones':{'main':[1,1,20],'extra':[21],'side':[200,205]}}
-        rows=[r for r in axis_edits(task,self.assets,base,mechanism_groups=[group]) if r['strategy']=='axis:mechanism:three-regions']
+        rows=[r for r in axis_ideas(task,self.assets,base,mechanism_groups=[group]) if r['strategy']=='axis:mechanism:three-regions']
         self.assertTrue(rows)
+        edits = DeckEdits(task, self.assets, base)
         for row in rows:
-            for z in ('main','extra','side'):
-                self.assertFalse(Counter(group['zones'][z])-Counter(getattr(row['deck'],z)))
-            self.assets.validate(task,row['deck'])
+            deck = edits.materialize(row['changes'])
+            for z in ('main', 'extra', 'side'):
+                self.assertFalse(Counter(group['zones'][z]) - Counter(getattr(deck, z)))
+            self.assets.validate(task, deck)
 
     def test_task_only_positive_has_no_route_requirement_and_is_admitted(self):
         row=task_supervision(self.task,self.base,self.assets)

@@ -2,31 +2,12 @@
 from types import SimpleNamespace
 import unittest
 
-from ygo_kito.construction_learning import rank_candidates,candidate_pairs
+from ygo_kito.construction_learning import candidate_pairs
 from ygo_kito.construction_fill import construct_task
 from tests.test_construction_functional_flow import functional_fill
 
 
 class ConstructionSelectionTests(unittest.TestCase):
-    def test_updated_model_preference_cannot_replace_higher_final_quality(self):
-        task,_,_,result=functional_fill()
-        contexts=sorted(result['portfolio'],key=lambda c:c['candidate_index'])[::2]
-        from contextlib import nullcontext
-        from unittest.mock import patch
-        import sys
-        class Scores:
-            training=True
-            def eval(self):self.training=False
-            def train(self,mode):self.training=mode
-            def __call__(self,batch):return SimpleNamespace(reshape=lambda *_:SimpleNamespace(tolist=lambda:[9.,1.]))
-        builder=SimpleNamespace(models={'build_optimizer':Scores()},
-            encoder=SimpleNamespace(batch=lambda *args:{}),updates={'build_optimizer':0})
-        with patch.dict(sys.modules,{'torch':SimpleNamespace(no_grad=nullcontext)}):
-            selection=rank_candidates(builder,task,contexts)
-        self.assertEqual(selection['selected_index'],1)
-        self.assertEqual(selection['scores'],[9.,1.])
-        self.assertEqual(selection['source'],'updated_model_with_quality_order')
-
     def test_fixed_task_entry_uses_goal_skeleton_and_optimizer_with_resume(self):
         import torch
         from ygo_kito.duel_model import parameter_digest
@@ -40,9 +21,9 @@ class ConstructionSelectionTests(unittest.TestCase):
         self.assertFalse(result['construction_passed']);self.assertFalse(result['task_verified'])
         self.assertEqual([p['role'] for p in result['phases']],['build_goal','build_optimizer'])
         self.assertEqual([p['role'] for p in resumed['phases']],['build_optimizer'])
-        self.assertLess(len(result['phases'][0]['proposal_deck']['main']),task.sizes['main'])
+        self.assertGreater(result['phases'][0]['unfilled']['main'], 0)
         self.assertEqual(result['best_criterion'],'versioned_pre_cb_construction_gate')
-        self.assertTrue(result['phases'][1]['stage_3']['layer_evaluation'])
+        self.assertTrue(result['construction_candidate']['layer_evaluation'])
         self.assertTrue(all(p['graph_model_selection'] for p in result['phases']))
         self.assertEqual(before,{r:parameter_digest(m) for r,m in builder.models.items()})
         self.assertEqual(result['basic_cb']['status'],'not_run')
@@ -53,7 +34,7 @@ class ConstructionSelectionTests(unittest.TestCase):
         from ygo_kito.semantic_training import validate as validate_supervision,supervision_projection
         from ygo_kito.semantic_training import SOURCE
         task,assets,decks,result=functional_fill()
-        pairs=candidate_pairs(task,result['portfolio'])
+        pairs=candidate_pairs(task,result['learning_candidates'])
         data=dict(source=SOURCE,purpose='train',task_sha256=task.sha256,pairs=pairs,
             goals=[dict(deck=d.to_dict(),label=1.,source='pinned_catalog_constraint_check',
                         evidence=proof(task,d,assets)) for d in decks],

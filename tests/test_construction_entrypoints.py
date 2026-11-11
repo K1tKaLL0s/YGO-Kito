@@ -91,8 +91,8 @@ class ReferenceAttemptTests(unittest.TestCase):
         phases = [r for r in result['phases'] if r['role'] == 'build_optimizer']
         self.assertEqual([r['reference_feedback']['hint_stage'] for r in phases],
             [None, 'main_axis', 'secondary_axes', 'generic'])
-        self.assertTrue(any('先检查主轴' in r['message'] for r in phases[2]['feedback_before']))
-        self.assertTrue(any('检查副轴' in r['message'] for r in phases[3]['feedback_before']))
+        self.assertTrue(any('先检查主轴' in r['message'] for r in session.feedback))
+        self.assertTrue(any('检查副轴' in r['message'] for r in session.feedback))
         self.assertTrue(any('检查泛用配置' in r['message'] for r in session.feedback))
         saved = json.loads(json.dumps(result['continuation']))
         restore_progress(session, saved, f[1])
@@ -110,7 +110,7 @@ class ReferenceAttemptTests(unittest.TestCase):
         changed = deepcopy(p); changed['source'] += ':revised-host'
         revised = static_cycle(self, f, session, quality_criteria=changed, quality_reference=descriptor, max_iterations=0)
         self.assertNotIn('reference_feedback', revised['continuation'])
-        for key in ('iteration', 'candidate_cursor', 'skeleton'):
+        for key in ('iteration', 'candidate_cursor', 'handoffs'):
             self.assertEqual(revised['continuation'][key], first['continuation'][key])
         final = static_cycle(self, f, session, quality_criteria=changed, quality_reference=descriptor, max_iterations=1)
         self.assertEqual(final['continuation']['reference_feedback']['consecutive_below_reference'], 1)
@@ -132,7 +132,7 @@ class ActiveEntryTests(unittest.TestCase):
             self.assertFalse(hasattr(q, name), name)
         self.assertFalse(hasattr(c, 'retained_order'))
         self.assertFalse(hasattr(c, 'layer_selection_allowed'))
-        self.assertTrue(callable(c.quality_selection_allowed))
+        self.assertFalse(hasattr(c, 'select_retained'))
 
     def test_old_policies_and_old_scoring_arguments_are_rejected(self):
         from ygo_kito.construction_quality import evaluate_quality

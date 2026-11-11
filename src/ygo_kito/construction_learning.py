@@ -1,6 +1,5 @@
 """Bound functional-quality preferences; retain their order after model updates."""
 from copy import deepcopy
-import math
 from itertools import zip_longest
 
 from .build_contracts import DeckParts, digest
@@ -78,6 +77,29 @@ def candidate_pairs(task, contexts, *, _comparisons=None, _copy=True):
     return deepcopy(result) if _copy else result
 
 
+def quality_pair_receipts(task, stage, *, _comparisons=None):
+    """Keep the outcome of a verified preference without its two deck lists."""
+    pairs = candidate_pairs(task, stage['learning_candidates'], _comparisons=_comparisons, _copy=False)
+    return [pair['evidence']['comparison'] for pair in pairs]
+
+
+def strict_pair_count(task, result, *, _comparisons=None):
+    """Count strict comparison evidence without reconstructing optimizer decks."""
+    rows = [row for phase in result.get('phases', ())
+            for row in phase.get('stage_3', {}).get('strict_quality_pairs', ())]
+    if not rows:
+        return len(cycle_pairs(task, result, _comparisons=_comparisons))
+    directions, evaluations = {}, {}
+    for row in rows:
+        if row['task_sha256'] != task.sha256 or row['status'] != 'preferred':
+            continue
+        deck_key = tuple(sorted((row['before_deck_sha256'], row['after_deck_sha256'])))
+        directions.setdefault(deck_key, set()).add(row[row['preferred'] + '_deck_sha256'])
+        key = tuple(sorted((row['before_evaluation_id'], row['after_evaluation_id'])))
+        evaluations[key] = deck_key
+    return sum(len(directions[key]) == 1 for key in evaluations.values())
+
+
 def validate_pair(task,pair):
     from .construction_quality import compare_functional_quality
     evidence=pair.get('evidence',{});row=evidence.get('comparison',{})
@@ -133,49 +155,6 @@ def cycle_pairs(task,result,*,limit=8, _comparisons=None):
     return selected if _comparisons is not None else deepcopy(selected)
 
 
-def quality_order(task, contexts, scores):
-    """Final S determines order; model scores break genuine ties only."""
-    from .construction_quality import EvaluationComparisons
-    if not scores or len(scores)!=len(contexts) or any(not math.isfinite(v) for v in scores):
-        raise ContractError('construction ranking requires finite candidate scores')
-    verified = EvaluationComparisons()
-    for context in contexts:
-        quality=context.get('quality_evaluation')
-        if quality is None or quality.get('task_sha256')!=task.sha256 or quality.get('deck_sha256')!=digest(context['deck']):
-            raise ContractError('quality ranking requires each candidate\'s bound evaluation')
-        verified.bind(quality)
-        _current_quality(quality)
-        if not quality['complete'] or any(r['status']!='satisfied' for r in quality['hard_requirements']):
-            raise ContractError('quality ranking requires complete eligible candidates')
-    for context in contexts[1:]:
-        verified.compare(contexts[0]['quality_evaluation'], context['quality_evaluation'])
-    return sorted(range(len(scores)),key=lambda i:(-contexts[i]['quality_evaluation']['score']['value'],-scores[i],i))
-
-
-def rank_candidates(builder,task,contexts):
-    assets = getattr(builder.encoder,'assets',None)
-    if assets is not None:
-        from .construction_layer_flow import functional_asset_version
-        from .effect_mechanisms import MechanismCatalog
-        catalog=MechanismCatalog(assets)
-        for context in contexts:
-            q=context.get('quality_evaluation') or {}
-            if (q.get('asset_version') != functional_asset_version(catalog)
-                    or any(e['record']['text_sha256'] != catalog.card(int(k.split(':')[1])).text_sha256
-                           for k,v in q.get('coverage_details',{}).items() for e in v.get('effects',()))):
-                raise ContractError('quality assets or card facts require reevaluation')
-    import torch
-    model=builder.models['build_optimizer'];mode=model.training;model.eval()
-    try:
-        with torch.no_grad():
-            scores=model(builder.encoder.batch(task,[DeckParts.from_dict(c['deck']) for c in contexts])).reshape(-1).tolist()
-    finally:model.train(mode)
-    order=quality_order(task,contexts,scores)
-    return dict(selected_index=order[0],scores=scores,order=order,comparison_cycles=[],
-        role='build_optimizer',updates=builder.updates['build_optimizer'],
-        source='updated_model_with_quality_order',candidate_deck_sha256=digest(contexts[order[0]]['deck']))
-
-
 def consume_optimizer_slice(course, result, *, pause_requested=lambda:False, status=None):
     """Future authorized training consumes strict pre-CB iteration evidence."""
     from .semantic_training import supervision_projection
@@ -183,9 +162,11 @@ def consume_optimizer_slice(course, result, *, pause_requested=lambda:False, sta
     from .build_semantics import proof
     task = course._task()
     pairs = cycle_pairs(task, result)
+    strict_count = len(pairs) if pairs else strict_pair_count(task, result)
     receipt = dict(iterations=(result.get('continuation') or {}).get('iteration', 0),
-        eligible_pairs=len(pairs), updates_before=course.models.builder.updates['build_optimizer'],
-        status='no_strict_quality_preferences' if not pairs else 'pending_consumption')
+        eligible_pairs=strict_count, updates_before=course.models.builder.updates['build_optimizer'],
+        status=('pending_consumption' if pairs else 'strict_preferences_recorded_without_candidate_inventories'
+                if strict_count else 'no_strict_quality_preferences'))
     result['optimizer_learning'] = receipt
     if task.goal['kind'] != 'deck_constraints' or 'route_goal' in task.goal:
         receipt.update(status='pre_cb_learning_requires_route_free_constraint_task',updates_after=receipt['updates_before'])

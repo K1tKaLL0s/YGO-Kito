@@ -138,19 +138,27 @@ def validate_support(expression, *, depth=0):
 
 def support_facts(expression):
     validate_support(expression)
+    return _support_facts(expression)
+
+
+def _support_facts(expression):
     if type(expression) is bool:
         return set()
     if isinstance(expression, str):
         return {expression}
     operator, items = next(iter(expression.items()))
     if operator == "not":
-        return support_facts(items)
-    return set().union(*(support_facts(item) for item in items))
+        return _support_facts(items)
+    return set().union(*(_support_facts(item) for item in items))
 
 
 def support_value(expression, completion):
     """Evaluate one consistent completion; absent facts are never false by default."""
     validate_support(expression)
+    return _support_value(expression, completion)
+
+
+def _support_value(expression, completion):
     if type(expression) is bool:
         return expression
     if isinstance(expression, str):
@@ -159,26 +167,70 @@ def support_value(expression, completion):
         return completion[expression]
     operator, items = next(iter(expression.items()))
     if operator == "not":
-        return not support_value(items, completion)
-    values = [support_value(item, completion) for item in items]
+        return not _support_value(items, completion)
+    values = [_support_value(item, completion) for item in items]
     return all(values) if operator == "all" else any(values)
 
 
 def support_state(expression, variables):
     """Read known support without choosing values for missing facts."""
     validate_support(expression)
+    return _support_state(expression, variables)
+
+
+def _support_state(expression, variables):
     if type(expression) is bool:
         return expression
     if isinstance(expression, str):
         return variables.get(expression)
     operator, items = next(iter(expression.items()))
     if operator == "not":
-        value = support_state(items, variables)
+        value = _support_state(items, variables)
         return None if value is None else not value
-    values = [support_state(item, variables) for item in items]
+    values = [_support_state(item, variables) for item in items]
     if operator == "all":
         return False if False in values else None if None in values else True
     return True if True in values else None if None in values else False
+
+
+def _condition_program(expression, known):
+    """Fold known facts once and make equivalent conditions shareable."""
+    if type(expression) is bool:
+        return expression
+    if isinstance(expression, str):
+        return known.get(expression, expression)
+    operator, items = next(iter(expression.items()))
+    if operator == 'not':
+        child = _condition_program(items, known)
+        return not child if type(child) is bool else ('not', child)
+    identity = operator == 'all'
+    children = tuple(dict.fromkeys(_condition_program(item, known) for item in items))
+    if (not identity) in children:
+        return not identity
+    children = tuple(child for child in children if child is not identity)
+    if not children:
+        return identity
+    return children[0] if len(children) == 1 else (operator, children)
+
+
+def _condition_truth(program, completion):
+    if type(program) is bool:
+        return program
+    if isinstance(program, str):
+        return completion.get(program)
+    operator, children = program
+    if operator == 'not':
+        value = _condition_truth(children, completion)
+        return None if value is None else not value
+    identity = operator == 'all'
+    result = identity
+    for child in children:
+        value = _condition_truth(child, completion)
+        if value is (not identity):
+            return value
+        if value is None:
+            result = None
+    return result
 
 
 @dataclass(frozen=True)
@@ -318,9 +370,25 @@ def physical_sources(inventory, aliases=None, extra_card_ids=()):
     return sources
 
 
-def _functional_inputs(uses, sources, config, completion, stage, scenario, impacts):
+def _price_family(bins, capacity, main_size, rules):
+    from math import fsum, log2
+
+    candidates, channels = {}, {}
+    for (channel, _, destination, mode), count in bins:
+        factor = 40 / main_size if mode == 'main_density' else 1.
+        increments = [factor] + [factor * (.8 if destination == 'extra' else .9)] * (count - 1)
+        candidates.setdefault((channel, destination), []).extend(increments)
+    for (channel, destination), increments in sorted(candidates.items()):
+        limit = capacity.get(destination, len(increments)) if capacity is not None else len(increments)
+        channels[channel] = channels.get(channel, 0.) + fsum(sorted(increments, reverse=True)[:limit])
+    value = fsum((1 if channel == 'base' else rules[channel]) * log2(1 + amount)
+                 for channel, amount in sorted(channels.items()))
+    return channels, value
+
+
+def _functional_inputs(uses, sources, config, completion, stage, scenario, impacts, *, family_prices=None):
     """Merge surviving proofs before discounting each physical source once."""
-    from math import log2, fsum
+    from math import fsum
     active, modes = {}, {}
     rules = {r["rule_id"]: r["increment"] for r in config["theme_rules"]}
     automatic = {r['rule_id'] for r in config['theme_rules'] if 'task_goal' in r['predicate']}
@@ -409,23 +477,51 @@ def _functional_inputs(uses, sources, config, completion, stage, scenario, impac
             raise ContractError("Main density cannot price an Extra source")
         key = family, channel, str(item["name_key"]), item["destination"], mode
         bins[key] = bins.get(key, 0) + 1
-    candidates, channels = {}, {}
-    for (family, channel, name, destination, mode), count in sorted(bins.items()):
-        factor = 40 / config['_main_size'] if mode == 'main_density' else 1.
-        increments = [factor]+[factor*(.8 if destination=='extra' else .9)]*(count-1)
-        candidates.setdefault((family,channel,destination),[]).extend(increments)
-    for (family,channel,destination),increments in sorted(candidates.items()):
-        capacity = config['_capacity'].get(destination,len(increments)) if scenario!='resident' else len(increments)
-        channels.setdefault(family,{}).setdefault(channel,0.)
-        channels[family][channel] += fsum(sorted(increments,reverse=True)[:capacity])
-    values = {family: fsum((1 if channel == "base" else rules[channel]) * log2(1 + x)
-                          for channel, x in sorted(row.items())) for family, row in sorted(channels.items())}
+    family_bins = {}
+    for (family, *key), count in sorted(bins.items()):
+        family_bins.setdefault(family, []).append((tuple(key), count))
+    channels, values = {}, {}
+    capacity = config['_capacity'] if scenario != 'resident' else None
+    main_size = config['_main_size']
+    pricing = main_size, tuple(sorted(capacity.items())) if capacity is not None else None, tuple(sorted(rules.items()))
+    for family, entries in family_bins.items():
+        if family_prices is None:
+            channels[family], values[family] = _price_family(entries, capacity, main_size, rules)
+        else:
+            inputs, values[family] = _remember(family_prices, (pricing, tuple(entries)),
+                lambda: _price_family(entries, capacity, main_size, rules), limit=128)
+            channels[family] = dict(inputs)
     surviving = set().union(*active.values()) if active else set()
     surviving.update(uid for uid, retained in adoptions.items() if retained)
     return dict(value=fsum(values.values()), functions=values, inputs=channels,
                 benefits=[dict(benefit_id=digest((f, s)), family=f, channel=c, source_id=s,
                                use_ids=sorted(proofs)) for (f, c, s), proofs in sorted(active.items()) if proofs],
                 surviving_uses=sorted(surviving), admitted_uses=sorted(admitted))
+
+
+def _score_programs(uses, impacts, witnesses, known, stage, scenario):
+    expressions = []
+    if stage >= 1:
+        for use in uses:
+            if use.scope_id not in ('resident', scenario) or not (use.contributes or use.required):
+                continue
+            expressions.extend((use.self_condition, *(condition for _, condition in use.theme_conditions)))
+            if stage >= 2:
+                expressions.extend((use.joint_condition, *(condition for _, condition in use.theme_joint_conditions)))
+            if stage == 3:
+                expressions.extend(row['joint_condition'] for row in witnesses.get(use.use_id, ()))
+    if stage == 3:
+        expressions.extend(impact.condition for impact in impacts if impact.scope_id in ('resident', scenario))
+    programs = dict.fromkeys(_condition_program(expression, known) for expression in expressions)
+    return tuple(program for program in programs if type(program) is not bool)
+
+
+def _remember(cache, key, compute, *, limit=8):
+    if key not in cache:
+        if len(cache) == limit:
+            del cache[next(iter(cache))]
+        cache[key] = compute()
+    return cache[key]
 
 
 def _extend_bound(bounds, value):
@@ -541,7 +637,22 @@ def _functional_loss_records(records, outcome_count, *, exact):
     return output
 
 
-def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, continuation=None, resumable=False):
+def _merge_completion_losses(records, incoming):
+    for identity, row in incoming.items():
+        if identity not in records:
+            records[identity] = deepcopy(row)
+            continue
+        saved = records[identity]
+        saved['count'] += row['count']
+        for name in ('amounts', 'input_before', 'input_after'):
+            _extend_bound(saved[name], row[name][0])
+            _extend_bound(saved[name], row[name][1])
+        for name in ('source_ids', 'benefit_ids', 'use_ids', 'reason_codes', 'evidence_refs', 'repair_conditions'):
+            saved[name].update(row[name])
+
+
+def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, continuation=None, resumable=False,
+                                family_prices=None):
     """Pure v4 evaluation; v3 shares/budgets cannot enter this computation."""
     from dataclasses import asdict
     config = functional_quality_config(policy.get("quality"))
@@ -708,6 +819,22 @@ def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, 
         return {**known, **{key: bool(index & (1 << (len(unknown) - position - 1)))
                             for position, key in enumerate(unknown)}}
 
+    bit_positions = {key: len(unknown) - position - 1 for position, key in enumerate(unknown)}
+    constraints = [(_condition_program(expression, known), min(
+        (bit_positions[key] for key in _support_facts(expression) if key in bit_positions), default=len(unknown)))
+        for expression in facts['constraints']]
+    constraints.sort(key=lambda item: -item[1])
+    input_programs, input_cache, loss_cache = {}, {}, {}
+    loss_programs = ()
+    if unknown:
+        for stage in range(4):
+            for scenario in ('resident', *(d for d in directions if d != 'resident')):
+                key = stage, scenario
+                input_programs[key] = _score_programs(uses, impacts, witnesses, known, stage, scenario)
+                input_cache[key] = {}
+        loss_programs = tuple(program for program in dict.fromkeys(
+            _condition_program(expression, known) for expression in checked_expressions) if type(program) is not bool)
+
     weights = {"base": 1., **{r["rule_id"]: r["increment"] for r in config["theme_rules"]}}
     completed_here, timed_out = 0, False
     while work['active_outcome'] is not None or work['next_completion'] < case_count:
@@ -715,8 +842,18 @@ def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, 
             timed_out = True
             break
         if work['active_outcome'] is not None:
-            _accumulate_functional_losses(work['active_outcome'], by_id, impacts, facts, directions, weights,
-                                          work['loss_records'])
+            outcome = work['active_outcome']
+            if unknown:
+                signature = tuple(_condition_truth(program, outcome['completion']) for program in loss_programs)
+
+                def completion_losses():
+                    records = {}
+                    _accumulate_functional_losses(outcome, by_id, impacts, facts, directions, weights, records)
+                    return records
+
+                _merge_completion_losses(work['loss_records'], _remember(loss_cache, signature, completion_losses))
+            else:
+                _accumulate_functional_losses(outcome, by_id, impacts, facts, directions, weights, work['loss_records'])
             work['next_loss'] += 1
             work['active_outcome'] = None
             continue
@@ -727,13 +864,32 @@ def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, 
         work['next_completion'] += 1
         completed_here += 1
         completion = completion_at(index)
-        if not all(support_value(e, completion) for e in facts["constraints"]):
+        failed_span = next((shift for program, shift in constraints if not _condition_truth(program, completion)), None)
+        if failed_span is not None:
+            if exact_search:
+                # The lower bits belong to facts outside this failed constraint.
+                work['next_completion'] = ((index >> failed_span) + 1) << failed_span
             continue
+        truths = {}
+
+        def scored(stage, scenario):
+            if not unknown:
+                return _functional_inputs(uses, sources, runtime, completion, stage, scenario, impacts,
+                                          family_prices=family_prices)
+            key = stage, scenario
+            programs = input_programs[key]
+            for program in programs:
+                if program not in truths:
+                    truths[program] = _condition_truth(program, completion)
+            signature = tuple(truths[program] for program in programs)
+            return _remember(input_cache[key], signature,
+                lambda: _functional_inputs(uses, sources, runtime, completion, stage, scenario, impacts,
+                                           family_prices=family_prices))
+
         stages = []
         for stage in range(4):
-            resident = _functional_inputs(uses, sources, runtime, completion, stage, "resident", impacts)
-            contexts = {d: resident if d == 'resident' else _functional_inputs(
-                uses, sources, runtime, completion, stage, d, impacts) for d in directions}
+            resident = scored(stage, 'resident')
+            contexts = {d: resident if d == 'resident' else scored(stage, d) for d in directions}
             stages.append(dict(value=sum(directions[d] * row["value"] for d, row in contexts.items()),
                                resident=resident, contexts=contexts))
         hard = {u.use_id: support_value(u.self_condition, completion)
@@ -883,6 +1039,11 @@ class EvaluationComparisons:
                 row['task_sha256'], scope, score['lower'], score['upper'], score['value'],
                 score['bound_kind'] == 'exact', eligible, facts, completions))
         return self.inputs[identity][1]
+
+    def release_candidates(self, *keep):
+        """Release evaluated inventories once the round has saved its decision."""
+        self.inputs = {id(row): self.inputs[id(row)] for row in keep if id(row) in self.inputs}
+        self.pairs.clear()
 
     def compare(self, before, after):
         a, b = self.bind(before), self.bind(after)

@@ -132,6 +132,26 @@ def assist_fact_view(report):
     return result
 
 
+def recognized_mechanism_cards(record, task, deck):
+    """Use only calibrated, applied card predictions from this incumbent."""
+    from .build_contracts import digest
+
+    if (not record or record.get('mode') != 'assist' or record.get('task_sha256') != task.sha256
+            or record.get('deck_sha256') != digest(deck.to_dict())):
+        return frozenset()
+    facts = record.get('facts') or {}
+    if 'mechanism' not in facts.get('capabilities', {}):
+        return frozenset()
+    cards = set()
+    for row in facts.get('predictions', ()):
+        if row['task'] != 'mechanism' or row['value'] is not True or len(row['subject']) != 1:
+            continue
+        kind, _, code = row['subject'][0].partition(':')
+        if kind == 'card' and code.isascii() and code.isdigit():
+            cards.add(int(code))
+    return frozenset(cards)
+
+
 def recognition_quality_evidence(existing, provider, records, mode, *, validator=None):
     """Keep the exact old evidence provider in off/observe modes."""
     mapper = getattr(provider, 'layer_policy', None) if mode == 'assist' else None

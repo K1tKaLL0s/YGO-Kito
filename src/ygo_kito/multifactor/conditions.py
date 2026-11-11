@@ -3,6 +3,7 @@
 A branch owns its reservations. Coverage must be declared before absence proves
 failure; physical pool aliases share slots even when selectors differ.
 """
+from collections import defaultdict
 from dataclasses import asdict, dataclass, replace
 from hashlib import sha256
 import json
@@ -321,7 +322,11 @@ class _Search:
         self.capacities = {}
         self.pools = []
         self.initial_zones = {}
+        self.resource_index = defaultdict(list)
+        self.matches_by_condition = {}
         for i, r in enumerate(resources):
+            for selector in dict.fromkeys((r.selector, *r.selectors)):
+                self.resource_index[r.resource_type, selector, r.owner].append(i)
             pool = r.pool_id or r.resource_id or f"stock:{i}"
             capacity = r.quantity if r.capacity is None else r.capacity
             if pool in self.capacities and self.capacities[pool] != capacity:
@@ -349,6 +354,75 @@ class _Search:
                 and (c.until_stage is None or STAGES.index(c.until_stage) <= STAGES.index(end))
                 and section != "side")
 
+    def matching(self, condition):
+        if condition not in self.matches_by_condition:
+            key = condition.resource_type, condition.selector, condition.owner
+            self.matches_by_condition[condition] = tuple(
+                i for i in self.resource_index.get(key, ()) if self.matches(condition, self.resources[i]))
+        return self.matches_by_condition[condition]
+
+    @staticmethod
+    def reservations_by_slot(state):
+        result = defaultdict(list)
+        for action in state.reservations:
+            result[action['slot']].append(action)
+        return result
+
+    def fixed_shortage(self):
+        """Prove infeasibility for a bounded conjunction of fixed consumptions."""
+        demands = []
+        for condition, depth, path, _ in self.nodes:
+            if depth > self.budget.max_depth:
+                return False
+            if isinstance(condition, ConditionGroup):
+                if condition.op != 'all':
+                    return False
+            elif condition.consume_mode != 'consume' or condition.state_origins is not None:
+                return False
+            else:
+                demands.append((condition, path))
+        if len(demands) < 2 or sum(condition.quantity for condition, _ in demands) > 64:
+            return False
+
+        slots_by_need = []
+        for condition, path in demands:
+            stock = self.matching(condition)
+            if any(not self.resources[i].known for i in stock):
+                return False
+            slots = dict.fromkeys((self.pools[i], copy) for i in stock for copy in range(self.resources[i].quantity))
+            if len(slots) < condition.quantity:
+                self.failure(dict(path=path, required=condition.quantity, available=len(slots),
+                                  selector=condition.selector, blocked=[], reason='MISSING_RESOURCE'))
+                return True
+            if len(slots) > 512:
+                return False
+            slots_by_need.extend([(condition, path, slots)] * condition.quantity)
+
+        # Augmenting paths can move a previous match when another demand has
+        # fewer options. Failure after all reassignments proves a shared shortage.
+        owners = {}
+
+        def assign(need, visited):
+            for slot in slots_by_need[need][2]:
+                if slot in visited:
+                    continue
+                visited.add(slot)
+                if slot not in owners or assign(owners[slot], visited):
+                    owners[slot] = need
+                    return True
+            return False
+
+        for need, (condition, path, slots) in enumerate(slots_by_need):
+            visited = set()
+            if not assign(need, visited):
+                blocked = [dict(pool=pool, slot=slot, selector=condition.selector, reason='RESOURCE_ALREADY_RESERVED')
+                           for pool, slot in sorted(visited)[:16]]
+                self.failure(dict(path=path, required=condition.quantity,
+                                  available=sum(slots_by_need[owners[slot]][1] == path for slot in slots),
+                                  selector=condition.selector, blocked=blocked, reason='RESOURCE_ALREADY_RESERVED'))
+                return True
+        return False
+
     def compatible(self, action, previous):
         if action["slot"] != previous["slot"]:
             return True
@@ -372,9 +446,9 @@ class _Search:
         if c.state_origins is not None:
             return self.state_frame(c, state, path, todo, node_id)
         matched, uncertain, blocked = {}, False, []
-        for i, resource in enumerate(self.resources):
-            if not self.matches(c, resource):
-                continue
+        reserved = self.reservations_by_slot(state)
+        for i in self.matching(c):
+            resource = self.resources[i]
             if not resource.known:
                 uncertain = True
                 continue
@@ -385,7 +459,7 @@ class _Search:
                               end=3 if c.consume_mode == "consume" else STAGES.index(c.until_stage or c.stage),
                               distinct_group=c.distinct_group, source=resource.source,
                               resource_id=resource.resource_id or f"stock:{i}", condition=path, selector=c.selector)
-                if all(self.compatible(action, old) for old in state.reservations):
+                if all(self.compatible(action, old) for old in reserved.get(physical, ())):
                     matched.setdefault(physical, action)
                 elif len(blocked) < 16:
                     blocked.append(dict(pool=self.pools[i], slot=slot, selector=c.selector,
@@ -405,9 +479,9 @@ class _Search:
         bindings = dict(state.state_bindings)
         candidates, unknown = {}, False
         forbidden = set(c.state_origins)
-        for i, resource in enumerate(self.resources):
-            if not self.matches(c, resource):
-                continue
+        reserved = self.reservations_by_slot(state)
+        for i in self.matching(c):
+            resource = self.resources[i]
             pool = self.pools[i]
             if not resource.known or pool not in self.initial_zones:
                 unknown = True
@@ -430,7 +504,7 @@ class _Search:
                     action = dict(slot=slot, mode='reusable', start=0, end=0,
                         distinct_group=c.distinct_group, source=resource.source,
                         resource_id=resource.resource_id or f'stock:{i}', condition=path, selector=c.selector)
-                    if all(self.compatible(action, old) for old in state.reservations):
+                    if all(self.compatible(action, old) for old in reserved.get(slot, ())):
                         candidates.setdefault(slot, action)
         if c.state_absent:
             return self.walk(todo, replace(state, slot_zones=tuple(sorted(zones.items())),
@@ -604,7 +678,7 @@ class _Search:
 
 
 def solve_requirements(tree, resources, *, coverage=False, budget=SolverBudget(), state_provided=False,
-                       continuation=None, should_stop=None):
+                       continuation=None, should_stop=None, existential=False):
     """Return separate allocation witnesses, with explicit unknown and overflow.
 
     coverage=True asserts a complete stock for this expression. Alternatively
@@ -615,6 +689,7 @@ def solve_requirements(tree, resources, *, coverage=False, budget=SolverBudget()
     A random state selection checks the remaining sequence for each possible
     identity. Its witness represents a checked outcome, with a pending reason
     when success depends on the unknown identity.
+    Existential consumers may prove a fixed shortage directly by matching.
     """
     if not isinstance(tree, (Condition, ConditionGroup)) or not isinstance(budget, SolverBudget):
         raise FactorContractError("typed condition tree and SolverBudget required")
@@ -646,6 +721,10 @@ def solve_requirements(tree, resources, *, coverage=False, budget=SolverBudget()
         if should_stop is not None and should_stop():
             break
         search.steps += 1
+        if (existential and coverage is True and continuation is None and search.steps == 1
+                and search.fixed_shortage()):
+            stack.clear()
+            break
         result = search.advance(stack)
         if search.depth_blocked:
             break

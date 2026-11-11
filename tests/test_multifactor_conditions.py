@@ -86,6 +86,23 @@ class RequirementTreeTests(unittest.TestCase):
         self.assertEqual(partial["structural_status"], "partial")
         self.assertTrue(partial["missing"])
 
+    def test_terminal_fixed_matching_proves_shared_shortage_without_searching_alternatives(self):
+        tree = ConditionGroup('all', (Condition('card', 'wide', 5),
+            Condition('card', 'medium', 3), Condition('card', 'tight', 2)))
+        stock = tuple(Resource('card', 'wide', selectors=('medium', 'tight') if i < 2 else
+                               ('medium',) if i < 4 else (), pool_id=str(i)) for i in range(13))
+        full = _solve(tree, stock, coverage=True, budget=SolverBudget(max_states=10000))
+        bounded = SolverBudget(max_states=1, max_solutions=1)
+        matched = _solve(tree, stock, coverage=True, budget=bounded, existential=True)
+        self.assertIs(full['satisfied'], False)
+        self.assertIs(matched['satisfied'], False)
+        self.assertTrue(matched['conflicts'])
+        self.assertEqual(matched['explored_states'], 1)
+        self.assertIsNone(matched['continuation'])
+        self.assertIsNone(_solve(tree, stock, budget=bounded, existential=True)['satisfied'])
+        self.assertIsNone(_solve(tree, stock, coverage=True, budget=bounded,
+                                 existential=True, should_stop=lambda: True)['satisfied'])
+
     def test_any_and_at_least_k_use_independent_branches(self):
         either = ConditionGroup("any", (Condition("card", "B"), Condition("card", "C")))
         self.assertTrue(solve_requirements(either, (card("C"),))["satisfied"])

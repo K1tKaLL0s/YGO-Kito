@@ -56,6 +56,38 @@ def functional_fill():
 
 
 class FunctionalFlowTests(unittest.TestCase):
+    def test_copy_edit_reuses_unchanged_resources_and_function_pricing(self):
+        from ygo_kito import construction_layer_flow as flow, construction_quality as scoring
+
+        task, assets, graph, binder, decks, p = fixture()
+        assets.rows[4]['desc'] = '①：从自己卡组上面把3张卡送去墓地。'
+        adapter = ConstructionLayerAdapter(binder)
+        reuse = dict(specifications={}, projections={}, family_prices={})
+
+        def evaluate(deck, memo=None):
+            layer = dict(axis=dict(inventory=deck.to_dict(), task=task.to_dict(), logic=graph.to_dict()))
+            result, work, stop = adapter.evaluate_inventory(task, deck, layer, None,
+                policy=p, reuse=memo, should_stop=lambda: None)
+            self.assertIsNone(work)
+            self.assertIsNone(stop)
+            return result
+
+        evaluate(decks[1], reuse)
+        cold_work = reuse['projections']['resident'].data['work']
+        with (patch.object(flow, 'relation_index', wraps=flow.relation_index) as matching,
+              patch.object(scoring, '_price_family', wraps=scoring._price_family) as prices):
+            hot = evaluate(decks[2], reuse)
+            hot_work = reuse['projections']['resident'].data['work']
+            self.assertFalse(matching.called)
+            hot_price_count = prices.call_count
+            self.assertEqual(hot, evaluate(decks[2]))
+            self.assertLess(hot_price_count, prices.call_count - hot_price_count)
+            self.assertEqual(evaluate(decks[0], reuse), evaluate(decks[0]))
+            self.assertFalse(reuse['projections']['resident'].data['work']['incremental'])
+        self.assertTrue(hot_work['incremental'])
+        self.assertLess(hot_work['updates'], cold_work['updates'])
+        self.assertLess(hot_work['allocation_states'], cold_work['allocation_states'])
+
     def test_reference_numeric_boundaries_invalid_zero_and_static_cb_markers(self):
         from tests.test_construction_functional_quality import fixture as qfixture,use
         from ygo_kito.construction_layer_flow import NORMALIZATION_VERSION,functional_asset_version
@@ -218,7 +250,6 @@ class FunctionalFlowTests(unittest.TestCase):
         self.assertIn('candidate.stale_quality_evaluation.slot_ledger',saved['quality_migration']['rebind_paths'])
 
     def test_stale_reference_and_direct_consumers_require_current_normalization(self):
-        from ygo_kito.construction_learning import quality_order
         from ygo_kito.construction_progress import quality_policy
         task,assets,graph,binder,decks,p=fixture()
         p['pass']=dict(mode='reference_ratio',minimum_reference_ratio=.8,
@@ -230,8 +261,6 @@ class FunctionalFlowTests(unittest.TestCase):
         old['evaluation_id']=digest({k:v for k,v in old.items() if k!='evaluation_id'})
         with self.assertRaisesRegex(ContractError,'normalization'):
             construction_gate(task,decks[3],assets,values[3]['layer_evaluation'],policy=p,quality=old,reference_quality=values[3]['quality_evaluation'])
-        with self.assertRaisesRegex(ContractError,'normalization'):
-            quality_order(task,[dict(deck=decks[3].to_dict(),quality_evaluation=old)],[1.])
         candidate=dict(values[2],deck=decks[2].to_dict(),deck_sha256=digest(decks[2].to_dict()))
         state=dict(schema_version=3,task_sha256=task.sha256,logic_sha256=graph.sha256,status='optimizing',iteration=2,
             candidate_version=1,candidate=candidate,quality_policy=p,reference_evaluation=old,gate=None,
@@ -1282,11 +1311,11 @@ class FunctionalFlowTests(unittest.TestCase):
         self.assertTrue(all('side:3:1' in v['excluded_source_ids'] for v in facts['side_contexts'].values()))
         self.assertTrue(all(u.self_condition is False for u in facts['uses']))
     def test_quality_order_and_labels_use_final_score_without_a_model(self):
-        from ygo_kito.construction_learning import quality_order, candidate_pairs, validate_pair, SOURCE
+        from ygo_kito.construction_learning import candidate_pairs, validate_pair, SOURCE
         task, _, _, result = functional_fill()
-        contexts = sorted(result['portfolio'], key=lambda row: row['candidate_index'])
-        order = quality_order(task, contexts, [100., 10., 0.])
-        self.assertEqual(order, [2, 1, 0])
+        contexts = result['learning_candidates']
+        winner = max(contexts, key=lambda row: row['quality_evaluation']['score']['value'])
+        self.assertEqual(result['best_deck'], winner['deck'])
         for pair in candidate_pairs(task, result['learning_candidates']):
             validate_pair(task, pair)
             self.assertEqual(pair['source'], SOURCE)
@@ -1346,15 +1375,7 @@ class FunctionalFlowTests(unittest.TestCase):
         self.assertEqual(final['continuation']['candidate_cursor'], state['candidate_cursor'])
         self.assertEqual(final['best']['deck'], decks[3].to_dict())
         self.assertFalse(final['basic_cb']['execution_authorized'])
-        from ygo_kito.construction_candidates import select_retained
-        lower = final['retained_candidates'][-1]
-        with self.assertRaisesRegex(ContractError, 'preference'):
-            select_retained(final, lower, assets=assets, selection=dict(source='updated_model_with_quality_order',
-                candidate_deck_sha256=digest(lower['deck'])))
-        wrong_task=deepcopy(final['best']);wrong_task['construction_gate']['task_sha256']='another-task'
-        with self.assertRaisesRegex(ContractError,'task'):
-            select_retained(final,wrong_task,assets=assets,selection=dict(source='updated_model_with_quality_order',
-                candidate_deck_sha256=digest(wrong_task['deck'])))
+        self.assertFalse(final['retained_candidates'])
         from ygo_kito.course_admission_policy import CourseAdmissionPolicy
         course = SimpleNamespace(construction=final, models=SimpleNamespace(kernel=SimpleNamespace(source_binding={'construction_quality_policy': p})))
         receipt = CourseAdmissionPolicy(course).record_completed_construction(task=task,

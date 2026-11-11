@@ -19,6 +19,8 @@ from .native_assets import verify_resources
 from .normal_duel import request_digest
 from .validation import ContractError, fields, integer
 
+ROUND_CANDIDATE_LIMIT = 5
+
 EXTRA_TYPES = 0x40 | 0x2000 | 0x800000 | 0x4000000
 
 
@@ -127,12 +129,81 @@ def _parts(parts):
     return DeckParts(*(tuple(sorted(parts[zone])) for zone in ZONES))
 
 
+class DeckEdits:
+    """Check small edits against one legal inventory before building a listing."""
+
+    def __init__(self, task, assets, base):
+        from .build_semantics import count
+
+        self.task = task
+        self.assets = assets
+        self.counts = {zone: Counter(getattr(base, zone)) for zone in ZONES}
+        self.pool = set(task.pool)
+        self.aliases = Counter()
+        for counts in self.counts.values():
+            for card, quantity in counts.items():
+                self.aliases[assets.rows[card]["alias"] or card] += quantity
+        self.constraints = [
+            (item, count(base, item, assets.rows))
+            for item in task.goal.get("constraints", ())
+        ]
+
+    def rejection(self, changes):
+        from .build_semantics import matches
+
+        aliases = Counter()
+        deltas = {}
+        for zone in ZONES:
+            edit = changes[zone]
+            removed, added = Counter(edit["removed"]), Counter(edit["added"])
+            if len(edit["removed"]) != len(edit["added"]):
+                return "deck does not preserve required section sizes"
+            if removed - self.counts[zone]:
+                return "removed card is absent from the original section"
+            for card in added:
+                if card not in self.pool:
+                    return "card absent from declared OCG pool"
+                if zone != "side" and bool(self.assets.rows[card]["type"] & EXTRA_TYPES) != (zone == "extra"):
+                    return "card is in the wrong section"
+            delta = deltas[zone] = added.copy()
+            delta.subtract(removed)
+            for card, quantity in delta.items():
+                aliases[self.assets.rows[card]["alias"] or card] += quantity
+        if any(self.aliases[card] + quantity > self.assets.limits.get(card, 3)
+               for card, quantity in aliases.items()):
+            return "combined main/extra/side alias limit exceeded"
+        for requirement in self.task.requirements:
+            zone, card = requirement["zone"], requirement["card_id"]
+            quantity = self.counts[zone][card] + deltas[zone][card]
+            if not requirement["minimum"] <= quantity <= requirement["maximum"]:
+                return "deck violates a fixed goal/card constraint"
+        for item, before in self.constraints:
+            after = before + sum(quantity for zone in item["zones"] for card, quantity in deltas[zone].items()
+                                 if quantity and matches(self.assets.rows[card], item["predicate"]))
+            if not item["minimum"] <= after <= item["maximum"]:
+                return "deck violates semantic count constraint: " + item["id"]
+        return None
+
+    def inventory(self, changes):
+        return {zone: self.counts[zone] - Counter(changes[zone]["removed"]) + Counter(changes[zone]["added"])
+                for zone in ZONES}
+
+    def materialize(self, changes):
+        inventory = self.inventory(changes)
+        return DeckParts(*(tuple(sorted(inventory[zone].elements())) for zone in ZONES))
+
+
+def candidate_limit(task):
+    return min(ROUND_CANDIDATE_LIMIT, task.candidate_budget)
+
+
 def _goal_candidates(task, assets, base=None, *, skeleton=None, candidate_ids=None):
     """Bounded constraint construction followed by model ranking, not learned rule code."""
     assets.check_task(task)
     if task.goal['kind']=='deck_constraints':
         from .build_semantics import solve_candidates
-        return solve_candidates(task,assets,base,skeleton=skeleton,candidate_ids=candidate_ids)['candidates']
+        return solve_candidates(task,assets,base,skeleton=skeleton,candidate_ids=candidate_ids,
+                                candidate_count=candidate_limit(task))['candidates']
     if skeleton is not None:
         assets.validate_skeleton(task, skeleton)
     if base is not None:
@@ -143,7 +214,7 @@ def _goal_candidates(task, assets, base=None, *, skeleton=None, candidate_ids=No
     found = []
     if base is not None and assets.accepts(task, base):
         found.append(base)
-    for rotation in range(min(4, task.candidate_budget)):
+    for rotation in range(min(4, candidate_limit(task) - len(found))):
         parts = {zone: [] for zone in ZONES}
         for req in task.requirements:
             parts[req["zone"]].extend([req["card_id"]] * req["minimum"])
@@ -177,97 +248,99 @@ def _goal_candidates(task, assets, base=None, *, skeleton=None, candidate_ids=No
                 if not progressed:
                     valid = False
                     break
-        candidate = _parts(parts)
-        if valid and assets.accepts(task, candidate) and candidate not in found:
-            found.append(candidate)
-        if len(found) >= task.candidate_budget:
-            break
+        if valid:
+            candidate = _parts(parts)
+            if assets.accepts(task, candidate) and candidate not in found:
+                found.append(candidate)
     return found
 
 
-def goal_candidates(task, assets, base=None, *, feedback=(), return_portfolio=False,mechanism_groups=None,trace=None,graph=None,candidate_ids=None):
+def goal_candidates(task, assets, base=None, *, skeleton=None, feedback=(), return_portfolio=False,
+                    mechanism_groups=None, trace=None, graph=None, candidate_ids=None, rank_ideas=None, recognized_cards=()):
     from .construction_candidates import portfolio
-    initial = _goal_candidates(task, assets, base, candidate_ids=candidate_ids)
-    portfolio_trace = {}
-    rows = portfolio(task, assets, base=base, initial=initial, feedback=feedback,mechanism_groups=mechanism_groups,trace=portfolio_trace,graph=graph,candidate_ids=candidate_ids)
+
+    if base is not None and assets.accepts(task, base):
+        return edit_candidates(task, assets, base, feedback=feedback, return_portfolio=return_portfolio,
+                               mechanism_groups=mechanism_groups, trace=trace, graph=graph,
+                               candidate_ids=candidate_ids, rank_ideas=rank_ideas,
+                               recognized_cards=recognized_cards)
+    # Without a complete starting list, fill the requested skeleton first.
+    # Each solver call owns a slot; edits of these lists belong to later rounds.
+    initial = _goal_candidates(task, assets, base, skeleton=skeleton, candidate_ids=candidate_ids)
+    rows = portfolio(task, assets, initial=initial, trace=trace)
     if trace is not None:
-        trace.update(generator="existing_goal_solver_and_portfolio", initial_candidates=len(initial),
-                     portfolio_candidates=len(rows), candidate_budget=task.candidate_budget,
-                     portfolio=portfolio_trace,internal_solver_filter_trace="not_available")
+        trace.update(generator="goal_solver", complete_list_attempt_limit=candidate_limit(task))
     return rows if return_portfolio else [row["deck"] for row in rows]
 
 
-def edit_candidates(task, assets, base, *, require_edit=False, feedback=(), return_portfolio=False,mechanism_groups=None,trace=None,graph=None,search_offset=0,candidate_ids=None):
+def edit_candidates(task, assets, base, *, require_edit=False, feedback=(), return_portfolio=False,
+                    mechanism_groups=None, trace=None, graph=None, search_offset=0, candidate_ids=None, rank_ideas=None, recognized_cards=()):
+    from .construction_candidates import portfolio
+
     assets.validate(task, base)
     pool = task.pool if candidate_ids is None else tuple(candidate_ids)
     if not set(pool) <= set(task.pool):
-        raise ContractError('edit query exceeds original task card pool')
-    from .construction_candidates import portfolio
-    found, origins, families, zone_limits = [], {}, {}, {}
+        raise ContractError("edit query exceeds original task card pool")
+    edits = DeckEdits(task, assets, base)
+    families, zone_limits = {}, {}
 
-    def substitutions(zone):
-        removed_cards = sorted(set(getattr(base, zone)))
+    def ideas(zone, other=None):
+        removed_cards = sorted(edits.counts[zone])
+        added_cards = list(pool) if other is None else sorted(edits.counts[other])
         start = search_offset % max(1, len(removed_cards))
-        pool_start = search_offset % len(pool)
+        pool_start = search_offset % max(1, len(added_cards))
         for removed in removed_cards[start:] + removed_cards[:start]:
-            for added in pool[pool_start:] + pool[:pool_start]:
-                if added != removed:
-                    parts = base.to_dict()
-                    parts[zone].remove(removed); parts[zone].append(added)
-                    yield _parts(parts), {"kind":"single_zone_substitution", "zones":[zone],
-                        "removed":{zone:removed}, "added":{zone:added}}
+            for added in added_cards[pool_start:] + added_cards[:pool_start]:
+                if added == removed:
+                    continue
+                change = {z: {"added": [], "removed": []} for z in ZONES}
+                change[zone] = {"removed": [removed], "added": [added]}
+                generation = {"kind": "single_zone_substitution", "zones": [zone],
+                              "removed": {zone: removed}, "added": {zone: added}}
+                if other is not None:
+                    change[other] = {"removed": [added], "added": [removed]}
+                    generation.update(kind="atomic_cross_zone_exchange", zones=[zone, other],
+                                      removed={zone: removed, other: added}, added={zone: added, other: removed},
+                                      combined_inventory_preserved=True)
+                yield change, generation
 
-    def exchanges(zone, other):
-        # Validate the complete exchange, never its copy-limit-breaking halfway
-        # state. Every listed copy stays in the inventory and section sizes stay
-        # fixed; target requirements and destination legality still apply.
-        for removed in sorted(set(getattr(base, zone))):
-            for added in sorted(set(getattr(base, other))):
-                if added != removed:
-                    parts = base.to_dict()
-                    parts[zone].remove(removed); parts[other].remove(added)
-                    parts[zone].append(added); parts[other].append(removed)
-                    yield _parts(parts), {"kind":"atomic_cross_zone_exchange", "zones":[zone,other],
-                        "removed":{zone:removed,other:added}, "added":{zone:added,other:removed},
-                        "combined_inventory_preserved":True}
-
+    # Keep a small menu of edits per section, alternating substitutions and
+    # exchanges. These records contain only the cards that would change.
+    found = []
     for position, zone in enumerate(ZONES):
-        streams = [("single:"+zone, iter(substitutions(zone)))]
-        streams += [("exchange:"+zone+"+"+other, iter(exchanges(zone,other))) for other in ZONES[position+1:]]
+        streams = [("single:" + zone, ideas(zone))]
+        streams.extend(("transfer:" + zone + "+" + other, ideas(zone, other)) for other in ZONES[position + 1:])
         count = 0
         while streams and count < 32:
             for name, stream in streams[:]:
-                stats = families.setdefault(name, {"attempted":0,"accepted":0,"filtered":{},"rejection_samples":[]})
-                try:
-                    candidate, origin = next(stream)
-                except StopIteration:
-                    streams.remove((name,stream)); continue
-                stats["attempted"] += 1
-                try:
-                    assets.validate(task, candidate)
-                    reason = "duplicate_candidate" if candidate in origins else None
-                except ContractError as error:
-                    reason = str(error)
-                if reason is not None:
-                    stats["filtered"][reason] = stats["filtered"].get(reason,0)+1
-                    if len(stats["rejection_samples"]) < 2:
-                        stats["rejection_samples"].append({"edit":origin,"reason":reason})
+                stats = families.setdefault(name, {"attempted": 0, "accepted": 0, "filtered": {}, "rejection_samples": []})
+                choice = next(stream, None)
+                if choice is None:
+                    streams.remove((name, stream))
                     continue
-                found.append(candidate); origins[candidate] = origin
-                stats["accepted"] += 1; count += 1
-                if count == 32: break
-        zone_limits[zone] = {"accepted":count,"limit":32,"enumeration_complete":not streams}
-    portfolio_trace = {}
-    rows = portfolio(task, assets, base=base, singles=found, feedback=feedback, require_edit=require_edit,mechanism_groups=mechanism_groups,trace=portfolio_trace,graph=graph,candidate_ids=candidate_ids)
-    for row in rows:
-        if row["deck"] in origins:
-            row["generation"] = origins[row["deck"]]
+                change, generation = choice
+                stats["attempted"] += 1
+                reason = edits.rejection(change)
+                if reason:
+                    stats["filtered"][reason] = stats["filtered"].get(reason, 0) + 1
+                    if len(stats["rejection_samples"]) < 2:
+                        stats["rejection_samples"].append({"edit": generation, "reason": reason})
+                    continue
+                found.append({"changes": change, "strategy": name, "generation": generation,
+                              "edited_zones": generation["zones"], "proposal_basis": generation["kind"]})
+                stats["accepted"] += 1
+                count += 1
+                if count == 32:
+                    break
+        zone_limits[zone] = {"accepted": count, "limit": 32, "enumeration_complete": not streams}
+    rows = portfolio(task, assets, base=base, singles=found, feedback=feedback, require_edit=require_edit,
+                     mechanism_groups=mechanism_groups, trace=trace, graph=graph, candidate_ids=candidate_ids,
+                     edits=edits, search_offset=search_offset, rank_ideas=rank_ideas, recognized_cards=recognized_cards)
     if trace is not None:
         trace.update(generator="bounded_substitutions_and_atomic_exchanges", families=families,
-            zone_limits=zone_limits, legal_edit_candidates=len(found), portfolio_candidates=len(rows),
-            legal_edits_outside_portfolio=sum(deck not in [r["deck"] for r in rows] for deck in found),
-            candidate_budget=task.candidate_budget,portfolio=portfolio_trace,
-            constraints_checked=["section_sizes","destination_zone","combined_alias_copy_limits","explicit_task_constraints"])
+                     zone_limits=zone_limits, legal_edit_ideas=len(found), portfolio_candidates=len(rows),
+                     constraints_checked=["section_sizes", "destination_zone", "combined_alias_copy_limits",
+                                          "explicit_task_constraints"])
     return rows if return_portfolio else [row["deck"] for row in rows]
 
 

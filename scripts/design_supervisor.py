@@ -104,11 +104,35 @@ def inspect_artifact(path,root,catalog):
             or gate.get('version')!=FUNCTIONAL_GATE_VERSION or gate.get('cb_result_used') is not False):
         raise Unknown('construction has not passed its pre-CB gate')
     if not isinstance(phases,list):raise Unknown('construction slice trace missing')
+    handoff_links = {(h.get('role'), h.get('input_deck_sha256'), h.get('output_deck_sha256'))
+                     for h in handoffs}
+    previous = None
+    compact_skeletons = []
+    compact = False
     for i,p in enumerate(phases):
         if p.get('role') not in ('build_goal','build_optimizer'):raise Violation('unknown construction role')
-        if not isinstance(p.get('proposal_deck'),dict):raise Unknown('concrete phase output is not available')
-        if i and p.get('input_deck')!=phases[i-1]['proposal_deck']:raise Violation('actual deck handoff mismatch '+str(i+1))
         fill=p.get('stage_3',{})
+        if 'proposal_deck_sha256' in p and 'proposal_deck' not in p:
+            compact = True
+            before, after = p.get('input_deck_sha256'), p['proposal_deck_sha256']
+            if (p['role'], before, after) not in handoff_links or i and before != previous:
+                raise Violation('phase inventory identity differs from its saved handoff')
+            if fill.get('engine_validation_performed') is True:
+                raise Violation('CB was executed inside an unfinished construction iteration')
+            if p['role'] == 'build_goal':
+                if fill.get('status') != 'axis_skeleton_ready':raise Unknown('goal skeleton status missing')
+                compact_skeletons.append(p.get('unfilled'))
+            else:
+                selected = [row for row in fill.get('candidate_trace', {}).get('candidates', ())
+                            if row.get('selected') is True]
+                if (fill.get('selection_complete') is not True or len(selected) != 1
+                        or selected[0].get('deck_sha256') != after):
+                    raise Violation('phase selection differs from its saved handoff')
+            previous = after
+            continue
+        if not isinstance(p.get('proposal_deck'),dict):raise Unknown('concrete phase output is not available')
+        if i and digest(p.get('input_deck'))!=previous:raise Violation('actual deck handoff mismatch '+str(i+1))
+        previous = digest(p['proposal_deck'])
         attempts=fill.get('attempts',[])
         concrete=([fill['concrete_proposal']] if p['role']=='build_goal' and
             fill.get('status')=='axis_skeleton_ready' and isinstance(fill.get('concrete_proposal'),dict) else
@@ -118,11 +142,12 @@ def inspect_artifact(path,root,catalog):
         for a in attempts:
             v=a.get('engine_validation',{})
             if v.get('status','not_run')!='not_run':raise Violation('CB was executed inside an unfinished construction iteration')
-    output=(result.get('construction_candidate') or {}).get('deck')
+    candidate=result.get('construction_candidate') or result.get('final_candidate') or result.get('best')
+    output=(candidate or {}).get('deck')
     if not isinstance(output,dict) or digest(output)!=handoffs[-1]['output_deck_sha256']:raise Violation('final inventory differs from saved handoff')
     if gate.get('deck_sha256')!=digest(output):raise Violation('construction gate belongs to another deck')
-    candidate=result.get('construction_candidate') or result.get('final_candidate') or result.get('best')
-    if not isinstance(candidate,dict) or candidate.get('deck')!=output:raise Violation('reported construction differs from passed candidate')
+    if compact and (candidate.get('concrete_proposal') or {}).get('deck') != output:
+        raise Violation('final inventory differs from its concrete fill record')
     quality=candidate.get('quality_evaluation')
     if not isinstance(quality,dict) or quality.get('version')!=FUNCTIONAL_QUALITY_VERSION:
         raise Unknown('current functional quality evaluation is required before clearance')
@@ -192,15 +217,21 @@ def inspect_artifact(path,root,catalog):
     if task.get('environment',{}).get('release_cutoff')!=catalog.policy['release_cutoff']:raise Violation('task period differs')
     if result.get('selected_task_sha256')!=digest(task):raise Violation('construction and CB task identity differ')
     if gate.get('task_sha256')!=digest(task):raise Violation('current construction gate belongs to another task')
+    for unfilled in compact_skeletons:
+        if (not isinstance(unfilled, dict) or unfilled.keys() != task['sizes'].keys()
+                or any(type(n) is not int or not 0 <= n <= task['sizes'][zone] for zone,n in unfilled.items())):
+            raise Violation('goal skeleton slot counts differ from the original task')
     for p in phases:
         if p.get('input_deck') is not None:catalog.deck(p['input_deck'],task,partial=any(len(p['input_deck'][z])<task['sizes'][z] for z in task['sizes']))
-        catalog.deck(p['proposal_deck'],task,partial=p['role']=='build_goal')
+        if 'proposal_deck' in p:catalog.deck(p['proposal_deck'],task,partial=p['role']=='build_goal')
+    catalog.deck(output,task)
     # Independently check the raw input and output association. Do not treat
     # cb_verified/passed or a whole-graph execution flag as conformance proof.
     if digest(raw['deck'])!=subject:raise Violation('raw CB input differs from construction')
     return {'artifact':str(path.relative_to(root)),'artifact_sha256':sha,'deck_sha256':subject,
         'task_sha256':task_sha,'cb_source':str(raw_path.relative_to(root)),
         'checked':['role_handoffs_and_pre_cb_gate','basic_cb_subject','card_id_type_quantity_period'],
+        'phase_inventory_check':'handoff_identity' if compact else 'full_lists',
         'whole_graph_execution_or_competitive_strength_certified':False}
 
 def audit(base,policy,catalog):

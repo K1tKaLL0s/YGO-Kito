@@ -2,10 +2,9 @@
 from copy import deepcopy
 import hashlib
 import json
+import re
 import shutil
-import time
 from pathlib import Path
-from itertools import combinations
 
 
 def record_basic_cb_inference(root,task,deck,inference):
@@ -19,6 +18,18 @@ def record_basic_cb_inference(root,task,deck,inference):
     tmp=path.with_name(path.name+'.tmp')
     tmp.write_text(json.dumps(value,ensure_ascii=False,indent=2)+'\n',encoding='utf-8');tmp.replace(path)
     return path
+
+
+def retire_candidate_proofs(root, winner, *, route_prefix='route-'):
+    """The caller's run directory owns these exact route and CB receipts."""
+    prefixes = ('basic-cb-inference-', route_prefix)
+    for path in Path(root).iterdir():
+        if not path.is_file() or not any(re.fullmatch(re.escape(prefix) + r'\d{3,}\.json', path.name)
+                                         for prefix in prefixes):
+            continue
+        receipt = json.loads(path.read_text(encoding='utf-8'))
+        if receipt.get('deck') != winner:
+            path.unlink()
 
 
 def basic_cb_completed(value):
@@ -76,8 +87,9 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
     from ygo_kito.semantic_training import SOURCE
     from ygo_kito.build_semantics import accepted_status
     from ygo_kito.construction_course_evidence import cycle_identity,task_supervision,supervision_seeds
-    from ygo_kito.construction_candidates import (comparable_candidates, record_comparison,
-        strict_portfolio_winner, select_retained, task_checked, quality_selection_allowed)
+    from ygo_kito.construction_candidates import record_comparison, task_checked
+    from ygo_kito.construction_progress import ConstructionSuspended, construction_report
+    from ygo_kito.course_admission_policy import CourseAdmissionPolicy
     def read(p):return json.loads(p.read_text(encoding='utf-8'))
     def write(p,v):
         tmp=p.with_name(p.name+'.tmp');tmp.write_text(json.dumps(v,ensure_ascii=False,indent=2)+'\n',encoding='utf-8');tmp.replace(p)
@@ -130,9 +142,8 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
         current_sha=current.logic.sha256 if current.logic is not None else None
         if not initial and existing.get('latest_logic_sha256')!=current_sha:
             # The process failed before committing the inference's kernel state.
-            # Preserve that trace and rebuild only inference, reusing exact
-            # private proofs. No duel or parameter update is replayed.
-            path.rename(path.with_name('construction-result.uncommitted-'+str(time.time_ns())+'.json'))
+            # Rebuild inference from the committed session and reuse private proofs.
+            path.unlink()
     if path.exists() and read(path).get('construction_passed'):result=read(path)
     elif initial:
         result=deepcopy(course.construction);write(path,result)
@@ -171,14 +182,14 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
         public_scorer=getattr(comparison_policy,'public_feedback',None)
         if callable(public_scorer):
             public_score=public_scorer(task=task,deck=course.deck)
-            if public_score is not None:
-                routing_feedback+=({'source':'duel','message':'Completed candidate construction feedback: '+json.dumps(public_score,sort_keys=True)},)
+            if public_score and public_score.get('optimization_reason'):
+                routing_feedback+=({'source':'duel','message':str(public_score['optimization_reason'])[:1024]},)
         if feedback:routing_feedback+=({'source':'duel','message':'Actual immutable forecast discrepancy: '+json.dumps(feedback,sort_keys=True)},)
         result=models.kernel.run_selected(course.selection,base=None if force_rebuild else course.deck,
             feedback=routing_feedback,verifier=verifier,basic_cb_recorder=record_basic_cb,
             budget=budget,basic_cb_verifier=verifier,basic_cb_enabled=True,pause_requested=stop.exists)
         if force_rebuild:result['forced_reconstruction_executed_from_empty']=True
-        write(path,result)
+        write(path,result if result.get('construction_passed') else construction_report(result))
         # Commit the generated session/history together with its inference trace
         # before role admission. A later resume can then consume it exactly once.
         course.save()
@@ -186,32 +197,29 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
             or not basic_cb_completed(result)):
         from ygo_kito.construction_learning import consume_optimizer_slice
         consume_optimizer_slice(course,result,status=status,pause_requested=stop.exists)
-        write(path,result);course.desired='paused';course.save()
-        from ygo_kito.construction_progress import ConstructionSuspended
+        write(path,construction_report(result));course.desired='paused';course.save()
         error=ConstructionSuspended(result);error.safe_boundary_saved=True;raise error
-    # Independent completed construction evaluations precede admission queries.
-    # Score every emitted actual candidate; a deferred CB never becomes a
-    # negative training pair or a fabricated construction score.
     scoring_feedback={}
     scorer=getattr(comparison_policy,'record_completed_construction',None)
+    winner=result['best']
+    proposal=DeckParts.from_dict(winner['deck'])
+    retire_candidate_proofs(root, winner['deck'])
+    proof_records = [(p, r) for p, r in proof_records if p.is_file()]
     if callable(scorer):
-        seen=set()
-        for candidate in [result['best']]+list(result.get('retained_candidates',())):
-            if not task_checked(candidate):continue
-            subject=digest(candidate['deck'])
-            if subject in seen:continue
-            seen.add(subject)
-            scoring_feedback[subject]=scorer(task=task,deck=DeckParts.from_dict(candidate['deck']),
-                assets=assets,basic_cb=candidate.get('basic_cb'),cycle_id=cycle_key,
-                layer_evaluation=candidate.get('layer_evaluation'))
+        bound = {'construction': result} if isinstance(comparison_policy, CourseAdmissionPolicy) else {}
+        score = scorer(task=task,deck=proposal,assets=assets,basic_cb=winner.get('basic_cb'),
+            cycle_id=cycle_key,layer_evaluation=winner.get('layer_evaluation'), **bound)
+        if score:
+            scoring_feedback[digest(winner['deck'])] = {key: score[key] for key in
+                ('force_optimization', 'optimization_reason', 'construction_strength_status') if key in score}
     from local_design_supervision import require_artifact_clearance
     require_artifact_clearance(base,course,target,path,stop)
     session=models.kernel.sessions[course.selection['candidate_id']]
     session.check_goal()
     if result.get('goal_sha256')!=session.goal_sha256 or session.task.sha256!=task.sha256:raise RuntimeError('Collaboration changed the selected objective')
-    proposal=DeckParts.from_dict(result['best']['deck'])
-    comparable_incumbent=incumbent if basic_cb_completed(incumbent) else None
-    contexts=[candidate for candidate in comparable_candidates(result,comparable_incumbent) if basic_cb_completed(candidate)]
+    contexts = [winner]
+    if (task_checked(incumbent) and basic_cb_completed(incumbent) and incumbent['deck'] != winner['deck']):
+        contexts.insert(0, incumbent)
     candidates=[DeckParts.from_dict(c['deck']) for c in contexts]
     if initial or proposal==course.deck:deployed=deepcopy(result)
     goal_rows=[]
@@ -238,7 +246,8 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
         if before.get('stage_3',{}).get('status')!='concrete_candidate_cb_pending':continue
         context={'goal_valid':True,'card_list_valid':True,'has_forecast':False,'warning':False,'rebuild_required':False,
                  'operation_error':False,'system_error':False,'remaining_tasks':len(result['phases'])-1-i,'completed_matches':number,'score_mean':None,'forecast':None}
-        trace={'source':'host_logged_workflow_transition_v1','trace_sha256':trace_sha,'from_phase':i+1,'to_phase':i+2,'context':context,
+        trace={'source':'host_logged_workflow_transition_v1','trace_sha256':trace_sha,
+               'from_phase':before['phase_number'],'to_phase':after['phase_number'],'context':context,
                'route_label':after['role'],'forecast_target':None,'evidence':{'from_phase':before,'to_phase':after}}
         artifact_id='course-v2-'+cycle_key+'-route-'+str(i)
         pause_if_requested()
@@ -256,24 +265,14 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
         raise RuntimeError('Saved auxiliary applicability differs from the declared goal')
     if not scope_path.exists():write(scope_path,auxiliary_scope)
     construction_candidate_count=len(candidates)
-    from ygo_kito.construction_learning import cycle_pairs,rank_candidates
-    emitted=[c for c in contexts if any(r['deck']==c['deck'] for r in result['retained_candidates'])]
-    quality_pairs=cycle_pairs(task,result)
-    quality_receipt=None
-    if quality_pairs:
-        data=deepcopy(common);data['pairs']=quality_pairs
-        artifact_id=admit(data,'construction-quality-comparison-v2')
-        feedback_id='course-v2-'+cycle_key+'-quality-optimizer'
-        apply_once(feedback_id,artifact_id,kind='construction',task=task,roles=('build_optimizer',))
-        quality_receipt=optimizer_feedback_receipt(course.feedback.consumed,feedback_id,artifact_id)
-        # The next selection reads the updated model and retains the actual
-        # candidate objects; no fixed one-card swap or stale score is reused.
-        selection=rank_candidates(models.builder,task,emitted)
-        quality_receipt['next_selection']=selection
-        winner=selection['selected_index']
-        deployed=select_retained(result,emitted[winner],selection=selection,assets=assets)
-        course.deck=DeckParts.from_dict(deployed['best']['deck'])
-    admitted_contexts,comparison_admissions=admit_comparison_candidates(task,contexts,assets,comparison_policy)
+    from ygo_kito.construction_learning import strict_pair_count
+    quality_pairs = strict_pair_count(task, result)
+    policy_for_pair = comparison_policy
+    if isinstance(comparison_policy, CourseAdmissionPolicy):
+        def policy_for_pair(*, deck, **options):
+            evidence = result if deck == proposal else course.construction
+            return comparison_policy(deck=deck, construction=evidence, **options)
+    admitted_contexts,comparison_admissions=admit_comparison_candidates(task,contexts,assets,policy_for_pair)
     write(root/'comparison-admissions.json',{'task_sha256':task.sha256,'purpose':'construction_comparison',
         'candidates':comparison_admissions})
     contexts=admitted_contexts;candidates=[DeckParts.from_dict(c['deck']) for c in contexts]
@@ -285,8 +284,7 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
         bot_entry=next(b for b in course.bots.values() if b['stage']=='bots-bo1' and b['purpose']=='train')
         runtime=bot_entry['runtime'];bot={'bot_id':runtime.opponent_id,'executor_id':runtime.executor_id,'source_id':runtime.source_id,'source':runtime.source,'mono':runtime.mono}
         audit_path=runtime.workspace/runtime.audit['path'];audit=read(audit_path)
-        pair_seed_count=2 if len(candidates)>2 else 4
-        seeds=tuple(models.duel.config.game_seeds[models.duel.episode_cursor:models.duel.episode_cursor+pair_seed_count])
+        seeds=tuple(models.duel.config.game_seeds[models.duel.episode_cursor:models.duel.episode_cursor+4])
         from ygo_kito.data_isolation import DataIndex
         comparison_index=root/'comparison-index'
         if not comparison_index.exists():
@@ -295,38 +293,31 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
             shutil.copytree(course.data_index.path.parent,comparison_index)
         private_index=DataIndex(comparison_index)
         driver_sha=models.versions()['duel']
-        for pair_number,(a,b) in enumerate(combinations(range(len(candidates)),2)):
-            # All pairs share the model, opponent and seed budget; update only
-            # after the complete bounded comparison set has been recorded.
-            pair_root=root if pair_number==0 else root/('portfolio-pair-'+str(a)+'-'+str(b))
-            pair_root.mkdir(exist_ok=True)
-            pair_candidates=[candidates[a],candidates[b]]
-            comparison=compare_model_candidates(task,assets,pair_candidates,bot_entry['deck'],trainer=models.duel,registry=runtime.registry,
+        comparison=compare_model_candidates(task,assets,candidates,bot_entry['deck'],trainer=models.duel,registry=runtime.registry,
                 bot=bot,audit={'path':str(audit_path),'assembly_sha256':audit['assembly_sha256']},workspace=runtime.workspace,
-                seeds=seeds,directory=pair_root/'fixed-model-pairs',data_index=private_index,experiment_id=course.config['course_id'],
+                seeds=seeds,directory=root/'fixed-model-pairs',data_index=private_index,experiment_id=course.config['course_id'],
                 stop=stop,status=status,artifact_namespace=cycle_key,budget=budget,
-                comparison_policy=comparison_policy,candidate_basic_cbs=candidate_basic_cbs,
+                comparison_policy=policy_for_pair,candidate_basic_cbs=candidate_basic_cbs,
                 seconds=7200. if budget is None else min(7200.,budget.check('before_paired_comparison')))
-            if models.versions()['duel']!=driver_sha:raise RuntimeError('Portfolio comparison changed its frozen driver')
-            status('saved_complete_collaborative_comparison',completed_cases=len(comparison['games']),total_cases=len(comparison['games']),complete_pairs=len(comparison['games'])//2)
-            if budget is not None:budget.check('before_auxiliary_readout')
-            auxiliary=None
-            if comparison['preferred_index'] is None and auxiliary_scope['supported']:
-                auxiliary=completed_auxiliary(task,assets,comparison,private_index,pair_root,base,number)
-            receipt=record_comparison(session,assets,comparison,[contexts[a],contexts[b]],auxiliary=auxiliary)
-            preferred=receipt['preferred_index'];label_source=PAIR_SOURCE
-            if comparison['preferred_index'] is None and preferred is not None:
-                label_source=auxiliary['source']
-            portfolio_pairs.append((a,b,preferred))
-            pair_feedback.append({'candidate_indices':[a,b],
-                'primary_preferred_index':comparison['preferred_index'],
-                'auxiliary_status':('evaluated' if auxiliary is not None else
-                    auxiliary_scope['status'] if comparison['preferred_index'] is None else 'not_requested_primary_strict'),
-                'auxiliary_reason':(auxiliary['preference_reason'] if auxiliary is not None else
-                    auxiliary_scope['reason'] if comparison['preferred_index'] is None else 'primary_strict_label_available'),
-                'preferred_index':preferred,'label_source':label_source if preferred is not None else None})
-            training_pair=comparison_training_pair(comparison,pair_candidates,preferred,auxiliary)
-            if training_pair is not None:training_pairs.append(training_pair)
+        if models.versions()['duel']!=driver_sha:raise RuntimeError('Comparison changed its frozen driver')
+        status('saved_complete_collaborative_comparison',completed_cases=len(comparison['games']),total_cases=len(comparison['games']),complete_pairs=len(comparison['games'])//2)
+        if budget is not None:budget.check('before_auxiliary_readout')
+        if comparison['preferred_index'] is None and auxiliary_scope['supported']:
+            auxiliary=completed_auxiliary(task,assets,comparison,private_index,root,base,number)
+        receipt=record_comparison(session,assets,comparison,contexts,auxiliary=auxiliary)
+        preferred=receipt['preferred_index'];label_source=PAIR_SOURCE
+        if comparison['preferred_index'] is None and preferred is not None:
+            label_source=auxiliary['source']
+        portfolio_pairs.append((0,1,preferred))
+        pair_feedback.append({'candidate_indices':[0,1],
+            'primary_preferred_index':comparison['preferred_index'],
+            'auxiliary_status':('evaluated' if auxiliary is not None else
+                auxiliary_scope['status'] if comparison['preferred_index'] is None else 'not_requested_primary_strict'),
+            'auxiliary_reason':(auxiliary['preference_reason'] if auxiliary is not None else
+                auxiliary_scope['reason'] if comparison['preferred_index'] is None else 'primary_strict_label_available'),
+            'preferred_index':preferred,'label_source':label_source if preferred is not None else None})
+        training_pair=comparison_training_pair(comparison,candidates,preferred,auxiliary)
+        if training_pair is not None:training_pairs.append(training_pair)
         if training_pairs:
             data=deepcopy(common);data['pairs']=training_pairs
             artifact_id=admit(data,'real-model-comparison')
@@ -335,15 +326,12 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
             optimizer_feedback=optimizer_feedback_receipt(course.feedback.consumed,feedback_id,artifact_id)
         else:
             optimizer_feedback['status']='no_strict_label'
-        winner=strict_portfolio_winner(len(candidates),portfolio_pairs)
-        if (winner is not None and candidates[winner]!=course.deck and
-            any(r['deck']==contexts[winner]['deck'] for r in result['retained_candidates']) and
-            quality_selection_allowed(result,contexts[winner])):
-            selection={'source':'completed_frozen_portfolio_comparisons',
-                'candidate_deck_sha256':digest(candidates[winner].to_dict()),'strict_pair_results':portfolio_pairs,
+        if preferred is not None and candidates[preferred] == proposal and proposal != course.deck:
+            selection={'source':'completed_frozen_incumbent_comparison',
+                'candidate_deck_sha256':digest(proposal.to_dict()),'strict_pair_results':portfolio_pairs,
                 'independent_acceptance':False,'optimality_claimed':False}
-            deployed=select_retained(result,contexts[winner],selection=selection,assets=assets)
-            course.deck=candidates[winner];deployed['training_adoption']=selection
+            deployed=deepcopy(result)
+            course.deck=proposal;deployed['training_adoption']=selection
     course.construction=deployed
     if deployed.get('continuation'):
         from ygo_kito.construction_progress import restore_progress
@@ -372,9 +360,8 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
     summary['portfolio_candidate_count']=len(candidates);summary['portfolio_pair_results']=portfolio_pairs
     summary['cycle_id']=cycle_id;summary['cycle_key']=cycle_key
     summary['construction_scoring_feedback']=scoring_feedback
-    summary['quality_optimizer_feedback']=quality_receipt
-    summary['construction_quality_learning']={'strict_pairs':len(quality_pairs),
-        'status':'consumed' if quality_receipt is not None else 'no_strict_quality_label',
+    summary['construction_quality_learning']={'strict_pairs':quality_pairs,
+        'status':'strict_preferences_recorded_without_candidate_inventories' if quality_pairs else 'no_strict_quality_label',
         'forward_scoring_is_not_learning':True}
     summary['review_receipt']={'kind':'completed_construction_review_v3',
         'cycle_id':'review-'+(cycle_id if cycle_id is not None else str(number)),

@@ -20,7 +20,7 @@ class CourseAdmissionPolicy:
         return dict(task_sha256=task.sha256,deck_sha256=digest(deck.to_dict()))
 
     def record_completed_construction(self, *, task, deck, assets, basic_cb, cycle_id,
-                                      layer_evaluation=None):
+                                      layer_evaluation=None, construction=None):
         assets.validate(task,deck)
         if not isinstance(cycle_id,str) or not cycle_id.strip():
             raise ContractError('completed construction requires a cycle identity')
@@ -28,9 +28,10 @@ class CourseAdmissionPolicy:
             raise ContractError('construction feedback refers to another inventory')
         dependencies=InventoryDependencies(MechanismCatalog(assets,task.pool)).evaluate(deck)
         from .construction_progress import construction_gate
-        construction = getattr(self.course, 'construction', None) or {}
-        candidate = next((r for r in [construction.get('best')] + construction.get('retained_candidates', [])
-            if isinstance(r, dict) and r.get('deck') == deck.to_dict()), {})
+        construction = construction if construction is not None else getattr(self.course, 'construction', None) or {}
+        candidate = construction.get('best') or {}
+        if candidate.get('deck') != deck.to_dict():
+            candidate = {}
         layer_evaluation = layer_evaluation or candidate.get('layer_evaluation')
         saved_gate = candidate.get('construction_gate') or {}
         kernel = getattr(getattr(self.course,'models',None),'kernel',None)
@@ -89,9 +90,9 @@ class CourseAdmissionPolicy:
         self.course.events.append(dict(kind='construction_cb_review',task_sha256=task.sha256,
             deck_sha256=digest(deck.to_dict()),cycle_id=cycle_id,through_attempt_id=through_attempt_id))
 
-    def __call__(self, *, task, deck, basic_cb, assets, purpose):
+    def __call__(self, *, task, deck, basic_cb, assets, purpose, construction=None):
         feedback=self.record_completed_construction(task=task,deck=deck,assets=assets,
-            basic_cb=basic_cb,cycle_id='current-candidate')
+            basic_cb=basic_cb,cycle_id='current-candidate',construction=construction)
         reasons=list(feedback['construction_gate']['reasons'])
         trigger=self._cb_trigger(task,deck)
         refs=[dict(kind='current_candidate_inventory_evaluation',policy_epoch=POLICY_EPOCH,

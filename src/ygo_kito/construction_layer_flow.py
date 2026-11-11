@@ -185,7 +185,7 @@ def _configuration_relations(available, records, dependencies, aliases, operatio
 
 
 def _functional_relations(deck, available, records, aliases, extra_ids, context, budget, dependencies, config,
-                          *, continuation=None, should_stop=None):
+                          *, continuation=None, should_stop=None, previous_projections=None, projection='resident'):
     """Evaluate one inventory projection; Side never enters the resident call."""
     from .construction_relations import evaluate_relations
     from .construction_inventory import matches, selector, requirement, query_supported
@@ -367,24 +367,33 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
     copies = tuple(c for c in SkeletonSpec(deck, ()).copies() if c.zone != "side")
     skeleton = SkeletonSpec(deck, (AxisModule("functional:inventory", "complete resident inventory", copies, ()),))
     counts = Counter((z, c) for z in ("main", "extra") for c in getattr(available, z))
-    matching=(continuation or {}).get('matching')
-    while True:
-        index = relation_index(None, relation_context,continuation=matching,should_stop=should_stop)
-        if index.continuation is None:break
-        matching=index.continuation
-        if should_stop is None or should_stop() or budget.matches==0:
-            return dict(calculation_pending=dict(theme=theme_state or None,matching=matching)),operation_facts
-    index.unresolved_cards = tuple(sorted(present-records.keys()))
+    unresolved = tuple(sorted(present - records.keys()))
+    previous = previous_projections.pop(projection, None) if previous_projections is not None else None
+    if (previous is not None and previous.index.context == relation_context
+            and previous.index.unresolved_cards == unresolved and continuation is None):
+        index = previous.index
+    else:
+        previous = None
+        matching=(continuation or {}).get('matching')
+        while True:
+            index = relation_index(None, relation_context,continuation=matching,should_stop=should_stop)
+            if index.continuation is None:break
+            matching=index.continuation
+            if should_stop is None or should_stop() or budget.matches==0:
+                return dict(calculation_pending=dict(theme=theme_state or None,matching=matching)),operation_facts
+        index.unresolved_cards = unresolved
     updating=(continuation or {}).get('updating')
     while True:
-        relation = evaluate_relations(skeleton, relation_context, index, inventory_counts=counts,
-            continuation=updating,should_stop=should_stop,resumable=True).to_dict()
+        evaluation = evaluate_relations(skeleton, relation_context, index, previous=previous, inventory_counts=counts,
+            continuation=updating, should_stop=should_stop, resumable=True)
+        relation = evaluation.data
         if not relation.get('continuation'):break
         updating=relation['continuation']
         if should_stop is None or should_stop() or budget.updates==0 or budget.allocations==0:
             return dict(calculation_pending=dict(theme=theme_state or None,matching=index.matched_state,updating=updating)),operation_facts
-    relation['theme_pairs'], relation['theme_gaps'] = pairs, theme_gaps
-    return relation, operation_facts
+    if previous_projections is not None:
+        previous_projections[projection] = evaluation
+    return dict(relation, theme_pairs=pairs, theme_gaps=theme_gaps), operation_facts
 
 
 def _bind_functional_support(facts, projections, available, specs, catalog, context, condition, config, sources):
@@ -1330,7 +1339,7 @@ def _function_semantics(record, operation):
 
 def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context=None,
                             layer_evaluation=None, quality_evidence=None,
-                            continuation=None, should_stop=None,work_state=None):
+                            continuation=None, should_stop=None, work_state=None, reuse=None):
     """Project each candidate's complete inventory into the functional contract.
 
     The catalog observes effects; this adapter checks their configuration
@@ -1387,6 +1396,7 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
         work_state.clear();work_state.update(work)
     dependencies = InventoryDependencies(catalog, requirement_limit=budget.facts)
     dependencies._specifications={int(c):tuple(value) for c,value in work['specifications'].items()}
+    shared_specs = reuse['specifications'] if reuse is not None else None
     records, specs, remaining = {}, {}, budget.facts
     count=0
     while work['read_cursor']<len(codes):
@@ -1394,7 +1404,13 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
             facts['calculation_pending']=work
             return facts
         code=codes[work['read_cursor']]
-        effect_specs,materials=dependencies.specs(code)
+        cached = shared_specs.get(code) if shared_specs is not None else None
+        if cached is not None and cached[0] == catalog.assets.rows[code]:
+            effect_specs, materials = cached[1]
+        else:
+            effect_specs, materials = dependencies.specs(code)
+            if shared_specs is not None:
+                shared_specs[code] = (dict(catalog.assets.rows[code]), (effect_specs, materials))
         remaining-=max(1,sum(1+len(e['record']['operations'])+len(e['requirements'])+len(e['unknown'])
             for e in effect_specs)+len(materials))
         work['specifications'][str(code)]=[effect_specs,materials]
@@ -1443,8 +1459,8 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                             and available[other].extra==view.extra),None)
             if identical is not None:
                 # Relation calculation has no direction argument. The caller
-                # still binds this detached result to its own scope below.
-                saved=deepcopy(work['projections'][identical])
+                # still binds this read-only result to its own scope below.
+                saved=work['projections'][identical]
                 work['projections'][scope]=saved
                 if (work.get('active') or {}).get('scope')==scope:work['active']=None
         if saved is not None:
@@ -1453,7 +1469,8 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
         active=work.get('active')
         relation,operation_facts=_functional_relations(deck,view,records,aliases,extra_ids,context,budget,
             dependencies,config,continuation=active['work'] if active and active['scope']==scope else None,
-            should_stop=should_stop)
+            should_stop=should_stop, previous_projections=reuse['projections'] if reuse is not None else None,
+            projection='resident' if scope == 'resident' else 'side')
         if relation.get('calculation_pending'):
             work['active']=dict(scope=scope,work=relation['calculation_pending'])
             facts['calculation_pending']=work
@@ -1691,6 +1708,7 @@ class ConstructionLayerAdapter:
         self.catalog = binding_adapter.semantic_catalog
         self.context_provider = context_provider
         self.budget = budget if budget is not None else RelationBudget()
+        self._prepared_reference = None
         if not isinstance(self.budget, RelationBudget):
             raise ContractError("typed layer flow budget required")
 
@@ -1842,13 +1860,25 @@ class ConstructionLayerAdapter:
             catalog_cards=tuple(codes), budget=self.budget)
         return LayerContext(task, graph, tuple(requirements), tuple(roles), groups, relations)
 
-    def reference_inputs(self, task, graph, deck, descriptor, *, policy, quality_evidence=None):
-        """Bind the fixed inventory and original host requirements for evaluation."""
+    def reference_inputs(self, task, graph, reference, descriptor, *, policy, quality_evidence=None,
+                         completed_binding=None):
+        """Check the fixed reference identity and prepare evaluation inputs on a miss."""
         from types import SimpleNamespace
+        from .build_contracts import DeckParts
         from .construction_quality import FunctionalUse, UseImpact
 
+        if (not isinstance(reference, dict)
+                or reference.get('reference_id') != descriptor['reference_id']
+                or reference.get('source') != descriptor['source']
+                or reference.get('environment') != task.environment):
+            raise ContractError('reference_identity_source_or_environment_differs')
+        deck = DeckParts.from_dict(reference.get('deck'))
+        inventory = deck.to_dict()
+        if digest(inventory) != descriptor['deck_sha256']:
+            raise ContractError('reference_inventory_differs')
+
         host = self.context(task, graph)
-        context, relation_binding = None, None
+        relations, relation_binding, host_budget = None, None, None
         if host is not None:
             relations = host.relations
             required = tuple(u for u in relations.uses if u.required)
@@ -1856,13 +1886,13 @@ class ConstructionLayerAdapter:
             constraints = tuple(c for c in relations.constraints if set(c.uses) <= ids)
             relations = RelationContext(required, relations.facts, relations.pools,
                 constraints=constraints, budget=relations.budget)
-            context = SimpleNamespace(relations=relations)
+            host_budget = relations.budget
             relation_binding = asdict(relations)
             relation_binding.pop("budget")
-        layer = dict(axis=dict(task=task.to_dict(), inventory=deck.to_dict(), logic=None))
-        evidence, evidence_binding = None, None
+        layer, evidence, evidence_binding = None, None, None
         if quality_evidence is not None:
-            evidence = deepcopy(quality_evidence(task, deck, layer))
+            layer = dict(axis=dict(task=task.to_dict(), inventory=inventory, logic=None))
+            evidence = quality_evidence(task, deck, layer)
             if not isinstance(evidence, dict):
                 raise ContractError("functional evidence provider must return a mapping")
             evidence_binding = dict(evidence)
@@ -1876,11 +1906,24 @@ class ConstructionLayerAdapter:
         binding = dict(version=REFERENCE_BINDING_VERSION, assets=reference_asset_binding(self.catalog, deck),
             inputs=digest(dict(task=task.sha256, reference=descriptor, policy=policy, normalization=NORMALIZATION_VERSION,
                 relations=relation_binding, evidence=evidence_binding)))
-        supplement = (lambda *_: evidence) if evidence is not None else None
-        return binding, dict(layer=layer, context=context, policy=policy, quality_evidence=supplement)
+        if binding == completed_binding:
+            return deck, binding, None
+        if self._prepared_reference is not None:
+            previous_binding, previous_budget, inputs = self._prepared_reference
+            if previous_binding == binding and previous_budget == host_budget:
+                return deck, binding, inputs
+
+        self.catalog.assets.validate(task, deck)
+        if layer is None:
+            layer = dict(axis=dict(task=task.to_dict(), inventory=inventory, logic=None))
+        context = SimpleNamespace(relations=relations) if relations is not None else None
+        supplement = (lambda *_, frozen=deepcopy(evidence): frozen) if evidence is not None else None
+        inputs = dict(layer=layer, context=context, policy=deepcopy(policy), quality_evidence=supplement)
+        self._prepared_reference = binding, host_budget, inputs
+        return deck, binding, inputs
 
     def evaluate_inventory(self, task, deck, layer, context, *, policy, quality_evidence=None,
-                           should_stop=None, calculation=None):
+                           should_stop=None, calculation=None, reuse=None):
         """Complete or suspend one inventory under the common evaluation policy."""
         from .construction_quality import evaluate_functional_quality
 
@@ -1888,7 +1931,7 @@ class ConstructionLayerAdapter:
             work = {}
             facts = normalize_function_uses(task, deck, self.catalog, policy=policy,
                 budget=self.budget, context=context, layer_evaluation=layer, quality_evidence=quality_evidence,
-                continuation=calculation, should_stop=should_stop, work_state=work)
+                continuation=calculation, should_stop=should_stop, work_state=work, reuse=reuse)
             if not facts.get('calculation_pending'):
                 break
             calculation = facts['calculation_pending']
@@ -1897,7 +1940,8 @@ class ConstructionLayerAdapter:
                     self.budget.matches, self.budget.updates, self.budget.allocations)):
                 return None, calculation, stop or 'relation_calculation_budget'
         quality = evaluate_functional_quality(layer, policy=policy, facts=facts, should_stop=should_stop,
-            continuation=work.get('quality'), resumable=True)
+            continuation=work.get('quality'), resumable=True,
+            family_prices=reuse['family_prices'] if reuse is not None else None)
         if quality.get('calculation_pending') or quality.get('evaluation_timed_out'):
             if quality.get('calculation_pending'):
                 work['quality'] = quality['calculation_pending']
@@ -1937,6 +1981,7 @@ class ConstructionLayerAdapter:
                 del evaluations[i]
         stop_reason = None
         evaluated_now = 0
+        reuse = dict(specifications={}, projections={}, family_prices={})
         for i in order:
             if i in evaluations or i not in proposals:
                 continue
@@ -1950,7 +1995,8 @@ class ConstructionLayerAdapter:
             # Neither its read budget nor its inventory depends on batch peers.
             layer = self._project_layers(task, graph, proposals[i], context)
             quality, work, stop_reason = self.evaluate_inventory(task, proposals[i].deck, layer, context,
-                policy=policy, quality_evidence=quality_evidence, should_stop=should_stop, calculation=calculations.get(i))
+                policy=policy, quality_evidence=quality_evidence, should_stop=should_stop,
+                calculation=calculations.get(i), reuse=reuse)
             if work is not None:
                 calculations[i] = work
                 break

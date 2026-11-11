@@ -3,10 +3,10 @@
 Public axes propose packages, not effect semantics or quality labels. A paired
 result belongs to an entire deck/plan; it never assigns credit to one card.
 """
-from collections import Counter, defaultdict
-from copy import deepcopy
+from collections import Counter, defaultdict, deque
 from itertools import combinations_with_replacement, islice, product
 import json
+from math import isfinite
 
 from .build_contracts import DeckParts, ZONES, digest
 from .validation import ContractError, canonical_json
@@ -156,8 +156,10 @@ def _removals(task, assets, base, zone, amount, *, protected=None):
     return result
 
 
-def axis_edits(task, assets, base, *, mechanism_groups=(), candidate_ids=None):
-    from .build_pipeline import EXTRA_TYPES
+def axis_ideas(task, assets, base, *, mechanism_groups=(), candidate_ids=None, edits=None):
+    from .build_pipeline import EXTRA_TYPES, DeckEdits
+
+    edits = edits if edits is not None else DeckEdits(task, assets, base)
     packages=[]
     for name, group in public_axis_groups(assets, task.pool if candidate_ids is None else candidate_ids):
         incoming = {z: [] for z in ZONES}
@@ -190,114 +192,168 @@ def axis_edits(task, assets, base, *, mechanism_groups=(), candidate_ids=None):
         options = [_removals(task, assets, base, z, len(incoming[z]),protected=wanted[z]) if incoming[z] else [()] for z in ZONES]
         found = 0
         for removed in islice(product(*options), 256):
-            parts = base.to_dict()
-            for z, old in zip(ZONES, removed):
-                for code in old:
-                    parts[z].remove(code)
-                parts[z].extend(incoming[z]); parts[z].sort()
-            deck = DeckParts.from_dict(parts)
-            if (all(Counter(getattr(deck,z))[code]>=n for z in ZONES for code,n in wanted[z].items())
-                    and assets.accepts(task, deck)):
-                yield {"deck": deck, "strategy": "axis:" + name,"proposal_basis":basis,"proposal_source":source,
-                       "protected_package":{z:sorted(wanted[z].elements()) for z in ZONES}}
+            change = {z: {"added": incoming[z], "removed": list(old)} for z, old in zip(ZONES, removed)}
+            if edits.rejection(change) is None:
+                yield {"changes": change, "strategy": "axis:" + name, "proposal_basis": basis,
+                       "proposal_source": source, "protected_package": {z: sorted(wanted[z].elements()) for z in ZONES}}
                 found += 1
                 if found == 2:
                     break
 
 
-def portfolio(task, assets, *, base=None, initial=(), singles=(), feedback=(), require_edit=False,mechanism_groups=None,trace=None,graph=None,candidate_ids=None):
-    """Keep distinct generation families before truncation or learned scoring."""
-    buckets = defaultdict(list)
+def portfolio(task, assets, *, base=None, initial=(), singles=(), feedback=(), require_edit=False,
+              mechanism_groups=None, trace=None, graph=None, candidate_ids=None, edits=None, search_offset=0, rank_ideas=None, recognized_cards=()):
+    """Choose edit ideas across search directions, then build only the chosen lists."""
+    from .build_pipeline import DeckEdits, candidate_limit
+    from .construction_inventory import repair_ideas
+
+    buckets = defaultdict(deque)
     if base is not None and not require_edit:
         buckets["incumbent"].append({"deck": base, "strategy": "incumbent"})
     for deck in initial:
         buckets["fresh"].append({"deck": deck, "strategy": "fresh"})
-    starts = [base] if base is not None else list(initial[:2])
-    if mechanism_groups is None:mechanism_groups=getattr(assets,"construction_mechanism_groups",())
-    if not isinstance(mechanism_groups,(list,tuple)):raise ContractError("bounded mechanism groups must be a sequence")
-    for start in starts:
-        for row in axis_edits(task, assets, start,mechanism_groups=mechanism_groups,candidate_ids=candidate_ids):
-            buckets[row["strategy"]].append(row)
-    from .construction_inventory import repair_candidates
-    for start in starts[:2]:
-        # Proposal generation only: public dependency facts, original task and
-        # ordinary portfolio budget. No reference deck or manual target list.
-        # A strict improvement chain is generated within its own fixed budget.
-        # Admit its endpoint before prefixes so portfolio truncation does not
-        # systematically exclude the completed repair. Final ranking is still
-        # performed by the original models and candidate layers.
-        repairs = list(repair_candidates(task, assets, start, graph=graph))
-        buckets['dependency:inventory'].extend(reversed(repairs))
-    for deck in singles:
-        zones = [z for z in ZONES if Counter(getattr(base,z)) != Counter(getattr(deck,z))]
-        if not zones:continue
-        same_inventory = Counter(base.main+base.extra+base.side)==Counter(deck.main+deck.extra+deck.side)
-        strategy = ("single:" if len(zones)==1 else "transfer:" if same_inventory else "multi_zone:")+"+".join(zones)
-        buckets[strategy].append({"deck": deck, "strategy": strategy,"edited_zones":zones,
-            "proposal_basis":"atomic_cross_zone_inventory_exchange" if len(zones)>1 and same_inventory else
-                "bounded_multi_zone_edit" if len(zones)>1 else "bounded_single_zone_substitution"})
-    # Replay an observed whole edit only in the exact original context. This
-    # proposes a candidate; it is not a transferable per-card value estimate.
+
+    preference = evidence_order(feedback, task.sha256, "deck")
     if base is not None:
+        edits = edits if edits is not None else DeckEdits(task, assets, base)
+        if mechanism_groups is None:
+            mechanism_groups = getattr(assets, "construction_mechanism_groups", ())
+        if not isinstance(mechanism_groups, (list, tuple)):
+            raise ContractError("bounded mechanism groups must be a sequence")
+        for row in axis_ideas(task, assets, base, mechanism_groups=mechanism_groups,
+                              candidate_ids=candidate_ids, edits=edits):
+            buckets[row["strategy"]].append(row)
+        buckets["dependency:inventory"].extend(repair_ideas(task, assets, base, graph=graph, edits=edits))
+        for row in singles:
+            buckets[row["strategy"]].append(row)
+
+        before = digest(base.to_dict())
         for row in outcomes(feedback, task.sha256):
-            if row["status"] != "preferred" or row["before"] != digest(base.to_dict()) or "package" not in row:
+            if row["status"] != "preferred" or row["before"] != before or "package" not in row:
                 continue
-            parts = base.to_dict()
             try:
-                for z in ZONES:
-                    for code in row["package"][z]["removed"]:
-                        parts[z].remove(code)
-                    parts[z].extend(row["package"][z]["added"]); parts[z].sort()
-                deck = DeckParts.from_dict(parts)
-            except (KeyError, TypeError, ValueError, ContractError):
+                if edits.rejection(row["package"]):
+                    continue
+            except (KeyError, TypeError, ValueError):
                 continue
-            if digest(deck.to_dict()) == row["deck"] and assets.accepts(task, deck):
-                buckets["observed-package"].append({"deck": deck, "strategy": "observed-package"})
+            buckets["observed-package"].append({"changes": row["package"], "strategy": "observed-package",
+                                                 "expected_deck_sha256": row["deck"]})
+
     families = {}
-    for key in sorted(buckets):
+    for key, bucket in sorted(buckets.items()):
+        if not bucket:
+            continue
         if key.startswith("axis:"):
-            names = ["axis_and_mechanism_packages"]
-        elif key.startswith(("single:","transfer:","multi_zone:")):
-            names = ["edit:"+z for z in ZONES if z in buckets[key][0]["edited_zones"]]
-        else:names = [key]
-        for name in names:families.setdefault(name,[]).append(key)
-    # A catalog with many axes must not consume all slots before a playable
-    # editing region is reached. Each family gets one admission per round;
-    # strategies within it rotate too. This allocates search opportunity, not
-    # a zone bonus in the learned score or the final retention order.
-    family_order = [name for name in ("incumbent","observed-package","dependency:inventory","fresh","axis_and_mechanism_packages",
-        *("edit:"+z for z in ZONES)) if name in families]
-    generated_counts = {key:len(rows) for key,rows in buckets.items()}
-    admitted = dict.fromkeys(family_order,0)
-    result, seen, filtered, rounds = [], set(), Counter(), 0
-    while families and len(result) < min(32, task.candidate_budget):
+            names = ["axis"]
+        elif key.startswith(("single:", "transfer:")):
+            names = ["edit:" + z for z in bucket[0]["edited_zones"]]
+        else:
+            names = [key]
+        for name in names:
+            families.setdefault(name, []).append(key)
+
+    # Rotate axes and the edited sections as the search advances. Keep an
+    # incumbent available when a legal existing deck may still be the best.
+    rotate = lambda items: items[search_offset % len(items):] + items[:search_offset % len(items)] if items else items
+    if "axis" in families:
+        families["axis"] = rotate(families["axis"])
+    for zone in ZONES:
+        name = "edit:" + zone
+        if name in families:
+            keys = families[name]
+            if zone == "main":
+                keys.sort(key=lambda key: (not key.startswith("transfer:"), key))
+            families[name] = rotate(keys)
+    directions = [name for name in ("dependency:inventory", "axis", *("edit:" + z for z in ZONES))
+                  if name in families]
+    turn = search_offset // candidate_limit(task) % max(1, len(directions))
+    family_order = [name for name in ("incumbent", "observed-package", "fresh") if name in families]
+    family_order.extend(directions[turn:] + directions[:turn])
+    if recognized_cards:
+        def lost_mechanisms(row):
+            change = row["changes"]
+            added = Counter(card for zone in ("main", "extra") for card in change[zone]["added"])
+            removed = Counter(card for zone in ("main", "extra") for card in change[zone]["removed"])
+            return sum(quantity for card, quantity in (removed - added).items() if card in recognized_cards)
+        for key in buckets:
+            if key.startswith(("axis:", "single:", "transfer:")):
+                buckets[key] = deque(sorted(buckets[key], key=lost_mechanisms))
+    ranked = []
+    if rank_ideas is not None and edits is not None:
+        # Score at most two edits per strategy and two strategies per direction.
+        # Feedback replay and strictly improving repairs retain their priority.
+        rankable = dict.fromkeys(key for name, keys in families.items()
+                                 if name == "axis" or name.startswith("edit:")
+                                 for key in keys[:2])
+        ranked = [row for key in rankable for row in islice(buckets[key], 2)]
+        if ranked:
+            scores = rank_ideas([edits.inventory(row["changes"]) for row in ranked])
+            if len(scores) != len(ranked) or any(not isfinite(score) for score in scores):
+                raise ContractError("invalid model scores for edit ideas")
+            for row, score in zip(ranked, scores):
+                row["idea_model_score"] = score
+            for key in rankable:
+                buckets[key] = deque(sorted(buckets[key], key=lambda row: -row.get("idea_model_score", -float("inf"))))
+            for name, keys in families.items():
+                if name == "axis" or name.startswith("edit:"):
+                    keys.sort(key=lambda key: -buckets[key][0].get("idea_model_score", -float("inf")))
+    proposed = {key: len(rows) for key, rows in buckets.items() if rows}
+    limit = candidate_limit(task)
+    admitted = Counter()
+    filtered = Counter()
+    result, seen, rounds, materialized = [], set(), 0, 0
+    while families and len(result) < limit and materialized < limit:
         rounds += 1
         for name in family_order:
-            keys = families.get(name,[])
+            keys = families.get(name, [])
             while keys:
                 key = keys.pop(0)
-                if not buckets[key]:continue
-                row = buckets[key].pop(0)
-                if buckets[key]:keys.append(key)
-                deck = row["deck"]; identity = digest(deck.to_dict())
-                if identity in seen:
-                    filtered["duplicate_deck"] += 1; continue
-                if require_edit and deck == base:
-                    filtered["unchanged_when_edit_required"] += 1; continue
-                assets.validate(task, deck); seen.add(identity)
-                row.update(deck_sha256=identity, changes=None if base is None else changes(base, deck),
-                    strength_status="unknown", goal_preserved=True,
-                    portfolio_admission={"family":name,"round":rounds,"basis":"generation_opportunity_not_quality"})
-                result.append(row); admitted[name] += 1
+                if not buckets[key]:
+                    continue
+                row = buckets[key].popleft()
+                if buckets[key]:
+                    keys.append(key)
+                deck = row.get("deck")
+                change = row.get("changes")
+                if edits is not None:
+                    if change is None:
+                        change = changes(base, deck)
+                    identity = tuple(tuple(sorted(Counter(change[z]["added"]).items())) +
+                                     (None,) + tuple(sorted(Counter(change[z]["removed"]).items())) for z in ZONES)
+                    unchanged = all(not change[z]["added"] and not change[z]["removed"] for z in ZONES)
+                else:
+                    identity = deck
+                    unchanged = False
+                if identity in seen or (require_edit and unchanged):
+                    filtered["duplicate_deck" if identity in seen else "unchanged_when_edit_required"] += 1
+                    continue
+                seen.add(identity)
+                if deck is None:
+                    deck = edits.materialize(change)
+                    materialized += 1
+                deck_sha = digest(deck.to_dict())
+                if row.pop("expected_deck_sha256", deck_sha) != deck_sha:
+                    filtered["observed_package_changed"] += 1
+                    if materialized == limit:
+                        break
+                    continue
+                assets.validate(task, deck)
+                row.update(deck=deck, deck_sha256=deck_sha, changes=change, strength_status="unknown",
+                           goal_preserved=True, portfolio_admission={"family": name, "round": rounds,
+                           "basis": "generation_opportunity_not_quality"})
+                result.append(row)
+                admitted[name] += 1
                 break
-            if not keys:families.pop(name,None)
-            if len(result) == min(32, task.candidate_budget):break
+            if not keys:
+                families.pop(name, None)
+            if len(result) == limit or materialized == limit:
+                break
     if trace is not None:
-        trace.update(candidate_budget=task.candidate_budget,generated_strategy_counts=generated_counts,
-            family_order=family_order,admitted_by_family=admitted,rounds=rounds,filtered=dict(filtered),
-            remaining_generated_rows=sum(map(len,buckets.values())),
-            axis_internal_filter_trace="not_available",budget_order_is_quality_label=False)
-    preference = evidence_order(feedback, task.sha256, "deck")
+        trace.update(candidate_budget=limit, proposed_strategy_counts=proposed, family_order=family_order,
+                     admitted_by_family=dict(admitted), rounds=rounds, filtered=dict(filtered),
+                     materialized_edit_count=materialized, ranked_edit_ideas=len(ranked),
+                     recognized_mechanism_cards=len(recognized_cards), remaining_ideas=sum(map(len, buckets.values())),
+                     budget_order_is_quality_label=False)
     result.sort(key=lambda r: -preference.get(r["deck_sha256"], 0))
     return result
 
@@ -307,134 +363,3 @@ def task_checked(candidate):
     validation=candidate.get("validation",{})
     return (validation.get("status") in ("task_goal_verified_logic_unproven","list_constraints_verified_logic_unproven")
             and validation.get("best_deck")==candidate.get("deck"))
-
-
-def comparable_candidates(result, incumbent, *, limit=3):
-    """Task-checked candidates can be compared while their basic CB is unknown."""
-    rows = [deepcopy(incumbent), deepcopy(result["best"])]
-    rows.extend(deepcopy(r) for r in result.get("retained_candidates", ()) if task_checked(r))
-    unique = {}
-    # Keep the primary proposal and an incumbent; spend the remaining place on
-    # a group strategy before a duplicate single-card variation.
-    alternatives = sorted(rows[2:], key=lambda r: (not r.get("strategy", "").startswith("axis:"), r.get("strategy", "")))
-    for row in rows[:2] + alternatives:
-        if not task_checked(row):continue
-        unique.setdefault(digest(row["deck"]), row)
-        if len(unique) == limit:
-            break
-    return list(unique.values())
-
-
-def strict_portfolio_winner(size, pairs):
-    wins = {i: set() for i in range(size)}
-    for a, b, preferred in pairs:
-        if preferred is not None:
-            winner, loser = (a, b) if preferred == 0 else (b, a)
-            wins[winner].add(loser)
-    return next((i for i in range(size) if len(wins[i]) == size-1), None)
-
-
-def quality_selection_allowed(result, candidate):
-    if (candidate.get('quality_evaluation') or {}).get('score', {}).get('unit') == 'functional_log2':
-        from .construction_quality import compare_functional_quality
-        from .construction_learning import _current_quality
-        _current_quality(candidate['quality_evaluation'])
-        for row in result.get('retained_candidates',()):
-            if task_checked(row) and row.get('quality_evaluation'):
-                _current_quality(row['quality_evaluation'])
-        return not any(compare_functional_quality(candidate['quality_evaluation'], row['quality_evaluation'])['preferred'] == 'after'
-            for row in result.get('retained_candidates', ()) if task_checked(row) and row.get('quality_evaluation'))
-    return False
-
-
-def select_retained(result, candidate, *, selection, assets=None):
-    """Select an emitted optimizer option with its own construction pass."""
-    from .construction_progress import FUNCTIONAL_GATE_VERSION, _quality_binding, resumable_optimizer_phase
-    gate=candidate.get('construction_gate') or {}
-    if gate.get('version') != FUNCTIONAL_GATE_VERSION:
-        raise ContractError('retained candidate requires current functional quality reevaluation')
-    if (gate.get('status')!='passed' or gate.get('deck_sha256')!=digest(candidate['deck'])):
-        raise ContractError('retained candidate has not passed its own construction gate')
-    task_sha=(result.get('continuation') or {}).get('task_sha256')
-    if gate.get('task_sha256') != task_sha or (candidate.get('quality_evaluation') or {}).get('task_sha256') != task_sha:
-        raise ContractError('retained gate belongs to another original task')
-    if assets is None:
-        raise ContractError('retained selection requires current assets for reevaluation checks')
-    if _quality_binding(gate['policy'], candidate.get('quality_evaluation'), DeckParts.from_dict(candidate['deck'])) != gate['quality_binding']:
-        raise ContractError('retained gate quality binding differs')
-    if gate['policy'] != (result.get('continuation') or {}).get('quality_policy'):
-        raise ContractError('retained gate belongs to another fixed policy')
-    from .construction_layer_flow import functional_asset_version
-    from .effect_mechanisms import MechanismCatalog
-    if candidate['quality_evaluation']['asset_version'] != functional_asset_version(MechanismCatalog(assets)):
-        raise ContractError('retained candidate assets require reevaluation')
-    catalog = MechanismCatalog(assets)
-    if any(e['record']['text_sha256'] != catalog.card(int(k.split(':')[1])).text_sha256
-           for k,v in candidate['quality_evaluation'].get('coverage_details',{}).items() for e in v.get('effects',())):
-        raise ContractError('retained candidate card facts require reevaluation')
-    source=selection.get('source')
-    allowed=('updated_model_with_quality_order','completed_frozen_portfolio_comparisons')
-    if (source not in allowed or
-            selection.get('candidate_deck_sha256') != digest(candidate['deck'])):
-        raise ContractError('retained selection requires its actual selection source and inventory')
-    if not quality_selection_allowed(result,candidate):
-        raise ContractError('retained selection contradicts an established construction preference')
-    if candidate["deck"] == result["best"]["deck"]:
-        return deepcopy(result)
-    if not any(r["deck"] == candidate["deck"] and task_checked(r) for r in result.get("retained_candidates", ())):
-        raise ContractError("deployment candidate was not emitted and task checked by the optimizer")
-    selected = deepcopy(result)
-    selected.update(best=deepcopy(candidate), verified_best=deepcopy(candidate),
-                    construction_candidate=deepcopy(candidate), basic_cb=deepcopy(candidate["basic_cb"]),
-                    construction_gate=deepcopy(gate),
-                    task_verified=True,cb_verified=bool(candidate.get("cb_verified")))
-    continuation=selected.get('continuation')
-    if continuation:
-        continuation['candidate_version']+=1
-        version=continuation['candidate_version']
-        gate=deepcopy(gate);gate['candidate_version']=version
-        continuation.update(candidate=deepcopy(candidate),gate=gate,status='passed')
-        continuation['candidate']['deck_sha256']=digest(candidate['deck'])
-        continuation['handoffs'].append(dict(role='build_optimizer',candidate_version=version,
-            input_deck_sha256=digest(result['best']['deck']),output_deck_sha256=digest(candidate['deck'])))
-        selected['handoffs']=deepcopy(continuation['handoffs']);selected['construction_gate']=gate
-        for key in ('best','verified_best','construction_candidate'):
-            selected[key].update(candidate_version=version,construction_gate=deepcopy(gate))
-            selected[key]['basic_cb'].update(candidate_version=version,construction_gate=deepcopy(gate))
-        selected['basic_cb']=deepcopy(selected['best']['basic_cb'])
-    phase = selected["phases"][-1] if selected['phases'] else selected['continuation']['last_optimizer_phase']
-    phase["portfolio_selection"] = {"source": source, "evidence":deepcopy(selection), "deck_sha256": digest(candidate["deck"]),
-                                   "original_primary_deck_sha256": digest(phase["proposal_deck"])}
-    phase["proposal_deck"] = deepcopy(candidate["deck"]);phase["accepted_deck"] = deepcopy(candidate["deck"])
-    phase["proposal_changes"] = changes(DeckParts.from_dict(phase["input_deck"]),DeckParts.from_dict(candidate["deck"]))
-    fill = phase["stage_3"];fill["best_deck"] = deepcopy(candidate["deck"])
-    fill["selected_attempt_index"] = next(i for i,r in enumerate(fill["attempts"])
-        if r.get("concrete_proposal",{}).get("deck") == candidate["deck"])
-    if candidate.get("layer_evaluation") is not None:
-        # A later fair comparison may select another optimizer output.
-        # Its inventory/evidence must follow the selected list, while the
-        # original layer decision remains available as provenance.
-        chosen = candidate["candidate_index"]
-        reason = {"rule":source, "candidate_index":chosen,
-            "initial_layer_selection":deepcopy(fill.get("layer_selection")),
-            "layer_comparison":deepcopy(candidate.get("layer_comparison"))}
-        fill.update(layer_evaluation=deepcopy(candidate["layer_evaluation"]), layer_selection=reason)
-        fill['quality_evaluation']=deepcopy(candidate['quality_evaluation'])
-        phase['quality_evaluation']=deepcopy(candidate['quality_evaluation'])
-        phase['gate']=deepcopy(gate)
-        for name in ("best", "verified_best", "construction_candidate"):
-            selected[name]["layer_selection"] = deepcopy(reason)
-        trace = fill.get("candidate_trace")
-        if trace is not None:
-            trace.update(selected_candidate_index=chosen, selected_attempt_index=fill["selected_attempt_index"],
-                selection_rule=source, selection_reason=deepcopy(reason))
-            for row in trace["candidates"]:
-                row["selected"] = row["candidate_index"] == chosen
-                row["comparison_with_initial_selection"] = row.pop("comparison_with_selected", None)
-                row["comparison_with_selected"] = next((deepcopy(p) for p in trace.get("layers", {}).get("pairs", [])
-                    if {p["before"], p["after"]} == {row["candidate_index"], chosen}), None)
-    if continuation:
-        continuation['candidate']=deepcopy(selected['construction_candidate'])
-        continuation['candidate']['deck_sha256']=digest(candidate['deck'])
-        continuation['last_optimizer_phase']=resumable_optimizer_phase(phase)
-    return selected

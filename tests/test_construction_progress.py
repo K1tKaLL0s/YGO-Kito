@@ -29,8 +29,8 @@ class ConstructionProgressTests(unittest.TestCase):
         f = theme_fixture()
         result = static_cycle(self, f, session_for(f[0], f[2]), max_iterations=1)
         self.assertEqual([p['role'] for p in result['phases']], ['build_goal', 'build_optimizer'])
-        self.assertLess(len(result['phases'][0]['proposal_deck']['main']), 40)
-        self.assertEqual(result['phases'][1]['input_deck'], result['phases'][0]['proposal_deck'])
+        self.assertGreater(result['phases'][0]['unfilled']['main'], 0)
+        self.assertEqual(result['phases'][1]['input_deck_sha256'], result['phases'][0]['proposal_deck_sha256'])
         self.assertEqual(len(result['construction_candidate']['deck']['main']), 40)
         self.assertTrue(result['construction_passed'])
 
@@ -42,7 +42,7 @@ class ConstructionProgressTests(unittest.TestCase):
         restore_progress(session, state, f[1])
         second = static_cycle(self, f, session, max_iterations=1)
         self.assertEqual([p['role'] for p in second['phases']], ['build_optimizer'])
-        self.assertEqual(second['phases'][0]['input_deck'], first['construction_candidate']['deck'])
+        self.assertEqual(second['phases'][0]['input_deck_sha256'], digest(first['construction_candidate']['deck']))
         self.assertEqual(second['continuation']['iteration'], 2)
         self.assertEqual(session.task.sha256, f[0].sha256)
         bad = deepcopy(state); bad['task_sha256'] = 'another-task'
@@ -86,7 +86,7 @@ class ConstructionProgressTests(unittest.TestCase):
         self.assertEqual(current['status'], 'adopted')
         self.assertEqual(current['consumed_iteration'], 2)
         self.assertEqual(old['status'], 'stale_candidate')
-        self.assertTrue(any(r['source'] == 'external_ai' for r in result['phases'][0]['feedback_before']))
+        self.assertTrue(any(r['source'] == 'external_ai' for r in session.feedback))
 
     def test_required_unknown_prevents_passing_but_unrelated_unknown_is_recorded(self):
         f = theme_fixture()
@@ -115,26 +115,42 @@ class ConstructionProgressTests(unittest.TestCase):
             result = infer_basic_cb(f[0], f[4][0], f[1], execution_authorized=True)
         self.assertEqual(result['status'], 'not_run')
 
-    def test_retained_selection_after_zero_phase_resume_saves_new_version(self):
-        from ygo_kito.construction_candidates import select_retained, quality_selection_allowed
+    def test_only_winner_gets_cb_and_survives_resume(self):
         f = list(theme_fixture())
         original = f[4][0]
-        cards = list(original.main); cards[cards.index(4)] = 16
+        cards = list(original.main)
+        cards[cards.index(4)] = 16
         alternate = replace(original, main=tuple(sorted(cards)))
         f[4] = [original, alternate]
         session = session_for(f[0], f[2])
-        static_cycle(self, f, session, max_iterations=1)
-        result = static_cycle(self, f, session, max_iterations=0)
-        self.assertEqual(result['phases'], [])
-        candidate = next(c for c in result['retained_candidates'] if c['deck'] != result['best']['deck'])
-        self.assertTrue(quality_selection_allowed(result, candidate))
-        selected = select_retained(result, candidate, assets=f[1], selection=dict(source='updated_model_with_quality_order',
-            candidate_deck_sha256=digest(candidate['deck'])))
-        state = selected['continuation']
-        self.assertEqual(state['candidate_version'], result['continuation']['candidate_version'] + 1)
-        self.assertEqual(state['candidate']['construction_gate'], state['gate'])
-        self.assertEqual(state['candidate']['deck'], candidate['deck'])
-        restore_progress(session, json.loads(json.dumps(state)), f[1])
+        visited = []
+        def cb(_task, deck, _assets, **_kwargs):
+            visited.append(deck.to_dict())
+            return dict(status='routes_inferred', routes=[{'fixture': True}], normal_completion=True)
+        result = static_cycle(self, f, session, max_iterations=1, cb_authorized=True, basic_cb_provider=cb)
+        winner = result['best']['deck']
+        self.assertEqual(visited, [winner])
+        stage = result['phases'][-1]['stage_3']
+        self.assertEqual(stage['candidate_count'], 2)
+        loser = next(deck.to_dict() for deck in f[4] if deck.to_dict() != winner)
+
+        def inventories(value):
+            if isinstance(value, dict):
+                if {'main', 'extra', 'side'} <= value.keys():
+                    yield {key: value[key] for key in ('main', 'extra', 'side')}
+                for child in value.values():
+                    yield from inventories(child)
+            elif isinstance(value, (list, tuple)):
+                for child in value:
+                    yield from inventories(child)
+
+        self.assertNotIn(loser, list(inventories(result)))
+        self.assertFalse(result['retained_candidates'])
+        self.assertFalse(result['continuation']['retained_candidates'])
+        restore_progress(session, json.loads(json.dumps(result['continuation'])), f[1])
+        resumed = static_cycle(self, f, session, max_iterations=0)
+        self.assertEqual(resumed['best']['deck'], winner)
+        self.assertFalse(resumed['retained_candidates'])
 
 
 if __name__ == '__main__':

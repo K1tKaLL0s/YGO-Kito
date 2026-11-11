@@ -74,6 +74,29 @@ class IndependentDesignSupervisorTests(unittest.TestCase):
     def stopped(self):return (self.base/'reports/local-training/fixture-main/stop.request').exists()
     def test_separate_process_accepts_correct_evidence_without_trusting_main_flags(self):
         value=self.observe(0);self.assertEqual(value['verdict'],'clear');self.assertNotEqual(value['pid'],__import__('os').getpid());self.assertFalse(self.stopped())
+    def test_compact_trace_keeps_handoff_and_final_inventory_checks(self):
+        from scripts.design_supervisor import Catalog, Violation, inspect_artifact
+        phases = self.result['phases']
+        for phase in phases:
+            before, after = phase.pop('input_deck'), phase.pop('proposal_deck')
+            phase['input_deck_sha256'] = digest(before) if before is not None else None
+            phase['proposal_deck_sha256'] = digest(after)
+            if phase['role'] == 'build_goal':
+                phase['unfilled'] = {zone: count - len(after[zone]) for zone, count in self.task['sizes'].items()}
+                phase['stage_3'] = {'status': 'axis_skeleton_ready'}
+            else:
+                phase['stage_3'] = dict(selection_complete=True, candidate_trace=dict(candidates=[
+                    dict(selected=True, deck_sha256=digest(after))]))
+        candidate = self.result['construction_candidate']
+        candidate['concrete_proposal'] = dict(deck=candidate['deck'])
+        write(self.path, self.result)
+        catalog = Catalog(self.base, self.policy)
+        self.assertEqual(inspect_artifact(self.path, self.course, catalog)['phase_inventory_check'], 'handoff_identity')
+        phase = phases[-1]
+        phase['stage_3']['candidate_trace']['candidates'][0]['deck_sha256'] = '0' * 64
+        write(self.path, self.result)
+        with self.assertRaisesRegex(Violation, 'phase selection differs'):
+            inspect_artifact(self.path, self.course, catalog)
     def test_detects_wrong_real_deck_handoff_despite_passed_flag(self):
         self.result['passed']=True;self.result['cb_verified']=True;self.result['phases'][2]['input_deck']=deepcopy(self.result['phases'][0]['proposal_deck'])
         write(self.path,self.result);self.assertEqual(self.observe(2)['verdict'],'violation');self.assertTrue(self.stopped())

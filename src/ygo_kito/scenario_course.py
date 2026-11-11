@@ -484,13 +484,12 @@ class ScenarioCourse:
             self.selection = selected
         result = kernel.run_selected(self.selection, feedback=feedback, base=self.deck,
             basic_cb_enabled=True, pause_requested=lambda: (self.root / 'pause.request').exists())
-        self.construction = deepcopy(result)
         if not completed(result):
             if learn:
                 from .construction_learning import consume_optimizer_slice
                 consume_optimizer_slice(self,result,pause_requested=lambda:(self.root/'pause.request').exists())
-                self.construction = deepcopy(result)
-            from .construction_progress import ConstructionSuspended
+            from .construction_progress import ConstructionSuspended, construction_report
+            self.construction = deepcopy(construction_report(result))
             self.desired = 'paused'
             self.save()
             error = ConstructionSuspended(result)

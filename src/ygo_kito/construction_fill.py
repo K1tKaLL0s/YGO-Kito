@@ -265,7 +265,7 @@ def evaluate_fill(session, assets, proposal, *, scopes=(), text_reviewer=None, v
 def _skeleton_candidates(session, assets, binding, scopes):
     """Generate axis-only quantities; no general-purpose completion here."""
     from collections import Counter
-    from .build_pipeline import EXTRA_TYPES
+    from .build_pipeline import EXTRA_TYPES, candidate_limit
     task, graph = session.task, session.logic
     axes = select_main_axes(task, assets, session.classification, scopes)
     if axes['status'] not in ('selected', 'skipped_broad'):
@@ -280,6 +280,7 @@ def _skeleton_candidates(session, assets, binding, scopes):
     matches = {node.node_id: [c for c in pool if all(
         binding._tag_status(assets.rows[c], tag)[0] == 'satisfied' for tag in node.tags)] for node in graph.nodes}
     result = []
+    complete = 0
     for variant in range(min(task.candidate_budget, 16)):
         parts = {z: Counter() for z in ('main', 'extra', 'side')}
         for req in task.requirements:
@@ -300,6 +301,10 @@ def _skeleton_candidates(session, assets, binding, scopes):
                     break
                 code = codes[(offset + variant) % len(codes)]
                 add(code, min(3, axis['minimum'] - present))
+        if all(sum(parts[z].values()) == task.sizes[z] for z in parts):
+            if complete >= candidate_limit(task):
+                continue
+            complete += 1
         deck = DeckParts(*(tuple(sorted(parts[z].elements())) for z in ('main', 'extra', 'side')))
         try:
             assets.validate_skeleton(task, deck)
@@ -350,13 +355,14 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
                        binding_provider=None, text_reviewer=None, scopes=(), verifier=existing_goal_verifier, defer_engine=False,mechanism_groups=None,
                        layer_adapter=None, search_offset=0, quality_policy=None, quality_evidence=None,
                        should_stop=None, pending_quality=None, recognition_provider=None, recognition_mode="off",
-                       query_cursor=0, retrieval_limit=128, on_evaluation_progress=None, _comparisons=None):
+                       query_cursor=0, retrieval_limit=128, on_evaluation_progress=None, _comparisons=None,
+                       incumbent_recognition=None):
     """Reuse existing fill/quantity generation and independent model ranking.
 
     Concrete CatalogBindingAdapter/LogicModelAdapter implementations can supply
     the providers. This fill function performs selection/checks, not training.
     """
-    from .build_pipeline import edit_candidates, goal_candidates, _goal_candidates
+    from .build_pipeline import edit_candidates, goal_candidates
     from .construction_candidates import attributed_feedback, evidence_order
     member(role, "fill role", ("build_goal", "build_optimizer"))
     session.check_goal()
@@ -385,6 +391,25 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
         raise ContractError("optimizer filling requires an existing concrete deck")
     generation_trace = {}
     query_options = {}
+    def model_scores(batch):
+        import torch
+        model = models[role]
+        was_training = model.training
+        try:
+            model.eval()
+            with torch.no_grad():
+                return model(batch).tolist()
+        finally:
+            model.train(was_training)
+
+    if models is not None:
+        if encoder is None or role not in models:
+            raise ContractError("existing role model and bound encoder required together")
+        if pending_quality is None and hasattr(encoder, 'batch_inventories'):
+            query_options['rank_ideas'] = lambda inventories: model_scores(encoder.batch_inventories(task, inventories))
+    if pending_quality is None and recognition_mode == 'assist' and recognition_provider is not None and incumbent_recognition and base is not None:
+        from .construction_recognition import recognized_mechanism_cards
+        query_options['recognized_cards'] = recognized_mechanism_cards(incumbent_recognition, task, base)
     if pending_quality is None and len(task.pool) > 128:
         from .construction_retrieval import candidate_ids
         ids, retrieval = candidate_ids(task, assets, session.logic, base=base, scopes=scopes,
@@ -406,20 +431,9 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
         generation_trace = pending_quality['generation']
     elif role == 'build_optimizer' and base is not None and not assets.accepts(task, base):
         assets.validate_skeleton(task, base)
-        from .construction_candidates import portfolio
-        completed = _goal_candidates(task, assets, skeleton=base, **query_options)
-        candidates = portfolio(task, assets, base=None, initial=completed, feedback=feedback,
-            mechanism_groups=mechanism_groups, trace=generation_trace, graph=session.logic, **query_options)
-        # Completion preserves the actual target-model skeleton. Later rounds
-        # may adjust quantities under the original task and graph constraints.
-        from collections import Counter
-        candidates = [r for r in candidates if all(not (Counter(getattr(base,z)) - Counter(getattr(r['deck'],z)))
-            for z in ('main','extra','side'))]
+        candidates = goal_candidates(task, assets, skeleton=base, return_portfolio=True,
+                                    trace=generation_trace, **query_options)
         generation_trace['generator'] = 'optimizer_completion_of_goal_skeleton'
-    elif role == "build_goal" and base is not None and task.goal["kind"] == "deck_constraints" and assets.accepts(task,base):
-        # Existing valid lists can start from bounded old edits without requiring
-        # the optional MILP solver used for construction from an empty list.
-        candidates = edit_candidates(task,assets,base,feedback=feedback,return_portfolio=True,mechanism_groups=mechanism_groups,trace=generation_trace,graph=session.logic,**query_options)
     else:
         candidates = (goal_candidates(task, assets, base,feedback=feedback,return_portfolio=True,mechanism_groups=mechanism_groups,trace=generation_trace,graph=session.logic,**query_options) if role == "build_goal"
                       else edit_candidates(task, assets, base, require_edit=False,feedback=feedback,return_portfolio=True,mechanism_groups=mechanism_groups,trace=generation_trace,graph=session.logic,search_offset=search_offset,**query_options))
@@ -436,17 +450,8 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
     if pending_quality is not None:
         scores, ranking = list(pending_quality['scores']), pending_quality['ranking']
     elif models is not None:
-        if encoder is None or role not in models:
-            raise ContractError("existing role model and bound encoder required together")
         if candidates:
-            import torch
-            was_training = models[role].training
-            try:
-                models[role].eval()
-                with torch.no_grad():
-                    scores = models[role](encoder.batch(task, candidates)).tolist()
-            finally:
-                models[role].train(was_training)
+            scores = model_scores(encoder.batch(task, candidates))
             if len(scores) != len(candidates) or any(not math.isfinite(s) for s in scores):
                 raise ContractError("invalid existing model candidate scores")
         ranking = "existing_role_model_uncalibrated"
@@ -545,7 +550,7 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
         "order_rule":"final_effective_score_then_stable_model_order",
         "layers":layer_trace,
         "selection_rule":"first_task_valid_in_final_score_order","candidate_order":order,"candidates":trace_rows,
-        "retained_limit":3 if defer_engine else 1,"selected_candidate_index":None,"selected_attempt_index":None,
+        "retained_limit":1,"selected_candidate_index":None,"selected_attempt_index":None,
         "strength_status":"unknown"}
     if recognition_records:
         candidate_trace['recognition'] = dict(mode=recognition_mode, records=recognition_records)
@@ -603,7 +608,7 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
                 "evaluation_status":candidate_evaluations.get(index, {}).get('evaluation_status'),
                 "model_score_uncalibrated":item["model_score_uncalibrated"],"strength_status":"unknown",
                 "concrete_proposal":result.get("concrete_proposal")})
-            if len(retained)>=(3 if defer_engine else 1):break
+            break
     if selected is not None:
         best=results[selected]
         chosen = best["candidate_index"]
@@ -623,12 +628,11 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
                 and p["status"] != "preferred"],
             "preferred_pairs":[p for p in layer_trace["pairs"] if p["preferred_index"] == chosen]}
         candidate_trace["selection_reason"] = selection_reason
-        # These candidates already passed binding and hard constraints above.
-        # Keep their scoped comparisons even when they miss the final top three.
+        # The round consumes these evaluations before saving its compact receipt.
         learning_candidates = [{"deck":candidates[i].to_dict(),"layer_evaluation":layer_evaluations[i],
             **({'quality_evaluation':quality_evaluations[i], 'evaluation_status':candidate_evaluations[i]['evaluation_status']}),
             "quality_comparisons":[v for pair,v in comparisons.items() if i in pair]}
-            for i in proposals if i in layer_evaluations] if task.goal['kind']=='deck_constraints' and 'route_goal' not in task.goal else []
+            for i in proposals if i in layer_evaluations]
         return {"status":best["status"],"best_deck":best["best_deck"],"attempts":results,
                 "_evaluation_batch":batch,
                 "selected_attempt_index":selected,"portfolio":retained,
@@ -683,10 +687,9 @@ def construct_task(task,assets,models,encoder,*,base=None,lora_versions=None, co
         scopes=scopes,
         binding_provider=binding,text_reviewer=binding.reviewer,verifier=existing_goal_verifier,
         layer_adapter=ConstructionLayerAdapter(binding), **iteration_options)
-    stages=[dict(stage=i,role=p['role'],deck=p['proposal_deck'],changes=p['proposal_changes'],
-        layer_evaluation=p['stage_3'].get('layer_evaluation'),quality_summary=_quality_summary(p.get('quality_evaluation')),
-        lora_version=(lora_versions or {}).get(p['role']))
-        for i,p in enumerate(result['phases']) if 'proposal_deck' in p]
+    stages = [dict(stage=i, role=phase['role'], deck_sha256=phase['proposal_deck_sha256'],
+                   quality_summary=phase.get('quality_summary'), lora_version=(lora_versions or {}).get(phase['role']))
+              for i, phase in enumerate(result['phases']) if 'proposal_deck_sha256' in phase]
     return dict(result,stages=stages,best_deck=result['best']['deck'] if result['best'] else None,
         best_criterion='versioned_pre_cb_construction_gate',task_sha256=task.sha256, session=session.to_dict())
 
@@ -759,10 +762,11 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
                        _validate_saved=True, _comparisons=None):
     """Goal skeleton once, then optimizer slices until the pre-CB gate passes."""
     import time
+    from .build_pipeline import candidate_limit
     from .construction_candidates import changes
-    from .construction_progress import (construction_gate, quality_policy, restore_progress,
-        feedback_for_iteration, finish_feedback, record_reference_attempt,
-        invalidate_reference_evaluation, REFERENCE_STAGE_VERSION)
+    from .construction_progress import (compact_completed_progress, compact_optimizer_phase,
+        construction_gate, quality_policy, restore_progress, feedback_for_iteration,
+        finish_feedback, record_reference_attempt, invalidate_reference_evaluation, REFERENCE_STAGE_VERSION)
     from .validation import integer
     integer(max_iterations, 'optimizer iterations per slice', 0, 64)
     if seconds is not None and (type(seconds) not in (int, float) or not math.isfinite(seconds) or seconds < 0):
@@ -771,7 +775,8 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
         raise ContractError('explicit CB execution authorization required')
     if quality_evidence is not None and not callable(quality_evidence):
         raise ContractError('quality evidence provider must be callable')
-    max_candidates = max_candidates if max_candidates is not None else max_iterations * session.task.candidate_budget
+    round_limit = candidate_limit(session.task)
+    max_candidates = max_candidates if max_candidates is not None else max_iterations * round_limit
     integer(max_candidates, 'construction candidates per slice', 0)
     derive_policy = quality_criteria is None
     policy = quality_policy(quality_criteria)
@@ -865,23 +870,14 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
     reference_adapter = layer_adapter
     def prepare_reference():
         nonlocal reference_adapter
-        descriptor = policy['pass']['reference']
-        if (not isinstance(quality_reference, dict)
-                or quality_reference.get('reference_id') != descriptor['reference_id']
-                or quality_reference.get('source') != descriptor['source']
-                or quality_reference.get('environment') != session.task.environment):
-            raise ContractError('reference_identity_source_or_environment_differs')
-        deck = DeckParts.from_dict(quality_reference.get('deck'))
-        if digest(deck.to_dict()) != descriptor['deck_sha256']:
-            raise ContractError('reference_inventory_differs')
-        assets.validate(session.task, deck)
         if reference_adapter is None:
             from .construction_binding import CatalogBindingAdapter
             from .construction_layer_flow import ConstructionLayerAdapter
             reference_adapter = ConstructionLayerAdapter(CatalogBindingAdapter(assets))
-        binding, inputs = reference_adapter.reference_inputs(session.task, session.logic, deck, descriptor,
-            policy=policy, quality_evidence=quality_evidence)
-        return deck, binding, inputs
+        completed_binding = state.get('reference_binding') if state.get('reference_evaluation') is not None else None
+        return reference_adapter.reference_inputs(session.task, session.logic, quality_reference,
+            policy['pass']['reference'], policy=policy, quality_evidence=quality_evidence,
+            completed_binding=completed_binding)
 
     if (state and state['status'] == 'passed' and policy and policy['pass']['mode'] == 'reference_ratio'
             and stopped() is None):
@@ -901,7 +897,7 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
             break
         reference_stage = state.get('pending_reference')
         resuming = bool(state.get('pending_quality') or reference_stage)
-        reason = stopped() or ('candidate_slice_exhausted' if not resuming and spent + session.task.candidate_budget > max_candidates else '')
+        reason = stopped() or ('candidate_slice_exhausted' if not resuming and spent + round_limit > max_candidates else '')
         if reason:
             break
         current = DeckParts.from_dict(state['candidate']['deck'])
@@ -953,7 +949,7 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
                 should_stop=stopped, pending_quality=state.get('pending_quality'),
                 query_cursor=state.get('query_cursor',0), retrieval_limit=retrieval_limit,
                 on_evaluation_progress=save_evaluation_progress,
-                recognition_provider=recognition_provider, recognition_mode=recognition_mode,
+                incumbent_recognition=state['candidate'].get('recognition'), recognition_provider=recognition_provider, recognition_mode=recognition_mode,
                 _comparisons=_comparisons)
             phase['stage_3'] = result
             generated = len(result.get('candidate_trace', {}).get('candidates', ()))
@@ -1010,6 +1006,16 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
                 state['reference_error'] = str(error)
             if stopped() == 'user_pause':
                 break
+        reference = state.get('reference_evaluation')
+        if reference_stage is not None and reference is not None:
+            ratio = policy['pass']['minimum_reference_ratio']
+            chosen_id = row['quality_evaluation']['evaluation_id']
+            trace_by_id = {item['quality_evaluation_id']: item for item in result['candidate_trace']['candidates']}
+            for item in result.get('learning_candidates', ()):
+                quality = item['quality_evaluation']
+                identity = quality['evaluation_id']
+                if identity != chosen_id:
+                    trace_by_id[identity]['reference_delta'] = _comparisons.delta(reference, quality, ratio)
         state.update(pending_quality=None,pending_phase=None,pending_reference=None)
         state['iteration']=iteration
         row['deck_sha256'] = digest(row['deck'])
@@ -1017,19 +1023,23 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
         state['candidate_version'] += 1
         gate = construction_gate(session.task, deck, assets, row.get('layer_evaluation'),
             policy=policy, candidate_version=state['candidate_version'], quality=row['quality_evaluation'],
-            reference_quality=state.get('reference_evaluation'), _comparisons=_comparisons)
+            reference_quality=reference, _comparisons=_comparisons,
+            _reference_validated=reference_stage is not None and reference is not None)
         if state.get('reference_error'):
             gate['reasons'].append('reference_invalid:'+state['reference_error'])
         reference_hint = record_reference_attempt(state, gate)
         finish_feedback(receipts, deck)
         phase.update(proposal_deck=deck.to_dict(), proposal_changes=changes(current, deck),
             output_candidate_version=state['candidate_version'], gate=gate,
-            quality_evaluation=row['quality_evaluation'],
+            quality_summary=_quality_summary(row['quality_evaluation']),
             reference_feedback=deepcopy(state.get('reference_feedback')),
             optimization_feedback=deepcopy(receipts), acceptance='passed' if gate['status'] == 'passed' else 'working_candidate_only')
-        from .construction_progress import resumable_optimizer_phase
-        state.update(candidate=row, gate=gate, retained_candidates=result['portfolio'],
-            status='passed' if gate['status'] == 'passed' else 'optimizing', last_optimizer_phase=resumable_optimizer_phase(phase))
+        phase = compact_optimizer_phase(phase, task=session.task, _comparisons=_comparisons)
+        phases[-1] = phase
+        state.update(candidate=row, gate=gate, retained_candidates=[],
+            status='passed' if gate['status'] == 'passed' else 'optimizing', last_optimizer_phase=phase)
+        compact_completed_progress(state)
+        _comparisons.release_candidates(row['quality_evaluation'], reference)
         state['handoffs'] = [*state['handoffs'], dict(role='build_optimizer', candidate_version=state['candidate_version'],
             input_deck_sha256=digest(current.to_dict()), output_deck_sha256=row['deck_sha256'])]
         save()
@@ -1050,10 +1060,10 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
         state.update(status='passed' if passed else 'suspended', stop_reason=reason)
         save()
     candidate = dict(state['candidate']) if state else None
-    cb, retained, cb_optimize = None, [], False
-    def finalize(row, gate, *, execute_cb=True):
+    cb, cb_optimize = None, False
+    def finalize(row, gate):
         deck = DeckParts.from_dict(row['deck'])
-        allowed = execute_cb and gate['status'] == 'passed' and cb_authorized and stopped() is None
+        allowed = gate['status'] == 'passed' and cb_authorized and stopped() is None
         inference = _candidate_basic_cb(session.task, deck, assets, basic_cb_provider if allowed else None, gate,
                                        row.get('recognition') if recognition_mode == 'assist' else None)
         inference.update(construction_gate=deepcopy(gate), candidate_version=gate['candidate_version'],
@@ -1097,7 +1107,7 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
             used_iterations = sum(p['role']=='build_optimizer' for p in phases)
             remaining = None if seconds is None else seconds-(time.monotonic()-started)
             if ((remaining is None or remaining > 0) and used_iterations < max_iterations and
-                    max_candidates-spent >= session.task.candidate_budget and stopped() is None):
+                    max_candidates-spent >= round_limit and stopped() is None):
                 session.history.append(dict(stage='basic_cb_return_to_optimizer',
                     candidate_version=state['candidate_version'],deck_sha256=state['candidate']['deck_sha256']))
                 following = _construction_cycle(session,assets,providers,scopes=scopes,base=base,
@@ -1110,14 +1120,6 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
                     retrieval_limit=retrieval_limit, _validate_saved=False, _comparisons=_comparisons)
                 following['phases'] = phases + following['phases']
                 return following
-        for row in state['retained_candidates']:
-            if row['deck'] == candidate['deck']:
-                retained.append(candidate)
-                continue
-            gate = construction_gate(session.task, DeckParts.from_dict(row['deck']), assets, row.get('layer_evaluation'),
-                policy=policy, candidate_version=state['candidate_version'], quality=row.get('quality_evaluation'),
-                reference_quality=state.get('reference_evaluation'), _comparisons=_comparisons)
-            retained.append(finalize(row, gate,execute_cb=not cb_optimize))
     elif candidate is not None:
         cb = _candidate_basic_cb(session.task, DeckParts.from_dict(candidate['deck']), assets, None)
         cb.update(execution_authorized=False,candidate_version=state['candidate_version'],construction_gate=deepcopy(state['gate']))
@@ -1129,12 +1131,12 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
         basic_cb_optimization_requested=bool(passed and cb_optimize),
         construction_candidate=candidate, construction_passed=admitted, static_gate_passed=passed,
         construction_gate=deepcopy(state['gate']) if state else None,
-        continuation=state, basic_cb=cb, retained_candidates=retained,
+        continuation=state, basic_cb=cb, retained_candidates=[],
         handoffs=deepcopy(state['handoffs']) if state else [],
         task_verified=bool(passed and candidate['task_verified']), cb_verified=bool(passed and candidate['cb_verified']),
         latest_logic_sha256=session.logic.sha256 if session.logic else None, goal_sha256=session.goal_sha256,
         task_goal_sha256=digest(session.task.goal), graph_execution_verified=False,
-        deployment_incumbent={'deck':base.to_dict(), 'new_cb_claimed':False} if base else None,
+        deployment_incumbent={'deck_sha256':digest(base.to_dict()), 'new_cb_claimed':False} if base else None,
         optimization_feedback=deepcopy(session.optimization_feedback),
         stagnation={'rounds_without_inventory_change':state['stagnation'] if state else 0,
             'unresolved':state['gate']['reasons'] if state and state['gate'] else [reason],
@@ -1168,7 +1170,7 @@ def construction_cycle(session, assets, providers, *, recognition_provider=None,
     ``slice`` is the explicit resumable scheduler interface, not a task result.
     """
     import time
-    from .construction_progress import gate_outcome
+    from .construction_progress import compact_optimizer_phase, gate_outcome
     from .construction_quality import EvaluationComparisons
     from .construction_recognition import record_recognition_result, recognition_mode as check_mode
     check_mode(recognition_mode)
@@ -1212,7 +1214,7 @@ def construction_cycle(session, assets, providers, *, recognition_provider=None,
         outcome = gate_outcome(result.get('construction_gate'))
         result['completion_status'] = ('return_to_optimizer' if cb_return else outcome)
         for phase in result.get('phases', ()):
-            phase_history[phase['role'], phase.get('optimization_iteration', 0)] = phase
+            phase_history[phase['role'], phase.get('optimization_iteration', 0)] = compact_optimizer_phase(phase)
         result['phases'] = list(phase_history.values())
         slices += 1
         elapsed = time.monotonic() - started

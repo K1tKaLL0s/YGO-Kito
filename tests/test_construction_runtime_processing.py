@@ -113,28 +113,77 @@ class RuntimeModeTests(unittest.TestCase):
 
 
 class CheckpointTests(unittest.TestCase):
-    def test_export_distinguishes_skeleton_pending_and_complete_lists(self):
+    def test_export_keeps_only_the_working_list_and_cleans_legacy_pending_lists(self):
         import json
         from scripts.run_construction import export_candidate_artifacts
+        from ygo_kito.build_contracts import digest
         task = {'sizes': {'main': 40, 'extra': 15, 'side': 15}}
         skeleton = {'deck': {'main': [1], 'extra': [], 'side': []}}
         deck = {'main': list(range(1, 41)), 'extra': list(range(41, 56)), 'side': list(range(56, 71))}
         with TemporaryDirectory() as directory:
             output = Path(directory)
+            (output/'pending-candidate-01.json').write_text(json.dumps({'deck': deck}), encoding='utf-8')
+            (output/'pending-candidate-01.ydk').write_text('old candidate', encoding='utf-8')
+            (output/'reference.ydk').write_text('user reference', encoding='utf-8')
             complete, pending = export_candidate_artifacts(output, task, skeleton,
                 {'pending_quality': {'candidates': [{'deck': deck}], 'evaluations': {}}})
             self.assertFalse(complete)
             self.assertFalse((output/'deck.ydk').exists())
             self.assertTrue((output/'skeleton.json').is_file())
-            self.assertEqual(pending[0]['status'], 'static_evaluation_pending')
-            record = json.loads((output/'pending-candidate-01.json').read_text(encoding='utf-8'))
-            self.assertEqual(record['candidate']['deck'], deck)
-            self.assertIsNone(record['evaluation'])
-            self.assertFalse(record['selected'])
+            self.assertEqual(pending, [dict(candidate_index=0, status='static_evaluation_pending',
+                                            deck_sha256=digest(deck))])
+            self.assertFalse(list(output.glob('pending-candidate-*')))
+            record = json.loads((output/'candidate-exports.json').read_text(encoding='utf-8'))
+            self.assertEqual(record['pending_candidates'], pending)
             complete, pending = export_candidate_artifacts(output, task, {'deck': deck}, {})
             self.assertTrue(complete)
             self.assertTrue((output/'deck.ydk').is_file())
+            self.assertFalse((output/'skeleton.json').exists())
+            self.assertTrue((output/'reference.ydk').is_file())
             self.assertEqual(pending, [])
+
+    def test_compaction_keeps_pending_work_only_in_authoritative_progress(self):
+        from ygo_kito.build_contracts import digest
+        from ygo_kito.construction_progress import compact_completed_progress, construction_report
+        winner = dict(deck=dict(main=[1], extra=[], side=[]), strategy='incumbent')
+        loser = dict(deck=dict(main=[2], extra=[], side=[]))
+        delta = dict(main=dict(added=[1], removed=[2]))
+        trace = dict(candidates=[dict(candidate_index=0, recognition_inventory=winner['deck'], selected=True),
+                                 dict(candidate_index=1, recognition_inventory=loser['deck'], selected=False)],
+                     generation=dict(legal_edit_candidates=2, discarded_edits=[delta]))
+        phase = dict(role='build_optimizer', input_deck=loser['deck'], proposal_deck=winner['deck'],
+            proposal_changes=delta, stage_3=dict(candidate_trace=trace, attempts=[loser], portfolio=[winner, loser]))
+        pending = dict(candidates=[loser])
+        state = dict(candidate=dict(winner, changes=delta), candidate_version=2,
+            retained_candidates=[winner, loser], last_optimizer_phase=phase, pending_quality=pending)
+        compact_completed_progress(state)
+        self.assertEqual(state['candidate'], winner)
+        self.assertEqual(state['retained_candidates'], [])
+        self.assertIs(state['pending_quality'], pending)
+        phase = state['last_optimizer_phase']
+        self.assertEqual(phase['input_deck_sha256'], digest(loser['deck']))
+        self.assertNotIn('proposal_changes', phase)
+        self.assertEqual(phase['stage_3']['candidate_trace']['candidates'][1],
+                         dict(candidate_index=1, deck_sha256=digest(loser['deck']), selected=False))
+        self.assertNotIn('attempts', phase['stage_3'])
+        self.assertNotIn('portfolio', phase['stage_3'])
+        result = dict(best=winner, verified_best=winner, construction_candidate=winner,
+                      retained_candidates=[winner], continuation=state, phases=[phase])
+        self.assertEqual(construction_report(result), dict(best=winner, phases=[phase]))
+
+    def test_course_removes_only_its_discarded_route_and_cb_records(self):
+        import json
+        from scripts.local_course_collaboration import retire_candidate_proofs
+        winner, loser = dict(main=[1], extra=[], side=[]), dict(main=[2], extra=[], side=[])
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            keep = {'route-002.json': winner, 'basic-cb-inference-004.json': winner,
+                    'older-course.json': loser, 'route-training.json': loser}
+            remove = {'route-001.json': loser, 'basic-cb-inference-003.json': loser}
+            for name, deck in {**keep, **remove}.items():
+                (root/name).write_text(json.dumps({'deck': deck}), encoding='utf-8')
+            retire_candidate_proofs(root, winner)
+            self.assertEqual({file.name for file in root.iterdir()}, set(keep))
 
     def test_commit_survives_temporary_and_lagging_export(self):
         from ygo_kito.construction_checkpoint import ConstructionCheckpoint, write_json
@@ -168,6 +217,28 @@ class CheckpointTests(unittest.TestCase):
             self.assertEqual(read_json(export)['revision'], 1)
             with self.assertRaises(ContractError):
                 checkpoint.read(export)
+
+    def test_compressed_checkpoint_is_atomic_and_reads_legacy_json(self):
+        import gzip
+        from ygo_kito.construction_checkpoint import ConstructionCheckpoint, KERNEL_FILENAME, LEGACY_KERNEL_FILENAME
+        state = {'pending': {'candidates': [{'deck': ['同名卡'] * 40}] * 8}}
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            plain = ConstructionCheckpoint(root/LEGACY_KERNEL_FILENAME)
+            zipped = ConstructionCheckpoint(root/KERNEL_FILENAME)
+            plain.commit(state, stop_reason='user_pause')
+            zipped.commit(state, stop_reason='user_pause')
+            self.assertEqual(plain.read(plain.path), zipped.read(zipped.path))
+            self.assertLess(zipped.path.stat().st_size, plain.path.stat().st_size)
+            with gzip.open(zipped.path, 'rt', encoding='utf-8') as encoded:
+                self.assertIn('同名卡', encoded.read())
+            with patch.object(Path, 'replace', side_effect=PermissionError('controlled replace failure')):
+                with self.assertRaises(PermissionError):
+                    zipped.commit({'lost': True}, stop_reason='user_pause')
+            self.assertEqual(zipped.revision, 1)
+            self.assertEqual(zipped.read(zipped.path)['state'], state)
+            with self.assertRaises(ContractError):
+                zipped.read(zipped.path.with_suffix('.gz.tmp'))
 
     def test_pause_during_cli_checkpoint_is_committed_before_a_new_slice(self):
         from scripts.run_construction import advance_construction

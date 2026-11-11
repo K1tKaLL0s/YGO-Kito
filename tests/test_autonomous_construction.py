@@ -1,15 +1,17 @@
 """Synthetic CPU contracts only: no optimizer steps, engine or ability claims."""
+from collections import Counter
 from copy import deepcopy
 import json
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 import torch
 
 from ygo_kito.autonomous_construction import (
     AutonomousConstructionKernel, CourseBuildEncoder, initialize_course_vocabulary,
 )
-from ygo_kito.build_contracts import BuildTask, DeckParts, digest
+from ygo_kito.build_contracts import BuildTask, DeckParts, ZONES, digest
 from ygo_kito.build_model import BuildModelConfig
 from ygo_kito.build_pipeline import BuildAssets
 from ygo_kito.build_training import BuildTrainer, BuildTrainingConfig
@@ -70,6 +72,25 @@ def deck_for(task,assets,variant=0):
 
 
 class CourseVocabularyTests(unittest.TestCase):
+    def test_count_batch_preserves_deck_features_and_reuses_mechanisms(self):
+        task, assets, builder, _ = fixture(150)
+        assets.rows[151] = dict(assets.rows[1], id=151, alias=1)
+        assets.rows[2]['desc'] = '①：自己从卡组抽1张。'
+        raw = task.to_dict()
+        raw['pool'] = list(range(1, 152))
+        task = BuildTask.from_dict(raw)
+        decks = [DeckParts(()), DeckParts((151, 2, 1, 2), (3,), (4,)), DeckParts((2, 151, 2), (3,), (5,))]
+        inventories = [{zone: Counter(getattr(deck, zone)) for zone in ZONES} for deck in decks]
+        expected = builder.encoder.batch(task, decks)
+        with patch.object(builder.encoder, '_inventory', side_effect=AssertionError('read a complete deck')), \
+                patch.object(builder.encoder.mechanisms, 'summarize', wraps=builder.encoder.mechanisms.summarize) as summarize:
+            batch = builder.encoder.batch_inventories(task, inventories)
+        summarize.assert_called_once()
+        for key in expected:
+            self.assertTrue(torch.equal(expected[key], batch[key]), key)
+        with self.assertRaises(ContractError):
+            builder.encoder.batch_inventories(task, [dict(main={1: -1}, extra={}, side={})])
+
     def test_extension_preserves_rows_roles_optimizer_and_rng_without_updates(self):
         _,assets,builder,_=fixture(initialize=False)
         models=dict(builder.models);optimizers=dict(builder.optimizers);schedulers=dict(builder.schedulers)

@@ -10,13 +10,93 @@ GATE_VERSION = FUNCTIONAL_GATE_VERSION
 REFERENCE_STAGE_VERSION = 'construction-reference-stage-v1'
 
 
-def resumable_optimizer_phase(phase):
-    """Keep reselection evidence without copying the slice's learning batch."""
-    saved = {k: v for k, v in phase.items() if k != 'stage_3'}
-    if 'stage_3' in phase:
-        saved['stage_3'] = {k: v for k, v in phase['stage_3'].items()
-                            if k not in ('learning_candidates', 'portfolio')}
+def compact_optimizer_phase(phase, *, task=None, _comparisons=None):
+    """Keep round results without inventories, reversible edits, or search work."""
+    if phase is None:
+        return None
+    keys = ('phase_number', 'role', 'responsibility', 'optimization_iteration',
+            'input_candidate_version', 'output_candidate_version', 'parameter_update_performed',
+            'acceptance', 'stage_1', 'unfilled', 'input_deck_sha256', 'proposal_deck_sha256',
+            'reference_feedback')
+    saved = {key: phase[key] for key in keys if key in phase}
+    if 'stage_2' in phase:
+        saved['stage_2'] = {'status': phase['stage_2'].get('status')}
+    if phase.get('graph_model_selection') is not None:
+        selection = phase['graph_model_selection']
+        keys = ('selection', 'scores', 'selected_index', 'graph_sha256', 'model_sha256',
+                'graph_role_update_count', 'binding_counterexample_exploration')
+        saved['graph_model_selection'] = {key: selection[key] for key in keys if key in selection}
+    for key in ('input_deck', 'proposal_deck'):
+        if phase.get(key) is not None:
+            saved[key + '_sha256'] = digest(phase[key])
+    gate = phase.get('gate')
+    if gate:
+        saved['gate'] = {k: gate[k] for k in ('status', 'outcome', 'reasons', 'deck_sha256',
+                                              'candidate_version', 'evaluation_complete') if k in gate}
+    stage = phase.get('stage_3')
+    if stage is None:
+        return saved
+    keys = ('status', 'selection_complete', 'selected_attempt_index', 'evaluation_cursor',
+            'ranking', 'candidate_count', 'strict_quality_pairs', 'engine_validation_performed')
+    reduced = {key: stage[key] for key in keys if key in stage}
+    if 'attempts' in stage:
+        reduced['engine_validation_performed'] = any(
+            attempt.get('engine_validation', {}).get('status', 'not_run') != 'not_run'
+            for attempt in stage['attempts'])
+    trace = stage.get('candidate_trace')
+    if trace is not None:
+        keys = ('candidate_index', 'deck_sha256', 'strategy', 'model_score_uncalibrated',
+                'evaluation_status', 'quality_evaluation_id', 'status', 'selected', 'reference_delta')
+        candidates = []
+        for row in trace.get('candidates', ()):
+            item = {key: row[key] for key in keys if key in row}
+            inventory = row.get('recognition_inventory')
+            if inventory is not None:
+                item['deck_sha256'] = digest(inventory)
+            quality = row.get('quality_summary')
+            if quality:
+                item['quality_summary'] = {key: quality[key] for key in
+                    ('value', 'min', 'max', 'complete', 'scope_complete', 'unit') if key in quality}
+            candidates.append(item)
+        generation = trace.get('generation', {})
+        counts = {key: value for key, value in generation.items() if type(value) is int}
+        reduced['candidate_trace'] = dict(candidates=candidates, generation=counts,
+            candidate_order=trace.get('candidate_order'), selected_candidate_index=trace.get('selected_candidate_index'))
+        reduced['candidate_count'] = len(candidates)
+    if task is not None and stage.get('learning_candidates'):
+        from .construction_learning import quality_pair_receipts
+        reduced['strict_quality_pairs'] = quality_pair_receipts(task, stage, _comparisons=_comparisons)
+    summary = phase.get('quality_summary')
+    if summary:
+        saved['quality_summary'] = {key: summary[key] for key in
+            ('value', 'min', 'max', 'complete', 'unit', 'evaluation_id') if key in summary}
+    saved['stage_3'] = reduced
     return saved
+
+
+def compact_construction_candidate(candidate):
+    if candidate is None:
+        return None
+    return {key: value for key, value in candidate.items()
+            if key not in ('changes', 'generation', 'protected_package')}
+
+
+def compact_completed_progress(state):
+    """Discard spent candidate inventories; the active batch can still resume."""
+    state['candidate'] = compact_construction_candidate(state['candidate'])
+    state['retained_candidates'] = []
+    if state['candidate_version'] > 1:
+        state.pop('skeleton', None)
+    state['last_optimizer_phase'] = compact_optimizer_phase(state.get('last_optimizer_phase'))
+
+
+def construction_report(result):
+    """The kernel owns the resumable work; the report keeps the working result."""
+    report = {key: value for key, value in result.items()
+              if key not in ('continuation', 'retained_candidates', 'verified_best')}
+    if report.get('best') is not None:
+        report.pop('construction_candidate', None)
+    return report
 
 
 def invalidate_reference_evaluation(state):
@@ -181,7 +261,8 @@ def _quality_binding(policy, quality, deck, comparisons=None):
         partial_items=total['partial_items'], total_status=total['status'])
 
 
-def _functional_gate(task, deck, assets, evaluation, policy, candidate_version, quality, reference_quality, comparisons):
+def _functional_gate(task, deck, assets, evaluation, policy, candidate_version, quality,
+                     reference_quality, comparisons, *, reference_validated=False):
     from .construction_inventory import InventoryDependencies
     from .effect_mechanisms import MechanismCatalog
     reasons, metrics = [], []
@@ -233,10 +314,11 @@ def _functional_gate(task, deck, assets, evaluation, policy, candidate_version, 
             _quality_binding(policy, reference_quality, reference_deck, comparisons)
             if reference_quality['task_sha256'] != task.sha256:
                 raise ContractError('reference belongs to another original task')
-            try:
-                assets.validate(task, reference_deck)
-            except ContractError as error:
-                reasons.append('reference_invalid:' + str(error))
+            if not reference_validated:
+                try:
+                    assets.validate(task, reference_deck)
+                except ContractError as error:
+                    reasons.append('reference_invalid:' + str(error))
             if quality is not None:
                 bounds = comparisons.delta(reference_quality, quality, declared['minimum_reference_ratio'])
                 line.update(delta=bounds, reference_evaluation_id=reference_quality['evaluation_id'],
@@ -262,7 +344,7 @@ def _functional_gate(task, deck, assets, evaluation, policy, candidate_version, 
 
 
 def construction_gate(task, deck, assets, evaluation, *, policy=None, candidate_version=0, quality=None,
-                      reference_quality=None, _comparisons=None):
+                      reference_quality=None, _comparisons=None, _reference_validated=False):
     policy = quality_policy(policy)
     if policy is None:
         return dict(version=FUNCTIONAL_GATE_VERSION, task_sha256=task.sha256, deck_sha256=digest(deck.to_dict()),
@@ -270,7 +352,8 @@ def construction_gate(task, deck, assets, evaluation, *, policy=None, candidate_
             reasons=['quality_policy_unconfigured'], quality_binding={'required':True,'present':False}, cb_result_used=False)
     from .construction_quality import EvaluationComparisons
     return _functional_gate(task, deck, assets, evaluation, policy, candidate_version, quality,
-                            reference_quality, _comparisons or EvaluationComparisons())
+                            reference_quality, _comparisons or EvaluationComparisons(),
+                            reference_validated=_reference_validated)
 
 
 def record_reference_attempt(state, gate):
@@ -365,6 +448,7 @@ def restore_progress(session, value, assets, *, policy=None, _comparisons=None):
             or handoffs[-1]['output_deck_sha256'] != digest(deck.to_dict())
             or handoffs[-1]['candidate_version'] != state['candidate_version']):
         raise ContractError('construction continuation lost actual role handoff ancestry')
+    compact_completed_progress(state)
     if legacy:
         state.pop('reference_feedback', None)
         old_policy = state.get('quality_policy')

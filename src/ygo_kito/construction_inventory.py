@@ -12,7 +12,7 @@ from pathlib import Path
 import json
 import re
 
-from .build_contracts import DeckParts, digest
+from .build_contracts import DeckParts, ZONES, digest
 from .effect_mechanisms import EXTRA_TYPES, RACES, MechanismCatalog
 from .validation import ContractError
 
@@ -734,9 +734,13 @@ class InventoryDependencies:
         return result
 
     def _check(self, deck, specs, *, joint=False, target=None, distinct=False):
+        return self._check_counts(Counter(deck.main + deck.extra), Counter(deck.extra), specs,
+                                  joint=joint, target=target, distinct=distinct)
+
+    def _check_counts(self, resident, extra, specs, *, joint=False, target=None, distinct=False):
         # Printed materials are distinct physical monsters; one card cannot
         # satisfy both an exact-name slot and an overlapping race slot.
-        copies = [(code, i) for code,n in Counter(deck.main + deck.extra).items() for i in range(n)]
+        copies = [(code, i) for code, n in resident.items() for i in range(n)]
         if joint:
             copies = [(c,i) for c,i in copies if self.rows[c]['type'] & 1
                       and not (c == target and i == 0)]
@@ -748,7 +752,7 @@ class InventoryDependencies:
             candidates = [(c,i) for c,i in copies if matches(self.rows[c], req['query'])
                          and not (req.get('exclude_source_copy') and (c,i)==(req.get('source_card_id'),0))
                          and (req['origin'] not in ('hand','deck') or not self.rows[c]['type'] & EXTRA_TYPES)
-                         and (req['origin'] != 'extra' or c in deck.extra)
+                         and (req['origin'] != 'extra' or extra[c] > 0)
                          and (req['category'] != 'material' or (self.rows[c]['type'] & 1
                               and not (c == target and i == 0)))]
             external = req.get('owner', 'self') != 'self'
@@ -797,9 +801,13 @@ class InventoryDependencies:
                     execution_status='unknown', access_to_required_zone_verified=False)
 
     def evaluate(self, deck, graph=None, *, codes=None):
-        selected = sorted(set(deck.main + deck.extra) if codes is None else set(codes))
+        return self.evaluate_counts(Counter(deck.main), Counter(deck.extra), graph, codes=codes)
+
+    def evaluate_counts(self, main, extra, graph=None, *, codes=None):
+        resident = main + extra
+        selected = sorted(resident if codes is None else set(codes))
         evaluations, deficits, scoped, unknowns = {}, {}, {}, {}
-        uncovered = set(deck.main+deck.extra)-set(selected)
+        uncovered = set(resident) - set(selected)
         remaining = self.requirement_limit
         for code in selected:
             if remaining <= 0:
@@ -822,7 +830,7 @@ class InventoryDependencies:
                 for scope, (tags, nodes) in groups.items():
                     requirements = [req for req in effect['requirements'] if not tags or 'operation' not in req or
                         effect_matches(dict(effect['record'], operations=[req['operation']]),tags)]
-                    value = self._check(deck, requirements)
+                    value = self._check_counts(resident, extra, requirements)
                     key = effect['key'] + ':' + scope
                     unresolved=[r for r in effect['unknown'] if not tags or 'operation' not in r or
                         effect_matches(dict(effect['record'],operations=[r['operation']]),tags)]
@@ -835,18 +843,18 @@ class InventoryDependencies:
                     if value['shortfall']:
                         target_deficits=deficits if scope=='candidate_component' else scoped
                         target_deficits[key+':shortfall'] = value['shortfall']
-                        target_deficits[key+':blocked_copies'] = (deck.main+deck.extra).count(code)
-            material = self._check(deck, materials, joint=True, target=code) if materials else None
+                        target_deficits[key+':blocked_copies'] = resident[code]
+            material = self._check_counts(resident, extra, materials, joint=True, target=code) if materials else None
             if material and (material['unknown_selectors'] or material['unknown_restrictions']):
                 unknowns[f'materials:{code}']=[*material['unknown_selectors'], *material['unknown_restrictions']]
             formula=next((s.strip() for s in self.rows[code].get('desc','').splitlines() if '＋' in s or '+' in s),'')
-            if code in deck.extra and self.rows[code]['type'] & 0x40 and formula and not materials:
+            if extra[code] and self.rows[code]['type'] & 0x40 and formula and not materials:
                 unknowns[f'materials:{code}']=[dict(category='material',source=formula)]
                 material=dict(status='unknown',requirements=[],shortfall=0,
                     execution_status='unknown',access_to_required_zone_verified=False)
             if material and material['shortfall']:
                 deficits[f'materials:{code}:shortfall']=material['shortfall']
-                deficits[f'materials:{code}:blocked_copies']=deck.extra.count(code)
+                deficits[f'materials:{code}:blocked_copies']=extra[code]
             evaluations[str(code)] = dict(effects=rows, materials=material)
         return dict(kind='static_necessary_inventory_dependencies', cards=evaluations,
                     known_deficits=deficits, scoped_deficits=scoped,
@@ -940,19 +948,24 @@ def recall_dependencies(catalog, pool, available, *, limit=16, rounds=3, checks=
     return tuple(sorted(current)),dict(events=events,checks=work,truncated=False)
 
 
-def repair_candidates(task, assets, base, *, graph=None, limit=6, checks=128):
-    """Propose sourced missing-component edits, never a theme/card recipe.
+def repair_ideas(task, assets, base, *, graph=None, limit=6, checks=128, edits=None):
+    """Yield cumulative edits to repair known shortages, deepest repair first."""
+    from .build_pipeline import DeckEdits
 
-    Each step preserves the original task and reduces a known deficit vector.
-    The normal portfolio budget, models and layers decide whether to retain it.
-    """
+    if limit <= 0 or checks <= 0:
+        return
     catalog = InventoryDependencies(MechanismCatalog(assets, task.pool))
-    current = base
+    editor = edits if edits is not None else DeckEdits(task, assets, base)
+    original = editor.counts
+    current = original
+    pool = sorted(task.pool)
+    names = {code: assets.rows[code].get('alias') or code for code in pool}
+    analysis = catalog.evaluate_counts(current['main'], current['extra'], graph)
+    ideas = []
     for step in range(limit):
-        analysis = catalog.evaluate(current, graph)
-        if analysis['uncovered_cards']:return
         old = analysis['known_deficits']
-        if not old:return
+        if analysis['uncovered_cards'] or not old:
+            break
         requests = []
         affected = set()
         for code, row in analysis['cards'].items():
@@ -961,8 +974,15 @@ def repair_candidates(task, assets, base, *, graph=None, limit=6, checks=128):
                 affected.add(int(code))
                 requests.extend(r for r in value['requirements'] if r['shortfall'])
         # First try the actual requested support; then alternative components.
-        recalled = list(dict.fromkeys(c for req in requests for c in sorted(task.pool) if matches(assets.rows[c],req['query'])))
-        incoming = recalled + [c for c in sorted(task.pool) if c not in recalled]
+        recalled = dict.fromkeys(c for req in requests for c in pool if matches(assets.rows[c], req['query']))
+        incoming = [*recalled, *(c for c in pool if c not in recalled)]
+        name_counts = Counter()
+        for counts in current.values():
+            for code, count in counts.items():
+                name_counts[names[code]] += count
+        cumulative = {z: counts.copy() for z, counts in current.items()}
+        for z, delta in cumulative.items():
+            delta.subtract(original[z])
         accepted = None
         attempts = 0
         for new in incoming:
@@ -970,29 +990,37 @@ def repair_candidates(task, assets, base, *, graph=None, limit=6, checks=128):
             # Unrelated Main substitutions cannot consume the budget needed
             # for an Extra-only gap. Supports may come from another zone;
             # alternative consumers replace an actually affected component.
-            outgoing = sorted({c for c in getattr(current,zone) if c in affected or new in recalled},
+            outgoing = sorted((c for c in current[zone] if c in affected or new in recalled),
                               key=lambda c:(c not in affected,c))
             for old_card in outgoing:
                 if new == old_card:continue
                 attempts += 1
                 if attempts > checks:break
-                parts = current.to_dict()
-                parts[zone].remove(old_card);parts[zone].append(new)
-                total = sum(values.count(new) for values in parts.values())
-                max_copies = assets.limits.get(new,3)
-                if total > max_copies and new in parts['side']:
-                    parts['side'].remove(new);parts['side'].append(old_card)
-                parts = {z:sorted(values) for z,values in parts.items()}
-                candidate = DeckParts.from_dict(parts)
-                if not assets.accepts(task,candidate):continue
-                updated = catalog.evaluate(candidate, graph)
+                changed = {zone: Counter({old_card: -1, new: 1})}
+                name = names[new]
+                if names[old_card] != name and name_counts[name] >= assets.limits.get(name, 3):
+                    side_copy = next((c for c in sorted(current['side'], key=lambda c: (c != new, c))
+                                      if names[c] == name), None)
+                    if side_copy is not None:
+                        changed['side'] = Counter({side_copy: -1, old_card: 1})
+                changes = {}
+                for z in ZONES:
+                    delta = cumulative[z].copy()
+                    delta.update(changed.get(z, {}))
+                    changes[z] = dict(added=sorted((+delta).elements()), removed=sorted((-delta).elements()))
+                if editor.rejection(changes) is not None:
+                    continue
+                next_counts = editor.inventory(changes)
+                updated = catalog.evaluate_counts(next_counts['main'], next_counts['extra'], graph)
                 if dependency_improves(analysis,updated):
-                    accepted=candidate;break
+                    accepted = next_counts, updated, changes
+                    break
             if accepted is not None or attempts > checks:break
-        if accepted is None:return
-        yield dict(deck=accepted,strategy='dependency:inventory',
-                   proposal_basis='source_scoped_necessary_inventory_repair',
-                   proposal_source='public_effect_records_and_printed_materials',
-                   dependency_repair=dict(step=step+1,checks=attempts,before=old,
-                                          after=catalog.evaluate(accepted, graph)['known_deficits']))
-        current = accepted
+        if accepted is None:
+            break
+        current, analysis, changes = accepted
+        ideas.append(dict(changes=changes, strategy='dependency:inventory',
+            proposal_basis='source_scoped_necessary_inventory_repair',
+            proposal_source='public_effect_records_and_printed_materials',
+            dependency_repair=dict(step=step+1, checks=attempts, before=old, after=analysis['known_deficits'])))
+    yield from reversed(ideas)

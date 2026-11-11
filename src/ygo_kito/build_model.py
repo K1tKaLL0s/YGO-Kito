@@ -1,9 +1,11 @@
-"""Independent CPU Transformer rankers for goal construction and deck edits.
+"""Independent Transformer rankers for goal construction and deck edits.
 
 Architecture code is reusable; each role owns every parameter and optimizer.
 Effects are read as public facts/receipts, not understood by a downloaded LLM.
 """
 
+from collections import Counter
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 
 import torch
@@ -11,7 +13,7 @@ from torch import nn
 
 from .build_contracts import BuildTask, DeckParts, ZONES, digest
 from .device import model_device, move_batch
-from .validation import ContractError, canonical_json, integer
+from .validation import ContractError, canonical_json, fields, integer
 from .effect_mechanisms import MechanismCatalog, MECHANISM_WIDTH, SEMANTIC_VERSION
 
 FEATURE_VERSION = "build-task-catalog-candidate-v6-effect-mechanisms"
@@ -65,25 +67,37 @@ class BuildEncoder:
         Conflict flags describe use of a card/route, not a ban on owning a card.
         Unknown is a separate feature, never the same value as unrestricted.
         """
-        if len(task.pool) > 128 and not (deck.main or deck.extra or deck.side):
-            return [[0.] * MECHANISM_WIDTH for _ in tokens]
+        inventory = self._inventory(deck)
+        summary = None if len(task.pool) > 128 and not any(inventory.values()) else self._mechanism_summary(task)
+        return self._mechanism_rows(inventory, tokens, summary, {i: c for c, i in self.card_index.items()}, {})
+
+    def _mechanism_summary(self, task):
         from .build_semantics import matches
         predicates=[c['predicate'] for c in task.goal.get('constraints',()) if c['predicate'].get('field') in ('setcode','race_any')]
         core=[c for c in task.pool if any(matches(self.assets.rows[c],p) for p in predicates)]
-        summary=self.mechanisms.summarize(core or task.pool)
-        rows=[]
-        by_index={i:c for c,i in self.card_index.items()}
-        for token in tokens:
-            code=by_index.get(token[0])
-            rows.append(self.mechanisms.vector(code,summary) if code is not None else [0.]*MECHANISM_WIDTH)
+        return self.mechanisms.summarize(core or task.pool)
+
+    def _mechanism_rows(self, inventory, tokens, summary, by_index, vectors):
+        if summary is None:
+            return [[0.] * MECHANISM_WIDTH for _ in tokens]
+
+        def vector(code):
+            if code not in vectors:
+                vectors[code] = self.mechanisms.vector(code, summary)
+            return vectors[code]
+
+        rows = [vector(by_index[token[0]]) if token[0] in by_index else [0.] * MECHANISM_WIDTH
+                for token in tokens]
         if rows:
-            main=[self.mechanisms.vector(c,summary) for c in deck.main]
+            main = inventory['main']
             if main:
-                rows[0]=[sum(v[i] for v in main)/len(main) for i in range(MECHANISM_WIDTH)]
+                total = sum(main.values())
+                rows[0] = [sum(vector(code)[i] * count for code, count in main.items()) / total
+                           for i in range(MECHANISM_WIDTH)]
                 rows[0][0]*=float(bool(summary['grave_effect_triggers']))
                 rows[0][1]*=float(bool(summary['fusion_effects']))
                 starters=any(e.trigger.get('event')=='normal_or_special_summon'
-                    for c in deck.main for e in self.mechanisms.card(c).effects)
+                    for c in main for e in self.mechanisms.card(c).effects)
                 rows[0][8]*=float(starters)
             else:
                 rows[0][0]=min(summary['grave_effect_triggers']/8,1.)
@@ -93,16 +107,26 @@ class BuildEncoder:
         return rows
 
     def encode(self, task, deck):
-        if not isinstance(task, BuildTask) or not isinstance(deck, DeckParts):
+        return self._encoding_view(task)._encode_inventory(task, self._inventory(deck))
+
+    @staticmethod
+    def _inventory(deck):
+        if not isinstance(deck, DeckParts):
             raise ContractError("building encoder requires typed task and candidate only")
-        if digest(task.environment) != self.environment_sha256 or task.pool != self.card_ids:
+        return {zone: Counter(getattr(deck, zone)) for zone in ZONES}
+
+    def _encoding_view(self, task):
+        if not isinstance(task, BuildTask) or digest(task.environment) != self.environment_sha256 or task.pool != self.card_ids:
             raise ContractError("building encoder resource/pool binding differs")
+        return self
+
+    def _encode_inventory(self, task, inventory):
         ids, numbers = [[0, 0, 0, 0]], [[0.] * 10]
 
         def card(code, zone, kind, minimum=0, maximum=3, context=0.):
             if code not in self.card_index:
                 raise ContractError("candidate card outside building vocabulary")
-            count = getattr(deck, zone).count(code)
+            count = inventory[zone].get(code, 0)
             ids.append([self.card_index[code], 1 + ZONES.index(zone), 0, kind])
             numbers.append(self.assets.facts(code) + [minimum / 3, maximum / 3, count / 3, context])
 
@@ -111,18 +135,20 @@ class BuildEncoder:
         # large pool retain the exact candidate and explicit card requirements;
         # count constraints themselves remain separate context tokens below.
         context_ids = task.pool if len(task.pool) <= 128 else tuple(sorted(
-            set(deck.main + deck.extra + deck.side) |
+            set().union(*inventory.values()) |
             {r['card_id'] for r in task.requirements}))
         route_goal=task.goal.get('route_goal') if semantic else task.goal
         from .build_contracts import EXTRA_ROUTE_GOALS
         discovery_goal = route_goal is not None and route_goal['kind'] != 'normal_summon'
         if semantic:
-            from .build_semantics import count,matches
+            from .build_semantics import matches
             for hard,items in ((True,task.goal['constraints']),(False,task.goal['preferences'])):
                 for item in sorted(items,key=lambda c:canonical_json({k:v for k,v in c.items() if k!='id'})):
+                    count = sum(n for zone in item['zones'] for code, n in inventory[zone].items()
+                                if matches(self.assets.rows[code], item['predicate']))
                     ids.append([0,0,0,6])
                     numbers.append([item.get('minimum',0)/90,item.get('maximum',90)/90,
-                                    count(deck,item,self.assets.rows)/90,item.get('weight',0)/100,
+                                    count/90,item.get('weight',0)/100,
                                     sum(1<<ZONES.index(z) for z in item['zones'])/7,float(hard),0.,0.,0.,0.])
                     if len(task.pool) > 128:
                         identity = bytes.fromhex(digest(item['predicate']))
@@ -165,28 +191,56 @@ class BuildEncoder:
             ids.append([0, 0, self.tag_index[key], 3])
             numbers.append([0.] * 9 + [("self", "opponent", "both").index(annotation["subject"]) / 2])
         for zone in ZONES:
-            for code in sorted(getattr(deck, zone)):
-                card(code, zone, 4)
+            for code, count in sorted(inventory[zone].items()):
+                for _ in range(count):
+                    card(code, zone, 4)
         if len(ids) > self.config.max_tokens:
             raise ContractError("building context exceeds token budget")
-        state = [len(getattr(deck, z)) / (60 if z == "main" else 15) for z in ZONES]
+        state = [sum(inventory[z].values()) / (60 if z == "main" else 15) for z in ZONES]
         state += [task.sizes[z] / (60 if z == "main" else 15) for z in ZONES]
         return ids, numbers, state
 
     def batch(self, task, decks, *, device=None):
         integer(len(decks), "building rank batch", 1, 32)
-        encoded = [self.encode(task, deck) for deck in decks]
+        return self._batch(task, [self._inventory(deck) for deck in decks], device)
+
+    def batch_inventories(self, task, inventories, *, device=None):
+        """Encode zoned copy counts before constructing any candidate DeckParts."""
+        integer(len(inventories), "building rank batch", 1, 32)
+        for inventory in inventories:
+            fields(inventory, set(ZONES))
+            for zone in ZONES:
+                copies = inventory[zone]
+                if not isinstance(copies, Mapping):
+                    raise ContractError("building inventory requires copy counts per section")
+                for code, count in copies.items():
+                    integer(code, "building inventory card ID", 1, 2**32 - 1)
+                    integer(count, "building inventory copies", 1)
+                integer(sum(copies.values()), "building inventory section size", 0, 60 if zone == 'main' else 15)
+        return self._batch(task, inventories, device)
+
+    def _batch(self, task, inventories, device):
+        view = self._encoding_view(task)
+        encoded = [view._encode_inventory(task, inventory) for inventory in inventories]
         length = max(len(row[0]) for row in encoded)
-        batch = {"tokens": torch.zeros(len(decks), length, 4, dtype=torch.long),
-                 "numbers": torch.zeros(len(decks), length, 10),
-                 "mechanisms": torch.zeros(len(decks), length, MECHANISM_WIDTH),
+        batch = {"tokens": torch.zeros(len(inventories), length, 4, dtype=torch.long),
+                 "numbers": torch.zeros(len(inventories), length, 10),
+                 "mechanisms": torch.zeros(len(inventories), length, MECHANISM_WIDTH),
                  "state": torch.tensor([row[2] for row in encoded], dtype=torch.float32),
-                 "mask": torch.zeros(len(decks), length, dtype=torch.bool)}
+                 "mask": torch.zeros(len(inventories), length, dtype=torch.bool)}
+        by_index = {i: code for code, i in self.card_index.items()}
+        vectors = {}
+        summary = None
         for i, (tokens, numbers, _) in enumerate(encoded):
             batch["tokens"][i, :len(tokens)] = torch.tensor(tokens)
             batch["numbers"][i, :len(tokens)] = torch.tensor(numbers)
             batch["mask"][i, :len(tokens)] = True
-            batch['mechanisms'][i,:len(tokens)]=torch.tensor(self.mechanism_features(task,decks[i],tokens))
+            inventory = inventories[i]
+            if len(task.pool) <= 128 or any(inventory.values()):
+                if summary is None:
+                    summary = self._mechanism_summary(task)
+                mechanisms = self._mechanism_rows(inventory, tokens, summary, by_index, vectors)
+                batch['mechanisms'][i, :len(tokens)] = torch.tensor(mechanisms)
         return move_batch(batch, device) if device is not None else batch
 
 
