@@ -81,6 +81,8 @@ def _cost_records(effect, *, head=None):
         ('send_grave',r'(?:把|将)?这张卡从手卡送去墓地','hand','grave'),
         ('send_grave',r'(?:从手卡)?(?:丢弃|舍弃)(?P<n>\d+)[只张][^，,。；;]{0,35}','hand','grave'),
         ('detach',r'(?:把|将)?这张卡(?P<n>\d+)个超量素材取除','xyz_material','grave'),
+        ('banish',r'(?P<self_grave>(?:把|将)?(?:自己的?)?墓地的这张卡|(?:把|将)?这张卡从(?:自己的?)?墓地'
+                  r'|从(?:自己的?)?墓地(?:把|将)这张卡)(?:里侧)?除外','grave','banished'),
         ('banish',r'(?:把|将|从)(?:(?:自己|对方)(?:的)?)?(?:额外卡组|融合卡组|手卡|墓地|场上|卡组)[^，,。；;]{0,70}?除外',None,'banished'),
         ('release',r'(?:把|将)(?:自己(?:的)?)?[^，,。；;]{1,60}解放','field','grave'),
     )
@@ -93,7 +95,8 @@ def _cost_records(effect, *, head=None):
             n=match.groupdict().get('n')
             if n is None:
                 count=re.search(r'(\d+)[只张个]',match[0]); n=count[1] if count else None
-            if '这张卡从手卡' in match[0]:n=1
+            self_grave = match.groupdict().get('self_grave') is not None
+            if self_grave or '这张卡从手卡' in match[0]:n=1
             matched_origin=origin or next((v for k,v in _ZONE.items() if k in match[0]),None)
             origins=source_zones(match[0]) or ([matched_origin] if matched_origin else [])
             matched_owner='opponent' if '对方' in match[0] else 'self'
@@ -101,6 +104,8 @@ def _cost_records(effect, *, head=None):
                 quantity=int(n) if n is not None else None,quantity_status='explicit' if n is not None else 'unknown',
                 owner=matched_owner,owner_status='recognized',from_zones=origins,to_zone=destination,
                 resource='cards',source=match[0],random=bool(re.search(r'卡组(?:上面|顶端)|随机',match[0])),face_down='里侧' in match[0])))
+            if self_grave:
+                found[-1][2]['subject'] = 'this_card'
             if origin == 'deck' and kind == 'send_grave' and found[-1][2]['random']:
                 found[-1][2]['selector_query'] = {'selector': '卡'}
                 if match.groupdict().get('up_to') and int(n) > 1:
@@ -260,7 +265,12 @@ def _bind_revealed_summon(record):
 def _refine_record(record,row,head,body,mode):
     """Refine public observations; leave the checkpoint's legacy features intact."""
     from .effect_blocks import source_zones
+    grave_self_payment = False
     for cost in record['costs']:
+        if cost.get('subject') == 'this_card' and cost['from_zones'] == ['grave']:
+            grave_self_payment = True
+            cost.update(source_card_id=record['card_id'],
+                selector_query={'predicate': {'field': 'card_ids', 'value': [record['card_id']]}})
         if cost.get('exclude_source_copy'):
             cost['source_card_id']=record['card_id']
         if re.fullmatch(r'(?:把|将)?这张卡从手卡(?:送去墓地|丢弃|舍弃)',cost.get('source','')):
@@ -375,7 +385,7 @@ def _refine_record(record,row,head,body,mode):
                     quantity_status='explicit', owner='self', owner_status='recognized', random=False,
                     selector_query={'predicate':{'field':'card_ids','value':[record['card_id']]}})
     if (mode=='activated' and (event or not condition)) or ordinary_spell or equipment:
-        event=event or ('own_main_phase' if row.get('type',0)&1 else 'card_activation')
+        event=event or ('own_main_phase' if grave_self_payment or row.get('type',0)&1 else 'card_activation')
         record['trigger'].update(event=event,reason='effect' if event=='sent_to_grave' else 'not_applicable',
             additional_conditions='none_in_recognized_activation_clause')
         if event in ('sent_to_grave', 'destroyed_and_sent_to_grave'):record['trigger']['zone']='grave'
@@ -390,6 +400,8 @@ def _refine_record(record,row,head,body,mode):
             targets='observed' if targets else 'none_in_recognized_activation_clause')
         record['unknown']=[v for v in record['unknown'] if v not in (
             'activation_boundary','activation_condition','additional_activation_conditions','cost_or_condition')]
+    if grave_self_payment:
+        record['trigger']['zone'] = 'grave'
     # No printed count clause means no printed once-per-turn limit, rather
     # than an unknown counter. An unrecognized count clause stays unknown.
     from .effect_count_limits import _count_clauses,parse_count_limits
@@ -545,6 +557,16 @@ def _refine_record(record,row,head,body,mode):
         if op['kind']=='damage_change' and re.fullmatch(r'直到回合结束时对方受到的全部伤害变成一半',complete_source):
             op.update(owner='opponent',subject='damage_received',quantity=1,
                 amount_rule=dict(kind='multiply',fraction=[1,2]),applies_after='this_card_activation')
+    if (len(record['operations']) == 2 and len(targets) == 1 and not record['costs']
+            and re.fullmatch(r'从自己的手卡[·、]墓地选1只「[^」]+」怪兽特殊召唤[，,]'
+                             r'作为对象的怪兽送去墓地[。.]?', body)):
+        summon, send = record['operations']
+        if summon['kind'] == 'special_summon' and send['kind'] == 'send_grave' and send.get('target_ref') == 0:
+            # The summon must succeed for the original target to be sent.
+            # Both movements are simultaneous for timing.
+            group = summon['block_id']
+            summon['simultaneous_group'] = group
+            send.update(simultaneous_group=group, depends_on=[summon['block_id']])
     _bind_revealed_summon(record)
     _excavation_processing(record)
     for op in record['operations']:
@@ -613,6 +635,9 @@ def _refine_record(record,row,head,body,mode):
     # The coarse legacy scanner may have missed a verb already represented by
     # the scoped block view. Clear only a body fully covered by those spans.
     remaining=body
+    for op in record['operations']:
+        if op.get('phase') == 'delayed' and op.get('timing') == 'end_phase' and op.get('timing_source'):
+            remaining = remaining.replace(op['timing_source'], '')
     for item in sorted((*record['block_view']['blocks'],*record['block_view']['restrictions']),
                        key=lambda item:len(item.get('source','')), reverse=True):
         remaining=remaining.replace(item.get('source',''),'')

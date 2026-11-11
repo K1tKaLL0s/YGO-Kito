@@ -449,6 +449,11 @@ def complete_structure(text, row, scope, blocks, costs, procedures, restrictions
             if b['kind'] in ('destroy','send_grave','banish','return_hand','stats') and re.search(r'(?:结束|准备)阶段',source) and not re.search(r'阶段[^。]{0,30}发动',source):
                 b['qualifiers']['timing_source']=source
                 if re.search(r'这个回合|下次|下个|第\d+次',source):b['phase']='delayed'
+            end_hand_banish = re.fullmatch(r'这个回合的结束阶段[，,]自己(\d+)张手卡除外', source)
+            if b['kind'] == 'banish' and end_hand_banish:
+                b['phase'] = 'delayed'
+                b['qualifiers'].update(quantity=int(end_hand_banish[1]), owner='self', from_zones=['hand'],
+                    to_zone='banished', selector_query={'selector': '卡'}, random=False, timing='end_phase', starts_chain=False)
             if b['kind']=='destroy' and '这张卡发动后' in source:
                 b['phase']='delayed'
                 b['qualifiers'].update(subject='this_card',quantity=1,from_zones=['field'],to_zone='grave',timing_source=source)

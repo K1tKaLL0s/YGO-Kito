@@ -25,7 +25,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v31"
+NORMALIZATION_VERSION = "construction-function-normalization-v32"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -47,7 +47,8 @@ def _mapped_restriction(record, restriction):
         and any(_leave_field_rule(record, op) for op in record["operations"]))
 
 
-def _configuration_relations(available, records, dependencies, aliases, operation_facts, facts, pools, context):
+def _configuration_relations(available, records, dependencies, aliases, operation_facts, facts, pools, context,
+                             *, compact_stock=False):
     """Static applicability and complete stock, without a current duel state.
 
     An activation port describes a printed use, not an event witnessed in a
@@ -172,11 +173,20 @@ def _configuration_relations(available, records, dependencies, aliases, operatio
                             handled.add(need.need_id)
                         elif req['owner'] == 'self':
                             handled.add(need.need_id)
-                            for target in sorted(present):
-                                if not matches(rows[target], req['query']):
-                                    continue
-                                if req['origin'] in ('hand', 'deck') and target not in available.main or req['origin'] == 'extra' and target not in available.extra:
-                                    continue
+                            stock = [target for target in sorted(present) if matches(rows[target], req['query'])
+                                and (req['origin'] not in ('hand', 'deck') or target in available.main)
+                                and (req['origin'] != 'extra' or target in available.extra)]
+                            if compact_stock and stock:
+                                # A resident use needs a legal allocation. Put
+                                # equivalent candidates in one pool while the
+                                # allocator still distinguishes physical copies.
+                                pid = key+':stock'
+                                members = tuple(('extra' if c in available.extra else 'main', c) for c in stock)
+                                pools[pid] = ResourcePool(pid, req['source'], inventory=members)
+                                added.append(RelationFact(key, key, resource, 'complete static selector: '+req['source'],
+                                    quantity=len(available.main)+len(available.extra), output_pool=pid))
+                                continue
+                            for target in stock:
                                 section, pid = physical(target)
                                 target_key = key+':'+str(target)
                                 added.append(RelationFact(target_key, target_key, resource, 'complete static selector: '+req['source'],
@@ -262,8 +272,9 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
             rel_uses.append(UseRequirement(uid, InputGroup("all", (Need(uid, output, mode="presence"),)),
                 fact.source, required=False))
             operation_facts[code, ri, oi] = uid
+    compact_stock = context is None and len(available.main) <= len(deck.main) and len(available.extra) <= len(deck.extra)
     configured, handled = _configuration_relations(available, records, dependencies, aliases,
-        operation_facts, rel_facts, rel_pools, context)
+        operation_facts, rel_facts, rel_pools, context, compact_stock=compact_stock)
     rel_facts.extend(configured)
     if context is not None:
         rel_facts.extend(context.relations.facts)
@@ -390,6 +401,11 @@ def _targeted_calls(deck, available, records, dependencies, operation_facts):
                     if not any(dependencies.candidate_status(target, dict(category='operations',
                             operation=dict(operation, from_zones=[origin])))[0] is True for origin in origins):
                         continue
+                    if operation.get('simultaneous_group'):
+                        proof = dependencies.simultaneous_processing(available, operation_record(record, operation),
+                            operation, card_id=target)
+                        if proof is not None and proof['status'] != 'inventory_present':
+                            continue
                     calls.append(dict(source=uid.removeprefix('functional:'), target=target, event=event, reason=reason))
     return calls
 
@@ -826,7 +842,11 @@ def _bind_mandatory_impacts(facts, context, condition):
         for previous in (details[use.use_id].get('operation') or {}).get('depends_on', ()):
             support_order.update((uid, use.use_id)
                 for uid in operation_uses[use.scope_id, use.effect_id, previous])
-    order.update(support_order)
+    for left, right in support_order:
+        first = details[left].get('operation') or {}
+        second = details[right].get('operation') or {}
+        if not first.get('simultaneous_group') or first['simultaneous_group'] != second.get('simultaneous_group'):
+            order.add((left, right))
 
     def support_members(members):
         members = set(members)
@@ -1009,10 +1029,19 @@ def _special_summon_supported(code, available, records, dependencies, relation, 
                 req = dependencies.item_requirement(operation,'operations')
                 if not req or req['owner']!='self' or not matches(dependencies.rows[code],req['query']):
                     continue
-                state = relation['uses'].get(operation_facts.get((supplier,ri,oi)),{})
-                if state.get('status')=='supported':
+                state = relation['uses'].get(operation_facts.get((supplier,ri,oi)), {})
+                status = state.get('status')
+                if status in ('supported', 'unknown') and operation.get('simultaneous_group'):
+                    proof = dependencies.simultaneous_processing(available, operation_record(record, operation),
+                        operation, card_id=code)
+                    if proof is not None:
+                        if proof['status'] == 'missing':
+                            continue
+                        if proof['status'] == 'unknown':
+                            status = 'unknown'
+                if status == 'supported':
                     return True
-                possible |= state.get('status')=='unknown'
+                possible |= status == 'unknown'
     if code in available.extra:
         _, materials = dependencies.specs(code)
         if materials:

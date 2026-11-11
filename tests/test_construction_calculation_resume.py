@@ -53,6 +53,48 @@ class CalculationResumeTests(unittest.TestCase):
         self.assertIn('use', kinds)
         self.assertIn('joint', kinds)
 
+    def test_isolated_existence_stops_after_a_full_known_allocation(self):
+        from ygo_kito.construction_relations import Claim, Resource, ResourcePool
+        from ygo_kito.validation import ContractError
+        supplies = tuple(fact(f'supply:{i}', None, output=Resource('choice'),
+            claims=(Claim('shared'),) if i == 0 else (), unknown=('selector',) if i == 1 else ())
+            for i in range(12))
+        consumer = use('complete', need('choice'), need('required'))
+        required = fact('required', None, claims=(Claim('shared'),))
+        context = RelationContext((consumer,), (*supplies, required),
+            (ResourcePool('shared', 'one available payment', capacity=1),))
+        deck = skeleton((1,))
+
+        def evaluate(context, **options):
+            return evaluate_relations(deck, context, relation_index(None, context), **options).data
+
+        complete = evaluate(context)
+        early = evaluate(context, existential=True)
+        self.assertEqual(complete['joint_required']['status'], 'supported')
+        self.assertEqual(early['joint_required']['status'], 'supported')
+        witness, = early['joint_required']['branches']
+        self.assertNotIn('supply:0', witness['suppliers'])
+        self.assertNotIn('supply:1', witness['suppliers'])
+        self.assertLess(early['work']['allocation_states'], complete['work']['allocation_states'])
+        self.assertEqual(evaluate(replace(context, facts=(supplies[0], required)),
+            existential=True)['joint_required']['status'], 'missing')
+        uncertain = replace(context, facts=(supplies[0], supplies[1], required))
+        self.assertEqual(evaluate(uncertain, existential=True)['joint_required']['support_expression'],
+                         evaluate(uncertain)['joint_required']['support_expression'])
+        with self.assertRaisesRegex(ContractError, 'one isolated use'):
+            evaluate(replace(context, uses=(consumer, use('another', need('second')))), existential=True)
+
+        sliced = replace(context, budget=replace(context.budget, allocations=8))
+        progress = None
+        for _ in range(100):
+            current = evaluate(sliced, continuation=progress, resumable=True, existential=True)
+            if 'continuation' not in current:
+                break
+            progress = roundtrip(current['continuation'])
+        else:
+            self.fail('existence-only allocation did not resume to completion')
+        self.assertEqual(roundtrip(current['joint_required']), roundtrip(early['joint_required']))
+
     def test_fact_keeps_its_queue_position_until_local_alternatives_finish(self):
         from ygo_kito.construction_relations import Resource
         context = RelationContext((use('target', need('end')),), (

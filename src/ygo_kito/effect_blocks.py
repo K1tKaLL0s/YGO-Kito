@@ -16,7 +16,7 @@ import tempfile
 from .effect_block_rules import FUNCTIONS, structural_records
 
 BLOCK_VERSION = "public-effect-blocks-v1"
-BLOCK_REVISION = 'local-library-review-20261111-b19'
+BLOCK_REVISION = 'local-library-review-20261112-b20'
 LABELS = {
     "send_grave": "送墓", "search": "检索", "recover": "回收", "add_hand": "加入手牌",
     "draw": "抽卡", "special_summon": "特召", "fusion_summon": "融合召唤",
@@ -591,9 +591,14 @@ def record_operations(record):
                   block_id=block['block_id'],effect_key=record['effect_key'])
         if record['block_view']['alternatives']:op['choice']='option:'+str(block['branch'])
         prior=previous.get(block['branch'])
-        if prior and re.search(r'那之后|然后|之后',record['source_text'][prior['order']:block['order']]):
-            op['depends_on']=[prior['block_id']]
-        previous[block['branch']]=block
+        if kind == 'shuffle' and prior and prior['kind'] == 'return_deck' and prior['source_span'] == block['source_span']:
+            # Shuffling belongs to the return clause. A subsequent operation
+            # requires the card to have returned, including to the Extra Deck.
+            op['depends_on'] = [prior['block_id']]
+        else:
+            if prior and re.search(r'那之后|然后|之后',record['source_text'][prior['order']:block['order']]):
+                op['depends_on']=[prior['block_id']]
+            previous[block['branch']]=block
         result.append(op)
     return result
 

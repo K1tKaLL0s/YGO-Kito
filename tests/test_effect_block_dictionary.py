@@ -58,6 +58,46 @@ class EffectBlockDictionaryTests(unittest.TestCase):
         self.assertIn('卡组送墓',self.labels(21623008))
         self.assertNotIn('卡组送墓',self.labels(94886282))
 
+    def test_shuffle_reborn_grave_payment_and_delayed_banish_have_distinct_roles(self):
+        code, other = 14816688, 28004531
+        catalog = synthetic('这个卡名的②的效果1回合只能使用1次。\n'
+            '①：自己场上没有怪兽存在的场合，以自己墓地1只怪兽为对象才能发动。那只怪兽特殊召唤。'
+            '这个效果特殊召唤的怪兽的效果无效化，结束阶段除外。\n'
+            '②：把墓地的这张卡除外，以自己场上1张卡为对象才能发动。那张卡回到持有者卡组洗切，'
+            '那之后自己从卡组抽1张。这个回合的结束阶段，自己1张手卡除外。',
+            id=code, name='洗牌苏生', type=2)
+        catalog.assets.rows[other] = dict(catalog.assets.rows[code], id=other, name='另一张墓地卡',
+            desc='①：把墓地的这张卡除外才能发动。抽1张。')
+        entry = catalog.effect_blocks(code)
+        record = next(row for row in entry['source_records'] if row['effect_index'] == 2)
+        effect = next(row for row in entry['effects'] if row['effect_key'] == record['effect_key'])
+        self.assertEqual((record['trigger']['event'], record['trigger']['zone']), ('own_main_phase', 'grave'))
+        self.assertEqual(record['unknown'], [])
+        payment, = effect['cost_blocks']
+        self.assertEqual((payment['kind'], payment['phase']), ('banish', 'activation_payment'))
+        cost = payment['qualifiers']
+        self.assertEqual((cost['from_zones'], cost['to_zone'], cost['quantity'], cost['subject']),
+            (['grave'], 'banished', 1, 'this_card'))
+        self.assertEqual(cost['selector_query'], {'predicate': {'field': 'card_ids', 'value': [code]}})
+        operations = {op['kind']: op for op in record['operations']}
+        target, = record['targets']
+        self.assertEqual((target['owner'], target['zones'], operations['return_deck']['target_ref']), ('self', ['field'], 0))
+        self.assertEqual(operations['draw']['depends_on'], [operations['return_deck']['block_id']])
+        delayed = operations['banish']
+        self.assertEqual((delayed['phase'], delayed['timing'], delayed['from_zones'], delayed['owner']),
+            ('delayed', 'end_phase', ['hand'], 'self'))
+        self.assertFalse(delayed['starts_chain'])
+        self.assertFalse(delayed.get('depends_on'))
+
+        from ygo_kito.build_contracts import DeckParts
+        dependencies = InventoryDependencies(catalog)
+        specs = next(row for row in dependencies.specs(code)[0] if row['record']['effect_index'] == 2)
+        self.assertEqual(specs['unknown'], [])
+        self.assertEqual([r['origin'] for r in specs['requirements']], ['grave', 'field', 'field'])
+        own_payment, = [r for r in specs['requirements'] if r['category'] == 'costs']
+        self.assertEqual(dependencies._check(DeckParts((other,)), [own_payment])['status'], 'missing')
+        self.assertEqual(dependencies._check(DeckParts((code, other)), [own_payment])['status'], 'inventory_present')
+
     def test_cost_materials_targets_and_identity_are_separate(self):
         entry=self.entry(32003338);effect=entry['effects'][0]
         self.assertIn({'dimension':'rank','value':'3'},entry['identity_tags'])

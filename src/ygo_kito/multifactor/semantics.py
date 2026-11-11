@@ -602,8 +602,11 @@ def build_analysis_graph(example, *, card_rows=None, effect_snapshots=None, stru
                 group_key = (op['simultaneous_group'], choice) if 'simultaneous_group' in op else None
                 origins = set(op.get('from_zones') or ())
                 sections = ('extra',) if origins == {'extra'} else ('main',) if origins and origins <= {'hand', 'deck'} else ('main', 'extra')
+                self_target = (group_key is not None and op.get('target_ref') is not None
+                               and origins == {'field'} and op.get('owner') == 'self')
                 for target in sorted(member_refs):
-                    if target == ref or not target.startswith("card:") or not target[5:].isdigit():
+                    if (target == ref and not self_target
+                            or not target.startswith("card:") or not target[5:].isdigit()):
                         continue
                     relation_checks += 1
                     if relation_checks > budget.relation_checks:
@@ -667,7 +670,9 @@ def build_analysis_graph(example, *, card_rows=None, effect_snapshots=None, stru
                     if deck is not None and any(sum((counts[section] or {}).get(int(target[5:]), 0)
                             for section in sections) < quantity for target, quantity in selected.items()):
                         continue
-                    members = tuple(sorted(((ref, 1), *selected.items())))
+                    # An explicit field target may be the activating card.
+                    selected.setdefault(ref, 1)
+                    members = tuple(sorted(selected.items()))
                     allocation_seeds.append(FunctionSeed(function_ref, members, functions, (residual,),
                         modes + ((function_ref + ':target_choice', digest(chosen)),), confidence, (effect_source,)))
             for category in ("costs", "targets"):

@@ -589,6 +589,37 @@ class InventoryDependencies:
             shortfall=0 if options or unresolved else 1,options=options,uncovered_targets=sorted(set(unresolved)),
             source=selection['source'],actual_duel_state_required=False)
 
+    def simultaneous_processing(self, deck, record, selected=None, *, card_id=None):
+        """Check the distinct summon and target of one simultaneous processing."""
+        if selected is not None and not selected.get('simultaneous_group'):
+            return None
+        if len(record['operations']) != 2 or record['costs']:
+            return None
+        summon, send = record['operations']
+        group = summon.get('simultaneous_group')
+        if (not group or group != send.get('simultaneous_group')
+                or summon['kind'] != 'special_summon' or send['kind'] != 'send_grave'
+                or send.get('target_ref') is None or send.get('depends_on') != [summon['block_id']]):
+            return None
+        requirements = [self.item_requirement(op, 'operations') for op in (summon, send)]
+        if any(req is None or req['owner'] != 'self' for req in requirements):
+            return dict(status='unknown', reason='simultaneous_processing_selector')
+        for req, operation in zip(requirements, (summon, send)):
+            req['operation'] = operation
+        if record['trigger'].get('zone') == 'field':
+            # The activating card can be the field target, but its physical
+            # copy cannot also be summoned from the hand or Graveyard.
+            requirements[0].update(source_card_id=record['card_id'], exclude_source_copy=True)
+        if card_id is not None:
+            req = requirements[0 if selected is summon or selected == summon else 1]
+            predicate = {'field': 'card_ids', 'value': [card_id]}
+            query = req['query']
+            if 'predicate' in query:
+                predicate = {'all': [query['predicate'], predicate]}
+            req['query'] = dict(query, predicate=predicate)
+        proof = self._check(deck, requirements, distinct=True)
+        return dict(status=proof['status'], reason='simultaneous_processing_entities', checks=[proof])
+
     def processing_check(self, deck, record, selected=None, *, physical_inventory=None):
         """Allocate the printed complete processing, not a duel starting hand.
 
@@ -605,6 +636,10 @@ class InventoryDependencies:
                       record,(selected or {}).get('block_id')])
         if key in self._processing:
             return self._processing[key]
+        simultaneous = self.simultaneous_processing(deck, record, selected)
+        if simultaneous is not None:
+            self._processing[key] = simultaneous
+            return simultaneous
         # Bind a printed name comparison to the payment's chosen entity. Each
         # finite name branch still uses the same integer processing allocator.
         comparisons = {(field, op[field]) for op in record['operations']
@@ -661,7 +696,7 @@ class InventoryDependencies:
         parts = []
         for category in ('costs', 'operations'):
             for item in record[category]:
-                if item.get('optional') and item != selected:
+                if item.get('phase') == 'delayed' or item.get('optional') and item != selected:
                     continue
                 req = self.item_requirement(item, category)
                 if req and req['owner'] == 'self' and item.get('to_zone') and not item.get('random'):
@@ -727,7 +762,7 @@ class InventoryDependencies:
             index = relation_index(None, context)
             counts = Counter((z, c) for z in ('main', 'extra') for c in getattr(deck, z))
             relation = evaluate_relations(SkeletonSpec(physical_inventory, ()), context, index,
-                inventory_counts=counts).to_dict()['joint_required']
+                inventory_counts=counts, existential=True).to_dict()['joint_required']
             result = dict(status={'supported':'inventory_present','missing':'missing','unknown':'unknown'}[relation['status']],
                 reason='complete_processing_entities', checks=checks, relation=relation)
         self._processing[key] = result

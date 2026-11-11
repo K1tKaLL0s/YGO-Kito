@@ -937,8 +937,11 @@ def _record_facts(code, records, *, zone="main", same_name=None, inventory=None,
         for category in ("costs", "targets"):
             for i, item in enumerate(record[category]):
                 quantity = item.get("quantity")
+                attributes = (item.get("source") or ref + f":{category}:{i}",)
+                if category == "costs" and item.get('subject') == 'this_card' and item.get('source_card_id') == code:
+                    attributes += ('source_card:' + str(code),)
                 resource = Resource("payment" if category == "costs" else "target",
-                    reason=item.get("reason"), attributes=(item.get("source") or ref + f":{category}:{i}",))
+                    reason=item.get("reason"), attributes=attributes)
                 state_payment = item.get('consumes_card') is False or item.get('resource') in ('public_state','card_state')
                 inputs.append(Need(ref + f":{category}:{i}", resource, quantity or 1,
                                    "consume" if category == "costs" and not state_payment else "presence"))
@@ -991,9 +994,18 @@ def _record_facts(code, records, *, zone="main", same_name=None, inventory=None,
                     if not any(state['source']==connector['condition_source'] for state in op.get('state_conditions',())):
                         extra_unknown.append('operation_condition_unresolved')
             if op.get('depends_on'):
-                operation_conditions.extend('preceding_operation:'+v for v in op['depends_on'])
-                refs=record.get('operation_refs') or {v.get('block_id'):ref+':op:'+str(j) for j,v in _record_outputs(record)}
+                observed = {v.get('block_id'): v for _, v in _record_outputs(record)}
+                refs = record.get('operation_refs') or {v.get('block_id'): ref+':op:'+str(j)
+                    for j, v in _record_outputs(record)}
+                if functional and any(previous in observed and observed[previous].get('choice') == op.get('choice')
+                                      for previous in op['depends_on']):
+                    # The prerequisite already reserves this same activation,
+                    # costs and target. Picking them again can change the target.
+                    operation_inputs.clear()
                 for previous in op['depends_on']:
+                    group = op.get('simultaneous_group')
+                    simultaneous = group and observed.get(previous, {}).get('simultaneous_group') == group
+                    operation_conditions.append(('required_same_processing:' if simultaneous else 'preceding_operation:') + previous)
                     if previous in refs and functional:
                         operation_inputs.append(Need(ref+':preceding:'+str(i)+':'+previous,
                             Resource('functional_operation',attributes=(refs[previous],)),mode='presence'))
@@ -1925,11 +1937,11 @@ def _combine_summary(rows, operator, key, index, capacities, states):
     return _check_usage(result, index, capacities, states)
 
 
-def _combine(rows, operator, key, index, capacities, states):
+def _combine(rows, operator, key, index, capacities, states, *, existential=False):
     """Keep alternatives intact until the enclosing ALL checks their resources."""
     if not rows:
         return _blank("supported")
-    record, work = _allocation_record(index, 'combine', (rows, operator, key))
+    record, work = _allocation_record(index, 'exists' if existential else 'combine', (rows, operator, key))
     if 'result' in record:
         return _restore_relation(deepcopy(record['result']))
     exhausted = any(r.get("branches_incomplete", False) for r in rows)
@@ -1975,7 +1987,15 @@ def _combine(rows, operator, key, index, capacities, states):
             if work is not None:
                 work.operations = parent_operations
                 work.shared_operations = parent_shared
-        branches.extend(branch.get('branches', [branch]))
+        values = branch.get('branches', [branch])
+        if existential:
+            witness = next((value for value in values if value['status'] == 'supported'), None)
+            if witness is not None:
+                result = _combine_summary([witness], 'any', key, index, capacities, states)
+                result['branches'] = [witness]
+                record['result'] = deepcopy(result)
+                return result
+        branches.extend(values)
         if operator == 'any':
             row, item = cursor
             record['cursor'] = ([row, item + 1] if item + 1 < len(options[row]) else
@@ -2078,13 +2098,13 @@ def _partial_allocations(partial, quantity, budget, *, work_state=None, work=Non
 
 
 @_cached_allocation(1, (0, 5, 6))
-def _group(group, index, states, counts, capacities, prefix, blocked=None):
+def _group(group, index, states, counts, capacities, prefix, blocked=None, *, existential=False):
     if group is None:
         return _blank("supported")
     if isinstance(group, InputGroup):
         from .construction_recognition import allocate_relation_group
         allocation = None if any(_recoveries(p) for p in index.pools.values()) else (
-            allocate_relation_group(group, index, states, counts, capacities, prefix, blocked))
+            allocate_relation_group(group, index, states, counts, capacities, prefix, blocked, existential=existential))
         if allocation is not None:
             if allocation["status"] == "missing":
                 missing = [n.need_id for n in _needs(group)
@@ -2092,7 +2112,8 @@ def _group(group, index, states, counts, capacities, prefix, blocked=None):
                 allocation["gaps"] = sorted(missing) or allocation["gaps"]
             return allocation
         return _combine([_group(v, index, states, counts, capacities, prefix + f":{i}", blocked)
-                         for i, v in enumerate(group.items)], group.operator, prefix, index, capacities, states)
+                         for i, v in enumerate(group.items)], group.operator, prefix, index, capacities, states,
+                        existential=existential)
     need = group
     rows = []
     partial = {}
@@ -2170,7 +2191,7 @@ def _group(group, index, states, counts, capacities, prefix, blocked=None):
         if result["status"] == "unknown" and not result["unknown"]:
             result["unknown"].append("conditional_quantity_supply:" + need.need_id)
     else:
-        result = _combine(rows, "any", prefix + ":" + need.need_id, index, capacities, states)
+        result = _combine(rows, "any", prefix + ":" + need.need_id, index, capacities, states, existential=existential)
     result["quantities"][need.need_id] = {"required": need.quantity, "capacity_upper": upper,
         "shortfall_lower": None if upper is None else max(0, need.quantity-upper)}
     return _unknown_support(result)
@@ -2209,13 +2230,15 @@ def order_possible(members, edges):
 
 
 def evaluate_relations(skeleton, context, index, *, previous=None, inventory_counts=None,
-                       continuation=None, should_stop=None, resumable=False):
+                       continuation=None, should_stop=None, resumable=False, existential=False):
     """Least supported closure on a finite graph; no source means no support.
 
     A previous evaluation reuses unaffected states, not a second matching pass.
     Shared usage and probabilities are cheap global summaries of current states.
     """
     ctx = _context(context)
+    if existential and (len(ctx.uses) != 1 or not ctx.uses[0].required or ctx.constraints):
+        raise ContractError('existence-only relation evaluation requires one isolated use')
     if not isinstance(index, RelationIndex) or index.context != ctx:
         raise ContractError("relation index belongs to another context")
     if index.name_groups != getattr(context, "same_name_groups", ()):
@@ -2264,7 +2287,8 @@ def evaluate_relations(skeleton, context, index, *, previous=None, inventory_cou
     from .build_contracts import digest
     binding=digest(dict(facts=[asdict(f) for f in index.facts.values()],uses=[asdict(u) for u in ctx.uses],
         pools=[asdict(p) for p in index.pools.values()],constraints=[asdict(c) for c in ctx.constraints],
-        inventory=sorted((z,c,n) for (z,c),n in counts.items())))
+        inventory=sorted((z,c,n) for (z,c),n in counts.items()),
+        **({'existential': True} if existential else {})))
     def same_state(left, right):
         # Allocation witnesses contain ordered tuples; JSON represents them
         # as lists. That representation change is not a new resource fact.
@@ -2327,6 +2351,8 @@ def evaluate_relations(skeleton, context, index, *, previous=None, inventory_cou
         return _map_branches(value, activate, fid, index, capacities, states)
 
     def joint_value(key, members):
+        if existential:
+            return uses[members[0]]
         # A terminal joint needs an existence proof, rather than the Cartesian
         # product of every use's complete witness set. Direct, unconditional
         # supplies are already supported by the same shared allocator.
@@ -2370,7 +2396,7 @@ def evaluate_relations(skeleton, context, index, *, previous=None, inventory_cou
                 u = ctx.uses[use_cursor]
                 uses[u.use_id] = unit('use', u.use_id, lambda: deepcopy(previous.use_states[u.use_id])
                     if reused and 'use:' + u.use_id not in affected else
-                    _group(u.inputs, index, states, counts, capacities, 'use:' + u.use_id))
+                    _group(u.inputs, index, states, counts, capacities, 'use:' + u.use_id, existential=existential))
                 use_cursor += 1
             while joint_cursor < len(joint_definitions):
                 if should_stop is not None and should_stop():
@@ -2443,7 +2469,7 @@ def evaluate_relations(skeleton, context, index, *, previous=None, inventory_cou
                                 preview_queued.add(owner[5:])
             for u in ctx.uses[use_cursor:]:
                 uses[u.use_id] = provisional(lambda: _group(u.inputs, index, states, counts, capacities,
-                    'use:' + u.use_id), u.use_id)
+                    'use:' + u.use_id, existential=existential), u.use_id)
             for key, members in joint_definitions[joint_cursor:]:
                 joint_groups[key] = provisional(lambda: joint_value(key, members), key)
         finally:

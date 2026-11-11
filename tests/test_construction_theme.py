@@ -235,6 +235,19 @@ class AutomaticThemeTests(unittest.TestCase):
         task = BuildTask.from_dict(raw)
         policy = host_construction_quality(task, catalog=binder.semantic_catalog)[0]
         deck = replace(decks[1], extra=(kitkallos, decoy))
+        from ygo_kito.construction_inventory import InventoryDependencies
+        inventory = InventoryDependencies(binder.semantic_catalog)
+        record = next(r for r in binder.semantic_catalog.effect_records(kitkallos) if r['effect_index'] == 2)
+        summon, send = record['operations']
+        self.assertEqual((record['trigger']['zone'], record['targets'][0]['zones']), ('field', ['field']))
+        self.assertEqual(record['costs'], [])
+        self.assertEqual((summon['from_zones'], send['reason'], send['target_ref']), (['hand', 'grave'], 'effect', 0))
+        self.assertEqual(summon['simultaneous_group'], send['simultaneous_group'])
+        self.assertEqual(send['depends_on'], [summon['block_id']])
+        for selected in (summon, send):
+            self.assertEqual(inventory.processing_check(DeckParts((2,), (kitkallos,)), record, selected)['status'], 'missing')
+        self.assertEqual(inventory.simultaneous_processing(deck, record, send, card_id=kitkallos)['status'],
+                         'inventory_present')
 
         def pairs_for(candidate):
             work = {}
@@ -255,10 +268,33 @@ class AutomaticThemeTests(unittest.TestCase):
         self.assertIn((fusion, (kitkallos, 1)), pairs)
         self.assertNotIn((fusion, (decoy, 1)), pairs)
         self.assertIn(((kitkallos, 2, 'special_summon'), (merrli, 1)), pairs)
-        self.assertIn(((kitkallos, 2, 'send_grave'), (merrli, 2)), pairs)
+        send_merrli = ((kitkallos, 2, 'send_grave'), (merrli, 2))
+        self.assertNotIn(send_merrli, pairs)
+        with_second_merrli = replace(deck, main=(*deck.main[:-1], merrli))
+        self.assertEqual(with_second_merrli.main.count(merrli), 2)
+        self.assertIn(send_merrli, pairs_for(with_second_merrli))
         self.assertIn(((kitkallos, 3, 'mill'), (merrli, 2)), pairs)
         without_second_material = replace(deck, main=tuple(3 if code == 2 else code for code in deck.main))
         self.assertNotIn((fusion, (kitkallos, 1)), pairs_for(without_second_material))
+
+        from ygo_kito.multifactor.contracts import AnalysisContext, DeckSpec, Factors, RoleInput
+        from ygo_kito.multifactor.semantics import build_analysis_graph
+        source_ref, merrli_ref = f'card:{kitkallos}', f'card:{merrli}'
+        scope = source_ref + ':effect:1:op:0:target_choice'
+        self_target = digest(((merrli_ref,), (source_ref,)))
+        separate_merrli = digest(((merrli_ref,), (merrli_ref,)))
+        for count, expected in ((1, {self_target}), (2, {self_target, separate_merrli})):
+            with self.subTest(recognition_merrli_count=count):
+                example = RoleInput('printed configuration', Factors('context'), (),
+                    analysis_mode='deck_analysis', analysis_context=AnalysisContext(),
+                    deck=DeckSpec(((merrli, count),), ((kitkallos, 1),), ()))
+                graph = build_analysis_graph(example, card_rows=assets.rows)
+                witnesses = {key: axis.members for axis in graph.candidates.candidates
+                             for identifier, key in axis.mode_choices if identifier == scope}
+                self.assertEqual(set(witnesses), expected)
+                self.assertEqual(dict(witnesses[self_target]), {source_ref: 1, merrli_ref: 1})
+                if count == 2:
+                    self.assertEqual(dict(witnesses[separate_merrli]), {source_ref: 1, merrli_ref: 2})
 
     def test_reason_owner_selector_and_incomplete_text_do_not_create_false_cooperation(self):
         for change in ('reason', 'owner', 'selector', 'suffix'):

@@ -116,6 +116,16 @@ def _movement_domain(source, dependencies, available, profile_cards, *, fusion_p
         known = cards
     if query is not None:
         cards = {c for c in cards if matches(dependencies.rows[c], query)}
+    if profile_cards is None and operation.get('simultaneous_group'):
+        # The recipient must fit the complete processing. A card matching
+        # the target selector may still be the only legal summon candidate.
+        proofs = {card_id: dependencies.simultaneous_processing(available, scoped, operation, card_id=card_id)
+                  for card_id in sorted(cards)}
+        if any(proof is not None for proof in proofs.values()):
+            known = {card_id for card_id, proof in proofs.items()
+                     if proof is not None and proof['status'] == 'inventory_present'}
+            cards = {card_id for card_id, proof in proofs.items()
+                     if proof is not None and proof['status'] != 'missing'}
     return cards, known, gaps
 
 
@@ -168,12 +178,13 @@ def direct_connection(source, receiver, dependencies, available, movement_domain
         if not resources:
             return None
         kind = 'resource'
-    if op['kind'] == 'fusion_summon':
-        confirmed = known.intersection(resources)
-        if confirmed:
-            resources = sorted(confirmed)
-        else:
-            gaps.append('fusion_material_configuration')
+    confirmed = known.intersection(resources)
+    if confirmed:
+        resources = sorted(confirmed)
+    elif op['kind'] == 'fusion_summon':
+        gaps.append('fusion_material_configuration')
+    elif op.get('simultaneous_group'):
+        gaps.append('simultaneous_processing_configuration')
     return dict(kind=kind, zone=zone, event=trigger.get('event') if triggered else None,
         resources=resources, gaps=gaps)
 

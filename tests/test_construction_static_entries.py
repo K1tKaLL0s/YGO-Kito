@@ -492,6 +492,27 @@ class StaticEntryTests(unittest.TestCase):
         self.assertIn('unrecognized_operation',effect['gaps'])
         self.assertIn('调整尚未识别的计数',effect['record']['source_text'])
 
+    def test_shuffle_reborn_checks_one_resident_allocation_and_binds_its_own_payment(self):
+        self.assets.rows[1].update(type=2, name='洗牌苏生',
+            desc='这个卡名的②的效果1回合只能使用1次。\n'
+                 '②：把墓地的这张卡除外，以自己场上1张卡为对象才能发动。'
+                 '那张卡回到持有者卡组洗切，那之后自己从卡组抽1张。这个回合的结束阶段，自己1张手卡除外。')
+        self.assets.rows[2].update(type=33, desc='①：把墓地的这张卡除外才能发动。自己抽1张。')
+        catalog = CatalogBindingAdapter(self.assets).semantic_catalog
+        work = {}
+        facts = normalize_function_uses(self.task, self.deck, catalog, policy=self.policy, work_state=work)
+        relation = work['projections']['resident']['relation']
+        checks = [row for key, row in relation['uses'].items() if key.startswith('functional:catalog:1:2:')]
+        self.assertTrue(checks)
+        for row in checks:
+            self.assertEqual(row['status'], 'supported', row['unknown'])
+            witness, = row['branches']
+            resources = [relation['resource_pools'][pid] for pid, claims in witness['usage'].items()
+                if pid in relation['resource_pools'] and any(token.startswith('consume:effect:catalog:1:2:')
+                for token in claims)]
+            self.assertEqual([p['inventory'] for p in resources], [(('main', 1),)])
+        self.assertTrue(all(state is True for state in self.state(facts, 1)))
+
     def test_complete_processing_cannot_reuse_only_hand_monster(self):
         for code, row in self.assets.rows.items():
             if code != 1:
