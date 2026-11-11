@@ -32,8 +32,8 @@ from ygo_kito.validation import ContractError, fields, parse_json
 
 MANIFEST = "deployment-manifest.json"
 PREFIXES = ("src/", "scripts/", "tests/", "integration_tests/", "configs/", "requirements/",
-            "docs/development/", "docs/plans/", "docs/current/", "docs/examples/")
-ROOT_FILES = {"README.md", "AGENTS.md", "pyproject.toml"}
+            "docs/development/", "docs/plans/", "docs/current/", "docs/examples/", "training/")
+ROOT_FILES = {"README.md", "AGENTS.md", "pyproject.toml", "Start-Axis-Training.cmd"}
 REQUIRED_FILES = ROOT_FILES | {"src/ygo_kito/__main__.py", "src/ygo_kito/cli.py",
     "scripts/deployment_prepare.py", "scripts/training_handoff.py", "scripts/check_merge_candidate.py",
     "requirements/ci-cpu.txt", "configs/deployment-host-template-v1.json"}
@@ -50,7 +50,7 @@ def allowed(name):
     path = PurePosixPath(name)
     return (not path.is_absolute() and str(path) == name and ".." not in path.parts
             and not any(part.startswith(".") or part in ("__pycache__", "node_modules") for part in path.parts)
-            and path.suffix in (".py", ".cs", ".md", ".toml", ".json", ".txt", ".yaml", ".yml", ".sql", ".sh")
+            and path.suffix in (".py", ".cs", ".md", ".toml", ".json", ".txt", ".yaml", ".yml", ".sql", ".sh", ".ps1", ".cmd")
             and (name in ROOT_FILES or name.startswith(PREFIXES)))
 
 
