@@ -411,7 +411,7 @@ def load_checkpoint(path, expected_binding, *, allow_initial=False, device=None)
     return trainer
 
 
-def run_cpu_training_smoke(root, state_root, run_id, profile, config=None):
+def run_cpu_training_smoke(root, state_root, run_id, profile, config=None, *, device="cpu"):
     identifier(run_id)
     root, state_root = Path(root).resolve(), Path(state_root).resolve()
     run = state_root / "runs" / run_id
@@ -421,10 +421,10 @@ def run_cpu_training_smoke(root, state_root, run_id, profile, config=None):
     binding = resource_binding(root, profile)
     with sqlite3.connect((root / "engine-src/database/locales/zh-CN/cards.cdb").as_uri() + "?mode=ro", uri=True) as db:
         card_ids = [row[0] for row in db.execute("SELECT id FROM datas WHERE id>0 AND id<4294967296 ORDER BY id")]
-    trainer = CpuTrainer(cfg, card_ids)
+    trainer = CpuTrainer(cfg, card_ids, device=device)
     reporter = RunReporter(state_root)
     base = {"schema_version": 1, "run_id": run_id, "state": "running", "revision": 0,
-            "model_versions": {"duel": "cpu-duel-prototype-v1"}, "metrics": reporter.resources(), "checkpoint_ids": [], "source": "trainer"}
+            "model_versions": {"duel": trainer.device.type + "-duel-prototype-v1"}, "metrics": reporter.resources(), "checkpoint_ids": [], "source": "trainer"}
     reporter.publish(base)
     summaries, updates = [], []
     checkpoint_metadata = []
@@ -471,10 +471,10 @@ def run_cpu_training_smoke(root, state_root, run_id, profile, config=None):
         if not verified:
             raise ContractError("actual checkpoint continuation diverged")
         metrics = publish_progress("running")
-        result = {"ok": True, "scope": "bounded-duel-only-cpu-engineering-training", "competitive_ability_validated": False,
+        result = {"ok": True, "scope": "bounded-duel-only-" + trainer.device.type + "-engineering-training", "competitive_ability_validated": False,
                   "source": "real-core-on-policy-parameter-updates", "binding": binding, "model_config": asdict(cfg.model),
                   "training_config": asdict(cfg), "vocabulary_sha256": trainer.encoder.vocab_sha256,
-                  "parameter_count": sum(p.numel() for p in trainer.model.parameters()), "device": "cpu", "cpu_threads": 1,
+                  "parameter_count": sum(p.numel() for p in trainer.model.parameters()), "device": str(trainer.device), "cpu_threads": 1,
                   "hardware": {"platform": platform.platform(), "machine": platform.machine(), "processor": cpu_name(),
                                "logical_cpu_count": os.cpu_count(),
                                "cpu_affinity_count": len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else None,

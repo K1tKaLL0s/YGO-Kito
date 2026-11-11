@@ -322,17 +322,17 @@ def load_checkpoint(path, assets, expected_binding, *, allow_initial=False, devi
     return trainer
 
 
-def run_build_training_smoke(root, state_root, run_id, task, config=None):
+def run_build_training_smoke(root, state_root, run_id, task, config=None, *, device="cpu"):
     identifier(run_id)
     state_root = Path(state_root).resolve()
     run = state_root / "runs" / run_id
     if run.exists():
         raise ContractError("building run already exists; choose a new run ID")
     assets, config = BuildAssets(root), config or BuildTrainingConfig()
-    trainer = BuildTrainer(task, assets, config)
+    trainer = BuildTrainer(task, assets, config, device=device)
     reporter = RunReporter(state_root)
     snapshot = {"schema_version": 1, "run_id": run_id, "state": "running", "revision": 0,
-                "model_versions": {"build_goal": "cpu-goal-prototype-v1", "build_optimizer": "cpu-optimizer-prototype-v1"},
+                "model_versions": {"build_goal": trainer.device.type + "-goal-prototype-v1", "build_optimizer": trainer.device.type + "-optimizer-prototype-v1"},
                 "metrics": reporter.resources(), "checkpoint_ids": [], "source": "trainer"}
     reporter.publish(snapshot)
     checkpoints, updates = [], []
@@ -383,7 +383,7 @@ def run_build_training_smoke(root, state_root, run_id, task, config=None):
             from .construction_progress import ConstructionSuspended
             raise ConstructionSuspended(alternation)
         metrics = publish("running")
-        result = {"schema_version": 1, "ok": True, "scope": "bounded-goal-optimizer-cpu-engineering",
+        result = {"schema_version": 1, "ok": True, "scope": "bounded-goal-optimizer-" + trainer.device.type + "-engineering",
                   "source": ("actual-transformer-updates-and-combined-native-objectives" if 'route_goal' in task.goal else "actual-transformer-updates-and-catalog-constraints") if semantic else "actual-transformer-updates-and-real-core-goal-checks",
                   "task": task.to_dict(), "binding": binding, "training_config": asdict(config),
                   "parameter_counts": {r: sum(p.numel() for p in trainer.models[r].parameters()) for r in ROLES},
@@ -391,7 +391,7 @@ def run_build_training_smoke(root, state_root, run_id, task, config=None):
                   "canonical_optimizer_calls": 4, "physical_optimizer_calls_including_recovery": 6,
                   "restore_verified": verified, "checkpoints": checkpoints, "metrics": metrics,
                   "alternation": alternation, "supervision": data,
-                  "hardware": {"device": "cpu", "torch_threads": 1, "processor": cpu_name(), "cuda_build": torch.version.cuda,
+                  "hardware": {"device": str(trainer.device), "torch_threads": 1, "processor": cpu_name(), "cuda_build": torch.version.cuda,
                                "platform": platform.platform(), "logical_cpu_count": os.cpu_count(),
                                "cpu_affinity_count": len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else None},
                   "cost": {"new_paid_instances_started": 0, "external_api_calls": 0, "cloud_development_cpu_cost": "not-exposed"},

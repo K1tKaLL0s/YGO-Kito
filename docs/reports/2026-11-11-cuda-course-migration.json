@@ -1,0 +1,202 @@
+{
+  "kind": "local-cuda-course-migration-validation-v1",
+  "environment": {
+    "success": true,
+    "python": "3.12.14",
+    "executable": "/home/chaos/.local/share/ygo-kito/cuda312/bin/python",
+    "torch": "2.9.1+cu128",
+    "cuda": "12.8",
+    "cudnn": 91002,
+    "numpy": "2.3.5",
+    "scipy": "1.16.3",
+    "device": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "capability": [
+      8,
+      9
+    ],
+    "memory_bytes": 8585216000,
+    "peak_allocated_bytes": 17302528,
+    "matrix_backward_finite": true,
+    "lock_versions_match": true
+  },
+  "migration": {
+    "kind": "explicit-cpu-to-cuda-course-migration-v1",
+    "source_root": "/mnt/n/YGO-Kito/_local_cpu_20261027/reports/optimization-20261031/2207-course-006",
+    "source_checkpoint": {
+      "active_seconds": 3975.8590677600023,
+      "path": "checkpoint-1.weights",
+      "revision": 1,
+      "sha256": "67de51d0910d144ae71b4c89352486f227f534fdda8e8ccb39809ab96c8d5637"
+    },
+    "device": "cuda:0",
+    "cuda_seed": 20261111,
+    "rng_policy": "preserve_cpu_and_owned_streams_start_new_cuda_stream",
+    "cross_device_bitwise_continuation": false,
+    "data_index_sha256": "7bd241c776bf61f80435f954e5b809dff204330f17b11cc6d4204efb79430d5a",
+    "preserved_model_state_sha256": "07f47560bf51e01a9c1348badc6a9bd046751e57bff13dc281fc166521a804d6",
+    "preserved_cursors": {
+      "build_updates": {
+        "build_goal": 5,
+        "build_optimizer": 0
+      },
+      "build_batch": 5,
+      "duel_updates": 27,
+      "duel_episodes": 27,
+      "coordinator_updates": 37
+    },
+    "runtime": {
+      "python": "3.12.14 (main, Sep 29 2026, 15:01:18) [Clang 22.1.3 ]",
+      "torch": "2.9.1+cu128",
+      "cuda": "12.8"
+    },
+    "formal_training_started": false,
+    "target_root": "/mnt/n/YGO-Kito/_local_cpu_20261027/reports/gpu-course-20261111/2207-course-006-cuda",
+    "checkpoint": {
+      "active_seconds": 3975.8590677600023,
+      "path": "checkpoint-1.weights",
+      "revision": 1,
+      "sha256": "e8cd8ad58880135dfe832cab6ad9031eba2baf343f202e2e395cffef0ec82352"
+    },
+    "restore_verified": true,
+    "preserved_match_counts": {
+      "bo1": 2,
+      "bo3": 0
+    },
+    "training_attempt_cursor": 27
+  },
+  "fixture_proof": {
+    "success": true,
+    "scope": "synthetic-four-role-optimizer-and-rng-proof",
+    "formal_training_started": false,
+    "device": "cuda:0",
+    "python": "3.12.14 (main, Sep 29 2026, 15:01:18) [Clang 22.1.3 ]",
+    "torch": "2.9.1+cu128",
+    "cuda": "12.8",
+    "boundary_sha256": "80afd7efa695c73b3a92f0d8ed25aca951b1ddf3b44d82801f0b83a281fb1260",
+    "next_update_equal": true,
+    "roles": [
+      "build_goal",
+      "build_optimizer",
+      "duel",
+      "coordinator"
+    ],
+    "losses": {
+      "build_goal": 0.15014386177062988,
+      "build_optimizer": 0.0001712686353130266,
+      "duel": 0.06386597454547882,
+      "coordinator": 0.0671941265463829
+    },
+    "forward_devices": {
+      "build_goal": "cuda:0",
+      "build_optimizer": "cuda:0",
+      "duel": "cuda:0",
+      "coordinator": "cuda:0"
+    },
+    "peak_allocated_bytes": 68854272
+  },
+  "real_course_proof": {
+    "success": true,
+    "scope": "synthetic-four-role-optimizer-and-rng-proof",
+    "formal_training_started": false,
+    "device": "cuda:0",
+    "python": "3.12.14 (main, Sep 29 2026, 15:01:18) [Clang 22.1.3 ]",
+    "torch": "2.9.1+cu128",
+    "cuda": "12.8",
+    "boundary_sha256": "826a9c906a13d855145c2ec2a086f16f8842c58ac1df69332b899a6d63e81db1",
+    "next_update_equal": true,
+    "roles": [
+      "build_goal",
+      "build_optimizer",
+      "duel",
+      "coordinator"
+    ],
+    "losses": {
+      "build_goal": 0.12357039004564285,
+      "build_optimizer": 0.285744309425354,
+      "duel": 0.2648162245750427,
+      "coordinator": 0.18165740370750427
+    },
+    "forward_devices": {
+      "build_goal": "cuda:0",
+      "build_optimizer": "cuda:0",
+      "duel": "cuda:0",
+      "coordinator": "cuda:0"
+    },
+    "peak_allocated_bytes": 99681280
+  },
+  "publication": {
+    "published": true,
+    "before": {
+      "state_root": "/mnt/n/YGO-Kito/_local_cpu_20261027/reports/optimization-20261031/2207-course-006"
+    },
+    "after": {
+      "state_root": "/mnt/n/YGO-Kito/_local_cpu_20261027/reports/gpu-course-20261111/2207-course-006-cuda"
+    },
+    "training_held": true,
+    "source_checkpoint_unchanged": true,
+    "target_checkpoint_unchanged_after_proof": true
+  },
+  "entry_check": {
+    "source_root": "/mnt/n/YGO-Kito/_publish_20261030",
+    "resource_base": "/mnt/n/YGO-Kito/_local_cpu_20261027",
+    "continuation": {
+      "state_root": "/mnt/n/YGO-Kito/_local_cpu_20261027/reports/gpu-course-20261111/2207-course-006-cuda"
+    },
+    "training_held": true,
+    "worker_started": false,
+    "python": "/home/chaos/.local/share/ygo-kito/cuda312/bin/python",
+    "required_device": "cuda:0",
+    "restored_device": null,
+    "restore_verified": false
+  },
+  "entry_restore": {
+    "source_root": "/mnt/n/YGO-Kito/_publish_20261030",
+    "resource_base": "/mnt/n/YGO-Kito/_local_cpu_20261027",
+    "continuation": {
+      "state_root": "/mnt/n/YGO-Kito/_local_cpu_20261027/reports/gpu-course-20261111/2207-course-006-cuda"
+    },
+    "training_held": true,
+    "worker_started": false,
+    "python": "/home/chaos/.local/share/ygo-kito/cuda312/bin/python",
+    "required_device": "cuda:0",
+    "restored_device": "cuda:0",
+    "restore_verified": true
+  },
+  "targeted_first_run": {
+    "modules": [
+      "tests.test_course_cuda_migration",
+      "tests.test_device_execution",
+      "tests.test_course_models",
+      "tests.test_cpu_course_launch",
+      "tests.test_course_storage_envelope.CourseEnvelopeTests.test_real_course_checkpoint_uses_reserved_sink_and_restores_exact_models",
+      "tests.test_deployment_prepare",
+      "tests.test_cli",
+      "tests.test_observed_bot_source_review"
+    ],
+    "tests_run": 59,
+    "failures": 2,
+    "errors": 1,
+    "skipped": 0,
+    "success": false,
+    "seconds": 29.77917605399989,
+    "python": "3.12.14 (main, Sep 29 2026, 15:01:18) [Clang 22.1.3 ]"
+  },
+  "launch_retest_passed": 1,
+  "manifest_compatibility_passed": 8,
+  "retention_passed": 8,
+  "cpu_deployment_individual_tests_passed": 13,
+  "static_validation": {
+    "success": true,
+    "ast_files": 14,
+    "document_files": 8,
+    "local_links": 37,
+    "lock_sha256": "26b4f7ea73343fe9282131aab4c10ddec99be976603a27e06d6e563d7606bbfb"
+  },
+  "cleanup": {
+    "download_cache_bytes": 4123937724,
+    "temporary_local_bytes": 35991372,
+    "temporary_linux_source_bytes": 18601131
+  },
+  "full_ci_run": false,
+  "formal_training_started": false
+}

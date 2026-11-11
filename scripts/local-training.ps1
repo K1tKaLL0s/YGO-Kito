@@ -1,9 +1,10 @@
 param(
- [ValidateSet('Start','Status','Stop','Resume','Check')][string]$Action='Status',
+ [ValidateSet('Start','Status','Stop','Resume','Check','ValidateRestore')][string]$Action='Status',
  [ValidateSet('course','supervisor')][string]$Job='course',
  [string]$RunId='local-course-001',
  [string]$Distro='Chaos-Ubuntu-26.04',
- [string]$ResourceBase=''
+ [string]$ResourceBase='',
+ [string]$RuntimeConfig=''
 )
 $ErrorActionPreference='Stop'
 if ($RunId -notmatch '^[A-Za-z0-9._-]+$') { throw 'Invalid local run identity' }
@@ -20,11 +21,17 @@ function Convert-ToWslPath([string]$path) {
 }
 $linuxBase=Convert-ToWslPath $projectBase
 $linuxSource=Convert-ToWslPath $sourceRoot
-$python=$linuxBase+'/venv-linux/bin/python'
+if (-not $RuntimeConfig) { $RuntimeConfig=Join-Path $sourceRoot 'configs\local-cuda-runtime-v1.json' }
+$runtime=Get-Content -LiteralPath $RuntimeConfig -Raw | ConvertFrom-Json
+if ($runtime.schema_version -ne 1 -or $runtime.device -notmatch '^cuda:[0-9]+$' -or $runtime.python -notmatch '^/') { throw 'Explicit Linux CUDA runtime configuration required' }
+$python=$runtime.python
+$device=$runtime.device
 $policy=$linuxBase+'/reports/design-supervision-policy.json'
-if ($Action -eq 'Check') {
+if ($Action -in @('Check','ValidateRestore')) {
  if ($Job -ne 'course') { throw 'Check resolves the migrated course only.' }
- & "$env:WINDIR\System32\wsl.exe" -d $Distro --exec $python ($linuxSource+'/scripts/local_training_worker.py') --base $linuxBase --run-id $RunId --job course --resume --source-root $linuxSource --resource-base $linuxBase --check
+ $checkArguments=@('--check')
+ if ($Action -eq 'ValidateRestore') { $checkArguments+=@('--restore-check') }
+ & "$env:WINDIR\System32\wsl.exe" -d $Distro --exec $python ($linuxSource+'/scripts/local_training_worker.py') --base $linuxBase --run-id $RunId --job course --resume --source-root $linuxSource --resource-base $linuxBase --device $device @checkArguments
  if ($LASTEXITCODE -ne 0) { throw 'Course entry check failed; no worker was launched.' }
  return
 }
@@ -67,7 +74,7 @@ if ($Job -eq 'supervisor') {
  $entry=$linuxSource+'/scripts/local_training_worker.py'
  if ($Job -eq 'course') { $entry=$linuxSource+'/scripts/local_training_worker.py' }
  $arguments=@('-d',$Distro,'--exec','/usr/bin/setsid','--wait',$python,'-u',$entry,'--base',$linuxBase,'--run-id',$RunId,'--job',$Job)
- if ($Job -eq 'course') { $arguments+=@('--source-root',$linuxSource,'--resource-base',$linuxBase) }
+ if ($Job -eq 'course') { $arguments+=@('--source-root',$linuxSource,'--resource-base',$linuxBase,'--device',$device) }
 }
 if ($Action -eq 'Resume') { $arguments+='--resume' }
 $stamp=[DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffZ')

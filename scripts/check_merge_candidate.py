@@ -63,6 +63,7 @@ MODULES=(
     "tests.test_course_admission_policy",
     "tests.test_course_mechanism_inputs",
     "tests.test_cpu_course_launch",
+    "tests.test_course_cuda_migration",
     "tests.test_current_goal_comparison_contracts",
     "tests.test_duel_effect_limits",
     "tests.test_duel_planning",

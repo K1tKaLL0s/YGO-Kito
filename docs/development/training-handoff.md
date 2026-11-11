@@ -84,7 +84,7 @@ PYTHONPATH=src .venv/bin/python -m ygo_kito agent-serve \
   --local-cpu-control --local-training-config configs/group-runner-v1.json
 ```
 
-`configs/group-runner-v1.json` 是有界 CPU 工程配方，不是用户 3＋8 正式课程。`--local-cpu-control` 是已有宿主选择开关的名称；四模型 group 路径现在读取宿主配方中的设备字段，旧 standalone/legacy CPU 工具没有因此全部获得 CUDA 支持。RPC 不能指定 shell、文件、设备/provider 或替换配方。
+`configs/group-runner-v1.json` 是有界 CPU 工程配方，不是用户 3＋8 正式课程。`--local-cpu-control` 是已有宿主选择开关的名称；四模型 group 路径读取宿主配方中的设备字段。单角色 `duel-train`、`build-train` 默认 CUDA，原 `*-train-cpu` 作为同一实现的 CPU 回归别名保留。本地课程的独立环境、显式状态迁移和恢复入口见 [CUDA 操作说明](cuda-runtime.md)。RPC 不能指定 shell、文件、设备/provider 或替换配方。
 
 stage2 group 的 CUDA 配方在保留原任务/分区配置后显式加入：
 
@@ -95,7 +95,7 @@ stage2 group 的 CUDA 配方在保留原任务/分区配置后显式加入：
 }
 ```
 
-这只是需要加入完整 group recipe 的字段示意，不是独立可用配方。`allocated_gpu_count` 必须是宿主实际已分配数量，CUDA为1–8；默认 CPU为0，不能从可见设备数猜计费数量。CUDA不可用、设备不匹配或精度不支持时拒绝，不能自动降到CPU。GPU主机另需已冻结 CUDA/PyTorch/驱动环境；CPU哈希锁不能代替它。此代码接口未在真实GPU运行验收。
+这只是需要加入完整 group recipe 的字段示意，不是独立可用配方。`allocated_gpu_count` 必须是宿主实际已分配数量，CUDA为1–8；默认 CPU为0，不能从可见设备数猜计费数量。CUDA不可用、设备不匹配或精度不支持时拒绝，不能自动降到CPU。GPU主机使用独立 CUDA 哈希锁；CPU锁仅用于软件回归。实际环境、模型更新恢复与完整 group 课程结果分别按相应回执记录。
 
 在已有腾讯云主机完成相应预检后，将宿主已核实的完整配方放至 `.cache/approved-group-recipe.json`，仍用同一固定协议入口：
 

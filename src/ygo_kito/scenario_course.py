@@ -422,6 +422,7 @@ class ScenarioCourse:
         self._checkpoint_entries=[]
         self._config_sha256 = digest(self.config)
         self._binding_sha256 = digest(self.binding)
+        self._checkpoint_owner = self._binding_sha256
         from .course_feedback import CourseFeedbackUpdater
         self.feedback = CourseFeedbackUpdater(models, data_index, config["course_id"])
         self.initial_model_execution = self.model_execution()
@@ -934,11 +935,14 @@ class ScenarioCourse:
             "manifest_entries":len(self._checkpoint_entries),"records_and_index_still_grow":True,
             "whole_environment_under_30GB_proven":False,"training_authorized_by_storage_check":False}
 
-    def _registry(self,entries):
+    def _registry(self,entries,owner=None):
         return {"schema_version":1,"kind":"course-owned-checkpoint-manifest-v1",
-            "course_binding_sha256":digest(self.binding),"entries":deepcopy(entries)}
+            "course_binding_sha256":self._checkpoint_owner if owner is None else owner,"entries":deepcopy(entries)}
 
-    def _validate_entries(self,entries):
+    def _validate_entries(self,entries,owner=None):
+        owner=self._checkpoint_owner if owner is None else owner
+        if not isinstance(owner,str) or len(owner)!=64 or any(c not in "0123456789abcdef" for c in owner):
+            raise ContractError("invalid checkpoint owner identity")
         if not isinstance(entries,list):raise ContractError("course checkpoint manifest entries must be a list")
         last=0
         every=self.checkpoint_policy["milestone_every"]
@@ -949,7 +953,7 @@ class ScenarioCourse:
             if (e["path"]!="checkpoint-"+str(e["revision"])+".weights" or
                     not isinstance(e["sha256"],str) or len(e["sha256"])!=64 or any(c not in "0123456789abcdef" for c in e["sha256"]) or
                     e["initial"] is not (i==0) or e["milestone"] is not bool(every and e["revision"]%every==0) or
-                    e["course_binding_sha256"]!=digest(self.binding)):
+                    e["course_binding_sha256"]!=owner):
                 raise ContractError("owned checkpoint manifest identity differs")
             last=e["revision"]
         return entries
@@ -990,24 +994,27 @@ class ScenarioCourse:
         if storage is None:
             if (self.root/"checkpoint-manifest.json").exists():raise ContractError("legacy checkpoint has no owned manifest binding")
             return []  # Existing unregistered files will never become pruning targets.
-        fields(storage,{"schema_version","policy","prior_entries"})
+        fields(storage,{"schema_version","policy","prior_entries"},{"owner_binding_sha256"})
         integer(storage["schema_version"],"checkpoint storage schema",1,1)
         if storage["policy"]!=self.checkpoint_policy:raise ContractError("restored checkpoint retention policy differs")
-        entries=deepcopy(self._validate_entries(storage["prior_entries"]))
+        # Source maps are audit-only for structural restore compatibility. The
+        # immutable manifest owner remains anchored to the original course.
+        owner=storage.get("owner_binding_sha256",digest(saved["binding"]))
+        entries=deepcopy(self._validate_entries(storage["prior_entries"],owner))
         if entries and entries[-1]["revision"]>=pointer["revision"]:raise ContractError("restored checkpoint manifest ancestry differs")
-        entries.append(self._checkpoint_entry(pointer,entries))
-        self._validate_entries(entries)
+        entries.append(self._checkpoint_entry(pointer,entries,owner))
+        self._validate_entries(entries,owner)
         path=self.root/"checkpoint-manifest.json"
-        if path.is_symlink() or not path.is_file() or digest(json.loads(path.read_text()))!=digest(self._registry(entries)):
+        if path.is_symlink() or not path.is_file() or digest(json.loads(path.read_text()))!=digest(self._registry(entries,owner)):
             raise ContractError("restored checkpoint manifest is not anchored by the current checkpoint")
         self._verify_owned_files(entries)
         return entries
 
-    def _checkpoint_entry(self,pointer,prior):
+    def _checkpoint_entry(self,pointer,prior,owner=None):
         every=self.checkpoint_policy["milestone_every"]
         return {"path":pointer["path"],"sha256":pointer["sha256"],"bytes":(self.root/pointer["path"]).stat().st_size,
             "revision":pointer["revision"],"initial":not prior,"milestone":bool(every and pointer["revision"]%every==0),
-            "course_binding_sha256":digest(self.binding)}
+            "course_binding_sha256":self._checkpoint_owner if owner is None else owner}
 
     def _prune_checkpoints(self):
         # Validate the complete ownership registry and every extant file before
@@ -1043,6 +1050,7 @@ class ScenarioCourse:
             "desired": self.desired, "feedback": self.feedback.state_dict(),
             "data_index_sha256": index_identity(self.data_index),
             "checkpoint_storage":{"schema_version":1,"policy":deepcopy(self.checkpoint_policy),
+                "owner_binding_sha256":self._checkpoint_owner,
                 "prior_entries":deepcopy(self._checkpoint_entries)}}
         # Know the serialized byte count before writing disk. This is an actual
         # envelope size, not an estimate from neural tensor parameters.
@@ -1052,7 +1060,7 @@ class ScenarioCourse:
                    "revision":revision,"active_seconds":self.active_seconds}
         every=self.checkpoint_policy["milestone_every"]
         entry={"path":path.name,"sha256":pointer["sha256"],"bytes":len(raw),"revision":revision,
-            "initial":not self._checkpoint_entries,"milestone":bool(every and revision%every==0),"course_binding_sha256":digest(self.binding)}
+            "initial":not self._checkpoint_entries,"milestone":bool(every and revision%every==0),"course_binding_sha256":self._checkpoint_owner}
         entries=self._checkpoint_entries+[entry]
         manifest=self._registry(entries)
         temporary = self.root / ("latest-" + str(revision) + ".json")
@@ -1133,4 +1141,5 @@ class ScenarioCourse:
                 raise ContractError("pending match belongs to another course")
         self._last_checkpoint = deepcopy(pointer)
         self._checkpoint_entries=entries
+        self._checkpoint_owner=(saved.get("checkpoint_storage") or {}).get("owner_binding_sha256",digest(saved["binding"]))
         return self.status()

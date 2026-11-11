@@ -947,3 +947,14 @@ PT远端验收：da0130b的[Actions 40141837656](https://github.com/K1tKaLL0s/YG
 - [ ] AXIS-FULL18-COMPLETION：完整训练、真实预留组校准和历史评估仍由本地脚本继续；Dot到时重启对话检查结果。当前模型未激活，无新的独立最终测试，不把启动验收登记为全部训练完成。
 
 本批以[完整18项运行记录](../reports/2026-11-10-axis-generic-full18-training.md)及实际自动状态目录为准，先前“正式训练未授权”的条目保留原批次历史，不撤销本次用户授权。
+
+## 2026-11-11 独立 CUDA 环境与真实课程迁移
+
+- [x] CUDA312-ENV：独立 CPython 3.12.14 / Torch 2.9.1+cu128 环境及 28 项哈希锁已安装核对；不升级并行认知训练环境，实际 CUDA 矩阵反向通过。
+- [x] CUDA312-MIGRATION：CPU course-006 的真实模型、优化器、随机流、课程游标和 DataIndex 已迁移至新 GPU 边界；原检查点保持，完整恢复与原有对手资格准入通过，清单历史所有权兼容缺陷已修复。
+- [x] CUDA312-UPDATE：四角色 LoRA 夹具及真实基础课程副本均在 CUDA 上实际更新，保存恢复后下一次结果一致；真实课程有界验证峰值 allocated 99,681,280 bytes，正式进度未保存或推进。
+- [x] CUDA312-POINTER：续训指针已原子切换，源/目标检查点哈希保持，training hold 未解除；Check 实际返回新解释器和 CUDA 目录、worker_started=false。
+- [x] CUDA312-ENTRY：正式 PowerShell ValidateRestore 通过，required_device/restored_device 均为 cuda:0、restore_verified=true、training_held=true、worker_started=false。
+- [x] CUDA312-CLEANUP：删除本次下载缓存约 4.12 GB、临时测试源码和验证权重；保留小型结果、失败/复验日志、正式环境及原 CPU 迁移来源。
+
+过程、环境差异、中间失败与精确修复见 [正式 CUDA 迁移报告](../reports/2026-11-11-cuda-course-migration.md)，操作见 [CUDA 使用说明](../development/cuda-runtime.md)。完整 CPU 白名单、远程 CI、长时间正式课程及能力成绩不在本批已完成结论中。

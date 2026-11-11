@@ -18,6 +18,8 @@ def main():
     p.add_argument('--run-id',required=True);p.add_argument('--job',choices=('course',),default='course')
     p.add_argument('--resume',action='store_true')
     p.add_argument('--check',action='store_true',help='Resolve the paused course without launching a worker')
+    p.add_argument('--restore-check',action='store_true',help='Restore the complete course without updating or saving')
+    p.add_argument('--device',default='cuda:0',help='Required execution device; mismatch requires explicit migration')
     p.add_argument('--source-root',type=Path);p.add_argument('--resource-base',type=Path);a=p.parse_args()
     if not re.fullmatch(r'[A-Za-z0-9._-]+',a.run_id):raise ValueError('Invalid local run identity')
     base=a.base.resolve()
@@ -37,9 +39,21 @@ def main():
         if source_root!=Path(__file__).resolve().parents[1]:raise ValueError('Source root must be this worker repository')
         from local_course_source_continuation import validate_continuation
         validate_continuation(continuation, base)
+    if a.restore_check and not a.check:raise ValueError('Restore check requires --check; it never launches training')
     if a.check:
+        restored=None
+        if a.restore_check:
+            if not explicit_roots or a.device is None:raise ValueError('Restore check requires explicit source/resources/device')
+            from local_foundation_course import run
+            def report(*args,**kwargs):print(json.dumps({'stage':args,**kwargs},default=str),flush=True)
+            restored=run(base,base/'reports/local-training'/a.run_id,base/'unused-stop',report,
+                resume=True,continuation=continuation,execution_source_root=source_root,
+                resource_base=resource_base,restore_only=True,required_device=a.device)
         print(json.dumps({'source_root':str(source_root),'resource_base':str(resource_base or base),
-            'continuation':continuation,'training_held':held,'worker_started':False},indent=2))
+            'continuation':continuation,'training_held':held,'worker_started':False,
+            'python':__import__('sys').executable,'required_device':a.device,
+            'restored_device':None if restored is None else str(restored.models.device),
+            'restore_verified':restored is not None},indent=2))
         return
     directory=base/'reports/local-training'/a.run_id;directory.mkdir(parents=True,exist_ok=True)
     if (directory/'completed.json').exists():raise RuntimeError('This job already completed; do not replay it')
@@ -103,6 +117,7 @@ def main():
         module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         options={'unit_boundary':status.unit_boundary,'continuation':getattr(status,'course_continuation',None)} if a.job=='course' else {}
         if explicit_roots:options.update(execution_source_root=source_root,resource_base=resource_base)
+        if a.device is not None:options['required_device']=a.device
         result=module.run(base,directory,stop,status,resume=a.resume,**options)
         status('completed',desired='completed',result=result)
         (directory/'completed.json').write_text(json.dumps(state,indent=2)+'\n')

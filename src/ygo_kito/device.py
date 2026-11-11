@@ -1,4 +1,5 @@
 """Explicit CPU/CUDA FP32 execution; no resource launch or implicit fallback."""
+import os
 import torch
 from .validation import ContractError, fields
 
@@ -12,6 +13,7 @@ def resolve_device(value="cpu"):
         return device
     if device.type != "cuda":
         raise ContractError("only CPU/CUDA FP32 execution is implemented")
+    os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
     index = 0 if device.index is None else device.index
     if not torch.cuda.is_available() or index >= torch.cuda.device_count():
         raise ContractError("explicit CUDA device unavailable; no CPU fallback")

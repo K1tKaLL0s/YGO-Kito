@@ -20,6 +20,8 @@
 
 2026-11-11新增用户修订：后续训练和正式运行使用GPU，CPU环境只承担软件回归；设备选择、检查点迁移及实际GPU环境结果分别见训练正文与GPU检查报告。
 
+同日设备迁移合同补充：采用独立 Python 3.12 CUDA 依赖锁；完整闭合课程先恢复、再搬运实际训练状态，CPU/采样 RNG 保留，CUDA RNG 显式新建。同设备保存恢复后的下一次更新必须一致。迁移不解除正式课程暂停，不修改并行认知训练环境。操作见 [CUDA 环境与课程迁移](../development/cuda-runtime.md)。
+
 完整旧路径→现行位置/执行记录映射见 [文档迁移清单](../reports/2026-11-11-document-migration.json)。现行评分由construction-quality-evaluation-v4-functional-log2定义；准入construction-before-cb-v3。规范化及词典具体版本属于运行绑定，不能写死成永不更新的设计版本。
 
 ## 尚未冻结的参数

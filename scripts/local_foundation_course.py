@@ -258,7 +258,8 @@ def initial_task_rank(proposals,source_binding,prior_task_sha256,*,explicit_root
 
 
 def run(base,directory,stop,status,*,resume=False,unit_boundary=None,continuation=None,
-        execution_source_root=None,resource_base=None,comparison_policy=None,cb_signal_consumer=None):
+        execution_source_root=None,resource_base=None,comparison_policy=None,cb_signal_consumer=None,
+        restore_only=False,required_device=None):
     comparison_policy=comparison_policy if comparison_policy is not None else getattr(status,'comparison_policy',None)
     cb_signal_consumer=cb_signal_consumer if cb_signal_consumer is not None else getattr(status,'cb_signal_consumer',None)
     status.comparison_policy=comparison_policy;status.cb_signal_consumer=cb_signal_consumer
@@ -313,9 +314,17 @@ def run(base,directory,stop,status,*,resume=False,unit_boundary=None,continuatio
     if target.exists():
         if not resume: raise RuntimeError('Existing course preserved; inspect then Resume')
         binding=read(target/'model-binding.json')
-        pointer=read(target/'initial-pointer.json')
-        if sha(Path(pointer['path']))!=pointer['sha256']: raise RuntimeError('Saved initial course state changed')
-        models=CourseModels.from_state(torch.load(pointer['path'],map_location='cpu',weights_only=False),assets=assets,expected_binding=binding)
+        if (target/'course/latest.json').exists():
+            pointer=read(target/'course/latest.json')
+            if Path(pointer['path']).name!=pointer['path']:raise RuntimeError('Course pointer escapes state root')
+            checkpoint=target/'course'/pointer['path']
+            if checkpoint.is_symlink() or sha(checkpoint)!=pointer['sha256']:raise RuntimeError('Saved course boundary changed')
+            state=torch.load(checkpoint,map_location='cpu',weights_only=True)['models']
+        else:
+            pointer=read(target/'initial-pointer.json')
+            if sha(Path(pointer['path']))!=pointer['sha256']: raise RuntimeError('Saved initial course state changed')
+            state=torch.load(pointer['path'],map_location='cpu',weights_only=True)
+        models=CourseModels.from_state(state,assets=assets,expected_binding=binding)
     else:
         pointer=read(old/'latest-pointer.json')
         if sha(Path(pointer['path']))!=pointer['sha256']: raise RuntimeError('Latest comparison state changed')
@@ -411,6 +420,20 @@ def run(base,directory,stop,status,*,resume=False,unit_boundary=None,continuatio
         # Host execution review is separate from the learned model/checkpoint.
         # The adapter validates its exact source transition when binding a bot.
         course.observed_bot_source_review=read(review_path)
+    if required_device is not None:
+        from ygo_kito.device import resolve_device
+        if course.models.device != resolve_device(required_device):
+            raise RuntimeError('Course device differs; run the explicit course migration first')
+        # Check the actual opponent admission path without a game/process launch.
+        from ygo_kito.course_game_adapter import CourseGameAdapter
+        for ident,bot in course.bots.items():
+            adapter=object.__new__(CourseGameAdapter)
+            adapter.bot,adapter.bot_id,adapter.assets=bot['runtime'],ident,course.assets
+            adapter._originals={ident:bot['deck']}
+            adapter._observed_bot_source_review=getattr(course,'observed_bot_source_review',None)
+            adapter._bind_original_qualification()
+    if restore_only:
+        return course
     if comparison_policy is None:
         from ygo_kito.course_admission_policy import load_course_admission_policy
         comparison_policy=load_course_admission_policy(course)

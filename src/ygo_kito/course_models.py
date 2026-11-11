@@ -328,6 +328,52 @@ class CourseModels:
         return self
 
     @classmethod
+    def migrate_to_cuda(cls, state, *, assets, expected_binding, device, cuda_seed):
+        """Restore a closed CPU state, then move its actual trainable objects.
+
+        CPU/owned sampling streams continue; CUDA starts a declared new stream.
+        The caller owns the course/index transaction and migration provenance.
+        """
+        integer(cuda_seed, "migration CUDA seed", 0, 2**63-1)
+        target = resolve_device(device)
+        if checkpoint_execution(state).type != "cpu" or target.type != "cuda":
+            raise ContractError("explicit migration requires CPU source and CUDA target")
+        previous = capture_device_rng(target); python = random.getstate()
+        try:
+            obj = cls.from_state(state, assets=assets, expected_binding=expected_binding)
+            before = obj.save_state()
+            for model in obj.models().values():
+                parameters = tuple(id(p) for p in model.parameters())
+                model.to(target)
+                if parameters != tuple(id(p) for p in model.parameters()):
+                    raise ContractError("device transfer replaced optimizer parameter identities")
+            optimizers = [*obj.builder.optimizers.values(), obj.duel.optimizer, obj.coordinator.optimizer]
+            for session in obj.sessions.values():
+                session.device = target
+                # Module.to can replace buffers, while parameters retain identity.
+                buffers = dict(session.model.named_buffers())
+                session.base_buffers = {name: buffers[name] for name in session.base_buffers}
+                optimizers.append(session.optimizer)
+            for optimizer in optimizers:
+                optimizer_to(optimizer, target); _check_optimizer(optimizer)
+            obj.device = obj.builder.device = obj.duel.device = obj.coordinator.device = target
+            rng = deepcopy(before["rng"])
+            rng["device_rng"]["cuda"] = torch.Generator(device=target).manual_seed(cuda_seed).get_state()
+            obj.restore_rng(rng)
+            after = obj.save_state()
+            for key in ("components", "cursors", "configs", "vocabulary", "available_ids", "task", "kernel"):
+                if tree_digest(before[key]) != tree_digest(after[key]):
+                    raise ContractError("CUDA migration changed preserved state: " + key)
+            for role in obj.sessions:
+                for key in ("weights", "optimizer", "scheduler", "rng", "updates"):
+                    if tree_digest(before["adapters"][role][key]) != tree_digest(after["adapters"][role][key]):
+                        raise ContractError("CUDA migration changed adapter learning state")
+            return cls.from_state(after, assets=assets, expected_binding=expected_binding)
+        except Exception:
+            restore_device_rng(previous, target); random.setstate(python)
+            raise
+
+    @classmethod
     def from_state(cls, state, *, assets, expected_binding):
         """Fresh-process recovery with no dependency on the old source artifact."""
         device = checkpoint_execution(state)

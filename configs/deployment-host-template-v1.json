@@ -2,18 +2,18 @@
   "schema_version": 1,
   "expected_source_commit": null,
   "dependency_lock": {
-    "path": "requirements/ci-cpu.txt",
-    "sha256": null,
+    "path": "requirements/cuda-linux-py312.txt",
+    "sha256": "26b4f7ea73343fe9282131aab4c10ddec99be976603a27e06d6e563d7606bbfb",
     "python": "3.12.14",
-    "torch": null
+    "torch": "2.9.1+cu128"
   },
   "runtime_device": "cuda",
   "minimum_hardware": {
-    "cpu_cores": null,
-    "memory_bytes": null,
-    "disk_free_bytes": null,
-    "cuda_devices": null,
-    "cuda_device_memory_bytes": null
+    "cpu_cores": 2,
+    "memory_bytes": 8589934592,
+    "disk_free_bytes": 10737418240,
+    "cuda_devices": 1,
+    "cuda_device_memory_bytes": 7516192768
   },
   "native_root": ".cache",
   "log_directory": ".cache/deployment-logs",

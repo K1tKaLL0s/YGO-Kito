@@ -16,6 +16,39 @@ from ygo_kito.validation import ContractError
 
 
 class CourseEnvelopeTests(unittest.TestCase):
+    def test_source_drift_retains_manifest_owner_and_rejects_tampering(self):
+        from copy import deepcopy
+        from ygo_kito.build_contracts import digest
+        f = self.scenario_fixture()
+        original = self.course(f, None)
+        original.save()
+        owner = digest(original.binding)
+        # Simulate the pre-owner-field checkpoint format, retaining real hashes.
+        import torch
+        checkpoint = original.root / original._last_checkpoint['path']
+        saved = torch.load(checkpoint, weights_only=True)
+        del saved['checkpoint_storage']['owner_binding_sha256']
+        torch.save(saved, checkpoint)
+        sha = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
+        pointer = deepcopy(original._last_checkpoint); pointer['sha256'] = sha
+        (original.root/'latest.json').write_text(json.dumps(pointer))
+        manifest = json.loads((original.root/'checkpoint-manifest.json').read_text())
+        manifest['entries'][0].update(sha256=sha, bytes=checkpoint.stat().st_size)
+        (original.root/'checkpoint-manifest.json').write_text(json.dumps(manifest))
+        for version in ('a'*64, 'b'*64):
+            with patch('ygo_kito.scenario_course.source_tree_snapshot', return_value={'added.py': version}):
+                restored = self.course(f, None)
+            restored.restore_latest()
+            self.assertEqual(restored._checkpoint_owner, owner)
+            self.assertNotEqual(digest(restored.binding), owner)
+            restored.save()
+        manifest = json.loads((restored.root/'checkpoint-manifest.json').read_text())
+        self.assertTrue(all(e['course_binding_sha256'] == owner for e in manifest['entries']))
+        manifest['entries'][0]['sha256'] = '0'*64
+        (restored.root/'checkpoint-manifest.json').write_text(json.dumps(manifest))
+        with self.assertRaisesRegex(ContractError, 'not anchored'):
+            self.course(f, None).restore_latest()
+
     def scenario_fixture(self):
         f = scenario_fixtures.ScenarioCourseTests('test_already_checkpointed_bo1_draw_closes_once_without_sampling_again')
         f.setUp(); self.addCleanup(f.doCleanups); return f

@@ -125,8 +125,10 @@ class CpuCourseLaunchTests(unittest.TestCase):
             environment=resources/'source/.cache/local-base-training-20261027/2207-base-005/active-environment.local.json'
             environment.parent.mkdir(parents=True);environment.write_text('{}',encoding='utf-8')
             (state/'model-binding.json').write_text(json.dumps({'source_files':{'src/ygo_kito/probe.py':'fixture-script'}}),encoding='utf-8')
-            initial=state/'initial.state';initial.write_bytes(b'fixture-state')
-            (state/'initial-pointer.json').write_text(json.dumps({'path':str(initial),'sha256':'fixture-script'}),encoding='utf-8')
+            # Existing courses bootstrap from the authoritative full boundary,
+            # without a stale CPU initial-pointer dependency.
+            latest=state/'course/checkpoint-1.weights';latest.write_bytes(b'fixture-state')
+            (state/'course/latest.json').write_text(json.dumps({'path':latest.name,'sha256':'fixture-script'}),encoding='utf-8')
             package=types.ModuleType('ygo_kito');package.__path__=[]
             components={
                 'build_contracts':dict(BuildTask=object,DeckParts=object,digest=lambda _:None),
@@ -137,7 +139,7 @@ class CpuCourseLaunchTests(unittest.TestCase):
                 'implementation_identity':dict(source_tree_snapshot=lambda _:self.fail('old observed report writer was entered')),
                 'observed_bot_evidence':dict(KIND='fixture'),'period_runtime':dict(PeriodBuildAssets=lambda *a,**k:object()),
                 'scenario_course':dict(ScenarioCourse=object)}
-            modules={'ygo_kito':package,'torch':types.SimpleNamespace(set_num_threads=lambda _:None,load=lambda *a,**k:{})}
+            modules={'ygo_kito':package,'torch':types.SimpleNamespace(set_num_threads=lambda _:None,load=lambda *a,**k:{'models':{}})}
             for name,attributes in components.items():
                 module=types.ModuleType('ygo_kito.'+name);module.__dict__.update(attributes);modules[module.__name__]=module
             comparison.unpack_exact=lambda *_:None;modules['local_foundation_comparison']=comparison

@@ -100,7 +100,8 @@ def parser():
     effect_duel_replay = sub.add_parser("native-effect-duel-replay")
     effect_duel_replay.add_argument("input", type=Path)
     effect_duel_replay.add_argument("--root", type=Path, default=Path(".cache"))
-    train = sub.add_parser("duel-train-cpu", help="bounded real-core CPU parameter-update/recovery proof; no provider or paid resource launch")
+    train = sub.add_parser("duel-train", aliases=["duel-train-cpu"], help="bounded real-core parameter-update/recovery proof; CUDA by default, CPU alias for regression")
+    train.add_argument("--device", default=None)
     train.add_argument("--root", type=Path, default=Path(".cache"))
     train.add_argument("--state-root", type=Path, default=Path(".cache/agent"))
     train.add_argument("--run-id", required=True)
@@ -136,7 +137,8 @@ def parser():
     foundation=sub.add_parser("foundation-acceptance",help="bounded semantic builds, indexed real-core PPO and executable frozen opponents; public-only export")
     foundation.add_argument("--root",type=Path,default=Path(".cache"))
     foundation.add_argument("--output",type=Path,required=True)
-    build_train = sub.add_parser("build-train-cpu", help="bounded independent goal/optimizer CPU updates, recovery and real conditional goal checks")
+    build_train = sub.add_parser("build-train", aliases=["build-train-cpu"], help="bounded goal/optimizer updates and recovery; CUDA by default, CPU alias for regression")
+    build_train.add_argument("--device", default=None)
     build_train.add_argument("--root", type=Path, default=Path(".cache"))
     build_train.add_argument("--state-root", type=Path, default=Path(".cache/agent"))
     build_train.add_argument("--run-id", required=True)
@@ -406,31 +408,33 @@ def main(argv=None) -> int:
                 raise EngineUnavailable("no runnable engine backend")
             case "native-smoke":
                 output = run_native_smoke(args.root, args.seed)
-            case "duel-train-cpu":
+            case "duel-train" | "duel-train-cpu":
                 try:
                     from .cpu_training import config_from_dict, run_cpu_training_smoke
                 except ModuleNotFoundError as error:
                     if error.name != "torch":
                         raise
-                    raise EngineUnavailable("CPU PyTorch required for this optional command; infrastructure commands do not require it") from None
+                    raise EngineUnavailable("PyTorch required for this optional training command; infrastructure commands do not require it") from None
                 output = run_cpu_training_smoke(args.root, args.state_root, args.run_id,
-                                               read_json(args.profile), config_from_dict(read_json(args.training_config)))
+                                               read_json(args.profile), config_from_dict(read_json(args.training_config)),
+                                               device=args.device or ("cpu" if args.command.endswith("-cpu") else "cuda:0"))
             case "build-check":
                 from .build_contracts import BuildTask, DeckParts
                 from .build_pipeline import BuildAssets
                 output = dict(BuildAssets(args.root).validate(BuildTask.from_dict(read_json(args.task)),
                                                              DeckParts.from_dict(read_json(args.deck))),
                               ok=True, route_status="not_evaluated", construction_quality_status="not_evaluated")
-            case "build-train-cpu":
+            case "build-train" | "build-train-cpu":
                 try:
                     from .build_training import config_from_dict, run_build_training_smoke
                 except ModuleNotFoundError as error:
                     if error.name != "torch":
                         raise
-                    raise EngineUnavailable("CPU PyTorch required for this optional command") from None
+                    raise EngineUnavailable("PyTorch required for this optional training command") from None
                 from .build_contracts import BuildTask
                 output = run_build_training_smoke(args.root, args.state_root, args.run_id,
-                                                 BuildTask.from_dict(read_json(args.task)), config_from_dict(read_json(args.training_config)))
+                                                 BuildTask.from_dict(read_json(args.task)), config_from_dict(read_json(args.training_config)),
+                                                 device=args.device or ("cpu" if args.command.endswith("-cpu") else "cuda:0"))
             case "extra-feedback-acceptance":
                 import signal
                 from .extra_acceptance import run_extra_feedback_acceptance
@@ -568,7 +572,8 @@ def main(argv=None) -> int:
         print(canonical_json(output))
         return 0
     except EngineUnavailable as error:
-        code = ("CPU_TRAINING_UNAVAILABLE" if args.command in ("duel-train-cpu", "build-train-cpu", "model-group-cpu", "lora-group-cpu", "cpu-runner-acceptance", "group-runner-acceptance") else
+        code = ("TRAINING_UNAVAILABLE" if args.command in ("duel-train", "build-train") else
+                "CPU_TRAINING_UNAVAILABLE" if args.command in ("duel-train-cpu", "build-train-cpu", "model-group-cpu", "lora-group-cpu", "cpu-runner-acceptance", "group-runner-acceptance") else
                 "NATIVE_RESOURCES_UNAVAILABLE" if args.command == "build-check" else
                 "NATIVE_RESOURCES_UNAVAILABLE" if args.command.startswith("native-") else "ENGINE_NOT_IMPLEMENTED")
         message = str(error)

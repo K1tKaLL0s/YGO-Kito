@@ -154,6 +154,8 @@ construction_gate(..., quality=None, reference_quality=None) -> Gate
 
 schema 2 的新式单骨架 continuation 可按字段迁移为待重评状态；更早固定四阶段档案保留为历史，不恢复已删除的四阶段执行器。课程 006 的文件存在不代表新链已运行。迁移需保留其存档、暂停文件、checkpoint 和 latest 指针，按具体任务执行。
 
+设备迁移通过显式宿主命令创建新的完整课程状态。普通 `CourseModels.from_state/restore_state` 继续验证原设备合同；`migrate_to_cuda` 先恢复合法 CPU 对象，再搬运参数、优化器和适配器，返回可按正常合同恢复的 CUDA 对象。迁移事件同时保留原课程及新设备边界，DataIndex、记录和反馈游标不能只靠模型权重文件代替。
+
 
 ## 决斗、统筹与外部 Agent
 
