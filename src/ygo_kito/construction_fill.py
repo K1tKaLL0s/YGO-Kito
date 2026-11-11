@@ -494,7 +494,9 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
         if pending_quality is not None:
             proposals = {int(i): FillProposal.from_dict(row) for i, row in pending_quality['proposals'].items()}
             binding_errors = {int(i): message for i, message in pending_quality['binding_errors'].items()}
-        for index in [i for i in order if i not in cached and i not in binding_errors][:limit]:
+        cursor = pending_quality.get('evaluation_cursor', 0) if compatible else 0
+        schedule = order[cursor:] + order[:cursor]
+        for index in [i for i in schedule if i not in cached and i not in binding_errors][:limit]:
             try:
                 proposal = binding_provider(session.logic, task, candidates[index])
                 if not isinstance(proposal, FillProposal) or proposal.deck != candidates[index]:
@@ -510,17 +512,22 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
         if session.logic.sha256 != layer_logic.sha256:
             raise ContractError("logic changed during candidate layer preparation")
         active = [i for i in order if i not in binding_errors]
-        allowed = set([i for i in active if i not in cached][:limit]) | set(cached)
+        scheduled = [i for i in schedule if i not in binding_errors]
+        allowed = set([i for i in scheduled if i not in cached][:limit]) | set(cached)
         def evaluation_progress(evaluations,calculations):
             remaining=[i for i in active if i not in evaluations]
-            cursor=next((n for n,i in enumerate(active) if i not in evaluations),len(active))
+            next_candidate = next((i for i in scheduled if i not in evaluations), None)
+            cursor = evaluation_order.index(next_candidate) if next_candidate is not None else len(evaluation_order)
             on_evaluation_progress(batch_state(evaluations,calculations,remaining,cursor))
         order, candidate_evaluations, layer_trace = layer_adapter.evaluate(
             task, layer_logic, portfolio_rows, {i: p for i, p in proposals.items() if i in allowed}, active, context,
             policy=quality_policy, quality_evidence=quality_evidence, should_stop=should_stop, evaluated=cached,
             calculations={int(i):value for i,value in pending_quality.get('calculation_progress',{}).items()} if compatible else None,
             comparison_progress=pending_quality.get('comparison_progress') if compatible else None,
-            _comparisons=_comparisons, on_progress=evaluation_progress if on_evaluation_progress is not None else None)
+            _comparisons=_comparisons, on_progress=evaluation_progress if on_evaluation_progress is not None else None,
+            evaluation_cursor=active.index(scheduled[0]) if scheduled else 0)
+        cursor = layer_trace['evaluation_cursor']
+        layer_trace['evaluation_cursor'] = evaluation_order.index(active[cursor]) if cursor < len(active) else len(evaluation_order)
         order += [i for i in evaluation_order if i in binding_errors]
         layer_evaluations = {i: row['layer_evaluation'] for i, row in candidate_evaluations.items()}
         comparisons = layer_trace.pop("_comparisons", {})

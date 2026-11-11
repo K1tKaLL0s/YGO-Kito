@@ -25,7 +25,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v30"
+NORMALIZATION_VERSION = "construction-function-normalization-v31"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -188,8 +188,8 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
                           *, continuation=None, should_stop=None, previous_projections=None, projection='resident'):
     """Evaluate one inventory projection; Side never enters the resident call."""
     from .construction_relations import evaluate_relations
-    from .construction_inventory import matches, selector, requirement, query_supported
     rel_facts, rel_pools, rel_uses, operation_facts = [], {}, [], {}
+    fusion_proofs = {}
     present = set(available.main + available.extra)
     members = tuple(sorted({(zone, code) for zone in ("main", "extra") for code in getattr(available, zone)}))
     for code in sorted(present & records.keys()):
@@ -214,6 +214,8 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
             fusion=dependencies.fusion_check(available,code,scoped_record)
             if fusion:
                 checks.append(fusion)
+                if operation and operation['kind'] == 'fusion_summon':
+                    fusion_proofs[code, ri, oi] = fusion
                 if operation and operation['kind']=='return_fusion_materials':
                     # The quantity depends on the chosen printed recipe. This
                     # is a static function port, not a concrete recovery event.
@@ -260,64 +262,6 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
             rel_uses.append(UseRequirement(uid, InputGroup("all", (Need(uid, output, mode="presence"),)),
                 fact.source, required=False))
             operation_facts[code, ri, oi] = uid
-    # A recognized transfer supplies the receiving effect's actual trigger.
-    # Random milling supplies a possible recipient, never a specific call.
-    for (code, ri, oi), uid in operation_facts.items():
-        if oi is None:
-            continue
-        operation = records[code][ri]["operations"][oi]
-        if operation.get("owner") != "self" or operation.get("to_zone") not in ("grave", "field"):
-            continue
-        origin = operation.get("from_zones", ())
-        if len(origin) != 1 or operation.get("quantity") is None:
-            continue
-        query = operation.get("selector_query") or (selector(operation["selector"]) if operation.get("selector") else None)
-        parsed = requirement(operation.get("source", ""), "operations")
-        query = query or (parsed["query"] if parsed else None)
-        query = dependencies.resolve_query(query) if query else None
-        if query is not None and not query_supported(query) or not operation.get("random") and query is None:
-            continue
-        if operation["to_zone"] == "grave":
-            event = "sent_to_grave"
-        elif operation["kind"] in ("special_summon", "fusion_summon", "synchro_summon", "xyz_summon",
-                                   "link_summon", "ritual_summon", "pendulum_summon"):
-            event = "special_summon"
-        elif operation["kind"] in ("normal_summon", "tribute_summon"):
-            event = operation['kind']
-        else:
-            continue
-        revealed_cards = None
-        if operation.get('selection_method') == 'revealed_card':
-            proof = dependencies.processing_check(available, operation_record(records[code][ri], operation), operation,
-                                                  physical_inventory=deck)
-            revealed_cards = {code for option in (proof or {}).get('options', ())
-                              if (option['result'] or {}).get('status') == 'inventory_present'
-                              for code in option['revealed_card_ids']}
-        for target in sorted(present & records.keys()):
-            if revealed_cards is not None and target not in revealed_cards:
-                continue
-            if query and not matches(dependencies.rows[target], query):
-                continue
-            if origin == ["deck"] and target not in available.main:
-                continue
-            eligible, _ = dependencies.candidate_status(target, dict(category="operations", operation=operation))
-            if eligible is False:
-                continue
-            for trigger in {r["trigger"].get("event") for r in records[target]}:
-                if (trigger != event and not (event in ('normal_summon', 'tribute_summon') and trigger == 'normal_summon')
-                        and not (event in ('normal_summon', 'tribute_summon', 'special_summon') and trigger == 'normal_or_special_summon')):
-                    continue
-                key = uid + ":receiver:" + str(target) + ":" + trigger
-                rel_facts.append(RelationFact(key, key,
-                    Resource("activation", zone=operation["to_zone"], origin=origin[0],
-                        reason=operation.get("reason") if event == "sent_to_grave" else "not_applicable",
-                        event=trigger, selection='random' if operation.get('random') else 'targeted', attributes=(f"card:{target}",)),
-                    "recognized transfer:" + records[code][ri]["text_sha256"], target,
-                    "extra" if target in extra_ids else "main",
-                    inputs=InputGroup("all", (Need(key+":transfer", Resource("functional_operation",
-                        attributes=(uid.removeprefix("functional:"),)), mode="presence"),)),
-                    conditions=('static compatible recipient; no particular random result asserted',),
-                    unknown=("recipient_summon_restriction",) if eligible is None else ()))
     configured, handled = _configuration_relations(available, records, dependencies, aliases,
         operation_facts, rel_facts, rel_pools, context)
     rel_facts.extend(configured)
@@ -328,23 +272,22 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
                 raise ContractError("host resource pool conflicts with catalog")
             rel_pools[pool.pool_id] = pool
         rel_uses.extend(context.relations.uses)
-    pairs, theme_gaps = [], []
-    theme_state={}
+    pairs, theme_state = [], {}
     if config.get('theme_profile', {}).get('goals'):
-        from .construction_theme import add_theme_relations
-        pairs, theme_gaps = add_theme_relations(rel_facts, rel_uses, operation_facts, records,
-            dependencies, available, config['theme_profile'], budget,
-            continuation=(continuation or {}).get('theme'),should_stop=should_stop,work_state=theme_state)
-        if isinstance(theme_gaps,dict):
-            return dict(calculation_pending=dict(theme=theme_gaps)),operation_facts
+        from .construction_theme import theme_pairs
+        pairs, pending = theme_pairs(operation_facts, records,
+            dependencies, available, config['theme_profile'], budget, fusion_proofs,
+            continuation=(continuation or {}).get('theme'), should_stop=should_stop, work_state=theme_state)
+        if pending is not None:
+            return dict(calculation_pending=dict(theme=pending)), operation_facts
     seeds = {}
     host_ids = {f.fact_id for f in context.relations.facts} if context is not None else set()
     for fact in rel_facts:
         if fact.fact_id in host_ids:
             continue
         for need in _needs(fact.inputs):
-            if need.need_id in handled or need.resource.kind in ("functional_operation", "functional_inventory", "normal_summon_allowance", "configuration_access",
-                                      "theme_event", "theme_available", "theme_joint"):
+            if need.need_id in handled or need.resource.kind in (
+                    "functional_operation", "functional_inventory", "normal_summon_allowance", "configuration_access"):
                 continue
             if any(need.resource.accepts(f.output) for f in rel_facts):
                 # A supplied route keeps its own complete prerequisites. An
@@ -393,13 +336,75 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
             return dict(calculation_pending=dict(theme=theme_state or None,matching=index.matched_state,updating=updating)),operation_facts
     if previous_projections is not None:
         previous_projections[projection] = evaluation
-    return dict(relation, theme_pairs=pairs, theme_gaps=theme_gaps), operation_facts
+    calls = _targeted_calls(deck, available, records, dependencies, operation_facts)
+    return dict(relation, theme_pairs=pairs, targeted_calls=calls), operation_facts
+
+
+def _targeted_calls(deck, available, records, dependencies, operation_facts):
+    """Record direct named access for density pricing, without activation dependencies."""
+    from .construction_inventory import matches
+    from .construction_theme import operation_query
+
+    recipients = defaultdict(set)
+    for code in set(available.main) & records.keys():
+        for record in records[code]:
+            trigger = record['trigger']
+            if trigger.get('event') in ('sent_to_grave', 'special_summon', 'normal_summon', 'normal_or_special_summon'):
+                recipients[trigger['event'], trigger.get('reason')].add(code)
+    calls = []
+    for (code, ri, oi), uid in operation_facts.items():
+        if oi is None:
+            continue
+        record = records[code][ri]
+        operation = record['operations'][oi]
+        origins = operation.get('from_zones', ())
+        if (operation.get('owner') != 'self' or operation.get('random') or not origins
+                or operation.get('quantity') is None):
+            continue
+        if operation.get('to_zone') == 'grave':
+            events = ('sent_to_grave',)
+            reasons = (None, operation.get('reason'))
+        elif operation.get('to_zone') == 'field' and operation['kind'] == 'special_summon':
+            events = ('special_summon', 'normal_or_special_summon')
+            reasons = (None, 'not_applicable')
+        elif operation.get('to_zone') == 'field' and operation['kind'] in ('normal_summon', 'tribute_summon'):
+            events = ('normal_summon', 'normal_or_special_summon')
+            reasons = (None, 'not_applicable')
+        else:
+            continue
+        query = operation_query(operation, dependencies)
+        if query is None:
+            continue
+        revealed = None
+        if operation.get('selection_method') == 'revealed_card':
+            proof = dependencies.processing_check(available, operation_record(record, operation), operation,
+                physical_inventory=deck)
+            revealed = {c for option in (proof or {}).get('options', ())
+                if (option['result'] or {}).get('status') == 'inventory_present' for c in option['revealed_card_ids']}
+        for event in events:
+            for reason in reasons:
+                for target in sorted(recipients.get((event, reason), ())):
+                    if ((revealed is not None and target not in revealed) or
+                            not matches(dependencies.rows[target], query)):
+                        continue
+                    if not any(dependencies.candidate_status(target, dict(category='operations',
+                            operation=dict(operation, from_zones=[origin])))[0] is True for origin in origins):
+                        continue
+                    calls.append(dict(source=uid.removeprefix('functional:'), target=target, event=event, reason=reason))
+    return calls
 
 
 def _bind_functional_support(facts, projections, available, specs, catalog, context, condition, config, sources):
     from .construction_inventory import InventoryDependencies, matches, selector, requirement, query_supported
     dependencies = InventoryDependencies(catalog)
     theme_rules = {r['rule_id']:r['predicate'] for r in config['theme_rules']}
+    supported = {(u.scope_id, facts['use_details'][u.use_id]['relation_fact_id'])
+        for u in facts['uses'] if u.contributes and u.self_condition is True}
+    calls = {}
+    for scope, (relation, _) in projections.items():
+        for call in relation['targeted_calls']:
+            if (scope, call['source']) in supported:
+                calls.setdefault((scope, call['target'], call['event'], call['reason']), call['source'])
     revised = []
     for use in facts["uses"]:
         detail = facts["use_details"][use.use_id]
@@ -474,6 +479,10 @@ def _bind_functional_support(facts, projections, available, specs, catalog, cont
                 detail.setdefault("joint_groups", []).append(deepcopy(group))
         mode = use.valuation_mode
         if mode == "main_density" and use.self_condition is True and detail["relation"].get("status") == "supported":
+            direct = calls.get((scope, detail['card_id'], detail['trigger'].get('event'), detail['trigger'].get('reason')))
+            if direct is not None:
+                mode = "called"
+                detail["called_by"] = direct
             for supplier in detail["relation"].get("suppliers", ()):
                 record = relation["fact_records"].get(supplier, {})
                 output = record.get("output", {})
@@ -524,24 +533,31 @@ def _bind_automatic_themes(facts, projections, config, condition, sources):
                    for u in facts['uses'] if u.contributes}
     preparations = defaultdict(list)
     for scope, (relation, _) in projections.items():
-        if relation['theme_gaps']:
-            facts.setdefault('unknown_scope', []).extend(relation['theme_gaps'])
-            facts['scope_status']['joint'] = 'deferred'
+        if scope != 'resident':
+            side = facts['side_contexts'][scope]
+            capacity = side['capacity']
+            resource_positions = {sources[s]['card_id']: (sources[s]['destination'], sources[s]['card_id'])
+                for s in side['source_ids']}
         for pair in relation['theme_pairs']:
             source = by_position.get((scope, *pair['source']))
             receiver = by_position.get((scope, *pair['receiver']))
             if source is None or receiver is None:
                 continue
-            own = _relation_support(relation['uses'][pair['available_use_id']], pair['available_use_id'],
-                scope, condition, (*source.evidence_refs, *receiver.evidence_refs))
-            joint_row = relation['uses'][pair['joint_use_id']]
+            connection = pair['connection']
+            compatible = True
+            if connection['gaps']:
+                compatible = condition('theme:' + digest((source.use_id, receiver.use_id)), None,
+                    'printed_theme_compatibility', (*source.evidence_refs, *receiver.evidence_refs))
+            own = _all_support([compatible, receiver.self_condition])
+            joint = own
             if scope != 'resident':
-                joint_row = _side_joint_capacity(joint_row,
-                    {u.use_id.removesuffix(':' + scope) for u in (source, receiver)},
-                    facts, scope, relation, sources, required_sources=())
-            joint = _relation_support(joint_row, pair['joint_use_id'],
-                scope, condition, (*source.evidence_refs, *receiver.evidence_refs))
-            preparations[source.use_id].append((receiver, own, joint, pair['connection']))
+                footprint = {resource_positions[code] for code in (pair['source'][0], pair['receiver'][0])}
+                resources = (resource_positions[code] for code in connection['resources'] if code in resource_positions)
+                fits = any(all(n <= capacity[zone]
+                    for zone, n in Counter(z for z, _ in footprint | {resource}).items())
+                    for resource in resources)
+                joint = _all_support([own, fits])
+            preparations[source.use_id].append((receiver, own, joint, connection))
     revised = []
     facts['theme_witnesses'] = {}
     def any_support(items):
@@ -778,265 +794,14 @@ def _restriction_match(rule, detail, card_properties=None, inventory=None):
     return True if True in matches else None if matches else False
 
 
-def _state_movements(record, operation, dependencies, code):
-    """Complete printed movements used by the joint static order check."""
-    result = []
-    for category, items in (('costs', record['costs']), ('operations', [operation] if operation else [])):
-        for i, item in enumerate(items):
-            if item.get('phase') in ('delayed', 'replacement') or item.get('processing_role') == 'auxiliary':
-                continue
-            destination = item.get('to_zone')
-            if destination is None:
-                continue
-            req = dependencies.item_requirement(item, category)
-            generated = item.get('generation')
-            random = item.get('random') or item['kind'] == 'draw'
-            origins = item.get('from_zones') or []
-            quantity = item.get('quantity')
-            if generated:
-                req = dict(query={}, minimum=item['quantity'], origins=[], owner=item['owner'])
-            elif req is None and '这张卡' in item.get('source', ''):
-                req = dict(query={'exact_name': dependencies.rows[code]['name']}, minimum=item.get('quantity', 1),
-                    origins=item.get('from_zones', ()), owner=item.get('owner', 'self'))
-            elif (req is None and random and len(origins) == 1 and type(quantity) is int and quantity > 0
-                    and not (item.get('selector') or item.get('selector_query'))):
-                owner = item.get('owner', 'unknown')
-                if owner == 'unknown' and item['kind'] == 'draw':
-                    owner = 'self'
-                req = dict(query={'selector': '卡'}, minimum=quantity, origins=origins, owner=owner)
-            if req:
-                movement = dict(category=category, position=item.get('cost_index', i),
-                    source=item['source'], quantity=req['minimum'], query=req['query'],
-                    origins=req.get('origins', [req.get('origin')]), destination=destination,
-                    owner='self' if req['owner'] == 'both' and item.get('quantity_scope') == 'each_player' else req['owner'],
-                    generation=generated, random=bool(random),
-                    self_reference=not random and '这张卡' in item['source'] and not req.get('exclude_source_copy'),
-                    exclude_source=bool(req.get('exclude_source_copy')))
-                if item.get('selection_method') == 'choose_from_excavated':
-                    reveal = next((op for op in record['operations'] if op.get('block_id') == item['selection_group']), {})
-                    if type(reveal.get('quantity')) is int and reveal['quantity'] >= movement['quantity']:
-                        movement['exposed_quantity'] = reveal['quantity']
-                result.append(movement)
-    # Non-persistent Spell/Trap activation also moves its own card after the
-    # effect. That rule movement has no additional scoring function.
-    card_type = dependencies.rows[code].get('type', 0)
-    if (card_type & 6 and not card_type & (0x20000 | 0x40000 | 0x80000)
-            and record['trigger'].get('zone') not in ('hand', 'grave', 'banished')
-            and not any('这张卡' in v.get('source', '') and v.get('to_zone') != 'field'
-                        for v in (*record['costs'], *record['operations']))):
-        result.append(dict(category='cleanup', position=0, source='rule: activated non-persistent Spell/Trap leaves field',
-            quantity=1, query={'selector': '卡'}, card_id=code, origins=['field'], destination='grave', owner='self',
-            generation=None, random=False, self_reference=True))
-    return result
-
-
-def _joint_state_order(facts, members, order, *, work, limit, should_stop):
-    """Check a joint printed sequence, or return no result while work remains."""
-    from .construction_inventory import matches
-    from .construction_quality import physical_sources
-    from .construction_relations import _restore_relation
-    from .multifactor.conditions import Condition, ConditionGroup, Resource as Stock, SolverBudget, solve_requirements
-    details = facts['use_details']
-    scopes = {use.use_id: use.scope_id for use in facts['uses']}
-    if len({scopes[uid] for uid in members}) > 1:
-        state, witnesses = True, []
-        for scope in sorted({scopes[uid] for uid in members}):
-            row = _joint_state_order(facts, {uid for uid in members if scopes[uid] == scope}, order,
-                work=work, limit=limit, should_stop=should_stop)
-            if row is None:
-                return None
-            supported, found = row
-            if supported is False:
-                return False, []
-            if supported is None:
-                state = None
-            witnesses.extend(found)
-        return state, witnesses
-    if not any(details[uid].get('activation_state_conditions') or
-               (details[uid].get('operation') or {}).get('state_conditions') for uid in members):
-        return True, []
-    order = sorted((a, b) for a, b in order if a in members and b in members)
-    check_id = digest((sorted(members), order))
-    cursor = work['checks'].setdefault(check_id, dict(stack=[[]], sequence=None, allocation=None, uncertain=None))
-    if 'result' in cursor:
-        state, witnesses = cursor['result']
-        return state, _restore_relation(witnesses)
-
-    def finish(state, witnesses):
-        work['checks'][check_id] = dict(result=[state, witnesses])
-        return state, witnesses
-
-    def stopped():
-        return (limit is not None and work['explored_states'] >= limit
-                or should_stop is not None and should_stop())
-
-    if stopped():
-        return None
-    scope = scopes[next(iter(members))]
-    physical = physical_sources(facts['inventory'], facts['source_aliases'], facts['extra_card_ids'])
-    permitted = facts.get('side_contexts', {}).get(scope, {}).get('source_ids')
-    counts = Counter((v['destination'], v['card_id']) for key, v in physical.items()
-                     if (key in permitted if permitted is not None else v['zone'] != 'side'))
-    properties = facts['card_properties']
-    starts = {uid: 'activation:' + details[uid]['effect_id'] + ':' + scope for uid in members}
-    operations = {uid: 'processing:' + scope + ':' + (details[uid].get('relation_fact_id') or uid) for uid in members}
-    required_predecessors = {(details[uid]['effect_id'], block) for uid in members
-                             for block in (details[uid].get('operation') or {}).get('depends_on', ())}
-    events, predicates, edges, stock_rows, processed = {}, {}, set(), {}, set()
-    for (section, card), amount in sorted(counts.items()):
-        stock_rows[f'{section}:{card}'] = dict(row=properties[str(card)], quantity=amount,
-            initial_zones=('extra', 'field', 'grave', 'banished', 'xyz_material') if section == 'extra'
-                          else ('deck', 'hand', 'field', 'grave', 'banished', 'xyz_material'))
-    for uid in sorted(members):
-        detail = details[uid]
-        start = starts[uid]
-        operation_node = operations[uid]
-        card = detail['card_id']
-        binding = 'actor:' + start
-        actor_zone = detail['trigger'].get('zone')
-        if actor_zone is None:
-            own = [v['origins'] for v in detail.get('state_movements', ())
-                   if v.get('self_reference') and v['category'] != 'cleanup' and v.get('origins')]
-            if own and len(own[0]) == 1:
-                actor_zone = own[0][0]
-        card_type = properties[str(card)]['type']
-        placement = bool(card_type & 6) and actor_zone not in ('grave', 'banished', 'hand')
-        actor = dict(key='source:' + start, query={'selector': '卡'}, card_id=card, quantity=1,
-            origins=['hand', 'field'] if placement else [actor_zone or 'field'],
-            destination='field' if placement else None, owner='self', binding=binding)
-        events.setdefault(start, [actor])
-        activation = [dict(state, key='absence:' + start + ':' + digest(state))
-                      for state in detail.get('activation_state_conditions', ())]
-        if start not in predicates:
-            predicates[start] = activation
-            events[start] = ([*activation, actor] if placement else [actor, *activation])
-        events.setdefault(operation_node, [])
-        edges.add((start, operation_node))
-        for movement in detail.get('state_movements', ()):
-            if movement['owner'] != 'self':
-                continue
-            key = (start + ':' + movement['category'] + ':' + str(movement['position'])
-                   if movement['category'] in ('costs', 'cleanup') else operation_node)
-            item = dict(movement, key='movement:' + key, binding=binding if movement.get('self_reference') else None,
-                        exclude_binding=binding if movement.get('exclude_source') else None)
-            operation = detail.get('operation') or {}
-            item['requires_destination'] = movement['destination'] == 'grave' and '送去墓地' in movement['source'] and (
-                movement['category'] == 'costs' or (detail['effect_id'], operation.get('block_id')) in required_predecessors)
-            if movement.get('generation'):
-                token = 'generated:' + key
-                stock_rows[token] = dict(row=dict(movement['generation'], type=0x4001),
-                    quantity=movement['quantity'], initial_zones=('uncreated',))
-                item.update(stock_key=token, origins=['uncreated'])
-            if movement['category'] in ('costs', 'cleanup'):
-                events.setdefault(key, [item])
-            elif operation_node not in processed:
-                if movement.get('exposed_quantity'):
-                    exposed = 'exposed:' + key
-                    item.update(binding=exposed, random=False)
-                    events[key].append(dict(item, key=exposed, query={'selector': '卡'},
-                        quantity=movement['exposed_quantity'], destination=None, random=True, requires_destination=False))
-                events[key].append(item)
-            if movement['category'] == 'cleanup':
-                edges.add((operation_node, key))
-            elif key != operation_node:
-                edges.update(((start, key), (key, operation_node)))
-        conditions = [dict(state, key='absence:' + uid + ':' + digest(state))
-                      for state in (detail.get('operation') or {}).get('state_conditions', ())]
-        if operation_node not in processed:
-            events[operation_node] = conditions + events[operation_node]
-            if (detail.get('operation') or {}).get('kind') == 'grave_destination_replace':
-                events[operation_node].append(dict(key='replacement:' + operation_node, query={'selector': '卡'},
-                    state_destination_replace=('grave', 'banished')))
-        processed.add(operation_node)
-    for uid in members:
-        costs = [key for key in events if key.startswith(starts[uid] + ':costs:')]
-        edges.update((key, operations[uid]) for key in costs)
-    for a, b in order:
-        if a in members and b in members:
-            cleanup = starts[a] + ':cleanup:0'
-            edge = ((operations[a], operations[b]) if starts[a] == starts[b] else
-                    (cleanup if cleanup in events else operations[a], starts[b]))
-            if edge[0] != edge[1]:
-                edges.add(edge)
-    all_items = [item for rows in events.values() for item in rows]
-    stock = []
-    for stock_key, row in sorted(stock_rows.items()):
-        aliases = tuple(item['key'] for item in all_items
-            if (item.get('stock_key') == stock_key if item.get('stock_key') else
-                stock_key.split(':', 1)[-1] == str(item['card_id']) if item.get('card_id') else
-                matches(row['row'], item['query'])))
-        for i in range(0, len(aliases), 128):
-            stock.append(Stock('printed_state', aliases[i], row['quantity'], selectors=aliases[i:i+128],
-                pool_id=stock_key, resource_id=stock_key, initial_zones=row['initial_zones'],
-                source='candidate physical inventory and printed generation'))
-    if len(stock) > 512:
-        return finish(None, [])
-    conditions = {}
-    for node, items in events.items():
-        conditions[node] = tuple(Condition('printed_state', item['key'], consume_mode='reusable',
-            state_destination_replace=item['state_destination_replace']) if item.get('state_destination_replace') else
-            Condition('printed_state', item['key'], item.get('quantity', 1),
-            consume_mode='reusable', state_origins=tuple(item.get('origins') or (item.get('zone'),)),
-            state_destination=item.get('destination'), state_absent=item.get('kind') == 'absence',
-            state_binding=item.get('binding'), state_exclude_binding=item.get('exclude_binding'),
-            state_random=item.get('random', False), state_destination_required=item.get('requires_destination', False))
-            for item in items)
-    predecessors = {node: {a for a, b in edges if b == node} for node in events}
-    while cursor['stack'] or cursor['sequence'] is not None:
-        if stopped():
-            return None
-        if cursor['sequence'] is None:
-            sequence = cursor['stack'].pop()
-            work['explored_states'] += 1
-            if len(sequence) == len(events):
-                cursor['sequence'] = sequence
-                continue
-            used = set(sequence)
-            ready = sorted(node for node in events if node not in used and predecessors[node] <= used)
-            cursor['stack'].extend(sequence + [node] for node in reversed(ready))
-            continue
-        sequence = cursor['sequence']
-        children = tuple(item for node in sequence for item in conditions[node])
-        if not children:
-            return finish(True, [])
-        while len(children) > 16:
-            children = tuple(ConditionGroup('all', children[i:i+16]) for i in range(0, len(children), 16))
-        solver_limit = 1000000 if limit is None else min(limit - work['explored_states'], 1000000)
-        result = solve_requirements(ConditionGroup('all', children), tuple(stock), coverage=True,
-            budget=SolverBudget(max_states=solver_limit, max_solutions=1),
-            continuation=cursor['allocation'], should_stop=should_stop)
-        work['explored_states'] += result['explored_states']
-        if result['satisfied'] is True:
-            witness = next(row for row in result['branches'] if row['satisfied'] is True)
-            return finish(True, [dict(sequence=sequence, allocation=witness['matched_resources'],
-                                      slot_zones=witness.get('slot_zones', []))])
-        cursor['allocation'] = result['continuation']
-        if cursor['allocation'] is not None:
-            if not result['explored_states']:
-                return None
-            continue
-        if result['satisfied'] is None and cursor['uncertain'] is None:
-            witness = result['branches'][0]
-            reasons = [{key: row[key] for key in ('path', 'reason')} for row in witness['residual_conditions']]
-            cursor['uncertain'] = [dict(sequence=sequence, residual_conditions=reasons)]
-        cursor['sequence'] = None
-    if cursor['uncertain'] is not None:
-        return finish(None, _restore_relation(cursor['uncertain']))
-    return finish(False, [])
-
-def _bind_mandatory_impacts(facts, context, condition, *, state_work=None, allocations=None, should_stop=None):
+def _bind_mandatory_impacts(facts, context, condition):
     from .construction_quality import UseImpact, support_state
     from .construction_relations import order_possible
-    state_work = state_work if state_work is not None else dict(explored_states=0, checks={})
-    limit = None if allocations is None else state_work['explored_states'] + allocations
-
-    def state_solution(members, order):
-        return _joint_state_order(facts, members, order, work=state_work, limit=limit, should_stop=should_stop)
 
     origin = 'printed restrictions and original joint requirements'
     facts['hard_requirements'] = [r for r in facts.get('hard_requirements', ()) if r['origin']!=origin]
-    # Configuration purposes can choose a feasible order. Printed dependencies
-    # and explicit joint requirements constrain that choice; no duel log is needed.
+    # Only explicitly declared order and dependencies inside a printed
+    # effect can establish order for a restriction.
     details = facts['use_details']
     identities = defaultdict(set)
     for use in facts['uses']:
@@ -1052,39 +817,15 @@ def _bind_mandatory_impacts(facts, context, condition, *, state_work=None, alloc
                  for left, right in zip(c.uses, c.uses[1:]) for a in bound[left] for b in bound[right]
                  if by_id[a].scope_id==by_id[b].scope_id}
     operation_uses = defaultdict(set)
-    fact_uses = defaultdict(set)
-    support_order = set()
     for use in facts['uses']:
         operation = details[use.use_id].get('operation') or {}
-        card = details[use.use_id].get('card_id')
         if operation.get('block_id'):
-            operation_uses[card,use.scope_id,operation['block_id']].add(use.use_id)
-        if details[use.use_id].get('relation_fact_id'):
-            fact_uses[use.scope_id,details[use.use_id]['relation_fact_id']].add(use.use_id)
+            operation_uses[use.scope_id, use.effect_id, operation['block_id']].add(use.use_id)
+    support_order = set()
     for use in facts['uses']:
-        card = details[use.use_id].get('card_id')
         for previous in (details[use.use_id].get('operation') or {}).get('depends_on', ()):
-            support_order.update((uid,use.use_id) for uid in operation_uses.get((card,use.scope_id,previous),()))
-        relation = details[use.use_id].get('relation') or {}
-        branches = relation.get('branches') or [relation]
-        if not relation.get('branches_incomplete'):
-            suppliers = set.intersection(*(set(b.get('suppliers', ())) for b in branches))
-            support_order.update((prior,use.use_id) for fid in suppliers for prior in fact_uses.get((use.scope_id,fid),())
-                if prior!=use.use_id)
-    order.update(support_order)
-    for use in facts['uses']:
-        target = details[use.use_id]
-        if not (target.get('operation') or {}).get('state_conditions'):
-            continue
-        for prior in facts['uses']:
-            earlier = details[prior.use_id]
-            if (prior.scope_id == use.scope_id and prior.effect_id == use.effect_id
-                    and earlier.get('operation_key', (0, 0, 0))[2] is not None
-                    and target.get('operation_key', (0, 0, 0))[2] is not None
-                    and earlier.get('operation_key', (0, 0, 0))[2] < target.get('operation_key', (0, 0, 0))[2]
-                    and (earlier.get('operation') or {}).get('choice') in
-                        (None, (target.get('operation') or {}).get('choice'))):
-                support_order.add((prior.use_id, use.use_id))
+            support_order.update((uid, use.use_id)
+                for uid in operation_uses[use.scope_id, use.effect_id, previous])
     order.update(support_order)
 
     def support_members(members):
@@ -1095,18 +836,6 @@ def _bind_mandatory_impacts(facts, context, condition, *, state_work=None, alloc
             members.update(a for a, b in support_order if b in members)
         return members
 
-    for i, use in enumerate(facts['uses']):
-        if (details[use.use_id].get('operation') or {}).get('state_conditions'):
-            solution = state_solution(support_members({use.use_id}), order)
-            if solution is None:
-                return False
-            state, witness = solution
-            key = 'processing_state:' + use.use_id
-            facts.setdefault('fact_details', {})[key] = dict(supported=state, clearances=witness,
-                reason_code='printed_processing_state', evidence_refs=[use.use_id])
-            if state is not True:
-                expr = condition(key, state, 'printed_processing_state', (use.use_id,))
-                facts['uses'][i] = replace(use, self_condition=_support_group('all', [use.self_condition, expr]))
     outgoing = defaultdict(set)
     for a,b in order:outgoing[a].add(b)
     reachable = {}
@@ -1202,20 +931,6 @@ def _bind_mandatory_impacts(facts, context, condition, *, state_work=None, alloc
             facts.setdefault('hard_requirements', []).append(dict(
                 requirement_id='restriction_order:'+group_id,
                 origin=origin, condition=False))
-        if any(details[uid].get('activation_state_conditions') or
-               (details[uid].get('operation') or {}).get('state_conditions') for uid in members):
-            solution = state_solution(members, group_edges[group_id])
-            if solution is None:
-                return False
-            state, witness = solution
-            if state is not True:
-                facts.setdefault('hard_requirements', []).append(dict(
-                    requirement_id='activation_state_order:'+group_id, origin=origin,
-                    condition=condition('activation_state_order:'+group_id, state,
-                        'joint_printed_activation_state', tuple(sorted(members)))))
-            facts.setdefault('fact_details', {})['state_order:' + group_id] = dict(supported=state, clearances=witness,
-                reason_code='joint_printed_activation_state', evidence_refs=sorted(members))
-    return True
 
 
 def functional_asset_version(catalog):
@@ -1357,7 +1072,6 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
             or any(int(c) not in task.pool or int(c) not in catalog.assets.rows
                 or catalog.card(int(c)).text_sha256 != text for c, text in profile['card_texts'].items()))):
         raise ContractError('automatic theme profile needs host rederivation for this task/catalog')
-    state_allocations = None if budget is None and should_stop is None else (budget or RelationBudget()).allocations
     budget = budget or RelationBudget()
     inventory = deck.to_dict()
     if layer_evaluation is not None and (layer_evaluation["axis"]["inventory"] != inventory
@@ -1621,7 +1335,6 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                             applicability="this_card_in_monster_zone" if _record_applicability(record) else None,
                             costs=deepcopy(scoped_record["costs"]), materials=deepcopy(record["printed_materials"]),
                             activation_state_conditions=deepcopy(scoped_record.get('activation_state_conditions', ())),
-                            state_movements=_state_movements(scoped_record, operation, dependencies, code),
                             count_limits=deepcopy(record["count_limits"]),
                             restrictions=deepcopy([*record["card_restrictions"], *record["restrictions"]]),
                             unknown_theme_predicates=unknown_theme_predicates,
@@ -1643,11 +1356,7 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
         facts["scope_status"]["side"] = "deferred"
     _bind_functional_support(facts, projections, available, specs, catalog, context, condition, config, sources)
     _bind_automatic_themes(facts, projections, config, condition, sources)
-    state_work = work.setdefault('state_orders', dict(explored_states=0, checks={}))
-    if not _bind_mandatory_impacts(facts, context, condition, state_work=state_work,
-            allocations=state_allocations, should_stop=should_stop):
-        facts['calculation_pending'] = work
-        return facts
+    _bind_mandatory_impacts(facts, context, condition)
     if work_state is not None:
         work_state.clear();work_state.update(work)
     facts.pop('inventory')
@@ -1951,7 +1660,7 @@ class ConstructionLayerAdapter:
 
     def evaluate(self, task, graph, rows, proposals, order, context=None, *, policy=None,
                  quality_evidence=None, should_stop=None, evaluated=None, calculations=None, on_progress=None,
-                 comparison_progress=None, _comparisons=None):
+                 comparison_progress=None, _comparisons=None, evaluation_cursor=0):
         """Evaluate before ordering; a budget leaves pending candidates intact."""
         from .construction_quality import (FUNCTIONAL_QUALITY_VERSION, functional_quality_config,
             functional_pass_policy, EvaluationComparisons, restore_comparison_progress)
@@ -1982,7 +1691,10 @@ class ConstructionLayerAdapter:
         stop_reason = None
         evaluated_now = 0
         reuse = dict(specifications={}, projections={}, family_prices={})
-        for i in order:
+        schedule = order[evaluation_cursor:] + order[:evaluation_cursor]
+        next_position = 0
+        for position, i in enumerate(schedule):
+            next_position = position
             if i in evaluations or i not in proposals:
                 continue
             if evaluated_now >= self.limit(task, context):
@@ -1999,6 +1711,7 @@ class ConstructionLayerAdapter:
                 calculation=calculations.get(i), reuse=reuse)
             if work is not None:
                 calculations[i] = work
+                next_position = position + 1
                 break
             calculations.pop(i,None)
             status = "complete" if quality["complete"] else "deferred" if quality["deferred"] else "unknown"
@@ -2009,6 +1722,9 @@ class ConstructionLayerAdapter:
             if on_progress is not None:
                 on_progress(evaluations,calculations)
         pending = [i for i in order if i not in evaluations]
+        remaining = set(pending)
+        next_candidate = next((i for i in schedule[next_position:] + schedule[:next_position]
+                               if i in remaining), None)
         pairs, comparisons, progress = [], {}, None
         complete = not pending
         if not pending:
@@ -2044,7 +1760,7 @@ class ConstructionLayerAdapter:
         selected = eligible + [i for i in order if i not in eligible]
         return selected, evaluations, dict(status="evaluated" if complete else "pending", pairs=pairs,
             comparison_cycles=[], legacy_order=list(order), evaluated_indices=sorted(evaluations),
-            pending_indices=pending, evaluation_cursor=next((p for p, i in enumerate(order) if i in pending), len(order)),
+            pending_indices=pending, evaluation_cursor=order.index(next_candidate) if next_candidate is not None else len(order),
             selection_complete=complete, stop_reason=stop_reason, comparison_progress=progress,
             calculation_progress={str(i):value for i,value in calculations.items() if i in pending},
             context_source="host" if context is not None else "per_candidate_catalog", _comparisons=comparisons)

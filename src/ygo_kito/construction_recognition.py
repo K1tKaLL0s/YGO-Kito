@@ -4,6 +4,8 @@ Only input-free, fully known supplies without prerequisite claims are delegated
 here. All other relations retain the existing conservative evaluation path.
 """
 
+from collections import defaultdict
+
 from .multifactor.conditions import Condition, ConditionGroup, Resource
 from .validation import ContractError
 
@@ -283,9 +285,13 @@ def allocate_relation_group(group, index, states, counts, capacities, prefix, bl
             any(counts[("main", c)] or counts[("extra", c)] for c in index.unresolved_cards)):
         return None
     wanted = {n.need_id: n for n in needs}
-    fact_ids = sorted({fid for n in needs for fid in index.matches.get(n.need_id, ())})
+    matched_needs = defaultdict(list)
+    for need in needs:
+        for fid in index.matches.get(need.need_id, ()):
+            matched_needs[fid].append(need)
     supplies = []
-    for fid in fact_ids:
+    capacity_by_need = defaultdict(dict)
+    for fid in sorted(matched_needs):
         fact, state = index.facts[fid], states[fid]
         if state["status"] == "missing" or blocked and blocked in state["suppliers"]:
             continue
@@ -310,13 +316,16 @@ def allocate_relation_group(group, index, states, counts, capacities, prefix, bl
         amount = min(amount, capacity)
         if amount > 99:
             return None
-        aliases = tuple(n.need_id for n in needs if fid in index.matches.get(n.need_id, ()) and n.resource.accepts(fact.output))
+        aliases = tuple(n.need_id for n in matched_needs[fid] if n.resource.accepts(fact.output))
         if not aliases:
             continue
         if len(aliases) > 128:
             return None
         supplies.append(Resource("construction_supply", aliases[0], amount, selectors=aliases,
                                  resource_id=fid, pool_id=pool, capacity=capacity, source=fact.source))
+        for need_id in aliases:
+            pools = capacity_by_need[need_id]
+            pools[pool] = max(pools.get(pool, 0), amount)
 
     def convert(node):
         if not isinstance(node, InputGroup):
@@ -355,11 +364,7 @@ def allocate_relation_group(group, index, states, counts, capacities, prefix, bl
     combined["allocation_witnesses"] = result["branches"]
     combined["allocation_producer"] = "multifactor.conditions"
     for need in needs:
-        pools = {}
-        for supply in supplies:
-            if need.need_id in (supply.selector,) + supply.selectors:
-                pools[supply.pool_id] = max(pools.get(supply.pool_id, 0), supply.quantity)
-        upper = sum(pools.values())
+        upper = sum(capacity_by_need[need.need_id].values())
         combined["quantities"][need.need_id] = dict(required=need.quantity, capacity_upper=upper,
                                                   shortfall_lower=max(0, need.quantity - upper))
     if result["satisfied"] is False:

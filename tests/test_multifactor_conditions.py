@@ -88,7 +88,8 @@ class RequirementTreeTests(unittest.TestCase):
 
     def test_terminal_fixed_matching_proves_shared_shortage_without_searching_alternatives(self):
         tree = ConditionGroup('all', (Condition('card', 'wide', 5),
-            Condition('card', 'medium', 3), Condition('card', 'tight', 2)))
+            Condition('card', 'medium', 3), Condition('card', 'tight', 2),
+            Condition('card', 'wide', consume_mode='reusable')))
         stock = tuple(Resource('card', 'wide', selectors=('medium', 'tight') if i < 2 else
                                ('medium',) if i < 4 else (), pool_id=str(i)) for i in range(13))
         full = _solve(tree, stock, coverage=True, budget=SolverBudget(max_states=10000))
@@ -102,6 +103,14 @@ class RequirementTreeTests(unittest.TestCase):
         self.assertIsNone(_solve(tree, stock, budget=bounded, existential=True)['satisfied'])
         self.assertIsNone(_solve(tree, stock, coverage=True, budget=bounded,
                                  existential=True, should_stop=lambda: True)['satisfied'])
+
+    def test_payment_matching_does_not_skip_conflicting_presence(self):
+        tree = ConditionGroup('all', (Condition('card', 'A'), Condition('card', 'B'),
+                                      Condition('card', 'A', consume_mode='reusable')))
+        stock = (card('A'), card('B'))
+        bounded = SolverBudget(max_states=1, max_solutions=1)
+        self.assertIsNone(_solve(tree, stock, coverage=True, budget=bounded, existential=True)['satisfied'])
+        self.assertIs(_solve(tree, stock, coverage=True, existential=True)['satisfied'], False)
 
     def test_any_and_at_least_k_use_independent_branches(self):
         either = ConditionGroup("any", (Condition("card", "B"), Condition("card", "C")))

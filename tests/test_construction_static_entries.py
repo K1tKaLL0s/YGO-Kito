@@ -24,36 +24,41 @@ class StaticEntryTests(unittest.TestCase):
             'before', 'original required order'),) if before else ()
         return SimpleNamespace(relations=RelationContext(uses, constraints=constraints))
 
-    def test_joint_absence_can_precede_production_without_a_supplied_duel_order(self):
-        self.assets.rows[1].update(type=2, desc='①：自己墓地没有卡存在的场合才能发动。抽1张。')
-        self.assets.rows[2].update(type=2, desc='①：从自己卡组把1只怪兽送去墓地。')
-        _, quality = self.evaluate(context=self.joint_context((1, 2)))
-        self.assertTrue(quality['complete'], quality['unknowns'])
-        self.assertFalse(any(r['status'] == 'failed' for r in quality['hard_requirements']))
-
-    def test_joint_absence_own_payment_follows_the_activation_check(self):
+    def test_printed_activation_condition_keeps_no_duel_state_or_resume_work(self):
         self.assets.rows[1].update(type=33, desc='①：自己墓地没有卡存在的场合，'
             '把这张卡从手卡送去墓地才能发动。抽1张。')
-        _, quality = self.evaluate(context=self.joint_context((1,)))
-        self.assertTrue(quality['complete'], quality['unknowns'])
-        self.assertFalse(any(r['status'] == 'failed' for r in quality['hard_requirements']))
-
-    def test_joint_mill_tracks_absence_and_clearance_for_each_legal_identity(self):
-        self.assets.rows[1].update(type=33, desc='①：自己墓地没有卡存在的场合才能发动。给与对方500伤害。')
         self.assets.rows[2].update(type=33, desc='①：自己主要阶段才能发动。从自己卡组上面把1张卡送去墓地。')
         self.assets.rows[3].update(type=33, desc='①：自己主要阶段才能发动。从自己墓地把1只怪兽除外。')
-        # Keep a legal second copy of each later actor after any one-card mill.
-        self.deck = DeckParts(self.deck.main[:-2] + (1, 2))
-        for codes, order, mixed, expected in (((1, 2), (2, 1), False, False),
-                ((1, 2, 3), (2, 3, 1), False, True), ((1, 2, 3), (2, 3, 1), True, None)):
-            with self.subTest(expected=expected):
-                self.assets.rows[4]['type'] = 2 if mixed else 17
-                facts, _ = self.evaluate(context=self.joint_context(codes, order))
-                state = facts['fact_details']['state_order:required']
-                self.assertIs(state['supported'], expected)
-                if expected is None:
-                    reasons = state['clearances'][0]['residual_conditions']
-                    self.assertIn('RANDOM_IDENTITY_CONDITIONAL', {r['reason'] for r in reasons})
+        self.assets.rows[4]['type'] = 2
+        catalog = CatalogBindingAdapter(self.assets).semantic_catalog
+        for before in ((), (2, 1), (2, 3, 1)):
+            with self.subTest(before=before):
+                context = self.joint_context((1, 2, 3), before)
+                work = {}
+                facts = normalize_function_uses(self.task, self.deck, catalog, policy=self.policy,
+                    context=context, work_state=work)
+                self.assertEqual(self.state(facts, 1), [True])
+                detail, = [detail for detail in facts['use_details'].values() if detail['card_id'] == 1]
+                self.assertEqual(detail['activation_state_conditions'][0]['zone'], 'grave')
+                self.assertNotIn('state_movements', detail)
+                self.assertNotIn('state_orders', work)
+                self.assertNotIn('calculation_pending', facts)
+                self.assertFalse(any(key.startswith('state_order:') for key in facts['fact_details']))
+                self.assertFalse(any(row['condition'] is False for row in facts['hard_requirements']))
+
+    def test_printed_processing_condition_is_recorded_without_a_board(self):
+        self.assets.rows[1].update(type=2, desc='①：在自己场上把1只「匿名衍生物」'
+            '（天使族·地·4星·攻/守2000）特殊召唤。'
+            '自己场上没有「匿名旅程」存在的场合，可以再从卡组把1张「匿名旅程」'
+            '在自己的魔法与陷阱区域表侧表示放置。')
+        self.assets.rows[2].update(type=0x20002, name='匿名旅程', desc='①：自己主要阶段才能发动。抽1张。')
+        facts, quality = self.evaluate()
+        self.assertTrue(quality['complete'], quality['unknowns'])
+        self.assertEqual(self.state(facts, 1), [True, True])
+        condition, = [state for detail in facts['use_details'].values() if detail['card_id'] == 1
+                      for state in (detail['operation'] or {}).get('state_conditions', ())]
+        self.assertEqual(condition['timing'], 'before_operation')
+        self.assertFalse(any(key.startswith('processing_state:') for key in facts['fact_details']))
 
     def test_top_deck_payment_choices_use_one_scoring_function(self):
         self.assets.rows[1].update(type=33, desc='①：1回合1次，从自己卡组上面把最多3张卡送去墓地才能发动。'
@@ -69,129 +74,6 @@ class StaticEntryTests(unittest.TestCase):
         self.assertTrue(quality['complete'], quality['unknowns'])
         self.assertEqual(quality['score']['value'], 2.)
 
-    def test_state_order_resumes_schedule_and_allocation_without_rereading_relations(self):
-        import json
-        from unittest.mock import patch
-        from ygo_kito.construction_relations import RelationBudget
-        self.assets.rows[1].update(type=33, desc='①：自己墓地没有卡存在的场合才能发动。给与对方500伤害。')
-        self.assets.rows[2].update(type=33, desc='①：自己主要阶段才能发动。从自己卡组把1只怪兽送去墓地。')
-        context = self.joint_context((1, 2), (1, 2))
-        catalog = CatalogBindingAdapter(self.assets).semantic_catalog
-        options = dict(policy=self.policy, context=context)
-        complete_work = {}
-        expected = normalize_function_uses(self.task, self.deck, catalog, **options, work_state=complete_work)
-        self.assertNotIn('calculation_pending', expected)
-        expected_steps = complete_work.pop('state_orders')['explored_states']
-        cursor = json.loads(json.dumps(complete_work))
-        progress, seen = 0, set()
-        with patch('ygo_kito.construction_layer_flow._functional_relations', side_effect=AssertionError('relation replay')):
-            waiting = normalize_function_uses(self.task, self.deck, catalog, **options,
-                continuation=cursor, budget=RelationBudget(allocations=0), should_stop=lambda: None)
-            self.assertEqual(waiting['calculation_pending']['state_orders']['explored_states'], 0)
-            for _ in range(500):
-                work = {}
-                result = normalize_function_uses(self.task, self.deck, catalog, **options,
-                    continuation=cursor, budget=RelationBudget(allocations=1), work_state=work)
-                if 'calculation_pending' not in result:
-                    break
-                cursor = json.loads(json.dumps(result['calculation_pending']))
-                state = cursor['state_orders']
-                self.assertGreater(state['explored_states'], progress)
-                progress = state['explored_states']
-                for check in state['checks'].values():
-                    if 'result' not in check:
-                        seen.add('allocation' if check['allocation'] else 'schedule')
-            else:
-                self.fail('finite joint state order did not finish')
-        self.assertEqual(seen, {'schedule', 'allocation'})
-        self.assertEqual(work['state_orders']['explored_states'], expected_steps)
-        self.assertEqual(result['fact_details']['state_order:required'], expected['fact_details']['state_order:required'])
-        self.assertEqual(result['hard_requirements'], expected['hard_requirements'])
-
-    def test_joint_absence_requires_matching_sufficient_clearance(self):
-        self.assets.rows[1].update(type=2, desc='①：自己墓地没有卡存在的场合才能发动。抽1张。')
-        for quantity, produced, cleared, valid in ((1, '怪兽', '怪兽', True),
-                (2, '怪兽', '怪兽', False), (1, '魔法卡', '怪兽', False)):
-            with self.subTest(quantity=quantity, produced=produced, cleared=cleared):
-                self.assets.rows[2].update(type=33, desc=f'①：自己主要阶段才能发动。从自己卡组把{quantity}张{produced}送去墓地。')
-                self.assets.rows[3].update(type=33, desc=f'①：自己主要阶段才能发动。从自己墓地把1张{cleared}除外。')
-                facts, quality = self.evaluate(context=self.joint_context((1, 2, 3), (2, 3, 1)))
-                self.assertTrue(quality['complete'], quality['unknowns'])
-                failures = [r for r in quality['hard_requirements'] if r['status'] == 'failed']
-                self.assertEqual(not failures, valid, failures)
-                if valid:
-                    self.assertTrue(facts['fact_details']['state_order:required']['clearances'])
-
-    def test_joint_absence_cannot_reuse_one_clearance_for_two_productions(self):
-        self.assets.rows[1].update(type=2, desc='①：自己墓地没有卡存在的场合才能发动。抽1张。')
-        for code in (2, 3):
-            self.assets.rows[code].update(type=33, desc='①：自己主要阶段才能发动。从自己卡组把1只怪兽送去墓地。')
-        self.assets.rows[4].update(type=33, desc='①：自己主要阶段才能发动。从自己墓地把1只怪兽除外。')
-        _, quality = self.evaluate(context=self.joint_context((1, 2, 3, 4), (2, 3, 4, 1)))
-        self.assertTrue(quality['complete'], quality['unknowns'])
-        self.assertTrue(any(r['status'] == 'failed' for r in quality['hard_requirements']))
-
-    def test_joint_absence_allows_two_single_clearances_for_one_two_card_production(self):
-        self.assets.rows[1].update(type=2, desc='①：自己墓地没有卡存在的场合才能发动。抽1张。')
-        self.assets.rows[2].update(type=33, desc='①：自己主要阶段才能发动。从自己卡组把2只怪兽送去墓地。')
-        for code in (3, 4):
-            self.assets.rows[code].update(type=33, desc='①：自己主要阶段才能发动。从自己墓地把1只怪兽除外。')
-        _, quality = self.evaluate(context=self.joint_context((1, 2, 3, 4), (2, 3, 4, 1)))
-        self.assertTrue(quality['complete'], quality['unknowns'])
-        self.assertFalse(any(r['status'] == 'failed' for r in quality['hard_requirements']))
-
-    def test_joint_absence_preserves_one_returned_copy_through_two_productions(self):
-        self.assets.rows[1].update(type=2, desc='①：自己墓地没有卡存在的场合才能发动。抽1张。')
-        self.assets.rows[5]['name'] = '匿名原料'
-        for code in (2, 4):
-            self.assets.rows[code].update(type=33, desc='①：自己主要阶段才能发动。从自己卡组把1只「匿名原料」怪兽送去墓地。')
-        self.assets.rows[3].update(type=33, desc='①：自己主要阶段才能发动。从自己墓地把1只「匿名原料」怪兽回到卡组。')
-        self.assets.rows[6].update(type=33, desc='①：自己主要阶段才能发动。从自己墓地把1只「匿名原料」怪兽除外。')
-        _, quality = self.evaluate(context=self.joint_context((1, 2, 3, 4, 6), (2, 3, 4, 6, 1)))
-        self.assertTrue(quality['complete'], quality['unknowns'])
-        self.assertFalse(any(r['status'] == 'failed' for r in quality['hard_requirements']))
-
-    def test_joint_grave_absence_includes_activated_spell_rule_movement(self):
-        self.assets.rows[1].update(type=2, desc='①：自己墓地没有卡存在的场合才能发动。抽1张。')
-        self.assets.rows[2].update(type=2, desc='①：自己主要阶段才能发动。抽1张。')
-        for card_type, valid in ((2, False), (0x20002, True)):
-            with self.subTest(card_type=card_type):
-                self.assets.rows[2]['type'] = card_type
-                _, quality = self.evaluate(context=self.joint_context((1, 2), (2, 1)))
-                self.assertTrue(quality['complete'], quality['unknowns'])
-                self.assertEqual(not any(r['status'] == 'failed' for r in quality['hard_requirements']), valid)
-
-    def test_joint_absence_replacement_redirects_future_cleanup_without_clearing_old_grave(self):
-        self.assets.rows[1].update(type=2, desc='①：自己墓地没有卡存在的场合才能发动。抽1张。')
-        self.assets.rows[2].update(type=2, desc='①：自己主要阶段才能发动。直到下个回合的结束时，被送去墓地的卡不去墓地而除外。')
-        self.assets.rows[3].update(type=2, desc='①：抽1张。')
-        for codes, before, valid in (((1, 2), (2, 1), True), ((1, 2, 3), (3, 2, 1), False)):
-            with self.subTest(before=before):
-                _, quality = self.evaluate(context=self.joint_context(codes, before))
-                self.assertTrue(quality['complete'], quality['unknowns'])
-                self.assertEqual(not any(r['status'] == 'failed' for r in quality['hard_requirements']), valid)
-
-    def test_optional_placement_state_is_checked_after_its_own_token_production(self):
-        self.assets.rows[1].update(type=2, desc='①：在自己场上把1只「匿名衍生物」'
-            '（天使族·地·4星·攻/守2000）特殊召唤。'
-            '自己场上没有「匿名衍生物」存在的场合，可以再从卡组把1张「匿名旅程」'
-            '在自己的魔法与陷阱区域表侧表示放置。')
-        self.assets.rows[2].update(type=0x20002, name='匿名旅程', desc='①：自己主要阶段才能发动。抽1张。')
-        facts, quality = self.evaluate()
-        self.assertTrue(quality['complete'], quality['unknowns'])
-        self.assertEqual(self.state(facts, 1), [True, False])
-
-    def test_joint_field_absence_consumes_generated_token_and_real_clearance(self):
-        self.assets.rows[1].update(type=2, desc='①：自己场上没有「匿名衍生物」存在的场合才能发动。抽1张。')
-        self.assets.rows[2].update(type=2, desc='①：在自己场上把1只「匿名衍生物」'
-            '（天使族·地·4星·攻/守2000）特殊召唤。')
-        self.assets.rows[3].update(type=2, desc='①：从自己场上把1只怪兽除外。')
-        for codes, before, valid in (((1, 2), (2, 1), False), ((1, 2, 3), (2, 3, 1), True)):
-            with self.subTest(before=before):
-                _, quality = self.evaluate(context=self.joint_context(codes, before))
-                self.assertTrue(quality['complete'], quality['unknowns'])
-                self.assertEqual(not any(r['status'] == 'failed' for r in quality['hard_requirements']), valid)
-
     def test_fixed_excavation_choice_and_return_is_one_non_targeted_addition(self):
         self.assets.rows[1].update(type=2,desc='这个卡名的卡在1回合只能发动1张，'
             '这张卡发动的回合，自己不能把怪兽特殊召唤。'
@@ -203,21 +85,6 @@ class StaticEntryTests(unittest.TestCase):
         self.assertTrue(chosen['random'])
         self.assertEqual(chosen['selection_method'],'choose_from_excavated')
         self.assertEqual(chosen['quantity'],1)
-
-    def test_absence_condition_cannot_follow_uncleared_required_grave_production(self):
-        from ygo_kito.construction_relations import JointConstraint
-        self.assets.rows[1].update(type=2,desc='①：自己墓地没有卡存在的场合才能发动。抽1张。')
-        self.assets.rows[2].update(type=2,desc='①：从自己卡组把1只怪兽送去墓地。')
-        initial,_=self.evaluate()
-        ids={initial['use_details'][u.use_id]['card_id']:u.use_id for u in initial['uses'] if u.contributes}
-        uses=tuple(UseRequirement('r:'+str(c),InputGroup('all',(Need('r:'+str(c),
-            Resource('functional_operation',attributes=(f'catalog:{c}:1:op:0',)),mode='presence'),)),
-            'required joint processing',functional_use_ids=(ids[c],)) for c in (1,2))
-        context=SimpleNamespace(relations=RelationContext(uses,constraints=(
-            JointConstraint('grave_before_absence',('r:2','r:1'),'before','original required order'),)))
-        _,quality=self.evaluate(context=context)
-        self.assertTrue(quality['complete'],quality['unknowns'])
-        self.assertTrue(any(r['status']=='failed' for r in quality['hard_requirements']))
 
     def test_global_destination_replacement_preserves_optional_order_and_required_conflict(self):
         from ygo_kito.construction_relations import JointConstraint

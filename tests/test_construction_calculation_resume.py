@@ -464,6 +464,71 @@ class CalculationResumeTests(unittest.TestCase):
         self.assertTrue(result['construction_passed'])
         self.assertEqual(result['continuation']['candidate_cursor'],saved['candidate_cursor'])
 
+    def test_pending_candidate_yields_to_next_rank_after_restore(self):
+        from ygo_kito.build_contracts import DeckParts
+        from ygo_kito.construction_fill import construction_cycle, FillProposal, NodeBinding
+        from ygo_kito.construction_layer_flow import ConstructionLayerAdapter, NORMALIZATION_VERSION, functional_asset_version
+        from ygo_kito.construction_logic import ConstructionLogic
+        from ygo_kito.construction_progress import restore_progress
+        from tests.test_construction_functional_flow import fixture, reviewed
+        from tests.test_construction_layer_flow import session_for, rows_for
+
+        task, assets, graph, binder, decks, policy = fixture()
+        decks = decks[:2]
+
+        def provider(ctx):
+            old = ConstructionLogic.from_dict(ctx['logic'])
+            return dict(logic=replace(graph, revision=old.revision + 1, parent_sha256=old.sha256).to_dict(), reason='fixture')
+
+        def skeleton_result(session, *_args, **_kwargs):
+            deck = DeckParts((1,))
+            proposal = FillProposal(deck, (NodeBinding('goal', (1,)),), (), session.logic.sha256, task.sha256)
+            return dict(status='axis_skeleton_ready', best_deck=deck.to_dict(), concrete_proposal=asdict(proposal),
+                unfilled=dict(main=39, extra=0, side=0))
+
+        class PausedFirst(ConstructionLayerAdapter):
+            def __init__(self, binding):
+                super().__init__(binding, budget=RelationBudget(candidates=1))
+                self.calls = []
+                self.progress = dict(normalization_version=NORMALIZATION_VERSION,
+                    asset_version=functional_asset_version(self.catalog), read_cursor=1)
+
+            def evaluate_inventory(self, task, deck, layer, context, *, calculation=None, **options):
+                self.calls.append((deck, calculation))
+                if len(self.calls) == 1:
+                    return None, self.progress, 'time_slice_exhausted'
+                return super().evaluate_inventory(task, deck, layer, context, **options)
+
+        session = session_for(task, graph)
+        adapter = PausedFirst(binder)
+        options = dict(binding_provider=binder, text_reviewer=binder.reviewer, quality_criteria=policy,
+            quality_evidence=reviewed(binder.semantic_catalog, policy), layer_adapter=adapter,
+            run_mode='slice', seconds=30., max_iterations=1,
+            basic_cb_provider=lambda *_a, **_kw: self.fail('CB forbidden'))
+        providers = {key: provider for key in ('build_goal', 'build_optimizer')}
+        with patch('ygo_kito.construction_fill.build_axis_skeleton', side_effect=skeleton_result), \
+             patch('ygo_kito.build_pipeline._goal_candidates', return_value=decks), \
+             patch('ygo_kito.construction_candidates.portfolio', return_value=rows_for(task, decks)):
+            first = construction_cycle(session, assets, providers, **options)
+        saved = roundtrip(first['continuation'])
+        batch = saved['pending_quality']
+        first_index, second_index = batch['order']
+        self.assertEqual(batch['order'][batch['evaluation_cursor']], second_index)
+
+        older = deepcopy(saved)
+        older['pending_quality']['calculation_progress'][str(first_index)]['normalization_version'] = 'old-normalization'
+        restore_progress(session, older, assets)
+        self.assertEqual(session.construction_progress['pending_quality']['calculation_progress'], {})
+        self.assertEqual(session.construction_progress['pending_quality']['candidates'], batch['candidates'])
+        restore_progress(session, saved, assets)
+        with patch('ygo_kito.construction_candidates.portfolio', side_effect=AssertionError('new candidates')):
+            second = construction_cycle(session, assets, providers, **options, max_candidates=0)
+            restore_progress(session, roundtrip(second['continuation']), assets)
+            construction_cycle(session, assets, providers, **options, max_candidates=0)
+        self.assertEqual([deck.to_dict() for deck, _ in adapter.calls],
+            [batch['candidates'][i]['deck'] for i in (first_index, second_index, first_index)])
+        self.assertEqual(adapter.calls[-1][1], adapter.progress)
+
     def test_quality_timeout_keeps_completed_normalization_for_resume(self):
         from ygo_kito.construction_layer_flow import ConstructionLayerAdapter
         from tests.test_construction_functional_flow import fixture

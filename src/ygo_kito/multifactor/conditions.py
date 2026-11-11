@@ -377,10 +377,14 @@ class _Search:
             if isinstance(condition, ConditionGroup):
                 if condition.op != 'all':
                     return False
-            elif condition.consume_mode != 'consume' or condition.state_origins is not None:
+            elif condition.state_origins is not None or condition.state_destination_replace is not None:
                 return False
-            else:
+            elif condition.consume_mode == 'consume':
                 demands.append((condition, path))
+            elif condition.consume_mode != 'reusable':
+                return False
+            # A static presence adds no stock. A shortage among mandatory
+            # payments therefore also rules out the complete conjunction.
         if len(demands) < 2 or sum(condition.quantity for condition, _ in demands) > 64:
             return False
 

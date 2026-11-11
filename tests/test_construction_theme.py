@@ -184,7 +184,7 @@ class AutomaticThemeTests(unittest.TestCase):
         validate_pair(task, pairs[0])
         self.assertEqual(pairs[0]['better'], decks[0].to_dict())
 
-    def test_full_payment_and_joint_contention_withdraw_secondary_bonus_at_the_right_stage(self):
+    def test_automatic_cooperation_checks_each_payment_separately(self):
         from ygo_kito.construction_relations import ResourcePool
         f = theme_fixture('banished')
         for code in (1, 3):
@@ -201,14 +201,64 @@ class AutomaticThemeTests(unittest.TestCase):
         _, facts, contended = evaluate(f, policy=p, relations=shared)
         self.assertTrue(all(u.self_condition is True for u in facts['uses'] if u.contributes))
         self.assertIs(dict(card_use(facts, 1).theme_conditions)[SECONDARY], True)
-        self.assertIs(dict(card_use(facts, 1).theme_joint_conditions)[SECONDARY], False)
-        self.assertAlmostEqual(full['score']['value'] - contended['score']['value'], .5)
-        self.assertAlmostEqual(contended['losses'][0]['upper'], 0)
-        self.assertAlmostEqual(contended['losses'][1]['upper'], .5)
+        self.assertIs(dict(card_use(facts, 1).theme_joint_conditions)[SECONDARY], True)
+        self.assertAlmostEqual(full['score']['value'], contended['score']['value'])
         short = replace(relations, pools=(replace(relations.pools[0], capacity=1999),))
         _, facts, impossible = evaluate(f, policy=p, relations=short)
         self.assertTrue(all(u.self_condition is False for u in facts['uses'] if u.contributes))
         self.assertEqual(impossible['score']['value'], 0)
+
+    def test_merrli_and_kitkallos_use_printed_cooperation_and_distinct_materials(self):
+        task, assets, _, binder, decks, _ = theme_fixture('grave')
+        merrli, kitkallos, decoy = 1, 101, 102
+        for row in assets.rows.values():
+            row.update(race=1, setcode=0, desc='Normal text')
+        assets.rows[merrli].update(name='珠泪哀歌族·梅洛人鱼', type=33, race=64, setcode=0x515,
+            desc='这个卡名的①②的效果1回合各能使用1次。\n'
+                '①：这张卡召唤·特殊召唤成功的场合才能发动。从自己卡组上面把3张卡送去墓地。\n'
+                '②：这张卡被效果送去墓地的场合才能发动。'
+                '融合怪兽卡决定的包含墓地的这张卡的融合素材怪兽从自己的手卡·场上·墓地用喜欢的顺序回到持有者卡组下面，'
+                '把那1只融合怪兽从额外卡组融合召唤。')
+        assets.rows[2]['race'] = 64
+        assets.rows[kitkallos] = dict(assets.rows[2], id=kitkallos, name='珠泪哀歌族·水仙女人鱼',
+            type=97, setcode=0x515, desc='「珠泪哀歌族」怪兽＋水族怪兽\n'
+                '这个卡名的①②③的效果1回合各能使用1次。\n'
+                '①：这张卡特殊召唤成功的场合才能发动。从卡组选1张「珠泪哀歌族」卡加入手卡或送去墓地。\n'
+                '②：以自己场上1只怪兽为对象才能发动。从自己的手卡·墓地选1只「珠泪哀歌族」怪兽特殊召唤，'
+                '作为对象的怪兽送去墓地。\n'
+                '③：这张卡被效果送去墓地的场合才能发动。从自己卡组上面把5张卡送去墓地。')
+        assets.rows[decoy] = dict(assets.rows[3], id=decoy, name='另一只融合怪兽', type=97, setcode=0x515,
+            desc='战士族怪兽＋战士族怪兽\n' + LIMIT + '这张卡特殊召唤成功的场合才能发动。抽1张。')
+        raw = task.to_dict()
+        raw['pool'] = sorted(set(raw['pool']) | {kitkallos, decoy})
+        raw['sizes']['extra'] = 2
+        task = BuildTask.from_dict(raw)
+        policy = host_construction_quality(task, catalog=binder.semantic_catalog)[0]
+        deck = replace(decks[1], extra=(kitkallos, decoy))
+
+        def pairs_for(candidate):
+            work = {}
+            facts = normalize_function_uses(task, candidate, binder.semantic_catalog, policy=policy, work_state=work)
+            relation = work['projections']['resident']['relation']
+            self.assertFalse(any(key.startswith('theme:') for key in relation['uses']))
+            self.assertFalse(any(':receiver:' in key for key in relation['fact_records']))
+            def indexed(position):
+                code, ri, oi = position
+                section = 'extra' if code in candidate.extra else 'main'
+                record = facts['coverage_details'][f'{section}:{code}']['effects'][ri]['record']
+                return code, record['effect_index'], record['operations'][oi]['kind']
+            return {(indexed(p['source']), indexed(p['receiver'])[:2]) for p in relation['theme_pairs']
+                if p['connection']['kind'] == 'trigger' and not p['connection']['gaps']}
+
+        pairs = pairs_for(deck)
+        fusion = (merrli, 2, 'fusion_summon')
+        self.assertIn((fusion, (kitkallos, 1)), pairs)
+        self.assertNotIn((fusion, (decoy, 1)), pairs)
+        self.assertIn(((kitkallos, 2, 'special_summon'), (merrli, 1)), pairs)
+        self.assertIn(((kitkallos, 2, 'send_grave'), (merrli, 2)), pairs)
+        self.assertIn(((kitkallos, 3, 'mill'), (merrli, 2)), pairs)
+        without_second_material = replace(deck, main=tuple(3 if code == 2 else code for code in deck.main))
+        self.assertNotIn((fusion, (kitkallos, 1)), pairs_for(without_second_material))
 
     def test_reason_owner_selector_and_incomplete_text_do_not_create_false_cooperation(self):
         for change in ('reason', 'owner', 'selector', 'suffix'):

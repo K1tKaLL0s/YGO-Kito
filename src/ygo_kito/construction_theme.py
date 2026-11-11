@@ -60,34 +60,74 @@ def primary_goal(profile, code, record, operation, dependencies):
     return False
 
 
-def direct_connection(source, receiver, dependencies, available):
-    """A compatible transfer/recipient, not proof that an effect has resolved.
+def _movement_domain(source, dependencies, available, profile_cards, *, fusion_proof=None):
+    from .effect_records import operation_record
 
-    Missing owner/reason/selectors are returned as a local gap. Actual costs,
-    activation, quantities, limits and joint inventory are checked by the
-    existing relation solver after this semantic match.
-    """
-    sc, _, _, sr, op = source
-    rc, _, _, rr, result = receiver
+    code, _, _, record, operation = source
+    scoped = operation_record(record, operation)
+    origins = operation.get('from_zones', ())
+    gaps = []
+    if operation.get('owner') != 'self':
+        gaps.append('movement_owner')
+    if operation.get('reason') not in ('effect', 'cost'):
+        gaps.append('movement_reason')
+    if (not origins or any(z not in ('hand', 'deck', 'grave', 'field', 'extra', 'banished', 'xyz_material')
+            for z in origins) or type(operation.get('quantity')) is not int or operation['quantity'] < 1):
+        gaps.append('movement_origin_or_quantity')
+    query = operation_query(operation, dependencies)
+    target_ref = operation.get('target_ref')
+    if query is None and type(target_ref) is int and 0 <= target_ref < len(scoped['targets']):
+        requirement = dependencies.item_requirement(scoped['targets'][target_ref], 'targets')
+        query = requirement['query'] if requirement else None
+
+    if operation['kind'] == 'fusion_summon':
+        if profile_cards is None:
+            proof = fusion_proof or dependencies.fusion_check(available, code, scoped)
+            known = {row['target'] for row in proof['options']} if proof else set()
+            uncertain = set(proof['uncovered_targets']) - known if proof else set()
+        else:
+            # The fixed policy records theme goals by printed compatibility.
+            # Distinct material copies are assigned only in a candidate view.
+            known, uncertain = set(), set()
+            selection = scoped.get('fusion_material_selection')
+            if selection:
+                for target in profile_cards.intersection(available.extra):
+                    if not dependencies.rows[target]['type'] & 0x40:
+                        continue
+                    allowed, _ = dependencies.candidate_status(target, dict(category='operations', operation=operation))
+                    if allowed is not True:
+                        continue
+                    _, materials = dependencies.specs(target)
+                    if not materials or any(not query_supported(r['query']) for r in materials):
+                        continue
+                    if not selection['requires_this_card'] or any(matches(dependencies.rows[code], r['query'])
+                            and dependencies.candidate_status(code, dict(r, origin='grave'), target=target)[0] is True
+                            for r in materials):
+                        known.add(target)
+        cards = known | uncertain
+    else:
+        cards = set(available.main + available.extra)
+        if origins and set(origins) <= {'hand', 'deck'}:
+            cards.intersection_update(available.main)
+        elif list(origins) == ['extra']:
+            cards.intersection_update(available.extra)
+        if query is None and not operation.get('random'):
+            gaps.append('complete_movement_selector')
+        known = cards
+    if query is not None:
+        cards = {c for c in cards if matches(dependencies.rows[c], query)}
+    return cards, known, gaps
+
+
+def direct_connection(source, receiver, dependencies, available, movement_domains, *, profile_cards=None):
+    """Match a printed movement to a receiving effect in the available stock."""
+    rc, ri, _, rr, result = receiver
+    op = source[4]
     if op is result or source[:3] == receiver[:3]:
         return None
     zone = op.get('to_zone')
-    # Searching a card does not inherit that card's later processing function.
-    if zone not in ('grave', 'banished', 'field'):
+    if zone not in ('grave', 'banished', 'field') or op.get('owner') not in (None, 'unknown', 'self'):
         return None
-    if op.get('owner') not in (None, 'unknown', 'self'):
-        return None
-    origins = op.get('from_zones', ())
-    gaps = []
-    if op.get('owner') != 'self':
-        gaps.append('movement_owner')
-    if op.get('reason') not in ('effect', 'cost'):
-        gaps.append('movement_reason')
-    if len(origins) != 1 or type(op.get('quantity')) is not int or op['quantity'] < 1:
-        gaps.append('movement_origin_or_quantity')
-    query = operation_query(op, dependencies)
-    if query is None and not op.get('random'):
-        gaps.append('complete_movement_selector')
     trigger = rr['trigger']
     event = ('sent_to_grave' if zone == 'grave' else
         'special_summon' if zone == 'field' and op['kind'] in (
@@ -99,32 +139,41 @@ def direct_connection(source, receiver, dependencies, available):
     if triggered:
         if trigger.get('reason') not in (None, 'not_applicable', op.get('reason')):
             return None
-        if query is not None and not matches(dependencies.rows[rc], query):
+    else:
+        specs, materials = dependencies.specs(rc)
+        requirements = [r for r in specs[ri]['requirements']
+            if r['category'] == 'costs' or r.get('operation') == result]
+        compatible = [r['query'] for r in (*requirements, *materials)
+            if zone in r.get('origins', (r.get('origin'),)) and r.get('owner', 'self') == 'self']
+        if not compatible:
             return None
-        if origins == ['deck'] and rc not in available.main:
+    key = source[:3]
+    if key not in movement_domains:
+        movement_domains[key] = _movement_domain(source, dependencies, available, profile_cards)
+    cards, known, gaps = movement_domains[key]
+    gaps = list(gaps)
+    if triggered:
+        if rc not in cards:
             return None
+        statuses = [dependencies.candidate_status(rc, dict(category='operations',
+            operation=dict(op, from_zones=[origin])))[0] for origin in op.get('from_zones', ())]
+        if statuses and all(status is False for status in statuses):
+            return None
+        if statuses and True not in statuses:
+            gaps.append('recipient_summon_restriction')
         resources = [rc]
         kind = 'trigger'
     else:
-        # Only a resource directly used by the receiving processing counts.
-        # Card presence and a shared zone word alone do not establish this.
-        specs, materials = dependencies.specs(rc)
-        requirements = [r for r in specs[receiver[1]]['requirements']
-            if r['category'] == 'costs' or r.get('operation') == result]
-        requirements.extend(materials)
-        compatible = [r for r in requirements if r.get('origin') == zone and r.get('owner', 'self') == 'self']
-        resources = sorted({c for c in (*available.main, *available.extra)
-            if any(matches(dependencies.rows[c], req['query']) for req in compatible)
-            and (query is None or matches(dependencies.rows[c], query))
-            and (origins != ['deck'] or c in available.main)})
+        resources = sorted(c for c in cards if any(matches(dependencies.rows[c], query) for query in compatible))
         if not resources:
             return None
         kind = 'resource'
-    eligible, _ = dependencies.candidate_status(rc, dict(category='operations', operation=op)) if triggered else (True, [])
-    if eligible is False:
-        return None
-    if eligible is None:
-        gaps.append('recipient_summon_restriction')
+    if op['kind'] == 'fusion_summon':
+        confirmed = known.intersection(resources)
+        if confirmed:
+            resources = sorted(confirmed)
+        else:
+            gaps.append('fusion_material_configuration')
     return dict(kind=kind, zone=zone, event=trigger.get('event') if triggered else None,
         resources=resources, gaps=gaps)
 
@@ -200,11 +249,13 @@ def derive_theme_profile(task, catalog, *, theme=None, theme_id=None, goal_tags=
     available = SimpleNamespace(main=tuple(c for c in task.pool if c in dependencies.rows
         and not dependencies.rows[c]['type'] & EXTRA_TYPES),
         extra=tuple(c for c in task.pool if c in dependencies.rows and dependencies.rows[c]['type'] & EXTRA_TYPES))
+    movement_domains = {}
+    profile_cards = set(codes)
     # Some themes receive a resource from a generic support card. If the theme
     # itself supplies no observed connection, retrieve one actual counterpart;
     # do not make every unrelated legal card part of the policy's read budget.
     if not explicit and core and not any(
-            (c := direct_connection(s, r, dependencies, available)) and not c['gaps']
+            (c := direct_connection(s, r, dependencies, available, movement_domains, profile_cards=profile_cards)) and not c['gaps']
             for s in entries for r in entries):
         for code in task.pool:
             if code in codes:
@@ -212,9 +263,17 @@ def derive_theme_profile(task, catalog, *, theme=None, theme_id=None, goal_tags=
             specs, _ = dependencies.specs(code)
             extra = [(code, ri, oi, spec['record'], op) for ri,spec in enumerate(specs)
                      for oi,op in enumerate(spec['record']['operations'])]
-            if any((c := direct_connection(s, r, dependencies, available)) and not c['gaps']
-                   for left,right in ((entries,extra),(extra,entries)) for s in left for r in right):
+            if not extra:
+                continue
+            probe_domains = dict(movement_domains)
+            relevant = profile_cards | {code}
+            if code in available.extra:
+                probe_domains = {}
+            if any((c := direct_connection(s, r, dependencies, available, probe_domains, profile_cards=relevant))
+                    and not c['gaps'] for left, right in ((entries, extra), (extra, entries)) for s in left for r in right):
                 entries += extra
+                profile_cards = relevant
+                movement_domains = probe_domains
                 profile['card_texts'][str(code)] = catalog.card(code).text_sha256
                 break
     goals, preparations, evidence = {}, {}, {}
@@ -246,7 +305,7 @@ def derive_theme_profile(task, catalog, *, theme=None, theme_id=None, goal_tags=
             if pairs > budget.matches:
                 profile['gaps'].append('theme_pair_budget')
                 break
-            connection = direct_connection(source, receiver, dependencies, available)
+            connection = direct_connection(source, receiver, dependencies, available, movement_domains, profile_cards=profile_cards)
             if not connection:
                 continue
             if not explicit and not (source[0] in core or receiver[0] in core
@@ -282,80 +341,42 @@ def automatic_rules(profile):
             (PRIMARY, 'primary', 100), (SECONDARY, 'secondary', 50))]
 
 
-def add_theme_relations(facts, uses, operation_facts, records, dependencies, available, profile, budget,
-                        *, continuation=None, should_stop=None, work_state=None):
-    """Reuse the relation solver for availability and joint use of each pair.
-
-    A private availability event asks whether the receiving effect can use a
-    compatible transfer. It is never exported as an actual activation. The
-    joint proof replaces it with the actual supplying operation, retaining
-    costs, claims, choices, selectors and physical transfers from both effects.
-    """
-    from dataclasses import replace
-    from .construction_relations import InputGroup, Need, RelationFact, Resource, UseRequirement
-    by_fact = {f.fact_id: f for f in facts}
+def theme_pairs(operation_facts, records, dependencies, available, profile, budget, fusion_proofs,
+                *, continuation=None, should_stop=None, work_state=None):
+    """Collect printed pairs without extending the resource graph."""
     entries = [(code, ri, oi, records[code][ri], records[code][ri]['operations'][oi])
         for code, ri, oi in operation_facts if oi is not None]
-    goals = {g['goal_id'] for g in profile['goals']}
     preparations = {digest(p) for p in profile['preparations']}
-    pairs, gaps, attempts = [], [], 0
-    positions=[list(entry[:3]) for entry in entries]
-    if continuation is not None and (continuation.get('version')!='theme-relations-v1' or continuation.get('operations')!=positions):
-        raise ContractError('theme relation continuation belongs to different operations')
-    cursor=(continuation or {}).get('cursor',0)
-    accepted=deepcopy((continuation or {}).get('accepted',{}))
-    position=0
-    def replace_trigger(node, resource, code):
-        if isinstance(node, Need):
-            return replace(node, resource=resource, need_id=node.need_id + ':theme:' + resource.kind + ':' + digest(resource.attributes)) if node.resource.kind == 'activation' and (
-                'card:' + str(code)) in node.resource.attributes else node
-        return InputGroup(node.operator, tuple(replace_trigger(v, resource, code) for v in node.items))
+    pairs, attempts = [], 0
+    positions = [list(entry[:3]) for entry in entries]
+    if continuation is not None and (continuation.get('version') != 'theme-pairs-v1'
+            or continuation.get('operations') != positions):
+        raise ContractError('theme pair continuation belongs to different operations')
+    cursor = (continuation or {}).get('cursor', 0)
+    accepted = dict((continuation or {}).get('accepted', {}))
+    movement_domains = {entry[:3]: _movement_domain(entry, dependencies, available, None,
+        fusion_proof=fusion_proofs[entry[:3]]) for entry in entries if entry[:3] in fusion_proofs}
+    position = 0
     for receiver in entries:
-        goal = digest(function_goal(receiver[3], receiver[4]))
         if not primary_goal(profile, receiver[0], receiver[3], receiver[4], dependencies):
             continue
+        goal = digest(function_goal(receiver[3], receiver[4]))
         for source in entries:
-            if position<cursor:
-                connection=accepted.get(str(position))
+            if position < cursor:
+                connection = accepted.get(str(position))
             else:
-                if attempts>=budget.matches or should_stop is not None and should_stop():
-                    return pairs,dict(version='theme-relations-v1',operations=positions,cursor=position,accepted=accepted)
-                attempts+=1
-                connection=direct_connection(source,receiver,dependencies,available)
-                if connection and not profile['explicit_goals'] and digest(dict(goal=goal,kind=connection['kind'],
-                        zone=connection['zone'],event=connection['event'])) not in preparations:
-                    connection=None
-                if connection:accepted[str(position)]=deepcopy(connection)
-            position+=1
-            if not connection:continue
-            source_fact = by_fact[operation_facts[source[:3]].removeprefix('functional:')]
-            receiver_fact = by_fact[operation_facts[receiver[:3]].removeprefix('functional:')]
-            key = 'theme:' + digest((source[:3], receiver[:3], goal))
-            ready = Resource('theme_available', attributes=(key,))
-            joint = Resource('theme_joint', attributes=(key,))
-            if connection['kind'] == 'trigger':
-                event = Resource('theme_event', attributes=(key,))
-                facts.append(RelationFact(key + ':event', key + ':event', event,
-                    'compatible receiving event; availability only'))
-                own_inputs = replace_trigger(receiver_fact.inputs, event, receiver[0])
-                joint_inputs = replace_trigger(receiver_fact.inputs, source_fact.output, receiver[0])
-            else:
-                own_inputs = receiver_fact.inputs
-                additional = Need(key + ':preparation', source_fact.output, mode='presence')
-                joint_inputs = InputGroup('all', (*own_inputs.items, additional)) if (
-                    own_inputs is not None and own_inputs.operator == 'all') else InputGroup('all', tuple(
-                        v for v in (own_inputs, additional) if v is not None))
-            unknown = tuple(sorted(set((*receiver_fact.unknown, *connection['gaps']))))
-            facts.extend((replace(receiver_fact, fact_id=key + ':available', output=ready,
-                    inputs=own_inputs, output_pool=None, unknown=unknown),
-                replace(receiver_fact, fact_id=key + ':joint', output=joint,
-                    inputs=joint_inputs, output_pool=None, unknown=unknown)))
-            for suffix, output in (('available', ready), ('joint', joint)):
-                uid = key + ':' + suffix
-                uses.append(UseRequirement(uid, InputGroup('all', (Need(uid, output, mode='presence'),)),
-                    'direct task-goal cooperation', required=False))
-            pairs.append(dict(source=source[:3], receiver=receiver[:3],
-                available_use_id=key + ':available', joint_use_id=key + ':joint', connection=connection))
+                if attempts >= budget.matches or should_stop is not None and should_stop():
+                    return pairs, dict(version='theme-pairs-v1', operations=positions, cursor=position, accepted=accepted)
+                attempts += 1
+                connection = direct_connection(source, receiver, dependencies, available, movement_domains)
+                if connection and not profile['explicit_goals'] and digest(dict(goal=goal, kind=connection['kind'],
+                        zone=connection['zone'], event=connection['event'])) not in preparations:
+                    connection = None
+                if connection:
+                    accepted[str(position)] = connection
+            position += 1
+            if connection:
+                pairs.append(dict(source=source[:3], receiver=receiver[:3], connection=connection))
     if work_state is not None:
-        work_state.update(version='theme-relations-v1',operations=positions,cursor=position,accepted=accepted)
-    return pairs, gaps
+        work_state.update(version='theme-pairs-v1', operations=positions, cursor=position, accepted=accepted)
+    return pairs, None

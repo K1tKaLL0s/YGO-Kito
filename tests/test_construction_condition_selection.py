@@ -135,19 +135,21 @@ class ConditionSelectionTests(unittest.TestCase):
         from ygo_kito.construction_quality import support_state, support_facts
         from ygo_kito.construction_theme import SECONDARY
         from tests.test_construction_functional_quality import use
-        source=use('source',sources=('main:1:1',));receiver=use('receiver',sources=('main:2:1',),family='receiver')
-        facts=dict(uses=[source,receiver],use_details={
-            'source':dict(operation_key=(1,0,0),goal_id='preparation'),
-            'receiver':dict(operation_key=(2,0,0),goal_id='goal')},scope_status={})
-        pairs=[];rows={};variables={}
+        source = use('source', sources=('main:1:1',))
+        facts = dict(uses=[source], use_details={
+            'source': dict(operation_key=(1, 0, 0), goal_id='preparation')}, scope_status={})
+        pairs, variables = [], {}
         for i in range(257):
-            key='counterpart:'+str(i)
-            rows[key]=dict(status='unknown',support_expression=('atom',key))
-            pairs.append(dict(source=(1,0,0),receiver=(2,0,0),available_use_id=key,joint_use_id=key,connection='printed compatible transfer'))
-        def condition(key,*_):variables[key]=None;return key
-        relation=dict(theme_gaps=[],theme_pairs=pairs,uses=rows)
-        _bind_automatic_themes(facts,{'resident':(relation,{})},
-            dict(theme_profile=dict(gaps=[],goals=[dict(goal_id='goal')])),condition,{})
+            code = i + 2
+            key = 'counterpart:' + str(i)
+            receiver = use(key, sources=(f'main:{code}:1',), family=key, condition=key)
+            facts['uses'].append(receiver)
+            facts['use_details'][key] = dict(operation_key=(code, 0, 0), goal_id='goal')
+            variables[key] = None
+            pairs.append(dict(source=(1, 0, 0), receiver=(code, 0, 0), connection=dict(gaps=[])))
+        relation = dict(theme_pairs=pairs)
+        _bind_automatic_themes(facts, {'resident': (relation, {})},
+            dict(theme_profile=dict(gaps=[], goals=[dict(goal_id='goal')])), None, {})
         expression=dict(facts['uses'][0].theme_conditions)[SECONDARY]
         self.assertEqual(support_facts(expression),set(variables))
         self.assertEqual(len(variables),257)
