@@ -60,6 +60,29 @@ class ConstructionModelTests(unittest.TestCase):
         self.assertEqual(self.session.logic.revision,1)
         self.assertEqual(self.session.goal_sha256,before)
 
+    def test_pearl_drafts_distinguish_holder_and_printed_selector(self):
+        from ygo_kito.construction_candidates import graph_signature
+        from ygo_kito.construction_logic import has_scoped_effect_blocks
+        from ygo_kito.construction_effect_blocks import logic_vocabulary
+
+        theme = LogicTag("field", "setcode:181")
+        context = graph_context(self.session)
+        context["construction_request"] = {"theme": "tearlaments"}
+        codec = LogicCodec((*logic_vocabulary(), theme))
+        drafts = rule_graph_candidates(context, codec, required_tags=(theme,))
+        self.assertTrue(any(g.nodes[0].requirements.selector_setcode == 385 for g in drafts))
+        self.assertTrue(any(g.nodes[0].requirements.selector_setcode is None for g in drafts))
+        for graph in drafts:
+            self.assertTrue(has_scoped_effect_blocks(graph))
+            self.assertNotIn(theme, graph.nodes[0].tags)
+            self.assertIn(theme, graph.nodes[1].tags)
+            self.assertEqual(graph.nodes[1].requirements.trigger_reason, "effect")
+            self.assertEqual(codec.decode(codec.encode(graph)), graph)
+            self.assertEqual(ConstructionLogic.from_dict(graph.to_dict()), graph)
+            legacy = replace(graph, nodes=tuple(replace(n, requirements=None) for n in graph.nodes))
+            self.assertNotEqual(graph_signature(graph), graph_signature(legacy))
+            self.assertNotIn("requirements", legacy.to_dict()["nodes"][0])
+
     def test_actual_role_parameter_updates_loss_and_checkpoint_continue(self):
         for role in ("build_goal","build_optimizer"):
             context=graph_context(self.session,role)

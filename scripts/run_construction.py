@@ -154,6 +154,7 @@ def main(argv=None):
     parser.add_argument('--workspace', type=Path, required=True)
     parser.add_argument('--native-root', type=Path, required=True)
     parser.add_argument('--period', required=True)
+    parser.add_argument('--request', help='Chinese, English, or Japanese construction task; defaults to the course wording')
     parser.add_argument('--theme', help='Verify the host-selected theme identifier')
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--mode', choices=('development','online'), default='development')
@@ -197,7 +198,7 @@ def main(argv=None):
         status('loading_modules')
         os.environ.setdefault('CUBLAS_WORKSPACE_CONFIG', ':4096:8')
         import torch
-        from ygo_kito.course_construction_request import course_construction_request
+        from ygo_kito.course_construction_request import course_construction_text
         from ygo_kito.course_models import CourseModels
         from ygo_kito.period_runtime import PeriodBuildAssets
         environment = json.loads(args.environment.read_text(encoding='utf-8'))
@@ -215,7 +216,6 @@ def main(argv=None):
         device_receipt = prepare_inference_device(models, args.device)
         write_json(args.output/'device.json', device_receipt)
         status('inference_device', **device_receipt)
-        request = course_construction_request(args.period)
         before = dict(models.builder.updates)
         if args.resume:
             committed = checkpoint.read(args.resume)
@@ -225,13 +225,24 @@ def main(argv=None):
             if len(selections) != 1:
                 raise ValueError('resume requires one saved construction task')
             selection = selections[0]
-            if selection.get("construction_request") != request:
-                raise ValueError("resume needs a checkpoint for the current formal request; start a new run for it")
+            request = selection.get("construction_request")
+            if request is None:
+                raise ValueError("resume needs a checkpoint for a formal request; start a new run for it")
+            if args.request is not None and args.request != request["text"]:
+                raise ValueError("resume request differs from the saved wording")
+            session = kernel.sessions.get(selection["candidate_id"])
+            if session is not None and session.logic is not None:
+                from ygo_kito.construction_logic import has_scoped_effect_blocks
+
+                if not has_scoped_effect_blocks(session.logic):
+                    raise ValueError("saved construction draft lacks scoped effect blocks; start a new run for the saved wording")
         else:
             if pause:
                 write_json(args.output/'summary.json', dict(status='construction_suspended', stop_reason='user_pause'))
                 status('finished', status='construction_suspended', stop_reason='user_pause')
                 return 130
+            request_text = args.request if args.request is not None else course_construction_text(args.period)
+            request = models.coordinator.parse_construction_request(request_text, expected_period=args.period)
             selection = kernel.select_task(construction_request=request)
         if selection.get('status') != 'model_selected_task':
             raise ValueError('construction task selection unresolved: '+str(selection.get('status')))

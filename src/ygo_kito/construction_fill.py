@@ -18,6 +18,8 @@ from .validation import ContractError, array, fields, member
 class NodeBinding:
     node_id: str
     card_ids: tuple[int, ...]
+    effect_key: str | None = None
+    block_id: str | None = None
 
     def __post_init__(self):
         from .validation import integer
@@ -28,11 +30,23 @@ class NodeBinding:
             integer(code, "bound card ID", 1, 2**32 - 1)
         if len(set(self.card_ids)) != len(self.card_ids):
             raise ContractError("binding identities must be distinct; deck carries quantities")
+        if self.effect_key is not None or self.block_id is not None:
+            if len(self.card_ids) != 1:
+                raise ContractError("effect evidence needs one source card")
+            short(self.effect_key, "bound effect", 256)
+            short(self.block_id, "bound operation", 256)
+
+    def to_dict(self):
+        result = dict(node_id=self.node_id, card_ids=list(self.card_ids))
+        if self.effect_key is not None:
+            result.update(effect_key=self.effect_key, block_id=self.block_id)
+        return result
 
     @classmethod
     def from_dict(cls, value):
-        d = fields(value, {"node_id", "card_ids"})
-        return cls(d["node_id"], tuple(array(d["card_ids"], "binding cards")))
+        d = fields(value, {"node_id", "card_ids"}, {"effect_key", "block_id"})
+        return cls(d["node_id"], tuple(array(d["card_ids"], "binding cards")),
+                   d.get("effect_key"), d.get("block_id"))
 
 
 @dataclass(frozen=True)
@@ -124,6 +138,9 @@ def _check_bindings(graph, proposal):
     connectors = {e.connector_id: e for e in graph.connectors}
     if not active <= nodes.keys() or not set(graph.goal_nodes) <= active:
         raise ContractError("fill must bind existing nodes and all graph goals")
+    if any(getattr(nodes[b.node_id], 'requirements', None) is not None and b.effect_key is None
+           for b in proposal.bindings):
+        raise ContractError("qualified draft needs a concrete printed effect binding")
     if not set(proposal.connector_ids) <= connectors.keys():
         raise ContractError("fill references unknown connectors")
     edges = tuple(connectors[i] for i in proposal.connector_ids)
@@ -228,7 +245,7 @@ def evaluate_fill(session, assets, proposal, *, scopes=(), text_reviewer=None, v
         # They are not CB proofs, deployed incumbents or competitive labels.
         output.update(status="axis_skeleton_ready" if partial else "concrete_candidate_cb_pending",best_deck=proposal.deck.to_dict(),
             concrete_proposal={"deck":proposal.deck.to_dict(),
-                "bindings":[{"node_id":b.node_id,"card_ids":list(b.card_ids)} for b in proposal.bindings],"connector_ids":list(proposal.connector_ids),
+                "bindings":[b.to_dict() for b in proposal.bindings],"connector_ids":list(proposal.connector_ids),
                 "logic_sha256":proposal.logic_sha256,"task_sha256":proposal.task_sha256},
             text_assessment="source_bound_external_assessment_not_formal_effect_semantics")
         return output
@@ -257,7 +274,7 @@ def evaluate_fill(session, assets, proposal, *, scopes=(), text_reviewer=None, v
     session._accepted_fill = deepcopy({"deck": proposal.deck.to_dict(), "task_sha256": task.sha256,
                               "logic_sha256": graph.sha256, "status": output["status"],
                               "scope_sha256": output["scope_sha256"],
-                              "bindings": [{"node_id": b.node_id, "card_ids": list(b.card_ids)} for b in proposal.bindings],
+                              "bindings": [b.to_dict() for b in proposal.bindings],
                               "text_reviews": output["text_reviews"], "engine_validation": proof})
     return output
 
@@ -275,7 +292,12 @@ def _skeleton_candidates(session, assets, binding, scopes):
         pool = tuple(sorted({c for a in axes['axes'] for c in a['card_ids']} |
                             {r['card_id'] for r in task.requirements}))
 
+    from .construction_inventory import InventoryDependencies, qualified_effect_node
+    dependencies = InventoryDependencies(binding.semantic_catalog)
+
     def matching_codes(node, codes):
+        if qualified_effect_node(node):
+            return [c for c in codes if dependencies.draft_matches(c, node, fact_tags=binding.fact_tags)]
         return [c for c in codes if all(binding._tag_status(assets.rows[c], tag)[0] == 'satisfied'
                                        for tag in node.tags)]
 
@@ -488,7 +510,7 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
                 recognition_binding=recognition_identity, logic_sha256=session.logic.sha256, policy_sha256=policy_sha,
                 candidates=[dict(row, deck=row['deck'].to_dict()) for row in portfolio_rows],
                 proposals={str(i): dict(p.__dict__, deck=p.deck.to_dict(), connector_ids=list(p.connector_ids),
-                    bindings=[{'node_id': b.node_id, 'card_ids': list(b.card_ids)} for b in p.bindings])
+                    bindings=[b.to_dict() for b in p.bindings])
                     for i, p in proposals.items()},
                 binding_errors=binding_errors, generation=generation_trace, order=evaluation_order,
                 scores=scores, ranking=ranking)
@@ -608,7 +630,7 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
         results.append(result)
         item.update(status=result["status"],unmet=deepcopy(result.get("unmet",[])),card_list_legal=result.get("card_list_legal"),
             public_effect_evidence={"text_reviews_attempt_index":attempt_index,
-                "bindings":[{"node_id":b.node_id,"card_ids":list(b.card_ids)} for b in proposal.bindings],
+                "bindings":[b.to_dict() for b in proposal.bindings],
                 "reviewed_card_ids":sorted({e["card_id"] for review in result.get("text_reviews",[]) for e in review["evidence"]}),
                 "interpretation":"source_bound_card_effect_assessment_not_model_score_attribution"})
         if result["status"] in ("task_goal_verified_logic_unproven", "list_constraints_verified_logic_unproven", "concrete_candidate_cb_pending"):

@@ -38,6 +38,48 @@ class EffectConstructionIntegrationTests(unittest.TestCase):
         self.assertTrue(rows)
         self.assertTrue(all(set(r['deck'].main)<=set(smaller.pool) for r in rows))
 
+    def test_qualified_effect_binds_holder_selector_and_one_printed_effect(self):
+        from ygo_kito.construction_binding import CatalogBindingAdapter
+        from ygo_kito.construction_inventory import InventoryDependencies
+        from tests.test_effect_mechanisms import FUSION
+        from ygo_kito.construction_logic import ConstructionLogic, EffectRequirements, LogicConnector, LogicNode, LogicTag
+
+        task, assets, _, _ = assets_fixture()
+        assets.set_names = {'星河': 0x2d1}
+        assets.rows[99999]['desc'] = assets.rows[100]['desc']
+        binding = CatalogBindingAdapter(assets)
+        inventory = InventoryDependencies(binding.semantic_catalog)
+        holder = LogicTag('field', 'setcode:2d1')
+        send = LogicTag('effect', '卡组送墓')
+        fusion = LogicTag('effect', '墓地融合')
+        requirements = EffectRequirements(selector_setcode=0x2d1, from_zone='deck',
+                                          to_zone='grave', reason='effect')
+        node = LogicNode('mill', (send, holder), requirements=requirements)
+        self.assertTrue(inventory.draft_matches(100, node))
+        self.assertFalse(inventory.draft_matches(101, node))
+        self.assertFalse(inventory.draft_matches(99999, node))
+        self.assertTrue(inventory.draft_matches(99999, LogicNode('mill', (send,), requirements=requirements)))
+        self.assertFalse(inventory.draft_matches(101, LogicNode('combined', (send, fusion, holder))))
+        target = LogicNode('fusion', (fusion, holder), requirements=EffectRequirements(
+            trigger='sent_to_grave', trigger_reason='effect'))
+        self.assertTrue(inventory.draft_matches(101, target))
+        graph = ConstructionLogic('qualified-fixture', (node,), (), (node.node_id,), (node.node_id,))
+        from ygo_kito.construction_retrieval import candidate_ids
+        recalled, _ = candidate_ids(task, assets, graph, catalog=binding.semantic_catalog, limit=16)
+        self.assertIn(100, recalled)
+        proposal = binding.bind(graph, task, DeckParts((100,)), partial=True).proposal
+        self.assertIsNotNone(proposal)
+        self.assertEqual(proposal.bindings[0].effect_key, 'monster:1:0')
+        self.assertIn('block_id', proposal.bindings[0].to_dict())
+
+        assets.rows[100]['desc'] += '\n②：' + FUSION.split('②：')[1]
+        route = ConstructionLogic('qualified-route', (node, target),
+            (LogicConnector('sent', node.node_id, target.node_id, '送墓时发动'),), (node.node_id,), (target.node_id,))
+        self.assertIsNone(binding.bind(route, task, DeckParts((100, 100)), partial=True).proposal)
+        paired = binding.bind(route, task, DeckParts((100, 101)), partial=True).proposal
+        self.assertIsNotNone(paired)
+        self.assertEqual(tuple(b.card_ids for b in paired.bindings), ((100,), (101,)))
+
     def test_run_selected_passes_the_effect_draft_to_the_bounded_solver(self):
         from ygo_kito.build_semantics import solve_candidates
         _, assets, builder, kernel = assets_fixture()

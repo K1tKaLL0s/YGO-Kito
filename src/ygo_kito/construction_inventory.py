@@ -249,6 +249,41 @@ def effect_matches(record, tags):
     return True
 
 
+def qualified_effect_node(node):
+    return getattr(node, 'requirements', None) is not None or (
+        any(t.dimension in ('field', 'race') for t in node.tags)
+        and any(t.dimension in ('effect', 'effect_type') for t in node.tags))
+
+
+def _operation_matches_tag(record, operation, tag):
+    from .effect_blocks import LABELS
+
+    kind = operation['kind']
+    if tag.dimension == 'effect_type':
+        return kind == tag.value
+    if tag.value == '卡组送墓':
+        return kind in ('mill', 'send_grave') and operation.get('from_zones') == ['deck']
+    if tag.value == '墓地融合':
+        return kind == 'fusion_summon' and record['trigger'].get('event') == 'sent_to_grave'
+    block_id = operation.get('block_id', '')
+    return any(
+        (block_id == b['block_id'] or block_id.startswith(b['block_id'] + ':'))
+        and b['tag']['value'] == tag.value
+        for b in record.get('block_view', {}).get('blocks', ())
+    ) or LABELS.get(kind) == tag.value
+
+
+def _printed_setcode(query, code):
+    if query.get('setcode') == code:
+        return True
+    predicate = query.get('predicate') or {}
+    if predicate == {'field': 'setcode', 'value': code}:
+        return True
+    children = predicate.get('all', ()) or predicate.get('any', ())
+    return any(_printed_setcode({'predicate': child}, code) for child in children) or any(
+        _printed_setcode(child, code) for child in query.get('any', ()))
+
+
 class InventoryDependencies:
     def __init__(self, catalog, *, requirement_limit=1024):
         self.catalog = catalog
@@ -263,6 +298,115 @@ class InventoryDependencies:
         if commits:
             self.set_names,self.registry_source=archetype_names(
                 commits.get('database'),catalog.assets.receipt['resources']['cards'])
+
+    def holder_matches(self, code, node, fact_tags=None):
+        from .build_semantics import matches as public_matches
+
+        for tag in node.tags:
+            if tag.dimension not in ('field', 'race'):
+                continue
+            fact = (fact_tags or {}).get(tag)
+            if fact is not None:
+                field, value = fact.field, fact.value
+            else:
+                field = 'setcode' if tag.dimension == 'field' else 'race_any'
+                prefix = field + ':'
+                if tag.value.startswith(prefix):
+                    try:
+                        value = int(tag.value.removeprefix(prefix), 16)
+                    except ValueError:
+                        return False
+                else:
+                    value = (self.set_names if field == 'setcode' else RACES).get(tag.value)
+            if not value or not public_matches(self.rows[code], dict(field=field, value=value)):
+                return False
+        return True
+
+    def draft_matches(self, code, node, *, records=None, fact_tags=None):
+        """Return exact effect/operation pairs that support one draft node."""
+        from .effect_records import operation_record
+
+        tags = tuple(t for t in node.tags if t.dimension in ('effect', 'effect_type'))
+        if not tags or not self.holder_matches(code, node, fact_tags):
+            return ()
+        requirements = getattr(node, 'requirements', None)
+        records = self.catalog.effect_records(code) if records is None else records
+        hits = []
+        if requirements is not None and requirements.reason == 'cost':
+            for record in records:
+                branches = record.get('branch_records') or {None: record}
+                for branch in branches.values():
+                    scoped = dict(record, **branch) if branch is not record else record
+                    for block in scoped['block_view'].get('cost_blocks', ()):
+                        operation = dict(block['qualifiers'], kind=block['kind'], source=block['source'],
+                                         block_id=block['block_id'], reason='cost')
+                        if (all(_operation_matches_tag(scoped, operation, tag) for tag in tags)
+                                and self._draft_requirements(scoped, operation, requirements)):
+                            hits.append((scoped, operation))
+            return tuple(hits)
+        for record in records:
+            branches = record.get('branch_records')
+            for operation in record['operations']:
+                if operation.get('reason') != 'effect':
+                    continue
+                scope = branches.get(operation.get('choice')) if branches else record
+                if scope is None or not _operation_matches_tag(scope, operation, tags[0]):
+                    continue
+                scoped = operation_record(record, operation)
+                if not all(any(op.get('reason') == 'effect' and _operation_matches_tag(scoped, op, tag)
+                               for op in scoped['operations']) for tag in tags[1:]):
+                    continue
+                if requirements is not None and not self._draft_requirements(scoped, operation, requirements):
+                    continue
+                hits.append((scoped, operation))
+        return tuple(hits)
+
+    def draft_operation_query(self, record, operation):
+        from .construction_theme import operation_query
+
+        query = operation_query(operation, self)
+        target_ref = operation.get('target_ref')
+        if query is None and type(target_ref) is int and 0 <= target_ref < len(record['targets']):
+            target = self.item_requirement(record['targets'][target_ref], 'targets')
+            query = target['query'] if target else None
+        return query
+
+    def draft_grave_domain(self, record, operation):
+        """Known own Deck-to-GY domain, including an unrestricted random mill."""
+        if (operation.get('reason') != 'effect' or operation.get('owner') not in ('self', 'both')
+                or 'deck' not in operation.get('from_zones', ()) or operation.get('to_zone') != 'grave'):
+            return None
+        query = self.draft_operation_query(record, operation)
+        return {} if query is None and operation.get('random') else query
+
+    def draft_grave_receiver(self, domain, receiver, record):
+        trigger = record['trigger']
+        return (trigger.get('event') == 'sent_to_grave'
+                and trigger.get('reason') in ('effect', 'not_applicable')
+                and (not domain or matches(self.rows[receiver], domain)))
+
+    def _draft_requirements(self, record, operation, demand):
+        trigger = record['trigger']
+        if (demand.from_zone and demand.from_zone not in operation.get('from_zones', ())
+                or demand.to_zone and demand.to_zone != operation.get('to_zone')
+                or demand.reason and demand.reason != operation.get('reason')
+                or demand.trigger and demand.trigger != trigger.get('event')
+                or demand.trigger_reason and demand.trigger_reason != trigger.get('reason')):
+            return False
+        if demand.selector_setcode:
+            query = self.draft_operation_query(record, operation)
+            if not query or not _printed_setcode(query, demand.selector_setcode):
+                return False
+        if demand.material_setcode:
+            materials = (*record.get('fusion_material_selection', {}).get('materials', ()),
+                         *(operation.get('materials') or ()), *record.get('printed_materials', ()))
+            queries = [row.get('selector_query') or
+                       ({'predicate': row['predicate']} if 'predicate' in row else
+                        {row['kind']: row['value']} if 'kind' in row and 'value' in row else {})
+                       for row in materials if isinstance(row, dict)]
+            if not any(_printed_setcode(self.resolve_query(query), demand.material_setcode) for query in queries):
+                return False
+        return True
 
     def resolve_query(self,query):
         query = deepcopy(query)

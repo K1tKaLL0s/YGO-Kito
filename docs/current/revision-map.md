@@ -22,7 +22,7 @@
 
 同日设备迁移合同补充：采用独立 Python 3.12 CUDA 依赖锁；完整闭合课程先恢复、再搬运实际训练状态，CPU/采样 RNG 保留，CUDA RNG 显式新建。同设备保存恢复后的下一次更新必须一致。迁移不解除正式课程暂停，不修改并行认知训练环境。操作见 [CUDA 环境与课程迁移](../development/cuda-runtime.md)。
 
-2026-11-12 用户修订：明确 [三期正式任务原文](training-and-acceptance.md#三期课程与数量) 和 [构筑职责](construction-workflow.md)。目标模型交付无具体卡的效果积木草案，优化模型按配套需求和卡文选卡并补齐。2207 和 2210 的珠泪主题来自任务原文，旧课程的主题投入下限退出正式入口。
+2026-11-12 用户修订：明确 [三期正式任务原文](training-and-acceptance.md#三期课程与数量) 和 [构筑职责](construction-workflow.md)。统筹接收并解析任务原文，把结构化任务交给目标模型。目标模型交付无具体卡的效果积木草案，分别保留卡片所属字段与卡文指定的对象、素材字段。优化模型按配套需求和卡文选卡并补齐。2207 和 2210 的珠泪主题来自任务原文，旧课程的主题投入下限退出正式入口。
 
 完整旧路径→现行位置/执行记录映射见 [文档迁移清单](../reports/2026-11-11-document-migration.json)。现行评分由construction-quality-evaluation-v4-functional-log2定义；准入construction-before-cb-v3。规范化及词典具体版本属于运行绑定，不能写死成永不更新的设计版本。
 

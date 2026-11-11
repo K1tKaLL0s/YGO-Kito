@@ -34,7 +34,12 @@ def graph_signature(graph):
     """Exclude revision, ancestry, node names and display notes from identity."""
     raw = graph.to_dict() if hasattr(graph, "to_dict") else graph
     nodes = {n["node_id"]: i for i, n in enumerate(raw["nodes"])}
-    return digest({"nodes": [sorted(n["tags"], key=canonical_json) for n in raw["nodes"]],
+    node_features = []
+    for node in raw["nodes"]:
+        tags = sorted(node["tags"], key=canonical_json)
+        node_features.append({"tags": tags, "requirements": node["requirements"]}
+                             if "requirements" in node else tags)
+    return digest({"nodes": node_features,
         "edges": sorted((nodes[e["source"]], nodes[e["target"]], e["kind"]) for e in raw["connectors"]),
         "entries": sorted(nodes[n] for n in raw["entry_nodes"]),
         "goals": sorted(nodes[n] for n in raw["goal_nodes"])})

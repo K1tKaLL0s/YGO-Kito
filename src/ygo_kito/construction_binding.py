@@ -14,6 +14,7 @@ import unicodedata
 from .build_contracts import BuildTask, DeckParts, digest
 from .construction_fill import FillProposal, NodeBinding, NodeTextReview, TextEvidence
 from .construction_logic import ConstructionLogic, LogicNode, LogicTag, short
+from .construction_inventory import InventoryDependencies, qualified_effect_node
 from .validation import ContractError, array, fields, integer, member
 from .effect_mechanisms import MechanismCatalog, SEMANTIC_VERSION
 
@@ -192,6 +193,8 @@ class CatalogBindingAdapter:
         if not isinstance(node, LogicNode) or not isinstance(cards, tuple) or not cards:
             raise ContractError("typed node and nonempty public-card tuple required")
         evidence, statuses, notes = [], [], []
+        qualified = qualified_effect_node(node)
+        dependencies = InventoryDependencies(self.semantic_catalog) if qualified else None
         for card in cards:
             row = self.assets.rows.get(card.get("id")) if isinstance(card, dict) else None
             if row is None or any(card.get(k) != row.get(k) for k in ("id", "desc", "race", "setcode")):
@@ -201,7 +204,13 @@ class CatalogBindingAdapter:
                 return NodeTextReview(node.node_id, "unknown", (), (), "catalog-binding-adapter",
                                       "current card text is empty; no source-bound text evidence")
             evidence.append(TextEvidence(row["id"], digest(row["desc"]), row["desc"].strip()[:512]))
+            if qualified:
+                hits = dependencies.draft_matches(row['id'], node, fact_tags=self.fact_tags)
+                statuses.append('satisfied' if hits else 'unknown')
+                notes.append('qualified printed effect' if hits else 'qualified printed effect unbound')
             for tag in node.tags:
+                if qualified and tag.dimension in ('field', 'race', 'effect', 'effect_type'):
+                    continue
                 status, note = self._tag_status(row, tag)
                 statuses.append(status)
                 notes.append(note)
@@ -213,22 +222,35 @@ class CatalogBindingAdapter:
         if not isinstance(graph, ConstructionLogic) or not isinstance(task, BuildTask) or not isinstance(deck, DeckParts):
             raise ContractError("typed graph, task and concrete deck required")
         (self.assets.validate_skeleton if partial else self.assets.validate)(task, deck)
-        candidates, details = {}, []
+        candidates, details, witnesses = {}, [], {}
+        dependencies = InventoryDependencies(self.semantic_catalog)
         for node in graph.nodes:
+            qualified = qualified_effect_node(node)
             hits = []
             for code in sorted(set(deck.main + deck.extra)):
                 row = self.assets.rows[code]
-                evaluations = [self._tag_status(row, tag) for tag in node.tags]
+                exact = dependencies.draft_matches(code, node, fact_tags=self.fact_tags) if qualified else ()
+                if qualified and not exact:
+                    continue
+                evaluations = [self._tag_status(row, tag) for tag in node.tags if not qualified
+                               or tag.dimension not in ('field', 'race', 'effect', 'effect_type')]
+                if exact:
+                    evaluations.append(('satisfied', 'qualified printed effect'))
                 statuses = [s for s, _ in evaluations]
                 terms = [term for tag in node.tags for term in self.recall_terms.get(tag, (tag.value,))
                          if _lexical(term, row["name"] + " " + row["desc"])]
                 if "unsatisfied" in statuses or not ("satisfied" in statuses or terms):
                     continue
                 status = "supported" if all(s == "satisfied" for s in statuses) else "unknown"
-                hits.append({"card_id": code, "status": status, "lexical_terms": sorted(set(terms)),
-                             "supported_tags": sum(s == "satisfied" for s in statuses),
-                              "reasons": list(dict.fromkeys(note for _, note in evaluations)),
-                              "effect_semantics": self.semantic_catalog.card(code).to_dict()})
+                hit = dict(card_id=code, status=status, lexical_terms=sorted(set(terms)),
+                           supported_tags=sum(s == 'satisfied' for s in statuses),
+                           reasons=list(dict.fromkeys(note for _, note in evaluations)),
+                           effect_semantics=self.semantic_catalog.card(code).to_dict())
+                if exact:
+                    effect, operation = exact[0]
+                    hit.update(effect_key=effect['effect_key'], block_id=operation['block_id'])
+                    witnesses[node.node_id, code] = exact
+                hits.append(hit)
             hits.sort(key=lambda h: (h["status"] != "supported", -h["supported_tags"], -len(h["lexical_terms"]), h["card_id"]))
             details.append({"node_id": node.node_id, "candidates": hits})
             if hits:
@@ -236,8 +258,18 @@ class CatalogBindingAdapter:
         # Prefer a supported path, then the shortest lexical proposal. These are
         # graph paths only; neither path selection nor card reuse proves a CB.
         outgoing = {n.node_id: [] for n in graph.nodes}
+        node_map = {n.node_id: n for n in graph.nodes}
+        ranked = {row['node_id']: row['candidates'] for row in details}
+        fixed = {}
         for edge in sorted(graph.connectors, key=lambda e: e.connector_id):
+            if edge.kind == '送墓时发动' and all(getattr(node_map[n], 'requirements', None) is not None
+                                             for n in (edge.source, edge.target)):
+                pair = self._draft_grave_pair(edge, ranked, witnesses, fixed, deck, dependencies)
+                if pair is None:
+                    continue
+                fixed[edge.source], fixed[edge.target] = pair
             outgoing[edge.source].append(edge)
+        candidates.update(fixed)
         queue = []
         for entry in graph.entry_nodes:
             if entry in candidates:
@@ -258,7 +290,6 @@ class CatalogBindingAdapter:
             return BindingResult("unmatched", None, ("no catalog-supported or lexical path to goal nodes: " + ", ".join(missing),), tuple(details))
         if not isinstance(required_tags,tuple) or any(not isinstance(t,LogicTag) for t in required_tags):
             raise ContractError("typed required logic tags required")
-        node_map={n.node_id:n for n in graph.nodes}
         targets=set(graph.goal_nodes)
         for tag in required_tags:
             covered={t for goal in targets for node in paths[goal][0] for t in node_map[node].tags}
@@ -269,13 +300,40 @@ class CatalogBindingAdapter:
             targets.add(min(choices,key=lambda n:(candidates[n]["status"]!="supported",len(paths[n][1]),n)))
         active = {n for goal in targets for n in paths[goal][0]}
         edge_ids = tuple(sorted({e for goal in targets for e in paths[goal][1]}))
-        bindings = tuple(NodeBinding(n.node_id, (candidates[n.node_id]["card_id"],)) for n in graph.nodes if n.node_id in active)
+        def node_binding(node_id):
+            selected = candidates[node_id]
+            return NodeBinding(node_id, (selected['card_id'],), selected.get('effect_key'), selected.get('block_id'))
+        bindings = tuple(node_binding(n.node_id) for n in graph.nodes if n.node_id in active)
         proposal = FillProposal(deck, bindings, edge_ids, graph.sha256, task.sha256)
         uncertain = tuple(n.node_id for n in graph.nodes if n.node_id in active and candidates[n.node_id]["status"] != "supported")
         return BindingResult("proposed_unknown" if uncertain else "bound", proposal,
                              (("functional/effect tags remain unknown for nodes: " + ", ".join(uncertain),) if uncertain else
                               ("public facts/source-bound assessments support node tags; connectors still need engine verification",)),
                              tuple(details))
+
+    @staticmethod
+    def _draft_grave_pair(edge, ranked, witnesses, fixed, deck, dependencies):
+        def choices(node_id):
+            for hit in ranked[node_id]:
+                for record, operation in witnesses.get((node_id, hit['card_id']), ()):
+                    selected = dict(hit, effect_key=record['effect_key'], block_id=operation['block_id'])
+                    if node_id not in fixed or selected == fixed[node_id]:
+                        yield selected, record, operation
+
+        main = set(deck.main)
+        targets = [(hit, record) for hit, record, _ in choices(edge.target) if hit['card_id'] in main]
+        for donor, record, operation in choices(edge.source):
+            domain = dependencies.draft_grave_domain(record, operation)
+            if domain is None:
+                continue
+            for recipient, trigger in targets:
+                code = recipient['card_id']
+                if (donor['card_id'] == code and record['trigger'].get('zone') not in (None, 'deck')
+                        and deck.main.count(code) < 2):
+                    continue
+                if dependencies.draft_grave_receiver(domain, code, trigger):
+                    return donor, recipient
+        return None
 
     def __call__(self, graph, task, deck, *, partial=False):
         result = self.bind(graph, task, deck, partial=partial)

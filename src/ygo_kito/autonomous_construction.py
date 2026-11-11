@@ -23,7 +23,7 @@ from .construction_controller import ConstructionController
 from .construction_fill import existing_goal_verifier
 from .construction_logic import ConstructionSession, LogicTag, ThemeScope
 from .construction_model import LogicCodec, LogicFeatureEncoder, LogicModelAdapter, task_request_features
-from .course_construction_request import TEARLAMENTS_THEME_ID, course_construction_request
+from .course_construction_request import TEARLAMENTS_THEME_ID, validate_construction_request
 from .construction_effect_blocks import logic_vocabulary, requested_logic_tags
 from .device import model_device
 from .duel_model import parameter_digest
@@ -348,10 +348,12 @@ class AutonomousConstructionKernel:
         return result
 
     def _check_construction_request(self, request):
+        if request is None:
+            return None
         period = getattr(self.assets, "period_id", None)
-        if request is not None and (period is None or request != course_construction_request(period)):
-            raise ContractError("formal construction request differs from the loaded period")
-        return request
+        if period is None:
+            raise ContractError("formal construction requires a loaded period")
+        return validate_construction_request(request, expected_period=period)
 
     def propose_tasks(self, *, construction_request=None):
         self._check()

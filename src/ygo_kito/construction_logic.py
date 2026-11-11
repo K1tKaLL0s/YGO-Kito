@@ -53,10 +53,51 @@ class LogicMetadata:
 
 
 @dataclass(frozen=True)
+class EffectRequirements:
+    """Printed limits of an effect block, independent of its holder's tags."""
+
+    selector_setcode: int | None = None
+    material_setcode: int | None = None
+    from_zone: str | None = None
+    to_zone: str | None = None
+    reason: str | None = None
+    trigger: str | None = None
+    trigger_reason: str | None = None
+
+    def __post_init__(self):
+        if not self.to_dict():
+            raise ContractError("effect requirements cannot be empty")
+        for key in ("selector_setcode", "material_setcode"):
+            value = getattr(self, key)
+            if value is not None:
+                integer(value, key, 1, 65535)
+        for key in ("from_zone", "to_zone"):
+            value = getattr(self, key)
+            if value is not None:
+                member(value, key, ("deck", "extra", "hand", "field", "grave", "banished", "xyz_material", "pendulum"))
+        for key in ("reason", "trigger_reason"):
+            value = getattr(self, key)
+            if value is not None:
+                member(value, key, ("effect", "cost"))
+        if self.trigger is not None:
+            short(self.trigger, "effect trigger")
+        elif self.trigger_reason is not None:
+            raise ContractError("trigger reason needs a trigger")
+
+    def to_dict(self):
+        return {key: value for key, value in asdict(self).items() if value is not None}
+
+    @classmethod
+    def from_dict(cls, value):
+        return cls(**fields(value, set(), set(cls.__dataclass_fields__)))
+
+
+@dataclass(frozen=True)
 class LogicNode:
     node_id: str
     tags: tuple[LogicTag, ...]
     metadata: tuple[LogicMetadata, ...] = ()
+    requirements: EffectRequirements | None = None
 
     def __post_init__(self):
         short(self.node_id, "logic node ID")
@@ -66,6 +107,10 @@ class LogicNode:
         if (not isinstance(self.metadata, tuple) or len(self.metadata) > 8
                 or any(not isinstance(m, LogicMetadata) for m in self.metadata)):
             raise ContractError("typed bounded logic metadata required")
+        if self.requirements is not None and (
+                not isinstance(self.requirements, EffectRequirements)
+                or not any(tag.dimension in ("effect", "effect_type") for tag in self.tags)):
+            raise ContractError("printed limits require a functional effect block")
 
     @property
     def tag_identity(self):
@@ -75,11 +120,19 @@ class LogicNode:
     def display_label(self):
         return "·".join(t.value for t in self.tags)
 
+    def to_dict(self):
+        data = {"node_id": self.node_id, "tags": [asdict(tag) for tag in self.tags],
+                "metadata": [asdict(item) for item in self.metadata]}
+        if self.requirements is not None:
+            data["requirements"] = self.requirements.to_dict()
+        return data
+
     @classmethod
     def from_dict(cls, value):
-        d = fields(value, {"node_id", "tags", "metadata"})
+        d = fields(value, {"node_id", "tags", "metadata"}, {"requirements"})
         return cls(d["node_id"], tuple(LogicTag.from_dict(t) for t in array(d["tags"], "tags")),
-                   tuple(LogicMetadata.from_dict(m) for m in array(d["metadata"], "metadata")))
+                   tuple(LogicMetadata.from_dict(m) for m in array(d["metadata"], "metadata")),
+                   EffectRequirements.from_dict(d["requirements"]) if "requirements" in d else None)
 
 
 @dataclass(frozen=True)
@@ -142,7 +195,11 @@ class ConstructionLogic:
     def to_dict(self):
         # A JSON round trip detaches caller-owned data and normalizes tuples.
         from .validation import canonical_json, parse_json
-        return parse_json(canonical_json(asdict(self)))
+        data = {"logic_id": self.logic_id, "nodes": [node.to_dict() for node in self.nodes],
+                "connectors": [asdict(edge) for edge in self.connectors],
+                "entry_nodes": self.entry_nodes, "goal_nodes": self.goal_nodes,
+                "revision": self.revision, "parent_sha256": self.parent_sha256}
+        return parse_json(canonical_json(data))
 
     @classmethod
     def from_dict(cls, value):
@@ -155,6 +212,20 @@ class ConstructionLogic:
     @property
     def sha256(self):
         return digest(self.to_dict())
+
+
+def has_scoped_effect_blocks(graph):
+    """Recognize an effect graph that carries its matching scope into fill."""
+    if graph is None:
+        return False
+    if not isinstance(graph, ConstructionLogic):
+        graph = ConstructionLogic.from_dict(graph)
+    for node in graph.nodes:
+        dimensions = {tag.dimension for tag in node.tags}
+        if node.requirements is not None or (
+                dimensions.intersection({"field", "race"}) and dimensions.intersection({"effect", "effect_type"})):
+            return True
+    return False
 
 
 def reachable(entries, connectors):
@@ -249,10 +320,9 @@ class ConstructionSession:
         self.request = request
         self.construction_request = None
         if construction_request is not None:
-            from .course_construction_request import course_construction_request
-            fields(construction_request, {"text", "period_id", "theme", "objective"})
-            expected = course_construction_request(construction_request["period_id"])
-            if expected != construction_request or request != expected["text"]:
+            from .course_construction_request import validate_construction_request
+            expected = validate_construction_request(construction_request)
+            if request != expected["text"]:
                 raise ContractError("structured construction request differs from user wording")
             self.construction_request = expected
         self._task = task.to_dict()

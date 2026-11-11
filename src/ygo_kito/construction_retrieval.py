@@ -2,7 +2,7 @@
 from .build_contracts import DeckParts
 from .build_pipeline import EXTRA_TYPES
 from .build_semantics import matches as public_matches
-from .construction_inventory import InventoryDependencies, matches, recall_dependencies
+from .construction_inventory import InventoryDependencies, matches, qualified_effect_node, recall_dependencies
 from .effect_blocks import functional_tags
 from .effect_mechanisms import MechanismCatalog
 from .validation import ContractError, integer
@@ -27,8 +27,9 @@ def candidate_ids(task, assets, graph, *, base=None, scopes=(), cursor=0, limit=
     if len(selected) > limit:
         raise ContractError('query batch cannot contain the current inventory and fixed cards')
     requests = []
+    dependencies = InventoryDependencies(catalog)
     if selected:
-        inventory = InventoryDependencies(catalog).evaluate(base, graph)
+        inventory = dependencies.evaluate(base, graph)
         for row in inventory['cards'].values():
             for effect in (*row['effects'], *((row['materials'],) if row['materials'] else ())):
                 if effect['status'] == 'missing':
@@ -36,7 +37,9 @@ def candidate_ids(task, assets, graph, *, base=None, scopes=(), cursor=0, limit=
     predicates = [dict(field=s.field, value=s.value) for s in scopes]
     if task.goal['kind'] == 'deck_constraints':
         predicates += [r['predicate'] for r in task.goal['constraints'] if r['minimum'] > 0]
-    wanted = {t.value for n in graph.nodes for t in n.tags if t.dimension == 'effect'}
+    qualified = [n for n in graph.nodes if qualified_effect_node(n)]
+    wanted = {t.value for n in graph.nodes if not qualified_effect_node(n)
+              for t in n.tags if t.dimension == 'effect'}
     if theme_profile is not None:
         from .effect_blocks import LABELS
         wanted.update(t['value'] for t in theme_profile.get('goal_tags',()) if t['dimension']=='effect')
@@ -44,17 +47,30 @@ def candidate_ids(task, assets, graph, *, base=None, scopes=(), cursor=0, limit=
                       if (kind := g['function']['kind']) in LABELS)
     start = cursor % len(task.pool)
     ordered = task.pool[start:] + task.pool[:start]
-    rank = {}
+    rank, scoped_matches = {}, {node.node_id: set() for node in qualified}
     for position, code in enumerate(ordered):
-        tags = {v['tag']['value'] for v in functional_tags(catalog.effect_blocks(code))} if wanted else set()
+        scoped = [node for node in qualified if dependencies.holder_matches(code, node)]
+        records = catalog.effect_records(code) if scoped or qualified and wanted else ()
+        if wanted and qualified:
+            tags = {block['tag']['value'] for record in records
+                    for block in record.get('block_view', {}).get('blocks', ())}
+            tags.update({'卡组送墓', '墓地融合'}.intersection(catalog.card(code).tags))
+        else:
+            tags = {v['tag']['value'] for v in functional_tags(catalog.effect_blocks(code))} if wanted else set()
+        hits = [node.node_id for node in scoped if dependencies.draft_matches(code, node, records=records)]
+        for node_id in hits:
+            scoped_matches[node_id].add(code)
         rank[code] = (int(any(matches(assets.rows[code], p) for p in requests)),
-                      len(wanted & tags), int(any(public_matches(assets.rows[code], p) for p in predicates)),
-                      -position)
+                      len(hits), len(wanted & tags),
+                      int(any(public_matches(assets.rows[code], p) for p in predicates)), -position)
     ranked = sorted(task.pool, key=lambda c: rank[c], reverse=True)
     # Keep room for the ordinary dependency recall, and for cards that did not
     # occur in an earlier query. Limits govern this batch, never future queries.
-    reserve = min(16, max(0, limit-len(selected)))
+    reserve = min(16, max(0, limit-len(selected)-len(qualified)))
     ceiling = max(len(selected), limit-reserve)
+    for cards in scoped_matches.values():
+        if len(selected) < ceiling and cards and not cards.intersection(selected):
+            selected.add(max(cards, key=rank.__getitem__))
     for predicate in predicates:
         for code in ranked:
             if len(selected) >= min(ceiling, len(required)+len(set(base.main+base.extra+base.side))+24):

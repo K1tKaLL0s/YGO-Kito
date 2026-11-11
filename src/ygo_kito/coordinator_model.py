@@ -286,6 +286,12 @@ class CoordinatorTrainer:
                 "supervision_source": examples["source"], "supervision_sha256": examples["sha256"],
                 "supervision_evidence_verified": False, "real_win_rate_supervision": False, "calibration": "pending"}
 
+    @staticmethod
+    def parse_construction_request(text, *, expected_period=None):
+        from .course_construction_request import parse_construction_request
+
+        return parse_construction_request(text, expected_period=expected_period)
+
     def advice(self, context):
         self.model.eval()
         with torch.no_grad():

@@ -1493,7 +1493,8 @@ class ConstructionLayerAdapter:
                 fact_ids.add(fact.fact_id)
         source = "selected-logic:" + graph.sha256
         # The catalog's existing parser is the sole effect observer here.
-        observed, static_records, operation_facts = {}, {}, {}
+        from .construction_inventory import qualified_effect_node
+        observed, static_records, operation_facts, effect_facts = {}, {}, {}, {}
         dependencies=InventoryDependencies(self.catalog)
         view=SimpleNamespace(**{z:tuple(c for c in codes if zones[c]==z) for z in ('main','extra')})
         members=tuple((zones[c],c) for c in codes)
@@ -1510,6 +1511,10 @@ class ConstructionLayerAdapter:
             positions=[(ri,oi) for ri,record in enumerate(static_records[code]) for oi,_ in _record_outputs(record)]
             operation_facts.update(((code,ri,oi),'functional:'+fact.fact_id)
                 for (ri,oi),(fact,_) in zip(positions,observed[code]))
+            effect_facts[code] = {
+                (static_records[code][ri]['effect_key'], static_records[code][ri]['operations'][oi].get('block_id')): pair
+                for (ri, oi), pair in zip(positions, observed[code]) if oi is not None
+            }
         raw_facts=[fact for pairs in observed.values() for fact,_ in pairs]
         configured,handled=_configuration_relations(view,static_records,dependencies,
             {str(c):self.binding.assets.rows[c].get('alias') or c for c in codes},
@@ -1527,13 +1532,19 @@ class ConstructionLayerAdapter:
         inspected = set(observed)
         for node in graph.nodes:
             functional = any(t.dimension in ("effect", "effect_type", "role") for t in node.tags)
-            judgments = {}
+            qualified = qualified_effect_node(node)
+            exact_hits, judgments = {}, {}
             for code in codes:
                 if code not in inspected:
                     if code in bound[node.node_id]:
                         judgments[code] = (None, "card_read_budget_uncovered")
                     continue
-                statuses = [self.binding._tag_status(self.binding.assets.rows[code], tag) for tag in node.tags]
+                statuses = [self.binding._tag_status(self.binding.assets.rows[code], tag) for tag in node.tags
+                            if not qualified or tag.dimension not in ('field', 'race', 'effect', 'effect_type')]
+                if qualified:
+                    exact_hits[code] = dependencies.draft_matches(code, node, records=static_records[code],
+                                                                  fact_tags=self.binding.fact_tags)
+                    statuses.append(('satisfied' if exact_hits[code] else 'unknown', 'qualified printed effect'))
                 values = [s for s, _ in statuses]
                 q = (0 if "unsatisfied" in values else None if "unknown" in values else 1 if functional else .5)
                 if code in bound[node.node_id] or q in (1, .5):
@@ -1558,6 +1569,16 @@ class ConstructionLayerAdapter:
                     conditions=("effect_availability_checked_separately",)),)
                 roles.append(RoleAssessment(module, zones[code], code, q, note, evidence))
                 if not functional or q != 1 or code not in observed:
+                    continue
+                if qualified:
+                    for record, operation in exact_hits[code]:
+                        pair = effect_facts[code].get((record['effect_key'], operation.get('block_id')))
+                        if pair is None:
+                            continue
+                        fact, shared = pair
+                        add_fact(replace(fact, fact_id=f"flow:{node.node_id}:{fact.fact_id}",
+                                         output=output, quantity=1))
+                        pools.update((p.pool_id, p) for p in shared)
                     continue
                 # Only existing parser-backed tags have an effect association.
                 # Explicit card/tag reviews still cover layer one; an opaque

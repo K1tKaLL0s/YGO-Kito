@@ -15,7 +15,8 @@ from torch.nn import functional as F
 
 from .build_contracts import digest
 from .construction_candidates import evidence_order, graph_signature, rejected_binding
-from .construction_logic import ConstructionLogic, LogicConnector, LogicMetadata, LogicNode, LogicTag
+from .construction_logic import (ConstructionLogic, EffectRequirements, LogicConnector,
+                                 LogicMetadata, LogicNode, LogicTag, has_scoped_effect_blocks)
 from .duel_model import parameter_digest
 from .device import (model_device, execution_metadata, checkpoint_execution, optimizer_to,
                      capture_device_rng, restore_device_rng)
@@ -40,7 +41,9 @@ class LogicCodec:
         try:
             return {"logic_id": graph.logic_id, "revision": graph.revision, "parent_sha256": graph.parent_sha256,
                     "nodes": [{"id": n.node_id, "tags": [self.tags.index(t) for t in n.tags],
-                               "metadata": [asdict(m) for m in n.metadata]} for n in graph.nodes],
+                               "metadata": [asdict(m) for m in n.metadata],
+                               **({"requirements": n.requirements.to_dict()} if n.requirements is not None else {})}
+                              for n in graph.nodes],
                     "edges": [{"id": e.connector_id, "source": ids[e.source], "target": ids[e.target],
                                "kind": self.kinds.index(e.kind)} for e in graph.connectors],
                     "entries": [ids[n] for n in graph.entry_nodes], "goals": [ids[n] for n in graph.goal_nodes]}
@@ -51,9 +54,10 @@ class LogicCodec:
         d = fields(value, {"logic_id", "revision", "parent_sha256", "nodes", "edges", "entries", "goals"})
         nodes = []
         for row in array(d["nodes"], "encoded graph nodes"):
-            fields(row, {"id", "tags", "metadata"})
+            fields(row, {"id", "tags", "metadata"}, {"requirements"})
             tags = tuple(self.tags[integer(i, "tag index", 0, len(self.tags)-1)] for i in array(row["tags"], "tag indices"))
-            nodes.append(LogicNode(row["id"], tags, tuple(LogicMetadata.from_dict(m) for m in array(row["metadata"], "metadata"))))
+            nodes.append(LogicNode(row["id"], tags, tuple(LogicMetadata.from_dict(m) for m in array(row["metadata"], "metadata")),
+                                   EffectRequirements.from_dict(row["requirements"]) if "requirements" in row else None))
         def name(i):
             return nodes[integer(i, "node index", 0, len(nodes)-1)].node_id
         edges = []
@@ -101,41 +105,53 @@ def rule_graph_candidates(context, codec, *, required_tags=(), required_connecto
         return (set(requested)<={t for n in graph.nodes for t in n.tags}
                 and set(kinds)<={e.kind for e in graph.connectors})
     proposals=[]
-    if previous and covers(previous):
+    request = context.get("construction_request")
+    if previous and covers(previous) and (request is None or has_scoped_effect_blocks(previous)):
         raw=previous.to_dict();raw.update(revision=revision,parent_sha256=parent)
         proposals.append(ConstructionLogic.from_dict(raw))
     metadata=(LogicMetadata("rule-candidate-generator-v1","engineering","Program proposal; model ranking is separate."),)
     edge_kinds=kinds or codec.kinds[:1]
-    def make(node_tags, pairs, entries, goals, connections=edge_kinds):
-        nodes=tuple(LogicNode("n"+str(i),tuple(t),metadata) for i,t in enumerate(node_tags))
+    def make(node_tags, pairs, entries, goals, connections=edge_kinds, printed=None):
+        printed = printed or {}
+        nodes=tuple(LogicNode("n"+str(i),tuple(t),metadata,printed.get(i)) for i,t in enumerate(node_tags))
         edges=tuple(LogicConnector("e"+str(i),nodes[a].node_id,nodes[b].node_id,
                                   connections[i%len(connections)]) for i,(a,b) in enumerate(pairs))
         return ConstructionLogic(ident,nodes,edges,tuple(nodes[i].node_id for i in entries),
                                  tuple(nodes[i].node_id for i in goals),revision,parent)
-    request = context.get("construction_request")
     if request is not None:
-        # The task supplies the theme/intent. These are function proposals for
-        # the ranker, with no selected cards or extra user requirements.
+        # A theme constrains the card supplying its function. An explicitly
+        # named recipient instead belongs to the selected printed operation.
+        scoped = tuple(t for t in requested if t.dimension in ("field", "race"))
+        pearl = request["theme"] == "tearlaments"
         plans = [
-            (("检索", "特召"), "ss", ()),
-            (("特召", "效果无效"), "ss", ()),
-            (("特召", "破坏"), "ss", ()),
-            (("卡组送墓", "墓地融合"), "送墓时发动", ()),
-            (("卡组送墓", "回收"), "送墓时发动", ()),
+            (("检索", "特召"), "ss", (), False),
+            (("特召", "效果无效"), "ss", (), False),
+            (("特召", "破坏"), "ss", (), False),
+            (("卡组送墓", "墓地融合"), "送墓时发动", (), False),
         ]
-        if request["theme"] == "tearlaments":
+        if pearl:
             plans = [
-                (("卡组送墓", "墓地融合"), "送墓时发动", support)
-                for support in ((), ("检索",), ("回收",), ("效果无效",))
+                (("卡组送墓", "墓地融合"), "送墓时发动", (), False),
+                (("卡组送墓", "墓地融合"), "送墓时发动", ("效果无效",), False),
+                (("卡组送墓", "墓地融合"), "送墓时发动", (), True),
+                (("卡组送墓", "墓地融合"), "送墓时发动", ("检索",), True),
             ]
         available = {t.value: t for t in codec.tags if t.dimension == "effect"}
-        for functions, connection, support in plans:
+        for functions, connection, support, targeted in plans:
             if connection not in codec.kinds or not all(name in available for name in (*functions, *support)):
                 continue
             node_tags = [(available[name],) for name in (*functions, *support)]
-            node_tags.extend((t,) for t in requested if (t,) not in node_tags)
+            owner = 1 if pearl else 0
+            node_tags[owner] += scoped
+            node_tags.extend((t,) for t in requested if all(t not in tags for tags in node_tags))
+            printed = {}
+            if functions[0] == "卡组送墓":
+                printed[0] = EffectRequirements(from_zone="deck", to_zone="grave", reason="effect",
+                                                selector_setcode=0x181 if targeted else None)
+            if functions[1] == "墓地融合":
+                printed[1] = EffectRequirements(trigger="sent_to_grave", trigger_reason="effect")
             independent = list(range(2, len(node_tags)))
-            proposals.append(make(node_tags, [(0, 1)], [0, *independent], [1, *independent], (connection,)))
+            proposals.append(make(node_tags, [(0, 1)], [0, *independent], [1, *independent], (connection,), printed))
         distinct = {graph_signature(graph): graph for graph in proposals if covers(graph)}
         if not distinct:
             raise ContractError("no effect-block draft fits the structured construction task")
@@ -213,6 +229,12 @@ class LogicFeatureEncoder:
                 for tag in sorted(node.tags, key=lambda t:(t.dimension,t.value)):
                     tokens.append([0,0,0,6]); vector = _numbers(tag.dimension+":"+tag.value)
                     vector[-3:] = [nodes[node.node_id]/64, float(node.node_id in graph.goal_nodes), float(node.node_id in graph.entry_nodes)]
+                    numbers.append(vector)
+                if node.requirements is not None:
+                    tokens.append([0,0,0,6])
+                    vector = _numbers(canonical_json(node.requirements.to_dict()))
+                    vector[-3:] = [nodes[node.node_id]/64, float(node.node_id in graph.goal_nodes),
+                                   float(node.node_id in graph.entry_nodes)]
                     numbers.append(vector)
             for edge in graph.connectors:
                 tokens.append([0,0,0,5]); vector = _numbers(edge.kind)

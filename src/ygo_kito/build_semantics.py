@@ -105,32 +105,36 @@ def preference_value(task,deck,assets):
 
 def _draft_priorities(task, assets, graph, catalog, pool, variables, skeleton):
     """Use printed functions and compatible stock to propose complete lists."""
-    from .construction_inventory import InventoryDependencies, effect_matches, matches as stock_matches
-    from .effect_blocks import functional_tags
+    from .construction_inventory import InventoryDependencies, effect_matches, qualified_effect_node
     from .effect_mechanisms import MechanismCatalog
 
     catalog = catalog or MechanismCatalog(assets, pool)
     inventory = InventoryDependencies(catalog)
-    node_demands = {node.node_id: tuple(tag for tag in node.tags if tag.dimension in ('effect', 'effect_type'))
-                    for node in graph.nodes}
-    demands = tuple(dict.fromkeys(tags for tags in node_demands.values() if tags))
+    nodes = {n.node_id: n for n in graph.nodes if any(t.dimension in ('effect', 'effect_type') for t in n.tags)}
+    demands = {n.node_id: (n.tags, getattr(n, 'requirements', None)) for n in nodes.values()}
     effects = {code: catalog.effect_records(code) for code in pool}
-    draft_hits = {code: tuple(i for i, tags in enumerate(demands)
-                             if any(effect_matches(record, tags) for record in effects[code]))
-                  for code in pool}
+
+    def node_hits(code, node):
+        if qualified_effect_node(node):
+            return inventory.draft_matches(code, node, records=effects[code])
+        return tuple((record, None) for record in effects[code] if effect_matches(record, node.tags))
+
+    hits = {code: {node_id: pairs for node_id, node in nodes.items() if (pairs := node_hits(code, node))}
+            for code in pool}
+    draft_hits = {code: {demands[node_id] for node_id in by_node} for code, by_node in hits.items()}
     useful = {'检索', '抽卡', '回收', '特召', '破坏', '除外', '回手', '效果无效', '发动无效', '召唤无效'}
     interaction = {'破坏', '除外', '回手', '效果无效', '发动无效', '召唤无效'}
-    functions = {code: {row['tag']['value'] for row in functional_tags(catalog.effect_blocks(code))}
-                 for code in pool}
+    functions = {code: {b['tag']['value'] for record in records
+                        for b in record.get('block_view', {}).get('blocks', ())}
+                 for code, records in effects.items()}
     groups = {}
-    for i in range(len(demands)):
-        eligible = tuple(j for j, (zone, code) in enumerate(variables) if zone != 'side' and i in draft_hits[code])
+    for demand in dict.fromkeys(demands.values()):
+        eligible = tuple(j for j, (zone, code) in enumerate(variables) if zone != 'side' and demand in draft_hits[code])
         if eligible:
             groups[(eligible, 1)] = 32.
     if skeleton is not None:
         from types import SimpleNamespace
         from .build_pipeline import EXTRA_TYPES
-        from .construction_theme import operation_query
 
         # These are potential resource domains, not a proposed deck. Fusion
         # eligibility uses the existing distinct-material and restriction check.
@@ -148,43 +152,47 @@ def _draft_priorities(task, assets, graph, catalog, pool, variables, skeleton):
             specs, materials = inventory.specs(code)
             for spec in specs:
                 record = spec['record']
-                if any(effect_matches(record, tags) for tags in demands):
+                scoped_hits = [(scoped, operation) for pairs in hits[code].values() for scoped, operation in pairs
+                               if scoped['effect_key'] == record['effect_key']]
+                if scoped_hits:
+                    choices = {op.get('choice') for _, op in scoped_hits if op is not None}
                     for req in spec['requirements']:
-                        if req.get('choice'):
-                            continue  # Alternatives must not be treated as joint requirements.
+                        if req.get('choice') and (len(choices) != 1 or req['choice'] not in choices):
+                            continue
                         _add_stock_priority(groups, variables, inventory, code, req)
-                    if record.get('fusion_material_selection') and code in (*available.main, *available.extra):
-                        fusion = inventory.fusion_check(available, code, record)
-                        targets = {option['target'] for option in fusion['options']}
-                        eligible = tuple(i for i, (zone, card) in enumerate(variables)
-                                         if zone == 'extra' and card in targets)
-                        if eligible:
-                            groups[(eligible, 1)] = max(12., groups.get((eligible, 1), 0.))
+                    targets = set()
+                    for scoped, _ in scoped_hits:
+                        if scoped.get('fusion_material_selection') and code in (*available.main, *available.extra):
+                            fusion = inventory.fusion_check(available, code, scoped)
+                            targets.update(option['target'] for option in fusion['options'])
+                    eligible = tuple(i for i, (zone, card) in enumerate(variables)
+                                     if zone == 'extra' and card in targets)
+                    if eligible:
+                        groups[(eligible, 1)] = max(12., groups.get((eligible, 1), 0.))
                 for edge in graph.connectors:
-                    if edge.kind != '送墓时发动' or not effect_matches(record, node_demands[edge.source]):
+                    if edge.kind != '送墓时发动':
                         continue
-                    target = node_demands[edge.target]
-                    for operation in record['operations']:
-                        if (operation.get('reason') != 'effect' or operation.get('owner') != 'self'
-                                or operation.get('from_zones') != ['deck'] or operation.get('to_zone') != 'grave'):
+                    for scoped, selected in hits[code].get(edge.source, ()):
+                        if scoped['effect_key'] != record['effect_key']:
                             continue
-                        query = operation_query(operation, inventory)
-                        if query is None and not operation.get('random'):
-                            continue
-                        eligible = tuple(i for i, (zone, card) in enumerate(variables)
-                            if zone == 'main' and (query is None or stock_matches(assets.rows[card], query))
-                            and any(r['trigger'].get('event') == 'sent_to_grave'
-                                    and r['trigger'].get('reason') in ('effect', 'not_applicable')
-                                    and effect_matches(r, target) for r in effects[card]))
-                        if eligible:
-                            groups[(eligible, 1)] = max(12., groups.get((eligible, 1), 0.))
+                        for operation in scoped['operations'] if selected is None else (selected,):
+                            domain = inventory.draft_grave_domain(scoped, operation)
+                            if domain is None:
+                                continue
+                            eligible = tuple(i for i, (zone, card) in enumerate(variables) if zone == 'main'
+                                and any(inventory.draft_grave_receiver(domain, card, r)
+                                        for r, _ in hits[card].get(edge.target, ())))
+                            if eligible:
+                                groups[(eligible, 1)] = max(12., groups.get((eligible, 1), 0.))
             for req in materials:
                 _add_stock_priority(groups, variables, inventory, code, req)
     axis = [item['predicate'] for item in task.goal['constraints'] if item['minimum'] > 0
             and item['predicate']['field'] in ('setcode', 'race_any')]
     # When a series or race is the requested axis, give its cards priority for
     # functions that actually support the draft. Ownership alone earns nothing.
-    axis_functions = {code for code in pool if (draft_hits[code] or functions[code] & useful)
+    qualified = {node_id for node_id, node in nodes.items() if qualified_effect_node(node)}
+    axis_functions = {code for code in pool
+                      if (qualified.intersection(hits[code]) if qualified else draft_hits[code] or functions[code] & useful)
                       and any(matches(assets.rows[code], predicate) for predicate in axis)}
     priorities = [
         (len(draft_hits[code]), min(3, len(functions[code] & useful)),

@@ -26,7 +26,7 @@ import torch
 
 from .agent_registry import identifier
 from .build_contracts import BuildTask, DeckParts, digest
-from .course_construction_request import course_construction_request
+from .course_construction_request import course_construction_text
 from .course_game_adapter import CourseBotRuntime, CourseGameAdapter, REAL_GAME_SOURCE
 from .data_isolation import DataIndex
 from .duel_model import parameter_digest
@@ -469,9 +469,12 @@ class ScenarioCourse:
     def prepare_course_construction(self):
         if not getattr(self, "formal_construction", False) or self.pending is not None or self.frozen_evaluation is not None:
             return
-        request = course_construction_request(self.config["period_id"])
-        if self.selection is not None and self.selection.get("construction_request") == request:
+        period = self.config["period_id"]
+        request_text = course_construction_text(period)
+        saved_request = (self.selection or {}).get("construction_request")
+        if saved_request is not None and saved_request["period_id"] == period and saved_request["text"] == request_text:
             return
+        request = self.models.coordinator.parse_construction_request(request_text, expected_period=period)
         selection = self.models.kernel.select_task(construction_request=request)
         if selection.get("status") != "model_selected_task":
             raise ContractError("no model-selected task for the formal construction request")
