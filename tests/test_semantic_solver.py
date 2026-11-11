@@ -35,6 +35,22 @@ class SemanticSolverTests(unittest.TestCase):
         for deck in result['candidates']:
             assets.validate(task, deck)
 
+    def test_draft_prefers_supported_theme_cards_without_a_count_floor(self):
+        task, assets = catalog()
+        raw = task.to_dict()
+        raw['goal']['constraints'].append({'id': 'requested-theme', 'zones': ['main'],
+            'predicate': {'field': 'setcode', 'value': 385}, 'minimum': 1, 'maximum': 40})
+        task = BuildTask.from_dict(raw)
+        for row in assets.rows.values():
+            row['desc'] = '①：这张卡召唤成功的场合才能发动。自己抽1张卡。'
+        assets.rows[18]['setcode'] = 385
+        graph = one_node(LogicTag('effect', '抽卡'))
+
+        result = solve_candidates(task, assets, candidate_count=1, draft_graph=graph)
+        deck = result['candidates'][0]
+        assets.validate(task, deck)
+        self.assertGreater(deck.main.count(18), 1)
+
     def test_explicit_infeasibility_and_no_search_budget_are_different(self):
         task,assets=catalog()
         raw=task.to_dict();raw['goal']=deepcopy(raw['goal'])

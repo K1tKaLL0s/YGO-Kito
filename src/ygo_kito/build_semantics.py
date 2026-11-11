@@ -103,7 +103,7 @@ def preference_value(task,deck,assets):
     return sum(item['weight']*count(deck,item,assets.rows) for item in task.goal['preferences'])
 
 
-def _draft_priorities(assets, graph, catalog, pool, variables, skeleton):
+def _draft_priorities(task, assets, graph, catalog, pool, variables, skeleton):
     """Use printed functions and compatible stock to propose complete lists."""
     from .construction_inventory import InventoryDependencies, effect_matches, matches as stock_matches
     from .effect_blocks import functional_tags
@@ -180,9 +180,15 @@ def _draft_priorities(assets, graph, catalog, pool, variables, skeleton):
                             groups[(eligible, 1)] = max(12., groups.get((eligible, 1), 0.))
             for req in materials:
                 _add_stock_priority(groups, variables, inventory, code, req)
+    axis = [item['predicate'] for item in task.goal['constraints'] if item['minimum'] > 0
+            and item['predicate']['field'] in ('setcode', 'race_any')]
+    # When a series or race is the requested axis, give its cards priority for
+    # functions that actually support the draft. Ownership alone earns nothing.
+    axis_functions = {code for code in pool if (draft_hits[code] or functions[code] & useful)
+                      and any(matches(assets.rows[code], predicate) for predicate in axis)}
     priorities = [
         (len(draft_hits[code]), min(3, len(functions[code] & useful)),
-         min(3, len(functions[code] & interaction)))
+         min(3, len(functions[code] & interaction)), int(code in axis_functions))
         for _, code in variables
     ]
     return priorities, groups
@@ -249,9 +255,9 @@ def solve_candidates(task,assets,base=None,*,max_edits=None,seconds=3.,candidate
     size = len(variables)
     overlap = size if base is not None and max_edits is not None else 0
     if draft_graph is None:
-        priorities, groups = [(0, 0, 0)] * size, {}
+        priorities, groups = [(0, 0, 0, 0)] * size, {}
     else:
-        priorities, groups = _draft_priorities(assets, draft_graph, catalog, pool, variables, skeleton)
+        priorities, groups = _draft_priorities(task, assets, draft_graph, catalog, pool, variables, skeleton)
     dimensions = size + overlap + len(groups)
     low = np.zeros(dimensions)
     high = np.full(dimensions, 3.)
@@ -311,8 +317,11 @@ def solve_candidates(task,assets,base=None,*,max_edits=None,seconds=3.,candidate
         effect_weight, utility_weight, side_weight = directions[variant]
         objective = np.zeros(dimensions)
         for i, (zone, _) in enumerate(variables):
-            draft, useful, response = priorities[i]
-            strength = side_weight * response if zone == 'side' else effect_weight * draft + utility_weight * useful
+            draft, useful, response, axis_function = priorities[i]
+            if zone == 'side':
+                strength = side_weight * response
+            else:
+                strength = effect_weight * (draft + axis_function) + utility_weight * (useful + axis_function)
             order = i if variant % 2 == 0 else size - i
             objective[i] = -(strength + preferred[i]) + order * (1e-4 / max(1, size))
         objective[size + overlap:] = -np.array(group_weights)
