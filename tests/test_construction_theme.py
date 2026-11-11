@@ -248,6 +248,9 @@ class AutomaticThemeTests(unittest.TestCase):
             self.assertEqual(inventory.processing_check(DeckParts((2,), (kitkallos,)), record, selected)['status'], 'missing')
         self.assertEqual(inventory.simultaneous_processing(deck, record, send, card_id=kitkallos)['status'],
                          'inventory_present')
+        single = DeckParts((merrli,))
+        self.assertIs(inventory.summon_choice_check(single, record, summon, (merrli,), physical_inventory=single), False)
+        self.assertIs(inventory.summon_choice_check(deck, record, summon, (merrli,), physical_inventory=deck), True)
 
         def pairs_for(candidate, *, summoned_ids=None):
             work = {}
@@ -509,7 +512,7 @@ class AutomaticThemeTests(unittest.TestCase):
         static_cycle(self, f, session, quality_criteria=new, quality_reference=descriptor, max_iterations=0)
         revised = session.construction_progress
         self.assertEqual(revised['candidate']['deck'], before['candidate']['deck'])
-        for key in ('iteration', 'candidate_cursor', 'skeleton', 'handoffs'):
+        for key in ('iteration', 'candidate_cursor', 'logic_sha256', 'handoffs'):
             self.assertEqual(revised[key], before[key])
         self.assertEqual(revised['candidate']['evaluation_status'], 'stale')
         self.assertIsNone(revised['reference_evaluation'])

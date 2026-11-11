@@ -822,6 +822,25 @@ class InventoryDependencies:
         proof = self._check(deck, requirements, distinct=True)
         return dict(status=proof['status'], reason='simultaneous_processing_entities', checks=[proof])
 
+    def summon_choice_check(self, deck, record, operation, allowed, *, physical_inventory):
+        '''Check one printed summon with the legal object range already applied.'''
+        requirement = self.item_requirement(operation, 'operations')
+        if requirement is None or requirement['owner'] != 'self':
+            return None
+        query = requirement['query']
+        predicate = {'field': 'card_ids', 'value': list(allowed)}
+        if 'predicate' in query:
+            predicate = {'all': [query['predicate'], predicate]}
+        query = dict(query, predicate=predicate)
+        checked = self._check(deck, [dict(requirement, query=query, operation=operation)])
+        if checked['status'] != 'inventory_present':
+            return False if checked['status'] == 'missing' else None
+        narrowed = dict(operation, selector_query=query)
+        scoped = dict(record, operations=[narrowed if op == operation else op for op in record['operations']])
+        processing = self.processing_check(deck, scoped, narrowed, physical_inventory=physical_inventory)
+        return True if processing is None or processing['status'] == 'inventory_present' else (
+            False if processing['status'] == 'missing' else None)
+
     def processing_check(self, deck, record, selected=None, *, physical_inventory=None):
         """Allocate the printed complete processing, not a duel starting hand.
 

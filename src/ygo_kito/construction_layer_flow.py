@@ -8,6 +8,7 @@ printed configuration capabilities without requiring a current duel state.
 from collections import Counter, defaultdict
 from copy import deepcopy
 from dataclasses import asdict, replace
+from functools import lru_cache
 from itertools import islice
 
 from .build_contracts import digest
@@ -25,7 +26,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v34"
+NORMALIZATION_VERSION = "construction-function-normalization-v35"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -79,7 +80,7 @@ def _configuration_relations(available, records, dependencies, aliases, operatio
     from .effect_records import operation_record
     rows = dependencies.rows
     host = context.relations.facts if context is not None else ()
-    added, handled, processed = [], set(), set()
+    added, unbound, processed = [], set(), set()
     present = set(available.main + available.extra)
 
     def supplied(resource):
@@ -128,7 +129,7 @@ def _configuration_relations(available, records, dependencies, aliases, operatio
                     if supplied(resource):
                         continue
                     key = 'configuration:purpose:'+need.need_id
-                    if resource.kind == 'activation' and scoped['conditions']['status'] == 'recognized':
+                    if resource.kind == 'activation':
                         event = resource.event
                         if event in (None, 'unknown'):
                             continue
@@ -136,7 +137,6 @@ def _configuration_relations(available, records, dependencies, aliases, operatio
                         # are checked separately against this configuration.
                         checks = dependencies.summon_trigger_check(code, scoped)
                         if checks['status'] == 'missing':
-                            handled.add(need.need_id)
                             continue
                         inputs = None
                         if scoped['trigger'].get('related_effect_index') is not None:
@@ -148,7 +148,6 @@ def _configuration_relations(available, records, dependencies, aliases, operatio
                                 and (code,r,j) in operation_facts}
                             ports = [f.output for f in facts if f.fact_id in parents]
                             if not ports:
-                                handled.add(need.need_id)
                                 continue
                             inputs = InputGroup('any',tuple(Need(key+':related:'+str(i), port,
                                 mode='presence') for i,port in enumerate(ports)))
@@ -166,33 +165,30 @@ def _configuration_relations(available, records, dependencies, aliases, operatio
                             code, 'extra' if code in available.extra else 'main', inputs=inputs,
                             conditions=('static applicability: '+event,),
                             unknown=('summon_configuration_uncovered',) if checks['status'] == 'unknown' else ()))
-                        handled.add(need.need_id)
                     elif resource.kind == 'effect_applicability' and _record_applicability(scoped):
                         added.append(RelationFact(key,key,resource,'printed continuous applicability: '+scoped['source_text'],
                             code,'extra' if code in available.extra else 'main',conditions=('static continuous applicability',)))
-                        handled.add(need.need_id)
                     elif resource.kind in ('payment', 'target'):
                         category = 'costs' if resource.kind == 'payment' else 'targets'
                         item = next((v for v in scoped[category] if v.get('source') in resource.attributes), None)
                         if item is None:
+                            unbound.add(need.need_id)
                             continue
                         if item.get('resource') == 'lp' and type(item.get('quantity')) is int:
                             pid = 'configuration:payable_lp'
                             pools.setdefault(pid, ResourcePool(pid, 'rule: initial 8000 LP; payment leaves positive LP', capacity=7999))
                             added.append(RelationFact(key, key, resource, 'static LP payment capacity', quantity=7999, output_pool=pid))
-                            handled.add(need.need_id)
                             continue
                         req = dependencies.item_requirement(item, category)
                         if req is None:
+                            unbound.add(need.need_id)
                             continue
                         if req['owner'] == 'opponent' and category == 'targets':
                             # Quantity belongs to the printed capability. It is
                             # not a report that those opponent cards now exist.
                             added.append(RelationFact(key, key, resource, 'printed opponent object range: '+req['source'],
                                 quantity=req['minimum'], conditions=('configuration purpose: opponent object range '+req['source'],)))
-                            handled.add(need.need_id)
                         elif req['owner'] == 'self':
-                            handled.add(need.need_id)
                             stock = [target for target in sorted(present) if matches(rows[target], req['query'])
                                 and (req['origin'] not in ('hand', 'deck') or target in available.main)
                                 and (req['origin'] != 'extra' or target in available.extra)]
@@ -211,7 +207,26 @@ def _configuration_relations(available, records, dependencies, aliases, operatio
                                 target_key = key+':'+str(target)
                                 added.append(RelationFact(target_key, target_key, resource, 'complete static selector: '+req['source'],
                                     target, section, output_pool=pid, inventory_scaled=True))
-    return added, handled
+                        else:
+                            unbound.add(need.need_id)
+    return added, unbound
+
+
+def _bind_unparsed_requirements(fact, unbound):
+    # Keep a missing printed selector on its effect, without inventing supply.
+    gaps = []
+    def bind(group):
+        if isinstance(group, Need):
+            if group.need_id in unbound:
+                gaps.append('catalog-text:' + group.need_id.removeprefix('catalog:') + ':unparsed_' + group.resource.kind)
+                return None
+            return group
+        if group is None or group.operator != 'all':
+            return group
+        items = tuple(item for child in group.items if (item := bind(child)) is not None)
+        return InputGroup('all', items) if items else None
+    inputs = bind(fact.inputs)
+    return replace(fact, inputs=inputs, unknown=(*fact.unknown, *gaps)) if gaps else fact
 
 
 def _functional_relations(deck, available, records, aliases, extra_ids, context, budget, dependencies, config,
@@ -274,16 +289,14 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
                 gaps = tuple("inventory_selector:"+str(i) for i,r in enumerate(checks) if r["status"] == "unknown"
                     and (r.get('unknown_selectors') or r.get('unknown_restrictions') or not r.get('requirements')))
                 gaps += tuple("complete_selector:"+r.get("source", "") for r in effect_specs[ri]["unknown"]
-                              if ("operation" not in r or r["operation"] == operation)
+                              if r['category'] not in ('costs', 'targets')
+                              and ("operation" not in r or r["operation"] == operation)
                               and r.get('choice') in (None, (operation or {}).get('choice')))
                 rel_facts.append(RelationFact(inventory_key, inventory_key, inventory_port,
                     "complete candidate inventory", code, zone, unknown=gaps))
             inputs = InputGroup("all", tuple(v for v in (fact.inputs,
                 Need(inventory_key, inventory_port, mode="presence")) if v is not None))
-            restrictions = (*records[code][ri].get("restrictions", ()), *records[code][ri].get("card_restrictions", ()))
-            unknown = tuple(v for v in fact.unknown if v != "restriction_joint_scope_unresolved"
-                            or any(r["kind"] not in _INTRINSIC_RESTRICTIONS
-                                   and not _mapped_restriction(records[code][ri], r) for r in restrictions))
+            unknown = fact.unknown
             if processing and processing['status'] == 'unknown':
                 unknown += (processing['reason'],)
             rel_facts.append(replace(fact, output=output, quantity=fact.quantity if fact.transfer else 1,
@@ -294,8 +307,9 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
                 fact.source, required=False))
             operation_facts[code, ri, oi] = uid
     compact_stock = context is None and len(available.main) <= len(deck.main) and len(available.extra) <= len(deck.extra)
-    configured, handled = _configuration_relations(available, records, dependencies, aliases,
+    configured, unbound = _configuration_relations(available, records, dependencies, aliases,
         operation_facts, rel_facts, rel_pools, context, compact_stock=compact_stock)
+    rel_facts = [_bind_unparsed_requirements(f, unbound) for f in rel_facts]
     rel_facts.extend(configured)
     if context is not None:
         rel_facts.extend(context.relations.facts)
@@ -312,32 +326,15 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
             continuation=(continuation or {}).get('theme'), should_stop=should_stop, work_state=theme_state)
         if pending is not None:
             return dict(calculation_pending=dict(theme=pending)), operation_facts
-    seeds = {}
-    host_ids = {f.fact_id for f in context.relations.facts} if context is not None else set()
-    for fact in rel_facts:
-        if fact.fact_id in host_ids:
-            continue
-        for need in _needs(fact.inputs):
-            if need.need_id in handled or need.resource.kind in (
-                    "functional_operation", "functional_inventory", "normal_summon_allowance", "configuration_access"):
-                continue
-            if any(need.resource.accepts(f.output) for f in rel_facts):
-                # A supplied route keeps its own complete prerequisites. An
-                # invented unknown alternative must not bypass their shortage.
-                continue
-            key = "functional:unresolved:" + need.need_id
-            seeds[key] = RelationFact(key, key, need.resource, "uncovered static prerequisite adapter",
-                quantity=need.quantity, unknown=("static_prerequisite_uncovered:" + need.need_id,))
-    complete_facts=[*rel_facts,*seeds.values()]
     # These facts already exist in the selected finite inventory. Their count
     # is data extent, not missing information. Work is sliced below instead.
-    need_count=len({n.need_id for f in complete_facts for n in _needs(f.inputs)}|
+    need_count=len({n.need_id for f in rel_facts for n in _needs(f.inputs)}|
         {n.need_id for u in rel_uses for n in _needs(u.inputs)})
-    allowance_count=len({n.resource.attributes for f in complete_facts for n in _needs(f.inputs)
+    allowance_count=len({n.resource.attributes for f in rel_facts for n in _needs(f.inputs)
         if n.resource.kind=='normal_summon_allowance'})
-    structural=replace(budget,facts=max(budget.facts,len(complete_facts)+allowance_count),
+    structural=replace(budget,facts=max(budget.facts,len(rel_facts)+allowance_count),
         needs=max(budget.needs,need_count))
-    relation_context = RelationContext(tuple(rel_uses), tuple(complete_facts),
+    relation_context = RelationContext(tuple(rel_uses), tuple(rel_facts),
         tuple(rel_pools.values()), constraints=context.relations.constraints if context is not None else (), budget=structural)
     copies = tuple(c for c in SkeletonSpec(deck, ()).copies() if c.zone != "side")
     skeleton = SkeletonSpec(deck, (AxisModule("functional:inventory", "complete resident inventory", copies, ()),))
@@ -734,7 +731,7 @@ def _summoned_inventory(record, operation, objects, fusion):
     return sorted(set.intersection(*(set(r['matching_card_ids']) for r in selected))) if selected else ()
 
 
-def _restriction_match(rule, detail, card_properties=None):
+def _restriction_match(rule, detail, card_properties=None, *, summon_choice=None):
     """Match the actual processing or payment, with unknown kept local."""
     kind = rule["kind"]
     if kind=='cannot_activate' and rule.get('required_state')=='special_summoned':
@@ -814,12 +811,16 @@ def _restriction_match(rule, detail, card_properties=None):
         if rule.get('allowed_summons') and action in special:
             from .build_semantics import matches as predicate_matches
             properties = card_properties or {}
-            candidates = [properties.get(str(code)) for code in detail.get('summoned_card_ids', ())]
-            if candidates and all(row is not None for row in candidates):
-                permitted = [predicate_matches(row, rule['allowed_summons']) for row in candidates]
-                if all(permitted):
+            candidates = [(code, properties.get(str(code))) for code in detail.get('summoned_card_ids', ())]
+            if candidates and all(row is not None for _, row in candidates):
+                permitted = tuple(code for code, row in candidates if predicate_matches(row, rule['allowed_summons']))
+                if len(permitted) == len(candidates):
                     continue
-                unknown |= any(permitted)
+                if permitted:
+                    proof = summon_choice(permitted) if summon_choice is not None else None
+                    if proof is True:
+                        continue
+                    unknown |= proof is None
             else:
                 unknown = True
         player = rule.get("controller", rule.get("owner"))
@@ -833,7 +834,7 @@ def _restriction_match(rule, detail, card_properties=None):
     return True if True in matches else None if matches else False
 
 
-def _bind_mandatory_impacts(facts, context, condition):
+def _bind_mandatory_impacts(facts, context, condition, *, summon_choice=None):
     from .construction_quality import UseImpact, support_state
     from .construction_relations import order_possible
 
@@ -905,11 +906,28 @@ def _bind_mandatory_impacts(facts, context, condition):
     relevant = {u.use_id for u in facts["uses"] if (u.contributes or u.required)
                 and support_state(u.self_condition, facts["variables"]) is not False
                 and support_state(u.joint_condition, facts["variables"]) is not False}
+    shared_uses = set().union(*(members for members in groups.values() if len(members) > 1))
+    side_views = {scope: digest((view['source_ids'], view['capacity']))
+        for scope, view in facts.get('side_contexts', {}).items()}
+    called = {detail['called_by'] for detail in details.values() if 'called_by' in detail}
+    contracts = {uid: [(_restriction_contract(r), r) for r in details[uid]['restrictions']] for uid in relevant}
+    summon_locks = defaultdict(set)
+    for uid, rows in contracts.items():
+        for rule, _ in rows:
+            if rule and rule.get('allowed_summons'):
+                summon_locks[by_id[uid].scope_id].add(digest(rule['allowed_summons']))
     for use in facts["uses"]:
         detail = facts["use_details"][use.use_id]
         checks = detail["restriction_checks"] = []
         record = records.get(use.effect_id)
-        for restriction in detail["restrictions"]:
+        seen = set()
+        for contract, restriction in contracts.get(use.use_id, ((None, r) for r in detail["restrictions"])):
+            if contract is not None:
+                key = digest({k: v for k, v in contract.items()
+                    if k not in ('tag', 'block_id', 'group', 'source_span')})
+                if key in seen:
+                    continue
+                seen.add(key)
             check = dict(restriction=deepcopy(restriction), affected_use_ids=[])
             checks.append(check)
             if use.use_id not in relevant:
@@ -933,7 +951,6 @@ def _bind_mandatory_impacts(facts, context, condition):
                 else:
                     check["status"] = "inventory_or_transfer"
                 continue
-            contract = _restriction_contract(restriction)
             if contract is None and restriction.get('scope') in (
                     'this_card', 'this_effect', 'this_effect_summoned_card', 'this_effect_affected_monster'):
                 check['status'] = 'unmapped'
@@ -944,7 +961,16 @@ def _bind_mandatory_impacts(facts, context, condition):
                 if target.scope_id != use.scope_id or target.use_id == use.use_id or target.use_id not in relevant:
                     continue
                 other = facts["use_details"][target.use_id]
-                affected = _restriction_match(rule, other, facts.get('card_properties'))
+                # Keep the object choice when it can change a joint requirement,
+                # a priced recipient, or the interaction of distinct restrictions.
+                choice = None
+                if (summon_choice is not None and rule.get('allowed_summons')
+                        and len(summon_locks[use.scope_id]) == 1
+                        and use.effect_id != target.effect_id and target.use_id not in shared_uses
+                        and other.get('relation_fact_id') not in called
+                        and other.get('automatic_goal', {}).get('role') != 'secondary'):
+                    choice = lambda allowed: summon_choice(use.scope_id, detail['card_id'], other, allowed)
+                affected = _restriction_match(rule, other, facts.get('card_properties'), summon_choice=choice)
                 if affected is False:
                     continue
                 check["affected_use_ids"].append(target.use_id)
@@ -971,8 +997,11 @@ def _bind_mandatory_impacts(facts, context, condition):
                 impact_id = "impact:" + digest((use.use_id, target.use_id, restriction))
                 applicability = impact_id
                 if whole is True and affected is None:
-                    # Multiple results of one effect adopt the same whole-turn restriction.
-                    applicability = "impact:" + digest((use.effect_id, target.use_id, restriction))
+                    # Adoption is separate from applicability. The same
+                    # printed restriction on identical stock shares its test.
+                    stock = side_views.get(use.scope_id, use.scope_id)
+                    target_key = target.use_id.removesuffix(':' + use.scope_id)
+                    applicability = "impact:" + digest((use.effect_id, target_key, restriction, stock))
                 expr = condition(applicability, value, "mandatory_restriction:" + kind, (restriction["source"],))
                 facts["impacts"].append(UseImpact(impact_id, use.use_id, (target.use_id,),
                     ("base", *target.theme_eligible), (kind,), (restriction["source"],), expr,
@@ -1038,7 +1067,7 @@ def _relation_support(row, key, scope, condition, evidence):
         if operator == "atom":
             # Parser facts have the same meaning in every direction; access,
             # inventory and ordering facts remain local to that projection.
-            identity = children if children.startswith("fact:catalog:") else scope+":"+children
+            identity = children if children.startswith(("fact:catalog:", "fact:catalog-text:")) else scope+":"+children
             return condition("relation:"+identity, None, children, evidence)
         if operator in ("all", "any"):
             return _support_group(operator,[convert(v) for v in children])
@@ -1194,9 +1223,10 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
     dependencies._specifications=specs
 
     def condition(key, value, reason, evidence):
-        # Access/resource support is candidate-local. Only explicitly shared
-        # host fact IDs may correlate two different inventories.
-        key += ":candidate:" + facts["deck_sha256"]
+        # The same unresolved printed clause is shared across equal asset
+        # versions. Inventory support remains local to each deck.
+        if not key.startswith('relation:fact:catalog-text:'):
+            key += ":candidate:" + facts["deck_sha256"]
         previous = facts["variables"].setdefault(key, value)
         if previous != value:
             raise ContractError("normalization has conflicting facts: " + key)
@@ -1419,7 +1449,34 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
         facts["scope_status"]["side"] = "deferred"
     _bind_functional_support(facts, projections, available, specs, catalog, context, condition, config, sources)
     _bind_automatic_themes(facts, projections, config, condition, sources)
-    _bind_mandatory_impacts(facts, context, condition)
+    @lru_cache(maxsize=None)
+    def check_summon_choice(operation_key, allowed):
+        code, ri, oi = operation_key
+        record = records[code][ri]
+        operation = record['operations'][oi]
+        scoped = operation_record(record, operation)
+        resident = available['resident']
+        if operation['kind'] == 'fusion_summon':
+            fusion = dependencies.fusion_check(resident, code, scoped)
+            if fusion is not None:
+                if any(option['target'] in allowed for option in fusion['options']):
+                    return True
+                return None if set(allowed) & set(fusion['uncovered_targets']) else False
+        return dependencies.summon_choice_check(resident, scoped, operation, allowed, physical_inventory=deck)
+
+    resident_cards = set(deck.main + deck.extra)
+    def summon_choice(scope, source_code, detail, allowed):
+        if scope == 'resident':
+            return check_summon_choice(detail['operation_key'], allowed)
+        # An assignment in the original deck already fits the Side limits.
+        # A shortage there says nothing about the added Side resources.
+        if {source_code, detail['card_id']} <= resident_cards:
+            resident_allowed = tuple(code for code in allowed if code in resident_cards)
+            if resident_allowed and check_summon_choice(detail['operation_key'], resident_allowed) is True:
+                return True
+        return None
+
+    _bind_mandatory_impacts(facts, context, condition, summon_choice=summon_choice)
     if work_state is not None:
         work_state.clear();work_state.update(work)
     facts.pop('inventory')
@@ -1540,7 +1597,7 @@ class ConstructionLayerAdapter:
             static_records[code]=[spec['record'] for spec in specs]
             observed[code] = list(islice(_record_facts(code, static_records[code], zone=zones[code],
                 same_name=self.binding.assets.rows[code].get("alias") or code,
-                inventory=members,dependencies=dependencies,controller='self'), remaining))
+                inventory=members,dependencies=dependencies,controller='self',static=True), remaining))
             remaining -= len(observed[code])
             positions=[(ri,oi) for ri,record in enumerate(static_records[code]) for oi,_ in _record_outputs(record)]
             operation_facts.update(((code,ri,oi),'functional:'+fact.fact_id)
@@ -1550,19 +1607,10 @@ class ConstructionLayerAdapter:
                 for (ri, oi), pair in zip(positions, observed[code]) if oi is not None
             }
         raw_facts=[fact for pairs in observed.values() for fact,_ in pairs]
-        configured,handled=_configuration_relations(view,static_records,dependencies,
+        configured, unbound = _configuration_relations(view,static_records,dependencies,
             {str(c):self.binding.assets.rows[c].get('alias') or c for c in codes},
             operation_facts,raw_facts,pools,None)
         for fact in configured:add_fact(fact)
-        for code in observed:
-            for fact, _ in observed[code]:
-                for need in _needs(fact.inputs):
-                    if (need.need_id in handled or need.resource.kind=='normal_summon_allowance'
-                            or any(need.resource.accepts(f.output) for f in configured)):
-                        continue
-                    key = "flow:unknown:" + need.need_id
-                    add_fact(RelationFact(key, key, need.resource, fact.source, code, zones[code],
-                        quantity=need.quantity, unknown=("static_prerequisite_uncovered:" + need.need_id,)))
         inspected = set(observed)
         for node in graph.nodes:
             functional = any(t.dimension in ("effect", "effect_type", "role") for t in node.tags)
@@ -1610,6 +1658,7 @@ class ConstructionLayerAdapter:
                         if pair is None:
                             continue
                         fact, shared = pair
+                        fact = _bind_unparsed_requirements(fact, unbound)
                         add_fact(replace(fact, fact_id=f"flow:{node.node_id}:{fact.fact_id}",
                                          output=output, quantity=1))
                         pools.update((p.pool_id, p) for p in shared)
@@ -1627,6 +1676,7 @@ class ConstructionLayerAdapter:
                     matches |= (tags == {"墓地融合"} and fact.output.kind == "fusion_summon"
                                 and any(fact.effect_ref == f"catalog:{code}:{e.index}" for e in profile.grave_fusion))
                     if matches:
+                        fact = _bind_unparsed_requirements(fact, unbound)
                         add_fact(replace(fact, fact_id=f"flow:{node.node_id}:{fact.fact_id}",
                             output=output, quantity=1))
                         pools.update((p.pool_id, p) for p in shared)

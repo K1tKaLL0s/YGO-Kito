@@ -278,6 +278,33 @@ class StaticEntryTests(unittest.TestCase):
         self.assertTrue(whole['complete'],whole['unknowns'])
         self.assertLess(whole['score']['value'], arranged['score']['value'])
 
+    def test_whole_turn_lock_filters_the_summon_objects_before_pricing(self):
+        self.assets.rows[1].update(type=2, desc='①：抽1张。这个回合，自己若非等级或者阶级是3以上的怪兽则不能特殊召唤。')
+        self.assets.rows[2].update(type=2, desc='①：从自己手卡把1只怪兽特殊召唤。')
+        for code in range(3,16):
+            self.assets.rows[code]['level'] = 2
+        self.assets.rows[4]['level'] = 4
+        facts, supported = self.evaluate()
+        self.assertEqual(self.state(facts, 2), [True])
+        self.assertTrue(supported['complete'], supported['unknowns'])
+        self.assertEqual(supported['stages']['V2'], supported['stages']['S'])
+        self.assets.rows[4]['level'] = 2
+        facts, prohibited = self.evaluate()
+        self.assertEqual(self.state(facts, 2), [True])
+        self.assertTrue(prohibited['complete'], prohibited['unknowns'])
+        self.assertLess(prohibited['stages']['S']['lower'], prohibited['stages']['V2']['lower'])
+
+    def test_same_unparsed_activation_is_shared_by_processing_and_inventory(self):
+        self.assets.rows[1].update(type=33, desc='①：自己主要阶段，自己拥有未知计数的场合才能发动。'
+            '抽1张。从自己卡组上面把1张卡送去墓地。')
+        first, quality = self.evaluate()
+        second, other = self.evaluate(self.decks[2])
+        self.assertEqual(self.state(first, 1), [None, None])
+        self.assertEqual(self.state(second, 1), [None, None])
+        self.assertEqual(len(quality['unknowns']), 1)
+        self.assertEqual(quality['unknowns'], other['unknowns'])
+        self.assertIn('activation_condition_unparsed', quality['unknowns'][0])
+
     def test_optional_mutual_locks_fail_only_when_both_uses_are_required(self):
         self.assets.rows[1].update(type=2, desc='①：抽1张。这个效果发动后，自己不能特殊召唤。')
         self.assets.rows[2].update(type=2, desc='①：从自己手卡把1只怪兽特殊召唤。这个效果发动后，自己不能抽卡。')
@@ -362,7 +389,7 @@ class StaticEntryTests(unittest.TestCase):
 
         def blocked(zone, monster_type, race):
             detail = dict(card_id=3, semantics=dict(kind='special_summon', from_zones=[zone]),
-                operation=dict(source='这张卡特殊召唤'))
+                operation=dict(source='这张卡特殊召唤'), summoned_card_ids=(3,))
             return _restriction_match(extra, detail, {'3': dict(type=monster_type, race=race)})
         self.assertFalse(blocked('hand', 33, 64))
         self.assertFalse(blocked('extra', 0x800001, 32))

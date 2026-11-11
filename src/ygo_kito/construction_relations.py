@@ -914,13 +914,14 @@ def _record_applicability(record):
     return None
 
 
-def _record_facts(code, records, *, zone="main", same_name=None, inventory=None, dependencies=None, controller=None, functional=False):
+def _record_facts(code, records, *, zone="main", same_name=None, inventory=None, dependencies=None, controller=None, functional=False, static=False):
     """Preserve recognized observations, without guessing opaque selectors.
 
     Costs/targets/trigger clauses become explicit input ports. A host may supply
     their sourced support. Unknown fields stay on the affected effect. No use of
     route_ready, no full-text parsing, and no catalog-wide material search.
     """
+    static = static or functional
     records = tuple(records)
     index_counts = Counter(record["effect_index"] for record in records)
     scoped_counts = Counter((record.get('scope'),record['effect_index']) for record in records)
@@ -928,10 +929,13 @@ def _record_facts(code, records, *, zone="main", same_name=None, inventory=None,
         ref = f"catalog:{code}:{record['effect_index']}"
         source = f"{record['semantic_version']}:{record['text_sha256']}:{record['effect_index']}"
         inputs, unknown, conditions, claims, pools = [], list(record["unknown"]), [], [], []
-        if functional and record['count_limits'] and all(c.get('status')=='known' for c in record['count_limits']):
-            # Static uses reserve the printed count. No negated activation is
-            # being executed, so its unknown refund policy is not a prerequisite.
-            unknown = [v for v in unknown if v!='count_negation_policy']
+        if static:
+            # Parser diagnostics for the same clause describe one static gap.
+            # Refund policy belongs to an actual negated activation.
+            unknown = [v for v in unknown if v not in (
+                'activation_boundary', 'activation_condition', 'additional_activation_conditions',
+                'cost_or_condition', 'count_negation_policy')
+                and (v != 'resolution' or not record['operations'])]
         repeated = index_counts[record["effect_index"]] > 1
         if repeated:
             # Pendulum and monster sections can both number an effect ①.
@@ -948,7 +952,7 @@ def _record_facts(code, records, *, zone="main", same_name=None, inventory=None,
                 scoped.update(operations=[operation], relation_ref=ref+':'+operation['choice'],
                     operation_refs={op.get('block_id'):ref+':op:'+str(index) for index,op in _record_outputs(record)})
                 for fact, branch_pools in _record_facts(code, (scoped,), zone=zone, same_name=same_name,
-                        inventory=inventory, dependencies=dependencies, controller=controller, functional=functional):
+                        inventory=inventory, dependencies=dependencies, controller=controller, functional=functional, static=static):
                     yield replace(fact, fact_id=ref+':op:'+str(oi), effect_ref=ref), branch_pools
             continue
         ref = record.get('relation_ref', ref)
@@ -963,15 +967,19 @@ def _record_facts(code, records, *, zone="main", same_name=None, inventory=None,
                 "additional_activation_conditions", "count_limit", "resolution", "unparsed_resolution_or_restriction")]
             inputs.append(Need(ref + ":applicability", field_applicability, mode="presence"))
         elif trigger.get("event") in ("unknown", None):
-            unknown.append("activation_condition_unknown")
+            if not static:
+                unknown.append("activation_condition_unknown")
         else:
             inputs.append(Need(ref + ":trigger", Resource("activation", zone=trigger.get("zone"),
                 reason=trigger.get("reason"), event=trigger["event"], attributes=(f"card:{code}",)), mode="presence"))
         if not field_applicability and record["conditions"]["status"] != "recognized":
-            unknown.append("additional_activation_conditions")
+            unknown.append("activation_condition_unparsed" if static else "additional_activation_conditions")
         for category in ("costs", "targets"):
             for i, item in enumerate(record[category]):
                 quantity = item.get("quantity")
+                if static and quantity is None:
+                    requirement = dependencies.item_requirement(item, category) if dependencies else None
+                    quantity = requirement['minimum'] if requirement else None
                 attributes = (item.get("source") or ref + f":{category}:{i}",)
                 if category == "costs" and item.get('subject') == 'this_card' and item.get('source_card_id') == code:
                     attributes += ('source_card:' + str(code),)
@@ -980,10 +988,11 @@ def _record_facts(code, records, *, zone="main", same_name=None, inventory=None,
                 state_payment = item.get('consumes_card') is False or item.get('resource') in ('public_state','card_state')
                 inputs.append(Need(ref + f":{category}:{i}", resource, quantity or 1,
                                    "consume" if category == "costs" and not state_payment else "presence"))
-                if category=='costs' and state_payment:
-                    unknown.append(f"costs:{i}:state_change_requires_binding")
-                if quantity is None:
-                    unknown.append(f"{category}:{i}:quantity_unknown")
+                if not static:
+                    if category=='costs' and state_payment:
+                        unknown.append(f"costs:{i}:state_change_requires_binding")
+                    if quantity is None:
+                        unknown.append(f"{category}:{i}:quantity_unknown")
         for i, limit in enumerate(record["count_limits"]):
             scope = limit.get("scope", "unknown")
             # Each-option limits are not a single shared one-use pool. Keep
@@ -1013,17 +1022,24 @@ def _record_facts(code, records, *, zone="main", same_name=None, inventory=None,
                 unknown.append(f"count_scope:{i}:{scope}")
         for restriction in restrictions:
             conditions.append("restriction:" + restriction["source"])
-            unknown.append("restriction_joint_scope_unresolved")
+            if not static:
+                unknown.append("restriction_joint_scope_unresolved")
         for i, op in _record_outputs(record):
+            shared_unknown = tuple(sorted(set(unknown)))
+            if static:
+                phase = (op or {}).get('phase')
+                shared_unknown = tuple(f'catalog-text:{ref.removeprefix("catalog:")}:{gap}' for gap in shared_unknown
+                    if gap != 'activation_condition_unparsed' or record['conditions'].get('source')
+                    or phase not in ('continuous', 'rule', 'summon_procedure'))
             if op is None:
                 yield RelationFact(ref + ":adoption", ref, Resource("effect_adoption", attributes=(ref,)),
                     source, code, zone, inputs=InputGroup("all", tuple(inputs)) if inputs else None,
-                    claims=tuple(claims), conditions=tuple(conditions), unknown=tuple(sorted(set(unknown)))), pools
+                    claims=tuple(claims), conditions=tuple(conditions), unknown=shared_unknown), pools
                 continue
             origin = op.get("from_zones", ())
             attrs = tuple(v for v in ("selector:" + op["selector"] if op.get("selector") else None,
                                       "owner:" + op["owner"] if op.get("owner") else None) if v)
-            extra_unknown = list(unknown)
+            extra_unknown = list(shared_unknown)
             operation_conditions=list(conditions)
             operation_inputs=list(inputs)
             for connector in record.get('block_view',{}).get('connectors',()):
@@ -2384,7 +2400,7 @@ def evaluate_relations(skeleton, context, index, *, previous=None, inventory_cou
                 *(('atom', condition) for condition in f.conditions)])
             branch['unknown'] = sorted(set(branch['unknown']) | set(f.unknown))
             branch['support_expression'] = _expression('all', [branch['support_expression'],
-                *(('atom', 'fact:' + fid + ':' + v) for v in f.unknown)])
+                *(('atom', 'fact:' + (v if v.startswith('catalog-text:') else fid + ':' + v)) for v in f.unknown)])
             claims = {c.pool_id: {('presence:' if c.mode == 'presence' else 'activation:') +
                 f.effect_ref + ':' + f.choice: c.quantity} for c in f.claims}
             branch['usage'] = _merge_usage((branch['usage'], claims))
