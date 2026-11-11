@@ -189,6 +189,17 @@ _MOVE_POSTFIX = re.compile(r'(?:把|将|选)(?P<selection>.+?)从(?P<owner>自�
 
 def requirement(source, category):
     original_source = source
+    if category == 'operations' and '表侧表示加入' in source:
+        alternate_destination = re.fullmatch(
+            r'(?:(?:攻击|守备)表示[：:])?从(?:自己的?)?卡组选(\d+)[只张](.+?)表侧表示加入(?:自己的?)?额外卡组或送去墓地',
+            source)
+        if alternate_destination:
+            query = selector(alternate_destination[2])
+            quantity = int(alternate_destination[1])
+            if quantity > 0 and query_supported(query):
+                return dict(query=query, minimum=quantity, source=original_source,
+                    origin='deck', origins=['deck'], owner='self', category=category,
+                    action='加入额外卡组或送去墓地', actions=['加入额外卡组','送去墓地'])
     normal = re.fullmatch(r'(?:可以)?(?:自己)?(?:把|将)(\d+只[^。；，]*怪兽)(?:通常)?召唤', source)
     if normal and category == 'operations':
         source = '从手卡把' + normal[1] + '通常召唤'
@@ -538,6 +549,8 @@ class InventoryDependencies:
         event = record['trigger'].get('event')
         actions = ('normal_summon', 'special_summon') if event == 'normal_or_special_summon' else (
             (event,) if event in ('normal_summon', 'tribute_summon', 'special_summon') else ())
+        if record['trigger'].get('summon_kind') == 'pendulum_summon':
+            actions = ('pendulum_summon',)
         candidates = [self.candidate_status(code, dict(category='operations', operation={'kind':action}))
                       for action in actions]
         allowed = True if not candidates or any(s is True for s,_ in candidates) else (

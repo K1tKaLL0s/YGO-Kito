@@ -626,6 +626,61 @@ class CalculationResumeTests(unittest.TestCase):
                          2 ** len(values[0]['quality_evaluation']['unknowns']))
         self.assertIn('evaluation_id', values[0]['quality_evaluation'])
 
+    def test_known_coverage_gap_ends_scoring_without_starting_reference(self):
+        from ygo_kito.build_contracts import DeckParts, digest
+        from ygo_kito.construction_binding import CatalogBindingAdapter
+        from ygo_kito.construction_fill import construction_cycle, FillProposal, NodeBinding
+        from ygo_kito.construction_layer_flow import ConstructionLayerAdapter, normalize_function_uses
+        from ygo_kito.construction_logic import ConstructionLogic
+        from tests.test_construction_functional_flow import fixture
+        from tests.test_construction_layer_flow import rows_for, session_for
+
+        task, assets, graph, _, decks, policy = fixture()
+        assets.rows[2]['desc'] = '①：自己主要阶段，自己拥有未知计数的场合才能发动。抽1张。'
+        binder = CatalogBindingAdapter(assets)
+        candidate = decks[-1]
+        policy['quality']['completion_budget'] = 1
+        policy['pass'] = dict(mode='reference_ratio', minimum_reference_ratio=.8,
+            reference=dict(reference_id='fixture-reference', deck_sha256=digest(decks[0].to_dict()), source='fixture'))
+
+        def evidence(task, deck, layer):
+            facts = normalize_function_uses(task, deck, binder.semantic_catalog, policy=policy, layer_evaluation=layer)
+            return {**{k: facts[k] for k in ('version', 'task_sha256', 'deck_sha256', 'asset_version')},
+                'source': 'reviewed coverage gap', 'evidence_refs': ['unsupported card clause'],
+                'coverage': {'main:2': 'unknown'}}
+
+        def provider(ctx):
+            old = ConstructionLogic.from_dict(ctx['logic'])
+            return dict(logic=replace(graph, revision=old.revision + 1, parent_sha256=old.sha256).to_dict(), reason='fixture')
+
+        def skeleton_result(session, *_args, **_kwargs):
+            deck = DeckParts((1,))
+            proposal = FillProposal(deck, (NodeBinding('goal', (1,)),), (), session.logic.sha256, task.sha256)
+            return dict(status='axis_skeleton_ready', best_deck=deck.to_dict(), concrete_proposal=asdict(proposal),
+                unfilled=dict(main=39, extra=0, side=0))
+
+        adapter = ConstructionLayerAdapter(binder)
+        providers = {key: provider for key in ('build_goal', 'build_optimizer')}
+        with patch('ygo_kito.construction_fill.build_axis_skeleton', side_effect=skeleton_result), \
+             patch('ygo_kito.construction_candidates.portfolio', return_value=rows_for(task, [candidate])), \
+             patch.object(adapter, 'reference_inputs', side_effect=AssertionError('reference cannot fill card coverage')):
+            result = construction_cycle(session_for(task, graph), assets, providers, binding_provider=binder,
+                text_reviewer=binder.reviewer, layer_adapter=adapter, quality_criteria=policy,
+                quality_evidence=evidence, run_mode='slice', seconds=30.)
+        self.assertEqual(result['stop_reason'], 'static_coverage_unresolved')
+        self.assertIsNone(result['continuation']['pending_reference'])
+        self.assertIsNone(result['continuation']['pending_quality'])
+        self.assertIn('quality_evaluation_incomplete', result['construction_gate']['reasons'])
+        self.assertIn('card_effect_coverage_unresolved:main:2', result['construction_gate']['reasons'])
+        quality = result['construction_candidate']['quality_evaluation']
+        self.assertEqual(quality['completion_evaluated_count'], 1)
+        self.assertFalse(quality['scope_complete'])
+        self.assertFalse(quality['complete'])
+        self.assertEqual(quality['total']['partial_items'], ['main:2'])
+        self.assertIsNone(quality['score']['upper'])
+        self.assertTrue(quality['unknowns'])
+        self.assertIn('evaluation_id', quality)
+
     def test_theme_pairs_resume_and_stale_inputs_are_rejected(self):
         from types import SimpleNamespace
         from ygo_kito.construction_layer_flow import normalize_function_uses

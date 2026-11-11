@@ -712,6 +712,21 @@ def _restriction_contract(restriction):
         if re.fullmatch(r'直到下个回合的结束时[，,]被送去墓地的卡不去墓地而除外',source):
             return dict(rule,controller='both',condition='effect_use',duration='next_turn_end',whole_turn=False)
         return None
+    grave_lock = re.fullmatch(
+        r'只要自己墓地有(?P<card>「[^」]+」)存在[，,]对方不能把墓地的卡的效果发动[，,]'
+        r'(?:也)?不能把墓地的怪兽特殊召唤', source)
+    if kind in ('cannot_activate', 'cannot_special_summon') and grave_lock and rule.get('scope') == 'player':
+        if rule.get('controller', 'opponent') != 'opponent' or rule.get('owner', 'opponent') != 'opponent':
+            return None
+        return dict(rule, controller='opponent', condition='named_card_in_own_grave', duration='while_applicable',
+                    from_zones=['grave'], required_presence={'owner': 'self', 'zone': 'grave',
+                                                             'exact_name': grave_lock['card'][1:-1]})
+    if kind == 'cannot_activate' and re.fullmatch(r'这个回合[，,]对方不能把墓地的卡的效果发动', source):
+        if (rule.get('scope') != 'player' or rule.get('controller', 'opponent') != 'opponent'
+                or rule.get('owner', 'opponent') != 'opponent'):
+            return None
+        return dict(rule, controller='opponent', condition='effect_use', duration='turn',
+                    whole_turn=False, from_zones=['grave'])
     if kind=='cannot_activate' and re.fullmatch(r'(?:(?:这个卡名的卡(?:在)?1回合只能发动1张)[，,])?'
             r'这张卡发动的回合[，,]自己不能把特殊召唤的怪兽以外的场上的怪兽的效果发动',source):
         return dict(rule,controller='self',condition='effect_activation',duration='turn',whole_turn=True,
@@ -721,8 +736,10 @@ def _restriction_contract(restriction):
             r'这些效果发动的回合[，,]自己不能(?:把怪兽)?特殊召唤',source)
         if prelude and rule.get('scope','player')=='player' and rule.get('controller','self')=='self' and rule.get('whole_turn',True) is True:
             return dict(rule,controller='self',condition='effect_activation',duration='turn',whole_turn=True)
-        limited=re.fullmatch(r'(?P<when>这个回合|发动这个效果的回合|这个效果(?:的)?发动后[，,]直到回合结束时)[，,]?'
-            r'(?P<player>自己|对方|双方)(?:若非(?P<unless>.+?)则|不是(?P<except>.+?))不能特殊召唤',source)
+        limited=re.fullmatch(r'(?P<when>这个回合|发动这个效果的回合|这个效果(?:的)?发动后[，,]'
+            r'直到(?:回合结束时|下次的?自己回合的结束时))[，,]?'
+            r'(?P<player>自己|对方|双方)(?:若非(?P<unless>.+?)则|不是(?P<except>.+?))'
+            r'不能(?P<extra>从额外卡组)?特殊召唤',source)
         if limited:
             from .effect_mechanisms import RACES
             text=limited['unless'] or limited['except'];predicate=None
@@ -736,19 +753,27 @@ def _restriction_contract(restriction):
             else:
                 types={'融合怪兽':0x41,'同调怪兽':0x2001,'超量怪兽':0x800001,'连接怪兽':0x4000001,'仪式怪兽':0x81}
                 if text in types:predicate={'field':'type_all','value':types[text]}
+                race_type = re.fullmatch(r'(?P<race>[^，,。]+族)(?P<type>融合怪兽|同调怪兽|超量怪兽|连接怪兽|仪式怪兽)', text)
+                if race_type and race_type['race'] in RACES:
+                    predicate = {'all': [{'field': 'race_any', 'value': RACES[race_type['race']]},
+                                         {'field': 'type_all', 'value': types[race_type['type']]}]}
                 attribute=re.fullmatch(r'(地|水|炎|风|光|暗|神)属性怪兽',text)
                 if attribute:predicate={'field':'attribute_any','value':{'地':1,'水':2,'炎':4,'风':8,'光':16,'暗':32,'神':64}[attribute[1]]}
             player={'自己':'self','对方':'opponent','双方':'both'}[limited['player']]
             whole='发动后' not in limited['when']
+            origins = ['extra'] if limited['extra'] else []
+            duration = 'next_own_turn_end' if '下次' in limited['when'] else 'turn'
             if (predicate is None or rule.get('scope','player')!='player'
                     or rule.get('controller',player)!=player
                     or rule.get('owner',player)!=player
                     or rule.get('whole_turn',whole) is not whole
-                    or rule.get('allowed_summons',predicate)!=predicate
+                    or rule.get('allowed_summons',predicate)!=predicate or rule.get('from_zones', origins) != origins
                     or any(rule.get(k) for k in ('unknown','selector','selector_query','exceptions','except','reason','to_zone'))):
                 return None
-            return dict(rule,controller=player,condition='effect_activation',duration='turn',
-                whole_turn=whole,allowed_summons=predicate)
+            if origins:
+                rule['from_zones'] = origins
+            return dict(rule,controller=player,condition='effect_use' if duration == 'next_own_turn_end' else 'effect_activation',
+                duration=duration,whole_turn=whole,allowed_summons=predicate)
     bodies = {
         "cannot_draw": r"(?P<player>自己|对方|双方)不能(?P<draw_reason>用卡的效果|用效果)?抽卡",
         "cannot_add_hand": r"(?P<player>自己|对方|双方)不能(?:从(?P<zone>卡组|墓地|除外状态)把卡|把卡)加入手卡",
@@ -961,6 +986,9 @@ def _record_facts(code, records, *, zone="main", same_name=None, inventory=None,
                         unknown.append(f"count_scope:{i}:{scope}")
                         continue
                     suffix += ':'+next(iter(choices))
+                section = limit.get('subject', {}).get('section')
+                if section is not None:
+                    suffix += ':' + section
                 if repeated and scope == "same_name_this_effect":
                     suffix += f":record:{position}"
                 pid = f"catalog-limit:{same_name or code}:{suffix}"

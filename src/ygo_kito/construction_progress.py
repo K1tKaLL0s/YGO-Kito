@@ -311,6 +311,8 @@ def _functional_gate(task, deck, assets, evaluation, policy, candidate_version, 
             reasons.append('quality_assets_changed')
         if not quality['complete']:
             reasons.append('quality_evaluation_incomplete')
+        reasons.extend('card_effect_coverage_unresolved:' + key for key in quality['total']['partial_items'])
+        reasons.extend('quality_scope_unresolved:' + scope for scope in quality['deferred'])
         for row in quality['hard_requirements']:
             if row['status'] != 'satisfied':
                 reasons.append('required_function:' + row['requirement_id'] + ':' + row['status'])

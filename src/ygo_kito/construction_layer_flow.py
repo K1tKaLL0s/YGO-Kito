@@ -25,13 +25,33 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v32"
+NORMALIZATION_VERSION = "construction-function-normalization-v33"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
 def _mapped_restriction(record, restriction):
     if (restriction['kind']=='equip_condition' and record.get('equipment_condition')
             and record['equipment_condition']['source'].rstrip('。.')==restriction['source']):
+        return True
+    if (restriction['kind'] == 'own_effect_activation_timing'
+            and restriction.get('scope') == 'this_effect'
+            and restriction.get('condition') == 'this_card_sent_to_grave'
+            and restriction.get('duration') == 'sent_to_grave_turn'
+            and restriction['source'] == '这个效果在这张卡送去墓地的回合不能发动'
+            and restriction in record.get('restrictions', ())):
+        return True
+    if (restriction['kind'] == 'cannot_change_position'
+            and restriction.get('scope') == 'this_effect_affected_monster'
+            and restriction.get('condition') == 'affected_by_this_effect'
+            and restriction.get('controller') == 'opponent'
+            and any(op.get('block_id') == restriction.get('subject_ref')
+                    and op.get('subject') == 'opponent_battling_monster' for op in record['operations'])):
+        return True
+    if (restriction['kind'] == 'effect_exemption'
+            and restriction.get('scope') == 'this_effect_summoned_card'
+            and restriction.get('condition') == 'summoned_by_this_effect'
+            and any(op['kind'] == 'unaffected' and op.get('protected_from') == 'monster_effects'
+                    and op.get('subject_ref') == restriction.get('subject_ref') for op in record['operations'])):
         return True
     if (restriction.get('scope')=='this_effect_summoned_card'
             and restriction.get('subject_ref') in {op.get('block_id') for op in record['operations']}
@@ -747,7 +767,9 @@ def _restriction_match(rule, detail, card_properties=None, inventory=None):
             unknown = rule.get("includes_set") is not True
         elif action not in actions.get(kind, ()):
             continue
-        origins = set(operation.get("from_zones", ()))
+        activation_zone = detail.get('trigger', {}).get('zone') if kind == 'cannot_activate' else None
+        origins = ({activation_zone} if activation_zone else set()) if kind == 'cannot_activate' else (
+            set(operation.get("from_zones", ())))
         allowed = rule.get("from_zones")
         if kind in ("cannot_special_summon_from_extra", "extra_fusion_only"):
             allowed = ["extra"]
@@ -893,9 +915,10 @@ def _bind_mandatory_impacts(facts, context, condition):
                 check["status"] = "not_adopted" if not use.contributes and not use.required else "source_unavailable"
                 continue
             kind = restriction["kind"]
-            if (restriction.get('scope')=='this_effect_summoned_card' and record
-                    and _mapped_restriction(record,restriction)):
-                check['status']='result_entity_restriction'
+            scope = restriction.get('scope')
+            if (scope in ('this_effect', 'this_effect_summoned_card', 'this_effect_affected_monster')
+                    and record and _mapped_restriction(record, restriction)):
+                check['status'] = 'effect_activation_timing' if scope == 'this_effect' else 'result_entity_restriction'
                 continue
             if kind in ("battle_protection", "effect_protection"):
                 # These are functional effects in the public block dictionary,
@@ -910,6 +933,10 @@ def _bind_mandatory_impacts(facts, context, condition):
                     check["status"] = "inventory_or_transfer"
                 continue
             contract = _restriction_contract(restriction)
+            if contract is None and restriction.get('scope') in (
+                    'this_card', 'this_effect', 'this_effect_summoned_card', 'this_effect_affected_monster'):
+                check['status'] = 'unmapped'
+                continue
             rule = contract or restriction
             kind = rule["kind"]
             for target in facts["uses"]:
@@ -1271,6 +1298,8 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                 # A coarse action does not acknowledge unrelated unparsed text.
                 semantic_gaps = [u for u in view.get("unknown", record.get("unknown", ()))
                                  if u in ("no_recognized_function", "unrecognized_operation", "effect_boundary_unknown")]
+                if not covered and not semantic_gaps:
+                    semantic_gaps = list(record.get("unknown") or ("no_recognized_function",))
                 effect_details.append(dict(effect_id=eid, effect_ref=ref, status="evaluated" if covered and not semantic_gaps else "unknown",
                     record=deepcopy(record), gaps=semantic_gaps))
                 for cost in (*record.get("costs", ()), *record.get("non_activation_costs", ())):

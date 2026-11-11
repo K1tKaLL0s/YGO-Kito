@@ -43,7 +43,7 @@ _PAYMENTS = (
 )
 
 
-def _cost_records(effect, *, head=None):
+def _cost_records(effect, *, head=None, self_banish_origin=None):
     """Keep individual explicit payments, without merging different effects."""
     from .effect_blocks import source_zones
     head = effect.trigger.get("source", "") if head is None else head
@@ -86,6 +86,8 @@ def _cost_records(effect, *, head=None):
         ('banish',r'(?:把|将|从)(?:(?:自己|对方)(?:的)?)?(?:额外卡组|融合卡组|手卡|墓地|场上|卡组)[^，,。；;]{0,70}?除外',None,'banished'),
         ('release',r'(?:把|将)(?:自己(?:的)?)?[^，,。；;]{1,60}解放','field','grave'),
     )
+    if self_banish_origin is not None:
+        additional += (('banish', r'(?P<self_field>(?:把|将)这张卡)(?:里侧)?除外', self_banish_origin, 'banished'),)
     for kind, pattern, origin, destination in additional:
         for match in re.finditer(pattern,head):
             tail = head[match.end():].split('，',1)[0].split(',',1)[0]
@@ -95,8 +97,8 @@ def _cost_records(effect, *, head=None):
             n=match.groupdict().get('n')
             if n is None:
                 count=re.search(r'(\d+)[只张个]',match[0]); n=count[1] if count else None
-            self_grave = match.groupdict().get('self_grave') is not None
-            if self_grave or '这张卡从手卡' in match[0]:n=1
+            this_card = any(match.groupdict().get(k) is not None for k in ('self_grave', 'self_field'))
+            if this_card or '这张卡从手卡' in match[0]:n=1
             matched_origin=origin or next((v for k,v in _ZONE.items() if k in match[0]),None)
             origins=source_zones(match[0]) or ([matched_origin] if matched_origin else [])
             matched_owner='opponent' if '对方' in match[0] else 'self'
@@ -104,7 +106,7 @@ def _cost_records(effect, *, head=None):
                 quantity=int(n) if n is not None else None,quantity_status='explicit' if n is not None else 'unknown',
                 owner=matched_owner,owner_status='recognized',from_zones=origins,to_zone=destination,
                 resource='cards',source=match[0],random=bool(re.search(r'卡组(?:上面|顶端)|随机',match[0])),face_down='里侧' in match[0])))
-            if self_grave:
+            if this_card:
                 found[-1][2]['subject'] = 'this_card'
             if origin == 'deck' and kind == 'send_grave' and found[-1][2]['random']:
                 found[-1][2]['selector_query'] = {'selector': '卡'}
@@ -267,8 +269,8 @@ def _refine_record(record,row,head,body,mode):
     from .effect_blocks import source_zones
     grave_self_payment = False
     for cost in record['costs']:
-        if cost.get('subject') == 'this_card' and cost['from_zones'] == ['grave']:
-            grave_self_payment = True
+        if cost.get('subject') == 'this_card' and cost['from_zones']:
+            grave_self_payment |= cost['from_zones'] == ['grave']
             cost.update(source_card_id=record['card_id'],
                 selector_query={'predicate': {'field': 'card_ids', 'value': [record['card_id']]}})
         if cost.get('exclude_source_copy'):
@@ -353,6 +355,12 @@ def _refine_record(record,row,head,body,mode):
             return 'card_destruction_effect_activation'
         if text == '对方的攻击宣言时':
             return 'opponent_attack_declaration'
+        if text == '对方怪兽进行战斗的攻击宣言时':
+            return 'attack_declaration_involving_opponent_monster'
+        if text in ('陷阱卡发动时，连锁那个发动才能把这个效果在墓地',
+                    '陷阱卡发动时,连锁那个发动才能把这个效果在墓地'):
+            record['trigger'].update(zone='grave', chain_relation='direct_response')
+            return 'trap_card_activation'
         returned = re.fullmatch(r'这个([①②③④⑤⑥⑦⑧⑨⑩])的效果除外的回合的结束阶段', text)
         if returned:
             record['trigger'].update(related_effect_index='①②③④⑤⑥⑦⑧⑨⑩'.index(returned[1])+1,
@@ -377,14 +385,17 @@ def _refine_record(record,row,head,body,mode):
                 origin='field', owner='self')]
     ordinary_spell=(mode=='unmarked' and row.get('type',0)&2 and not row.get('type',0)&(0x20000|0x40000|0x80000)
         and not re.search(r'(?:场合|时|阶段|作为代价|才能|支付)',body.split('。',1)[0]))
-    if ordinary_spell or equipment:event='card_activation'
+    ordinary_trap = (mode == 'unmarked' and row.get('type', 0) == 4
+        and re.fullmatch(r'从(?:自己)?卡组把\d+张陷阱卡送去墓地[。.]?', body))
+    if ordinary_spell or ordinary_trap or equipment:
+        event = 'card_activation'
     if event == 'own_monster_tribute_summon':
         for cost in record['costs']:
             if cost['source'] == '把这张卡除外':
                 cost.update(kind='banish', from_zones=['grave'], to_zone='banished', quantity=1,
                     quantity_status='explicit', owner='self', owner_status='recognized', random=False,
                     selector_query={'predicate':{'field':'card_ids','value':[record['card_id']]}})
-    if (mode=='activated' and (event or not condition)) or ordinary_spell or equipment:
+    if (mode=='activated' and (event or not condition)) or ordinary_spell or ordinary_trap or equipment:
         event=event or ('own_main_phase' if grave_self_payment or row.get('type',0)&1 else 'card_activation')
         record['trigger'].update(event=event,reason='effect' if event=='sent_to_grave' else 'not_applicable',
             additional_conditions='none_in_recognized_activation_clause')
@@ -419,9 +430,12 @@ def _refine_record(record,row,head,body,mode):
             continue
         rule.setdefault('block_id',record['effect_key']+':restriction:prelude:'+str(len(record['card_restrictions'])))
         rule.setdefault('group',record['effect_key'])
-        if not any(r['kind']==rule['kind']
-                and r['source']==rule['source'] for r in record['card_restrictions']):
+        prior = next((r for r in record['card_restrictions']
+                      if r['kind'] == rule['kind'] and r['source'] == rule['source']), None)
+        if prior is None:
             record['card_restrictions'].append(rule)
+        elif rule.get('condition') in ('source_clause', 'this_card_in_zone', 'this_card_in_monster_zone'):
+            prior.update({key: rule[key] for key in ('condition', 'from_zones') if key in rule})
     for lock in re.finditer(r'((?:这个卡名|这张卡)的([①②③④⑤⑥⑦⑧⑨⑩]+)的?效果1回合各能使用\d+次[，,]'
                             r'这些效果发动的回合[，,]自己不能(?:把怪兽)?特殊召唤)(?:[。\n]|$)', prelude):
         indices = ['①②③④⑤⑥⑦⑧⑨⑩'.index(i) + 1 for i in lock[2]]
@@ -435,6 +449,12 @@ def _refine_record(record,row,head,body,mode):
     count_words=r'(?:1|１|一)回合|决斗中.*(?:次|度)'
     reviewed={limit['source'] for index in range(1,11) for limit in parse_count_limits(index,prelude,'')
         if limit['status']=='known'} if re.search(count_words,prelude) else set()
+    reviewed.update(limit['source'] for limit in record['count_limits'] if limit['status'] == 'known')
+    for restrictions, field in ((record, 'restrictions'), (record, 'card_restrictions'),
+                                (record['block_view'], 'restrictions')):
+        restrictions[field] = [rule for rule in restrictions[field]
+            if rule['kind'] != 'activation_count_limit'
+            or not all(part.strip() in reviewed for part in re.split(r'[，,]', rule['source']))]
     has_count=bool(re.search(count_words,record['source_text']) or any(
         re.search(count_words,clause) and clause not in reviewed for clause in _count_clauses(prelude)))
     if not has_count or record['count_limits'] and all(c['status']=='known' for c in record['count_limits']):
@@ -443,15 +463,19 @@ def _refine_record(record,row,head,body,mode):
     blocks={b['block_id']:b for b in record['block_view']['blocks']}
     inline={}
     for op in record['operations']:
+
         complete_source=blocks.get(op.get('block_id'),{}).get('source',op.get('source',''))
-        parsed=requirement(complete_source,'operations')
+        selection_source = complete_source.removeprefix('可以') if op.get('optional') else complete_source
+        parsed=requirement(selection_source,'operations')
         if parsed and op['kind'] in ('send_grave','search_or_recover','search','recover','add_hand',
                 'return','return_deck','return_extra_deck','return_hand','banish','release','special_summon',
-                'normal_summon','tribute_summon','reveal'):
+                'normal_summon','tribute_summon','reveal','add_extra'):
             op.update(source=complete_source, selector_query=parsed['query'],quantity=parsed['minimum'],
                 from_zones=parsed['origins'],owner=parsed['owner'],random=False)
             if len(parsed['actions'])>1:inline.setdefault(complete_source,[]).append(op)
         source=op.get('source','')
+        if op['kind'] == 'destroy' and re.fullmatch(r'(?:把|将)?这张卡破坏', source):
+            op.update(subject='this_card', quantity=1, owner='self', random=False)
         if op['kind'] in ('reveal_deck','return_deck','reorder_deck','search_or_recover','extra_attack'):
             # A legacy short movement span cannot discard its complete set
             # reference, quantity rule or selection instruction.
@@ -586,12 +610,51 @@ def _refine_record(record,row,head,body,mode):
             record['trigger']['zone']='hand'
         elif event in ('own_main_phase','normal_summon','special_summon','normal_or_special_summon'):
             record['trigger']['zone']='field'
+    if event == 'attack_declaration_involving_opponent_monster':
+        affected = next((op for op in record['operations'] if op['kind'] == 'stats'
+                         and op['source'] == '那只对方怪兽攻击力变成0'), None)
+        if affected:
+            affected.update(subject='opponent_battling_monster', quantity=1)
+            for op in record['operations']:
+                if op['kind'] == 'negate' and op['source'] == '效果无效化':
+                    op.update(subject='opponent_battling_monster', subject_ref=affected['block_id'],
+                              owner='opponent', quantity=1)
+            for rule in (*record['restrictions'], *record['block_view']['restrictions']):
+                if (rule['kind'] == 'cannot_change_position' and re.fullmatch(
+                        r'那只对方怪兽攻击力变成0[，,]不能把表示形式变更[，,]效果无效化', rule['source'])):
+                    rule.update(scope='this_effect_affected_monster', subject_ref=affected['block_id'],
+                                controller='opponent', condition='affected_by_this_effect')
     # A future operation acts on the entity produced by this effect. Preserve
     # the timing and identity; it cannot supply an immediate removal function.
     summons = [op for op in record['operations'] if op['kind'] in (
         'special_summon','fusion_summon','synchro_summon','xyz_summon','link_summon','ritual_summon')]
     if len(summons)==1:
         summon = summons[0]
+        trap_monster = re.fullmatch(
+            r'这张卡变成通常怪兽[（(]([^·]+)·([地水炎风光暗神])·(\d+)星·攻(\d+)/守(\d+)[）)]'
+            r'在怪兽区域特殊召唤[（(]不当作陷阱卡使用[）)]', summon['source'])
+        if event == 'trap_card_activation' and summon['kind'] == 'special_summon' and trap_monster:
+            from .effect_mechanisms import RACES
+            race = RACES.get(trap_monster[1])
+            if race is not None:
+                summon.update(from_zones=['grave'], owner='self', subject='this_card',
+                    result_entity={'type': 'normal_monster', 'race': race,
+                        'attribute': {'地': 1, '水': 2, '炎': 4, '风': 8, '光': 16, '暗': 32, '神': 64}[trap_monster[2]],
+                        'level': int(trap_monster[3]), 'atk': int(trap_monster[4]), 'def': int(trap_monster[5]),
+                        'treated_as_trap': False})
+                for op in record['operations']:
+                    if op['kind'] == 'type_change' and op['source'] == summon['source']:
+                        op['processing_role'] = 'auxiliary'
+                    elif op['kind'] == 'unaffected' and op['source'] == '这个效果特殊召唤的这张卡不受怪兽的效果影响':
+                        op.update(subject='summoned_by_this_effect', subject_ref=summon['block_id'],
+                                  owner='self', quantity=1, protected_from='monster_effects',
+                                  depends_on=[summon['block_id']])
+                for rule in (*record['restrictions'], *record['block_view']['restrictions']):
+                    if rule['kind'] == 'effect_exemption' and re.fullmatch(
+                            r'这个效果特殊召唤的这张卡不受怪兽的效果影响(?:[，,]从场上离开的场合除外)?',
+                            rule['source']):
+                        rule.update(scope='this_effect_summoned_card', subject_ref=summon['block_id'],
+                                    condition='summoned_by_this_effect')
         for op in record['operations']:
             if op['kind'] not in ('destroy','banish'):
                 continue
@@ -600,7 +663,7 @@ def _refine_record(record,row,head,body,mode):
             sentence_start = record['source_text'].rfind('。', 0, position)+1
             clause = record['source_text'][sentence_start:].split('。',1)[0]
             if op['kind']=='banish' and re.fullmatch(
-                    r'这个效果特殊召唤的怪兽从场上离开的场合除外',clause):
+                    r'这个效果特殊召唤的(?:怪兽|这张卡)(?:不受怪兽的效果影响[，,])?从场上离开的场合除外',clause):
                 op.update(phase='replacement', subject='summoned_by_this_effect',
                     subject_ref=summon['block_id'], from_zones=['field'],to_zone='banished')
             timing = re.search(r'(?:这个回合的)?结束阶段(?:时)?(?:破坏|除外)', clause)
@@ -632,6 +695,15 @@ def _refine_record(record,row,head,body,mode):
     if fusion:
         record['fusion_material_selection']=dict(owner='self',from_zones=[_ZONE[z] for z in re.split(r'[·、]',fusion['zones'])],
             to_zone='deck_bottom',requires_this_card=bool(fusion['self']),source=fusion[0])
+    specific_summon_locks = {rule['source'] for rule in record['restrictions']
+        if rule['kind'] == 'cannot_special_summon' and re.fullmatch(
+            r'这个效果(?:的)?发动后[，,]直到(?:下次的?自己回合的结束时|回合结束时)自己不是'
+            r'(?:[地水炎风光暗神]属性怪兽不能特殊召唤|'
+            r'[^。；;，,]+族(?:融合|同调|超量|连接|仪式)怪兽不能从额外卡组特殊召唤)', rule['source'])}
+    if specific_summon_locks:
+        for scope in (record, record['block_view']):
+            scope['restrictions'] = [rule for rule in scope['restrictions']
+                if rule['kind'] != 'cannot_summon' or rule['source'] not in specific_summon_locks]
     # The coarse legacy scanner may have missed a verb already represented by
     # the scoped block view. Clear only a body fully covered by those spans.
     remaining=body
@@ -763,7 +835,7 @@ def _scope_payment_choices(record):
 
 def _scope_choices(record, row):
     from types import SimpleNamespace
-    from .effect_blocks import activation_parts
+    from .effect_blocks import activation_parts, POSITION_ACTIVATION_OPTIONS
     if not record['block_view'].get('alternatives'):
         return
     shared_head=activation_parts(record['source_text'].split('●',1)[0])[0]
@@ -778,6 +850,7 @@ def _scope_choices(record, row):
     # each alternative. Bind copies to their option; never recurse option:0
     # through the aggregate record or require two alternatives together.
     prefix = record['source_text'].split('●', 1)[0]
+    position_choice = POSITION_ACTIVATION_OPTIONS.fullmatch(prefix)
     shared = [op for op in record['operations'] if op.get('choice') == 'option:0'
               and op.get('phase') == 'resolution']
     rest = re.sub(r'从以下(?:效果)?选择1个发动[。．.\s]*$', '', prefix)
@@ -795,13 +868,17 @@ def _scope_choices(record, row):
                     container['unknown'].append('unrecognized_operation')
             continue
         text = match[1].strip()
+        position = re.match(r'(攻击|守备)表示[：:]', text) if position_choice else None
         head, body, _, mode = activation_parts(text)
+        if position and mode == 'activated':
+            head = head.removeprefix(position[0])
         scoped = deepcopy(record)
         scoped.update(source_text=text, operations=operations, branch_records={})
         scoped['block_view']['blocks'] = [b for b in scoped['block_view']['blocks'] if b.get('branch') == number]
         scoped['block_view']['alternatives'] = None
         scoped['costs'] = deepcopy(record['shared_costs']) + _cost_records(
-            SimpleNamespace(trigger={}, costs=(), index=record['effect_index']), head=head if mode == 'activated' else '')
+            SimpleNamespace(trigger={}, costs=(), index=record['effect_index']),
+            head=head if mode == 'activated' else '', self_banish_origin='field' if position else None)
         if quantity_payment:
             threshold = re.match(r'(\d+)(?:个)?[：:]',text)
             if threshold:
@@ -812,21 +889,38 @@ def _scope_choices(record, row):
             else:
                 scoped['unknown'].append('option_payment_quantity')
         scoped['targets'] = deepcopy(record['shared_targets']) + _targets(head)
+        if position:
+            # Its position selects the applicable effect. A printed shared
+            # activation condition is not a second effect or a field search.
+            scoped['trigger'] = dict(record['trigger'], event='own_main_phase', zone='field',
+                source=prefix.strip(), additional_conditions='none_in_recognized_activation_clause',
+                battle_position='attack' if position[1] == '攻击' else 'defense')
+            if position_choice['pendulum']:
+                scoped['trigger']['summon_kind'] = 'pendulum_summon'
+            scoped['conditions'] = dict(record['conditions'], source=prefix.strip(), status='unknown')
         _refine_record(scoped, row, head, body, mode)
+        if position:
+            scoped['block_view']['target_refs'] = list(range(len(scoped['targets'])))
         scoped['unknown']=[v for v in scoped['unknown'] if v!='unnumbered_effect_boundaries']
         scoped['block_view']['unknown']=list(scoped['unknown'])
         # An option with only processing inherits the shared activation. An
         # option with a printed activation clause keeps its own condition.
-        if mode == 'unmarked' and record['conditions']['status'] == 'recognized':
+        if not position and mode == 'unmarked' and record['conditions']['status'] == 'recognized':
             scoped['trigger'] = deepcopy(record['trigger'])
             scoped['conditions'] = deepcopy(record['conditions'])
         for nested, selected in (scoped.get('branch_records') or {None:scoped}).items():
             selected=deepcopy(selected)
             selected_choice=choice+'/'+nested if nested else choice
             selected['unknown']=[v for v in selected['unknown'] if v!='unnumbered_effect_boundaries']
-            if mode=='unmarked' and record['conditions']['status']=='recognized':
+            if not position and mode=='unmarked' and record['conditions']['status']=='recognized':
                 selected['trigger']=deepcopy(scoped['trigger'])
                 selected['conditions']=deepcopy(scoped['conditions'])
+            if position and mode == 'unmarked' and not set(selected['unknown']) & {
+                    'resolution', 'unparsed_resolution_or_restriction', 'unrecognized_operation'}:
+                selected['conditions'].update(status='recognized', additional_conditions='none_in_recognized_activation_clause')
+                selected['unknown'] = [v for v in selected['unknown'] if v not in
+                    ('activation_boundary', 'activation_condition', 'additional_activation_conditions', 'cost_or_condition')]
+                selected['block_view']['unknown'] = list(selected['unknown'])
             if complete_prefix:
                 common = deepcopy(shared)
                 remap = {op['block_id']:op['block_id']+':'+selected_choice for op in common}
@@ -849,9 +943,12 @@ def _scope_choices(record, row):
                   and not (complete_prefix and op in shared)]
         record['operations']=sorted([*refined.values(),*unscoped],key=lambda op:op.get('order',0))
         wrapper = re.fullmatch(r'(?:可以)?从以下(?:效果)?选择1个发动[。．.\s]*',prefix.strip())
-        if (not unscoped and (wrapper or complete_prefix) and all(not set(branch['unknown']) &
+        if (not unscoped and (wrapper or complete_prefix or position_choice) and all(not set(branch['unknown']) &
                 {'resolution','unparsed_resolution_or_restriction','unrecognized_operation'} for branch in branches.values())):
-            record['unknown']=[v for v in record['unknown'] if v not in ('resolution','unparsed_resolution_or_restriction')]
+            resolved = {'resolution', 'unparsed_resolution_or_restriction'}
+            if position_choice and all(branch['conditions']['status'] == 'recognized' for branch in branches.values()):
+                resolved.update(('activation_boundary', 'activation_condition', 'additional_activation_conditions', 'cost_or_condition'))
+            record['unknown']=[v for v in record['unknown'] if v not in resolved]
             record['block_view']['unknown']=list(record['unknown'])
         # Keep the public aggregate for existing readers; consumers select the
         # owning option before requiring a target or payment.
@@ -864,6 +961,8 @@ def effect_records(profile, *, semantic_version, row=None):
     from .effect_blocks import activation_parts, block_view, record_operations
     row = row or {'id':profile.card_id,'type':0}
     scope = 'monster' if row.get('type',0)&1 else 'spell_trap'
+    from .effect_count_limits import parse_count_limits
+
     scoped = [(scope,profile)]
     # The underlying model features retain their original v2 representation;
     # public records separate two printed effect sections with repeated numbers.
@@ -883,6 +982,10 @@ def effect_records(profile, *, semantic_version, row=None):
             sections=re.split(r'【怪兽(?:效果|描述)】',section_text,maxsplit=1)
             section_text=sections[0] if scope=='pendulum' else sections[1]
         prelude=NUMBERED.split(section_text,maxsplit=1)[0] if NUMBERED.search(section_text) else ''
+        section_limits = []
+        if ('灵摆效果' if scope == 'pendulum' else '怪兽效果') in prelude:
+            section_limits = [limit for limit in parse_count_limits(0, prelude, '', section=scope)
+                              if limit['subject'].get('section') is not None]
         for effect in section.effects:
             parts=unnumbered_parts(effect.text) if effect.index==0 else [effect.text]
             if len(parts)==1:
@@ -913,7 +1016,7 @@ def effect_records(profile, *, semantic_version, row=None):
                                "status": "recognized" if effect.conditions_known else "unknown",
                                "additional_conditions": effect.trigger.get("additional_conditions", "unknown")},
                 "costs": costs, "targets": deepcopy(list(effect.targets)), "operations": deepcopy(list(effect.operations)),
-                "count_limits": deepcopy(list(effect.count_limits)),
+                "count_limits": deepcopy([*effect.count_limits, *section_limits]),
                 "restrictions": deepcopy(list(effect.restrictions)),
                 "card_restrictions": deepcopy(list(section.restrictions)),
                 "printed_materials": deepcopy(list(section.materials)),
@@ -940,8 +1043,12 @@ def effect_records(profile, *, semantic_version, row=None):
             record['non_activation_costs']=[dict(c['qualifiers'],phase=c['phase'],source=c['source'],block_id=c['block_id'])
                                             for c in record['block_view']['cost_blocks'] if c['phase']!='activation_payment']
             for restriction in record['block_view']['restrictions']:
-                if not any(r['kind']==restriction['kind'] and r['source']==restriction['source'] for r in record['restrictions']):
+                prior = next((r for r in record['restrictions']
+                    if r['kind'] == restriction['kind'] and r['source'] == restriction['source']), None)
+                if prior is None:
                     record['restrictions'].append(deepcopy(restriction))
+                elif restriction.get('condition') in ('source_clause', 'this_card_in_zone', 'this_card_in_monster_zone'):
+                    prior.update({key: deepcopy(restriction[key]) for key in ('condition', 'from_zones') if key in restriction})
             record['count_limits']=deepcopy(record['block_view']['count_limits'])
             record['operations'] = record_operations(record)
             _refine_record(record,row,head,activation_parts(effect.text)[1],mode)

@@ -1029,7 +1029,7 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
                 reason = 'no_valid_optimizer_candidate'
                 save()
                 break
-            if policy['pass']['mode'] == 'reference_ratio':
+            if policy['pass']['mode'] == 'reference_ratio' and result['quality_evaluation']['scope_complete']:
                 batch = dict(batch, evaluations={}, calculation_progress={},
                     pending_indices=list(batch['order']), evaluation_cursor=0)
                 reference_stage = dict(version=REFERENCE_STAGE_VERSION, candidate_batch=batch,
@@ -1109,6 +1109,9 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
         if reference_hint:
             message = reference_hint['message'] + ' | ' + message
         session.record_feedback('coordinator', message[:1024])
+        if not row['quality_evaluation']['scope_complete']:
+            reason = 'static_coverage_unresolved'
+            break
         reason = 'iteration_slice_exhausted'
     passed = bool(state and state['status'] == 'passed')
     stop = stopped()

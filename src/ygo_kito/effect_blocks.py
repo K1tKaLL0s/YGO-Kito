@@ -16,7 +16,7 @@ import tempfile
 from .effect_block_rules import FUNCTIONS, structural_records
 
 BLOCK_VERSION = "public-effect-blocks-v1"
-BLOCK_REVISION = 'local-library-review-20261112-b20'
+BLOCK_REVISION = 'local-library-review-20261112-b21'
 LABELS = {
     "send_grave": "送墓", "search": "检索", "recover": "回收", "add_hand": "加入手牌",
     "draw": "抽卡", "special_summon": "特召", "fusion_summon": "融合召唤",
@@ -47,6 +47,10 @@ ACTIVATION = re.compile(r"(?:才能|可以|则能|即可)(?:把这张卡|把这�
                         r"从以下(?:效果)?选择1个发动(?:（[^（）]*）|\([^()]*\))*[。；;]|选择下面1个效果发动[。；;]|"
                         r'(?<=怪兽)发动[。；;]|(?<=那个效果)发动[。；;]|把以下效果发动[。；;]|'
                         r'(?<=解放)发动[。；;]|(?<=墓地)发动[。；;]|(?<=除外)发动[。；;]|(?<=取除)发动[。；;]|(?<=调整)发动[。；;]')
+
+
+POSITION_ACTIVATION_OPTIONS = re.compile(
+    r'(?P<pendulum>灵摆召唤的)?这张卡(?:在)?自己主要阶段(?:可以|能)把表示形式的以下效果发动[。．.\s]*')
 
 
 def activation_parts(text):
@@ -340,6 +344,8 @@ def block_view(record, row):
     multi_choice=re.search(r'从以下效果选择支付的基本分每(\d+)为1个的数量发动',text)
     conditional_choice=re.search(r'([^。\r\n]+场合)[，,]可以选择两方发动',text)
     if multi_choice:choice=True
+    if '●' in text and POSITION_ACTIVATION_OPTIONS.fullmatch(text.split('●', 1)[0]):
+        choice = True
     if '●' in text and record['costs'] and re.search(r'●[^●]+发动',text) and not re.search(r'得到|获得',text.split('●',1)[0]):choice=True
     branch = 0
     scan=' '*offset+body
@@ -358,10 +364,11 @@ def block_view(record, row):
     for match in re.finditer(r"[^。；;，,\r\n●]+", scan):
         raw = match[0].strip()
         if not raw or flavor or (not row.get('type',0)&0x20 and any(d['kind'] in ('printed_materials','ritual_association','no_pendulum_effect') for d in descriptions)) or mode=='boundary_unknown':continue
-        branch = scan[:match.start()].count("●")
         from .effect_text import mask_action_references
         clause = mask_action_references(_unquote(raw))
         start = match.start() + len(match[0])-len(match[0].lstrip())
+        # Activation masking keeps offsets, but can erase the option marker.
+        branch = text[:start].count("●")
         processing_clause=clause.split('（',1)[0].split('(',1)[0]
         if ACTIVATION.search(raw) and activation_parts(raw+'。')[3]=='activated':
             continue  # The option's activation payments are not resolution operations.

@@ -37,11 +37,19 @@ def _count_clauses(prelude):
     return [part.strip().translate(str.maketrans('０１２３４５６７８９','0123456789')) for part in clauses]
 
 
-def parse_count_limits(index, prelude, effect_text):
+def parse_count_limits(index, prelude, effect_text, *, section=None):
     records=[]
     # Full source clauses, not a search for the word "use".
     for sentence in _count_clauses(prelude):
         sentence=sentence.strip().translate(str.maketrans('０１２３４５６７８９','0123456789'))
+        section_limit = re.fullmatch(r'这个卡名的(灵摆|怪兽)效果1回合只能使用(\d+)次', sentence)
+        if section_limit:
+            if section == {'灵摆':'pendulum', '怪兽':'monster'}[section_limit[1]]:
+                limit = _record(sentence, int(section_limit[2]), 'same_name_all_effects', 'use',
+                    activation_negated='counts', effect_negated='counts', citations=USE_SOURCES)
+                limit['subject']['section'] = section
+                records.append(limit)
+            continue
         method=re.fullmatch(r'(这个卡名|这张卡)的([①②③④⑤⑥⑦⑧⑨⑩]+)的方法的特殊召唤1回合只能有(\d+)次',sentence)
         if method:
             indices=tuple(INDICES.index(c)+1 for c in method[2])

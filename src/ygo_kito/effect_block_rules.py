@@ -196,8 +196,36 @@ RESTRICTIONS = (
 
 def structural_records(text, row, scope, *, resolved_quantities=()):
     restrictions=[]
+    material_types = {'融合': 'fusion', '同调': 'synchro', '超量': 'xyz', '连接': 'link', '仪式': 'ritual'}
     for sentence in re.finditer(r'[^。\r\n]+',text):
         raw=sentence[0].strip()
+        material = re.fullmatch(r'(?:(?P<condition>这张卡(?:在(?:手卡|墓地|场上|怪兽区域)存在(?:的场合)?'
+                                r'|[^，,。]+的场合))[，,]|这张卡)?不能作为'
+                                r'(?P<method>融合|同调|超量|连接|仪式)(?:召唤的)?素材', raw)
+        intrinsic_summon = re.fullmatch(r'这张卡不能(?:(通常)召唤(?:（盖放）|\(盖放\))?|(特殊)召唤)', raw)
+        if material and raw.count('不能') == 1:
+            rule = dict(kind='cannot_be_' + material_types[material['method']] + '_material',
+                tag={'dimension': 'restriction', 'value': '素材限制'}, source=raw,
+                scope='this_card', duration='while_applicable', condition='this_card')
+            if material['condition']:
+                rule['condition'] = 'source_clause'
+                zone = re.fullmatch(r'这张卡在(手卡|墓地|场上|怪兽区域)存在(?:的场合)?', material['condition'])
+                if zone:
+                    rule.update(condition='this_card_in_monster_zone' if zone[1] == '怪兽区域' else 'this_card_in_zone',
+                        from_zones=[{'手卡': 'hand', '墓地': 'grave', '场上': 'field', '怪兽区域': 'field'}[zone[1]]])
+            restrictions.append(rule)
+            continue
+        if intrinsic_summon:
+            mode = 'normal' if intrinsic_summon[1] else 'special'
+            restrictions.append(dict(kind='cannot_' + mode + '_summon_this_card',
+                tag={'dimension': 'restriction', 'value': '召唤限制'}, source=raw,
+                scope='this_card', duration='intrinsic', condition='this_card'))
+            continue
+        if raw == '这个效果在这张卡送去墓地的回合不能发动':
+            restrictions.append(dict(kind='own_effect_activation_timing',
+                tag={'dimension': 'restriction', 'value': '发动限制'}, source=raw,
+                scope='this_effect', duration='sent_to_grave_turn', condition='this_card_sent_to_grave'))
+            continue
         masked=re.sub(r'「[^」]*」|『[^』]*』',lambda m:' '*len(m[0]),raw)
         selection_clause = masked
         for source in resolved_quantities:

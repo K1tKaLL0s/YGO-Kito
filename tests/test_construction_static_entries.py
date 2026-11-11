@@ -299,6 +299,81 @@ class StaticEntryTests(unittest.TestCase):
         self.assertTrue(quality['complete'], quality['unknowns'])
         self.assertEqual(quality['losses'][2]['upper'], 0)
 
+    def test_entity_and_effect_timing_limits_do_not_create_global_impacts(self):
+        self.assets.rows[1].update(type=33,
+            desc='这张卡不能通常召唤。①：自己主要阶段才能发动。抽1张。')
+        self.assets.rows[2].update(type=33, desc='①：把墓地的这张卡除外才能发动。'
+            '抽1张。这个效果在这张卡送去墓地的回合不能发动。')
+        self.assets.rows[3].update(type=2, desc='①：从自己手卡把1只怪兽特殊召唤。')
+        facts, quality = self.evaluate()
+        checks = [check for detail in facts['use_details'].values() if detail['card_id'] in (1, 2)
+                  for check in detail['restriction_checks']]
+        self.assertTrue(checks)
+        self.assertEqual({check['restriction']['kind'] for check in checks},
+            {'cannot_normal_summon_this_card', 'own_effect_activation_timing'})
+        self.assertTrue(all(not check['affected_use_ids'] for check in checks))
+        self.assertNotIn('impacts', quality['deferred'])
+        self.assertFalse(facts['impacts'])
+
+    def test_affected_battle_monster_and_trap_monster_lifecycle_stay_local(self):
+        self.assets.rows[1].update(type=4, desc='这个卡名的②的效果1回合只能使用1次。'
+            '①：对方怪兽进行战斗的攻击宣言时才能发动。'
+            '那只对方怪兽攻击力变成0，不能把表示形式变更，效果无效化。'
+            '②：把墓地的这张卡除外才能发动。从卡组把1只5星以上的水属性怪兽送去墓地。'
+            '那之后，可以从自己墓地选1只水属性怪兽加入手卡。'
+            '这个效果的发动后，直到下次的自己回合的结束时自己不是水属性怪兽不能特殊召唤。')
+        self.assets.rows[2].update(type=4, desc='①：从卡组把1张陷阱卡送去墓地。'
+            '②：陷阱卡发动时，连锁那个发动才能把这个效果在墓地发动。'
+            '这张卡变成通常怪兽（水族·水·2星·攻1200/守0）在怪兽区域特殊召唤（不当作陷阱卡使用）。'
+            '这个效果特殊召唤的这张卡不受怪兽的效果影响，从场上离开的场合除外。')
+        self.assets.rows[3].update(attribute=2, level=5)
+        facts, quality = self.evaluate()
+        self.assertNotIn('impacts', quality['deferred'])
+        details = [d for d in facts['use_details'].values() if d['card_id'] in (1, 2)]
+        checks = [check for detail in details for check in detail['restriction_checks']]
+        local = {'cannot_change_position', 'effect_exemption', 'leave_field_banish'}
+        self.assertEqual({c['restriction']['kind'] for c in checks if c['status']=='result_entity_restriction'}, local)
+        self.assertTrue(all(not c['affected_use_ids'] for c in checks if c['restriction']['kind'] in local))
+        ice = [d['operation']['kind'] for d in details if d['card_id'] == 1]
+        self.assertIn('search_or_recover', ice)
+        trap = next(e['record'] for e in facts['coverage_details']['main:2']['effects'] if e['record']['effect_index']==2)
+        self.assertEqual(trap['trigger']['chain_relation'], 'direct_response')
+        summons, = [op for op in trap['operations'] if op['kind'] == 'special_summon']
+        self.assertEqual(summons['result_entity']['race'], 64)
+        self.assertEqual(summons['from_zones'], ['grave'])
+        banish, = [op for op in trap['operations'] if op['kind'] == 'banish']
+        self.assertEqual((banish['phase'], banish['subject_ref']), ('replacement', summons['block_id']))
+        self.assertFalse(any(d['operation']['kind'] == 'banish' for d in details if d['card_id'] == 2))
+        from ygo_kito.construction_relations import _restriction_contract
+        water = next(c['restriction'] for c in checks if c['restriction']['kind'] == 'cannot_special_summon')
+        self.assertEqual(_restriction_contract(water)['duration'], 'next_own_turn_end')
+
+    def test_extra_machine_xyz_exception_and_opponent_grave_lock(self):
+        from ygo_kito.construction_layer_flow import _restriction_match
+        from ygo_kito.construction_relations import _restriction_contract
+
+        self.assets.rows[1].update(type=2, desc='①：抽1张。这个效果的发动后，直到回合结束时'
+            '自己不是机械族超量怪兽不能从额外卡组特殊召唤。')
+        self.assets.rows[2].update(type=2, desc='①：抽1张。这个回合，对方不能把墓地的卡的效果发动。')
+        catalog = CatalogBindingAdapter(self.assets).semantic_catalog
+        extra, = [r for r in catalog.effect_records(1)[0]['restrictions']]
+        extra = _restriction_contract(extra)
+        self.assertEqual(extra['from_zones'], ['extra'])
+
+        def blocked(zone, monster_type, race):
+            detail = dict(card_id=3, semantics=dict(kind='special_summon', from_zones=[zone]),
+                operation=dict(source='这张卡特殊召唤'))
+            return _restriction_match(extra, detail, {'3': dict(type=monster_type, race=race)})
+        self.assertFalse(blocked('hand', 33, 64))
+        self.assertFalse(blocked('extra', 0x800001, 32))
+        self.assertTrue(blocked('extra', 0x800001, 64))
+        self.assertTrue(blocked('extra', 0x41, 32))
+        facts, quality = self.evaluate()
+        self.assertNotIn('impacts', quality['deferred'])
+        opponent, = {c['status'] for d in facts['use_details'].values() if d['card_id'] == 2
+                     for c in d['restriction_checks'] if c['restriction']['kind'] == 'cannot_activate'}
+        self.assertEqual(opponent, 'outside_affected_uses')
+
     def test_legacy_equipment_uses_configured_receiver_without_current_board(self):
         self.assets.rows[1].update(type=0x40002, desc='名字带有「匿名」的4星的怪兽才能装备。'
             '装备怪兽的原本攻击力变成2倍。发动后第2次的自己的准备阶段时这张卡破坏，'
@@ -482,6 +557,61 @@ class StaticEntryTests(unittest.TestCase):
         self.assertTrue(candidate['quality_evaluation']['complete'])
         self.assertGreater(candidate['quality_evaluation']['score']['value'],0)
         self.assertFalse('host_condition_unspecified' in str(candidate['layer_evaluation']))
+
+    def test_odd_eyes_seer_position_options_reach_static_coverage(self):
+        from ygo_kito.construction_inventory import InventoryDependencies
+        from ygo_kito.construction_relations import _record_facts
+
+        self.assets.rows[1].update(type=0x1000021, name='娱乐伙伴 异色眼祭司',
+            desc=('←1 【灵摆】 1→\r\n这个卡名的灵摆效果1回合只能使用1次。\r\n'
+                  '①：以自己墓地1张「娱乐伙伴」卡或者「异色眼」卡为对象才能发动。那张卡加入手卡。那之后，这张卡破坏。\r\n'
+                  '【怪兽效果】\r\n这个卡名的怪兽效果1回合只能使用1次。\r\n'
+                  '①：灵摆召唤的这张卡在自己主要阶段可以把表示形式的以下效果发动。\r\n'
+                  '●攻击表示：把这张卡除外，以自己墓地1只「娱乐伙伴」怪兽或者「异色眼」怪兽为对象才能发动。那只怪兽特殊召唤。\r\n'
+                  '●守备表示：从卡组选1只「娱乐伙伴」灵摆怪兽或者「异色眼」灵摆怪兽表侧表示加入自己的额外卡组或送去墓地。'))
+        self.assets.rows[2].update(type=0x1000021, name='娱乐伙伴 匿名怪兽')
+        catalog = CatalogBindingAdapter(self.assets).semantic_catalog
+        deps = InventoryDependencies(catalog)
+        specs, _ = deps.specs(1)
+        self.assertEqual([spec['unknown'] for spec in specs], [[], []])
+        pendulum, monster = [spec['record'] for spec in specs]
+        self.assertEqual([r['unknown'] for r in (pendulum, monster)], [[], []])
+        self.assertEqual([r['count_limits'][0]['subject']['section'] for r in (pendulum, monster)],
+            ['pendulum', 'monster'])
+        self.assertEqual([r['count_limits'][0]['maximum'] for r in (pendulum, monster)], [1, 1])
+        recovery, destruction = pendulum['operations']
+        self.assertEqual(destruction['subject'], 'this_card')
+        self.assertEqual(destruction['quantity'], 1)
+        self.assertEqual(destruction['depends_on'], [recovery['block_id']])
+        attack, to_extra, to_grave = monster['branch_records'].values()
+        for branch in (attack, to_extra, to_grave):
+            self.assertEqual(branch['trigger']['summon_kind'], 'pendulum_summon')
+            self.assertEqual(branch['conditions']['status'], 'recognized')
+            self.assertEqual(len(branch['operations']), 1)
+        self.assertEqual(attack['trigger']['battle_position'], 'attack')
+        payment, = attack['costs']
+        self.assertEqual((payment['kind'], payment['subject'], payment['from_zones'], payment['source_card_id']),
+            ('banish', 'this_card', ['field'], 1))
+        self.assertEqual(attack['operations'][0]['target_ref'], 0)
+        for branch, kind, destination in ((to_extra, 'add_extra', 'extra'), (to_grave, 'send_grave', 'grave')):
+            self.assertEqual(branch['trigger']['battle_position'], 'defense')
+            self.assertEqual((branch['targets'], branch['costs']), ([], []))
+            operation, = branch['operations']
+            self.assertEqual((operation['kind'], operation['from_zones'], operation['to_zone'], operation['quantity']),
+                (kind, ['deck'], destination, 1))
+            requirement = deps.item_requirement(operation, 'operations')
+            self.assertEqual([p['type_all'] for p in requirement['query']['any']], [0x1000001, 0x1000001])
+        self.assertTrue(to_extra['operations'][0]['face_up'])
+        pools = [pool.pool_id for _, ps in _record_facts(1, (pendulum, monster), functional=True) for pool in ps]
+        self.assertEqual([pool.rsplit(':', 1)[-1] for pool in pools], ['pendulum'] * 2 + ['monster'] * 3)
+
+        facts, quality = self.evaluate()
+        self.assertEqual(facts['coverage']['main:1'], 'evaluated')
+        self.assertNotIn('main:1', quality['total']['partial_items'])
+
+        self.assets.rows[1]['desc'] = self.assets.rows[1]['desc'].replace('●攻击表示：', '●攻击表示：符合未识别限制时，')
+        _, monster = CatalogBindingAdapter(self.assets).semantic_catalog.effect_records(1)
+        self.assertEqual(monster['branch_records']['option:1']['conditions']['status'], 'unknown')
 
     def test_unrecognized_choice_branch_is_not_lost_from_coverage(self):
         self.assets.rows[1].update(type=2,desc='从以下效果选择1个发动。\n●自己抽1张。\n●调整尚未识别的计数。')
