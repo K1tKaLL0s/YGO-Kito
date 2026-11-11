@@ -11,7 +11,9 @@ def main():
     archive=base/'cache/formal-course-source-003.tar'
     manifest=base/'reports/formal-course-source-pack-003.json'
     if archive.exists() or manifest.exists():raise RuntimeError('Preserve existing immutable execution snapshot')
-    members={p.relative_to(source).as_posix():p for p in sorted((source/'src/ygo_kito').glob('*.py'))}
+    package=source/'src/ygo_kito'
+    members={p.relative_to(source).as_posix():p for p in sorted(package.rglob('*.py'))}
+    members.update({p.relative_to(source).as_posix():p for p in sorted((package/'resources/rules').glob('*.json'))})
     members['configs/bot-sources-v1.json']=source/'configs/bot-sources-v1.json'
     members['configs/native-sources.lock.json']=source/'configs/native-sources.lock.json'
     members['scripts/BotAssemblyAudit.cs']=source/'scripts/BotAssemblyAudit.cs'

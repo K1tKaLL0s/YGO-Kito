@@ -1,5 +1,9 @@
 # YGO-Kito
 
+当前构筑规范化 v30、效果字典 b19、评分 v4。运行位置见[统一资料入口](docs/current/README.md)，各缺口的当前状态与验证见[R0—R11 验收](docs/reports/2026-11-11-design-implementation-repair-runtime.md)。构筑流程沿[S0—S6](docs/plans/2026-11-10-construction-s0-s6-workflow.md)，下方发布记录保留历史。
+
+卡库专项：原 2,223 个待复核片段已裁定，确认问题已修复并接入实际入口；14,299 张独立卡的正式词典已更新，b18 整库读回及 b19 的 133 项本地回归、全库差异检查通过；迷宫变化的费用与发动时点已按官方调整补正。[修复结果与证据](docs/reports/2026-11-11-card-library-repair.md)。
+
 **2026-10-30 source publication:** current code, scope and remaining limits are recorded in [the publication handoff](docs/development/publication-20261030.md). Training remains paused. Checkpoint and feedback archives are supplied separately; historical sections below describe their original delivery.
 
 

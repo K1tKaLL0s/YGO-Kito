@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "rulings": [
+    {
+      "card_id": 64389297,
+      "card_type": 262146,
+      "text_sha256": "45930b12695e1046350c559836d09bca712b1179b90988cc118e1e9453a6eb9e",
+      "source": {
+        "id": "konami-cid4658-20200401",
+        "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?cid=4658&ope=4&request_locale=ja",
+        "supplement_updated_on": "2020-04-01",
+        "verified_on": "2026-11-11",
+        "finding": "装备后的效果在自己主要阶段于场上任意发动，不取对象；发动费用只解放装备着本卡的迷宫壁1只。"
+      },
+      "effects": [
+        {
+          "source_text": "给「迷宫壁」装备。",
+          "trigger": {
+            "event": "card_activation",
+            "activation_kind": "card_activation",
+            "reason": "not_applicable",
+            "phase": "own_main_phase"
+          },
+          "connectors": ["卡片发动", "自己主要阶段"],
+          "state_requirement": "equip_target_requires_state"
+        },
+        {
+          "source_text": "把「迷宫壁」和装备的这张卡作为祭品，从卡组把「墙壁之影」特殊召唤。",
+          "trigger": {
+            "event": "own_main_phase",
+            "activation_kind": "effect_activation",
+            "reason": "not_applicable",
+            "zone": "field",
+            "phase": "own_main_phase",
+            "optional": true,
+            "card_state": "face_up_equipped"
+          },
+          "connectors": ["发动", "自己主要阶段"],
+          "targets": "none",
+          "state_requirement": "equipped_monster_binding_requires_state",
+          "payments": [
+            {
+              "kind": "release",
+              "source": "把「迷宫壁」和装备的这张卡作为祭品",
+              "values": {
+                "quantity": 1,
+                "quantity_status": "explicit",
+                "quantity_basis": "official_ruling",
+                "subject": "equipped_monster",
+                "requires_equipped_to_source": true,
+                "selector_query": {"exact_name": "迷宫壁", "selector": "「迷宫壁」"},
+                "from_zones": ["field"],
+                "owner": "self"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

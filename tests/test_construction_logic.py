@@ -43,7 +43,7 @@ def fixture_classifier():
 
 
 def fixture_assets():
-    raw = json.loads((ROOT / "configs/build-engineering-v1.json").read_text())
+    raw = json.loads((ROOT / "configs/build-engineering-v1.json").read_text(encoding="utf-8"))
     raw["pool"] = list(range(1, 19))
     raw["goal"]["card_id"] = 1
     raw["goal"]["starting_conditions"]["requires_opening_hand"] = [1]
@@ -433,20 +433,6 @@ class ConcreteFillTests(unittest.TestCase):
         detached["task"]["goal"]["card_id"] = 999
         self.assertEqual(session.task.sha256, self.task.sha256)
 
-    def test_failed_optimizer_graph_leaves_the_cycle_unresolved(self):
-        def provider(context):
-            graph = example_graph() if context["logic"] is None else revise_logic(ConstructionLogic.from_dict(context["logic"]))
-            return {"logic": graph.to_dict(), "reason": "synthetic revision"}
-        session = fixture_session("堆墓", self.task)
-        def review(node, cards):
-            answer = text_review(node, cards)
-            return replace(answer, status="unsatisfied", note="new graph cannot be filled") if session.logic.revision else answer
-        out = construction_cycle(session, self.assets, {r: provider for r in ("build_goal", "build_optimizer")},
-                                 binding_provider=binding, text_reviewer=review, verifier=goal_proof)
-        self.assertIsNone(out["best"])
-        self.assertFalse(out["alternation_completed"])
-        self.assertEqual(out["status"],"construction_unresolved")
-        self.assertFalse(out["graph_execution_verified"])
 
     def test_existing_candidate_generator_and_independent_ranker_forward_remain_compatible(self):
         import torch

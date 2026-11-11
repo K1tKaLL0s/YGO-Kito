@@ -23,7 +23,7 @@ from .construction_controller import ConstructionController
 from .construction_fill import existing_goal_verifier
 from .construction_logic import ConstructionSession, LogicTag, ThemeScope
 from .construction_model import LogicCodec, LogicFeatureEncoder, LogicModelAdapter
-from .construction_effect_blocks import reviewed_effect_blocks
+from .construction_effect_blocks import logic_vocabulary, requested_logic_tags
 from .device import model_device
 from .duel_model import parameter_digest
 from .validation import ContractError, integer
@@ -52,7 +52,7 @@ def _available(assets, supplied):
 
 
 class CourseBuildEncoder(BuildEncoder):
-    """A local task pool uses stable, explicitly initialized global card IDs."""
+    """Full task environments reuse stable, explicitly initialized global IDs."""
     def __init__(self, task, assets, config, *, card_ids, available_ids, migration):
         super().__init__(task, assets, config)
         self.card_ids = tuple(card_ids)
@@ -78,7 +78,9 @@ class CourseBuildEncoder(BuildEncoder):
 
     def encode(self, task, deck):
         self.assert_binding()
-        if (not isinstance(task, BuildTask) or not set(task.pool) <= self.available_ids
+        from .card_identity import canonical_card_id
+        if (not isinstance(task, BuildTask) or any(c not in self.available_ids and
+                canonical_card_id(self.assets.rows, c) not in self.available_ids for c in task.pool)
                 or digest(list(task.annotations)) != self.annotations_sha256
                 or digest(task.environment) != self.environment_sha256):
             raise ContractError("course task pool, environment or annotations differ")
@@ -87,6 +89,10 @@ class CourseBuildEncoder(BuildEncoder):
         # not. No OOV ID is sent to the padding/unknown row.
         view = copy(self)
         view.card_ids = task.pool
+        view.card_index = dict(self.card_index)
+        for code in task.pool:
+            if code not in view.card_index:
+                view.card_index[code] = self.card_index[canonical_card_id(self.assets.rows, code)]
         return BuildEncoder.encode(view, task, deck)
 
 
@@ -196,25 +202,30 @@ class AutonomousConstructionKernel:
         self.builder, self.coordinator, self.assets = builder, coordinator, assets
         self.requested_ids = tuple(sorted(set(host_available_ids)))
         self.available_ids, self.excluded = _available(assets, self.requested_ids)
-        self.mechanisms = MechanismCatalog(assets, self.available_ids)
+        # Preserve checkpoint row identities; same-name variants use their
+        # existing canonical row, without initializing another embedding.
+        from .card_identity import canonical_card_id
+        allowed = getattr(assets, 'allowed_card_ids', self.available_ids)
+        self.task_ids, _ = _available(assets, [c for c in allowed if c in self.available_ids or
+            canonical_card_id(assets.rows, c) in self.available_ids])
+        self.mechanisms = MechanismCatalog(assets, self.task_ids)
         if frozenset(self.available_ids) != builder.encoder.available_ids:
             raise ContractError("host availability differs from the frozen course vocabulary")
         integer(theme_minimum, "theme-axis minimum", 1, 60)
-        integer(pool_limit, "local task pool limit", 14, 128)
+        integer(pool_limit, "card query batch limit", 14, 128)
         integer(candidate_limit, "returned ranked tasks", 2, 128)
         self.theme_minimum, self.pool_limit, self.candidate_limit = theme_minimum, pool_limit, candidate_limit
         if allowed_theme_ids is not None and (not isinstance(allowed_theme_ids, (list, tuple)) or not allowed_theme_ids or any(not isinstance(x, str) or not x for x in allowed_theme_ids)):
             raise ContractError("explicit nonempty theme identifiers required")
         self.allowed_theme_ids = tuple(sorted(set(allowed_theme_ids))) if allowed_theme_ids is not None else None
         self.source_binding = deepcopy(source_binding)
+        if 'construction_candidate_budget' in self.source_binding:
+            integer(self.source_binding['construction_candidate_budget'], 'host construction candidate budget', 2, 32)
         if 'construction_goal' in self.source_binding:
             goal = self.source_binding['construction_goal']
             if not isinstance(goal,dict) or goal.get('kind') != 'deck_constraints':
                 raise ContractError('explicit semantic construction objective required')
         if self.source_binding.get('basic_cb_stage')=='after_construction':
-            objective=self.source_binding.get('construction_goal',builder.task.goal)
-            if any(k in objective for k in ('route_goal','required_activations','required_chain_resolutions')):
-                raise ContractError('after-construction CB inference cannot be a preassigned construction goal')
             if list(builder.task.requirements)!=self.source_binding.get('construction_card_requirements',[]):
                 raise ContractError('fixed card components need an explicit construction request')
         self._models = dict(builder.models)
@@ -224,6 +235,7 @@ class AutonomousConstructionKernel:
         self.updates = {r: 0 for r in ROLES}
         self.graph_updates = {r: 0 for r in ROLES}
         self._proposal_seals=set()
+        self.archived_workflow = None
 
     def _current_binding(self):
         fields = ("id", "alias", "ot", "type", "setcode", "race", "attribute", "level", "atk", "def", "desc")
@@ -269,16 +281,6 @@ class AutonomousConstructionKernel:
                 "card_ids": ids, "source": "actual-host-catalog:" + self.assets.receipt["resources"]["cards"]})
         return result
 
-    def _route_goals(self, pool, theme=None):
-        if self.source_binding.get('basic_cb_stage')=='after_construction':
-            return [None]
-        fixed = self.source_binding.get('construction_goal', self.builder.task.goal).get('route_goal')
-        if fixed is not None: return [deepcopy(fixed)]
-        core = [c for c in (theme['card_ids'] if theme else pool) if c in pool]
-        # All existing supported summon families share the same bounded recall
-        # seam. A fusion observation must not hide synchro/xyz alternatives.
-        return (self.mechanisms.summon_goals(pool, core, limit=4)
-                if self.builder.task.sizes['extra'] else []) or [None]
 
     def _task(self, theme, pool, route):
         base = self.builder.task.to_dict()
@@ -308,53 +310,11 @@ class AutonomousConstructionKernel:
                 row["minimum"] = max(row["minimum"],minimum)
         base.update(schema_version=4, task_id="auto-"+digest({"theme":theme["theme_id"],"pool":pool,"goal":goal})[:24],
                     goal=goal,pool=sorted(pool),requirements=list(requirements.values()))
+        if 'construction_candidate_budget' in self.source_binding:
+            base['candidate_budget'] = self.source_binding['construction_candidate_budget']
         return BuildTask.from_dict(base)
 
-    def _capacity(self, pool, zone=None):
-        aliases={}
-        for code in pool:
-            row=self.assets.rows[code]
-            if zone in ("main","extra") and bool(row["type"]&EXTRA_TYPES)!=(zone=="extra"):continue
-            alias=row["alias"] or code
-            aliases[alias]=self.assets.limits.get(alias,3)
-        return sum(aliases.values())
 
-    def _pool(self, theme, mandatory):
-        if len(mandatory)>self.pool_limit:
-            raise ContractError("fixed goal identities exceed the local course pool limit")
-        current=list(sorted(mandatory))
-        def core_priority(code):
-            p=self.mechanisms.card(code)
-            # Equal treatment of observed effects and supported summon targets;
-            # curriculum/theme preferences belong to the explicit task.
-            return int(bool(p.kinds)) + int(bool(self.assets.rows[code]['type'] & (0x40 | 0x2000 | 0x800000)))
-        core_order=sorted(theme['card_ids'],key=lambda c:(-core_priority(c),self.mechanisms.card(c).text_sha256,c))
-        for code in core_order[:min(32,max(1,self.pool_limit//2))]:
-            if code not in current and len(current)<self.pool_limit:current.append(code)
-        summary=self.mechanisms.summarize(theme['card_ids'])
-        # No ID/capacity filler: every noncore proposal has an observed support
-        # function or a public material predicate. Missing recall stays unknown.
-        recalled=[]
-        for code in self.available_ids:
-            if code in current:continue
-            score,reasons=self.mechanisms.support(code,summary)
-            if score>0:recalled.append((code,score,reasons))
-        recalled.sort(key=lambda v:(-v[1],self.mechanisms.card(v[0]).text_sha256,v[0]))
-        for zone in ("main","extra",None):
-            needed=sum(self.builder.task.sizes.values()) if zone is None else self.builder.task.sizes[zone]
-            for code,score,reasons in recalled:
-                if self._capacity(current,zone)>=needed:break
-                if code in current:continue
-                if zone is not None and bool(self.assets.rows[code]["type"]&EXTRA_TYPES)!=(zone=="extra"):continue
-                if len(current)>=self.pool_limit:break
-                current.append(code)
-            if self._capacity(current,zone)<needed:
-                raise ContractError("mechanism-supported recall lacks section/copy capacity; unsupported effects remain unknown")
-        # Additional alternatives remain program proposals, never learned picks.
-        for code,score,reasons in recalled:
-            if len(current)>=min(self.pool_limit,max(32,len(mandatory)+16)):break
-            if code not in current:current.append(code)
-        return tuple(sorted(current))
 
     def _task_batch(self, tasks, decks=None):
         encoded = [self.builder.encoder.encode(task, DeckParts((),(),()) if decks is None else deck)
@@ -378,39 +338,19 @@ class AutonomousConstructionKernel:
         themes, candidates, omitted = self.enumerate_themes(), [], []
         if self.allowed_theme_ids is not None:
             themes = [t for t in themes if t["theme_id"] in self.allowed_theme_ids]
-        if not mandatory <= set(self.available_ids):
+        if not mandatory <= set(self.task_ids):
             return {"status":"fixed_goal_card_unavailable","candidates":[],"omitted":[],"goal_preserved":True}
         for theme in themes:
-            try:pool=self._pool(theme,mandatory)
+            try:
+                route = self.source_binding.get('construction_goal', self.builder.task.goal).get('route_goal')
+                task = self._task(theme, self.task_ids, route)
+                self.assets.check_task(task)
+                candidates.append({"candidate_id":task.sha256,"task":task.to_dict(),"theme":deepcopy(theme),
+                    "dependency_recall":{'status':'not_started_before_logic','events':[]},
+                    "goal_proposal_origin":'host_explicit_route' if route else 'public_theme_assignment',
+                    "proposal_source":"environment_task_before_card_retrieval", "cb_goal_proposed":False})
             except ContractError as error:
-                omitted.append({"theme_id":theme["theme_id"],"reason":str(error)});continue
-            for route in self._route_goals(pool,theme):
-                current = list(pool)
-                protected = mandatory | _referenced_ids(route or {})
-                try:
-                    while True:
-                        task = self._task(theme,current,route)
-                        self.assets.check_task(task)
-                        size = len(self.builder.encoder.encode(task,DeckParts((),(),()))[0]) + sum(task.sizes.values())
-                        if size <= self.builder.encoder.config.max_tokens: break
-                        removable=[c for c in current if c not in protected and c not in theme['card_ids']]
-                        mechanism=self.mechanisms.summarize(theme['card_ids'])
-                        remove=min(removable,key=lambda c:(self.mechanisms.support(c,mechanism)[0],c)) if removable else None
-                        if remove is None:
-                            raise ContractError("theme/task exceeds existing model context capacity")
-                        current.remove(remove)
-                    if not set(current) & set(theme["card_ids"]):
-                        raise ContractError("no current theme card fits the bounded task pool")
-                    if (any(self._capacity(current,z)<task.sizes[z] for z in ("main","extra")) or
-                            self._capacity(current)<sum(task.sizes.values())):
-                        raise ContractError("context-limited pool lacks legal listing capacity")
-                    candidates.append({"candidate_id":task.sha256,"task":task.to_dict(),"theme":deepcopy(theme),
-                        "mechanisms":self.mechanisms.summarize(theme['card_ids']),
-                        "goal_proposal_origin":('host_explicit_route' if self.source_binding.get('construction_goal',self.builder.task.goal).get('route_goal')
-                            else 'bounded_effect_semantics' if route and route['kind']=='fusion_summon' else 'public_attribute_proposal'),
-                        "proposal_source":"bounded_public_catalog_tasks_not_learned_generation", "cb_goal_proposed":route is not None})
-                except ContractError as error:
-                    omitted.append({"theme_id":theme["theme_id"],"reason":str(error)})
+                omitted.append({"theme_id":theme["theme_id"],"reason":str(error)})
         if not candidates:
             return {"status":"no_supported_task_candidates","candidates":[],"omitted":omitted,"goal_preserved":True}
         scores=[];model=self.builder.models["build_goal"];was_training=model.training
@@ -464,11 +404,32 @@ class AutonomousConstructionKernel:
             raise ContractError("autonomous selection/task/theme changed or was not selected")
         return BuildTask.from_dict(selection["task"])
 
+    def upgrade_selection(self, selection):
+        """Preserve a saved scope while retiring its old sealed recall pool."""
+        previous = (self.archived_workflow or {}).get('selections',{}).get(selection.get('candidate_id'))
+        if previous != selection:
+            raise ContractError('old construction selection is not in the restored archive')
+        theme = selection['theme']
+        actual = next((t for t in self.enumerate_themes() if t['theme_id']==theme['theme_id']),None)
+        if actual != theme:
+            raise ContractError('restored construction theme membership differs')
+        route = self.source_binding.get('construction_goal',self.builder.task.goal).get('route_goal')
+        task = self._task(theme,self.task_ids,route)
+        result = deepcopy(selection)
+        result.update(candidate_id=task.sha256,task=task.to_dict(),goal_sha256=digest(task.goal),
+            binding_sha256=self._binding_sha256,status='model_selected_task',
+            selection_method='restored_scope_with_environment_pool',
+            dependency_recall=dict(status='not_started_before_logic',events=[]),
+            previous_task_sha256=selection['candidate_id'])
+        result.pop('mechanisms',None)
+        self.selections[task.sha256] = deepcopy(result)
+        return result
+
     def _validate_restored_selection(self, ident, selection):
         task=BuildTask.from_dict(selection["task"])
         theme=selection["theme"]
         actual=next((t for t in self.enumerate_themes() if t["theme_id"]==theme.get("theme_id")),None)
-        if (actual!=theme or ident!=task.sha256 or selection["binding_sha256"]!=self._binding_sha256 or
+        if (task.pool != self.task_ids or actual!=theme or ident!=task.sha256 or selection["binding_sha256"]!=self._binding_sha256 or
                 selection["goal_sha256"]!=digest(task.goal) or selection.get("status")!="model_selected_task" or
                 task.to_dict()!=self._task(theme,task.pool,task.goal.get("route_goal")).to_dict()):
             raise ContractError("restored task/theme changed the original course goal")
@@ -483,14 +444,12 @@ class AutonomousConstructionKernel:
             # This is an already-selected internal task, never a user-text
             # classifier prediction or a fabricated trained confidence score.
             session.classification=IntentClassification("narrow",1.0,(term,),reasons=("explicit internal task assignment; not text classification",))
-            effect_tags, _ = reviewed_effect_blocks(self.assets, task.pool)
+            effect_tags = logic_vocabulary()
             theme_tag=LogicTag.from_dict(theme["tag"])
             requested=self.source_binding.get("construction_logic_requirements",{"tags":[],"connector_kinds":[]})
             if not isinstance(requested,dict) or set(requested)!={"tags","connector_kinds"}:
                 raise ContractError("explicit construction logic requirements need tags and connector_kinds")
-            mechanism=self.mechanisms.summarize(theme['card_ids'])
-            inferred=tuple(t for t in effect_tags if mechanism['grave_effect_triggers'] and mechanism['fusion_effects'])
-            required_tags=tuple(dict.fromkeys((theme_tag,*inferred,*(LogicTag.from_dict(t) for t in requested["tags"]))))
+            required_tags=requested_logic_tags(task,(theme_tag,*(LogicTag.from_dict(t) for t in requested["tags"])))
             required_kinds=tuple(requested["connector_kinds"])
             codec=LogicCodec((*required_tags,*effect_tags),tuple(dict.fromkeys(("ns","ss","送墓时发动",*required_kinds))))
             self.sessions[ident]=session
@@ -504,43 +463,92 @@ class AutonomousConstructionKernel:
         core=tuple(c for c in selection['theme']['card_ids'] if c in task.pool)
         return self.mechanisms.construction_mechanism_groups(task.pool,core)
 
-    def run_selected(self, selection, *, feedback=(), base=None, verifier=existing_goal_verifier,basic_cb_recorder=None,budget=None,basic_cb_verifier=None):
+    def quality_for_task(self, task):
+        from .construction_progress import host_construction_quality, quality_policy, specified_course_reference
+        supplied = self.source_binding.get('construction_quality_policy')
+        if supplied is not None:
+            return quality_policy(supplied), deepcopy(self.source_binding.get('construction_quality_reference'))
+        selected = next((s for s in self.selections.values() if s['task']==task.to_dict()), None)
+        theme_id = selected['theme']['theme_id'] if selected else None
+        period = self.source_binding.get('period_id') or (self.source_binding.get('period_context') or {}).get('period_id')
+        reference_id = self.source_binding.get('construction_quality_reference_id')
+        # The historical course requests already name their fixed theme. Their
+        # specified listings are independent of the automatic weighting rules.
+        if reference_id is None and theme_id in self.source_binding.get('construction_theme_ids', ()):
+            reference_id = specified_course_reference(period, theme_id)
+        requested = self.source_binding.get('construction_logic_requirements', {})
+        return host_construction_quality(task, period_id=period, theme_id=theme_id,
+            catalog=self.mechanisms, theme=selected['theme'] if selected else None,
+            goal_tags=requested.get('tags', ()), reference_id=reference_id)
+
+    def run_selected(self, selection, *, feedback=(), base=None, verifier=existing_goal_verifier,basic_cb_recorder=None,budget=None,basic_cb_verifier=None,basic_cb_enabled=False, optimization_feedback=(), **iteration_options):
+        if type(basic_cb_enabled) is not bool:
+            raise ContractError('basic_cb_enabled requires an explicit boolean')
         session,adapter=self._session(selection)
+        from .construction_progress import record_optimization_feedback
         for item in feedback:
-            session.record_feedback(item["source"],item["message"])
+            session.record_feedback(item["source"],item["message"][:1024])
+            if session.construction_progress and item['source'] in ('duel','coordinator','external_ai'):
+                record_optimization_feedback(session,dict(feedback_id='feedback-'+digest([item,session.construction_progress['candidate']['deck_sha256']])[:32],
+                    source=item['source'],task_sha256=session.task.sha256,
+                    candidate_sha256=session.construction_progress['candidate']['deck_sha256'],issue=item['message']))
+        for item in optimization_feedback:
+            record_optimization_feedback(session, item)
         theme=selection["theme"];tag=LogicTag.from_dict(theme["tag"])
-        effect_tags, assessments = reviewed_effect_blocks(self.assets, session.task.pool, catalog=self.mechanisms)
-        binding=CatalogBindingAdapter(self.assets,fact_tags=(PublicFactTag(tag,theme["field"],theme["value"],theme["source"]),),assessments=assessments)
+        effect_tags = logic_vocabulary()
+        binding=CatalogBindingAdapter(self.assets,fact_tags=(PublicFactTag(tag,theme["field"],theme["value"],theme["source"]),))
+        binding.semantic_catalog = self.mechanisms
         controller=ConstructionController(adapter,binding,self.coordinator)
         scope=ThemeScope(theme["tag"]["value"],theme["field"],theme["value"],theme["source"],self.theme_minimum)
         basic_provider=None
-        if self.source_binding.get('basic_cb_stage')=='after_construction':
+        if basic_cb_enabled and self.source_binding.get('basic_cb_stage')=='after_construction':
             from .basic_cb_inference import infer_basic_cb
-            def basic_provider(task,deck,assets):
+            def basic_provider(task,deck,assets,*,construction_gate):
                 seconds=20. if budget is None else min(20.,budget.check('before_basic_cb_provider'))
                 inference=infer_basic_cb(task,deck,assets,builder=self.builder,seconds=seconds,
-                                         verifier=basic_cb_verifier,budget=budget)
+                    verifier=basic_cb_verifier,budget=budget,
+                    construction_gate=construction_gate, execution_authorized=basic_cb_enabled,
+                    scoring_theme=None)
                 if budget is not None:budget.check('after_basic_cb_provider')
                 if basic_cb_recorder is not None:basic_cb_recorder(task,deck,inference)
                 from .proof_visibility import without_private_selection_key
                 return without_private_selection_key(inference)
-        mechanism_groups=self.construction_mechanism_groups(selection)
+        if any(iteration_options.get(k) is not None for k in ('quality_criteria','quality_reference','quality_factory')):
+            raise ContractError('candidate options cannot replace host construction quality policy/reference')
+        iteration_options['quality_factory'] = lambda: self.quality_for_task(session.task)
+        iteration_options.setdefault('retrieval_limit',max(16,self.pool_limit))
+        from .construction_quality import EvaluationComparisons
+        comparisons = EvaluationComparisons()
+        if budget is not None:
+            iteration_options['run_mode'] = 'slice'
+            requested = iteration_options.get('seconds')
+            iteration_options['seconds'] = min(30. if requested is None else requested, budget.remaining())
         result=controller.run(session,scopes=(scope,),base=base,verifier=verifier,
-                              basic_cb_provider=basic_provider,mechanism_groups=mechanism_groups)
+                              basic_cb_provider=basic_provider,
+                              cb_authorized=basic_cb_enabled, _comparisons=comparisons, **iteration_options)
         result.update(selected_task_sha256=session.task.sha256,selected_theme_id=theme["theme_id"],
             internal_task_assignment=True,text_classifier_inference=False,goal_preserved=True,
              mechanisms=self.mechanisms.summarize(theme['card_ids']),
-             construction_mechanism_groups=mechanism_groups,
+             construction_mechanism_groups=list({g['group_id']:g for p in result.get('phases',())
+                 for g in p.get('stage_3',{}).get('candidate_trace',{}).get('generation',{}).get('mechanism_groups',())}.values()),
              mechanism_inference='bounded_card_text_recognition_not_trained_model_claim',
             ability_verified=False,
-            effect_blocks={'status':'source_reviewed' if effect_tags else 'reviewed_effect_vocabulary_unavailable',
+            effect_blocks={'status':'dictionary_available' if effect_tags else 'effect_vocabulary_unavailable',
+                           'scope':'coarse_vocabulary_before_card_binding',
                            'tags':[{'dimension':t.dimension,'value':t.value} for t in effect_tags],
-                           'assessment_count':len(assessments),'connectors_separate':True,
+                           'assessment_count':0,'connectors_separate':True,
                             'user_requested':deepcopy(self.source_binding.get('construction_logic_requirements',{'tags':[],'connector_kinds':[]})),
-                            'requirements_include_inferred_mechanism_proposals':True,
+                            'requirements_include_inferred_mechanism_proposals':False,
                             'requested':adapter.requirements(),'reviews_define_requirements':False})
         result["basic_cb_inference_performed"]=bool((result.get("basic_cb") or {}).get("inference_completed"))
-        return result
+        from .construction_learning import cycle_pairs
+        pairs=cycle_pairs(session.task, result, _comparisons=comparisons)
+        result['optimizer_learning']={'eligible_strict_pairs':len(pairs),
+            'parameter_update_performed':False,'cumulative_updates':self.builder.updates['build_optimizer'],
+            'reason':'awaiting_authorized_sample_consumption' if pairs else 'no_strict_layer_preferences_in_this_slice'}
+        result['basic_cb_execution']={'enabled':basic_cb_enabled,
+            'reason':'normal_course_policy' if basic_cb_enabled else 'disabled_by_host'}
+        return deepcopy(result)
 
     def preference_loss(self, proposals, preferred_id, *, source, purpose="train"):
         """Actual differentiable task-choice loss; host applies its own updater."""
@@ -572,7 +580,8 @@ class AutonomousConstructionKernel:
         integer(preferred_index,"graph preference index",0,len(graphs)-1)
         adapter._check(context,graphs)
         model=self.builder.models[role]
-        logits=model(adapter.encoder.batch(context,graphs))
+        logits=torch.cat([model(adapter.encoder.batch(context,graphs[start:start+16]))
+                          for start in range(0,len(graphs),16)])
         return {"loss":F.cross_entropy(logits.unsqueeze(0),torch.tensor([preferred_index],device=logits.device)),
             "receipt":{"source":source,"purpose":purpose,"role":role,"task_sha256":session.task.sha256,
             "binding_sha256":self._binding_sha256,"graph_sha256s":[g.sha256 for g in graphs],
@@ -600,11 +609,15 @@ class AutonomousConstructionKernel:
         return {"role":role,"host_update_count":self.updates[role],
                 "graph_objective_update_count":self.graph_updates[role],"ability_verified":False}
 
-    def state_dict(self):
+    def state_dict(self, *, for_write=False):
+        """Borrow session payloads only for synchronous serialization."""
         self._check()
-        return {"schema_version":1,"feature_version":FEATURE_VERSION,"binding_sha256":self._binding_sha256,
+        return {"schema_version":1,"workflow_version":2,"archived_workflow":deepcopy(self.archived_workflow),
+            "feature_version":FEATURE_VERSION,"binding_sha256":self._binding_sha256,
             "encoder_binding":self.builder.encoder.binding(),"model_hashes":{r:parameter_digest(self.builder.models[r]) for r in ROLES},
-            "selections":deepcopy(self.selections),"sessions":{k:{"state":s.to_dict(),"accepted_fill":deepcopy(s._accepted_fill)} for k,s in self.sessions.items()},
+            "selections":deepcopy(self.selections),"sessions":{
+                k: {"state": s._snapshot() if for_write else s.to_dict(), "accepted_fill": deepcopy(s._accepted_fill)}
+                for k, s in self.sessions.items()},
             "updates":dict(self.updates),"graph_updates":dict(self.graph_updates),
             "proposal_seals":sorted(self._proposal_seals),"weights_owned_by_group_checkpoint":True}
 
@@ -614,10 +627,21 @@ class AutonomousConstructionKernel:
                 state.get("binding_sha256")!=self._binding_sha256 or state.get("encoder_binding")!=self.builder.encoder.binding() or
                 state.get("model_hashes")!={r:parameter_digest(self.builder.models[r]) for r in ROLES}):
             raise ContractError("autonomous metadata restore requires exact course/model/vocabulary binding")
+        if state.get('workflow_version',1) == 1:
+            # Old auto selections sealed a recall shortlist as the legal pool.
+            # Retain their evidence, but never silently resume that old entry.
+            updates = {r:integer(state['updates'][r], 'autonomous host updates',0) for r in ROLES}
+            graph_updates = {r:integer(state.get('graph_updates',{}).get(r,0), 'graph updates',0,updates[r]) for r in ROLES}
+            self.archived_workflow = deepcopy(state)
+            self.selections, self.sessions, self.adapters, self._proposal_seals = {}, {}, {}, set()
+            self.updates, self.graph_updates = updates, graph_updates
+            return
+        if state.get('workflow_version') != 2:
+            raise ContractError('unsupported construction workflow version')
         from .construction_logic import ConstructionLogic
         # Validate in temporary kernel metadata; failed restoration does not
         # mutate live selections or lose the previous feedback/session state.
-        backup=(self.selections,self.sessions,self.adapters,self.updates,self.graph_updates,self._proposal_seals)
+        backup=(self.selections,self.sessions,self.adapters,self.updates,self.graph_updates,self._proposal_seals,self.archived_workflow)
         try:
             self.selections=deepcopy(state["selections"]);self.sessions={};self.adapters={}
             self.updates={r:integer(state["updates"][r],"autonomous host update count",0) for r in ROLES}
@@ -627,6 +651,7 @@ class AutonomousConstructionKernel:
                     any(not isinstance(s,str) or len(s)!=64 or any(c not in "0123456789abcdef" for c in s) for s in seals)):
                 raise ContractError("restored task proposal seals differ")
             self._proposal_seals=set(seals)
+            self.archived_workflow=deepcopy(state.get('archived_workflow'))
             for ident,selection in self.selections.items():
                 self._validate_restored_selection(ident,selection)
             for ident,saved in state["sessions"].items():
@@ -655,6 +680,9 @@ class AutonomousConstructionKernel:
                         raise ContractError("restored accepted fill belongs to another goal/logic")
                     self.assets.validate(session.task,DeckParts.from_dict(accepted["deck"]))
                 session._accepted_fill=accepted
+                session.optimization_feedback = deepcopy(raw.get('optimization_feedback', []))
+                from .construction_progress import restore_progress
+                restore_progress(session, raw.get('construction_progress'), self.assets)
         except (ContractError,KeyError,TypeError,ValueError) as error:
-            self.selections,self.sessions,self.adapters,self.updates,self.graph_updates,self._proposal_seals=backup
+            self.selections,self.sessions,self.adapters,self.updates,self.graph_updates,self._proposal_seals,self.archived_workflow=backup
             raise ContractError("autonomous metadata restore rejected without changing live state") from error

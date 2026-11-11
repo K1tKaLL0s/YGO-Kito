@@ -11,6 +11,7 @@ from unittest.mock import patch
 class CpuCourseLaunchTests(unittest.TestCase):
     def test_default_and_explicit_roots_keep_resources_readonly(self):
         repository=Path(__file__).resolve().parents[1]
+        if str(repository/'scripts') not in sys.path:sys.path.insert(0,str(repository/'scripts'))
         def load(name,filename):
             module=types.ModuleType(name);module.__file__=str(repository/'scripts'/filename)
             exec(compile(Path(module.__file__).read_text(encoding='utf-8'),module.__file__,'exec'),module.__dict__)
@@ -45,6 +46,7 @@ class CpuCourseLaunchTests(unittest.TestCase):
             base=Path(temporary)/'owner';source=base/'repository';resources=Path(temporary)/'old-resources'
             reports=base/'reports';reports.mkdir(parents=True)
             state=base/'migrated-course';state.mkdir()
+            (state/'course').mkdir();(state/'course/latest.json').write_text('{}',encoding='utf-8')
             for root in (base/'source',source):
                 (root/'scripts').mkdir(parents=True)
                 for name in ('local_training_worker.py','local_foundation_course.py'):

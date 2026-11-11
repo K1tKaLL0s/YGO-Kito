@@ -25,9 +25,16 @@ DIGITS = "①②③④⑤⑥⑦⑧⑨⑩"
 
 
 def _zones(text):
-    return tuple(z for word, z in (("手卡", "hand"), ("场上", "field"),
-                                  ("墓地", "grave"), ("卡组", "deck"),
-                                  ("除外", "banished")) if word in text)
+    from .effect_blocks import source_zones
+    explicit = source_zones(text)
+    if explicit:
+        return tuple(explicit)
+    # Long zone names consume their complete span. An action verb such as
+    # 除外 is a destination, not a second source zone.
+    return tuple(dict.fromkeys({'额外卡组':'extra', '融合卡组':'extra', '手卡':'hand',
+        '场上':'field', '墓地':'grave', '卡组':'deck', '除外状态':'banished',
+        '被除外':'banished', '除外的':'banished'}[m[0]] for m in re.finditer(
+            r'额外卡组|融合卡组|手卡|场上|墓地|卡组|除外状态|被除外|除外的', text)))
 
 
 def _restriction_clauses(text):
@@ -227,6 +234,14 @@ def _effect(index, text, prelude):
         for m in re.finditer(r"[^。]*(?:" + word + r")[^。]*", body):
             if "不会被" not in m[0] and "不能" not in m[0]:
                 operation(kind, m)
+    # A variable-count draw after returning cards is a resource flow.
+    returned=re.search(r"(?:那些卡|那些怪兽|对象的卡|选择的卡|这些卡)[^。；]{0,70}(?:回到|回)[^。；]{0,20}卡组[^。；]*",body)
+    if returned and not fusion:
+        origin=tuple(sorted({z for target in targets for z in target.get("zones",())}))
+        operation("return_cards_to_deck",returned,from_zones=origin,to_zone="deck",selector=targets[0]["selector"] if targets else "unknown")
+    variable_draw=re.search(r"从(?:自己(?:的)?)?卡组抽[^。；]{0,40}(?:数量|张数)",body)
+    if variable_draw and not any(o["kind"]=="draw" for o in operations):
+        operation("draw",variable_draw,from_zones=("deck",),to_zone="hand",quantity_binding="previous_return_count" if returned else "unspecified_variable_count")
     restrictions = _restriction_clauses(text)
     counts = parse_count_limits(index,prelude,text)
     unknown = []
@@ -300,7 +315,12 @@ class MechanismCatalog:
     def effect_records(self, code):
         """Detached, versioned per-effect observations for public planning."""
         from .effect_records import effect_records
-        return effect_records(self.card(code), semantic_version=SEMANTIC_VERSION)
+        return effect_records(self.card(code), semantic_version=SEMANTIC_VERSION, row=self.assets.rows[code])
+
+    def effect_blocks(self, code):
+        """Shared coarse dictionary view; no route generation or model update."""
+        from .effect_blocks import card_blocks
+        return card_blocks(self, code)
 
     def rule_reference(self, rule_id=None):
         """Read local evidence for review, without certifying applicability."""

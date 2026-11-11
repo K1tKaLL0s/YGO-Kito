@@ -14,7 +14,6 @@ from .device import model_device, move_batch
 from .validation import ContractError, canonical_json, integer
 from .effect_mechanisms import MechanismCatalog, MECHANISM_WIDTH, SEMANTIC_VERSION
 
-LEGACY_FEATURE_VERSION = "build-task-catalog-candidate-v5-combined-native-objectives"
 FEATURE_VERSION = "build-task-catalog-candidate-v6-effect-mechanisms"
 
 
@@ -51,6 +50,10 @@ class BuildEncoder:
         """Versioned structured observations; the legacy 18 slots stay intact."""
         return self.mechanisms.effect_records(code)
 
+    def effect_blocks(self, code):
+        """The same scoped block dictionary used by construction and offline export."""
+        return self.mechanisms.effect_blocks(code)
+
     def public_mechanism_summary(self, deck):
         if not isinstance(deck, DeckParts):
             raise ContractError('mechanism summary requires a typed public deck')
@@ -62,6 +65,8 @@ class BuildEncoder:
         Conflict flags describe use of a card/route, not a ban on owning a card.
         Unknown is a separate feature, never the same value as unrestricted.
         """
+        if len(task.pool) > 128 and not (deck.main or deck.extra or deck.side):
+            return [[0.] * MECHANISM_WIDTH for _ in tokens]
         from .build_semantics import matches
         predicates=[c['predicate'] for c in task.goal.get('constraints',()) if c['predicate'].get('field') in ('setcode','race_any')]
         core=[c for c in task.pool if any(matches(self.assets.rows[c],p) for p in predicates)]
@@ -102,8 +107,15 @@ class BuildEncoder:
             numbers.append(self.assets.facts(code) + [minimum / 3, maximum / 3, count / 3, context])
 
         semantic=task.goal['kind']=='deck_constraints'
+        # The task pool is an environment, not a model input sequence. For a
+        # large pool retain the exact candidate and explicit card requirements;
+        # count constraints themselves remain separate context tokens below.
+        context_ids = task.pool if len(task.pool) <= 128 else tuple(sorted(
+            set(deck.main + deck.extra + deck.side) |
+            {r['card_id'] for r in task.requirements}))
         route_goal=task.goal.get('route_goal') if semantic else task.goal
-        extra_goal = route_goal is not None and route_goal['kind']!='normal_summon'
+        from .build_contracts import EXTRA_ROUTE_GOALS
+        discovery_goal = route_goal is not None and route_goal['kind'] != 'normal_summon'
         if semantic:
             from .build_semantics import count,matches
             for hard,items in ((True,task.goal['constraints']),(False,task.goal['preferences'])):
@@ -112,17 +124,25 @@ class BuildEncoder:
                     numbers.append([item.get('minimum',0)/90,item.get('maximum',90)/90,
                                     count(deck,item,self.assets.rows)/90,item.get('weight',0)/100,
                                     sum(1<<ZONES.index(z) for z in item['zones'])/7,float(hard),0.,0.,0.,0.])
+                    if len(task.pool) > 128:
+                        identity = bytes.fromhex(digest(item['predicate']))
+                        numbers[-1][-4:] = [int.from_bytes(identity[i:i+4], 'big') / (2**32-1)
+                                            for i in range(0, 16, 4)]
                     for zone in ZONES:
                         if zone not in item['zones']:continue
-                        for code in task.pool:
+                        for code in context_ids:
                             if matches(self.assets.rows[code],item['predicate']):
+                                if len(task.pool) > 128:
+                                    continue  # represented by its count and candidate tokens
                                 ids.append([self.card_index[code],1+ZONES.index(zone),0,6])
                                 numbers.append(self.assets.facts(code)+[0.,0.,0.,1. if hard else -1.])
         if route_goal is not None:
             # Preserve the exact existing three encodings during base continuation.
-            goal_context = {"normal_summon": 0., "synchro_summon": .5, "xyz_summon": 1., "fusion_summon": -.5}[route_goal["kind"]]
-            card(route_goal["card_id"], "extra" if extra_goal else "main", 1, context=goal_context)
-        if extra_goal:
+            kind = route_goal['kind']
+            goal_context = {'normal_summon': 0., 'synchro_summon': .5, 'xyz_summon': 1., 'fusion_summon': -.5,
+                            'link_summon': .75, 'ritual_summon': -.75, 'effect_resolution': .25}[kind]
+            card(route_goal['card_id'], 'extra' if kind in EXTRA_ROUTE_GOALS else 'main', 1, context=goal_context)
+        if discovery_goal:
             for code in route_goal["starting_conditions"]["requires_opening_hand"]:
                 card(code, "main", 5)
             numbers[0][-1] = float("route" not in route_goal)
@@ -202,36 +222,3 @@ class BuildRanker(nn.Module):
         x = x + self.position(torch.arange(x.shape[1], device=x.device))[None]
         encoded = self.encoder(self.norm(x), src_key_padding_mask=~batch["mask"])
         return self.head(encoded[:, 0]).squeeze(-1)
-
-
-def migrate_legacy_ranker(model_state, optimizer_state=None, *, source_feature_version,
-                          source_checkpoint_sha256):
-    """Explicit v5 model/Adam migration; never rebind a whole course checkpoint.
-
-    Old weights/moments are copied, the appended projection starts at zero, and
-    Adam initializes only its new parameter lazily. The caller must separately
-    migrate and record source/vocabulary/course bindings and any LoRA adapters.
-    Passing the old checkpoint directly to normal restore continues to fail.
-    """
-    from copy import deepcopy
-    if source_feature_version != LEGACY_FEATURE_VERSION or len(source_checkpoint_sha256)!=64 or any(
-            c not in '0123456789abcdef' for c in source_checkpoint_sha256):
-        raise ContractError('explicit v5 feature identity and source checkpoint SHA-256 required')
-    if ('mechanism.weight' in model_state or any('parametrizations' in k for k in model_state)
-            or model_state.get('numeric.weight') is None or model_state['numeric.weight'].shape[1]!=10):
-        raise ContractError('only an unparametrized v5 ranker can use this migration; adapters need explicit rebuild')
-    state={k:v.detach().clone() for k,v in model_state.items()}
-    state['mechanism.weight']=state['numeric.weight'].new_zeros((state['numeric.weight'].shape[0],MECHANISM_WIDTH))
-    optimizer=deepcopy(optimizer_state)
-    if optimizer is not None:
-        if len(optimizer['param_groups'])!=1 or len(optimizer['param_groups'][0]['params'])!=len(model_state):
-            raise ContractError('v5 Adam parameter ordering differs; no guessed optimizer migration')
-        previous=optimizer['param_groups'][0]['params']
-        if len(set(previous))!=len(previous):raise ContractError('duplicate legacy Adam parameter identifiers')
-        previous.append(max(previous,default=-1)+1)
-    return state,optimizer,{'kind':'explicit-v5-to-v6-ranker-and-adam-extension',
-        'source_checkpoint_sha256':source_checkpoint_sha256,'source_feature_version':source_feature_version,
-        'target_feature_version':FEATURE_VERSION,'semantic_version':SEMANTIC_VERSION,
-        'old_parameters_and_moments_preserved':True,'new_projection':'zero_initialized',
-        'new_adam_parameter':'lazy_state_initialization','whole_checkpoint_restore_performed':False,
-        'requires_explicit_source_course_and_adapter_rebinding':True}

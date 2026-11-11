@@ -1,4 +1,5 @@
 """Targeted public-DTO/projection fixtures, never live-engine or strength evidence."""
+from tests.fixtures import synthetic_cb_authorization
 from copy import deepcopy
 from types import SimpleNamespace
 import json
@@ -169,15 +170,15 @@ class CbChainRegressionTests(unittest.TestCase):
     def test_calling_verifier_without_expansion_is_not_completed_inference(self):
         task,deck,assets=construction()
         never=unittest.mock.Mock(side_effect=AssertionError('zero budget must not call verifier'))
-        zero=infer_basic_cb(task,deck,assets,verifier=never,seconds=0.,limit=1)
+        zero=infer_basic_cb(task,deck,assets,**synthetic_cb_authorization(task,deck),verifier=never,seconds=0.,limit=1)
         never.assert_not_called();self.assertEqual(zero['status'],'not_run')
         for count,status in ((0,'not_run'),(1,'bounded_inference_unknown')):
             proof=dict(status='not_found_within_budget',exploration=dict(nodes_expanded=count))
-            result=infer_basic_cb(task,deck,assets,verifier=lambda *a,**k:deepcopy(proof),limit=1)
+            result=infer_basic_cb(task,deck,assets,**synthetic_cb_authorization(task,deck),verifier=lambda *a,**k:deepcopy(proof),limit=1)
             self.assertTrue(result['attempts']);self.assertEqual(result['status'],status)
             self.assertEqual(result['inference_completed'],bool(count))
         with patch('ygo_kito.basic_cb_inference.proposals',return_value=[]):
-            result=infer_basic_cb(task,deck,assets)
+            result=infer_basic_cb(task,deck,assets,**synthetic_cb_authorization(task,deck))
         self.assertEqual(result['status'],'bounded_inference_unknown');self.assertTrue(result['inference_completed'])
 
     def test_initialization_can_exhaust_budget_without_any_action_expansion(self):

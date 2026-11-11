@@ -25,11 +25,30 @@ def _record(source, maximum, scope, event, *, effects=(), controller='self',
             'rule_sources':list(citations),'scope_match_required':True}
 
 
+def _count_clauses(prelude):
+    clauses=[]
+    for sentence in re.split(r'[。\n]',prelude):
+        subject=None
+        for part in re.split(r'[，,]',sentence):
+            named=re.match(r'(这个卡名|这张卡)',part.strip())
+            if named:subject=named[1]
+            elif subject and re.match(r'[①②③④⑤⑥⑦⑧⑨⑩]',part.strip()):part=subject+'的'+part.strip()
+            clauses.append(part)
+    return [part.strip().translate(str.maketrans('０１２３４５６７８９','0123456789')) for part in clauses]
+
+
 def parse_count_limits(index, prelude, effect_text):
     records=[]
     # Full source clauses, not a search for the word "use".
-    for sentence in re.split(r'[。\n]',prelude):
+    for sentence in _count_clauses(prelude):
         sentence=sentence.strip().translate(str.maketrans('０１２３４５６７８９','0123456789'))
+        method=re.fullmatch(r'(这个卡名|这张卡)的([①②③④⑤⑥⑦⑧⑨⑩]+)的方法的特殊召唤1回合只能有(\d+)次',sentence)
+        if method:
+            indices=tuple(INDICES.index(c)+1 for c in method[2])
+            if index in indices:
+                records.append(_record(sentence,int(method[3]),'same_name_summon_method' if method[1]=='这个卡名' else 'this_card_summon_method',
+                    'special_summon_method',effects=indices,condition='this_summon_method'))
+            continue
         use=re.fullmatch(r'(这个卡名|这张卡)的([①②③④⑤⑥⑦⑧⑨⑩]*)(?:的)?效果1回合'
             r'(各能使用(\d+)次|可以使用最多(\d+)次|最多能使用(\d+)次|只能使用(\d+)次|只能有(\d+)次使用其中任意1个)',sentence)
         if use:
@@ -42,11 +61,16 @@ def parse_count_limits(index, prelude, effect_text):
                 activation_negated='counts',effect_negated='counts',citations=USE_SOURCES))
             continue
         # The direct named-card activation negation ruling is not yet reviewed.
-        activation=re.fullmatch(r'(?:这个卡名的卡|这张卡)1回合只能发动(\d+)张',sentence)
+        activation=re.fullmatch(r'(这个卡名的卡|这张卡)(?:在)?1回合只能发动(\d+)张',sentence)
         if activation:
-            records.append(_record(sentence,int(activation[1]),'same_name_card','card_activation'))
+            records.append(_record(sentence,int(activation[2]),
+                'same_name_card' if activation[1]=='这个卡名的卡' else 'this_card', 'card_activation'))
 
     text=effect_text.translate(str.maketrans('０１２３４５６７８９','0123456789'))
+    per_effect = re.match(r'1回合(\d+)次[，,]', text)
+    if per_effect:
+        records.append(_record(per_effect[0].rstrip('，,'), int(per_effect[1]),
+            'this_card_effect', 'effect_activation', effects=(index,)))
     trap=re.search(r'(?:这张卡的?发动后[，,]直到回合结束时[，,]?自己只能有1次把陷阱卡发动|'
         r'このカードの発動後、ターン終了時まで自分は罠カードを1枚しか発動できない)',text)
     if trap:

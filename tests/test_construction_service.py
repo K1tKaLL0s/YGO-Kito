@@ -9,6 +9,9 @@ from dataclasses import asdict
 import json
 from pathlib import Path
 import tempfile
+from threading import Event
+import time
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -83,14 +86,14 @@ class ConstructionServiceTests(unittest.TestCase):
         # Fail the test if the existing verifier is accidentally made the default.
         with patch("ygo_kito.build_pipeline.verify_goal", side_effect=AssertionError("native verifier must stay disconnected")):
             result = client.call("construction.run", self.request)
-        self.assertEqual(result["status"], "construction_unresolved")
+        self.assertEqual(result["status"], "construction_suspended")
         self.assertEqual(result["classification"]["kind"], "broad")
         self.assertEqual(result["phases"][0]["stage_2"]["status"], "skipped_broad")
         attempts = result["phases"][0]["stage_3"]["attempts"]
-        self.assertTrue(any(a["status"] == "concrete_candidate_cb_pending" for a in attempts))
+        self.assertTrue(any(a["status"] == "axis_skeleton_ready" for a in attempts))
         self.assertEqual(result["basic_cb"]["status"],"not_run")
-        self.assertEqual(result["construction_candidate"]["validation"]["status"],"engine_validation_not_run")
-        self.assertTrue(result["alternation_completed"])
+        self.assertEqual(result["construction_candidate"]["validation"]["status"],"construction_pending")
+        self.assertFalse(result["construction_passed"])
         self.assertEqual(result["graph_model_selections"]["build_goal"]["selection"], "existing_BuildRanker")
         self.assertEqual(result["handoff"]["status"], "not_submitted")
         self.assertFalse(result["native_execution"])
@@ -170,6 +173,155 @@ class ConstructionServiceTests(unittest.TestCase):
                 with self.assertRaises(RemoteError) as raised:client.call("construction.run",self.request)
                 self.assertEqual(raised.exception.code,"CONSTRUCTION_RESOURCES_UNAVAILABLE")
                 self.assertEqual(client.call("construction.plan",{"request":"堆墓"})["classification"]["kind"],"broad")
+
+
+class ConstructionSessionRPCTests(unittest.TestCase):
+    def setUp(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        self.root = Path(folder.name)
+        from tests.test_construction_functional_flow import fixture
+        self.task, self.assets, self.graph, _, decks, _ = fixture()
+        self.deck = decks[-1].to_dict()
+        self.request = dict(request='fixed construction objective', task=self.task.to_dict(),
+                            required_tags=[asdict(self.graph.nodes[0].tags[0])])
+
+    def host(self, directory='manager', **runtime):
+        from ygo_kito.construction_fill import construction_cycle
+
+        backend = HostConstructionBackend(LinearIntentClassifier(), assets=self.assets, runtime=runtime)
+
+        def run(session, *, scopes, base, verifier, cb_authorized, **options):
+            self.assertIsNone(verifier)
+            self.assertFalse(cb_authorized)
+            return construction_cycle(session, self.assets, {}, cb_authorized=cb_authorized, **options)
+
+        backend._controller = lambda *_args: (self.assets, SimpleNamespace(run=run))
+        backend._model_binding = lambda *_args: 'fixed static test model binding'
+        bridge = AgentBridge(self.root, self.root/directory, self.root/'no-native', role='manager',
+                             construction_backend=backend)
+        self.addCleanup(bridge.close)
+        return Client(LoopbackTransport(bridge.dispatch)), bridge, backend
+
+    def wait_for(self, client, session_id):
+        deadline = time.monotonic() + 6
+        while time.monotonic() < deadline:
+            result = client.call('construction.progress', {'session_id': session_id})
+            if not result['active']:
+                return result
+            time.sleep(.01)
+        self.fail('construction worker did not reach a safe boundary')
+
+    def test_rpc_cancellation_retry_restart_and_binding_isolation(self):
+        from ygo_kito.build_contracts import DeckParts
+        from ygo_kito.construction_checkpoint import ConstructionCheckpoint
+
+        client, bridge, backend = self.host(mode='development', slice_seconds=2., iterations=1)
+        entered, resumed, release = Event(), Event(), Event()
+        calls = []
+        partial = DeckParts((self.deck['main'][0],)).to_dict()
+
+        def step(session, *_args, pause_requested, **options):
+            calls.append(options)
+            state = session.construction_progress
+            if state is None:
+                session.submit_logic(self.graph, role='build_goal', reason='static RPC graph')
+                row = dict(deck=partial, deck_sha256=digest(partial), layer_evaluation=None)
+                state = dict(schema_version=3, task_sha256=self.task.sha256, logic_sha256=self.graph.sha256,
+                    candidate=row, candidate_version=1, iteration=0, status='optimizing', quality_policy=None,
+                    handoffs=[dict(role='build_goal', output_deck_sha256=digest(partial), candidate_version=1)])
+                entered.set()
+                if not backend._jobs[next(iter(backend._jobs))].pause.wait(4):
+                    self.fail('cancellation did not reach the active construction session')
+                self.assertTrue(pause_requested())
+                reason = 'user_pause'
+            else:
+                self.assertEqual(state['candidate']['deck'], partial)
+                self.assertEqual(session.task.sha256, self.task.sha256)
+                self.assertEqual(session.logic.sha256, self.graph.sha256)
+                resumed.set()
+                self.assertTrue(release.wait(4))
+                self.assertFalse(pause_requested())
+                reason = 'fixture_completed'
+            session.construction_progress = state
+            return dict(status='construction_suspended', construction_passed=False, phases=[],
+                        stop_reason=reason, continuation=state, construction_candidate={'deck': partial})
+
+        with patch('ygo_kito.construction_fill._construction_cycle', side_effect=step):
+            started = client.call('construction.start', self.request, request_id='start-fixed')
+            ident = started['session_id']
+            self.assertTrue(entered.wait(4))
+            self.assertEqual(client.call('construction.start', self.request, request_id='start-fixed')['session_id'], ident)
+            with self.assertRaises(RemoteError):
+                client.call('construction.start', dict(self.request, request='another objective'), request_id='start-fixed')
+            with self.assertRaises(RemoteError):
+                client.call('construction.continue', dict(session_id=ident, revision=1))
+            with self.assertRaises(RemoteError):
+                client.call('construction.progress', {'session_id': '../kernel.json'})
+            other, _, _ = self.host('other-manager')
+            with self.assertRaises(RemoteError):
+                other.call('construction.progress', {'session_id': ident})
+            competing, _, _ = self.host(mode='development', slice_seconds=2., iterations=1)
+            with self.assertRaises(RemoteError) as conflict:
+                competing.call('construction.progress', {'session_id': ident})
+            self.assertEqual(conflict.exception.code, 'CONSTRUCTION_RESOURCES_UNAVAILABLE')
+            stopped = client.call('construction.cancel', dict(session_id=ident, attempt=1))
+            self.assertTrue(stopped['cancel_requested'])
+            paused = self.wait_for(client, ident)
+            self.assertEqual((paused['status'], paused['stop_reason']), ('paused', 'user_pause'))
+            self.assertEqual(paused['candidate'], partial)
+            path = self.root/'manager'/'construction'/ident/'kernel.json'
+            self.assertEqual(ConstructionCheckpoint.read(path)['revision'], paused['revision'])
+            bridge.close()
+
+            next_client, next_bridge, _ = self.host(mode='development', slice_seconds=2., iterations=1)
+            self.assertEqual(next_client.call('construction.progress', {'session_id': ident})['candidate'], partial)
+            resume = dict(session_id=ident, revision=paused['revision'])
+            self.assertEqual(next_client.call('construction.continue', resume, request_id='continue-fixed')['attempt'], 2)
+            self.assertTrue(resumed.wait(4))
+            replay = next_client.call('construction.continue', resume, request_id='continue-fixed')
+            self.assertEqual(replay['attempt'], 2)
+            stale_cancel = next_client.call('construction.cancel', dict(session_id=ident, attempt=1))
+            self.assertFalse(stale_cancel['cancel_requested'])
+            release.set()
+            finished = self.wait_for(next_client, ident)
+            self.assertEqual(finished['status'], 'finished', finished)
+            self.assertEqual(finished['goal_sha256'], started['goal_sha256'])
+            self.assertEqual(len(calls), 2)
+            next_bridge.close()
+
+            changed, _, changed_backend = self.host(mode='development', slice_seconds=2., iterations=1)
+            changed_backend._model_binding = lambda *_args: 'different loaded weights'
+            changed.call('construction.continue', dict(session_id=ident, revision=finished['revision']))
+            rejected = self.wait_for(changed, ident)
+            self.assertIn('models or resources have changed', rejected['error']['message'])
+            self.assertEqual(rejected['revision'], finished['revision'])
+            self.assertEqual(len(calls), 2)
+
+    def test_online_rpc_drains_with_shared_scheduler_and_rejects_overrides(self):
+        client, _, _ = self.host(mode='online', seconds=0., slice_seconds=1., iterations=4)
+        for key in ('path', 'model', 'train', 'native', 'provider', 'seconds', 'run_mode'):
+            with self.subTest(key=key), self.assertRaises(RemoteError) as rejected:
+                client.call('construction.start', dict(self.request, **{key: True}))
+            self.assertEqual(rejected.exception.code, 'INVALID_REQUEST')
+        gate = dict(status='pending', reasons=['quality_evaluation_incomplete'])
+
+        def step(session, *_args, **options):
+            self.assertEqual(options['max_candidates'], 0)
+            self.assertEqual(options['max_iterations'], 1)
+            self.assertFalse(options['cb_authorized'])
+            session.construction_progress = {}
+            return dict(status='construction_suspended', construction_passed=False, phases=[],
+                        stop_reason='iteration_slice_exhausted', continuation={}, construction_gate=gate)
+
+        with patch('ygo_kito.construction_fill._construction_cycle', side_effect=step) as cycle:
+            started = client.call('construction.start', self.request)
+            result = self.wait_for(client, started['session_id'])
+        self.assertEqual(cycle.call_count, 1)
+        self.assertTrue(result['execution']['deadline_reached'])
+        self.assertEqual(result['stop_reason'], 'online_deadline_advanced')
+        self.assertEqual(result['gate_reasons'], gate['reasons'])
+        self.assertFalse(result['construction_passed'])
 
 
 if __name__ == "__main__":

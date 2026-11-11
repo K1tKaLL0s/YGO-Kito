@@ -1,0 +1,14 @@
+{
+  "existing_cases": 118,
+  "new_reference_cases": 0,
+  "max_nodes": 39,
+  "same_operation_tags_different_plans_no_longer_alias": true,
+  "axes_goal_invariance_error": 4.470348358154297e-08,
+  "constructor_role_state_invariance_error": 0.0,
+  "readiness_changes_separately": true,
+  "conditional_generic_target_does_not_assert_instant_action_permission": true,
+  "generic_return_and_variable_draw_recognized": true,
+  "optimizer_updates": 0,
+  "lora_enabled": false,
+  "scope": "Engineering ontology/input preservation only, not learned concept validation."
+}

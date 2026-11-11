@@ -10,6 +10,10 @@ from .contracts import Versions
 from .validation import ContractError, array, canonical_json, fields, integer, member, text
 
 ZONES = ("main", "extra", "side")
+SUMMON_ROUTE_TYPES = {'fusion_summon': 0x40, 'synchro_summon': 0x2000, 'xyz_summon': 0x800000,
+                      'link_summon': 0x4000000, 'ritual_summon': 0x80}
+DISCOVERY_GOALS = (*SUMMON_ROUTE_TYPES, 'effect_resolution')
+EXTRA_ROUTE_GOALS = ('fusion_summon', 'synchro_summon', 'xyz_summon', 'link_summon')
 
 
 def digest(value):
@@ -78,9 +82,18 @@ class BuildTask:
             validate_goal(self.goal,self.pool)
             goal=self.goal
         else:
-            goal = fields(self.goal, {"kind", "card_id", "starting_conditions"}, {"route", "fusion_witness"})
-            member(goal["kind"], "building goal", ("normal_summon", "synchro_summon", "xyz_summon", "fusion_summon"))
+            goal = fields(self.goal, {"kind", "card_id", "starting_conditions"}, {"route", "fusion_witness", "effect_objective"})
+            member(goal["kind"], "building goal", ('normal_summon', *DISCOVERY_GOALS))
             integer(goal["card_id"], "goal card", 1, 2**32 - 1)
+            if goal['kind'] in ('link_summon', 'ritual_summon', 'effect_resolution') and (self.schema_version < 3 or 'route' in goal):
+                raise ContractError('this objective uses bounded v3 discovery')
+            if goal['kind'] == 'effect_resolution':
+                objective = fields(goal.get('effect_objective'), {'kind', 'effect_index', 'minimum'})
+                member(objective['kind'], 'observable effect objective', ('draw', 'mill'))
+                integer(objective['effect_index'], 'printed effect index', 0, 10)
+                integer(objective['minimum'], 'public effect quantity', 1, 30)
+            elif 'effect_objective' in goal:
+                raise ContractError('effect objective requires a resolution goal')
             if goal['kind']=='fusion_summon':
                 from .fusion_witness import validate_fusion_witness
                 validate_fusion_witness(goal.get('fusion_witness'),self.pool)
@@ -115,8 +128,8 @@ class BuildTask:
         for zone in ZONES:
             integer(self.sizes[zone], zone + " size", 40 if zone == "main" else 0, 60 if zone == "main" else 15)
         if not isinstance(self.pool, tuple) or list(self.pool) != sorted(set(self.pool)):
-            raise ContractError("candidate pool must be sorted and unique")
-        integer(len(self.pool), "building pool size", 1, 128)
+            raise ContractError("task card pool must be sorted and unique")
+        integer(len(self.pool), "building pool size", 1)
         for code in self.pool:
             integer(code, "pool card", 1, 2**32 - 1)
         seen = set()
@@ -130,7 +143,7 @@ class BuildTask:
             integer(req["minimum"], "required minimum", 0, 3)
             integer(req["maximum"], "required maximum", req["minimum"], 3)
         if not semantic:
-            goal_zone = "main" if goal["kind"] == "normal_summon" else "extra"
+            goal_zone = 'extra' if goal['kind'] in EXTRA_ROUTE_GOALS else 'main'
             if not any(r["zone"] == goal_zone and r["card_id"] == goal["card_id"] and r["minimum"] >= 1 for r in self.requirements):
                 raise ContractError("goal card requires an explicit minimum in its deck section")
             if goal["kind"] != "normal_summon":

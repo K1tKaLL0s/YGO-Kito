@@ -17,7 +17,7 @@ class AdmissionLoopContracts(unittest.TestCase):
         task=SimpleNamespace(sha256='a'*64);deck=DeckParts((1,))
         inference={'task_sha256':task.sha256,'subject_deck_sha256':digest(deck.to_dict()),
             'initial_state_mode':'hypothetical_exact_hand_v1','opening_probability_evaluated':False,
-            'inference_completed':True,'status':'bounded_inference_unknown'}
+            'inference_completed':True,'normal_completion':True,'failure_count_eligible':True,'status':'no_route_found'}
         consume=Mock()
         with patch('scripts.local_course_forecast.verified_conditional_basic_cb',return_value=False):
             record_conditional_cb_signal(consume,'actual-attempt',task,deck,inference)

@@ -37,7 +37,7 @@ class ScenarioConstructionCompletionTests(unittest.TestCase):
     def course(self, status, *, completed=True, cb_verified=False):
         course = object.__new__(ScenarioCourse)
         deck = DeckParts((1,)*40)
-        result = {'best': {'deck': deck.to_dict()}, 'task_verified': True, 'alternation_completed': True,
+        result = {'best': {'deck': deck.to_dict()}, 'task_verified': True, 'construction_passed': True,
             'cb_verified': cb_verified, 'basic_cb': {'status': status, 'inference_completed': completed,
                 'routes': [{'fixture': 'synthetic-route-only'}] if cb_verified else []}}
         selection = {'status': 'model_selected_task', 'candidate_id': 'first-model-choice'}
@@ -46,6 +46,7 @@ class ScenarioConstructionCompletionTests(unittest.TestCase):
         kernel.select_task.return_value = selection
         kernel.run_selected.side_effect = lambda *args, **kwargs: deepcopy(result)
         course.models = SimpleNamespace(kernel=kernel)
+        course.root=Path('synthetic-unused-root');course.save=Mock()
         course.rules = SimpleNamespace(validate=Mock())
         course.selection, course.deck, course.events = None, None, []
         return course, kernel, result, selection, deck
@@ -56,7 +57,8 @@ class ScenarioConstructionCompletionTests(unittest.TestCase):
         self.assertEqual(c.selection, selection); self.assertEqual(c.deck, deck)
         self.assertTrue(c.construction['task_verified']); self.assertFalse(c.construction['cb_verified'])
         self.assertEqual(c.construction['basic_cb']['routes'], [])
-        kernel.run_selected.assert_called_once_with(selection, feedback=())
+        self.assertEqual(kernel.run_selected.call_count,1)
+        self.assertEqual(kernel.run_selected.call_args.args,(selection,))
         self.assertEqual(c.events, [])
         c._construct(feedback=({'source': 'duel', 'message': 'synthetic feedback'},))
         kernel.select_task.assert_called_once()
@@ -67,7 +69,7 @@ class ScenarioConstructionCompletionTests(unittest.TestCase):
         for selected in (False, True):
             c, _, _, selection, _ = self.course('not_run', completed=False, cb_verified=True)
             if selected: c.selection = selection
-            with self.subTest(selected=selected), self.assertRaisesRegex(ContractError, 'basic CB inference'):
+            with self.subTest(selected=selected), self.assertRaisesRegex(ContractError, 'Construction suspended'):
                 c._construct()
             self.assertIsNone(c.deck)
 
@@ -77,12 +79,20 @@ class ScenarioConstructionCompletionTests(unittest.TestCase):
         self.assertEqual(c.deck, deck); self.assertTrue(c.construction['cb_verified'])
         self.assertTrue(c.construction['basic_cb']['routes'])
 
-    def test_task_validation_and_four_handoffs_are_required_even_with_route_evidence(self):
-        for missing in ('task_verified', 'alternation_completed'):
+    def test_task_validation_and_construction_gate_are_required_even_with_route_evidence(self):
+        for missing in ('task_verified', 'construction_passed'):
             c, _, result, selection, _ = self.course('routes_inferred', cb_verified=True)
             c.selection = selection; result[missing] = False
             with self.subTest(missing=missing), self.assertRaises(ContractError): c._construct()
             self.assertIsNone(c.deck)
+
+    def test_pending_learning_receipt_is_in_the_saved_construction(self):
+        c,_,_,_,_=self.course('not_run',completed=False)
+        def learn(course,result,**kwargs):result['optimizer_learning']={'status':'synthetic-consumed'}
+        with patch('ygo_kito.construction_learning.consume_optimizer_slice',side_effect=learn):
+            with self.assertRaises(ContractError):c._construct(learn=True)
+        self.assertEqual(c.construction['optimizer_learning']['status'],'synthetic-consumed')
+        c.save.assert_called_once()
 
 
 class TrainingAttemptMigrationTests(unittest.TestCase):
@@ -375,21 +385,6 @@ class ScenarioCourseTests(unittest.TestCase):
         self.assertEqual(self.models.sessions["duel"].updates, 0)
         self.assertEqual(self.course.counts(), {"bo1": 0, "bo3": 0})
 
-    def test_route_free_task_passes_actual_handoffs_and_inferred_route_to_the_planner(self):
-        from ygo_kito.duel_planning import plans_from_construction
-        self.course._construct()
-        result=self.course.construction;task=self.course._task()
-        self.assertNotIn('route_goal',task.goal);self.assertEqual(task.requirements,())
-        self.assertTrue(result['task_verified']);self.assertTrue(result['alternation_completed'])
-        self.assertTrue(result['basic_cb_inference_performed'])
-        self.assertEqual(result['basic_cb']['status'],'routes_inferred')
-        self.assertEqual(result['task_goal_sha256'],digest(task.goal))
-        self.assertNotEqual(result['goal_sha256'],result['task_goal_sha256'])
-        self.assertTrue(plans_from_construction(task,result,deck=self.course.deck))
-        self.assertEqual([p['role'] for p in result['phases']],['build_goal','build_optimizer']*2)
-        for before,after in zip(result['phases'],result['phases'][1:]):
-            self.assertEqual(before['proposal_deck'],after['input_deck'])
-        self.assertEqual(result['best']['deck'],result['phases'][-1]['proposal_deck'])
 
     def test_real_adapter_updates_same_lora_and_pause_restore_resumes_next_bo1(self):
         base = self.models.sessions['duel'].verify_base()

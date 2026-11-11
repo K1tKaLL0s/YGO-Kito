@@ -1,0 +1,33 @@
+{
+  "dictionary": "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\effect-blocks\\effect-blocks-v1.sqlite3",
+  "dictionary_revision": "full-pool-unresolved-3164-20261102",
+  "cards_read_back": 14280,
+  "blocks_read_back": {
+    "effect": 34449,
+    "cost": 3854,
+    "restriction": 4821,
+    "summon_procedure": 561,
+    "description": 11,
+    "summon_description": 225
+  },
+  "file_bytes": 130338816,
+  "source_spans_and_cost_phases": "passed",
+  "operation_block_references": "passed",
+  "sqlite_integrity": "ok",
+  "canonical_pool_exact_match": true,
+  "baseline_groups_checked": 3164,
+  "baseline_classification": {
+    "observed": 2175,
+    "restriction": 889,
+    "summon_description": 95,
+    "cost_only": 5
+  },
+  "baseline_unresolved": 0,
+  "full_pool_unresolved": 0,
+  "previously_observed_now_unresolved": [],
+  "training_started": false,
+  "cb_started": false,
+  "native_started": false,
+  "published_to_existing_dictionary": true,
+  "ast_files": 7
+}

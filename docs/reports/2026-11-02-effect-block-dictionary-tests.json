@@ -1,0 +1,41 @@
+{
+  "modules": [
+    "tests.test_effect_block_dictionary",
+    "tests.test_construction_inventory",
+    "tests.test_construction_layer_flow",
+    "tests.test_construction_relations",
+    "tests.test_multifactor_real_effects"
+  ],
+  "tests_run": 114,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0,
+  "passed": true,
+  "training_started": false,
+  "cb_started": false,
+  "native_started": false,
+  "wsl_selected_regression": {
+    "tests_run": 16,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "passed": true,
+    "selection": [
+      "tests.test_mechanism_records_recall.EffectRecordContracts",
+      "tests.test_effect_mechanisms.EffectSemanticsTests",
+      "tests.test_effect_semantic_review.EffectReviewRegressions.test_isolde_parenthesis_separates_cost_from_resolution",
+      "tests.test_effect_semantic_review.EffectReviewRegressions.test_unrecognized_activation_boundary_is_not_a_positive_operation",
+      "tests.test_effect_semantic_review.EffectReviewRegressions.test_fusion_summoned_protection_is_not_a_summon_instruction"
+    ]
+  },
+  "dictionary_revision": "full-pool-unresolved-3164-20261102",
+  "covered_regressions": [
+    "cost/effect/attack payment separation",
+    "all ten sampled unresolved groups",
+    "legacy text families and negative examples",
+    "scoped burn conditions reach existing relations",
+    "each-option limit is not merged into one shared pool",
+    "new selectors remain unresolved in inventory until supported",
+    "full-pool source spans and operation references"
+  ]
+}

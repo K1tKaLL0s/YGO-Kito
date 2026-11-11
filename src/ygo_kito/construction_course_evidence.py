@@ -30,12 +30,15 @@ def task_supervision(task,deck,assets,*,private_evidence=None):
 
 
 def supervision_seeds(data):
+    from .construction_learning import SOURCE as LAYER_SOURCE
     seeds=set()
     for row in data['goals']:
         evidence=row['evidence']
         if row['source']=='pinned_constraints_and_actual_native_route':
             seeds.update(a['seed_audit_only'] for a in evidence['native_route']['core_attempts'])
     for pair in data['pairs']:
+        if pair.get('source') == LAYER_SOURCE:
+            continue  # Static inventory comparisons did not execute a duel.
         evidence=pair['evidence']
         plan=evidence.get('plan',evidence.get('original_win_comparison',{}).get('plan'))
         if plan is None:raise ContractError("comparison lacks its exact paired seed plan")

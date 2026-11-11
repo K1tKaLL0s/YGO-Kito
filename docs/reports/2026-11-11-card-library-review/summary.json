@@ -1,0 +1,362 @@
+{
+  "source_rows": 14423,
+  "totals": {
+    "cards_no_coarse_discrepancy_found_in_this_review": 11676,
+    "confirmed_findings": 1069,
+    "pending_clauses": 2223,
+    "cards_specific_semantic_questions_remain": 1693,
+    "source_cards_with_field_differences": 186,
+    "cards_confirmed_problem": 928,
+    "confirmed_problem_cards_also_with_pending_clauses": 252,
+    "cards_source_metadata_only": 44,
+    "cards_missing_current_cdb_entry": 82
+  },
+  "confirmed_by_family": {
+    "created_token_misrecorded_as_existing_field_resource": {
+      "occurrences": 101,
+      "cards": 98
+    },
+    "token_source_without_creation": {
+      "occurrences": 16,
+      "cards": 16
+    },
+    "noun_or_trigger_reference_as_processing": {
+      "occurrences": 105,
+      "cards": 104
+    },
+    "printed_activation_payment_not_structured": {
+      "occurrences": 453,
+      "cards": 442
+    },
+    "missing_common_option_payment": {
+      "occurrences": 3,
+      "cards": 3
+    },
+    "missing_summon_negation": {
+      "occurrences": 40,
+      "cards": 40
+    },
+    "activation_head_as_processing": {
+      "occurrences": 23,
+      "cards": 23
+    },
+    "summon_negation_or_event_as_special_summon": {
+      "occurrences": 36,
+      "cards": 31
+    },
+    "damage_timing_as_damage_amount_change": {
+      "occurrences": 21,
+      "cards": 20
+    },
+    "face_up_adjective_as_reveal": {
+      "occurrences": 35,
+      "cards": 34
+    },
+    "processing_order_as_deck_order_change": {
+      "occurrences": 2,
+      "cards": 2
+    },
+    "printed_victory_condition_not_in_coarse_view": {
+      "occurrences": 6,
+      "cards": 6
+    },
+    "rule_name_alias_wrongly_excluded_from_dictionary": {
+      "occurrences": 19,
+      "cards": 19
+    },
+    "missing_prelude_self_destruction": {
+      "occurrences": 3,
+      "cards": 3
+    },
+    "existing_counter_count_as_counter_placement": {
+      "occurrences": 12,
+      "cards": 12
+    },
+    "missing_prelude_activation_permission": {
+      "occurrences": 46,
+      "cards": 46
+    },
+    "position_event_as_position_change": {
+      "occurrences": 2,
+      "cards": 2
+    },
+    "stat_formula_as_level_change": {
+      "occurrences": 4,
+      "cards": 4
+    },
+    "missing_extra_in_shared_origin": {
+      "occurrences": 66,
+      "cards": 60
+    },
+    "negated_selector_suppresses_positive_processing": {
+      "occurrences": 10,
+      "cards": 9
+    },
+    "summon_procedure_as_effect": {
+      "occurrences": 1,
+      "cards": 1
+    },
+    "normal_pendulum_scope": {
+      "occurrences": 33,
+      "cards": 33
+    },
+    "material_level_reference_as_substitution": {
+      "occurrences": 1,
+      "cards": 1
+    },
+    "summoned_token_reference_as_creation": {
+      "occurrences": 14,
+      "cards": 14
+    },
+    "counter_eligible_card_selector_as_counter_placement": {
+      "occurrences": 7,
+      "cards": 6
+    },
+    "opponent_payment_event_as_payment": {
+      "occurrences": 1,
+      "cards": 1
+    },
+    "dictionary_export_contract": {
+      "occurrences": 8,
+      "cards": 4
+    },
+    "cost_from_trigger_description": {
+      "occurrences": 1,
+      "cards": 1
+    }
+  },
+  "pending_predicate_kinds": {
+    "inspect:effect": 78,
+    "pay_lp:effect": 78,
+    "destroy:effect": 104,
+    "extra_attack:effect": 11,
+    "reveal:effect": 89,
+    "special_summon:effect": 124,
+    "stats:effect": 44,
+    "remove_counter:cost": 24,
+    "special_summon:restriction": 141,
+    "draw:effect": 19,
+    "pay_lp:cost": 28,
+    "negate_summon:context_needed": 20,
+    "discard:effect": 53,
+    "shuffle:effect": 4,
+    "equip:effect": 11,
+    "destroy:restriction": 9,
+    "set:effect": 18,
+    "release:effect": 89,
+    "special_summon:summon_procedure": 146,
+    "fusion_summon:effect": 11,
+    "set:restriction": 3,
+    "banish:cost": 119,
+    "counter:effect": 3,
+    "banish:effect": 31,
+    "normal_summon:effect": 8,
+    "send_grave:effect": 22,
+    "discard:cost": 19,
+    "effect_grant:effect": 5,
+    "type_change:effect": 34,
+    "race_change:effect": 18,
+    "negate_summon:effect": 30,
+    "direct_attack:effect": 8,
+    "destruction_replace:effect": 14,
+    "return_deck:effect": 19,
+    "release:cost": 10,
+    "damage_redirect:effect": 2,
+    "recover_lp:effect": 1,
+    "position:restriction": 11,
+    "tribute_reduction:effect": 1,
+    "send_grave:cost": 42,
+    "return_extra_deck:effect": 18,
+    "reveal:cost": 33,
+    "coin:effect": 2,
+    "activation_permission:effect": 50,
+    "material_permission:effect": 21,
+    "normal_summon:restriction": 1,
+    "negate_effect:restriction": 2,
+    "return_deck:cost": 18,
+    "draw_replace:effect": 5,
+    "detach:effect": 19,
+    "xyz_summon:effect": 79,
+    "detach:cost": 8,
+    "negate_effect:effect": 3,
+    "synchro_summon:effect": 4,
+    "damage_change:effect": 2,
+    "add_hand:effect": 20,
+    "synchro_summon:restriction": 6,
+    "level:effect": 6,
+    "control:effect": 2,
+    "declare:effect": 5,
+    "dice:effect": 4,
+    "scale_change:effect": 2,
+    "position:effect": 12,
+    "return_hand:cost": 8,
+    "attribute_change:effect": 21,
+    "attack_all:effect": 4,
+    "attach:effect": 21,
+    "return_hand:effect": 1,
+    "battle_protection:continuous_permission": 1,
+    "link_summon:effect": 3,
+    "name_change:effect": 1,
+    "discard:restriction": 1,
+    "ritual_summon:restriction": 2,
+    "lp_loss:effect": 1,
+    "reorder_deck:effect": 1,
+    "face_up:effect": 1,
+    "place:effect": 5,
+    "add_hand:restriction": 2
+  },
+  "positive_and_negative_controls": {
+    "89631139": {
+      "name": "青眼白龙",
+      "status": "no_coarse_discrepancy_found_in_this_review",
+      "confirmed_families": [],
+      "pending_clauses": 0
+    },
+    "99789342": {
+      "name": "黑魔术的幕帘",
+      "status": "confirmed_problem",
+      "confirmed_families": [
+        "printed_activation_payment_not_structured"
+      ],
+      "pending_clauses": 1
+    },
+    "55144522": {
+      "name": "强欲之壶",
+      "status": "no_coarse_discrepancy_found_in_this_review",
+      "confirmed_families": [],
+      "pending_clauses": 0
+    },
+    "77414722": {
+      "name": "魔法干扰阵",
+      "status": "no_coarse_discrepancy_found_in_this_review",
+      "confirmed_families": [],
+      "pending_clauses": 0
+    },
+    "94212438": {
+      "name": "通灵盘",
+      "status": "confirmed_problem",
+      "confirmed_families": [
+        "printed_victory_condition_not_in_coarse_view",
+        "processing_order_as_deck_order_change"
+      ],
+      "pending_clauses": 0
+    },
+    "70791313": {
+      "name": "王立魔法图书馆",
+      "status": "confirmed_problem",
+      "confirmed_families": [
+        "printed_activation_payment_not_structured"
+      ],
+      "pending_clauses": 0
+    },
+    "33420078": {
+      "name": "僵尸带菌者",
+      "status": "confirmed_problem",
+      "confirmed_families": [
+        "printed_activation_payment_not_structured"
+      ],
+      "pending_clauses": 0
+    },
+    "94886282": {
+      "name": "光之援军",
+      "status": "no_coarse_discrepancy_found_in_this_review",
+      "confirmed_families": [],
+      "pending_clauses": 0
+    },
+    "9126351": {
+      "name": "鬼青蛙",
+      "status": "confirmed_problem",
+      "confirmed_families": [
+        "printed_activation_payment_not_structured"
+      ],
+      "pending_clauses": 0
+    },
+    "23434538": {
+      "name": "增殖的G",
+      "status": "no_coarse_discrepancy_found_in_this_review",
+      "confirmed_families": [],
+      "pending_clauses": 0
+    },
+    "56832966": {
+      "name": "闪光No.39 希望皇 霍普·电光皇",
+      "status": "confirmed_problem",
+      "confirmed_families": [
+        "damage_timing_as_damage_amount_change"
+      ],
+      "pending_clauses": 1
+    },
+    "40605147": {
+      "name": "神之通告",
+      "status": "confirmed_problem",
+      "confirmed_families": [
+        "activation_head_as_processing",
+        "missing_common_option_payment",
+        "missing_summon_negation",
+        "summon_negation_or_event_as_special_summon"
+      ],
+      "pending_clauses": 2
+    },
+    "14558127": {
+      "name": "灰流丽",
+      "status": "no_coarse_discrepancy_found_in_this_review",
+      "confirmed_families": [],
+      "pending_clauses": 0
+    },
+    "20001443": {
+      "name": "相剑师-莫邪",
+      "status": "confirmed_problem",
+      "confirmed_families": [
+        "created_token_misrecorded_as_existing_field_resource",
+        "printed_activation_payment_not_structured",
+        "summoned_token_reference_as_creation"
+      ],
+      "pending_clauses": 0
+    },
+    "3294539": {
+      "name": "深红剑龙",
+      "status": "confirmed_problem",
+      "confirmed_families": [
+        "negated_selector_suppresses_positive_processing",
+        "rule_name_alias_wrongly_excluded_from_dictionary"
+      ],
+      "pending_clauses": 1
+    }
+  },
+  "original_data_dispositions": {
+    "no_password_or_basic_data": 44,
+    "source_present_but_missing_from_current_cdb": 82,
+    "rule_name_aliases_excluded_from_saved_dictionary": 19,
+    "normal_pendulum_with_real_P_effects_wrongly_scoped": 33,
+    "empty_P_sections_not_counted_as_missing_effects": 5,
+    "optional_subtype_tags_not_counted_as_data_corruption": 489
+  },
+  "source_cdb_modified": false,
+  "runtime_code_modified": false,
+  "training_run": false,
+  "native_engine_run": false,
+  "ci_run": false,
+  "all_source_rows_have_individual_outcome": true,
+  "all_cards_certified_semantically_correct": false,
+  "project_review": {
+    "total_rows": 15071,
+    "row_kinds": {
+      "independent_card": 14299,
+      "identical_alternate_art": 507,
+      "token": 265
+    },
+    "independent_card_outcomes": {
+      "confirmed_problem": 929,
+      "specific_semantic_questions_remain": 1693,
+      "no_coarse_discrepancy_found_in_this_review": 11676,
+      "normal_monster_description_no_effect": 1
+    },
+    "all_rows_have_individual_outcome": true,
+    "local_only_cards": 2,
+    "local_only_confirmed_problem_cards": 1,
+    "local_only_confirmed_findings": 1,
+    "all_local_independent_cards_semantically_certified": false,
+    "confirmed_findings": 1070,
+    "confirmed_problem_cards": 929,
+    "cards_with_pending_clauses": 1945
+  }
+}

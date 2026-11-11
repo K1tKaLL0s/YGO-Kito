@@ -1,0 +1,26 @@
+{
+  "names": [
+    "tests.test_construction_selection.ConstructionSelectionTests.test_pre_cb_slice_ingests_strict_optimizer_samples_once_without_real_updates",
+    "tests.test_scenario_course.ScenarioConstructionCompletionTests.test_pending_learning_receipt_is_in_the_saved_construction",
+    "tests.test_training_admission",
+    "tests.test_construction_review_fixes",
+    "tests.test_coordinator_shared_adapters.SharedBudgetTests.test_completed_shared_cycle_receipt_closes_only_warning_without_erasing_history"
+  ],
+  "tests": 18,
+  "failures": [],
+  "errors": [
+    [
+      "test_pre_cb_slice_ingests_strict_optimizer_samples_once_without_real_updates (tests.test_construction_selection.ConstructionSelectionTests.test_pre_cb_slice_ingests_strict_optimizer_samples_once_without_real_updates)",
+      "Traceback (most recent call last):\n  File \"/mnt/n/YGO-Kito/_publish_20261030/tests/test_construction_selection.py\", line 75, in test_pre_cb_slice_ingests_strict_optimizer_samples_once_without_real_updates\n    receipt=consume_optimizer_slice(course,result)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/n/YGO-Kito/_publish_20261030/src/ygo_kito/construction_learning.py\", line 143, in consume_optimizer_slice\n    course.data_index.ingest_construction(dataset_id, artifact_id, task, course.assets, data, seeds=supervision_seeds(data))\n                                                                                                    ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/n/YGO-Kito/_publish_20261030/src/ygo_kito/construction_course_evidence.py\", line 41, in supervision_seeds\n    if plan is None:raise ContractError(\"comparison lacks its exact paired seed plan\")\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nygo_kito.validation.ContractError: comparison lacks its exact paired seed plan\n"
+    ],
+    [
+      "test_completed_shared_cycle_receipt_closes_only_warning_without_erasing_history (tests.test_coordinator_shared_adapters.SharedBudgetTests.test_completed_shared_cycle_receipt_closes_only_warning_without_erasing_history)",
+      "Traceback (most recent call last):\n  File \"/mnt/n/YGO-Kito/_publish_20261030/tests/test_coordinator_shared_adapters.py\", line 53, in test_completed_shared_cycle_receipt_closes_only_warning_without_erasing_history\n    summary=cycle(course,None,Path(tmp),Path(tmp)/'stop',lambda *a,**k:None,\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/n/YGO-Kito/_publish_20261030/scripts/local_course_collaboration.py\", line 202, in cycle\n    require_artifact_clearance(base,course,target,path,stop)\n  File \"/mnt/n/YGO-Kito/_publish_20261030/scripts/local_design_supervision.py\", line 75, in require_artifact_clearance\n    policy,value=require_running(base)\n                 ^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/n/YGO-Kito/_publish_20261030/scripts/local_design_supervision.py\", line 8, in require_running\n    policy_path=base/'reports/design-supervision-policy.json'\n                ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nTypeError: unsupported operand type(s) for /: 'NoneType' and 'str'\n"
+    ]
+  ],
+  "skips": [],
+  "passed": false,
+  "training_executed": false,
+  "basic_cb_executed": false,
+  "native_executed": false
+}

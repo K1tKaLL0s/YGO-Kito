@@ -32,10 +32,11 @@ def fresh_models(mechanisms):
 
 
 class CourseMechanismInputTests(unittest.TestCase):
-    def test_foundation_and_collaboration_completion_accept_unknown_but_reject_not_run(self):
-        for status,completed,expected in (('routes_inferred',True,True),('bounded_inference_unknown',True,True),
+    def test_foundation_and_collaboration_completion_require_a_route(self):
+        for status,completed,expected in (('routes_inferred',True,True),('bounded_inference_unknown',True,False),
                                            ('not_run',False,False),('bounded_inference_unknown',False,False)):
-            result={'basic_cb':{'status':status,'inference_completed':completed},'cb_verified':True}
+            result={'basic_cb':{'status':status,'inference_completed':completed,
+                'routes':[{'proof':'static fixture'}] if status=='routes_inferred' else []},'cb_verified':True}
             with self.subTest(status=status,completed=completed):
                 self.assertEqual(basic_cb_completed(result),expected)
 

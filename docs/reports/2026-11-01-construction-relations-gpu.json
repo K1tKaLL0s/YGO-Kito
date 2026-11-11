@@ -1,0 +1,348 @@
+{
+  "kind": "construction-relations-gpu-engineering-v1",
+  "passed": true,
+  "python": "3.12.14 (main, Sep 29 2026, 15:01:18) [Clang 22.1.3 ]",
+  "executable": "/mnt/n/YGO-Kito/_local_cpu_20261027/venv-cuda-linux-291-cu128/bin/python",
+  "source_root": "/mnt/n/YGO-Kito/_publish_20261030",
+  "torch": "2.9.1+cu128",
+  "cuda_runtime": "12.8",
+  "driver": "617.42",
+  "device": "cuda:0",
+  "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "elapsed_seconds": 4.357740030000002,
+  "peak_allocated_bytes": 10093056,
+  "candidates": 4,
+  "use_ids": [
+    "material-use",
+    "unknown-use"
+  ],
+  "statuses": [
+    [
+      0,
+      -1
+    ],
+    [
+      0,
+      -1
+    ],
+    [
+      1,
+      -1
+    ],
+    [
+      1,
+      -1
+    ]
+  ],
+  "unknown_masks_preserved": true,
+  "integer_inventory": [
+    [
+      0,
+      40,
+      1
+    ],
+    [
+      1,
+      40,
+      1
+    ],
+    [
+      2,
+      40,
+      1
+    ],
+    [
+      3,
+      40,
+      1
+    ]
+  ],
+  "integer_stock_support": [
+    false,
+    false,
+    true,
+    true
+  ],
+  "probabilities": [
+    [
+      0.0,
+      0.0
+    ],
+    [
+      0.125,
+      0.875
+    ],
+    [
+      0.23717948717948723,
+      0.9871794871794872
+    ],
+    [
+      0.33755060728744934,
+      0.9989878542510121
+    ]
+  ],
+  "probability_deltas": [
+    [
+      0.125,
+      0.875
+    ],
+    [
+      0.11217948717948723,
+      0.11217948717948723
+    ],
+    [
+      0.10037112010796212,
+      0.011808367071524883
+    ]
+  ],
+  "slot_deltas": [
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      0
+    ]
+  ],
+  "numeric_roundtrip_exact": true,
+  "incremental_equals_full": true,
+  "probability_delta_max_abs_error": 0.0,
+  "legacy_candidate_forward_max_abs_error": 5.960464477539063e-08,
+  "comparisons": [
+    {
+      "status": "preferred",
+      "preferred": "after",
+      "changes": {
+        "cards": {
+          "main": {
+            "added": [
+              2
+            ],
+            "removed": [
+              41
+            ]
+          },
+          "extra": {
+            "added": [],
+            "removed": []
+          },
+          "side": {
+            "added": [],
+            "removed": []
+          }
+        },
+        "slots": {
+          "main": 0,
+          "extra": 0
+        },
+        "uses": {
+          "material-use": {
+            "before": "missing",
+            "after": "missing",
+            "details": {
+              "quantities": {
+                "before": {
+                  "two-materials": {
+                    "required": 2,
+                    "capacity_upper": 0,
+                    "shortfall_lower": 2
+                  }
+                },
+                "after": {
+                  "two-materials": {
+                    "required": 2,
+                    "capacity_upper": 1,
+                    "shortfall_lower": 1
+                  }
+                }
+              }
+            }
+          },
+          "unknown-use": {
+            "before": "unknown",
+            "after": "unknown",
+            "details": {}
+          }
+        }
+      },
+      "advantages_before": [],
+      "advantages_after": [
+        "acquired:two",
+        "quantity_gap:two-materials",
+        "retained:two"
+      ],
+      "unresolved": []
+    },
+    {
+      "status": "preferred",
+      "preferred": "after",
+      "changes": {
+        "cards": {
+          "main": {
+            "added": [
+              2
+            ],
+            "removed": [
+              40
+            ]
+          },
+          "extra": {
+            "added": [],
+            "removed": []
+          },
+          "side": {
+            "added": [],
+            "removed": []
+          }
+        },
+        "slots": {
+          "main": 0,
+          "extra": 0
+        },
+        "uses": {
+          "material-use": {
+            "before": "missing",
+            "after": "supported",
+            "details": {
+              "gaps": {
+                "before": [
+                  "two-materials"
+                ],
+                "after": []
+              },
+              "bottlenecks": {
+                "before": [],
+                "after": [
+                  "stock"
+                ]
+              },
+              "quantities": {
+                "before": {
+                  "two-materials": {
+                    "required": 2,
+                    "capacity_upper": 1,
+                    "shortfall_lower": 1
+                  }
+                },
+                "after": {
+                  "two-materials": {
+                    "required": 2,
+                    "capacity_upper": 2,
+                    "shortfall_lower": 0
+                  }
+                }
+              }
+            }
+          },
+          "unknown-use": {
+            "before": "unknown",
+            "after": "unknown",
+            "details": {}
+          }
+        }
+      },
+      "advantages_before": [],
+      "advantages_after": [
+        "acquired:two",
+        "joint_required",
+        "retained:two",
+        "support:material-use"
+      ],
+      "unresolved": []
+    },
+    {
+      "status": "preferred",
+      "preferred": "after",
+      "changes": {
+        "cards": {
+          "main": {
+            "added": [
+              2
+            ],
+            "removed": [
+              39
+            ]
+          },
+          "extra": {
+            "added": [],
+            "removed": []
+          },
+          "side": {
+            "added": [],
+            "removed": []
+          }
+        },
+        "slots": {
+          "main": 0,
+          "extra": 0
+        },
+        "uses": {
+          "material-use": {
+            "before": "supported",
+            "after": "supported",
+            "details": {
+              "quantities": {
+                "before": {
+                  "two-materials": {
+                    "required": 2,
+                    "capacity_upper": 2,
+                    "shortfall_lower": 0
+                  }
+                },
+                "after": {
+                  "two-materials": {
+                    "required": 2,
+                    "capacity_upper": 3,
+                    "shortfall_lower": 0
+                  }
+                }
+              }
+            }
+          },
+          "unknown-use": {
+            "before": "unknown",
+            "after": "unknown",
+            "details": {}
+          }
+        }
+      },
+      "advantages_before": [],
+      "advantages_after": [
+        "acquired:two",
+        "retained:two"
+      ],
+      "unresolved": []
+    }
+  ],
+  "encoder_batch_tensors": [
+    "mask",
+    "mechanisms",
+    "numbers",
+    "state",
+    "tokens"
+  ],
+  "model_feature_version": "build-task-catalog-candidate-v6-effect-mechanisms",
+  "new_features_integrated_into_model": false,
+  "static_relation_computation": "CPU",
+  "weights_unchanged": true,
+  "optimizer_steps": 0,
+  "checkpoint_io": false,
+  "cb_execution": false,
+  "native_engine_execution": false,
+  "formal_training": false,
+  "tolerances": {
+    "probability_delta": {
+      "rtol": 1e-12,
+      "atol": 1e-12
+    },
+    "candidate_forward": {
+      "rtol": 1e-05,
+      "atol": 1e-06
+    }
+  }
+}

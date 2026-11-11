@@ -1,0 +1,483 @@
+{
+  "status": "GENERIC_READY",
+  "completed_cases": 118,
+  "generic_role_counts": {
+    "0": 23,
+    "1": 67,
+    "null": 28
+  },
+  "current_execution_state_counts": {
+    "executable_under_declared_conditions": 50,
+    "blocked_at_declared_state": 24,
+    "unknown_at_declared_state": 8,
+    "not_established_for_whole_selection": 20,
+    "structurally_incomplete": 16
+  },
+  "deliverables": [
+    "construction_generic_review.json",
+    "current_execution_state.json"
+  ],
+  "provenance": {
+    "input_files": [
+      {
+        "file": "../goal_intake.json",
+        "sha256": "2d160d4c177f733abf7dbc256fb7d7e769af84b94111a1232306ab4f22189dac"
+      },
+      {
+        "file": "../reference_audit_intake.json",
+        "sha256": "5fc099d8fbd6e0fd289cdfa46b8ea459e41ab1b8010ef2361f4116e4e49ecee2"
+      },
+      {
+        "file": "../existing_cases.json",
+        "sha256": "4b06d15f90f69a132c375dbfbe5ac1b0b962259c2d1019f65b2f4572afc72c97"
+      }
+    ],
+    "card_evidence": {
+      "file": "card_evidence.json",
+      "sha256": "9899bdc5b03c4eb0bc35b7cffa7fb8777d140f16ac07ed2d76e4368961633c23",
+      "source": "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb",
+      "access": "仅复用上一有界审计按220个具体selected/required卡号只读提取的本地卡文。"
+    },
+    "frozen_primary_plans_sha256": "53e9b1e2024a00f5e53de948710166d175bf594b37cbb5d288542467dd6dd9fa",
+    "protected_existing_deliverables": [
+      {
+        "file": "primary_plans.json",
+        "sha256": "53e9b1e2024a00f5e53de948710166d175bf594b37cbb5d288542467dd6dd9fa"
+      },
+      {
+        "file": "PLAN_READY.json",
+        "sha256": "3d0da64889c12fc03508f718ad20827a2b2372ab8b5d4a5b94ae1f1fd9e50dd4"
+      },
+      {
+        "file": "reference_audit.json",
+        "sha256": "021dcbf48c0ea209c9259034899a519aedb9be761fcec5801844e522baf72c82"
+      },
+      {
+        "file": "READY.json",
+        "sha256": "d3b1b90a753b23e7c9cb77623e1ebd491ec4ce8cf0b1c6059fd7ab858c5847de"
+      },
+      {
+        "file": "card_evidence.json",
+        "sha256": "9899bdc5b03c4eb0bc35b7cffa7fb8777d140f16ac07ed2d76e4368961633c23"
+      },
+      {
+        "file": "selected_scope_evidence.json",
+        "sha256": "727fa8808cc1b2832104ccc77b35c6e172fc9d9d4a1781ba81bf3049b4884633"
+      },
+      {
+        "file": "encoding_audit.json",
+        "sha256": "9ec0ab9ca10c2cdf232d0b533e9db74e9d53c804a9f9d082fc713f680e958b6c"
+      }
+    ],
+    "definition_unchanged": true,
+    "old_labels_seen": true,
+    "old_rationale_seen": true,
+    "predictions_metrics_weights_models_training_sources_sessions_read": false,
+    "original_labels_or_first_evaluation_changed": false,
+    "training_or_lora_executed": false,
+    "primary_plans_changed": false,
+    "new_cases_families_or_final_tests_created": false
+  },
+  "source_risks": [
+    {
+      "source": "goal_intake/existing_cases",
+      "risk": "多数状态/主计划为已声明反事实情境；不是回放观察或真实玩家意图。未声明意图仍未知，不从牌表补。"
+    },
+    {
+      "source": "reference_audit_intake的旧标签/旧rationale",
+      "risk": "本次代理已见旧参考，不能称独立盲终验或人工金标；依据来自统一定义后的静态语义判断。"
+    },
+    {
+      "source": "本地cards.cdb快照",
+      "risk": "采用该快照卡文解释特定函数及持续代价，未运行规则引擎或实战；不把静态条件成功声称为已观察操作。"
+    },
+    {
+      "source": "具体构筑代价与整体函数边界",
+      "risk": "没有给出负作用容忍或整个多分支选组最小函数的条目保留null；未来实战兼容认知未在本次补造。"
+    },
+    {
+      "source": "当前状态合同",
+      "risk": "次数、位置、门槛等只单独记录；混合条件已拆作用域。rk-05的无己方植物是替代路径资源，不直接当作整体失败。"
+    },
+    {
+      "source": "本次confidence",
+      "risk": "代理对建议充分性的主观信心，非经验校准，未继承旧分数或使用模型预测。"
+    }
+  ],
+  "unknown_or_unresolved_cases": [
+    {
+      "case_id": "branded_complete_40",
+      "uncertain_scopes": [
+        {
+          "key": "whole_selection_function_and_minimality",
+          "scope": "uncertain",
+          "reason": "整个选择的目标函数边界与最小性未被独立界定；内部存在较小闭合链不向整包或成员广播泛用。"
+        },
+        {
+          "key": "whole_selection_cost_tolerance",
+          "scope": "uncertain",
+          "reason": "多分支完整网络的跨构筑成本、持续限制及负作用接受范围没有逐项给定；不从另一案例或牌表背景补意图。"
+        }
+      ]
+    },
+    {
+      "case_id": "branded_complete_60",
+      "uncertain_scopes": [
+        {
+          "key": "whole_selection_function_and_minimality",
+          "scope": "uncertain",
+          "reason": "整个选择的目标函数边界与最小性未被独立界定；内部存在较小闭合链不向整包或成员广播泛用。"
+        },
+        {
+          "key": "whole_selection_cost_tolerance",
+          "scope": "uncertain",
+          "reason": "多分支完整网络的跨构筑成本、持续限制及负作用接受范围没有逐项给定；不从另一案例或牌表背景补意图。"
+        }
+      ]
+    },
+    {
+      "case_id": "hero_complete_clock_destiny",
+      "uncertain_scopes": [
+        {
+          "key": "whole_selection_function_and_minimality",
+          "scope": "uncertain",
+          "reason": "整个选择的目标函数边界与最小性未被独立界定；内部存在较小闭合链不向整包或成员广播泛用。"
+        },
+        {
+          "key": "whole_selection_cost_tolerance",
+          "scope": "uncertain",
+          "reason": "多分支完整网络的跨构筑成本、持续限制及负作用接受范围没有逐项给定；不从另一案例或牌表背景补意图。"
+        }
+      ]
+    },
+    {
+      "case_id": "hero_complete_shadow_mask",
+      "uncertain_scopes": [
+        {
+          "key": "whole_selection_function_and_minimality",
+          "scope": "uncertain",
+          "reason": "整个选择的目标函数边界与最小性未被独立界定；内部存在较小闭合链不向整包或成员广播泛用。"
+        },
+        {
+          "key": "whole_selection_cost_tolerance",
+          "scope": "uncertain",
+          "reason": "多分支完整网络的跨构筑成本、持续限制及负作用接受范围没有逐项给定；不从另一案例或牌表背景补意图。"
+        }
+      ]
+    },
+    {
+      "case_id": "tourguide_normal_already_used",
+      "uncertain_scopes": [
+        {
+          "key": "two_body_vs_link_search_function",
+          "scope": "uncertain",
+          "reason": "实际三件对“双3星”存在多余终端；若评价原三件连接/检索函数则需明确后续用途与禁用成本。原输入没有统一这两个函数，不能擅自改题。"
+        }
+      ]
+    },
+    {
+      "case_id": "desires_striker_resources",
+      "uncertain_scopes": [
+        {
+          "key": "random_face_down_resource_loss_tolerance",
+          "scope": "uncertain",
+          "reason": "支付十张的数量许可与主计划能承受何种关键资源随机损失不同；原文没有给出后者的接受范围。"
+        }
+      ]
+    },
+    {
+      "case_id": "desires_low_deck",
+      "uncertain_scopes": [
+        {
+          "key": "random_face_down_resource_loss_tolerance",
+          "scope": "uncertain",
+          "reason": "支付十张的数量许可与主计划能承受何种关键资源随机损失不同；原文没有给出后者的接受范围。"
+        }
+      ]
+    },
+    {
+      "case_id": "endymion_complete_spell_counters",
+      "uncertain_scopes": [
+        {
+          "key": "whole_selection_function_and_minimality",
+          "scope": "uncertain",
+          "reason": "整个选择的目标函数边界与最小性未被独立界定；内部存在较小闭合链不向整包或成员广播泛用。"
+        },
+        {
+          "key": "whole_selection_cost_tolerance",
+          "scope": "uncertain",
+          "reason": "多分支完整网络的跨构筑成本、持续限制及负作用接受范围没有逐项给定；不从另一案例或牌表背景补意图。"
+        }
+      ]
+    },
+    {
+      "case_id": "endymion_complete_modern_spellcasters",
+      "uncertain_scopes": [
+        {
+          "key": "whole_selection_function_and_minimality",
+          "scope": "uncertain",
+          "reason": "整个选择的目标函数边界与最小性未被独立界定；内部存在较小闭合链不向整包或成员广播泛用。"
+        },
+        {
+          "key": "whole_selection_cost_tolerance",
+          "scope": "uncertain",
+          "reason": "多分支完整网络的跨构筑成本、持续限制及负作用接受范围没有逐项给定；不从另一案例或牌表背景补意图。"
+        }
+      ]
+    },
+    {
+      "case_id": "endymion_complete_pendulum_context",
+      "uncertain_scopes": [
+        {
+          "key": "whole_selection_function_and_minimality",
+          "scope": "uncertain",
+          "reason": "整个选择的目标函数边界与最小性未被独立界定；内部存在较小闭合链不向整包或成员广播泛用。"
+        },
+        {
+          "key": "whole_selection_cost_tolerance",
+          "scope": "uncertain",
+          "reason": "多分支完整网络的跨构筑成本、持续限制及负作用接受范围没有逐项给定；不从另一案例或牌表背景补意图。"
+        }
+      ]
+    },
+    {
+      "case_id": "striker_complete_resource_plan",
+      "uncertain_scopes": [
+        {
+          "key": "whole_selection_function_and_minimality",
+          "scope": "uncertain",
+          "reason": "整个选择的目标函数边界与最小性未被独立界定；内部存在较小闭合链不向整包或成员广播泛用。"
+        },
+        {
+          "key": "whole_selection_cost_tolerance",
+          "scope": "uncertain",
+          "reason": "多分支完整网络的跨构筑成本、持续限制及负作用接受范围没有逐项给定；不从另一案例或牌表背景补意图。"
+        }
+      ]
+    },
+    {
+      "case_id": "striker_complete_ritual_finish",
+      "uncertain_scopes": [
+        {
+          "key": "whole_selection_function_and_minimality",
+          "scope": "uncertain",
+          "reason": "整个选择的目标函数边界与最小性未被独立界定；内部存在较小闭合链不向整包或成员广播泛用。"
+        },
+        {
+          "key": "whole_selection_cost_tolerance",
+          "scope": "uncertain",
+          "reason": "多分支完整网络的跨构筑成本、持续限制及负作用接受范围没有逐项给定；不从另一案例或牌表背景补意图。"
+        }
+      ]
+    },
+    {
+      "case_id": "predaplant_second_discard_missing",
+      "uncertain_scopes": [
+        {
+          "key": "second_discard_budget_tolerance",
+          "scope": "uncertain",
+          "reason": "第二弃手在本次不存在是状态事实；愿意/能够为主捕食计划长期承担这一额外手牌损耗的条件尚未明确，保留null。"
+        }
+      ]
+    },
+    {
+      "case_id": "blind-v5-fk-01",
+      "uncertain_scopes": [
+        {
+          "key": "whole_selection_function_and_minimality",
+          "scope": "uncertain",
+          "reason": "整个选择的目标函数边界与最小性未被独立界定；内部存在较小闭合链不向整包或成员广播泛用。"
+        },
+        {
+          "key": "whole_selection_cost_tolerance",
+          "scope": "uncertain",
+          "reason": "多分支完整网络的跨构筑成本、持续限制及负作用接受范围没有逐项给定；不从另一案例或牌表背景补意图。"
+        }
+      ]
+    },
+    {
+      "case_id": "blind-v5-fk-04",
+      "uncertain_scopes": [
+        {
+          "key": "island_departure_whole_own_board_destruction",
+          "scope": "uncertain",
+          "reason": "cards.cdb[57554544]③的全体己方破坏是构筑相关负作用；当前有合法检索目标并不证明后续主场面的损失容忍。"
+        }
+      ]
+    },
+    {
+      "case_id": "blind-v5-rn-01",
+      "uncertain_scopes": [
+        {
+          "key": "whole_selection_function_and_minimality",
+          "scope": "uncertain",
+          "reason": "整个选择的目标函数边界与最小性未被独立界定；内部存在较小闭合链不向整包或成员广播泛用。"
+        },
+        {
+          "key": "whole_selection_cost_tolerance",
+          "scope": "uncertain",
+          "reason": "多分支完整网络的跨构筑成本、持续限制及负作用接受范围没有逐项给定；不从另一案例或牌表背景补意图。"
+        }
+      ]
+    },
+    {
+      "case_id": "blind-v5-rn-02",
+      "uncertain_scopes": [
+        {
+          "key": "whole_selection_function_and_minimality",
+          "scope": "uncertain",
+          "reason": "整个选择的目标函数边界与最小性未被独立界定；内部存在较小闭合链不向整包或成员广播泛用。"
+        },
+        {
+          "key": "whole_selection_cost_tolerance",
+          "scope": "uncertain",
+          "reason": "多分支完整网络的跨构筑成本、持续限制及负作用接受范围没有逐项给定；不从另一案例或牌表背景补意图。"
+        }
+      ]
+    },
+    {
+      "case_id": "blind-v5-kj-02",
+      "uncertain_scopes": [
+        {
+          "key": "kaiju_counter_infrastructure_and_shared_resource",
+          "scope": "uncertain",
+          "reason": "④需双方场上共两个坏兽指示物；本条未声明可接受的生产/保留及对方共用资源结构，与主融合计划的兼容仍未知。"
+        }
+      ]
+    },
+    {
+      "case_id": "blind-v5-kj-06",
+      "uncertain_scopes": [
+        {
+          "key": "whole_selection_function_and_minimality",
+          "scope": "uncertain",
+          "reason": "整个选择的目标函数边界与最小性未被独立界定；内部存在较小闭合链不向整包或成员广播泛用。"
+        },
+        {
+          "key": "whole_selection_cost_tolerance",
+          "scope": "uncertain",
+          "reason": "多分支完整网络的跨构筑成本、持续限制及负作用接受范围没有逐项给定；不从另一案例或牌表背景补意图。"
+        }
+      ]
+    },
+    {
+      "case_id": "blind-v6-uc-01",
+      "uncertain_scopes": [
+        {
+          "key": "whole_selection_function_and_minimality",
+          "scope": "uncertain",
+          "reason": "整个选择的目标函数边界与最小性未被独立界定；内部存在较小闭合链不向整包或成员广播泛用。"
+        },
+        {
+          "key": "whole_selection_cost_tolerance",
+          "scope": "uncertain",
+          "reason": "多分支完整网络的跨构筑成本、持续限制及负作用接受范围没有逐项给定；不从另一案例或牌表背景补意图。"
+        }
+      ]
+    },
+    {
+      "case_id": "blind-v6-rk-01",
+      "uncertain_scopes": [
+        {
+          "key": "whole_selection_function_and_minimality",
+          "scope": "uncertain",
+          "reason": "整个选择的目标函数边界与最小性未被独立界定；内部存在较小闭合链不向整包或成员广播泛用。"
+        },
+        {
+          "key": "whole_selection_cost_tolerance",
+          "scope": "uncertain",
+          "reason": "多分支完整网络的跨构筑成本、持续限制及负作用接受范围没有逐项给定；不从另一案例或牌表背景补意图。"
+        }
+      ]
+    },
+    {
+      "case_id": "blind-v6-rk-02",
+      "uncertain_scopes": [
+        {
+          "key": "whole_selection_function_and_minimality",
+          "scope": "uncertain",
+          "reason": "整个选择的目标函数边界与最小性未被独立界定；内部存在较小闭合链不向整包或成员广播泛用。"
+        },
+        {
+          "key": "whole_selection_cost_tolerance",
+          "scope": "uncertain",
+          "reason": "多分支完整网络的跨构筑成本、持续限制及负作用接受范围没有逐项给定；不从另一案例或牌表背景补意图。"
+        }
+      ]
+    },
+    {
+      "case_id": "BF-ORC-01",
+      "uncertain_scopes": [
+        {
+          "key": "whole_selection_function_and_minimality",
+          "scope": "uncertain",
+          "reason": "整个选择的目标函数边界与最小性未被独立界定；内部存在较小闭合链不向整包或成员广播泛用。"
+        },
+        {
+          "key": "whole_selection_cost_tolerance",
+          "scope": "uncertain",
+          "reason": "多分支完整网络的跨构筑成本、持续限制及负作用接受范围没有逐项给定；不从另一案例或牌表背景补意图。"
+        }
+      ]
+    },
+    {
+      "case_id": "BF-ORC-02",
+      "uncertain_scopes": [
+        {
+          "key": "whole_selection_function_and_minimality",
+          "scope": "uncertain",
+          "reason": "整个选择的目标函数边界与最小性未被独立界定；内部存在较小闭合链不向整包或成员广播泛用。"
+        },
+        {
+          "key": "whole_selection_cost_tolerance",
+          "scope": "uncertain",
+          "reason": "多分支完整网络的跨构筑成本、持续限制及负作用接受范围没有逐项给定；不从另一案例或牌表背景补意图。"
+        }
+      ]
+    },
+    {
+      "case_id": "BF-ORC-03",
+      "uncertain_scopes": [
+        {
+          "key": "dark_only_after_skeleton_tolerance",
+          "scope": "uncertain",
+          "reason": "骷髅持续暗属性特召限定有卡文依据；本条主计划/后续召唤接受范围未声明，不能把原rationale补入的三幻魔意图当事实。"
+        }
+      ]
+    },
+    {
+      "case_id": "BF-ORC-05",
+      "uncertain_scopes": [
+        {
+          "key": "dark_only_after_skeleton_tolerance",
+          "scope": "uncertain",
+          "reason": "骷髅持续暗属性特召限定有卡文依据；本条主计划/后续召唤接受范围未声明，不能把原rationale补入的三幻魔意图当事实。"
+        }
+      ]
+    },
+    {
+      "case_id": "BF-ORC-06",
+      "uncertain_scopes": [
+        {
+          "key": "dark_only_after_skeleton_tolerance",
+          "scope": "uncertain",
+          "reason": "骷髅持续暗属性特召限定有卡文依据；本条主计划/后续召唤接受范围未声明，不能把原rationale补入的三幻魔意图当事实。"
+        }
+      ]
+    },
+    {
+      "case_id": "BF-BRF-02",
+      "uncertain_scopes": [
+        {
+          "key": "naph_main_phase_effect_damage_halving",
+          "scope": "uncertain",
+          "reason": "cards.cdb[51831560]①在检索后把本回合主要阶段对方受到的效果伤害减半；原输入没有声明后续计划对此的接受范围。"
+        }
+      ]
+    }
+  ],
+  "core_support_policy": "既有reference_audit保留原样；后续如取Core/Support只保留原supported值，否则未知。本次没有新Core/Support数值。",
+  "classification_limits": "0/1为明确函数及构筑条件下的概念建议；没有真实对战或引擎移除实验不是拒绝静态角色的理由。",
+  "review_identity": "统一作用域后的训练参考建议、模型代理非人工、看过旧标签但未看预测；不是新的独立盲终验或首次评估改写。",
+  "blockers": []
+}

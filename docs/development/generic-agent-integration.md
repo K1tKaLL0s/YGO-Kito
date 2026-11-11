@@ -67,10 +67,10 @@ provider、腾讯云实例均**未验证**，见 §9。普通真实核心已在�
 |---|---|---|
 | `monitor` | `capabilities`, `runs.list`, `runs.read`, `runs.metrics`, `checkpoints.read`, `opponents.summary` | 6 |
 | `trainer` | monitor 全部 + `training.prepare`, `training.recover`, `training.control` | 9 |
-| `manager` | monitor 全部 + `environment.runtime`, `environment.register`, `deck.import`, `deck.read`, `opponent.register`, `coding.prepare_handoff`, `construction.plan`, `construction.run` | 14 |
+| `manager` | monitor 全部 + `environment.runtime`, `environment.register`, `deck.import`, `deck.read`, `opponent.register`, `coding.prepare_handoff`, `construction.plan`, `construction.run`, `construction.start`, `construction.continue`, `construction.progress`, `construction.cancel` | 18 |
 | `opponent` | `capabilities` + `duel.open`, `duel.next`, `duel.status`, `duel.submit_action`, `duel.close`, `cards.lookup` | 7 |
 
-去重合计 **23 个方法**（`capabilities` 四个角色都有，只算一次）。
+去重合计 27 个方法（四个角色共享 `capabilities`）。
 
 要点：
 
@@ -275,6 +275,10 @@ client.training_control("run-a", "pause", expected_revision=7, request_id="ctl-p
 
 ## 11. 构筑逻辑、分类器与本地 Agent 的实际接续
 
+宿主构筑控制器沿 S0—S5 运行，按宿主固定输入和资源评价候选及参考。同步和持久化会话均返回实际构筑结果或停止原因。2026-11-02 的骨架、优化、反馈与基础 CB 接线记录保留历史。 [S0—S6 设计](../plans/2026-11-10-construction-s0-s6-workflow.md) · [原接线报告](../reports/2026-11-02-construction-role-basic-cb.md)
+
+2026-11-01：现有宿主控制器的填卡主流程已自动采用两层评价和配置比较，无须新RPC开关。逐候选记录位于`phase.stage_3.candidate_trace.candidates[*].layer_evaluation`，选择理由位于`layer_selection`，最终`construction_candidate`携带所选评价。正常目录来源缺少具体执行条件时保留unknown；宿主代码可提供`layer_context_provider`，RPC不能选择provider或任意文件。原模型分数、训练/native权限及checkpoint绑定不变，详见[接线说明](2026-11-01-construction-layers-implementation.md#11-主流程接线机械执行补充)。
+
 现在可用的调用链是 **DP `Client` → JSON Lines/Loopback → `AgentBridge` manager → `HostConstructionBackend` → 已有分类器/构筑控制器/统筹网络**。这证明本地协议和CPU代码组合，不证明CodeBuddy、DeepSeek、DSH等实际外部模型已经连接。
 
 完整云端检出的最小启动：
@@ -295,11 +299,14 @@ PYTHONPATH=src /workspace/YGO-Kito/.venv/bin/python -m ygo_kito agent-serve \
 {
   "intent_model": ".cache/approved/intent.json",
   "binding_data": ".cache/approved/binding.json",
-  "logic_checkpoint": ".cache/approved/graph.weights"
+  "logic_checkpoint": ".cache/approved/graph.weights",
+  "runtime": {"mode": "online", "seconds": 600, "slice_seconds": 30, "iterations": 4}
 }
 ```
 
-前两项必需，最后一项可省略。所有文件路径解析后必须在workspace内，含symlink解析；它们由宿主选择，RPC不能改。分类器加载失败明确报错；卡库/审核表延迟到run才加载，缺资源仍可plan。图checkpoint省略时为明示的随机初始化评分器，不冒充正式权重；已有checkpoint要求任务/图词表/特征绑定一致。工程拟合样例只用于代码验证，接续Agent不应自动训练替代正式模型。
+`intent_model` 和 `binding_data` 必需，`logic_checkpoint` 与 `runtime` 可省略。文件路径含符号链接解析后须位于 workspace 内。分类器在宿主配置时加载，卡库和审核表在构筑时加载。省略图检查点时使用明示的随机初始化评分器。已有检查点需要任务、图词表与特征绑定一致。
+
+持久会话默认 `development`，每片 30 秒、4 轮，开发模式按片持续推进。`online` 可配置总时间，默认 600 秒，到期停止新增候选，完成在途评价和准入。`iterations` 接受 1 到 64。`seconds` 仅适用于 `online`，续接使用剩余预算。配置由宿主选择。
 
 ```python
 from ygo_kito.agent_driver import Client, StreamTransport
@@ -311,11 +318,20 @@ if caps.get("construction_backend_configured"):
 
 `construction.plan`仅接收 `request`，返回真实模型分数、拒判理由和阶段路由。未训练、低置信或OOV保留第一阶段，不用词典固定分数替代模型。
 
-`construction.run`必需字段为 `request / task / required_tags`；可选 `base / scopes / feedback`。其中task为现有BuildTask DTO，required_tags是基本标签数组，base是main/extra/side牌表，scopes为有来源的字段/种族范围，feedback为source/message数组。数据结构见[构筑说明](construction-logic.md)。请求不接受文件路径、模型选择、训练、native开关或凭据。
+`construction.run` 和 `construction.start` 接收 `request`、`task`、`required_tags`，可选 `base`、`scopes`、`feedback`。`task` 使用 BuildTask DTO，`base` 使用 main/extra/side 牌表，`scopes` 带字段或种族来源，`feedback` 为 source/message 数组。宿主绑定资源、模型、provider 和权限。 [构筑说明](construction-logic.md)
 
-当前RPC固定 `verifier=None / coordinator host=None`：实际图候选/两角色评分/目录绑定/统筹网络可以运行，**不执行原生核验、不提交统筹账本任务、不启动训练/API**。返回 `engine_validation_not_run / construction_unresolved` 时要保留未满足项；不能当合法CB或完整构筑交付。完整资源缺失报 `CONSTRUCTION_RESOURCES_UNAVAILABLE`；空/坏图checkpoint也报资源错误，进程仍可继续plan。monitor/trainer/opponent不能调用两个构筑方法。
+构筑 RPC 使用目录绑定、两角色评分和统筹网络，`verifier` 与统筹账本宿主均为空。`engine_validation_not_run` 和 `construction_unresolved` 保留实际未满足项。资源缺失或图检查点无效时，同步调用返回 `CONSTRUCTION_RESOURCES_UNAVAILABLE`，持久会话在进度中报告 `failed` 和错误。缺少构筑资源时仍可用 `construction.plan`。
 
-同一任务复用已加载评分模型，每RPC建立新的目标会话并清理本轮选择证据；不会把上一请求的优化结果混进失败的新请求。该推理RPC没有训练控制幂等事务的含义；DP原有 `training.control` ID去重仍只按原控制协议处理。
+`construction.run` 保留同步调用，每次从新的目标会话开始。持续运行使用下列方法。
+
+| 方法 | 参数及结果 |
+| --- | --- |
+| `construction.start` | 接收任务参数，返回 `session_id`、`attempt`、`revision` 和进度。同一信封 `id` 与相同参数的重试返回原会话。 |
+| `construction.progress` | 接收 `session_id`。读取状态、最近安全版本、停止原因、阶段进度、候选和评价 ID。 |
+| `construction.cancel` | 接收 `session_id` 和 `attempt`。向对应尝试发暂停信号，待安全提交后进度为 `paused`。 |
+| `construction.continue` | 接收 `session_id` 和当前 `revision`。从未达标且非活动的会话继续，同一信封 `id` 与版本的重试复用该次请求。 |
+
+Python 客户端可通过 `Client.call(..., request_id=...)` 复用原信封 ID。宿主在 `state-root/construction/<session_id>/kernel.json` 提交任务、模型及资源绑定、候选和计算进度。每个状态根由一个宿主持有，持久会话串行使用模型。服务关闭时暂停并等待已接收会话到安全边界。 [实现及验证](../reports/2026-11-11-design-implementation-repair-runtime.md)
 
 后续编程Agent先读取：`AGENTS.md`、MASTER中CL-00/MP条目、当前合并报告及source commit。用 `coding.prepare_handoff` 可以生成带明确模型ID的接续包，但 `executed:false / model_verified:false`，准备包不会执行外部CLI。选定宿主、真实provider配置和相应授权仍是外部依赖。
 

@@ -1,0 +1,124 @@
+{
+  "kind": "construction-quality-cpu-checks",
+  "date": "2026-11-02",
+  "python": "3.12.1",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "torch_model_executed": false,
+  "native_executed": false,
+  "cb_executed": false,
+  "training_executed": false,
+  "modules": {
+    "tests.test_construction_quality": {
+      "tests": 44,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failed_ids": []
+    },
+    "tests.test_construction_progress": {
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failed_ids": []
+    },
+    "tests.test_construction_layers": {
+      "tests": 30,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failed_ids": []
+    },
+    "tests.test_construction_layer_flow": {
+      "tests": 20,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failed_ids": []
+    },
+    "tests.test_construction_relations": {
+      "tests": 42,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failed_ids": []
+    },
+    "tests.test_construction_portfolio": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failed_ids": []
+    },
+    "tests.test_construction_service": {
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failed_ids": []
+    },
+    "tests.test_construction_selection": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failed_ids": []
+    },
+    "tests.test_construction_unification": {
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failed_ids": []
+    },
+    "tests.test_construction_edit_trace": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failed_ids": []
+    },
+    "tests.test_construction_review_fixes": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failed_ids": []
+    },
+    "tests.test_construction_scenarios": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failed_ids": []
+    },
+    "tests.test_construction_inventory": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failed_ids": []
+    },
+    "tests.test_course_admission_policy": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failed_ids": []
+    }
+  },
+  "out_of_scope_modules": {
+    "tests.test_construction_logic": "fixture assets lacks BuildAssets.receipt (construction_inventory.py:113)",
+    "tests.test_construction_model": "same BuildAssets.receipt fixture drift",
+    "tests.test_construction_cli": "same fixture drift plus a non-UTF-8 local file",
+    "tests.test_autonomous_construction": "expects the pre-split status name construction_unresolved"
+  },
+  "totals": {
+    "tests": 209,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "status": "passed",
+  "wall_seconds": 26.112
+}

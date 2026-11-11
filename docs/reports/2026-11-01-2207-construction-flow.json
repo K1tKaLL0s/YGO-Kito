@@ -1,0 +1,167 @@
+{
+  "status": "task_checked_candidate",
+  "checks": {
+    "four_handoffs": true,
+    "handoff_continuity": true,
+    "started_from_empty": true,
+    "task_verified": true,
+    "layers_each_phase": true,
+    "no_parameter_updates": true,
+    "production_files_unchanged": true,
+    "cb_subject_is_final_deck": true
+  },
+  "period": "2022-07",
+  "release_cutoff": "2022-09-30",
+  "construction_seconds": 93.52559032300002,
+  "total_seconds": 208.094704878,
+  "source_checkpoint": "/mnt/n/YGO-Kito/_local_cpu_20261027/reports/optimization-20261031/2207-course-006/course/checkpoint-1.weights",
+  "model_cursors": {
+    "build_updates": {
+      "build_goal": 5,
+      "build_optimizer": 0
+    },
+    "build_batch": 5,
+    "duel_updates": 27,
+    "duel_episodes": 27,
+    "coordinator_updates": 37
+  },
+  "basic_cb_status": "bounded_inference_unknown",
+  "basic_cb_completed": true,
+  "basic_cb_routes": 0,
+  "basic_cb_candidates_processed": 3,
+  "retained_count": 3,
+  "phases": [
+    {
+      "phase": 1,
+      "role": "build_goal",
+      "candidate_count": 12,
+      "pair_count": 66,
+      "legacy_first": 11,
+      "selected_index": 11,
+      "relation_joint_status": "unknown",
+      "changes": {
+        "main": {
+          "added": 40,
+          "removed": 0
+        },
+        "extra": {
+          "added": 15,
+          "removed": 0
+        },
+        "side": {
+          "added": 15,
+          "removed": 0
+        }
+      }
+    },
+    {
+      "phase": 2,
+      "role": "build_optimizer",
+      "candidate_count": 16,
+      "pair_count": 120,
+      "legacy_first": 4,
+      "selected_index": 1,
+      "relation_joint_status": "unknown",
+      "changes": {
+        "main": {
+          "added": 0,
+          "removed": 0
+        },
+        "extra": {
+          "added": 1,
+          "removed": 1
+        },
+        "side": {
+          "added": 0,
+          "removed": 0
+        }
+      }
+    },
+    {
+      "phase": 3,
+      "role": "build_goal",
+      "candidate_count": 16,
+      "pair_count": 120,
+      "legacy_first": 5,
+      "selected_index": 5,
+      "relation_joint_status": "unknown",
+      "changes": {
+        "main": {
+          "added": 0,
+          "removed": 0
+        },
+        "extra": {
+          "added": 1,
+          "removed": 1
+        },
+        "side": {
+          "added": 1,
+          "removed": 1
+        }
+      }
+    },
+    {
+      "phase": 4,
+      "role": "build_optimizer",
+      "candidate_count": 16,
+      "pair_count": 120,
+      "legacy_first": 14,
+      "selected_index": 0,
+      "relation_joint_status": "unknown",
+      "changes": {
+        "main": {
+          "added": 0,
+          "removed": 0
+        },
+        "extra": {
+          "added": 0,
+          "removed": 0
+        },
+        "side": {
+          "added": 0,
+          "removed": 0
+        }
+      }
+    }
+  ],
+  "sizes": {
+    "main": 40,
+    "extra": 15,
+    "side": 15
+  },
+  "independent_evaluation": {
+    "score": {
+      "version": "unit-effect-blocks-theme-adjusted-v1",
+      "theme": "pearl_grave_fusion",
+      "scope": "2022-07/665d745494a19f9f5e6a694fb68a4963567504303f090539afe75bb0795a322c/c8d902d04902b1932e0c6959143a8bfa73eb6f52507d7caab8944c4bd28663fc",
+      "score": 21.550104,
+      "reference_score": 70,
+      "threshold": 56.0,
+      "calibrated": true,
+      "legality": "legal",
+      "force_optimization": false,
+      "score_threshold_met": false,
+      "basic_cb_verified": null,
+      "interpretation": "expert-prior construction quality; not a win probability or CB proof",
+      "context_review_required": true
+    },
+    "force_optimization": false,
+    "context_review_required": true,
+    "optimization_reason": null,
+    "hint": null,
+    "reference_comparison_applicable": true,
+    "construction_strength_status": "unknown"
+  },
+  "regression": {
+    "tests": 93,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "seconds": 2.093
+  },
+  "actual_native_searches": 9,
+  "actual_native_nodes_expanded": 140,
+  "training_resumed": false,
+  "raw_artifacts": "N:\\YGO-Kito\\_publish_20261030\\.cache\\construction-flow-2207-20261101\\run-03",
+  "source_fix": "Repeated effect numbers use separate text-segment references and unknown scope"
+}

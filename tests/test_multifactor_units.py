@@ -62,8 +62,8 @@ class MultifactorFunctionalUnitTests(unittest.TestCase):
 
     def test_unknown_dependency_review_or_conditions_remain_unverified(self):
         contracts = (replace(self.contract, reviewed_members=("opaque-A",)),
-                     replace(self.contract, conditions=(KnownCondition("window", "unknown", "not checked"),)),
-                     replace(self.contract, conditions=(KnownCondition("window", "unsatisfied", "synthetic failure"),)))
+                     replace(self.contract, conditions=(KnownCondition("window", "unknown", "not checked", "structure"),)),
+                     replace(self.contract, conditions=(KnownCondition("window", "unsatisfied", "synthetic failure", "structure"),)))
         for contract in contracts:
             self.assertFalse(assess_unit(contract, ("opaque-A", "opaque-B"))["membership_ready"])
 
@@ -91,7 +91,9 @@ class MultifactorFunctionalUnitTests(unittest.TestCase):
     def test_package_and_member_roles_are_never_broadcast(self):
         package = self.records[0]
         example, target, source = package.training_view()
-        self.assertEqual(target.roles, ((package.target_key, (None, None, None, None, 1)),))
+        self.assertEqual(tuple(key for key, _ in target.roles), (package.target_key,))
+        self.assertEqual(tuple((cell.status, cell.value) for cell in target.roles[0][1]),
+                         (("unknown", None),) * 4 + (("known", 1),))
         trainer = RoleTrainer(NetworkConfig(hidden_dim=16))
         trainer.train_supervised((example,), (target,), (source,))
         self.assertEqual(trainer.head_status("role:generic_utility"), "engineering_only")
@@ -113,7 +115,7 @@ class MultifactorFunctionalUnitTests(unittest.TestCase):
         self.assertFalse(result["assessment"]["exact_minimum"])
 
     def test_gamma_driver_cases_are_explicit_development_labels_not_neural_success(self):
-        self.assertEqual([record.role_labels[-1] for record in self.records], [1, 0, 0])
+        self.assertEqual([record.role_labels[-1].value for record in self.records], [1, 0, 0])
         for i, record in enumerate(self.records):
             self.assertIsNone(record.period_ref)
             self.assertEqual(record.partition, "development")
@@ -158,6 +160,27 @@ class MultifactorFunctionalUnitTests(unittest.TestCase):
             (Candidate("unknown-function", replace(first, groups=(unknown,)), "unit", "synthetic"),), explain=False)[0]
         self.assertIn("function_features_unknown", result["abstention_reasons"])
         self.assertIsNone(result["role_probabilities"]["generic_utility"])
+
+
+    def test_alternative_requirements_remain_explicit(self):
+        contract = FunctionalContract(
+            "alt", "ctx", "alternative function", (MemberAmount("A"),),
+            (Dependency("A", (MemberAmount("B"),), "A needs B and one of C/D",
+                        ((MemberAmount("C"),), (MemberAmount("D"),))),),
+            ("A", "B", "C", "D"), (KnownCondition("synthetic window", "satisfied", "synthetic"),),
+            "synthetic alternative dependency", function_tags=("special_summon",))
+        complete = assess_unit(contract, ("A", "B", "C"), state_provided=True)
+        self.assertTrue(complete["alternative_requirements"][0]["satisfied"])
+        self.assertEqual(complete["missing_any"], {})
+        self.assertTrue(complete["current_function_ready"])
+        self.assertEqual(complete["external_requirements"]["members"], {})
+        self.assertTrue(complete["exact_minimum"])
+        missing = assess_unit(contract, ("A", "B"), state_provided=True)
+        self.assertFalse(missing["alternative_requirements"][0]["satisfied"])
+        self.assertEqual(len(missing["missing_any"]), 2)
+        self.assertFalse(missing["current_function_ready"])
+        self.assertTrue(all(b["missing_members"] for b in missing["branches"]))
+        self.assertEqual(FunctionalContract.from_dict(json.loads(json.dumps(contract.to_dict()))), contract)
 
 
 if __name__ == "__main__":

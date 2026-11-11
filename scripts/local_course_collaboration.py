@@ -23,7 +23,7 @@ def record_basic_cb_inference(root,task,deck,inference):
 
 def basic_cb_completed(value):
     cb=(value or {}).get('basic_cb') or {}
-    return cb.get('inference_completed') is True and cb.get('status') in ('routes_inferred','bounded_inference_unknown')
+    return cb.get('inference_completed') is True and cb.get('status') == 'routes_inferred' and bool(cb.get('routes'))
 
 
 def comparison_training_pair(comparison,candidates,preferred,auxiliary=None):
@@ -64,6 +64,7 @@ def admit_comparison_candidates(task,contexts,assets,comparison_policy=None):
     return admitted,verdicts
 
 
+
 def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,feedback=None,cycle_id=None,budget=None,
           comparison_policy=None):
     comparison_policy=comparison_policy if comparison_policy is not None else getattr(course,'comparison_policy',None)
@@ -76,7 +77,7 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
     from ygo_kito.build_semantics import accepted_status
     from ygo_kito.construction_course_evidence import cycle_identity,task_supervision,supervision_seeds
     from ygo_kito.construction_candidates import (comparable_candidates, record_comparison,
-        strict_portfolio_winner, select_retained, task_checked)
+        strict_portfolio_winner, select_retained, task_checked, quality_selection_allowed)
     def read(p):return json.loads(p.read_text(encoding='utf-8'))
     def write(p,v):
         tmp=p.with_name(p.name+'.tmp');tmp.write_text(json.dumps(v,ensure_ascii=False,indent=2)+'\n',encoding='utf-8');tmp.replace(p)
@@ -98,7 +99,7 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
                 goal_updates=course.models.builder.updates['build_goal'],
                 optimizer_updates=course.models.builder.updates['build_optimizer'],
                 duel_updates=course.models.duel.updates,coordinator_updates=course.models.coordinator.updates)
-    if budget is not None:budget.check('before_four_step_cycle')
+    if budget is not None:budget.check('before_construction_slice')
     number=sum(course.counts().values())
     cycle_key,root_name=cycle_identity(number,force_rebuild,cycle_id)
     root=target/root_name;root.mkdir(exist_ok=True)
@@ -122,7 +123,7 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
             and r['proof'].get('task_sha256')==task.sha256
             and r['proof'].get('deck_sha256')==digest(deck.to_dict())
             and r['proof'].get('status')==accepted_status(task)),None)
-    path=root/'actual-four-stage.json'
+    path=root/'construction-result.json'
     if path.exists():
         existing=read(path)
         current,_=models.kernel._session(course.selection)
@@ -131,11 +132,17 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
             # The process failed before committing the inference's kernel state.
             # Preserve that trace and rebuild only inference, reusing exact
             # private proofs. No duel or parameter update is replayed.
-            path.rename(path.with_name('actual-four-stage.uncommitted-'+str(time.time_ns())+'.json'))
-    if path.exists():result=read(path)
+            path.rename(path.with_name('construction-result.uncommitted-'+str(time.time_ns())+'.json'))
+    if path.exists() and read(path).get('construction_passed'):result=read(path)
     elif initial:
         result=deepcopy(course.construction);write(path,result)
     else:
+        if force_rebuild and not path.exists():
+            # Start this explicit rebuild once. Resuming its saved slices must
+            # continue the optimizer instead of discarding its progress.
+            current=models.kernel.sessions[course.selection['candidate_id']]
+            current.construction_progress=None
+            current._accepted_fill=None
         counter=len(list(root.glob('route-*.json')))
         def verifier(t,d,a,**limits):
             nonlocal counter
@@ -169,15 +176,19 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
         if feedback:routing_feedback+=({'source':'duel','message':'Actual immutable forecast discrepancy: '+json.dumps(feedback,sort_keys=True)},)
         result=models.kernel.run_selected(course.selection,base=None if force_rebuild else course.deck,
             feedback=routing_feedback,verifier=verifier,basic_cb_recorder=record_basic_cb,
-            budget=budget,basic_cb_verifier=verifier)
+            budget=budget,basic_cb_verifier=verifier,basic_cb_enabled=True,pause_requested=stop.exists)
         if force_rebuild:result['forced_reconstruction_executed_from_empty']=True
         write(path,result)
         # Commit the generated session/history together with its inference trace
         # before role admission. A later resume can then consume it exactly once.
         course.save()
-    if (not task_checked(result.get('best')) or result.get('alternation_completed') is not True
+    if (not task_checked(result.get('best')) or result.get('construction_passed') is not True
             or not basic_cb_completed(result)):
-        raise RuntimeError('Collaborative task, four handoffs or actual basic CB inference is incomplete')
+        from ygo_kito.construction_learning import consume_optimizer_slice
+        consume_optimizer_slice(course,result,status=status,pause_requested=stop.exists)
+        write(path,result);course.desired='paused';course.save()
+        from ygo_kito.construction_progress import ConstructionSuspended
+        error=ConstructionSuspended(result);error.safe_boundary_saved=True;raise error
     # Independent completed construction evaluations precede admission queries.
     # Score every emitted actual candidate; a deferred CB never becomes a
     # negative training pair or a fabricated construction score.
@@ -191,7 +202,8 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
             if subject in seen:continue
             seen.add(subject)
             scoring_feedback[subject]=scorer(task=task,deck=DeckParts.from_dict(candidate['deck']),
-                assets=assets,basic_cb=candidate.get('basic_cb'),cycle_id=cycle_key)
+                assets=assets,basic_cb=candidate.get('basic_cb'),cycle_id=cycle_key,
+                layer_evaluation=candidate.get('layer_evaluation'))
     from local_design_supervision import require_artifact_clearance
     require_artifact_clearance(base,course,target,path,stop)
     session=models.kernel.sessions[course.selection['candidate_id']]
@@ -221,18 +233,18 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
     trace_sha=hashlib.sha256(path.read_bytes()).hexdigest();dataset_id='course-actual-coordinator'
     pause_if_requested()
     course.data_index.freeze({'dataset_id':dataset_id,'experiment_id':course.config['course_id'],'purpose':'train','family':'coordinator','versions':task.environment['versions'],'opponents':[],'task_sha256':None})
-    for i in range(3):
+    for i in range(len(result['phases'])-1):
         before,after=result['phases'][i:i+2]
         if before.get('stage_3',{}).get('status')!='concrete_candidate_cb_pending':continue
         context={'goal_valid':True,'card_list_valid':True,'has_forecast':False,'warning':False,'rebuild_required':False,
-                 'operation_error':False,'system_error':False,'remaining_tasks':3-i,'completed_matches':number,'score_mean':None,'forecast':None}
+                 'operation_error':False,'system_error':False,'remaining_tasks':len(result['phases'])-1-i,'completed_matches':number,'score_mean':None,'forecast':None}
         trace={'source':'host_logged_workflow_transition_v1','trace_sha256':trace_sha,'from_phase':i+1,'to_phase':i+2,'context':context,
                'route_label':after['role'],'forecast_target':None,'evidence':{'from_phase':before,'to_phase':after}}
         artifact_id='course-v2-'+cycle_key+'-route-'+str(i)
         pause_if_requested()
         artifact=course.data_index.ingest_coordinator_trace(dataset_id,artifact_id,trace)
         rows=[{'context':context,'route_label':after['role'],'forecast_target':None,'provenance':{'dataset_id':dataset_id,'record_id':artifact_id,
-               'source':'actual_four_stage_transition_only','evidence_sha256':artifact['payload_sha256']}}]
+               'source':'actual_construction_role_transition','evidence_sha256':artifact['payload_sha256']}}]
         examples={'source':'host_logged_supervision_v1','records':rows,'real_win_rate_supervision':False,'sha256':digest(rows)}
         apply_once(artifact_id,artifact_id,kind='coordinator',examples=examples)
     from local_course_auxiliary import completed_auxiliary,auxiliary_applicability
@@ -244,6 +256,23 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
         raise RuntimeError('Saved auxiliary applicability differs from the declared goal')
     if not scope_path.exists():write(scope_path,auxiliary_scope)
     construction_candidate_count=len(candidates)
+    from ygo_kito.construction_learning import cycle_pairs,rank_candidates
+    emitted=[c for c in contexts if any(r['deck']==c['deck'] for r in result['retained_candidates'])]
+    quality_pairs=cycle_pairs(task,result)
+    quality_receipt=None
+    if quality_pairs:
+        data=deepcopy(common);data['pairs']=quality_pairs
+        artifact_id=admit(data,'construction-quality-comparison-v2')
+        feedback_id='course-v2-'+cycle_key+'-quality-optimizer'
+        apply_once(feedback_id,artifact_id,kind='construction',task=task,roles=('build_optimizer',))
+        quality_receipt=optimizer_feedback_receipt(course.feedback.consumed,feedback_id,artifact_id)
+        # The next selection reads the updated model and retains the actual
+        # candidate objects; no fixed one-card swap or stale score is reused.
+        selection=rank_candidates(models.builder,task,emitted)
+        quality_receipt['next_selection']=selection
+        winner=selection['selected_index']
+        deployed=select_retained(result,emitted[winner],selection=selection,assets=assets)
+        course.deck=DeckParts.from_dict(deployed['best']['deck'])
     admitted_contexts,comparison_admissions=admit_comparison_candidates(task,contexts,assets,comparison_policy)
     write(root/'comparison-admissions.json',{'task_sha256':task.sha256,'purpose':'construction_comparison',
         'candidates':comparison_admissions})
@@ -307,12 +336,18 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
         else:
             optimizer_feedback['status']='no_strict_label'
         winner=strict_portfolio_winner(len(candidates),portfolio_pairs)
-        if winner is not None and candidates[winner]!=course.deck:
-            course.deck=candidates[winner];deployed=select_retained(result,contexts[winner])
-            deployed['training_adoption']={'source':'completed_frozen_portfolio_comparisons',
-                'candidate_deck_sha256':digest(course.deck.to_dict()),'strict_pair_results':portfolio_pairs,
+        if (winner is not None and candidates[winner]!=course.deck and
+            any(r['deck']==contexts[winner]['deck'] for r in result['retained_candidates']) and
+            quality_selection_allowed(result,contexts[winner])):
+            selection={'source':'completed_frozen_portfolio_comparisons',
+                'candidate_deck_sha256':digest(candidates[winner].to_dict()),'strict_pair_results':portfolio_pairs,
                 'independent_acceptance':False,'optimality_claimed':False}
+            deployed=select_retained(result,contexts[winner],selection=selection,assets=assets)
+            course.deck=candidates[winner];deployed['training_adoption']=selection
     course.construction=deployed
+    if deployed.get('continuation'):
+        from ygo_kito.construction_progress import restore_progress
+        restore_progress(session,deployed['continuation'],assets)
     paired_status=('paired_training_preferences_observed' if training_pairs else 'no_strict_label') if portfolio_pairs else 'no_new_pair_label'
     course.events.append({'kind':'actual_collaborative_role_feedback','complete_matches':number,
         'paired_training_status':paired_status,
@@ -321,7 +356,7 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
         'single_game_quality_label':False,'forecast_supervision':False})
     course.save()
     summary={'formal_matches':number,'goal_updates':models.builder.updates['build_goal'],'optimizer_updates':models.builder.updates['build_optimizer'],
-        'duel_updates':models.duel.updates,'coordinator_updates':models.coordinator.updates,'actual_four_stage':True,
+        'duel_updates':models.duel.updates,'coordinator_updates':models.coordinator.updates,'actual_role_iterations':True,
         'paired_training_status':(paired_status if portfolio_pairs else
             'comparison_deferred_by_training_admission' if len(candidates)<construction_candidate_count else
             'initial_separate_comparison_preserved' if initial else 'no_distinct_verified_candidate'),
@@ -337,10 +372,15 @@ def cycle(course,base,target,stop,status,*,initial=False,force_rebuild=False,fee
     summary['portfolio_candidate_count']=len(candidates);summary['portfolio_pair_results']=portfolio_pairs
     summary['cycle_id']=cycle_id;summary['cycle_key']=cycle_key
     summary['construction_scoring_feedback']=scoring_feedback
-    summary['review_receipt']={'kind':'completed_four_step_construction_review_v2',
+    summary['quality_optimizer_feedback']=quality_receipt
+    summary['construction_quality_learning']={'strict_pairs':len(quality_pairs),
+        'status':'consumed' if quality_receipt is not None else 'no_strict_quality_label',
+        'forward_scoring_is_not_learning':True}
+    summary['review_receipt']={'kind':'completed_construction_review_v3',
         'cycle_id':'review-'+(cycle_id if cycle_id is not None else str(number)),
         'task_sha256':task.sha256,'deployed_deck_sha256':digest(course.deck.to_dict()),'trace_sha256':trace_sha,
-        'roles':[phase['role'] for phase in result['phases']],
+        'roles':[phase['role'] for phase in result['handoffs']],
+        'construction_passed':result['construction_passed'],
         'task_verified':result.get('task_verified') is True,
         'basic_cb_inference_performed':bool((result.get('basic_cb') or {}).get('inference_completed')),
         'reviewed_forecasts':feedback['status'].get('pending_review_forecasts',[]) if feedback else []}

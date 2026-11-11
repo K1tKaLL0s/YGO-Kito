@@ -6,7 +6,7 @@ import torch
 
 from .contracts import FAMILIES, GROUP_FACTORS, ROLES, FactorContractError, Group, RoleInput, fields, text
 from .network import encode_batch
-from .functional_units import FunctionalContract, assess_unit, minimum_members
+from .functional_units import FunctionalContract, assess_unit
 from .training import HEADS, RoleTrainer
 
 
@@ -47,16 +47,100 @@ def _coverage(factors):
 
 
 class CandidateScorer:
-    def __init__(self, trainer):
+    def __init__(self, trainer, *, calibrator=None):
         if not isinstance(trainer, RoleTrainer):
             raise FactorContractError("independent role trainer required")
         self.trainer = trainer
+        if calibrator is not None and not callable(calibrator):
+            raise FactorContractError("explicit fitted calibration provider must be callable")
+        self.calibrator = calibrator
+        if calibrator is not None and hasattr(calibrator, 'check_base'):
+            calibrator.check_base(trainer)
+
+    def score_graph(self, build, *, task, query_budget=32768):
+        """All fact-domain queries for one head, in blocks; no model discovery.
+
+        Training counts only permit raw diagnostics. The service independently
+        checks host-published capability evidence before applying calibration.
+        """
+        from itertools import islice
+        from .contracts import TASK_DOMAINS
+        from .task_queries import CATEGORY_COORDINATES, iter_queries, query_domain
+        if self.calibrator is not None and hasattr(self.calibrator, 'check_base'):
+            self.calibrator.check_base(self.trainer)
+        if self.trainer.model.config.feature_schema != "axis-graph-v3":
+            raise FactorContractError("v3 candidate scoring requires an explicitly injected v3 trainer")
+        if type(query_budget) is not int or not 1 <= query_budget <= 1000000:
+            raise FactorContractError("bounded query budget required")
+        if self.trainer.head_status(task) not in ("trained_uncalibrated", "weakly_supervised_uncalibrated"):
+            raise FactorContractError("untrained/engineering heads cannot provide recognition conclusions")
+        domain = query_domain(build.input, build.graph, build.candidates.to_dict())
+        queries = list(islice(iter_queries(domain, task), query_budget + 1))
+        if len(queries) > query_budget:
+            raise FactorContractError("whole-head query budget exceeded; no partial candidate scores")
+        if not queries:
+            return dict(raw_prediction=(), calibrated_scores=(), applied_prediction=())
+        model, prior_mode = self.trainer.model, self.trainer.model.training
+        if self.trainer.lora is not None:
+            self.trainer.lora.check_base()
+        model.eval()
+        try:
+            with torch.inference_mode():
+                batch = encode_batch((build,), device=self.trainer.device, config=model.config)
+                encoded = model(batch)
+                rows = []
+                for start in range(0, len(queries), 32):
+                    block = queries[start:start + 32]
+                    logits = model.score_queries(encoded, batch, [(0, *q) for q in block])
+                    for (_, subject, coordinate), value in zip(block, logits):
+                        prediction = ({name: float(v) for name, v in zip(TASK_DOMAINS[task], value.softmax(-1))}
+                                      if task in CATEGORY_COORDINATES else float(value.sigmoid()))
+                        rows.append(dict(task=task, subject=list(subject), coordinate=coordinate, value=prediction))
+        finally:
+            model.train(prior_mode)
+        calibrated = () if self.calibrator is None else self.calibrator(task, tuple(rows))
+        # A calibrator supplies explicit rows for both layers; no default 0.5
+        # threshold or class argmax is advertised as a fitted decision rule.
+        if self.calibrator is not None and (not isinstance(calibrated, dict) or
+                set(calibrated) != {"calibrated_scores", "applied_prediction"}):
+            raise FactorContractError("calibrator must supply both explicit fitted output layers")
+        return dict(raw_prediction=tuple(rows), calibrated_scores=() if not calibrated else calibrated["calibrated_scores"],
+                    applied_prediction=() if not calibrated else calibrated["applied_prediction"])
 
     def _forward(self, example):
         if self.trainer.lora is not None:
             self.trainer.lora.check_base()
         with torch.inference_mode():
             return self.trainer.model(encode_batch((example,)))
+
+    def score_copy_graphs(self, left, right, *, operation):
+        if self.calibrator is not None and hasattr(self.calibrator, 'check_base'):
+            self.calibrator.check_base(self.trainer)
+        from .contracts import TASK_DOMAINS
+        from .task_queries import validate_comparison
+        validate_comparison(left,right,left_key="query:unit",right_key="query:unit",operation=operation)
+        if (self.trainer.model.config.feature_schema != 'axis-graph-v3' or
+                self.trainer.head_status('copy_preference') not in ('trained_uncalibrated', 'weakly_supervised_uncalibrated')):
+            raise FactorContractError('trained v3 comparison head required')
+        if self.calibrator is None:
+            raise FactorContractError('copy comparison requires explicitly fitted calibration')
+        model, prior = self.trainer.model, self.trainer.model.training
+        if self.trainer.lora is not None:
+            self.trainer.lora.check_base()
+        model.eval()
+        try:
+            with torch.inference_mode():
+                batch = encode_batch((left, right), device=self.trainer.device, config=model.config)
+                encoded = model(batch)
+                logits = model.graph_network.score_preference(encoded, batch, 'query:unit', 'query:unit')
+                value = {k: float(v) for k, v in zip(TASK_DOMAINS['copy_preference'], logits.softmax(-1))}
+        finally:
+            model.train(prior)
+        raw = (dict(task='copy_preference', subject=['query:unit', 'query:unit'], coordinate='preference', value=value),)
+        calibrated = self.calibrator('copy_preference', raw)
+        if not isinstance(calibrated, dict) or set(calibrated) != {'calibrated_scores', 'applied_prediction'}:
+            raise FactorContractError('copy calibrator must supply explicit fitted output layers')
+        return dict(raw_prediction=raw, **calibrated)
 
     def explain(self, example, target_key):
         """Finite observed-factor ablation, never a causal or rules explanation."""
@@ -103,7 +187,7 @@ class CandidateScorer:
         if self.trainer.lora is not None:
             self.trainer.lora.check_base()
         with torch.inference_mode():
-            output = self.trainer.model(encode_batch(tuple(candidate.example for candidate in candidates)))
+            output = self.trainer.model(encode_batch(tuple(candidate.example for candidate in candidates), device=self.trainer.device))
         head_status = {head: self.trainer.head_status(head) for head in HEADS}
         results = []
         for batch, candidate in enumerate(candidates):
@@ -114,7 +198,7 @@ class CandidateScorer:
             unresolved = [name for name in required_factors if group.factors.get(name).value is None or
                           group.factors.get(name).confidence == 0 or group.factors.get(name).uncertainty == 1]
             reasons = []
-            if head_status["utility"] != "trained_uncalibrated":
+            if head_status["utility"] not in ("trained_uncalibrated", "weakly_supervised_uncalibrated"):
                 reasons.append("utility_" + head_status["utility"])
             if candidate.legality != "pass":
                 reasons.append("external_legality_" + candidate.legality)
@@ -135,7 +219,7 @@ class CandidateScorer:
                 if other != index:
                     relation_coverage.append(dict(other_key=other_group.key,
                         probability=(float(output["pair_logits"][batch, index, other].sigmoid())
-                                     if head_status["pair"] == "trained_uncalibrated" else None),
+                                     if head_status["pair"] in ("trained_uncalibrated", "weakly_supervised_uncalibrated") else None),
                         evidence=[edge.to_dict() for edge in candidate.example.relations
                                   if {edge.source, edge.target} == {candidate.target_key, other_group.key}]))
             result = dict(candidate_ref=candidate.candidate_ref, context_ref=candidate.example.context_ref,
@@ -143,13 +227,13 @@ class CandidateScorer:
                           legality=candidate.legality, legality_ref=candidate.legality_ref,
                           advisory_score=None if reasons else utility, raw_utility=utility,
                           role_probabilities={role: (float(output["role_logits"][batch, index, r].sigmoid())
-                                               if self.trainer.head_status("role:" + role) == "trained_uncalibrated" and
-                                               (role != "generic_utility" or unit_assessment is not None and unit_assessment["exact_minimum"] and
+                                               if self.trainer.head_status("role:" + role) in ("trained_uncalibrated", "weakly_supervised_uncalibrated") and
+                                               (role != "generic_utility" or unit_assessment is not None and unit_assessment["minimal_membership_complete"] and
                                                 unit_assessment["function_features_known"]) else None)
                                               for r, role in enumerate(ROLES)},
                           diagnostic_role_probabilities={role: float(output["role_logits"][batch, index, r].sigmoid()) for r, role in enumerate(ROLES)},
                           compatibility_probability=(float(output["compatibility_logits"][batch, index].sigmoid())
-                                                     if head_status["compatibility"] == "trained_uncalibrated" else None),
+                                                     if head_status["compatibility"] in ("trained_uncalibrated", "weakly_supervised_uncalibrated") else None),
                           pair_compatibility=relation_coverage, head_status=dict(head_status), calibrated=False,
                           label_protocol_sha256=self.trainer.label_protocol_sha256,
                           role_dimension_status={role: self.trainer.head_status("role:" + role) for role in ROLES},
@@ -157,7 +241,7 @@ class CandidateScorer:
                           adaptation=self.trainer.adaptation_status(),
                           coverage=coverage, context_coverage=context_coverage, unresolved_required_factors=unresolved,
                           abstention_reasons=reasons, rule_authority=False, advisory_only=True,
-                          probability_interpretation="null when untrained/unverified; diagnostics are not validated probabilities")
+                          probability_interpretation="uncalibrated role-match estimates for the declared plan; core/support may coexist without a plan_known hard gate; current readiness is separate; no validated large/small mapping to v3")
             if explain:
                 result["explanation"] = self.explain(candidate.example, candidate.target_key)
             results.append(result)
@@ -166,7 +250,8 @@ class CandidateScorer:
 
 
 def prepare_function_candidate(context, contract, available_refs, *, candidate_ref, target_key,
-                               recall_source, factor_provider, legality="unknown", legality_ref="", proposed_refs=None):
+                               recall_source, factor_provider, legality="unknown", legality_ref="", proposed_refs=None,
+                               branch_id=None, resources=(), coverage=False, branch_factor_provider=None):
     """Resolve necessities first; request host whole-unit cost/benefit only afterward.
 
     The provider receives every proposed member/copy after the required unit is
@@ -177,10 +262,17 @@ def prepare_function_candidate(context, contract, available_refs, *, candidate_r
     """
     if not isinstance(context, RoleInput) or not isinstance(contract, FunctionalContract) or contract.context_ref != context.context_ref:
         raise FactorContractError("candidate function must match the explicit frozen context")
-    assessment = assess_unit(contract, available_refs)
+    assessment = assess_unit(contract, available_refs, resources=resources, coverage=coverage, branch_id=branch_id)
     if not assessment["membership_ready"]:
         return dict(status="unit_unresolved", candidate=None, assessment=assessment, cost_benefit_evaluated=False)
-    members = tuple(ref for ref, count in sorted(minimum_members(contract).items()) for _ in range(count))
+    if branch_id is None and assessment["overflow"]:
+        return dict(status="branch_search_incomplete", candidate=None, assessment=assessment, cost_benefit_evaluated=False)
+    feasible = [b for b in assessment["branches"] if b["membership_ready"] and (branch_id is None or b["branch_id"] == branch_id)]
+    if len(feasible) != 1:
+        return dict(status="branch_selection_required", candidate=None, assessment=assessment, cost_benefit_evaluated=False)
+    selected = feasible[0]
+    branch_id = selected["branch_id"]
+    members = tuple(ref for ref, count in sorted(selected["members"].items()) for _ in range(count))
     if proposed_refs is not None:
         from collections import Counter
         if not isinstance(proposed_refs, tuple) or not 1 <= len(proposed_refs) <= 128:
@@ -188,11 +280,16 @@ def prepare_function_candidate(context, contract, available_refs, *, candidate_r
         if Counter(proposed_refs) - Counter(available_refs):
             raise FactorContractError("proposed package contains unavailable members/copies")
         members = proposed_refs
-        assessment = assess_unit(contract, members)
-        if not assessment["membership_ready"]:
-            return dict(status="unit_unresolved", candidate=None, assessment=assessment, cost_benefit_evaluated=False)
-    factors = factor_provider(members)
+    # Both the default minimum and an explicit proposal are rechecked against
+    # the selected recursive branch before any cost provider is invoked.
+    assessment = assess_unit(contract, members, resources=resources, coverage=coverage, branch_id=branch_id)
+    if not assessment["membership_ready"]:
+        return dict(status="unit_unresolved", candidate=None, assessment=assessment, cost_benefit_evaluated=False)
+    if branch_factor_provider is None and (contract.requirements is not None or contract.state_requirements is not None or selected["branch_conditions"]):
+        return dict(status="branch_cost_provider_required", candidate=None, assessment=assessment, cost_benefit_evaluated=False)
+    factors = (factor_provider(members) if branch_factor_provider is None else
+               branch_factor_provider(members, assessment))
     group = Group(target_key, factors, members, ("whole-unit host factors; no package-to-member label projection",), contract)
     example = replace(context, groups=context.groups + (group,))
     candidate = Candidate(candidate_ref, example, target_key, recall_source, legality, legality_ref)
-    return dict(status="unit_prepared", candidate=candidate, assessment=assess_unit(contract, members), cost_benefit_evaluated=True)
+    return dict(status="unit_prepared", candidate=candidate, assessment=assessment, cost_benefit_evaluated=True)

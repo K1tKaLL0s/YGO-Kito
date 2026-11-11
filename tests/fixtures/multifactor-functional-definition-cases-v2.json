@@ -108,7 +108,7 @@
       "annotator_ref": "user concept calibration; developer structuring",
       "partition": "development",
       "definition_case": true,
-      "label_protocol_sha256": "8a1e7a02ed13e34d7c546c6e5ffe1b5e60d7debeebc35ab29066f2611383cd1a"
+      "label_protocol_sha256": "1768d12f5f068f8a60fb93282bb72f8123d233e31f95f16e8a059f1b3145dce1"
     },
     {
       "schema_version": "multifactor-annotation-v2",
@@ -214,7 +214,7 @@
       "annotator_ref": "user concept calibration; developer structuring",
       "partition": "development",
       "definition_case": true,
-      "label_protocol_sha256": "8a1e7a02ed13e34d7c546c6e5ffe1b5e60d7debeebc35ab29066f2611383cd1a"
+      "label_protocol_sha256": "1768d12f5f068f8a60fb93282bb72f8123d233e31f95f16e8a059f1b3145dce1"
     },
     {
       "schema_version": "multifactor-annotation-v2",
@@ -320,7 +320,7 @@
       "annotator_ref": "user concept calibration; developer structuring",
       "partition": "development",
       "definition_case": true,
-      "label_protocol_sha256": "8a1e7a02ed13e34d7c546c6e5ffe1b5e60d7debeebc35ab29066f2611383cd1a"
+      "label_protocol_sha256": "1768d12f5f068f8a60fb93282bb72f8123d233e31f95f16e8a059f1b3145dce1"
     }
   ]
 }

@@ -1,0 +1,24 @@
+{
+  "checked_at": "2026-11-01T19:38:23.513484+00:00",
+  "scope": "pure_basic_cb_scope_contracts",
+  "tests_run": 9,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "successful": true,
+  "test_names": [
+    "tests.test_basic_cb_scope.BasicCBScopeTests.test_automatic_random_trigger_is_unknown_not_a_seed_proof",
+    "tests.test_basic_cb_scope.BasicCBScopeTests.test_cost_and_effect_randomness_remain_independent",
+    "tests.test_basic_cb_scope.BasicCBScopeTests.test_fixed_mill_allowed_and_hit_cannot_supply_trigger_or_material",
+    "tests.test_basic_cb_scope.BasicCBScopeTests.test_known_trigger_and_fusion_can_follow_an_independent_random_operation",
+    "tests.test_basic_cb_scope.BasicCBScopeTests.test_random_draw_does_not_unlock_a_card_identity",
+    "tests.test_basic_cb_scope.BasicCBScopeTests.test_random_removal_cannot_reuse_previously_known_card_but_other_zone_continues",
+    "tests.test_basic_cb_scope.BasicCBScopeTests.test_random_scope_does_not_depend_on_kind_quantity_or_card_identity",
+    "tests.test_basic_cb_scope.BasicCBScopeTests.test_real_dictionary_projection_separates_mill_cost_and_mill_effect",
+    "tests.test_basic_cb_scope.BasicCBScopeTests.test_targeted_selection_has_distinct_provenance_from_random_hit"
+  ],
+  "generality_matrix_cases": 80,
+  "cb_execution": false,
+  "native_execution": false,
+  "parameter_updates": 0
+}

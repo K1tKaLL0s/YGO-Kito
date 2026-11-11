@@ -425,36 +425,11 @@ class ScenarioCourse:
         from .course_feedback import CourseFeedbackUpdater
         self.feedback = CourseFeedbackUpdater(models, data_index, config["course_id"])
         self.initial_model_execution = self.model_execution()
-        self._admission_state_reference = None
-        self._admission_reference_validated = False
 
     def bind_admission_policy(self, policy):
-        """Attach the private host ledger without embedding its counters in models."""
-        previous=getattr(self,'_admission_state_reference',None)
-        descriptor=getattr(policy,'checkpoint_descriptor',None)
-        if previous is not None:
-            validate=getattr(policy,'validate_checkpoint_descriptor',None)
-            if not callable(validate):
-                raise ContractError('saved private admission ledger requires its original host provider')
-            validate(previous)  # Missing, rolled-back, changed or ahead private state needs inspection.
-        if callable(descriptor):
-            reference=descriptor()
-            if previous is None:
-                self.events.append({'kind':'explicit-prospective-admission-policy-epoch-boundary-v1',
-                    'admission_state_reference':deepcopy(reference),'legacy_failure_counts_imported':False,
-                    'historical_unknowns_counted':False})
-            self._admission_state_reference=deepcopy(reference)
+        if not callable(policy):raise ContractError('callable current construction policy required')
         self.comparison_policy=policy
-        self._admission_reference_validated=True
 
-    def _admission_checkpoint_reference(self):
-        previous=getattr(self,'_admission_state_reference',None)
-        if previous is not None and not getattr(self,'_admission_reference_validated',False):
-            raise ContractError('saved private admission ledger must be validated before another checkpoint')
-        descriptor=getattr(getattr(self,'comparison_policy',None),'checkpoint_descriptor',None)
-        if callable(descriptor):
-            return deepcopy(descriptor())
-        return deepcopy(previous)
 
     def counts(self):
         # Earlier real engine records remain intact but cannot silently
@@ -487,37 +462,40 @@ class ScenarioCourse:
             "pending_match": None if self.pending is None else self.pending["state"].summary(),
             "formal_training_success_verified": False, "events": deepcopy(self.events[-8:])}
 
-    def _construct(self, *, feedback=()):
+    def _construct(self, *, feedback=(), learn=False):
         kernel = self.models.kernel
         def completed(result):
             cb = result.get("basic_cb") or {}
             return (bool(result.get("best")) and result.get("task_verified") is True and
-                    result.get("alternation_completed") is True and cb.get("inference_completed") is True and
-                    cb.get("status") in ("routes_inferred", "bounded_inference_unknown"))
+                    result.get("construction_passed") is True and cb.get("inference_completed") is True and
+                    cb.get("status") == "routes_inferred" and bool(cb.get('routes')))
+        if (self.selection is not None and self.selection['candidate_id'] not in kernel.selections and
+                self.selection['candidate_id'] in (kernel.archived_workflow or {}).get('selections',{})):
+            self.events.append(dict(kind='construction_workflow_reselection',previous_task=self.selection['candidate_id'],
+                reason='old_recall_shortlist_is_not_the_task_card_pool'))
+            self.selection = kernel.upgrade_selection(self.selection)
+            self.construction = None
         if self.selection is None:
             proposals = kernel.propose_tasks()
-            result = None
-            # Construction must finish its four concrete handoffs and task
-            # check, then actually perform basic CB inference. A bounded
-            # unknown is completed inference, never a failed construction or
-            # a reason to replace the selected goal with a different theme.
-            for rank in range(min(8, len(proposals.get("candidates", [])))):
-                candidate = kernel.select_task(proposals, rank=rank)
-                if candidate.get("status") != "model_selected_task": break
-                attempt = kernel.run_selected(candidate, feedback=feedback)
-                if completed(attempt):
-                    self.selection, result = candidate, attempt
-                    break
-                self.events.append({"kind": "autonomous_candidate_unverified", "candidate_id": candidate["candidate_id"],
-                    "model_rank": rank, "task_verified": attempt.get("task_verified", False),
-                    "basic_cb_status": (attempt.get("basic_cb") or {}).get("status", "not_run"),
-                    "unknown_is_negative_training_label": False})
-            if result is None:
-                raise ContractError("bounded model-ranked candidates have no task-checked construction with completed basic CB inference")
-        else:
-            result = kernel.run_selected(self.selection, feedback=feedback, base=self.deck)
+            selected = kernel.select_task(proposals, rank=0)
+            if selected.get('status') != 'model_selected_task':
+                raise ContractError('no model-selected original construction task')
+            self.selection = selected
+        result = kernel.run_selected(self.selection, feedback=feedback, base=self.deck,
+            basic_cb_enabled=True, pause_requested=lambda: (self.root / 'pause.request').exists())
+        self.construction = deepcopy(result)
         if not completed(result):
-            raise ContractError("selected construction task or post-construction basic CB inference is incomplete")
+            if learn:
+                from .construction_learning import consume_optimizer_slice
+                consume_optimizer_slice(self,result,pause_requested=lambda:(self.root/'pause.request').exists())
+                self.construction = deepcopy(result)
+            from .construction_progress import ConstructionSuspended
+            self.desired = 'paused'
+            self.save()
+            error = ConstructionSuspended(result)
+            error.safe_boundary_saved = True
+            raise error
+
         self.deck = DeckParts.from_dict(result["best"]["deck"])
         self.rules.validate(self.deck)
         self.construction = deepcopy(result)
@@ -529,7 +507,7 @@ class ScenarioCourse:
         if self.pending is not None: return
         stage = self.stage() if purpose == "train" else "common-decks-bo3"
         if stage == "complete": return
-        if self.deck is None: self._construct()
+        if self.deck is None: self._construct(learn=purpose == 'train')
         self._require_training_admission(self.deck,purpose)
         choices = sorted(i for i, b in self.bots.items() if b["stage"] == stage and b["purpose"] == purpose)
         if not choices: raise ContractError("no actual qualified opponents for this stage and partition")
@@ -561,9 +539,6 @@ class ScenarioCourse:
 
     def _require_training_admission(self,deck,purpose):
         from .training_admission import require_training_admission,TrainingAdmissionDeferred
-        if (getattr(self,'_admission_state_reference',None) is not None and
-                not getattr(self,'_admission_reference_validated',False)):
-            raise TrainingAdmissionDeferred({'reasons':['saved_private_admission_ledger_requires_host_validation']})
         best=(self.construction or {}).get('best') or {}
         cb=best.get('basic_cb') if best.get('deck')==deck.to_dict() else None
         verdict=require_training_admission(task=self._task(),deck=deck,basic_cb=cb,assets=self.assets,
@@ -612,7 +587,7 @@ class ScenarioCourse:
             evaluation_pairs=tuple(tuple(v) for v in self.config["evaluation_pairs"].get(purpose, [])),
             evaluation_cursor=self.evaluation_cursor.get(purpose, 0),
             combo_plans=plans_from_construction(self._task(),self.construction,deck=self.deck),
-            observed_bot_source_review=self.models.binding.get('observed_bot_source_review'),
+            observed_bot_source_review=getattr(self,'observed_bot_source_review',None) or self.models.binding.get('observed_bot_source_review'),
             training_attempt_cursor=self.training_attempt_cursor if purpose == "train" else None,
             admission_task=self._task(),admission_basic_cb=(self.construction or {}).get('best',{}).get('basic_cb'),
             comparison_policy=self.comparison_policy)
@@ -1052,7 +1027,6 @@ class ScenarioCourse:
     def save(self):
         self._assert_registry()
         self._storage_guard()
-        admission_reference=self._admission_checkpoint_reference()
         if self.pending is not None: match = self.pending["state"].to_dict()
         else: match = None
         revision=self.revision+1
@@ -1070,8 +1044,6 @@ class ScenarioCourse:
             "data_index_sha256": index_identity(self.data_index),
             "checkpoint_storage":{"schema_version":1,"policy":deepcopy(self.checkpoint_policy),
                 "prior_entries":deepcopy(self._checkpoint_entries)}}
-        if admission_reference is not None:
-            payload['admission_state_reference']=admission_reference
         # Know the serialized byte count before writing disk. This is an actual
         # envelope size, not an estimate from neural tensor parameters.
         buffer=io.BytesIO();torch.save(payload,buffer);raw=buffer.getbuffer()
@@ -1103,7 +1075,6 @@ class ScenarioCourse:
         self.revision=revision
         self._checkpoint_entries=entries
         self._last_checkpoint = deepcopy(pointer)
-        self._admission_state_reference=deepcopy(admission_reference)
         self._prune_checkpoints()
         return pointer
 
@@ -1124,10 +1095,6 @@ class ScenarioCourse:
             reasons = ",".join(compatibility["reasons"])
             raise ContractError("checkpoint binding/accounting/data is stale; no automatic rollback" +
                                 ("" if not reasons else ": " + reasons))
-        self._admission_state_reference=deepcopy(saved.get('admission_state_reference'))
-        self._admission_reference_validated=False
-        if self._admission_state_reference is not None and getattr(self,'comparison_policy',None) is not None:
-            self.bind_admission_policy(self.comparison_policy)
         entries=self._restored_entries(saved,pointer)
         attempts = saved.get("training_attempts")
         if attempts is None:
@@ -1149,6 +1116,14 @@ class ScenarioCourse:
         for key in ("revision", "records", "events", "active_seconds", "selection", "construction",
                     "evaluation_cursor", "frozen_evaluation", "desired", "initial_model_execution"):
             setattr(self, key, deepcopy(saved[key]))
+        kernel = self.models.kernel
+        if (self.selection is not None and self.selection['candidate_id'] not in kernel.selections and
+                self.selection['candidate_id'] in (kernel.archived_workflow or {}).get('selections',{})):
+            old_task = self.selection['candidate_id']
+            self.selection = kernel.upgrade_selection(self.selection)
+            self.construction = None
+            self.events.append(dict(kind='construction_workflow_reselection',previous_task=old_task,
+                task_sha256=self.selection['candidate_id'],reason='retired_sealed_recall_pool'))
         self.deck = None if saved["deck"] is None else DeckParts.from_dict(saved["deck"])
         self.pending = deepcopy(saved["pending"])
         if self.pending is not None:

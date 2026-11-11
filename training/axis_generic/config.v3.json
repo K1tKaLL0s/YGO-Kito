@@ -1,0 +1,35 @@
+{
+  "feature_schema": "axis-graph-v3",
+  "dataset_version": "axis-dataset-v3",
+  "split_version": "axis-source-components-v3",
+  "label_protocol": "axis-generic-label-v3-m4",
+  "source_versions": {
+    "legacy_references": "consumed-construction-role-v7",
+    "observations": "axis-input-v3",
+    "full18_review": "axis-full18-expert-weak-v1",
+    "full18_source": "full18-20261110-008"
+  },
+  "seed": 261114,
+  "canonical_budget": 4096,
+  "minimum_reference_confidence": 0.55,
+  "deck_cache": "N:\\YGO-Kito\\data\\axis_generic\\source\\prepared.sqlite3",
+  "catalog": "N:\\YGO-Kito\\data\\axis_generic\\source\\cards.cdb",
+  "run_dir": "N:/YGO-Kito/data/axis_generic/v3/prepare-full18-20261110-006",
+  "records_file": "N:\\YGO-Kito\\data\\axis_generic\\v3\\full18-20261110-008\\source-records.json",
+  "legacy_import": null,
+  "split": {
+    "protocol": "unseen_deck",
+    "train": 1.0,
+    "dev": 0.0,
+    "test": 0.0,
+    "near_duplicate_swaps": 2,
+    "max_near_pairs": 1000000,
+    "require_three": false
+  },
+  "prepare": {
+    "shard_size": 256
+  },
+  "automatic_lora": false,
+  "core_course_resumed": false,
+  "formal_training": false
+}

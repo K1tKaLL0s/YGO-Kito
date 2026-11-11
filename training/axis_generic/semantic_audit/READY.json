@@ -1,0 +1,186 @@
+{
+  "status": "READY",
+  "completed_cases": 118,
+  "primary_plan_unknown_cases": 23,
+  "cases_with_unknown_contract_requirements": 10,
+  "scope": "同118条已使用/已消费静态输入的有限统一语义审计；未新增情境/家族/数值标签，未改原始case或label。",
+  "deliverables": [
+    "primary_plans.json",
+    "PLAN_READY.json",
+    "reference_audit.json",
+    "card_evidence.json",
+    "selected_scope_evidence.json",
+    "encoding_audit.json"
+  ],
+  "provenance": {
+    "phase_order": "仅读goal_intake形成主计划 -> PLAN_READY及SHA256冻结 -> 读取reference_audit_intake -> 根任务补充授权读取existing_cases恢复实际选组 -> 按220个具体selected/required卡号只读查询cards.cdb -> 语义审计。",
+    "primary_plan_frozen_sha256": "53e9b1e2024a00f5e53de948710166d175bf594b37cbb5d288542467dd6dd9fa",
+    "primary_plan_sha256_after_phase_2": "53e9b1e2024a00f5e53de948710166d175bf594b37cbb5d288542467dd6dd9fa",
+    "input_files": [
+      {
+        "file": "../goal_intake.json",
+        "sha256": "2d160d4c177f733abf7dbc256fb7d7e769af84b94111a1232306ab4f22189dac"
+      },
+      {
+        "file": "../reference_audit_intake.json",
+        "sha256": "5fc099d8fbd6e0fd289cdfa46b8ea459e41ab1b8010ef2361f4116e4e49ecee2"
+      },
+      {
+        "file": "../existing_cases.json",
+        "sha256": "4b06d15f90f69a132c375dbfbe5ac1b0b962259c2d1019f65b2f4572afc72c97"
+      }
+    ],
+    "cards_source": "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb",
+    "cards_query": "SELECT texts/datas WHERE id IN (220 explicitly selected/required card IDs), readOnly=true; all requested IDs found.",
+    "skill": "C:\\Users\\27499\\.codex\\skills\\preserve-intent-and-execute\\SKILL.md",
+    "applicable_agents_files_found": [],
+    "external_project_writes": false,
+    "prohibited_sources_read": [],
+    "model_predictions_metrics_weights_training_sources_or_codex_sessions_read": false,
+    "original_cases_and_labels_modified": false,
+    "lora_or_training_performed": false,
+    "new_scenarios_families_or_numeric_labels_created": false
+  },
+  "precise_remaining_information": {
+    "primary_plan_unknown_case_ids": [
+      "BF-ORC-03",
+      "BF-ORC-04",
+      "BF-ORC-05",
+      "BF-ORC-06",
+      "BF-SPD-01",
+      "BF-SPD-02",
+      "BF-SPD-03",
+      "BF-SPD-04",
+      "BF-SPD-05",
+      "BF-SPD-06",
+      "BF-BRF-01",
+      "BF-BRF-02",
+      "BF-BRF-03",
+      "BF-BRF-04",
+      "BF-BRF-05",
+      "BF-BRF-06",
+      "BF-NIB-01",
+      "BF-NIB-02",
+      "BF-NIB-03",
+      "BF-NIB-04",
+      "BF-NIB-05",
+      "BF-NIB-06",
+      "BF-NIB-07"
+    ],
+    "unknown_contract_requirements": [
+      {
+        "case_id": "gamma_state_unknown",
+        "requirements": [
+          {
+            "key": "root_in_hand",
+            "evidence_quote": "未给出γ是否在手。; declared_scenario:gamma_state_unknown"
+          },
+          {
+            "key": "driver_location",
+            "evidence_quote": "texts[38814750]驱动者须在手、卡组或墓地；未给位置。; declared_scenario:gamma_state_unknown"
+          },
+          {
+            "key": "empty_field_zones",
+            "evidence_quote": "texts[38814750]空场及两体特召空间未给。; declared_scenario:gamma_state_unknown"
+          }
+        ]
+      },
+      {
+        "case_id": "maxx_future_summons_unknown",
+        "requirements": [
+          {
+            "key": "grave_once",
+            "evidence_quote": "texts[23434538]有送墓代价和每回合1次；状态未给。; declared_scenario:maxx_future_summons_unknown"
+          },
+          {
+            "key": "opponent_special",
+            "evidence_quote": "效果适用后对方是否特召未给。; declared_scenario:maxx_future_summons_unknown"
+          }
+        ]
+      },
+      {
+        "case_id": "blind-v5-fs-06",
+        "requirements": [
+          {
+            "key": "specified_grave_fusion_materials",
+            "evidence_quote": "The deck identity has no real-time zones; two additional LIGHT Fiends in the graveyard are not established"
+          }
+        ]
+      },
+      {
+        "case_id": "blind-v5-fk-05",
+        "requirements": [
+          {
+            "key": "sacred_garunix_summoned_now",
+            "evidence_quote": "Cached identity has no live hand/field or effect-use state"
+          }
+        ]
+      },
+      {
+        "case_id": "blind-v5-rn-06",
+        "requirements": [
+          {
+            "key": "special_summoned_legal_enemy_target",
+            "evidence_quote": "No replay state was read; opponent monster summon provenance, targeting/destruction protection and deck remainder are unknown"
+          }
+        ]
+      },
+      {
+        "case_id": "blind-v6-rk-05",
+        "requirements": [
+          {
+            "key": "opponent_faceup_tribute_eligibility",
+            "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 只知对方场上有怪兽；未给表示形式、能否被来来替代解放、相关免疫或不能解放约束。"
+          }
+        ]
+      },
+      {
+        "case_id": "BF-ORC-06",
+        "requirements": [
+          {
+            "key": "dingirsu_in_grave_properly_summoned",
+            "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。只给出丁吉尔苏现在在墓地；牌表缓存不能提供其先前是否正规登场的事实。"
+          }
+        ]
+      },
+      {
+        "case_id": "BF-SPD-05",
+        "requirements": [
+          {
+            "key": "empty_own_monster_field",
+            "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。没有给出自己场上是否有怪兽；通常召唤已使用，不补充其它入口。"
+          }
+        ]
+      },
+      {
+        "case_id": "BF-BRF-06",
+        "requirements": [
+          {
+            "key": "spell_hand_materials_deck_extra_ready",
+            "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。明亮融合在手、斜绿在额外可用；只知道两素材列于实际牌表，未给它们当前是否仍在卡组。"
+          }
+        ]
+      },
+      {
+        "case_id": "BF-NIB-04",
+        "requirements": [
+          {
+            "key": "opponent_summon_threshold",
+            "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。只知道对方有表侧怪兽，未给本回合已召唤或特殊召唤多少只；牌表缓存无法回答这个对局事实。"
+          }
+        ]
+      }
+    ],
+    "semantic_scope_gaps_recorded_per_case": "reference_audit.json 的 specific_missing_information；这是原有输入/语义可识别性边界，不要求补真实对战或引擎移除实验。",
+    "missing_card_ids": [],
+    "selected_scope_intake_omission": "已由existing_cases.json的实际selected_main/selected_extra补齐，无需用户补资料。"
+  },
+  "encoding": {
+    "valid_utf8": true,
+    "ufffd_fields": 0,
+    "objective_differences_between_goal_and_existing": 0,
+    "note": "三个许可静态输入没有真实U+FFFD；118条原objective逐字一致。未根据标签或模型表现猜译/修正原文。"
+  },
+  "review_status": "已有范围的条件性输入与参考语义审计；不是人工金标或独立新终验。",
+  "blockers": []
+}

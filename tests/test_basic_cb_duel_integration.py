@@ -2,6 +2,7 @@
 
 The native proof fixture is not new rule-engine evidence or a strength result.
 """
+from tests.fixtures import synthetic_cb_authorization
 from copy import deepcopy
 from pathlib import Path
 import unittest
@@ -39,8 +40,11 @@ class BasicCbDuelIntegrationTests(unittest.TestCase):
             proof['task_sha256']=derived.sha256;proof['deck_sha256']=digest(current.to_dict())
             proof['native_route'].update(task_sha256=native_task.sha256,
                 deck_sha256=digest(current.to_dict()),starting_condition=native_task.goal['starting_conditions'])
+            from tests.fixtures import synthetic_cb_mainline
+            proof['native_route']['route_evidence']['basic_cb_scope']=synthetic_cb_mainline(
+                proof['native_route']['route_evidence']['exploration']['discovered_intents'])
             return proof
-        inferred=infer_basic_cb(task,deck,assets,verifier=synthetic_verifier)
+        inferred=infer_basic_cb(task,deck,assets,**synthetic_cb_authorization(task,deck),verifier=synthetic_verifier)
         result={'best':{'deck':deck.to_dict()},'goal_sha256':digest(task.goal),'basic_cb':inferred}
         return task,deck,assets,result,calls
 

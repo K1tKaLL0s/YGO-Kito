@@ -156,10 +156,10 @@ def _removals(task, assets, base, zone, amount, *, protected=None):
     return result
 
 
-def axis_edits(task, assets, base, *, mechanism_groups=()):
+def axis_edits(task, assets, base, *, mechanism_groups=(), candidate_ids=None):
     from .build_pipeline import EXTRA_TYPES
     packages=[]
-    for name, group in public_axis_groups(assets, task.pool):
+    for name, group in public_axis_groups(assets, task.pool if candidate_ids is None else candidate_ids):
         incoming = {z: [] for z in ZONES}
         for zone in ("main", "extra"):
             cards = [c for c in group if bool(assets.rows[c]["type"] & EXTRA_TYPES) == (zone == "extra")
@@ -205,7 +205,7 @@ def axis_edits(task, assets, base, *, mechanism_groups=()):
                     break
 
 
-def portfolio(task, assets, *, base=None, initial=(), singles=(), feedback=(), require_edit=False,mechanism_groups=None,trace=None):
+def portfolio(task, assets, *, base=None, initial=(), singles=(), feedback=(), require_edit=False,mechanism_groups=None,trace=None,graph=None,candidate_ids=None):
     """Keep distinct generation families before truncation or learned scoring."""
     buckets = defaultdict(list)
     if base is not None and not require_edit:
@@ -216,8 +216,18 @@ def portfolio(task, assets, *, base=None, initial=(), singles=(), feedback=(), r
     if mechanism_groups is None:mechanism_groups=getattr(assets,"construction_mechanism_groups",())
     if not isinstance(mechanism_groups,(list,tuple)):raise ContractError("bounded mechanism groups must be a sequence")
     for start in starts:
-        for row in axis_edits(task, assets, start,mechanism_groups=mechanism_groups):
+        for row in axis_edits(task, assets, start,mechanism_groups=mechanism_groups,candidate_ids=candidate_ids):
             buckets[row["strategy"]].append(row)
+    from .construction_inventory import repair_candidates
+    for start in starts[:2]:
+        # Proposal generation only: public dependency facts, original task and
+        # ordinary portfolio budget. No reference deck or manual target list.
+        # A strict improvement chain is generated within its own fixed budget.
+        # Admit its endpoint before prefixes so portfolio truncation does not
+        # systematically exclude the completed repair. Final ranking is still
+        # performed by the original models and candidate layers.
+        repairs = list(repair_candidates(task, assets, start, graph=graph))
+        buckets['dependency:inventory'].extend(reversed(repairs))
     for deck in singles:
         zones = [z for z in ZONES if Counter(getattr(base,z)) != Counter(getattr(deck,z))]
         if not zones:continue
@@ -255,7 +265,7 @@ def portfolio(task, assets, *, base=None, initial=(), singles=(), feedback=(), r
     # editing region is reached. Each family gets one admission per round;
     # strategies within it rotate too. This allocates search opportunity, not
     # a zone bonus in the learned score or the final retention order.
-    family_order = [name for name in ("incumbent","observed-package","fresh","axis_and_mechanism_packages",
+    family_order = [name for name in ("incumbent","observed-package","dependency:inventory","fresh","axis_and_mechanism_packages",
         *("edit:"+z for z in ZONES)) if name in families]
     generated_counts = {key:len(rows) for key,rows in buckets.items()}
     admitted = dict.fromkeys(family_order,0)
@@ -292,21 +302,6 @@ def portfolio(task, assets, *, base=None, initial=(), singles=(), feedback=(), r
     return result
 
 
-def retained_order(rows, scores, feedback, task_sha256, *, limit=3):
-    """Neural ranking inside a bounded, strategy-diverse survivor set."""
-    preference = evidence_order(feedback, task_sha256, "deck")
-    ranked = sorted(range(len(rows)), key=lambda i: (-preference.get(rows[i]["deck_sha256"], 0), -scores[i], i))
-    selected, strategies = [], set()
-    # Keep the highest ranked proposal, then reserve alternatives by strategy.
-    for i in ranked:
-        if not selected or rows[i]["strategy"] not in strategies:
-            selected.append(i); strategies.add(rows[i]["strategy"])
-        if len(selected) >= limit:
-            break
-    selected.extend(i for i in ranked if i not in selected)
-    return selected
-
-
 def task_checked(candidate):
     if not isinstance(candidate,dict):return False
     validation=candidate.get("validation",{})
@@ -339,22 +334,107 @@ def strict_portfolio_winner(size, pairs):
     return next((i for i in range(size) if len(wins[i]) == size-1), None)
 
 
-def select_retained(result, candidate):
-    """Select an already emitted fourth-role option, preserving its provenance."""
+def quality_selection_allowed(result, candidate):
+    if (candidate.get('quality_evaluation') or {}).get('score', {}).get('unit') == 'functional_log2':
+        from .construction_quality import compare_functional_quality
+        from .construction_learning import _current_quality
+        _current_quality(candidate['quality_evaluation'])
+        for row in result.get('retained_candidates',()):
+            if task_checked(row) and row.get('quality_evaluation'):
+                _current_quality(row['quality_evaluation'])
+        return not any(compare_functional_quality(candidate['quality_evaluation'], row['quality_evaluation'])['preferred'] == 'after'
+            for row in result.get('retained_candidates', ()) if task_checked(row) and row.get('quality_evaluation'))
+    return False
+
+
+def select_retained(result, candidate, *, selection, assets=None):
+    """Select an emitted optimizer option with its own construction pass."""
+    from .construction_progress import FUNCTIONAL_GATE_VERSION, _quality_binding, resumable_optimizer_phase
+    gate=candidate.get('construction_gate') or {}
+    if gate.get('version') != FUNCTIONAL_GATE_VERSION:
+        raise ContractError('retained candidate requires current functional quality reevaluation')
+    if (gate.get('status')!='passed' or gate.get('deck_sha256')!=digest(candidate['deck'])):
+        raise ContractError('retained candidate has not passed its own construction gate')
+    task_sha=(result.get('continuation') or {}).get('task_sha256')
+    if gate.get('task_sha256') != task_sha or (candidate.get('quality_evaluation') or {}).get('task_sha256') != task_sha:
+        raise ContractError('retained gate belongs to another original task')
+    if assets is None:
+        raise ContractError('retained selection requires current assets for reevaluation checks')
+    if _quality_binding(gate['policy'], candidate.get('quality_evaluation'), DeckParts.from_dict(candidate['deck'])) != gate['quality_binding']:
+        raise ContractError('retained gate quality binding differs')
+    if gate['policy'] != (result.get('continuation') or {}).get('quality_policy'):
+        raise ContractError('retained gate belongs to another fixed policy')
+    from .construction_layer_flow import functional_asset_version
+    from .effect_mechanisms import MechanismCatalog
+    if candidate['quality_evaluation']['asset_version'] != functional_asset_version(MechanismCatalog(assets)):
+        raise ContractError('retained candidate assets require reevaluation')
+    catalog = MechanismCatalog(assets)
+    if any(e['record']['text_sha256'] != catalog.card(int(k.split(':')[1])).text_sha256
+           for k,v in candidate['quality_evaluation'].get('coverage_details',{}).items() for e in v.get('effects',())):
+        raise ContractError('retained candidate card facts require reevaluation')
+    source=selection.get('source')
+    allowed=('updated_model_with_quality_order','completed_frozen_portfolio_comparisons')
+    if (source not in allowed or
+            selection.get('candidate_deck_sha256') != digest(candidate['deck'])):
+        raise ContractError('retained selection requires its actual selection source and inventory')
+    if not quality_selection_allowed(result,candidate):
+        raise ContractError('retained selection contradicts an established construction preference')
     if candidate["deck"] == result["best"]["deck"]:
         return deepcopy(result)
     if not any(r["deck"] == candidate["deck"] and task_checked(r) for r in result.get("retained_candidates", ())):
-        raise ContractError("deployment candidate was not emitted and task checked by the fourth role")
+        raise ContractError("deployment candidate was not emitted and task checked by the optimizer")
     selected = deepcopy(result)
     selected.update(best=deepcopy(candidate), verified_best=deepcopy(candidate),
                     construction_candidate=deepcopy(candidate), basic_cb=deepcopy(candidate["basic_cb"]),
+                    construction_gate=deepcopy(gate),
                     task_verified=True,cb_verified=bool(candidate.get("cb_verified")))
-    phase = selected["phases"][-1]
-    phase["portfolio_selection"] = {"source": "completed_fair_comparison", "deck_sha256": digest(candidate["deck"]),
+    continuation=selected.get('continuation')
+    if continuation:
+        continuation['candidate_version']+=1
+        version=continuation['candidate_version']
+        gate=deepcopy(gate);gate['candidate_version']=version
+        continuation.update(candidate=deepcopy(candidate),gate=gate,status='passed')
+        continuation['candidate']['deck_sha256']=digest(candidate['deck'])
+        continuation['handoffs'].append(dict(role='build_optimizer',candidate_version=version,
+            input_deck_sha256=digest(result['best']['deck']),output_deck_sha256=digest(candidate['deck'])))
+        selected['handoffs']=deepcopy(continuation['handoffs']);selected['construction_gate']=gate
+        for key in ('best','verified_best','construction_candidate'):
+            selected[key].update(candidate_version=version,construction_gate=deepcopy(gate))
+            selected[key]['basic_cb'].update(candidate_version=version,construction_gate=deepcopy(gate))
+        selected['basic_cb']=deepcopy(selected['best']['basic_cb'])
+    phase = selected["phases"][-1] if selected['phases'] else selected['continuation']['last_optimizer_phase']
+    phase["portfolio_selection"] = {"source": source, "evidence":deepcopy(selection), "deck_sha256": digest(candidate["deck"]),
                                    "original_primary_deck_sha256": digest(phase["proposal_deck"])}
     phase["proposal_deck"] = deepcopy(candidate["deck"]);phase["accepted_deck"] = deepcopy(candidate["deck"])
     phase["proposal_changes"] = changes(DeckParts.from_dict(phase["input_deck"]),DeckParts.from_dict(candidate["deck"]))
     fill = phase["stage_3"];fill["best_deck"] = deepcopy(candidate["deck"])
     fill["selected_attempt_index"] = next(i for i,r in enumerate(fill["attempts"])
         if r.get("concrete_proposal",{}).get("deck") == candidate["deck"])
+    if candidate.get("layer_evaluation") is not None:
+        # A later fair comparison may select another optimizer output.
+        # Its inventory/evidence must follow the selected list, while the
+        # original layer decision remains available as provenance.
+        chosen = candidate["candidate_index"]
+        reason = {"rule":source, "candidate_index":chosen,
+            "initial_layer_selection":deepcopy(fill.get("layer_selection")),
+            "layer_comparison":deepcopy(candidate.get("layer_comparison"))}
+        fill.update(layer_evaluation=deepcopy(candidate["layer_evaluation"]), layer_selection=reason)
+        fill['quality_evaluation']=deepcopy(candidate['quality_evaluation'])
+        phase['quality_evaluation']=deepcopy(candidate['quality_evaluation'])
+        phase['gate']=deepcopy(gate)
+        for name in ("best", "verified_best", "construction_candidate"):
+            selected[name]["layer_selection"] = deepcopy(reason)
+        trace = fill.get("candidate_trace")
+        if trace is not None:
+            trace.update(selected_candidate_index=chosen, selected_attempt_index=fill["selected_attempt_index"],
+                selection_rule=source, selection_reason=deepcopy(reason))
+            for row in trace["candidates"]:
+                row["selected"] = row["candidate_index"] == chosen
+                row["comparison_with_initial_selection"] = row.pop("comparison_with_selected", None)
+                row["comparison_with_selected"] = next((deepcopy(p) for p in trace.get("layers", {}).get("pairs", [])
+                    if {p["before"], p["after"]} == {row["candidate_index"], chosen}), None)
+    if continuation:
+        continuation['candidate']=deepcopy(selected['construction_candidate'])
+        continuation['candidate']['deck_sha256']=digest(candidate['deck'])
+        continuation['last_optimizer_phase']=resumable_optimizer_phase(phase)
     return selected

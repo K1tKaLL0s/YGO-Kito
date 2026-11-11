@@ -197,9 +197,9 @@ class LedgerFixture(unittest.TestCase):
 
     def test_warning_review_can_keep_deck_but_cannot_waive_later_mandatory_rebuild(self):
         self.results('forecast',100)
-        receipt={'kind':'completed_four_step_construction_review_v2','cycle_id':'review-1-0','task_sha256':TASK.sha256,
+        receipt={'kind':'completed_construction_review_v3','cycle_id':'review-1-0','task_sha256':TASK.sha256,
             'deployed_deck_sha256':digest(DECK.to_dict()),'trace_sha256':'a'*64,'task_verified':True,'basic_cb_inference_performed':True,
-            'roles':['build_goal','build_optimizer','build_goal','build_optimizer'],'reviewed_forecasts':['forecast']}
+            'roles':['build_goal','build_optimizer'],'construction_passed':True,'reviewed_forecasts':['forecast']}
         self.host.record_construction_review('candidate',receipt)
         self.assertFalse(self.host.forecast_status('forecast')['pending_review'])
         self.assertTrue(self.host.forecast_status('forecast')['alerts'])
@@ -263,7 +263,7 @@ class CourseControllerTests(unittest.TestCase):
         assets=SimpleNamespace(check_task=lambda t:None,validate=lambda t,d:None)
         proof={'status':'verified_success','task_sha256':TASK.sha256,'deck_sha256':digest(DECK.to_dict())}
         basic={'task_sha256':TASK.sha256,'subject_deck_sha256':digest(DECK.to_dict()),'engine_validation':proof}
-        result={'basic_cb':basic,'best':{'deck':DECK.to_dict()},'cb_verified':True,'alternation_completed':True}
+        result={'basic_cb':basic,'best':{'deck':DECK.to_dict()},'cb_verified':True,'construction_passed':True}
         instance=object.__new__(CourseForecast);instance.course=SimpleNamespace(construction=result)
         self.assertEqual(instance._existing_candidate_proof(TASK,DECK,assets),proof)
         result['basic_cb']['subject_deck_sha256']='f'*64

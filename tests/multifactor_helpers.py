@@ -2,9 +2,19 @@
 
 from pathlib import Path
 import tempfile
+import unittest
 
 from ygo_kito.multifactor import Factors, Group, Relation, RoleInput
 from ygo_kito.multifactor.functional_units import FunctionalContract, Dependency, KnownCondition, MemberAmount
+
+if not hasattr(unittest.TestCase, "enterContext"):
+    # Python 3.10 compatibility for the test harness (3.11+ has enterContext).
+    def _enter_context(self, context_manager):
+        value = context_manager.__enter__()
+        self.addCleanup(context_manager.__exit__, None, None, None)
+        return value
+
+    unittest.TestCase.enterContext = _enter_context
 
 
 def synthetic_contract(context_ref, members, *, key="synthetic-function"):

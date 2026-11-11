@@ -1,0 +1,4774 @@
+{
+  "records": [
+    {
+      "case_id": "gamma_empty_response",
+      "roles": [
+        0,
+        1,
+        0,
+        1,
+        1
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "γ与驱动者构成条件明确的紧凑响应机制。持续获胜路线为同调，单次阻断对其互补，不能自动升为构筑战略核心。两卡与空场等条件齐备，可跨构筑提供指定功能；不传给驱动者单卡。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=3).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:gamma_empty_response",
+        "card_texts.json#38814750",
+        "card_texts.json#49036338"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "gamma_occupied_field",
+      "roles": [
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "两卡结构仍紧凑，大小不随本次可否发动改变。γ要求己方没有怪兽，当前明确不满足，指定响应与互补收益为0；成员齐备不能替代条件。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=13).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:gamma_occupied_field",
+        "card_texts.json#38814750",
+        "card_texts.json#49036338"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "gamma_state_unknown",
+      "roles": [
+        0,
+        1,
+        0,
+        null,
+        null
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.0,
+        0.0
+      ],
+      "rationale": "卡文足以认定两件紧凑机制；它未承载声明的同调获胜方式。实时前提缺失，当前互补收益和指定功能可用性都保留未知。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=6).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:gamma_state_unknown",
+        "card_texts.json#38814750",
+        "card_texts.json#49036338"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "invoked_artemis_cycle",
+      "roles": [
+        0,
+        1,
+        1,
+        0,
+        1
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "检索召唤魔术、连接取得光素材、融合与回收形成紧凑闭环。查询以此循环取胜，核心为1；无另一声明主策略需要互补，支援为0。完整四件与资源条件支持条件式跨构筑功能。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=617).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:invoked_artemis_cycle",
+        "card_texts.json#74063034",
+        "card_texts.json#86120751",
+        "card_texts.json#34755994",
+        "card_texts.json#75286621"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "invoked_artemis_ritual_plan",
+      "roles": [
+        0,
+        1,
+        0,
+        1,
+        1
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "相同精确四件仍紧凑；这里声明的终结路线在仪式及黑混沌体系，梅尔卡巴循环提供互补阻断。单元可条件化跨构筑，结论不传给阿耳特弥斯单卡。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=3448).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:invoked_artemis_ritual_plan",
+        "card_texts.json#74063034",
+        "card_texts.json#86120751",
+        "card_texts.json#34755994",
+        "card_texts.json#75286621"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "invoked_almiraj_gardna",
+      "roles": [
+        0,
+        1,
+        1,
+        0,
+        1
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "阿莱斯特攻击1000且通常召唤，满足独角兔；独角兔为电子界连接，满足光属性安全守卫者。实际五件路线合法，仍为紧凑融合循环，不因多一步连接而变大轴。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=3606).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:invoked_almiraj_gardna",
+        "card_texts.json#74063034",
+        "card_texts.json#86120751",
+        "card_texts.json#2220237",
+        "card_texts.json#60303245",
+        "card_texts.json#75286621"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "destiny_dpe_actual_singleton",
+      "roles": [
+        0,
+        1,
+        0,
+        1,
+        1
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "冲刺人6星英雄、神性人命运英雄，满足凤凰人素材。融合命运发动后暗英雄限制用最后发动满足。精确四件是紧凑破坏、复活单元，对另一融合计划互补；不能把凤凰人单卡泛用化。该四件缓存仅1副，不复制稀疏样本。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=93896).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:destiny_dpe_actual_singleton",
+        "card_texts.json#52947044",
+        "card_texts.json#63362460",
+        "card_texts.json#81866673",
+        "card_texts.json#60461804"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "branded_complete_40",
+      "roles": [
+        1,
+        0,
+        1,
+        0,
+        null
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.0
+      ],
+      "rationale": "实际40张背景中的烙印、死狱乡、阿不思与圣女及对应额外终端，形成启动、连续融合、干扰、回收的多段网络，属较完整大机制并承担声明主策略。没有将整套网络指定为跨构筑最小单位，泛用保留null。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=15898).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:branded_complete_40",
+        "card_texts.json#17751597",
+        "card_texts.json#19304410",
+        "card_texts.json#29948294",
+        "card_texts.json#30271097",
+        "card_texts.json#44362883",
+        "card_texts.json#45883110",
+        "card_texts.json#55273560",
+        "card_texts.json#62962630",
+        "card_texts.json#68468459",
+        "card_texts.json#82738008",
+        "card_texts.json#95515789",
+        "card_texts.json#24915933",
+        "card_texts.json#38811586",
+        "card_texts.json#41373230",
+        "card_texts.json#44146295",
+        "card_texts.json#51409648",
+        "card_texts.json#74405783",
+        "card_texts.json#76666602",
+        "card_texts.json#78397661",
+        "card_texts.json#87746184",
+        "card_texts.json#89851827"
+      ],
+      "missing_member_generic": null,
+      "unsatisfied_condition_generic": null,
+      "counterfactual_confidence": {
+        "missing_member_generic": null,
+        "unsatisfied_condition_generic": null
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "branded_complete_60",
+      "roles": [
+        1,
+        0,
+        1,
+        0,
+        null
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.0
+      ],
+      "rationale": "实际60张背景增添黑衣龙、开幕、白之烙印、之剑等资源支路，并有神炎龙等不同额外配置。完整检索、融合、墓地与回收网络支持大机制及核心；按精确组成判断，不以牌组总量或固定启动清单判断。泛用最小单位未指定。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=16803).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:branded_complete_60",
+        "card_texts.json#17751597",
+        "card_texts.json#19096726",
+        "card_texts.json#19304410",
+        "card_texts.json#25451383",
+        "card_texts.json#29948294",
+        "card_texts.json#30271097",
+        "card_texts.json#34995106",
+        "card_texts.json#36637374",
+        "card_texts.json#44362883",
+        "card_texts.json#45484331",
+        "card_texts.json#45883110",
+        "card_texts.json#55273560",
+        "card_texts.json#60242223",
+        "card_texts.json#62962630",
+        "card_texts.json#68468459",
+        "card_texts.json#81767888",
+        "card_texts.json#82489470",
+        "card_texts.json#82738008",
+        "card_texts.json#95515789",
+        "card_texts.json#1906812",
+        "card_texts.json#3410461",
+        "card_texts.json#24915933",
+        "card_texts.json#38811586",
+        "card_texts.json#41373230",
+        "card_texts.json#44146295",
+        "card_texts.json#51409648",
+        "card_texts.json#70534340",
+        "card_texts.json#74405783",
+        "card_texts.json#76666602",
+        "card_texts.json#78397661",
+        "card_texts.json#87746184"
+      ],
+      "missing_member_generic": null,
+      "unsatisfied_condition_generic": null,
+      "counterfactual_confidence": {
+        "missing_member_generic": null,
+        "unsatisfied_condition_generic": null
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "branded_compact_fusion_route",
+      "roles": [
+        0,
+        1,
+        0,
+        1,
+        1
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "六种卡七张的明确路线不同于完整烙印网络：白之圣女是光，烙印龙是冰剑龙合法素材，灰烬龙满足送墓代价并给后续。闭合且紧凑，对星辰融合互补；整回合融合限定与资源已满足，精确七张可条件化跨构筑。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=585).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:branded_compact_fusion_route",
+        "card_texts.json#44362883",
+        "card_texts.json#55273560",
+        "card_texts.json#68468459",
+        "card_texts.json#41373230",
+        "card_texts.json#44146295",
+        "card_texts.json#87746184"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "hero_complete_clock_destiny",
+      "roles": [
+        1,
+        0,
+        1,
+        0,
+        null
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.0
+      ],
+      "rationale": "实际英雄群加暗黑都市、融合命运、假面变化、融合，具有场地破坏触发、复活、额外转换、检索和终端的多段闭合机制。属较完整大机制并承载声明的命运英雄策略；未另定整套网络的跨构筑最小单位，泛用null。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=9505).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:hero_complete_clock_destiny",
+        "card_texts.json#4663194",
+        "card_texts.json#10808715",
+        "card_texts.json#16605586",
+        "card_texts.json#21143940",
+        "card_texts.json#24094653",
+        "card_texts.json#25158975",
+        "card_texts.json#26964762",
+        "card_texts.json#40591390",
+        "card_texts.json#52947044",
+        "card_texts.json#58288218",
+        "card_texts.json#62542673",
+        "card_texts.json#98931282",
+        "card_texts.json#23204029",
+        "card_texts.json#54641720",
+        "card_texts.json#58004362",
+        "card_texts.json#58481572",
+        "card_texts.json#60461804",
+        "card_texts.json#63813056",
+        "card_texts.json#69394324",
+        "card_texts.json#90579153",
+        "card_texts.json#93657021"
+      ],
+      "missing_member_generic": null,
+      "unsatisfied_condition_generic": null,
+      "counterfactual_confidence": {
+        "missing_member_generic": null,
+        "unsatisfied_condition_generic": null
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "hero_complete_shadow_mask",
+      "roles": [
+        1,
+        0,
+        1,
+        0,
+        null
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.0
+      ],
+      "rationale": "第二真实原型加入影雾与不同元素、命运、特异英雄额外配置，保留完整场地—命运英雄循环和假面转换。仍是大机制及声明核心，不使用固定英雄六件定义；没有把孤立额外终端的功能当作整套网络泛用。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=26880).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:hero_complete_shadow_mask",
+        "card_texts.json#4663194",
+        "card_texts.json#10808715",
+        "card_texts.json#16605586",
+        "card_texts.json#21143940",
+        "card_texts.json#24094653",
+        "card_texts.json#25158975",
+        "card_texts.json#26964762",
+        "card_texts.json#40591390",
+        "card_texts.json#50720316",
+        "card_texts.json#52947044",
+        "card_texts.json#58288218",
+        "card_texts.json#62542673",
+        "card_texts.json#98931282",
+        "card_texts.json#8593259",
+        "card_texts.json#19324993",
+        "card_texts.json#23204029",
+        "card_texts.json#30757127",
+        "card_texts.json#54641720",
+        "card_texts.json#55171412",
+        "card_texts.json#58004362",
+        "card_texts.json#58481572",
+        "card_texts.json#60461804",
+        "card_texts.json#90579153"
+      ],
+      "missing_member_generic": null,
+      "unsatisfied_condition_generic": null,
+      "counterfactual_confidence": {
+        "missing_member_generic": null,
+        "unsatisfied_condition_generic": null
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "hero_crow_furnace_mask_route",
+      "roles": [
+        0,
+        1,
+        0,
+        1,
+        1
+      ],
+      "confidence": [
+        0.96,
+        0.96,
+        0.92,
+        0.95,
+        0.82
+      ],
+      "rationale": "精确四件是通常召唤暮鸦的一卡变化路线；炉火可把检索后的自身作为随后丢弃，不需固定第五成员。为另一命运英雄循环贡献墓地干扰，结构紧凑；接受通常召唤与整回合英雄额外限定时可跨构筑，不能把暗爪单卡判泛用。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=9505).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:hero_crow_furnace_mask_route",
+        "card_texts.json#10808715",
+        "card_texts.json#21143940",
+        "card_texts.json#58288218",
+        "card_texts.json#58481572"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "tourguide_link_search",
+      "roles": [
+        0,
+        1,
+        0,
+        1,
+        1
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "死亡导游叫出三眼怪后连接，三眼怪在墓地的效果可发动；检索卡本回合禁用效果，查询明确留到后续。三件为紧凑素材、检索功能，可跨接受通常召唤占用的连接构筑。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=15199).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:tourguide_link_search",
+        "card_texts.json#10802915",
+        "card_texts.json#26202165",
+        "card_texts.json#58699500"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "tourguide_normal_already_used",
+      "roles": [
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "结构仍是紧凑三件；死亡导游只有通常召唤时拉怪，当前无通常召唤次数或替代途径，指定启动功能不可用。不能从共现忽略前提，当前泛用为0。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=16080).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:tourguide_normal_already_used",
+        "card_texts.json#10802915",
+        "card_texts.json#26202165",
+        "card_texts.json#58699500"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "dogmatika_late_turn_response",
+      "roles": [
+        0,
+        1,
+        0,
+        1,
+        1
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "天底—旧神—圣女—骑士为紧凑取卡及破坏/无效单元。旧神攻击足够检索圣女，骑士无效要求己方另有教导、场上有额外出身怪兽，声明均满足；封锁用顺序处理。互补再世而非一次无效即成为核心。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=120).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:dogmatika_late_turn_response",
+        "card_texts.json#1984618",
+        "card_texts.json#60303688",
+        "card_texts.json#69680031",
+        "card_texts.json#80532587"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "dogmatika_extra_order_conflict",
+      "roles": [
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "四件仍为紧凑机制；天底和圣女检索后均封锁额外召唤至回合结束，指定先天底再额外的顺序不适配。当前目的的互补与泛用可用性为0，不能偷换成可改顺序后的结果。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=1228).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:dogmatika_extra_order_conflict",
+        "card_texts.json#1984618",
+        "card_texts.json#60303688",
+        "card_texts.json#69680031",
+        "card_texts.json#80532587"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "dogmatika_declared_battle_plan",
+      "roles": [
+        0,
+        1,
+        1,
+        0,
+        1
+      ],
+      "confidence": [
+        0.95,
+        0.95,
+        0.87,
+        0.88,
+        0.88
+      ],
+      "rationale": "相同精确四件在声明以教导控场、战斗增攻为获胜路线时可承担核心，仍是紧凑机制。该查询不恢复原作者意图。没有另一声明主策略需互补，支援为0；场上额外出身怪兽、手卡等条件按声明满足。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=128).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:dogmatika_declared_battle_plan",
+        "card_texts.json#1984618",
+        "card_texts.json#60303688",
+        "card_texts.json#69680031",
+        "card_texts.json#80532587"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "maxx_fusion_response",
+      "roles": [
+        0,
+        0,
+        0,
+        1,
+        1
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "一张建立按对方特召抽牌的回合效果，没有内部联动机制，两类轴均0。为融合计划贡献资源；一次抽牌响应不能升为整副构筑核心。送墓、次数和后续特召明确，单卡为完整最小抽牌单位。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=1).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:maxx_fusion_response",
+        "card_texts.json#23434538"
+      ],
+      "missing_member_generic": null,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": null,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "maxx_future_summons_unknown",
+      "roles": [
+        0,
+        0,
+        0,
+        null,
+        null
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.0,
+        0.0
+      ],
+      "rationale": "卡文为单卡条件式抽牌响应，不构成内部轴，也未承载卡通攻击策略。当前代价、次数及对方行动信息缺失，互补贡献与指定功能可用性均null，不把未知当作负例。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=13).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:maxx_future_summons_unknown",
+        "card_texts.json#23434538"
+      ],
+      "missing_member_generic": null,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": null,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "desires_striker_resources",
+      "roles": [
+        0,
+        0,
+        0,
+        1,
+        1
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "单卡完成除外10抽2，没有联动轴。给闪刀循环贡献手牌而不承载循环本身；余量和权限明确满足，可作为跨构筑最小抽牌单位。没有声称随机除外会保留任何关键卡。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=48).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:desires_striker_resources",
+        "card_texts.json#35261759"
+      ],
+      "missing_member_generic": null,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": null,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "desires_low_deck",
+      "roles": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "剩9张无法支付指定顶10张里侧除外代价，当前抽牌功能明确不可用，泛用为0。单卡不因在灵摆牌表共现而变成轴或核心。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=5946).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:desires_low_deck",
+        "card_texts.json#35261759"
+      ],
+      "missing_member_generic": null,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": null,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "endymion_complete_spell_counters",
+      "roles": [
+        1,
+        0,
+        1,
+        0,
+        null
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.0
+      ],
+      "rationale": "创圣、仆从、胡狼王、尊主、统辖及到达构成实际计数器与灵摆网络：积累、检索、支付、双体特召及两类无效均有卡文。完整多段联动支持大轴及声明核心。未指定跨构筑最小单位，泛用null。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=5946).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:endymion_complete_spell_counters",
+        "card_texts.json#3611830",
+        "card_texts.json#27354732",
+        "card_texts.json#38943357",
+        "card_texts.json#39123673",
+        "card_texts.json#53842431",
+        "card_texts.json#92559258"
+      ],
+      "missing_member_generic": null,
+      "unsatisfied_condition_generic": null,
+      "counterfactual_confidence": {
+        "missing_member_generic": null,
+        "unsatisfied_condition_generic": null
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "endymion_complete_modern_spellcasters",
+      "roles": [
+        0,
+        1,
+        0,
+        1,
+        null
+      ],
+      "confidence": [
+        0.86,
+        0.9,
+        0.93,
+        0.92,
+        0.0
+      ],
+      "rationale": "现代侍女、皇国、雷古勒斯是相对紧凑的检索、手中特召和换人机制，实际含玻璃、万能杰妮与魔女的圣夜行等目标。对绝火魔法师路线互补；完整不等于大轴，恩底弥翁名字也不推出指示物。多支路完整组没有另设最小泛用单位，维持null。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=343).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:endymion_complete_modern_spellcasters",
+        "card_texts.json#7656689",
+        "card_texts.json#22623509",
+        "card_texts.json#32353566",
+        "card_texts.json#34041788",
+        "card_texts.json#38943357",
+        "card_texts.json#64756282",
+        "card_texts.json#96228804"
+      ],
+      "missing_member_generic": null,
+      "unsatisfied_condition_generic": null,
+      "counterfactual_confidence": {
+        "missing_member_generic": null,
+        "unsatisfied_condition_generic": null
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "endymion_complete_pendulum_context",
+      "roles": [
+        1,
+        0,
+        0,
+        1,
+        null
+      ],
+      "confidence": [
+        0.98,
+        0.95,
+        0.88,
+        0.94,
+        0.0
+      ],
+      "rationale": "与另案是同一真实牌表、相同精确16张子组，但查询以七音服、龙剑士灵摆连接进攻为获胜方式。完整计数器网络仍为大轴，此时提供互补无效；大轴不等于主轴。泛用最小单位未指定，null。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=5946).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:endymion_complete_pendulum_context",
+        "card_texts.json#3611830",
+        "card_texts.json#27354732",
+        "card_texts.json#38943357",
+        "card_texts.json#39123673",
+        "card_texts.json#53842431",
+        "card_texts.json#92559258"
+      ],
+      "missing_member_generic": null,
+      "unsatisfied_condition_generic": null,
+      "counterfactual_confidence": {
+        "missing_member_generic": null,
+        "unsatisfied_condition_generic": null
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "adventurer_ritual_turn",
+      "roles": [
+        0,
+        1,
+        0,
+        1,
+        1
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "四件形成衍生物、旅路检索、骑手无效和装备回手的紧凑机制。仪限制整个回合，声明只用特召怪兽场上效果且勇者保留，相关条件满足；该精确单元可条件化跨构筑，为仪式取胜贡献保护。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=36903).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:adventurer_ritual_turn",
+        "card_texts.json#2563463",
+        "card_texts.json#3285551",
+        "card_texts.json#38745520",
+        "card_texts.json#39568067"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "adventurer_normal_effect_conflict",
+      "roles": [
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "四件结构完整紧凑；仪限制整个发动回合，已发动非特召场上怪兽效果便不能发动仪。不是发动后限制，不能晚发动绕过。当前路线对声明目的失效，泛用0。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=32021).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:adventurer_normal_effect_conflict",
+        "card_texts.json#2563463",
+        "card_texts.json#3285551",
+        "card_texts.json#38745520",
+        "card_texts.json#39568067"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "tenyi_vishuda_monk",
+      "roles": [
+        0,
+        1,
+        0,
+        1,
+        1
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "大同蟠龙先特召并转成非效果拳僧，自给墓地回手条件；两件紧凑、可跨构筑提供连接与处理场面。相剑承担持续进攻，这次回手不自动变成核心。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=15164).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:tenyi_vishuda_monk",
+        "card_texts.json#23431858",
+        "card_texts.json#32519092"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "tenyi_effect_monster_present",
+      "roles": [
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "两件仍紧凑；大同蟠龙自特召要求己方没有效果怪兽，当前不满足且无通常召唤替代。指定功能失效，泛用0；不能以其它时点可用代替当前条件。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=29729).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:tenyi_effect_monster_present",
+        "card_texts.json#23431858",
+        "card_texts.json#32519092"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "darkhole_striker_board_clear",
+      "roles": [
+        0,
+        0,
+        0,
+        1,
+        1
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "黑洞单卡破坏全场怪兽，没有内部轴；空场清对方怪兽对闪刀互补，清场动作不等于构筑核心。条件满足，1张是完整最小清场单位。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=26227).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:darkhole_striker_board_clear",
+        "card_texts.json#53129443"
+      ],
+      "missing_member_generic": null,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": null,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "darkhole_kuriboh_defence",
+      "roles": [
+        0,
+        0,
+        0,
+        1,
+        1
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "另一真实背景中同一单卡提供相同清场功能；全牌表3张黑洞不让1张选组成为轴。防守和后续额外进攻为声明路线，当前破坏提供互补。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=7355).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:darkhole_kuriboh_defence",
+        "card_texts.json#53129443"
+      ],
+      "missing_member_generic": null,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": null,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "striker_complete_resource_plan",
+      "roles": [
+        1,
+        0,
+        1,
+        0,
+        null
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.0
+      ],
+      "rationale": "实际含零衣、露世、连刀、交闪、双纽、抓锚与多种额外转换、回收节点，覆盖启动、积累魔法、干扰和再循环。完整大网络承载闪刀资源策略；不压成任意固定清单，泛用最小单位未指定。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=639).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:striker_complete_resource_plan",
+        "card_texts.json#9726840",
+        "card_texts.json#26077387",
+        "card_texts.json#34433770",
+        "card_texts.json#37351133",
+        "card_texts.json#63166095",
+        "card_texts.json#98338152",
+        "card_texts.json#8491308",
+        "card_texts.json#25072579",
+        "card_texts.json#63013339",
+        "card_texts.json#63288573",
+        "card_texts.json#75147529",
+        "card_texts.json#76072561",
+        "card_texts.json#90673288",
+        "card_texts.json#98462037"
+      ],
+      "missing_member_generic": null,
+      "unsatisfied_condition_generic": null,
+      "counterfactual_confidence": {
+        "missing_member_generic": null,
+        "unsatisfied_condition_generic": null
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "striker_complete_ritual_finish",
+      "roles": [
+        1,
+        0,
+        0,
+        1,
+        null
+      ],
+      "confidence": [
+        0.97,
+        0.94,
+        0.86,
+        0.93,
+        0.0
+      ],
+      "rationale": "保留完整闪刀检索、连接、干扰、回收网络，数量和组成不同于第一原型，仍按功能闭合判大轴。查询以另一仪式资源与黑混沌除外方向终结，完整网络在前中期提供互补资源，可同时大轴与支援。泛用最小单位未指定。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=10317).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:striker_complete_ritual_finish",
+        "card_texts.json#9726840",
+        "card_texts.json#26077387",
+        "card_texts.json#34433770",
+        "card_texts.json#37351133",
+        "card_texts.json#63166095",
+        "card_texts.json#98338152",
+        "card_texts.json#8491308",
+        "card_texts.json#25072579",
+        "card_texts.json#63013339",
+        "card_texts.json#63288573",
+        "card_texts.json#75147529",
+        "card_texts.json#76072561",
+        "card_texts.json#90673288",
+        "card_texts.json#98462037"
+      ],
+      "missing_member_generic": null,
+      "unsatisfied_condition_generic": null,
+      "counterfactual_confidence": {
+        "missing_member_generic": null,
+        "unsatisfied_condition_generic": null
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "striker_drones_link_recover",
+      "roles": [
+        0,
+        1,
+        0,
+        1,
+        1
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "两件自给非炎闪刀素材和回收。大黄蜂无同名每回合1次，燎里在额外区时主要区仍空，可再次发动。是紧凑跨构筑连接起点，与完整闪刀网络不同；不把燎里单卡或任意闪刀碎片泛用化。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=203).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:striker_drones_link_recover",
+        "card_texts.json#52340444",
+        "card_texts.json#63288573"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "striker_drones_occupied_main",
+      "roles": [
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "精确两件仍紧凑；大黄蜂要求主要怪兽区无怪兽，当前不满足。即使有燎里也不能越过发动条件，指定功能及泛用0，成员完整不能替代条件。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=204).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:striker_drones_occupied_main",
+        "card_texts.json#52340444",
+        "card_texts.json#63288573"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "predaplant_search_superpoly",
+      "roles": [
+        0,
+        1,
+        0,
+        1,
+        1
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "这里最小输出是检索超融合与两体，不要求当下发动超融合。三件已闭合，可跨接受通常召唤与手卡怪兽代价的构筑。持续融合终端是另一层次，该三件为紧凑取卡机制；不等于已验证立即融合成功。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=1308).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:predaplant_search_superpoly",
+        "card_texts.json#35272499",
+        "card_texts.json#48130397",
+        "card_texts.json#61677004"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "predaplant_compact_fusion_attack",
+      "roles": [
+        0,
+        1,
+        1,
+        0,
+        1
+      ],
+      "confidence": [
+        0.96,
+        0.95,
+        0.88,
+        0.87,
+        0.91
+      ],
+      "rationale": "精确四件与两次代价满足时，从根蜂兰蝎导向凶饿毒；两只捕食均暗属性且非衍生物，符合素材。结构紧凑，查询以这条融合进攻作为取胜路线，故核心1；不是一次响应被自动提升为核心。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=1302).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:predaplant_compact_fusion_attack",
+        "card_texts.json#35272499",
+        "card_texts.json#48130397",
+        "card_texts.json#61677004",
+        "card_texts.json#41209827"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "predaplant_second_discard_missing",
+      "roles": [
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "能检索超融合，但本查询四件指定输出为立即融合奇美拉；超融合须另丢1手牌，手中只有自身不能支付。合法成员和素材不弥补第二弃手缺口，指定融合功能泛用0；不否认先前检索已经完成。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=3499).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:predaplant_second_discard_missing",
+        "card_texts.json#35272499",
+        "card_texts.json#48130397",
+        "card_texts.json#61677004",
+        "card_texts.json#25586143"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "duster_cartoon_backrow_clear",
+      "roles": [
+        0,
+        0,
+        0,
+        1,
+        1
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "单卡清对方魔陷，无内部联动轴。为卡通进攻直接互补，未承载持续获胜路线。目标及魔法发动条件满足，1张是完整跨构筑最小清场单位。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=47).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:duster_cartoon_backrow_clear",
+        "card_texts.json#18144506"
+      ],
+      "missing_member_generic": null,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": null,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "duster_no_backrow_now",
+      "roles": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "羽毛扫只破坏对方场上魔陷，当前没有可作用卡，当前清场贡献与指定功能可用性0。仅限无魔陷声明情境，不能推广成羽毛扫一般不泛用。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=51).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:duster_no_backrow_now",
+        "card_texts.json#18144506"
+      ],
+      "missing_member_generic": null,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": null,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "只对指定路线整体输出作判断：缺任一指定成员或使关键前提不满足，整体输出不可用；不否认剩余部分可完成其它动作，也不广播其它角色。"
+    },
+    {
+      "case_id": "v5_nibiru_single_live",
+      "roles": [
+        0,
+        0,
+        0,
+        1,
+        1
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "这是由一张效果在一次处理内完成的条件响应、解放与自特召，没有建立可独立衔接的启动—搜索—循环网络，故大小轴均0；理由是作用结构，不是单卡数量规则。它为声明融合路线改变当前场面，单次回应不承载整副获胜策略。精确单卡合同与条件齐备，泛用1。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=3448).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:v5_nibiru_single_live",
+        "card_texts.json#27204311"
+      ],
+      "missing_member_generic": null,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": null,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "仅针对unit合同指定的整体功能输出；不把其不可用传播给其他角色或实际牌表中的替代路线。",
+      "scale_budget_invariant": true,
+      "scale_budget_invariant_scope": "true仅表示本精确选组的非机制规模判定不依赖牌表总量；不广播其它角色。",
+      "applicability_scope": {
+        "exact_selected_main": [
+          [
+            27204311,
+            1
+          ]
+        ],
+        "exact_selected_extra": [],
+        "functional_output": "对方召唤只数达到门槛后，解放双方尽可能多的表侧怪兽并从手特召尼比鲁，再给对方衍生物。",
+        "primary_plan": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。",
+        "conditions": [
+          {
+            "key": "hand_main_once",
+            "status": "satisfied"
+          },
+          {
+            "key": "five_opponent_monsters",
+            "status": "satisfied"
+          },
+          {
+            "key": "tribute_and_zones",
+            "status": "satisfied"
+          }
+        ],
+        "reuse": "可跨真实构筑复用，但须相同精确选组及数量、相同功能合同、同等主计划机械目标和相同相关条件；不得泛化到系列其他成员、其它召唤限制或缺失成员。"
+      },
+      "generic_label_scope": "整个selected精确查询选组；unit若为严格子功能合同，其正可用性不传给完整选组。"
+    },
+    {
+      "case_id": "v5_nibiru_below_threshold",
+      "roles": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "与前案相同的响应结构仍非联动机制；当前对方仅4只，不满足至少5只门槛，不能提供本次解放与自特召，Support与generic为0。没有用条件不满足去改变规模属性。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=3448).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:v5_nibiru_below_threshold",
+        "card_texts.json#27204311"
+      ],
+      "missing_member_generic": null,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": null,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "仅针对unit合同指定的整体功能输出；不把其不可用传播给其他角色或实际牌表中的替代路线。",
+      "scale_budget_invariant": true,
+      "scale_budget_invariant_scope": "true仅表示本精确选组的非机制规模判定不依赖牌表总量；不广播其它角色。",
+      "applicability_scope": {
+        "exact_selected_main": [
+          [
+            27204311,
+            1
+          ]
+        ],
+        "exact_selected_extra": [],
+        "functional_output": "同一尼比鲁解放并自特召合同；当前门槛未达。",
+        "primary_plan": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。",
+        "conditions": [
+          {
+            "key": "hand_main_once",
+            "status": "satisfied"
+          },
+          {
+            "key": "five_opponent_monsters",
+            "status": "unsatisfied"
+          },
+          {
+            "key": "tribute_zones",
+            "status": "satisfied"
+          }
+        ],
+        "reuse": "可跨真实构筑复用，但须相同精确选组及数量、相同功能合同、同等主计划机械目标和相同相关条件；不得泛化到系列其他成员、其它召唤限制或缺失成员。"
+      },
+      "generic_label_scope": "整个selected精确查询选组；unit若为严格子功能合同，其正可用性不传给完整选组。"
+    },
+    {
+      "case_id": "v5_etele_ogre_from_deck",
+      "roles": [
+        0,
+        1,
+        0,
+        1,
+        1
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "瞬移明确叫出一个合法目标，形成根魔法到调整素材的紧凑联合路线；不需要目标自己的效果才闭合。它提供素材而非承担完整同调无效战略。精确2张为该固定3星念动力调整输出的最低单位，目标在卡组且条件满足，可跨相同素材需求构筑复用。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=39).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:v5_etele_ogre_from_deck",
+        "card_texts.json#67723438",
+        "card_texts.json#59438930"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "仅针对unit合同指定的整体功能输出；不把其不可用传播给其他角色或实际牌表中的替代路线。",
+      "scale_budget_invariant": false,
+      "scale_budget_invariant_scope": null,
+      "applicability_scope": {
+        "exact_selected_main": [
+          [
+            59438930,
+            1
+          ],
+          [
+            67723438,
+            1
+          ]
+        ],
+        "exact_selected_extra": [],
+        "functional_output": "不占通常召唤取得1只3星念动力族调整作为本回合素材。",
+        "primary_plan": "以同调召唤建立鲜花女男爵等怪兽的无效场面，再以这些怪兽攻击获胜。",
+        "conditions": [
+          {
+            "key": "legal_psychic_tuner",
+            "status": "satisfied"
+          },
+          {
+            "key": "spell_and_zone",
+            "status": "satisfied"
+          },
+          {
+            "key": "use_before_end_phase",
+            "status": "satisfied"
+          },
+          {
+            "key": "target_location",
+            "status": "satisfied"
+          }
+        ],
+        "reuse": "可跨真实构筑复用，但须相同精确选组及数量、相同功能合同、同等主计划机械目标和相同相关条件；不得泛化到系列其他成员、其它召唤限制或缺失成员。"
+      },
+      "generic_label_scope": "整个selected精确查询选组；unit若为严格子功能合同，其正可用性不传给完整选组。"
+    },
+    {
+      "case_id": "v5_etele_ogre_from_hand",
+      "roles": [
+        0,
+        1,
+        0,
+        1,
+        1
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "手牌位置没有破坏这条紧凑路线，因为瞬移明确允许手卡或卡组。与速攻旋转只能从卡组叫目标的合同区分。两张精确素材获取单元条件满足，仍可提供相同跨构筑功能；不把幽鬼兔单卡轴化。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=1742).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:v5_etele_ogre_from_hand",
+        "card_texts.json#67723438",
+        "card_texts.json#59438930"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "仅针对unit合同指定的整体功能输出；不把其不可用传播给其他角色或实际牌表中的替代路线。",
+      "scale_budget_invariant": false,
+      "scale_budget_invariant_scope": null,
+      "applicability_scope": {
+        "exact_selected_main": [
+          [
+            59438930,
+            1
+          ],
+          [
+            67723438,
+            1
+          ]
+        ],
+        "exact_selected_extra": [],
+        "functional_output": "同一3星念动力调整素材输出，目标位于手卡。",
+        "primary_plan": "以同调召唤建立鲜花女男爵等怪兽的无效场面，再以这些怪兽攻击获胜。",
+        "conditions": [
+          {
+            "key": "legal_psychic_tuner",
+            "status": "satisfied"
+          },
+          {
+            "key": "spell_and_zone",
+            "status": "satisfied"
+          },
+          {
+            "key": "use_before_end_phase",
+            "status": "satisfied"
+          },
+          {
+            "key": "target_location",
+            "status": "satisfied"
+          }
+        ],
+        "reuse": "可跨真实构筑复用，但须相同精确选组及数量、相同功能合同、同等主计划机械目标和相同相关条件；不得泛化到系列其他成员、其它召唤限制或缺失成员。"
+      },
+      "generic_label_scope": "整个selected精确查询选组；unit若为严格子功能合同，其正可用性不传给完整选组。"
+    },
+    {
+      "case_id": "v5_quick_launch_tracer_deck",
+      "roles": [
+        0,
+        1,
+        0,
+        1,
+        1
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "根魔法直接提供合法弹丸调整，紧凑联合路线不依赖曳光龙继续拉怪。速攻旋转的不能攻击、结束阶段破坏不妨碍当前素材用途；不发动曳光龙便不引入其效果后的暗属性额外限定。精确2张合同可跨相同素材需求与条件复用。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=563).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:v5_quick_launch_tracer_deck",
+        "card_texts.json#31443476",
+        "card_texts.json#68464358"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "仅针对unit合同指定的整体功能输出；不把其不可用传播给其他角色或实际牌表中的替代路线。",
+      "scale_budget_invariant": false,
+      "scale_budget_invariant_scope": null,
+      "applicability_scope": {
+        "exact_selected_main": [
+          [
+            31443476,
+            1
+          ],
+          [
+            68464358,
+            1
+          ]
+        ],
+        "exact_selected_extra": [],
+        "functional_output": "不占通常召唤取得1只4星暗属性龙族调整作当回合素材。",
+        "primary_plan": "通过龙族连接怪兽衔接资源，以装弹枪管狞猛龙等同调怪兽建立无效场面取得胜利。",
+        "conditions": [
+          {
+            "key": "legal_rokket",
+            "status": "satisfied"
+          },
+          {
+            "key": "root_zone_permission",
+            "status": "satisfied"
+          },
+          {
+            "key": "pure_material_use",
+            "status": "satisfied"
+          },
+          {
+            "key": "target_in_deck",
+            "status": "satisfied"
+          }
+        ],
+        "reuse": "可跨真实构筑复用，但须相同精确选组及数量、相同功能合同、同等主计划机械目标和相同相关条件；不得泛化到系列其他成员、其它召唤限制或缺失成员。"
+      },
+      "generic_label_scope": "整个selected精确查询选组；unit若为严格子功能合同，其正可用性不传给完整选组。"
+    },
+    {
+      "case_id": "v5_quick_launch_target_only_in_hand",
+      "roles": [
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "相同根—目标机制仍紧凑，当前位置条件却不满足：速攻旋转只从卡组叫怪。不能把瞬移允许手卡的条件移植过来。当前指定输出不可用，Support与generic为0；不声称实际整副牌表不能另选弹丸。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=912).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:v5_quick_launch_target_only_in_hand",
+        "card_texts.json#31443476",
+        "card_texts.json#68464358"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "仅针对unit合同指定的整体功能输出；不把其不可用传播给其他角色或实际牌表中的替代路线。",
+      "scale_budget_invariant": false,
+      "scale_budget_invariant_scope": null,
+      "applicability_scope": {
+        "exact_selected_main": [
+          [
+            31443476,
+            1
+          ],
+          [
+            68464358,
+            1
+          ]
+        ],
+        "exact_selected_extra": [],
+        "functional_output": "指定曳光龙4星调整素材输出，禁止换用合同外弹丸。",
+        "primary_plan": "通过龙族连接怪兽衔接资源，以装弹枪管狞猛龙等同调怪兽建立无效场面取得胜利。",
+        "conditions": [
+          {
+            "key": "legal_rokket",
+            "status": "satisfied"
+          },
+          {
+            "key": "root_zone_permission",
+            "status": "satisfied"
+          },
+          {
+            "key": "pure_material_use",
+            "status": "satisfied"
+          },
+          {
+            "key": "target_in_deck",
+            "status": "unsatisfied"
+          }
+        ],
+        "reuse": "可跨真实构筑复用，但须相同精确选组及数量、相同功能合同、同等主计划机械目标和相同相关条件；不得泛化到系列其他成员、其它召唤限制或缺失成员。"
+      },
+      "generic_label_scope": "整个selected精确查询选组；unit若为严格子功能合同，其正可用性不传给完整选组。"
+    },
+    {
+      "case_id": "v5_unexpected_dai_seed",
+      "roles": [
+        0,
+        1,
+        0,
+        1,
+        1
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "本地卡库把Unexpected Dai记为粗人预料911883，目标地灵是1星通常植物，符合4星以下通常怪兽。根—目标闭合提供素材，属紧凑机制，后续完整植物连接网络另有承担。精确2张可跨相同植物通常素材用途、空场条件复用，不能推广到任意通常怪兽或任意场面。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=54424).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:v5_unexpected_dai_seed",
+        "card_texts.json#911883",
+        "card_texts.json#27520594"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "仅针对unit合同指定的整体功能输出；不把其不可用传播给其他角色或实际牌表中的替代路线。",
+      "scale_budget_invariant": false,
+      "scale_budget_invariant_scope": null,
+      "applicability_scope": {
+        "exact_selected_main": [
+          [
+            911883,
+            1
+          ],
+          [
+            27520594,
+            1
+          ]
+        ],
+        "exact_selected_extra": [],
+        "functional_output": "空场时不占通常召唤取得1只1星通常植物作后续素材。",
+        "primary_plan": "通过植物族的连接召唤衔接圣天树、圣蔓与其它植物资源，最终以植物怪兽攻击获胜。",
+        "conditions": [
+          {
+            "key": "empty_field",
+            "status": "satisfied"
+          },
+          {
+            "key": "legal_normal_in_deck",
+            "status": "satisfied"
+          },
+          {
+            "key": "root_permission",
+            "status": "satisfied"
+          }
+        ],
+        "reuse": "可跨真实构筑复用，但须相同精确选组及数量、相同功能合同、同等主计划机械目标和相同相关条件；不得泛化到系列其他成员、其它召唤限制或缺失成员。"
+      },
+      "generic_label_scope": "整个selected精确查询选组；unit若为严格子功能合同，其正可用性不传给完整选组。"
+    },
+    {
+      "case_id": "v5_gamma_query_missing_driver",
+      "roles": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "γ不能通常召唤，其当前命名特召/无效效果明确需要驱动者。选组内无替代或独立闭合子链，规模否定来自卡文依赖断裂而不是卡数。当前也没有提供可用素材或响应，故核心/支援0；指定双体合同不完整，generic0。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=3).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:v5_gamma_query_missing_driver",
+        "card_texts.json#38814750"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "仅针对unit合同指定的整体功能输出；不把其不可用传播给其他角色或实际牌表中的替代路线。",
+      "scale_budget_invariant": true,
+      "scale_budget_invariant_scope": "true仅表示本精确选组的非机制规模判定不依赖牌表总量；不广播其它角色。",
+      "applicability_scope": {
+        "exact_selected_main": [
+          [
+            38814750,
+            1
+          ]
+        ],
+        "exact_selected_extra": [],
+        "functional_output": "原γ/驱动者双体响应合同；缺驱动者。",
+        "primary_plan": "以杀手级调整曲等同调怪兽持续组织场面，并以同调怪兽攻击取得胜利。",
+        "conditions": [
+          {
+            "key": "gamma_response",
+            "status": "satisfied"
+          },
+          {
+            "key": "driver_in_query",
+            "status": "unsatisfied"
+          }
+        ],
+        "reuse": "可跨真实构筑复用，但须相同精确选组及数量、相同功能合同、同等主计划机械目标和相同相关条件；不得泛化到系列其他成员、其它召唤限制或缺失成员。"
+      },
+      "generic_label_scope": "整个selected精确查询选组；unit若为严格子功能合同，其正可用性不传给完整选组。"
+    },
+    {
+      "case_id": "v5_driver_query_missing_gamma",
+      "roles": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "驱动者本身是6星通常怪兽，没有独立效果或内部联动。缺γ后原响应链断开；当前又无上级召唤解放或其它特召办法，无法提供可用同调素材，因此当前支援0。规模与核心否定各有上述依据，不是generic0向其它维度广播。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=3).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:v5_driver_query_missing_gamma",
+        "card_texts.json#49036338"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "仅针对unit合同指定的整体功能输出；不把其不可用传播给其他角色或实际牌表中的替代路线。",
+      "scale_budget_invariant": true,
+      "scale_budget_invariant_scope": "true仅表示本精确选组的非机制规模判定不依赖牌表总量；不广播其它角色。",
+      "applicability_scope": {
+        "exact_selected_main": [
+          [
+            49036338,
+            1
+          ]
+        ],
+        "exact_selected_extra": [],
+        "functional_output": "原γ带出驱动者合同；缺发动根。",
+        "primary_plan": "以杀手级调整曲等同调怪兽持续组织场面，并以同调怪兽攻击取得胜利。",
+        "conditions": [
+          {
+            "key": "gamma_in_query",
+            "status": "unsatisfied"
+          },
+          {
+            "key": "no_other_deployment",
+            "status": "satisfied"
+          }
+        ],
+        "reuse": "可跨真实构筑复用，但须相同精确选组及数量、相同功能合同、同等主计划机械目标和相同相关条件；不得泛化到系列其他成员、其它召唤限制或缺失成员。"
+      },
+      "generic_label_scope": "整个selected精确查询选组；unit若为严格子功能合同，其正可用性不传给完整选组。"
+    },
+    {
+      "case_id": "v5_invoked_query_missing_artemis",
+      "roles": [
+        0,
+        1,
+        null,
+        null,
+        0
+      ],
+      "confidence": [
+        0.96,
+        0.9,
+        0.0,
+        0.0,
+        0.97
+      ],
+      "rationale": "缺光素材转换使原融合终端合同失败，generic0；但阿莱斯特通常召唤→检索召唤魔术是仍闭合的紧凑子链，小轴保留1。该检索在声明的长期融合计划中承载到何种程度、是否另有互补用途，当前资料不足，核心和支援分别保留null。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=617).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:v5_invoked_query_missing_artemis",
+        "card_texts.json#86120751",
+        "card_texts.json#74063034",
+        "card_texts.json#75286621"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "仅针对unit合同指定的整体功能输出；不把其不可用传播给其他角色或实际牌表中的替代路线。",
+      "scale_budget_invariant": false,
+      "scale_budget_invariant_scope": null,
+      "applicability_scope": {
+        "exact_selected_main": [
+          [
+            74063034,
+            1
+          ],
+          [
+            86120751,
+            1
+          ]
+        ],
+        "exact_selected_extra": [
+          [
+            75286621,
+            1
+          ]
+        ],
+        "functional_output": "原梅尔卡巴融合循环合同；保留独立检索子链。",
+        "primary_plan": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。",
+        "conditions": [
+          {
+            "key": "remaining_members",
+            "status": "satisfied"
+          },
+          {
+            "key": "required_member_in_query",
+            "status": "unsatisfied"
+          }
+        ],
+        "reuse": "可跨真实构筑复用，但须相同精确选组及数量、相同功能合同、同等主计划机械目标和相同相关条件；不得泛化到系列其他成员、其它召唤限制或缺失成员。"
+      },
+      "generic_label_scope": "整个selected精确查询选组；unit若为严格子功能合同，其正可用性不传给完整选组。"
+    },
+    {
+      "case_id": "v5_invoked_query_missing_invocation",
+      "roles": [
+        0,
+        1,
+        0,
+        1,
+        0
+      ],
+      "confidence": [
+        0.96,
+        0.92,
+        0.89,
+        0.9,
+        0.97
+      ],
+      "rationale": "缺召唤魔术不能完成原融合循环，选组又包含不能用于当前连接的梅尔卡巴，不是精确最低泛用单位，generic0。阿莱斯特→阿耳特弥斯仍为闭合的连接转换子链，Small1，并能与声明的另一效果怪兽组成S：P素材，Support1。它不承担完整S：P反复交换的获胜战略，核心0。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=617).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:v5_invoked_query_missing_invocation",
+        "card_texts.json#86120751",
+        "card_texts.json#34755994",
+        "card_texts.json#75286621"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "仅针对unit合同指定的整体功能输出；不把其不可用传播给其他角色或实际牌表中的替代路线。",
+      "scale_budget_invariant": false,
+      "scale_budget_invariant_scope": null,
+      "applicability_scope": {
+        "exact_selected_main": [
+          [
+            86120751,
+            1
+          ]
+        ],
+        "exact_selected_extra": [
+          [
+            34755994,
+            1
+          ],
+          [
+            75286621,
+            1
+          ]
+        ],
+        "functional_output": "原融合循环缺魔法；当前另可提供1只光属性连接怪兽。",
+        "primary_plan": "以S：P小夜骑士等连接怪兽反复除外对方资源，在后续回合以怪兽攻击获胜。",
+        "conditions": [
+          {
+            "key": "remaining_members",
+            "status": "satisfied"
+          },
+          {
+            "key": "required_member_in_query",
+            "status": "unsatisfied"
+          }
+        ],
+        "reuse": "可跨真实构筑复用，但须相同精确选组及数量、相同功能合同、同等主计划机械目标和相同相关条件；不得泛化到系列其他成员、其它召唤限制或缺失成员。"
+      },
+      "generic_label_scope": "整个selected精确查询选组；unit若为严格子功能合同，其正可用性不传给完整选组。"
+    },
+    {
+      "case_id": "v5_invoked_query_missing_mechaba",
+      "roles": [
+        0,
+        1,
+        null,
+        null,
+        0
+      ],
+      "confidence": [
+        0.96,
+        0.91,
+        0.0,
+        0.0,
+        0.97
+      ],
+      "rationale": "搜索融合魔法及将阿莱斯特转换光连接怪兽仍是可执行紧凑子链，Small1；原梅尔卡巴融合/无效合同缺终端，generic0。声明的长期融合策略如何继续没有给出，不能从不完整自动得出全部无贡献，核心与支援保持null。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=617).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:v5_invoked_query_missing_mechaba",
+        "card_texts.json#86120751",
+        "card_texts.json#74063034",
+        "card_texts.json#34755994"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "仅针对unit合同指定的整体功能输出；不把其不可用传播给其他角色或实际牌表中的替代路线。",
+      "scale_budget_invariant": false,
+      "scale_budget_invariant_scope": null,
+      "applicability_scope": {
+        "exact_selected_main": [
+          [
+            74063034,
+            1
+          ],
+          [
+            86120751,
+            1
+          ]
+        ],
+        "exact_selected_extra": [
+          [
+            34755994,
+            1
+          ]
+        ],
+        "functional_output": "原融合循环缺终端；保留检索与连接转换子链。",
+        "primary_plan": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。",
+        "conditions": [
+          {
+            "key": "remaining_members",
+            "status": "satisfied"
+          },
+          {
+            "key": "required_member_in_query",
+            "status": "unsatisfied"
+          }
+        ],
+        "reuse": "可跨真实构筑复用，但须相同精确选组及数量、相同功能合同、同等主计划机械目标和相同相关条件；不得泛化到系列其他成员、其它召唤限制或缺失成员。"
+      },
+      "generic_label_scope": "整个selected精确查询选组；unit若为严格子功能合同，其正可用性不传给完整选组。"
+    },
+    {
+      "case_id": "v5_invoked_query_missing_aleister",
+      "roles": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "阿耳特弥斯需魔法师素材，梅尔卡巴需阿莱斯特；召唤魔术也不自行制造素材。当前三个剩余成员之间无可执行闭合子链，因此尺度否定有明确依赖依据。当前没有取卡、身体或无效贡献，核心/支援0，原循环generic0；不是按剩3张判规模。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=617).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:v5_invoked_query_missing_aleister",
+        "card_texts.json#74063034",
+        "card_texts.json#34755994",
+        "card_texts.json#75286621"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "仅针对unit合同指定的整体功能输出；不把其不可用传播给其他角色或实际牌表中的替代路线。",
+      "scale_budget_invariant": true,
+      "scale_budget_invariant_scope": "true仅表示本精确选组的非机制规模判定不依赖牌表总量；不广播其它角色。",
+      "applicability_scope": {
+        "exact_selected_main": [
+          [
+            74063034,
+            1
+          ]
+        ],
+        "exact_selected_extra": [
+          [
+            34755994,
+            1
+          ],
+          [
+            75286621,
+            1
+          ]
+        ],
+        "functional_output": "原融合循环缺根，当前无独立闭合输出。",
+        "primary_plan": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。",
+        "conditions": [
+          {
+            "key": "remaining_members",
+            "status": "satisfied"
+          },
+          {
+            "key": "required_member_in_query",
+            "status": "unsatisfied"
+          },
+          {
+            "key": "no_external_material",
+            "status": "satisfied"
+          }
+        ],
+        "reuse": "可跨真实构筑复用，但须相同精确选组及数量、相同功能合同、同等主计划机械目标和相同相关条件；不得泛化到系列其他成员、其它召唤限制或缺失成员。"
+      },
+      "generic_label_scope": "整个selected精确查询选组；unit若为严格子功能合同，其正可用性不传给完整选组。"
+    },
+    {
+      "case_id": "v5_tourguide_query_missing_sangan",
+      "roles": [
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "confidence": [
+        0.95,
+        0.9,
+        0.9,
+        0.85,
+        0.96
+      ],
+      "rationale": "导游在本选组没有主卡目标，基路伯需要两只3星，二者之间没有闭合机制，尺度0。导游仍可通常召唤成恶魔素材，供声明的其它破械路线使用，所以Support1，不能从原合同generic0推成所有角色0。它不承担完整破械循环核心。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=15199).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:v5_tourguide_query_missing_sangan",
+        "card_texts.json#10802915",
+        "card_texts.json#58699500"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "仅针对unit合同指定的整体功能输出；不把其不可用传播给其他角色或实际牌表中的替代路线。",
+      "scale_budget_invariant": true,
+      "scale_budget_invariant_scope": "true仅表示本精确选组的非机制规模判定不依赖牌表总量；不广播其它角色。",
+      "applicability_scope": {
+        "exact_selected_main": [
+          [
+            10802915,
+            1
+          ]
+        ],
+        "exact_selected_extra": [
+          [
+            58699500,
+            1
+          ]
+        ],
+        "functional_output": "原基路伯＋三眼检索路线不完整；正常导游身体仍供另一连接路线。",
+        "primary_plan": "以破械连接怪兽将对方怪兽转成连接素材，回收恶魔族资源，反复交换场面取得胜利。",
+        "conditions": [
+          {
+            "key": "normal_available",
+            "status": "satisfied"
+          },
+          {
+            "key": "sangan_in_query",
+            "status": "unsatisfied"
+          },
+          {
+            "key": "other_fiend_for_primary_plan",
+            "status": "satisfied"
+          }
+        ],
+        "reuse": "可跨真实构筑复用，但须相同精确选组及数量、相同功能合同、同等主计划机械目标和相同相关条件；不得泛化到系列其他成员、其它召唤限制或缺失成员。"
+      },
+      "generic_label_scope": "整个selected精确查询选组；unit若为严格子功能合同，其正可用性不传给完整选组。"
+    },
+    {
+      "case_id": "v5_tourguide_without_cherubini_material_contract",
+      "roles": [
+        0,
+        1,
+        0,
+        1,
+        1
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.94,
+        0.94,
+        0.94
+      ],
+      "rationale": "相对旧三件路线缺基路伯，但重新声明的两体素材输出已经由导游→三眼闭合，Small1且为精确最低2张功能单位；条件满足故generic1。它为完整破械连接计划供素材，核心0、支援1。这个新合同的正泛用不反向证明原基路伯检索合同完整。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=16080).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:v5_tourguide_without_cherubini_material_contract",
+        "card_texts.json#10802915",
+        "card_texts.json#26202165"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "仅针对unit合同指定的整体功能输出；不把其不可用传播给其他角色或实际牌表中的替代路线。",
+      "scale_budget_invariant": false,
+      "scale_budget_invariant_scope": null,
+      "applicability_scope": {
+        "exact_selected_main": [
+          [
+            10802915,
+            1
+          ],
+          [
+            26202165,
+            1
+          ]
+        ],
+        "exact_selected_extra": [],
+        "functional_output": "不包含额外终端的两只3星恶魔素材输出。",
+        "primary_plan": "以破械连接怪兽将对方怪兽转成连接素材，回收恶魔族资源，反复交换场面取得胜利。",
+        "conditions": [
+          {
+            "key": "normal_and_target",
+            "status": "satisfied"
+          },
+          {
+            "key": "zones_permission",
+            "status": "satisfied"
+          },
+          {
+            "key": "link_material_purpose",
+            "status": "satisfied"
+          }
+        ],
+        "reuse": "可跨真实构筑复用，但须相同精确选组及数量、相同功能合同、同等主计划机械目标和相同相关条件；不得泛化到系列其他成员、其它召唤限制或缺失成员。"
+      },
+      "generic_label_scope": "整个selected精确查询选组；unit若为严格子功能合同，其正可用性不传给完整选组。"
+    },
+    {
+      "case_id": "v5_branded_full_with_minimum_fusion_contract",
+      "roles": [
+        1,
+        0,
+        1,
+        0,
+        null
+      ],
+      "confidence": [
+        0.98,
+        0.95,
+        0.97,
+        0.91,
+        0.0
+      ],
+      "rationale": "实际完整选择具有检索、送墓、连续融合、除外干扰与回收网络，按完整联动评阅为大轴并承载声明主策略，小轴0。四件合同只证明首段融合这个最低子功能，selected仍保留完整网络、含大量合同外成员，故整个选组generic为null，不能把子合同的可用性变为完整组泛用正例。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=15898).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:v5_branded_full_with_minimum_fusion_contract",
+        "card_texts.json#17751597",
+        "card_texts.json#19304410",
+        "card_texts.json#29948294",
+        "card_texts.json#30271097",
+        "card_texts.json#44362883",
+        "card_texts.json#45883110",
+        "card_texts.json#55273560",
+        "card_texts.json#62962630",
+        "card_texts.json#68468459",
+        "card_texts.json#82738008",
+        "card_texts.json#95515789",
+        "card_texts.json#24915933",
+        "card_texts.json#38811586",
+        "card_texts.json#41373230",
+        "card_texts.json#44146295",
+        "card_texts.json#51409648",
+        "card_texts.json#74405783",
+        "card_texts.json#76666602",
+        "card_texts.json#78397661",
+        "card_texts.json#87746184",
+        "card_texts.json#89851827"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "仅针对unit合同指定的整体功能输出；不把其不可用传播给其他角色或实际牌表中的替代路线。",
+      "scale_budget_invariant": false,
+      "scale_budget_invariant_scope": null,
+      "applicability_scope": {
+        "exact_selected_main": [
+          [
+            17751597,
+            1
+          ],
+          [
+            19304410,
+            1
+          ],
+          [
+            29948294,
+            3
+          ],
+          [
+            30271097,
+            3
+          ],
+          [
+            44362883,
+            1
+          ],
+          [
+            45883110,
+            1
+          ],
+          [
+            55273560,
+            2
+          ],
+          [
+            62962630,
+            3
+          ],
+          [
+            68468459,
+            3
+          ],
+          [
+            82738008,
+            1
+          ],
+          [
+            95515789,
+            1
+          ]
+        ],
+        "exact_selected_extra": [
+          [
+            24915933,
+            1
+          ],
+          [
+            38811586,
+            1
+          ],
+          [
+            41373230,
+            1
+          ],
+          [
+            44146295,
+            1
+          ],
+          [
+            51409648,
+            1
+          ],
+          [
+            74405783,
+            1
+          ],
+          [
+            76666602,
+            2
+          ],
+          [
+            78397661,
+            1
+          ],
+          [
+            87746184,
+            2
+          ],
+          [
+            89851827,
+            1
+          ]
+        ],
+        "functional_output": "整体：完整融合、墓地与除外网络。unit仅描述四件首段融合烙印龙。",
+        "primary_plan": "以阿不思相关连续融合、墓地回收与冰剑龙的除外换取长期场面优势并获胜。",
+        "conditions": [
+          {
+            "key": "root_materials_extra",
+            "status": "satisfied"
+          },
+          {
+            "key": "legal_light",
+            "status": "satisfied"
+          },
+          {
+            "key": "fusion_turn_zones",
+            "status": "satisfied"
+          }
+        ],
+        "reuse": "可跨真实构筑复用，但须相同精确选组及数量、相同功能合同、同等主计划机械目标和相同相关条件；不得泛化到系列其他成员、其它召唤限制或缺失成员。"
+      },
+      "generic_label_scope": "整个selected精确查询选组；unit若为严格子功能合同，其正可用性不传给完整选组。"
+    },
+    {
+      "case_id": "v5_hero_full_with_minimum_mask_contract",
+      "roles": [
+        1,
+        0,
+        1,
+        0,
+        null
+      ],
+      "confidence": [
+        0.98,
+        0.96,
+        0.97,
+        0.92,
+        0.0
+      ],
+      "rationale": "实际场地破坏、复活、检索、命运融合与英雄终端构成较完整大机制，承担声明获胜路线。暮鸦四件只覆盖其中一个启动/变化子功能，不把完整选组改成这四件；整体含合同外成员，generic仍null。尺度按完整机制独立判断，不按unit存在或长度判定。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=9505).identity",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas",
+        "declared_scenario:v5_hero_full_with_minimum_mask_contract",
+        "card_texts.json#4663194",
+        "card_texts.json#10808715",
+        "card_texts.json#16605586",
+        "card_texts.json#21143940",
+        "card_texts.json#24094653",
+        "card_texts.json#25158975",
+        "card_texts.json#26964762",
+        "card_texts.json#40591390",
+        "card_texts.json#52947044",
+        "card_texts.json#58288218",
+        "card_texts.json#62542673",
+        "card_texts.json#98931282",
+        "card_texts.json#23204029",
+        "card_texts.json#54641720",
+        "card_texts.json#58004362",
+        "card_texts.json#58481572",
+        "card_texts.json#60461804",
+        "card_texts.json#63813056",
+        "card_texts.json#69394324",
+        "card_texts.json#90579153",
+        "card_texts.json#93657021"
+      ],
+      "missing_member_generic": 0,
+      "unsatisfied_condition_generic": 0,
+      "counterfactual_confidence": {
+        "missing_member_generic": 0.95,
+        "unsatisfied_condition_generic": 0.95
+      },
+      "counterfactual_scope": "仅针对unit合同指定的整体功能输出；不把其不可用传播给其他角色或实际牌表中的替代路线。",
+      "scale_budget_invariant": false,
+      "scale_budget_invariant_scope": null,
+      "applicability_scope": {
+        "exact_selected_main": [
+          [
+            4663194,
+            3
+          ],
+          [
+            10808715,
+            1
+          ],
+          [
+            16605586,
+            1
+          ],
+          [
+            21143940,
+            1
+          ],
+          [
+            24094653,
+            1
+          ],
+          [
+            25158975,
+            1
+          ],
+          [
+            26964762,
+            1
+          ],
+          [
+            40591390,
+            1
+          ],
+          [
+            52947044,
+            3
+          ],
+          [
+            58288218,
+            1
+          ],
+          [
+            62542673,
+            3
+          ],
+          [
+            98931282,
+            1
+          ]
+        ],
+        "exact_selected_extra": [
+          [
+            23204029,
+            1
+          ],
+          [
+            54641720,
+            1
+          ],
+          [
+            58004362,
+            2
+          ],
+          [
+            58481572,
+            1
+          ],
+          [
+            60461804,
+            1
+          ],
+          [
+            63813056,
+            1
+          ],
+          [
+            69394324,
+            1
+          ],
+          [
+            90579153,
+            1
+          ],
+          [
+            93657021,
+            1
+          ]
+        ],
+        "functional_output": "整体：完整命运英雄循环。unit仅描述暮鸦四件的一卡暗爪启动。",
+        "primary_plan": "以命运英雄场地破坏、复活和融合循环组织场面，通过凤凰人的破坏交换与英雄攻击获胜。",
+        "conditions": [
+          {
+            "key": "normal_and_members",
+            "status": "satisfied"
+          },
+          {
+            "key": "discard_and_dark",
+            "status": "satisfied"
+          },
+          {
+            "key": "hero_whole_turn",
+            "status": "satisfied"
+          }
+        ],
+        "reuse": "可跨真实构筑复用，但须相同精确选组及数量、相同功能合同、同等主计划机械目标和相同相关条件；不得泛化到系列其他成员、其它召唤限制或缺失成员。"
+      },
+      "generic_label_scope": "整个selected精确查询选组；unit若为严格子功能合同，其正可用性不传给完整选组。"
+    },
+    {
+      "case_id": "blind-v5-fs-01",
+      "roles": [
+        0.8,
+        0.95,
+        0.96,
+        0.58,
+        null
+      ],
+      "confidence": [
+        0.92,
+        0.96,
+        0.93,
+        0.84,
+        0.0
+      ],
+      "rationale": "大轴：这里评的是主卡组入口、弃牌自跳、连接转换、墓地回收融合及装备干扰组成的完整机制，投入和功能层次都明显。小轴：完整机制内部同时存在咏圣丢路里、自跳后进入镇魂棺的闭合短链，因此与大轴可以重叠。路线为锻冶师丢弃找咏圣，咏圣找并丢路里，路里自跳做镇魂棺；墓地锻冶师把路里洗回后自跳，镇魂棺解放从卡组叫红泪之魔；二者做大圣棺，大圣棺把墓地的锻冶师、红泪之魔、镇魂棺回卡组融合震怒之日，再把大圣棺装备。红泪的送墓效果可以不发动，不依赖不存在的第二张锻冶师。核心：声明的胜利线由这些融合终点承载。支援：复活和身体转换也能补足破械线路，故不排斥互补性。泛用：选择集合覆盖多个入口、终点与冗余复制，不把整个复杂集合冒充唯一最低单位，留空。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=852; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-fs-01; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=2463794;datas.id=2463794",
+        "cards.cdb:texts.id=28803166;datas.id=28803166",
+        "cards.cdb:texts.id=32991300;datas.id=32991300",
+        "cards.cdb:texts.id=46640168;datas.id=46640168",
+        "cards.cdb:texts.id=49867899;datas.id=49867899",
+        "cards.cdb:texts.id=60764609;datas.id=60764609",
+        "cards.cdb:texts.id=82135803;datas.id=82135803",
+        "cards.cdb:texts.id=97651498;datas.id=97651498",
+        "cards.cdb:texts.id=98567237;datas.id=98567237",
+        "cards.cdb:texts.id=28803166; rule text treats this as a Fiendsmith card"
+      ]
+    },
+    {
+      "case_id": "blind-v5-fs-02",
+      "roles": [
+        0.78,
+        0.95,
+        0.23,
+        0.96,
+        null
+      ],
+      "confidence": [
+        0.91,
+        0.96,
+        0.9,
+        0.95,
+        0.0
+      ],
+      "rationale": "大轴：虽只占构筑的一部分，入口、连接、回收融合及多终点仍是较完整联动，不能因非主轴就否定规模。小轴：咏圣和路里的短链、镇魂棺转换身体均闭合。路线先如锻冶师丢弃找咏圣、丢路里、镇魂棺；锻冶师洗回路里自跳，镇魂棺叫红泪之魔，两身体做大圣棺；把墓地镇魂棺和红泪之魔回卡组融合落泪之日，保留墓地锻冶师供落泪之日复活，于是形成两只6星怪兽；缓存另有决策凯撒可承接，但它不是本选择集合继承的效果。核心：声明的主要胜利逻辑是破械连接交换，这一集合只部分承担。支援：在不消耗通常召唤的路线中提供身体和回收，对破械有直接互补。泛用：整体包含两类融合终点和多个可拆子链，没有限定为最低功能单位，留空。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=1253; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-fs-02; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=2463794;datas.id=2463794",
+        "cards.cdb:texts.id=28803166;datas.id=28803166",
+        "cards.cdb:texts.id=46640168;datas.id=46640168",
+        "cards.cdb:texts.id=49867899;datas.id=49867899",
+        "cards.cdb:texts.id=60764609;datas.id=60764609",
+        "cards.cdb:texts.id=82135803;datas.id=82135803",
+        "cards.cdb:texts.id=97651498;datas.id=97651498",
+        "cards.cdb:texts.id=98567237;datas.id=98567237",
+        "cards.cdb:texts.id=79559912; cached optional continuation only"
+      ]
+    },
+    {
+      "case_id": "blind-v5-fs-03",
+      "roles": [
+        0.08,
+        0.78,
+        0.12,
+        0.91,
+        0.96
+      ],
+      "confidence": [
+        0.93,
+        0.92,
+        0.84,
+        0.91,
+        0.96
+      ],
+      "rationale": "大轴：两张被选卡只实现一次身体转换，不构成较大机制。小轴：已有光恶魔做镇魂棺、解放后从卡组调度锻冶师是闭合短链。核心：无垢的形态转换胜利计划由其它卡承载。支援：这条线可提供额外身体，和声明的额外召唤需求互补。泛用：对于明确已有光恶魔素材、可合法特殊召唤的构筑，这两张就是所查询的最低完整单位；删掉镇魂棺没有调度效果，删掉锻冶师没有指定的落点。selected精确等于required，未把两张各自单独判为可完成整体功能。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=3651; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-fs-03; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=2463794;datas.id=2463794",
+        "cards.cdb:texts.id=60764609;datas.id=60764609"
+      ]
+    },
+    {
+      "case_id": "blind-v5-fs-04",
+      "roles": [
+        0.0,
+        0.06,
+        0.09,
+        0.91,
+        0.97
+      ],
+      "confidence": [
+        0.98,
+        0.94,
+        0.88,
+        0.94,
+        0.97
+      ],
+      "rationale": "大轴：单张生成衍生物没有多层机制投入。小轴：单次效果直接给身体，不能仅因能特殊召唤就叫一条轴。核心：声明的破械连接与破坏续接由其它成员完成。支援：光恶魔身体可供后续处理，限制在该计划中可以接受。泛用：最低单位就是赞圣本身；空表侧场或全光恶魔的条件，以及恶魔族攻击限制，都明确满足。并未从同副牌的完整刻魔系统向这张单卡继承规模。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=191; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-fs-04; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=35552985;datas.id=35552985"
+      ]
+    },
+    {
+      "case_id": "blind-v5-fs-05",
+      "roles": [
+        0.0,
+        0.1,
+        0.04,
+        0.15,
+        0.0
+      ],
+      "confidence": [
+        0.97,
+        0.91,
+        0.88,
+        0.83,
+        0.99
+      ],
+      "rationale": "大轴：选择集合只有镇魂棺。小轴：缺失本次指定的锻冶师落点，不能把这次检索式调度视作闭合链。核心与支援：无垢计划不以该缺失落点完成取胜或续接；镇魂棺的装备加攻是另一种有条件功能，不能由本次失败推成所有功能都不存在，也未声明该功能的现场。泛用：对于明确查询的叫出锻冶师，必要成员在真实牌表缺失，结果为0，不用小正数表达不可用。该结论限定于指定功能，没有要求整副牌所有相互作用完备。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=2362; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-fs-05; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=2463794;datas.id=2463794",
+        "cards.cdb:texts.id=60764609;datas.id=60764609"
+      ]
+    },
+    {
+      "case_id": "blind-v5-fs-06",
+      "roles": [
+        0.33,
+        0.85,
+        0.18,
+        0.86,
+        0.0
+      ],
+      "confidence": [
+        0.83,
+        0.92,
+        0.84,
+        0.9,
+        0.99
+      ],
+      "rationale": "大轴：残留部分有连接与墓地融合工具，但并非所查询的完整震怒之日系统，规模有一定证据而非全有全无。小轴：实际仍可用已有光恶魔做镇魂棺、解放叫出锻冶师，这一独立短链闭合；不能因额外终点缺失把它一起否定。核心：三幻魔进攻是声明的取胜路线。支援：身体转换仍可补足其额外怪兽操作。大圣棺本身还能与缓存中的其它恶魔族融合怪兽发生作用，未把缺少震怒之日扩大为没有任何融合功能。泛用：本次指定的震怒之日融合与装备干扰缺少终点，必为0；其它融合素材现场也未知，不虚构。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=12403; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-fs-06; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=2463794;datas.id=2463794",
+        "cards.cdb:texts.id=49867899;datas.id=49867899",
+        "cards.cdb:texts.id=60764609;datas.id=60764609",
+        "cards.cdb:texts.id=82135803;datas.id=82135803",
+        "cards.cdb:texts.id=7894706; cached alternative Fiend Fusion exists but is not the requested Desirae function"
+      ]
+    },
+    {
+      "case_id": "blind-v5-fk-01",
+      "roles": [
+        0.97,
+        0.96,
+        0.98,
+        0.55,
+        null
+      ],
+      "confidence": [
+        0.97,
+        0.95,
+        0.97,
+        0.83,
+        0.0
+      ],
+      "rationale": "大轴：这份选择有入口、场地接续、自毁触发、两种大鹏、麒麟、干扰和超量终点，属于完整且相对投入较大的机制。小轴：孤岛破坏并检索、麒麟破坏炎属性后自跳再引出凤凰回手等局部链也闭合。一个限定初态的可行例为：圣炎王原已在墓地，孤岛破坏手中凤凰不死鸟检索麒麟，圣炎王触发从墓地自跳并从卡组破坏炎王妃，炎王妃从卡组叫传统大鹏；手中麒麟还可破坏传统大鹏自跳，使其下次准备阶段复活并清理其它怪兽；另可由圣域在对方特殊召唤后的时点，把圣炎王与麒麟等8星炎王转为永炎。按各自可用时点和分支分别执行，不声称这些清场终点同时留场；传统大鹏的清场不提前到当回合。核心：声明的资源与胜利循环由该系统承担。支援：其身体和破坏也能服务炎属性额外怪兽，角色允许重叠。泛用：全系统含冗余数量和多个不同功能，未唯一限定最低单位，留空。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=10440; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-fk-01; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=2526224;datas.id=2526224",
+        "cards.cdb:texts.id=18621798;datas.id=18621798",
+        "cards.cdb:texts.id=23015896;datas.id=23015896",
+        "cards.cdb:texts.id=44455560;datas.id=44455560",
+        "cards.cdb:texts.id=57554544;datas.id=57554544",
+        "cards.cdb:texts.id=64182380;datas.id=64182380",
+        "cards.cdb:texts.id=65305978;datas.id=65305978",
+        "cards.cdb:texts.id=66431519;datas.id=66431519",
+        "cards.cdb:texts.id=90681088;datas.id=90681088",
+        "cards.cdb:texts.id=91703676;datas.id=91703676"
+      ]
+    },
+    {
+      "case_id": "blind-v5-fk-02",
+      "roles": [
+        0.08,
+        0.79,
+        0.18,
+        0.94,
+        0.95
+      ],
+      "confidence": [
+        0.94,
+        0.94,
+        0.88,
+        0.94,
+        0.96
+      ],
+      "rationale": "大轴：只评选中的一对，不继承同副完整炎王系统的规模。小轴：麒麟破坏凤凰而自跳，凤凰在下次准备阶段回手，形成身体与延后回收的闭合短链。核心：声明的恐龙额外进攻仍由其它怪兽承载。支援：不占通常召唤提供8星炎属性身体，同时降低被破坏手牌的长期损失。泛用：最低功能被限定为增加身体并延后取回被破坏的凤凰；麒麟单独无法保证所述回收，凤凰单独无法实现麒麟自跳，故required为两张且selected完全相等。它适用于愿意承担该时序的炎属性或8星构筑，条件明确。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=10783; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-fk-02; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=2526224;datas.id=2526224",
+        "cards.cdb:texts.id=90681088;datas.id=90681088"
+      ]
+    },
+    {
+      "case_id": "blind-v5-fk-03",
+      "roles": [
+        0.08,
+        0.79,
+        0.18,
+        0.74,
+        0.0
+      ],
+      "confidence": [
+        0.93,
+        0.93,
+        0.86,
+        0.84,
+        0.99
+      ],
+      "rationale": "大轴与小轴：牌表和选择的结构与两张可形成短链的事实仍在；条件暂未具备不能抹掉联动规模，因此保留小轴判断。核心：恐龙额外进攻计划没有改为由这一对承担。支援：一旦抽到可破坏炎属性，身体与回收能与计划互补；当前回合执行的可用性须单独判断。泛用：本次查询的是此刻进行麒麟破坏凤凰并接回收，凤凰不在可选区域且无其它可破坏炎属性，指定功能不可用为0。没有用小正数替代失败，也没有把卡组里有凤凰误当现场条件满足。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=10783; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-fk-03; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=2526224;datas.id=2526224",
+        "cards.cdb:texts.id=90681088;datas.id=90681088"
+      ]
+    },
+    {
+      "case_id": "blind-v5-fk-04",
+      "roles": [
+        0.08,
+        0.7,
+        0.17,
+        0.94,
+        0.93
+      ],
+      "confidence": [
+        0.94,
+        0.92,
+        0.88,
+        0.94,
+        0.94
+      ],
+      "rationale": "大轴：只选场地和指定检索落点，不继承整个炎王投入。小轴：孤岛破坏现有怪兽并检索麒麟是独立功能链；斑龙被效果破坏另能触发送墓，与本体计划衔接，但不是selected继承的效果。核心：声明主线仍是朱罗纪与炎属性额外怪兽。支援：把需要被破坏的斑龙转换为炎属性延伸牌，互补直接。泛用：对于已有可破坏怪兽、希望拿到麒麟的构筑，这两张是指定检索功能的最低单位；检索对象不可在单位中凭空省略。selected严格等于required。孤岛②的空场自跳与①同回合择一，未同时使用。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=10783; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-fk-04; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=2526224;datas.id=2526224",
+        "cards.cdb:texts.id=57554544;datas.id=57554544",
+        "cards.cdb:texts.id=93170499; existing destruction fodder and optional trigger, explicitly outside selected unit"
+      ]
+    },
+    {
+      "case_id": "blind-v5-fk-05",
+      "roles": [
+        0.91,
+        0.94,
+        0.86,
+        0.77,
+        0.0
+      ],
+      "confidence": [
+        0.95,
+        0.95,
+        0.92,
+        0.88,
+        0.99
+      ],
+      "rationale": "大轴：圣域、孤岛、圣炎王、麒麟、凤凰、甘尼许、神天烧和永炎仍组成较完整的现存循环，不能因缺传统终点就全盘判无规模。小轴：孤岛破坏凤凰检索麒麟、麒麟破坏炎属性自跳、凤凰下次准备阶段回手等独立闭合链存在。核心：声明的破坏资源与进攻仍由余下炎王成员大量承载。支援：也能触发朱罗纪被破坏的后续，核心与互补并不互斥。泛用：指定的圣炎王破坏炎王妃并叫传统大鹏这一路缺两个必要成员，结果为0；没有因此否定麒麟复活其它炎王或凤凰检索等其它功能。unit只界定这次失败的具体函数，不宣称selected全系统是最低单位。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=39337; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-fk-05; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=2526224;datas.id=2526224",
+        "cards.cdb:texts.id=18621798;datas.id=18621798",
+        "cards.cdb:texts.id=23015896;datas.id=23015896",
+        "cards.cdb:texts.id=44455560;datas.id=44455560",
+        "cards.cdb:texts.id=57554544;datas.id=57554544",
+        "cards.cdb:texts.id=64182380;datas.id=64182380",
+        "cards.cdb:texts.id=65305978;datas.id=65305978",
+        "cards.cdb:texts.id=66431519;datas.id=66431519",
+        "cards.cdb:texts.id=90681088;datas.id=90681088",
+        "cards.cdb:texts.id=91703676;datas.id=91703676"
+      ]
+    },
+    {
+      "case_id": "blind-v5-fk-06",
+      "roles": [
+        0.03,
+        0.12,
+        0.32,
+        0.89,
+        0.98
+      ],
+      "confidence": [
+        0.96,
+        0.92,
+        0.85,
+        0.94,
+        0.98
+      ],
+      "rationale": "大轴：仅一张额外怪兽，没有炎王主卡组循环投入。小轴：使用已有8星素材直接做终点，不仅因发生一次特殊召唤就认作联动轴。核心：青眼原石的进攻是主计划，永炎只是可选清场终点。支援：将现成素材换为清场，直接帮助攻击。泛用：素材条件是任意8星怪兽两只以上，清场效果也不要求炎王；在明确可用的两只8星和合法召唤条件下，最低额外单位仅它自身，selected等于required。没有继承它③需要墓地炎王的复活功能。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=10591; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-fk-06; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=64182380;datas.id=64182380"
+      ]
+    },
+    {
+      "case_id": "blind-v5-rn-01",
+      "roles": [
+        0.97,
+        0.98,
+        0.98,
+        0.24,
+        null
+      ],
+      "confidence": [
+        0.97,
+        0.97,
+        0.97,
+        0.82,
+        0.0
+      ],
+      "rationale": "大轴：大量不同速攻、检索、场地回收和多种额外怪兽形成完整持续机制。小轴：任一速攻叫胡基，胡基弃手找泉；以及泉配一张已用速攻回底抽1，都是内部独立短链。完整路线可用锋芒找泉，或用速攻的额外召唤分支叫胡基弃手找泉；随后逐次使用有合法目标的神碑速攻，等连锁结束后由泉选择墓地至多3张速攻回底并抽等量，胡基还能以除外自身代替其它己方卡的效果破坏。不是同时声称每张速攻的两分支都使用。核心：除外卡组与抽卡循环直接承担声明的耗尽胜利线。支援：也为陷阱控制提供手牌，故有一定互补。泛用：这份全系统有冗余数量和多种功能，不能唯一界定最低单位，留空。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=49235; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-rn-01; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=28373620;datas.id=28373620",
+        "cards.cdb:texts.id=30430448;datas.id=30430448",
+        "cards.cdb:texts.id=31562086;datas.id=31562086",
+        "cards.cdb:texts.id=47219274;datas.id=47219274",
+        "cards.cdb:texts.id=55990317;datas.id=55990317",
+        "cards.cdb:texts.id=67835547;datas.id=67835547",
+        "cards.cdb:texts.id=68957034;datas.id=68957034",
+        "cards.cdb:texts.id=74659582;datas.id=74659582",
+        "cards.cdb:texts.id=92107604;datas.id=92107604",
+        "cards.cdb:texts.id=92385016;datas.id=92385016",
+        "cards.cdb:texts.id=94445733;datas.id=94445733"
+      ]
+    },
+    {
+      "case_id": "blind-v5-rn-02",
+      "roles": [
+        0.79,
+        0.94,
+        0.26,
+        0.86,
+        null
+      ],
+      "confidence": [
+        0.92,
+        0.94,
+        0.88,
+        0.91,
+        0.0
+      ],
+      "rationale": "大轴：虽然声明的进攻目标是仪式，这套多速攻、锋芒、泉与多额外怪兽仍然有较完整规模，不以主次决定大小。小轴：速攻叫胡基、弃牌找泉，以及泉回收速攻抽卡都能独立闭合。核心：资源循环并不直接完成仪式怪兽的攻击胜利线，只承担一部分维持资源。支援：向仪式补手有明确互补，但每次神碑会跳过下次自己的战斗阶段，必须采用声明的延后进攻安排；不能假装与当回合斩杀无成本兼容。泛用：整组跨多个功能且并非最低选择集合，留空；即时起手未知没有抹掉牌表中的规模。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=45857; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-rn-02; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=28373620;datas.id=28373620",
+        "cards.cdb:texts.id=30430448;datas.id=30430448",
+        "cards.cdb:texts.id=31562086;datas.id=31562086",
+        "cards.cdb:texts.id=55990317;datas.id=55990317",
+        "cards.cdb:texts.id=67835547;datas.id=67835547",
+        "cards.cdb:texts.id=68957034;datas.id=68957034",
+        "cards.cdb:texts.id=74659582;datas.id=74659582",
+        "cards.cdb:texts.id=92107604;datas.id=92107604",
+        "cards.cdb:texts.id=92385016;datas.id=92385016",
+        "cards.cdb:texts.id=94445733;datas.id=94445733",
+        "cards.cdb:texts.id=33599853; declared ritual plan background"
+      ]
+    },
+    {
+      "case_id": "blind-v5-rn-03",
+      "roles": [
+        0.08,
+        0.87,
+        0.21,
+        0.95,
+        0.98
+      ],
+      "confidence": [
+        0.95,
+        0.95,
+        0.86,
+        0.94,
+        0.97
+      ],
+      "rationale": "大轴：只选泉和一张速攻，没有完整神碑系统投入。小轴：使用速攻、该速攻入墓、泉回底抽1形成闭合资源链。核心：声明的胜利仍由仪式怪兽攻击完成。支援：用一次处理换来等量抽卡补充仪式资源。泛用：若只查询这一张神碑的破坏与回底抽1，泉和该速攻就是最低完整单位，不额外要求胡基或第三张速攻；泉的文字是最多3张而非必须3张。selected完全等于required，目标、时序和战斗代价均已明确。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=45857; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-rn-03; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=92107604;datas.id=92107604",
+        "cards.cdb:texts.id=94445733;datas.id=94445733"
+      ]
+    },
+    {
+      "case_id": "blind-v5-rn-04",
+      "roles": [
+        0.26,
+        0.84,
+        0.12,
+        0.76,
+        0.0
+      ],
+      "confidence": [
+        0.86,
+        0.94,
+        0.87,
+        0.88,
+        0.99
+      ],
+      "rationale": "大轴：选中部分有数个处理与额外身体接口，投入小于完整泉循环但不是完全无机制。小轴：速攻从额外叫胡基的分支合法，胡基还能替代其它己方卡的效果破坏，这条短链不需要泉，因此必须保留。核心：仪式进攻不由此承担。支援：提供身体及保护仍可互补，需接受神碑的战斗阶段代价。泛用：本次指定函数是回卡组抽卡，真实牌表缺泉，胡基的检索不能找出不存在的卡，该函数为0。没有因为缺泉就否定速攻的单次破坏或额外召唤，也没有要求验证全副牌所有互动。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=46840; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-rn-04; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=55990317;datas.id=55990317",
+        "cards.cdb:texts.id=68957034;datas.id=68957034",
+        "cards.cdb:texts.id=92107604;datas.id=92107604",
+        "cards.cdb:texts.id=94445733;datas.id=94445733"
+      ]
+    },
+    {
+      "case_id": "blind-v5-rn-05",
+      "roles": [
+        0.0,
+        0.05,
+        0.11,
+        0.93,
+        0.99
+      ],
+      "confidence": [
+        0.98,
+        0.95,
+        0.87,
+        0.94,
+        0.98
+      ],
+      "rationale": "大轴与小轴：本选择只有一次单卡破坏，不把可选的特殊召唤分支凭空算成轴。核心：仪式与之后攻击由其它卡完成。支援：单次处理特召怪兽可帮助仪式场面存活。泛用：卡文不要求自己有神碑怪兽、泉或其它神碑卡；在明确合法目标和接受跳战阶的条件下，一张辉耀之炎就是最低完整处理单位。selected等于required，不从整副牌抽取额外标签。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=46840; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-rn-05; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=68957034;datas.id=68957034"
+      ]
+    },
+    {
+      "case_id": "blind-v5-rn-06",
+      "roles": [
+        0.0,
+        0.05,
+        0.11,
+        0.82,
+        null
+      ],
+      "confidence": [
+        0.98,
+        0.94,
+        0.86,
+        0.84,
+        0.0
+      ],
+      "rationale": "大轴与小轴：单卡处理并不会因为目标现场未知变成联动轴，也不改变其结构规模。核心：声明取胜仍靠仪式攻击。支援：该卡在有目标时能处理怪兽，具有与准备场面互补的性质，但当前有效性证据不足。泛用：本次查询的破坏分支必须有特殊召唤的合法怪兽对象；牌表没有实时目标信息。这里用null而不是猜测满足或不满足。另一个从额外叫神碑的分支不能替代所问破坏函数的目标证明。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=46840; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-rn-06; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=68957034;datas.id=68957034"
+      ]
+    },
+    {
+      "case_id": "blind-v5-kj-01",
+      "roles": [
+        0.0,
+        0.0,
+        0.1,
+        0.98,
+        0.99
+      ],
+      "confidence": [
+        0.99,
+        0.98,
+        0.9,
+        0.97,
+        0.99
+      ],
+      "rationale": "大轴与小轴：单卡把对方怪兽解放后上场是直接处理，不因有特殊召唤就认作一条轴。核心：融合与战斗计划由其它卡承担。支援：清除阻挡主计划的怪兽有直接价值。泛用：解放并向对方场上特殊召唤不要求自己有其它坏兽、京塔或坏兽指示物；满足明确合法性条件时一张即为最低单位。所查询的是解放处理，不是效果破坏，也不是海龟的无效效果；selected精确等于required。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=6326; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-kj-01; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=55063751;datas.id=55063751"
+      ]
+    },
+    {
+      "case_id": "blind-v5-kj-02",
+      "roles": [
+        0.0,
+        0.0,
+        0.05,
+        0.14,
+        0.0
+      ],
+      "confidence": [
+        0.99,
+        0.98,
+        0.9,
+        0.86,
+        0.99
+      ],
+      "rationale": "大轴与小轴：仍是一张怪兽，没有构成指示物生产或其它联动链。核心：不承担融合进攻主线。支援：在声明的当前保护需求中，其无效效果因不能支付指示物而无法提供保护；较低判断对应这次明确用途，不能假装能响应。泛用：指定函数是④的发动无效且除外，必须取除双方场上共2个坏兽指示物；已知为0，故为0。其它构筑里海龟仍可以单卡解放处理怪兽，此函数的失败不把那种独立功能一起否定。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=6326; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-kj-02; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=55063751;datas.id=55063751"
+      ]
+    },
+    {
+      "case_id": "blind-v5-kj-03",
+      "roles": [
+        0.15,
+        0.89,
+        0.38,
+        0.97,
+        0.98
+      ],
+      "confidence": [
+        0.91,
+        0.95,
+        0.86,
+        0.95,
+        0.98
+      ],
+      "rationale": "大轴：三张只实现一次清场并配置双方怪兽，远小于完整指示物系统。小轴：安眠破坏后叫出两只异名坏兽，是功能联结的完整包。核心：声明的僵尸牧人控制与8阶进攻仍依赖其它卡，但把原本属于己方的怪兽给对方是重要前提。支援：这份包同时清场并提供该前提，互补很强。泛用：最低联合单位必须包含安眠及两个不同卡名的卡组落点；两张同名坏兽不能替代两个不同名字。selected严格等于required，没有把三位成员逐个继承整体清场功能。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=51018; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-kj-03; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=55063751;datas.id=55063751",
+        "cards.cdb:texts.id=93332803;datas.id=93332803",
+        "cards.cdb:texts.id=99330325;datas.id=99330325",
+        "cards.cdb:texts.id=45951104; declared ownership-based continuation background"
+      ]
+    },
+    {
+      "case_id": "blind-v5-kj-04",
+      "roles": [
+        0.03,
+        0.63,
+        0.14,
+        0.92,
+        0.97
+      ],
+      "confidence": [
+        0.96,
+        0.91,
+        0.86,
+        0.93,
+        0.97
+      ],
+      "rationale": "大轴：只评墓地检索及一个指定落点。小轴：已有墓地安眠除外后拿到海龟，是紧凑后续调度链，规模小而明确。核心：控制权和8阶进攻由其它卡完成。支援：检索海龟可供之后按解放手续处理阻挡物。泛用：对于该明确的墓地检索功能，所需最低单位是安眠加一张指定坏兽目标，不需要两个异名坏兽；两个异名落点是安眠①清场配置函数的必要条件，不能迁移成②的额外门槛。selected与required完全相等。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=51018; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-kj-04; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=55063751;datas.id=55063751",
+        "cards.cdb:texts.id=99330325;datas.id=99330325"
+      ]
+    },
+    {
+      "case_id": "blind-v5-kj-05",
+      "roles": [
+        0.03,
+        0.63,
+        0.14,
+        0.58,
+        0.0
+      ],
+      "confidence": [
+        0.96,
+        0.91,
+        0.86,
+        0.84,
+        0.99
+      ],
+      "rationale": "大轴与小轴：单位仍然是安眠连到海龟的后续检索链，时点尚未成熟不抹掉结构。核心：主计划仍是控制权操作与大怪进攻。支援：未来回合可供后续，当前立刻接续的价值受限，故与已满足时点的情况有差异。泛用：指定查询是本回合立刻发动刚送墓的安眠②，卡文明示不能，必须为0；不把“下回合可能能用”写成当前小正数，也不向②强加两个不同名字的要求。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=51018; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-kj-05; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=55063751;datas.id=55063751",
+        "cards.cdb:texts.id=99330325;datas.id=99330325"
+      ]
+    },
+    {
+      "case_id": "blind-v5-kj-06",
+      "roles": [
+        0.94,
+        0.96,
+        0.96,
+        0.62,
+        null
+      ],
+      "confidence": [
+        0.95,
+        0.95,
+        0.94,
+        0.86,
+        0.0
+      ],
+      "rationale": "大轴：多种坏兽、安眠、京塔、出现记录、捕获大作战与两种机械兵器提供清场、双方配置、指示物生产消耗和更换，属于完整机制而非若干单卡解场的数量堆叠。小轴：安眠配异名坏兽、京塔有3指示物后检索、出现记录破坏后换异名坏兽等短链独立闭合。可行路线是在京塔存在时用安眠清理可破坏怪兽，送墓使京塔积累指示物，安眠从卡组为双方叫出异名坏兽；注意出现记录只对从手卡或墓地特殊召唤计数，安眠从卡组叫出本身不让它加指示物；后续通过手卡解放出场、自侧跟出或记录的替换调度，令己方海龟在至少2个指示物时可无效并除外。对方也可能花双方场上的指示物，不虚构单方面占用。核心：声明取胜即围绕这些控制与坏兽进攻。支援：身体也可供荷鲁斯与8阶怪兽操作。泛用：全套多功能系统没有唯一最低单位，现场指示物也未给定，留空而非把全部成员继承整组功能。",
+      "source_refs": [
+        "prepared.sqlite3:decks.rowid=20984; identity copied exactly; main/extra zones preserved",
+        "reviewer_declaration:blind-v5-kj-06; objective and named hypothetical states are independent reviewer declarations, not author intent or replay observations",
+        "cards.cdb:texts.id=11163040;datas.id=11163040",
+        "cards.cdb:texts.id=28674152;datas.id=28674152",
+        "cards.cdb:texts.id=29726552;datas.id=29726552",
+        "cards.cdb:texts.id=29913783;datas.id=29913783",
+        "cards.cdb:texts.id=36956512;datas.id=36956512",
+        "cards.cdb:texts.id=48770333;datas.id=48770333",
+        "cards.cdb:texts.id=55063751;datas.id=55063751",
+        "cards.cdb:texts.id=56111151;datas.id=56111151",
+        "cards.cdb:texts.id=63941210;datas.id=63941210",
+        "cards.cdb:texts.id=81057455;datas.id=81057455",
+        "cards.cdb:texts.id=84769941;datas.id=84769941",
+        "cards.cdb:texts.id=93332803;datas.id=93332803",
+        "cards.cdb:texts.id=99330325;datas.id=99330325"
+      ]
+    },
+    {
+      "case_id": "blind-v6-uc-01",
+      "roles": [
+        0.98,
+        0.21,
+        0.98,
+        0.51,
+        0.04
+      ],
+      "confidence": [
+        0.97,
+        0.78,
+        0.98,
+        0.77,
+        0.96
+      ],
+      "rationale": "整组包含双王之械搜索或被破坏招募、多个破械怪兽和盖卡的破坏转身体、阎摩搜索及墓地触发复活、罗寂刹/阿罗魃在满足素材要求时借对方身体连接、来迎多时点破坏、以及回卡组与结束阶段恢复。它由多入口、不同阶段与资源区的支路构成相对完整机制；不是单纯按实际选中数量判断。主计划明确就是此破坏—连接—资源交换机制，所以核心性高。回收、复活与保护类功能互补，但整组同时承担主要战略。整个组可拆出更小具体功能，整体最小泛用性低。没有即时起手只阻止把所有关系说成当回合必定完成。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v6\\blind_final\\cases.json::case_id=blind-v6-uc-01",
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=78773).identity",
+        "independent_reviewer_declaration:blind-v6-uc-01; static hypothetical objective and state; not author intent or replay observation",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=1966438)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=21419436)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=24269961)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=26236560)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=27412542)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=29479265)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=31531914)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=31588572)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=41165831)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=53417695)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=53624265)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=54807656)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=67680512)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=67803035)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=68625623)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=80801743)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=88554436)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=89019964)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=93084621)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=93898740)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=94014327)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=95136979)"
+      ],
+      "context_sufficiency": [
+        {
+          "dimension": "large_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "多入口、多终端及延后恢复关系齐全，足以作相对完整大机制判断。"
+        },
+        {
+          "dimension": "small_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "整体含紧凑支路，但并非一个固定短链。"
+        },
+        {
+          "dimension": "strategic_core",
+          "status": "sufficient_for_assigned_role",
+          "reason": "明确主计划直接围绕破械资源交换与连接终结。"
+        },
+        {
+          "dimension": "support_role",
+          "status": "sufficient_for_assigned_role",
+          "reason": "恢复与招募支路互补维持主要路线，但整体本身也是主要计划。"
+        },
+        {
+          "dimension": "generic_utility",
+          "status": "sufficient_for_assigned_role",
+          "reason": "整个多支路选组不是最小具体功能成员集。"
+        }
+      ],
+      "missing_information": [
+        {
+          "fact": "实际手牌、盖卡、墓地、回合阶段、效果使用和可支付手牌。",
+          "affects": [
+            "current_whole_mechanism_execution"
+          ],
+          "reason": "牌表只能证明成员存在，不能证明当前各支路都可启动。"
+        },
+        {
+          "fact": "被借作连接素材的对方怪兽状态，以及所选暗属性连接目标的素材、连接数和区域。",
+          "affects": [
+            "specific_opponent_material_link_conversion"
+          ],
+          "reason": "卡名引用不证明任意对方怪兽都能转任意连接；需逐条满足目标的素材要求。"
+        }
+      ]
+    },
+    {
+      "case_id": "blind-v6-uc-02",
+      "roles": [
+        0.1,
+        0.92,
+        0.86,
+        0.6,
+        0.94
+      ],
+      "confidence": [
+        0.94,
+        0.95,
+        0.93,
+        0.8,
+        0.94
+      ],
+      "rationale": "萨巴拉①在对方主要阶段可取自己盖卡为对象，破坏后特召；唱导②明确在盖放卡被效果破坏时从卡组招募破械怪兽。场景给定唱导盖放、阿罗汉在卡组、正常送墓、两区和两效果未用，故这三件能取得萨巴拉与阿罗汉两只恶魔族。萨巴拉表侧时的恶魔族限制与本次两体相容。主计划明确把这条两体接入作为主要组织路线，核心性较高，但紧凑结构不会因此变成大机制。该命名两体功能也是可跨恶魔构筑采用的带条件最小联动；不把任意后续连接和再次重建补为已完成。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v6\\blind_final\\cases.json::case_id=blind-v6-uc-02",
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=78773).identity",
+        "independent_reviewer_declaration:blind-v6-uc-02; static hypothetical objective and state; not author intent or replay observation",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=26236560)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=41165831)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=53417695)"
+      ],
+      "context_sufficiency": [
+        {
+          "dimension": "large_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "此固定两体招募链有有限容量，缺少完整多支路调度和延后恢复。"
+        },
+        {
+          "dimension": "small_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "萨巴拉破坏盖卡与唱导招募阿罗汉有明确动作先后和必要同伴，构成紧凑链。"
+        },
+        {
+          "dimension": "strategic_core",
+          "status": "sufficient_for_assigned_role",
+          "reason": "主计划直接主要依赖这条两体接入组织破械后续。"
+        },
+        {
+          "dimension": "support_role",
+          "status": "sufficient_for_assigned_role",
+          "reason": "取得身体也为后续交换提供互补资源，但这里它主要参与核心接入。"
+        },
+        {
+          "dimension": "generic_utility",
+          "status": "sufficient_for_assigned_role",
+          "reason": "每个必要成员和本次成本、窗口、区域、限制均给定，三件正是所查询命名两体功能。"
+        }
+      ],
+      "missing_information": []
+    },
+    {
+      "case_id": "blind-v6-uc-03",
+      "roles": [
+        0.1,
+        0.92,
+        0.1,
+        0.87,
+        0.94
+      ],
+      "confidence": [
+        0.94,
+        0.95,
+        0.97,
+        0.93,
+        0.94
+      ],
+      "rationale": "相同三件及相同状态仍证明同一条萨巴拉—唱导—阿罗汉两体链，结构与当前可用性不因主计划更换而改变。此例明确由邪恶双子的复活、抽牌和破坏组织主场面，破械两体贡献额外恶魔资源，因此主要是互补角色。邪恶双子连接素材需要包含对应名字；不能把两只无该名字的破械身体直接宣称为任意双子连接。两体本身的功能已经成立，阎摩卡文说明二恶魔的可辨识接口，但未把该额外后续当成本次已完成。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v6\\blind_final\\cases.json::case_id=blind-v6-uc-03",
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=93668).identity",
+        "independent_reviewer_declaration:blind-v6-uc-03; static hypothetical objective and state; not author intent or replay observation",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=9205573)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=24269961)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=26236560)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=36326160)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=36609518)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=41165831)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=53417695)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=73810864)"
+      ],
+      "context_sufficiency": [
+        {
+          "dimension": "large_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "此固定两体招募链有有限容量，缺少完整多支路调度和延后恢复。"
+        },
+        {
+          "dimension": "small_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "萨巴拉破坏盖卡与唱导招募阿罗汉有明确动作先后和必要同伴，构成紧凑链。"
+        },
+        {
+          "dimension": "strategic_core",
+          "status": "sufficient_for_assigned_role",
+          "reason": "明确主计划是邪恶双子循环，不能复制另一输入的核心性。"
+        },
+        {
+          "dimension": "support_role",
+          "status": "sufficient_for_assigned_role",
+          "reason": "两只恶魔身体可提供独立额外资源，且声明直播起始已完成，互补贡献清楚。"
+        },
+        {
+          "dimension": "generic_utility",
+          "status": "sufficient_for_assigned_role",
+          "reason": "同一命名两体功能成员与条件齐全，仍具带恶魔族限制的最小联动可用性。"
+        }
+      ],
+      "missing_information": []
+    },
+    {
+      "case_id": "blind-v6-uc-04",
+      "roles": [
+        0.1,
+        0.92,
+        0.1,
+        0.0,
+        0.0
+      ],
+      "confidence": [
+        0.94,
+        0.95,
+        0.97,
+        0.99,
+        0.99
+      ],
+      "rationale": "牌表和具体联动的结构仍是同一三件短链，但萨巴拉①要求自己恶魔族怪兽或里侧卡作目标。当前两类都没有，唱导还在卡组，不能凭牌表投入就当成已经盖放。明确排除了本次动作前制造目标的其它动作，故查询链当前不能启动。对当前两体功能的支援与泛用判定为不成立，结构规模和主计划归属仍可判断。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v6\\blind_final\\cases.json::case_id=blind-v6-uc-04",
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=93668).identity",
+        "independent_reviewer_declaration:blind-v6-uc-04; static hypothetical objective and state; not author intent or replay observation",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=9205573)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=26236560)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=36609518)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=41165831)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=53417695)"
+      ],
+      "context_sufficiency": [
+        {
+          "dimension": "large_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "此固定两体招募链有有限容量，缺少完整多支路调度和延后恢复。"
+        },
+        {
+          "dimension": "small_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "萨巴拉破坏盖卡与唱导招募阿罗汉有明确动作先后和必要同伴，构成紧凑链。"
+        },
+        {
+          "dimension": "strategic_core",
+          "status": "sufficient_for_assigned_role",
+          "reason": "主计划仍为双子循环，结构对象没有变成其核心。"
+        },
+        {
+          "dimension": "support_role",
+          "status": "sufficient_for_assigned_role",
+          "reason": "必要起动目标明确不存在，本次两体贡献不能取得。"
+        },
+        {
+          "dimension": "generic_utility",
+          "status": "sufficient_for_assigned_role",
+          "reason": "必要条件明确不满足，当前命名功能不可用。"
+        }
+      ],
+      "missing_information": []
+    },
+    {
+      "case_id": "blind-v6-uc-05",
+      "roles": [
+        0.11,
+        0.88,
+        0.11,
+        0.0,
+        0.0
+      ],
+      "confidence": [
+        0.92,
+        0.9,
+        0.96,
+        0.98,
+        0.99
+      ],
+      "rationale": "真实来源未投入唱导，required仍明确记录所查询三件命名路线的AND成员，actual selected只保留确有的萨巴拉和阿罗汉。唱导缺失不抹去已知破坏—招募机制的紧凑结构轮廓；但没有唱导，就没有本条查询的唱导被破坏招募边。当前里侧冥王结界波可让萨巴拉取得自身一体，其卡文没有被破坏招募；卡组中的双王之械虽在其它场景有替代招募能力，当前没有被声明盖放可用，不能用它补造本次两体。零值只针对所查两体功能，不把残余萨巴拉单体价值清零。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v6\\blind_final\\cases.json::case_id=blind-v6-uc-05",
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=93664).identity",
+        "independent_reviewer_declaration:blind-v6-uc-05; static hypothetical objective and state; not author intent or replay observation",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=9205573)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=26236560)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=27412542)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=36609518)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=41165831)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=53417695)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=54693926)"
+      ],
+      "context_sufficiency": [
+        {
+          "dimension": "large_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "剩余与缺失的命名路线轮廓都没有多分支大机制规模。"
+        },
+        {
+          "dimension": "small_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "缺一必要成员后仍保留已知紧凑招募链的结构类别；不等于该链当前完成。"
+        },
+        {
+          "dimension": "strategic_core",
+          "status": "sufficient_for_assigned_role",
+          "reason": "明确主计划为双子复活与场面交换。"
+        },
+        {
+          "dimension": "support_role",
+          "status": "sufficient_for_assigned_role",
+          "reason": "所要求两体贡献因命名必要卡缺失而不能兑现。"
+        },
+        {
+          "dimension": "generic_utility",
+          "status": "sufficient_for_assigned_role",
+          "reason": "AND必要唱导真实未投入，明确查询功能不可用；不借其它状态的替代卡补造路线。"
+        }
+      ],
+      "missing_information": []
+    },
+    {
+      "case_id": "blind-v6-uc-06",
+      "roles": [
+        0.06,
+        0.05,
+        0.87,
+        0.62,
+        0.9
+      ],
+      "confidence": [
+        0.94,
+        0.92,
+        0.91,
+        0.82,
+        0.91
+      ],
+      "rationale": "只查询已在场来迎的③。它在自己或对方结束阶段可取场上一卡为对象破坏，每回合一次，目标与未用状态均已给出，所以该次已有单卡功能有效。它没有在本次选组内形成多成员联动，不能因连接4或整个破械家族较大就把单次现成终端抬为轴。此例明确把来迎的多时点破坏和攻击定为主要终结方式，单卡也可具有较高核心性；结束阶段处理同时提供互补清场。跨构筑采用仍以可合法取得来迎等投入为条件，本例没有声称它是无素材的一卡启动。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v6\\blind_final\\cases.json::case_id=blind-v6-uc-06",
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=78773).identity",
+        "independent_reviewer_declaration:blind-v6-uc-06; static hypothetical objective and state; not author intent or replay observation",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=29479265)"
+      ],
+      "context_sufficiency": [
+        {
+          "dimension": "large_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "评阅对象是已有单卡的一次终端处理，不是取得该连接4的完整路线。"
+        },
+        {
+          "dimension": "small_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "本次没有被声明的多成员功能链。"
+        },
+        {
+          "dimension": "strategic_core",
+          "status": "sufficient_for_assigned_role",
+          "reason": "主计划明确主要依靠来迎破坏与攻击终结，单卡核心性可以较高。"
+        },
+        {
+          "dimension": "support_role",
+          "status": "sufficient_for_assigned_role",
+          "reason": "这次结束阶段破坏对资源交换及后续攻击有互补贡献。"
+        },
+        {
+          "dimension": "generic_utility",
+          "status": "sufficient_for_assigned_role",
+          "reason": "本次单卡破坏的目标、阶段和次数满足；采用仍受来迎获得方式等构筑条件约束。"
+        }
+      ],
+      "missing_information": []
+    },
+    {
+      "case_id": "blind-v6-rk-01",
+      "roles": [
+        0.95,
+        0.28,
+        0.97,
+        0.55,
+        0.06
+      ],
+      "confidence": [
+        0.96,
+        0.81,
+        0.98,
+        0.78,
+        0.95
+      ],
+      "rationale": "选组含一瓣调度与对方结束阶段复活、叶牡丹和绚烂搜索、来来盖卡与每回合一次替代解放、白姬自跳或手墓返回成本无效、雪花莲双体与等级统一，以及力量女神花圈的墓地回收/被解放后招募、泪滴的效果解放。多种入口、资源区、成本和终端形成相对完整机制，主计划也明确围绕这些资源交换。回收、替代解放和无效彼此互补；整组不具最小具体功能性。樱草要求自己场上怪兽被解放，不能因为来来解放对方就无条件接上；没有把全体卡文当成单一自动循环。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v6\\blind_final\\cases.json::case_id=blind-v6-rk-01",
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=54424).identity",
+        "independent_reviewer_declaration:blind-v6-rk-01; static hypothetical objective and state; not author intent or replay observation",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=132308)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=3828844)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=8129306)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=33491462)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=33779875)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=68941332)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=69164989)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=71002019)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=71734607)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=76869711)"
+      ],
+      "context_sufficiency": [
+        {
+          "dimension": "large_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "搜索、解放成本替代、特召、等级变化、无效、超量回收和延后恢复相接，整体机制较完整。"
+        },
+        {
+          "dimension": "small_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "整体含紧凑支路，整体不等于其中任何一小段。"
+        },
+        {
+          "dimension": "strategic_core",
+          "status": "sufficient_for_assigned_role",
+          "reason": "明确主计划是六花搜索、解放与超量资源交换。"
+        },
+        {
+          "dimension": "support_role",
+          "status": "sufficient_for_assigned_role",
+          "reason": "恢复与无效等子功能互补维持主要解放终端，但整体也承担主要战略。"
+        },
+        {
+          "dimension": "generic_utility",
+          "status": "sufficient_for_assigned_role",
+          "reason": "整组可拆成更小具体功能单元，不是最小可用成员集合。"
+        }
+      ],
+      "missing_information": [
+        {
+          "fact": "起手、场墓、效果次数、可解放资源与合法目标。",
+          "affects": [
+            "current_whole_mechanism_execution"
+          ],
+          "reason": "卡文可恢复依赖关系，实际构筑不能恢复这些即时状态。"
+        },
+        {
+          "fact": "各次是否解放了自己场上怪兽、是否还有植物素材及各级超量入口。",
+          "affects": [
+            "specific_tribute_trigger_and_xyz_route"
+          ],
+          "reason": "来来解放对方不自动满足樱草的己方怪兽被解放条件；力量女神花圈被解放时须持有素材才有后续。"
+        }
+      ]
+    },
+    {
+      "case_id": "blind-v6-rk-02",
+      "roles": [
+        0.95,
+        0.28,
+        0.15,
+        0.94,
+        0.06
+      ],
+      "confidence": [
+        0.96,
+        0.81,
+        0.97,
+        0.95,
+        0.95
+      ],
+      "rationale": "实际身份和精确六花选组与rk-01相同，故多入口与资源关系的结构规模相同。此例改为明确的圣种/圣天树与芳香植物连接主计划；地灵满足幼精的4星以下植物素材，播种招募与受伤关联幼精后续，芳香茉莉有植物调度，但这些仍须分别满足条件。六花组在这个主计划中补充手牌、解放处理、身体、无效与超量，属于很大的互补贡献，不能因为大投入就强迫它成为主战略。整体最小性与另例同样较低。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v6\\blind_final\\cases.json::case_id=blind-v6-rk-02",
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=54424).identity",
+        "independent_reviewer_declaration:blind-v6-rk-02; static hypothetical objective and state; not author intent or replay observation",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=132308)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=3828844)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=8129306)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=21200905)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=27520594)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=33491462)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=33779875)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=53286626)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=68941332)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=69164989)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=71002019)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=71734607)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=76869711)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=93896655)"
+      ],
+      "context_sufficiency": [
+        {
+          "dimension": "large_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "搜索、解放成本替代、特召、等级变化、无效、超量回收和延后恢复相接，整体机制较完整。"
+        },
+        {
+          "dimension": "small_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "整体含紧凑支路，整体不等于其中任何一小段。"
+        },
+        {
+          "dimension": "strategic_core",
+          "status": "sufficient_for_assigned_role",
+          "reason": "明确主计划换成圣种、圣天树和芳香的植物连接，不按同组选组复制核心标签。"
+        },
+        {
+          "dimension": "support_role",
+          "status": "sufficient_for_assigned_role",
+          "reason": "多种六花资源与解放终端可互补植物连接主场面，结构较大仍可承担支援。"
+        },
+        {
+          "dimension": "generic_utility",
+          "status": "sufficient_for_assigned_role",
+          "reason": "与rk-01相同多支路整体，不因跨构筑采用而变成最小单元。"
+        }
+      ],
+      "missing_information": [
+        {
+          "fact": "起手、场墓、效果次数、可解放资源与合法目标。",
+          "affects": [
+            "current_whole_mechanism_execution"
+          ],
+          "reason": "卡文可恢复依赖关系，实际构筑不能恢复这些即时状态。"
+        },
+        {
+          "fact": "各次是否解放了自己场上怪兽、是否还有植物素材及各级超量入口。",
+          "affects": [
+            "specific_tribute_trigger_and_xyz_route"
+          ],
+          "reason": "来来解放对方不自动满足樱草的己方怪兽被解放条件；力量女神花圈被解放时须持有素材才有后续。"
+        }
+      ]
+    },
+    {
+      "case_id": "blind-v6-rk-03",
+      "roles": [
+        0.12,
+        0.93,
+        0.12,
+        0.92,
+        0.91
+      ],
+      "confidence": [
+        0.94,
+        0.95,
+        0.97,
+        0.95,
+        0.93
+      ],
+      "rationale": "来来②针对发动六花卡所需的己方植物解放成本提供每回合一次对方表侧怪兽替代。叶牡丹①正是解放植物来手中特召，且它是植物族，自身效果使其特召满足②的植物效果条件，可搜索仍在卡组的绚烂。场景给出替代次数、对方适格性、手牌、搜索对象、区域和效果次数，故该三件命名功能可用。来来①的六花在场条件没有被错误移植到②。此为植物连接主计划提供对方身体处理、己方植物和手牌；单次有效功能可跨适合的植物构筑采用，不能从中声称无限资源或任意植物展开已完成。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v6\\blind_final\\cases.json::case_id=blind-v6-rk-03",
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=54424).identity",
+        "independent_reviewer_declaration:blind-v6-rk-03; static hypothetical objective and state; not author intent or replay observation",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=21200905)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=27520594)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=53286626)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=69164989)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=71002019)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=76869711)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=93896655)"
+      ],
+      "context_sufficiency": [
+        {
+          "dimension": "large_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "只包含一次成本替代、自跳和命名搜索，没有整体循环和多个终端。"
+        },
+        {
+          "dimension": "small_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "来来②替代叶牡丹①成本、植物自身效果特召再触发②搜索绚烂，构成明确短链。"
+        },
+        {
+          "dimension": "strategic_core",
+          "status": "sufficient_for_assigned_role",
+          "reason": "明确主计划是植物连接；这次解放与命名搜索不直接等于该主要路线。"
+        },
+        {
+          "dimension": "support_role",
+          "status": "sufficient_for_assigned_role",
+          "reason": "处理对方身体并补充植物及手牌，对已声明植物连接有明确互补贡献。"
+        },
+        {
+          "dimension": "generic_utility",
+          "status": "sufficient_for_assigned_role",
+          "reason": "明确三件功能所需的代价替代、适格目标和命名搜索条件满足，可按条件采用。"
+        }
+      ],
+      "missing_information": []
+    },
+    {
+      "case_id": "blind-v6-rk-04",
+      "roles": [
+        0.12,
+        0.93,
+        0.12,
+        0.0,
+        0.0
+      ],
+      "confidence": [
+        0.94,
+        0.95,
+        0.97,
+        0.99,
+        0.99
+      ],
+      "rationale": "三件都在真实牌表中，短链结构不变；但来来②明确每回合一次，此刻已经适用过，不能再次以对方怪兽代付。自己也没有植物可按叶牡丹①原成本解放，因此本次自跳及其后搜索无法开始。不能因对方仍有可解放怪兽就忽略替代次数，也不能把其它未声明召唤方式补入本查询。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v6\\blind_final\\cases.json::case_id=blind-v6-rk-04",
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=54424).identity",
+        "independent_reviewer_declaration:blind-v6-rk-04; static hypothetical objective and state; not author intent or replay observation",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=21200905)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=27520594)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=53286626)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=69164989)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=71002019)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=76869711)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=93896655)"
+      ],
+      "context_sufficiency": [
+        {
+          "dimension": "large_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "只包含一次成本替代、自跳和命名搜索，没有整体循环和多个终端。"
+        },
+        {
+          "dimension": "small_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "来来②替代叶牡丹①成本、植物自身效果特召再触发②搜索绚烂，构成明确短链。"
+        },
+        {
+          "dimension": "strategic_core",
+          "status": "sufficient_for_assigned_role",
+          "reason": "明确主计划是植物连接；这次解放与命名搜索不直接等于该主要路线。"
+        },
+        {
+          "dimension": "support_role",
+          "status": "sufficient_for_assigned_role",
+          "reason": "起动成本和替代次数都明确不成立，本次互补贡献不能取得。"
+        },
+        {
+          "dimension": "generic_utility",
+          "status": "sufficient_for_assigned_role",
+          "reason": "当前明确无法支付叶牡丹①成本，所查询三件功能不可用。"
+        }
+      ],
+      "missing_information": []
+    },
+    {
+      "case_id": "blind-v6-rk-05",
+      "roles": [
+        0.12,
+        0.93,
+        0.12,
+        null,
+        null
+      ],
+      "confidence": [
+        0.94,
+        0.95,
+        0.97,
+        null,
+        null
+      ],
+      "rationale": "成员、短链及主计划清楚，结构与角色归属可评阅。自己没有原成本所需植物，故当前功能完全依赖来来②对方表侧怪兽替代；只说对方有怪兽不足以知道其是否表侧以及能否被该处理解放。次数、区域和搜索对象已知仍不能补上这个必要事实。对依赖该次除去、自跳及搜索实际有效的支援和最小可用单元判断保留null，而不补零或借其它路线改变功能。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v6\\blind_final\\cases.json::case_id=blind-v6-rk-05",
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=54424).identity",
+        "independent_reviewer_declaration:blind-v6-rk-05; static hypothetical objective and state; not author intent or replay observation",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=21200905)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=27520594)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=53286626)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=69164989)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=71002019)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=76869711)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=93896655)"
+      ],
+      "context_sufficiency": [
+        {
+          "dimension": "large_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "只包含一次成本替代、自跳和命名搜索，没有整体循环和多个终端。"
+        },
+        {
+          "dimension": "small_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "来来②替代叶牡丹①成本、植物自身效果特召再触发②搜索绚烂，构成明确短链。"
+        },
+        {
+          "dimension": "strategic_core",
+          "status": "sufficient_for_assigned_role",
+          "reason": "明确主计划是植物连接；这次解放与命名搜索不直接等于该主要路线。"
+        },
+        {
+          "dimension": "support_role",
+          "status": "insufficient",
+          "reason": "对方替代资源资格未知，无法确定本次是否能取得身体处理与补手贡献。"
+        },
+        {
+          "dimension": "generic_utility",
+          "status": "insufficient",
+          "reason": "此功能必要成本资源未知，不能认定当前最小单元可用或不可用。"
+        }
+      ],
+      "missing_information": [
+        {
+          "fact": "对方怪兽是否表侧。",
+          "affects": [
+            "support_role",
+            "generic_utility"
+          ],
+          "reason": "来来②仅能替代解放对方表侧怪兽。"
+        },
+        {
+          "fact": "对方怪兽能否被来来的替代处理解放，是否有相关免疫或不能解放约束。",
+          "affects": [
+            "support_role",
+            "generic_utility"
+          ],
+          "reason": "己方无原成本植物，因此这是本次功能是否可开始的决定性条件。"
+        }
+      ]
+    },
+    {
+      "case_id": "blind-v6-rk-06",
+      "roles": [
+        0.04,
+        0.05,
+        0.16,
+        0.9,
+        0.91
+      ],
+      "confidence": [
+        0.96,
+        0.92,
+        0.96,
+        0.94,
+        0.92
+      ],
+      "rationale": "只查询已在场泪滴①。卡文以取除1素材为成本，取自己或对方场上怪兽为对象并解放；有植物素材时才允许对方回合发动。输入明确持有2个植物素材、次数未用和目标适格，付1后仍保留植物素材，因此该次对方回合效果解放可成立。它是现有单卡的条件化处理，不是本条内的多卡轴；明确主计划为植物连接，这项额外解放提供互补干扰。泛用性受取得8阶及植物素材等条件约束，不推广到任意素材或任意构筑。",
+      "source_refs": [
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v6\\blind_final\\cases.json::case_id=blind-v6-rk-06",
+        "E:\\CodexData\\2026-11-01\\task\\role-training-v3\\runs\\2607-full-v3\\prepared.sqlite3::decks(rowid=54424).identity",
+        "independent_reviewer_declaration:blind-v6-rk-06; static hypothetical objective and state; not author intent or replay observation",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=21200905)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=27520594)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=33779875)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=53286626)",
+        "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb::texts/datas(id=93896655)"
+      ],
+      "context_sufficiency": [
+        {
+          "dimension": "large_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "本次是现有单卡的一次终端功能，未声明取得它的整体机制。"
+        },
+        {
+          "dimension": "small_axis",
+          "status": "sufficient_for_assigned_role",
+          "reason": "单卡这次取素材并解放不自动构成多成员功能链。"
+        },
+        {
+          "dimension": "strategic_core",
+          "status": "sufficient_for_assigned_role",
+          "reason": "明确主计划为植物连接，泪滴是额外处理资源。"
+        },
+        {
+          "dimension": "support_role",
+          "status": "sufficient_for_assigned_role",
+          "reason": "对方回合解放对方怪兽提供清楚的互补干扰。"
+        },
+        {
+          "dimension": "generic_utility",
+          "status": "sufficient_for_assigned_role",
+          "reason": "已有泪滴、植物素材、次数和目标完整，按这些条件可在不同适配构筑采用最小单卡功能。"
+        }
+      ],
+      "missing_information": []
+    },
+    {
+      "case_id": "BF-ORC-01",
+      "roles": [
+        0.95,
+        0.3,
+        0.96,
+        0.55,
+        null
+      ],
+      "confidence": [
+        0.91,
+        0.72,
+        0.94,
+        0.74,
+        0.99
+      ],
+      "rationale": "投入覆盖启动、堆墓、除外、展开、额外转换、场地时点转换和资源回收，是相对完整的大规模联动机制；其中也含紧凑的局部链，因此大小轴不互斥。声明的取胜计划直接由这套机制承载，且其响应与回收还能服务后续行动。本例没有约定最小可迁移功能单元及逐项前提，unit=null，泛用维保留未知；不从完整机制直接继承泛用。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=2833",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=703897",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=4055337",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=21441617",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=30741503",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=48835607",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=57835716",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=69811710",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=74820316",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=90351981",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=93854893",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=93920420",
+        "declared-counterfactual:BF-ORC-01 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-ORC-02",
+      "roles": [
+        0.94,
+        0.32,
+        0.28,
+        0.96,
+        null
+      ],
+      "confidence": [
+        0.9,
+        0.72,
+        0.87,
+        0.93,
+        0.99
+      ],
+      "rationale": "查询的卡和投入与上一情境相同，完整联动程度不会因为与三幻魔并存而缩成小轴。本例声明三幻魔站场进攻承担取胜，自奏提供互补响应与续接，因此核心承载弱于直接以其循环取胜的情境，支援作用明确。没有给整套机制定义最小可迁移单元，泛用仍未知。两例只是显式策略情境对照，不表示作者有这两种意图。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=2833",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=703897",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=4055337",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=21441617",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=30741503",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=48835607",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=57835716",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=69811710",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=74820316",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=90351981",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=93854893",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=93920420",
+        "declared-counterfactual:BF-ORC-02 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-ORC-03",
+      "roles": [
+        0.08,
+        0.92,
+        0.32,
+        0.94,
+        1.0
+      ],
+      "confidence": [
+        0.9,
+        0.91,
+        0.75,
+        0.9,
+        0.96
+      ],
+      "rationale": "这是时点转换、墓地复活和登场送墓组成的紧凑功能链，不能据此声称已覆盖整套自奏机制。在以三幻魔站场取胜的背景下提供一次互补处理，不独自承担全部取胜。指定对方回合的此功能需要通天塔，复活与送墓分别需要骷髅和丁吉尔苏；三张齐全且条件逐项满足，在相同墓地预置条件下可跨构筑使用，故泛用成立；这不等于任意开局三卡可无条件做出此场面。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=2833",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=21441617",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=90351981",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=93854893",
+        "https://www.yugioh-card.com/en/downloads/rulebook/SD_RuleBook_EN_10.pdf#page=15 (printed pp.24-25: Special Summon with a Card’s Effect)",
+        "declared-counterfactual:BF-ORC-03 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-ORC-04",
+      "roles": [
+        0.02,
+        0.42,
+        0.08,
+        0.18,
+        0.0
+      ],
+      "confidence": [
+        0.92,
+        0.75,
+        0.82,
+        0.83,
+        0.99
+      ],
+      "rationale": "两张卡保留自己回合可理解的复活—登场联系，但缺少指定对方回合所需的时点转换，不能按完整三张链评价。其对当前取胜安排的贡献受阻，且不是相对完整的大机制。通天塔在整副牌中存在不等于被查询单元可以继承它；本次指定功能不可用，泛用精确为0。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=2833",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=21441617",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=90351981",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=93854893",
+        "https://www.yugioh-card.com/en/downloads/rulebook/SD_RuleBook_EN_10.pdf#page=15 (printed pp.24-25: Special Summon with a Card’s Effect)",
+        "declared-counterfactual:BF-ORC-04 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-ORC-05",
+      "roles": [
+        0.08,
+        0.78,
+        0.1,
+        0.22,
+        0.0
+      ],
+      "confidence": [
+        0.88,
+        0.83,
+        0.82,
+        0.83,
+        0.99
+      ],
+      "rationale": "三张卡构成的紧凑结构仍可辨认，投入不足以代表全套大机制；但额外怪兽未正规登场不能由墓地复活，所以声明情境中的送墓任务不能完成，核心与支援贡献很低。泛用在指定功能和已知失败条件下精确为0，不以“卡都在牌表”代替苏生条件。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=2833",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=21441617",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=90351981",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=93854893",
+        "https://www.yugioh-card.com/en/downloads/rulebook/SD_RuleBook_EN_10.pdf#page=15 (printed pp.24-25: Special Summon with a Card’s Effect)",
+        "declared-counterfactual:BF-ORC-05 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-ORC-06",
+      "roles": [
+        0.08,
+        0.88,
+        0.2,
+        0.61,
+        null
+      ],
+      "confidence": [
+        0.88,
+        0.84,
+        0.65,
+        0.67,
+        0.99
+      ],
+      "rationale": "紧凑联动结构明确，作为响应有潜在互补价值；相对完整大机制和直接承载取胜均不足。决定当前链是否能兑现的正规登场历史未知，故泛用维未知，不把未知条件当满足，也不以小正分冒充未知。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=2833",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=21441617",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=90351981",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=93854893",
+        "https://www.yugioh-card.com/en/downloads/rulebook/SD_RuleBook_EN_10.pdf#page=15 (printed pp.24-25: Special Summon with a Card’s Effect)",
+        "declared-counterfactual:BF-ORC-06 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-SPD-01",
+      "roles": [
+        0.04,
+        0.98,
+        0.22,
+        0.96,
+        1.0
+      ],
+      "confidence": [
+        0.91,
+        0.96,
+        0.81,
+        0.94,
+        0.98
+      ],
+      "rationale": "检索接自身特殊召唤形成紧凑两体链，不能凭两体贡献推成相对完整大机制；取胜安排仍在六武众后续。保留通常召唤、供给两体有清楚的互补价值。指定最小单元两张均在，空场、位置、每回合限制与合法展开条件满足，相同条件下无需六武众专属卡即可在其它构筑得到两体，泛用成立。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=4123",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=53932291",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=81275020",
+        "declared-counterfactual:BF-SPD-01 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-SPD-02",
+      "roles": [
+        0.15,
+        0.98,
+        0.31,
+        0.98,
+        1.0
+      ],
+      "confidence": [
+        0.84,
+        0.94,
+        0.78,
+        0.94,
+        0.96
+      ],
+      "rationale": "两体链接实际阶级3转换和主卡组战士，形成比单纯两体更长但仍紧凑的功能链。它切入六武众的展开，与声明后续有明确配合，而未给出整套六武众取胜机制。四个必要成员、材料等级、辉斩的属性等级种族和不受风属性自肃均满足；在要求从卡组取出此类地4战士的条件下可跨构筑使用。招来者卡文仅规定结束阶段破坏，没有写效果无效，未添加该限制。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=4123",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=4423206",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=49721904",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=53932291",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=81275020",
+        "declared-counterfactual:BF-SPD-02 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-SPD-03",
+      "roles": [
+        0.0,
+        0.12,
+        0.06,
+        0.1,
+        0.0
+      ],
+      "confidence": [
+        0.95,
+        0.86,
+        0.84,
+        0.85,
+        0.99
+      ],
+      "rationale": "贝陀螺单独仍可能有自身特殊召唤价值，但没有查询内的目标便不能完成声明的两体链。不能把实际整副牌存在竹蜻蜓，替换成查询单元已包含竹蜻蜓；目标功能的泛用为0，剩余单卡也不足以承担完整机制或当前六武众取胜计划。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=4123",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=53932291",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=81275020",
+        "declared-counterfactual:BF-SPD-03 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-SPD-04",
+      "roles": [
+        0.04,
+        0.91,
+        0.1,
+        0.24,
+        0.0
+      ],
+      "confidence": [
+        0.91,
+        0.89,
+        0.83,
+        0.82,
+        0.99
+      ],
+      "rationale": "两张卡的紧凑架构仍存在，但贝陀螺的空场特殊召唤条件不满足，且通常召唤和外部入口已明确排除。当前不能取得目标两体，不能兑现所需支援，指定功能的泛用精确为0。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=4123",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=53932291",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=81275020",
+        "declared-counterfactual:BF-SPD-04 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-SPD-05",
+      "roles": [
+        0.04,
+        0.95,
+        0.18,
+        0.62,
+        null
+      ],
+      "confidence": [
+        0.91,
+        0.91,
+        0.69,
+        0.7,
+        0.99
+      ],
+      "rationale": "完整紧凑链和互补用途可辨认，实际可启动性取决于未给出的空场条件。既不能因两卡在牌表中而断言可用，也不能从未给信息推断必然失败；泛用保留未知。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=4123",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=53932291",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=81275020",
+        "declared-counterfactual:BF-SPD-05 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-SPD-06",
+      "roles": [
+        0.04,
+        0.91,
+        0.1,
+        0.23,
+        0.0
+      ],
+      "confidence": [
+        0.91,
+        0.88,
+        0.81,
+        0.82,
+        0.99
+      ],
+      "rationale": "结构是紧凑两体链，但同名检索一回合一次已耗尽，不能把“可特殊召唤贝陀螺”误当成“两体已可取得”。当前所需的两体支援失败，指定功能泛用为0。真实牌表有3张贝陀螺，先前使用同名卡的情境不需虚构额外投入。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=4123",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=53932291",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=81275020",
+        "declared-counterfactual:BF-SPD-06 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-BRF-01",
+      "roles": [
+        0.1,
+        0.96,
+        0.34,
+        0.93,
+        1.0
+      ],
+      "confidence": [
+        0.88,
+        0.94,
+        0.78,
+        0.92,
+        0.97
+      ],
+      "rationale": "魔法把两类指定素材转换成提供额外通常召唤的融合怪兽，属于紧凑链，服务后续行动；并未给出全套宝石骑士或影依取胜机制。石英提供宝石骑士名称，尼比鲁的datas.attribute=16提供另一只光素材。四个必要成员与材料位置、融合合法性、驻场和受益行动条件均满足，在这些条件下可跨构筑提供一次额外通常召唤，泛用成立。尼比鲁本身的发动次数条件与作为融合素材无关。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=39776",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=3113836",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=7394770",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=27204311",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=35622739",
+        "declared-counterfactual:BF-BRF-01 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-BRF-02",
+      "roles": [
+        0.38,
+        0.97,
+        0.7,
+        0.94,
+        1.0
+      ],
+      "confidence": [
+        0.78,
+        0.92,
+        0.81,
+        0.9,
+        0.95
+      ],
+      "rationale": "此例不只是替换光素材：拿非琉的卡组送墓自复活、登场检索增加了新的行动和资源节点。它直接接续本次宝石骑士融合计划，因此核心承载与支援可重叠，但仍未涵盖全套卡组，规模更接近紧凑链。指定五卡及额外一张任意可送墓手卡条件齐备，已承诺的终点是斜绿、复活的拿非琉和检索到融合；这些功能在相同条件下不要求牌组剩余部分都为宝石骑士，所以该完整单元可作条件泛用。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=39776",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=1264319",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=3113836",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=7394770",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=35622739",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=51831560",
+        "declared-counterfactual:BF-BRF-02 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-BRF-03",
+      "roles": [
+        0.02,
+        0.2,
+        0.08,
+        0.07,
+        0.0
+      ],
+      "confidence": [
+        0.93,
+        0.85,
+        0.84,
+        0.85,
+        0.99
+      ],
+      "rationale": "斜绿要求宝石骑士怪兽加另一只光属性怪兽，只有尼比鲁不能满足宝石骑士位置。缺必要素材的查询集合不能继承实际整副牌中完整包的功能或泛用；声明的融合链尚未闭合，泛用为0。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=39776",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=3113836",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=7394770",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=27204311",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=35622739",
+        "declared-counterfactual:BF-BRF-03 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-BRF-04",
+      "roles": [
+        0.02,
+        0.18,
+        0.07,
+        0.06,
+        0.0
+      ],
+      "confidence": [
+        0.93,
+        0.85,
+        0.84,
+        0.85,
+        0.99
+      ],
+      "rationale": "石英是可用宝石骑士素材但为地属性，并且融合不能用同一张素材满足两张怪兽的位置。没有另一只光属性素材，指定斜绿融合无法完成；不从牌表未选卡恢复完整包，泛用精确为0。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=39776",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=3113836",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=7394770",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=27204311",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=35622739",
+        "declared-counterfactual:BF-BRF-04 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-BRF-05",
+      "roles": [
+        0.1,
+        0.87,
+        0.15,
+        0.2,
+        0.0
+      ],
+      "confidence": [
+        0.88,
+        0.86,
+        0.81,
+        0.83,
+        0.99
+      ],
+      "rationale": "卡名集合完整，仍能辨认紧凑转换机制；但明亮融合只从卡组取素材，不能使用手里的指定光素材。位置条件已知失败，当前任务不可完成，因此泛用为0；没有把卡名齐全等同于功能可用。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=39776",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=3113836",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=7394770",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=27204311",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=35622739",
+        "declared-counterfactual:BF-BRF-05 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-BRF-06",
+      "roles": [
+        0.1,
+        0.92,
+        0.26,
+        0.63,
+        null
+      ],
+      "confidence": [
+        0.88,
+        0.88,
+        0.68,
+        0.7,
+        0.99
+      ],
+      "rationale": "紧凑融合包的结构与互补目的明确，但牌表不提供对局时点的素材位置。在卡组的事实未成立，也没有失败证据；泛用保留未知，而非按原牌表有卡直接判可用。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=39776",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=3113836",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=7394770",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=27204311",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=35622739",
+        "declared-counterfactual:BF-BRF-06 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-NIB-01",
+      "roles": [
+        0.0,
+        0.0,
+        0.04,
+        0.91,
+        1.0
+      ],
+      "confidence": [
+        0.99,
+        0.98,
+        0.88,
+        0.91,
+        0.99
+      ],
+      "rationale": "单张卡的条件解放功能没有卡间联动链，大小轴均不成立；它为三幻魔与自奏后续提供场面处理，而非直接承载声明取胜计划。完整最小单元就是手中这张卡，五只怪兽、主要阶段、次数和合法处理条件皆满足；不要求任何本家卡，泛用成立。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=2833",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=27204311",
+        "declared-counterfactual:BF-NIB-01 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-NIB-02",
+      "roles": [
+        0.0,
+        0.0,
+        0.02,
+        0.12,
+        0.0
+      ],
+      "confidence": [
+        0.99,
+        0.98,
+        0.91,
+        0.86,
+        0.99
+      ],
+      "rationale": "尼比鲁仍是单卡而非轴，当前四只的门槛明确不够，不能完成此时想要的解放功能。本次指定条件下泛用精确为0，不把在其它回合可能可用转换成当前的小正分。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=4123",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=27204311",
+        "declared-counterfactual:BF-NIB-02 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-NIB-03",
+      "roles": [
+        0.0,
+        0.0,
+        0.02,
+        0.1,
+        0.0
+      ],
+      "confidence": [
+        0.99,
+        0.98,
+        0.91,
+        0.86,
+        0.99
+      ],
+      "rationale": "单卡结构不形成大小轴；门槛虽满足，主要阶段的发动时点不满足，当前无法提供所需场面处理，泛用为0。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=39776",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=27204311",
+        "declared-counterfactual:BF-NIB-03 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-NIB-04",
+      "roles": [
+        0.0,
+        0.0,
+        0.03,
+        0.56,
+        null
+      ],
+      "confidence": [
+        0.99,
+        0.98,
+        0.87,
+        0.68,
+        0.99
+      ],
+      "rationale": "卡文的单卡处理结构和互补目的可判断，五只门槛是未知对局条件。场上现在有几只怪兽不等于本回合召唤过几只；不从牌表推断，泛用维未知。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=2833",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=27204311",
+        "declared-counterfactual:BF-NIB-04 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-NIB-05",
+      "roles": [
+        0.0,
+        0.0,
+        0.02,
+        0.1,
+        0.0
+      ],
+      "confidence": [
+        0.99,
+        0.98,
+        0.91,
+        0.86,
+        0.99
+      ],
+      "rationale": "该效果从手卡特殊召唤自身，墓地的这张卡不能以这个效果完成声明功能；不添加未选回收卡。不成轴，当前也无可兑现的处理贡献；指定功能泛用精确为0。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=4123",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=27204311",
+        "declared-counterfactual:BF-NIB-05 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-NIB-06",
+      "roles": [
+        0.0,
+        0.0,
+        0.02,
+        0.08,
+        0.0
+      ],
+      "confidence": [
+        0.99,
+        0.98,
+        0.9,
+        0.86,
+        0.99
+      ],
+      "rationale": "自己主要阶段本身符合卡文，失败来自已适用的暗属性特殊召唤限制：光属性尼比鲁不能被特殊召唤。单卡不成轴，也不能在这个情境兑现补充处理；指定功能泛用为0。限制来源实际存在且卡文明确，未将它隐作尼比鲁的必要成员。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=2833",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=27204311",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=57835716",
+        "declared-counterfactual:BF-NIB-06 (objective and unit.conditions)"
+      ]
+    },
+    {
+      "case_id": "BF-NIB-07",
+      "roles": [
+        0.0,
+        0.0,
+        0.04,
+        0.92,
+        1.0
+      ],
+      "confidence": [
+        0.99,
+        0.98,
+        0.88,
+        0.91,
+        0.99
+      ],
+      "rationale": "与三幻魔/自奏背景中的单卡处理相同，五只门槛与时点成立时，六武众不提供也不妨碍这张卡所需条件。单卡无联动轴，承担互补处理；完整最小单元和条件不依赖六武众，泛用成立。此例是背景迁移对照，不声称新增一种解放功能。",
+      "source_refs": [
+        "sqlite:E:/CodexData/2026-11-01/task/role-training-v3/runs/2607-full-v3/prepared.sqlite3#decks.rowid=4123",
+        "sqlite:N:/YGO-Kito/_local_cpu_20261027/assets/native/engine-src/database/locales/zh-CN/cards.cdb#datas+texts.id=27204311",
+        "declared-counterfactual:BF-NIB-07 (objective and unit.conditions)"
+      ]
+    }
+  ]
+}

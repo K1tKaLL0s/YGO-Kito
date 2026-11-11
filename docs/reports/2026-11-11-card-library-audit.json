@@ -1,0 +1,602 @@
+{
+  "task": "Full local source-field comparison and coarse effect-block audit",
+  "audit_source": "Current complete checkout and freshly downloaded Baige bulk snapshot",
+  "download": {
+    "source": "Baige public bulk download",
+    "started_at_utc": "2026-11-11T03:27:52.400893+00:00",
+    "requests": [
+      {
+        "url": "https://ygocdb.com/api/v0/cards.zip.md5",
+        "status": 200,
+        "bytes": 34,
+        "retrieved_at_utc": "2026-11-11T03:27:53.772790+00:00",
+        "etag": "W/\"22-DgRPbX6Pxl+GGqqW4schVvKGMFM\"",
+        "last_modified": null,
+        "sha256": "f62cb61d198285c1b6f9ce387b98bf46a62e0bf07b656d54190cfd3467bd22e8"
+      },
+      {
+        "url": "https://ygocdb.com/api/v0/cards.zip",
+        "status": 200,
+        "bytes": 2471017,
+        "retrieved_at_utc": "2026-11-11T03:27:55.800447+00:00",
+        "etag": null,
+        "last_modified": null,
+        "sha256": "c65143a0f1617a4af9a699bd1ec6466b71d67337fa30b993381e6573f22339f0"
+      }
+    ],
+    "complete": true,
+    "validation_attempts": [
+      {
+        "result": "incorrect_checksum_format_assumption",
+        "detail": "published checksum is a JSON string; first attempt compared surrounding quotes too"
+      },
+      {
+        "result": "passed",
+        "detail": "decoded publisher JSON checksum equals MD5 of saved cards.json"
+      }
+    ],
+    "md5_verified": true,
+    "cards_json_md5": "58654e21148eed54599417e988ce4c18",
+    "cards_json_sha256": "0e3dfa3b3cb1b5221638943d6d8fdff1ca8c6e824916584f059a6b1a50aa6f2b",
+    "records": 14423
+  },
+  "baige_comparison": {
+    "observed_at_utc": "2026-11-11T03:33:25.620686+00:00",
+    "baige_file": "N:\\YGO-Kito\\_publish_20261030\\data\\staging\\baige-20261111\\cards.json",
+    "cdb_file": "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb",
+    "counts": {
+      "baige_rows_checked": 14423,
+      "matched_ids": 14297,
+      "matched_equal_all_comparable_fields": 14111,
+      "matched_with_differences": 186,
+      "baige_metadata_only_no_usable_password": 44,
+      "baige_missing_local_id": 82,
+      "local_only_alias": 572,
+      "local_only_token": 200,
+      "local_only_canonical": 2
+    },
+    "different_fields": {
+      "setcode": 15,
+      "name": 3,
+      "ot": 138,
+      "monster_or_spell_trap_text": 30,
+      "pendulum_text": 1
+    },
+    "local_populations": {
+      "canonical": 14280,
+      "alias": 591,
+      "token": 200
+    },
+    "unique_canonical_local_ids_matched": 14278,
+    "unavailable_comparison_fields": [
+      "CDB alias",
+      "CDB category",
+      "CDB str1..str16"
+    ],
+    "normalization": "line endings, per-line edge whitespace, CDB pendulum headers only",
+    "all_baige_rows_checked": true,
+    "all_local_rows_checked": true,
+    "source_differences_are_not_automatically_card_errors": true,
+    "source_databases_modified": false
+  },
+  "full_local_scan": {
+    "audit_version": 1,
+    "observed_at_utc": "2026-11-11T03:26:57.525692+00:00",
+    "source_cdb": "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\native\\engine-src\\database\\locales\\zh-CN\\cards.cdb",
+    "mirror_cdb": "N:\\YGO-Kito\\data\\axis_generic\\source\\cards.cdb",
+    "saved_dictionary": "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\effect-blocks\\effect-blocks-v1.sqlite3",
+    "database_commit": "217ae165c1886af2fc36b823fc08f9fc3ec13185",
+    "cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+    "live_revision": "public-text-completion-20261111-b13",
+    "saved_revision": "full-pool-unresolved-3164-20261102",
+    "source_integrity": "ok",
+    "saved_integrity": "ok",
+    "source_table_counts": {
+      "datas": 15071,
+      "texts": 15071
+    },
+    "source_orphans": {
+      "datas_without_text": 0,
+      "texts_without_datas": 0
+    },
+    "source_raw_field_errors": {},
+    "saved_index_orphan_card_ids": [],
+    "mirror_different_rows": {
+      "datas": 0,
+      "texts": 0
+    },
+    "mirror_extra_ids": {
+      "datas": [],
+      "texts": []
+    },
+    "canonical_cards": 14280,
+    "missing_saved_cards": [],
+    "extra_saved_cards": [],
+    "counts": {
+      "source_rows_checked": 15071,
+      "live_cards_checked": 14280,
+      "live_source_error_cards": 0,
+      "live_effect_groups": 23188,
+      "live_groups_with_unknown_details": 19836,
+      "saved_live_content_different_cards": 13915,
+      "saved_source_error_cards": 0,
+      "saved_cards_with_index_errors": 0,
+      "live_cards_with_export_contract_errors": 4,
+      "excluded_rows": 791
+    },
+    "live_group_statuses": {
+      "observed": 21499,
+      "flavor": 690,
+      "restriction": 891,
+      "summon_description": 95,
+      "summon_procedure": 5,
+      "cost_only": 5,
+      "unresolved": 3
+    },
+    "live_functions": {
+      "LP交换": 1,
+      "LP变更": 34,
+      "LP失去": 47,
+      "上级召唤": 19,
+      "丢弃手卡": 368,
+      "二重状态赋予": 7,
+      "仪式召唤": 156,
+      "仪式解放代替": 1,
+      "伤害变更": 345,
+      "伤害回复转换": 7,
+      "伤害复制": 2,
+      "伤害类型变更": 1,
+      "伤害转移": 45,
+      "伤害防止": 6,
+      "位置交换": 7,
+      "全体攻击": 34,
+      "刻度变更": 35,
+      "加入手牌": 687,
+      "加入额外卡组": 25,
+      "区域移动": 44,
+      "卡名变更": 201,
+      "卡片公开": 24,
+      "卡组展示": 135,
+      "卡组翻转": 1,
+      "卡组顺序调整": 53,
+      "发动卡片": 37,
+      "发动无效": 395,
+      "发动时点扩展": 3,
+      "发动范围扩展": 61,
+      "取除指示物": 69,
+      "取除素材": 112,
+      "召唤次数增加": 80,
+      "同调召唤": 120,
+      "响应限制": 328,
+      "回卡组": 991,
+      "回合计数变更": 1,
+      "回复LP": 282,
+      "回手": 658,
+      "回收": 472,
+      "回额外卡组": 120,
+      "场上洗切": 1,
+      "场地名称代用": 2,
+      "墓地去向替代": 4,
+      "增减数值复原": 2,
+      "字段赋予": 15,
+      "守备攻击": 19,
+      "宣言选择": 29,
+      "展示": 148,
+      "属性变更": 90,
+      "强制战斗": 2,
+      "战斗破坏保护": 515,
+      "战斗计算变更": 17,
+      "手卡公开": 15,
+      "手卡检视": 40,
+      "投掷硬币": 80,
+      "投掷骰子": 72,
+      "抽卡": 883,
+      "抽卡代替": 12,
+      "抽卡数量变更": 7,
+      "控制权交换": 21,
+      "控制权取得": 219,
+      "攻击对象变更": 42,
+      "攻击无效": 125,
+      "攻守变更": 2861,
+      "放置指示物": 322,
+      "效果不受": 250,
+      "效果伤害": 947,
+      "效果复制": 383,
+      "效果对象变更": 44,
+      "效果支付LP": 9,
+      "效果无效": 976,
+      "效果破坏保护": 494,
+      "效果赋予": 232,
+      "效果适用": 17,
+      "检索": 1614,
+      "检视": 5,
+      "洗切": 86,
+      "灵摆刻度借用": 1,
+      "灵摆召唤": 1,
+      "灵摆次数增加": 7,
+      "特召": 5925,
+      "特殊胜利": 13,
+      "盖放": 386,
+      "直接攻击": 258,
+      "直攻转换": 5,
+      "破坏": 3194,
+      "破坏代替": 267,
+      "种族变更": 49,
+      "种类变更": 405,
+      "等级变更": 589,
+      "素材数量代用": 5,
+      "素材数量减少": 2,
+      "素材种族代用": 1,
+      "素材等级代用": 34,
+      "素材范围扩展": 159,
+      "素材身份代用": 1,
+      "置于卡组": 53,
+      "翻开卡片": 84,
+      "融合召唤": 266,
+      "衍生物生成": 41,
+      "补充超量素材": 254,
+      "表侧放置": 281,
+      "表示形式变更": 568,
+      "装备": 479,
+      "装备对象变更": 3,
+      "解放": 307,
+      "解放数量代用": 1,
+      "解放数量减少": 8,
+      "解放素材代替": 1,
+      "贯穿战斗伤害": 189,
+      "费用代替": 6,
+      "费用减少": 8,
+      "费用来源扩展": 1,
+      "超量召唤": 120,
+      "返回墓地": 41,
+      "连接召唤": 31,
+      "追加攻击": 275,
+      "送墓": 1419,
+      "选择范围扩展": 2,
+      "通常召唤": 142,
+      "阶段推进": 9,
+      "阶段结束": 46,
+      "阶段跳过": 46,
+      "阶段追加": 4,
+      "阶级变更": 11,
+      "除外": 1511,
+      "额外卡组检视": 20,
+      "骰子结果变更": 2
+    },
+    "live_costs": {
+      "取除素材": 482,
+      "支付LP": 256,
+      "解放": 672,
+      "送墓": 1171,
+      "除外": 1204
+    },
+    "live_procedures": {
+      "上级召唤": 5,
+      "特召": 375,
+      "解放": 8,
+      "解放数量代用": 36,
+      "解放数量减少": 105,
+      "送墓": 9,
+      "除外": 23
+    },
+    "saved_live_changed_sections": {
+      "effects": 13468,
+      "source_records": 13914,
+      "card_restrictions": 161,
+      "compatibility_tags": 2
+    },
+    "review_candidates": {
+      "missing_extra_in_shared_origin": {
+        "occurrences": 67,
+        "cards": 60
+      },
+      "activation_head_as_processing": {
+        "occurrences": 23,
+        "cards": 23
+      },
+      "cost_from_trigger_description": {
+        "occurrences": 1,
+        "cards": 1
+      },
+      "missing_identity_subtype": {
+        "occurrences": 497,
+        "cards": 489
+      },
+      "position_event_as_position_change": {
+        "occurrences": 2,
+        "cards": 2
+      },
+      "missing_prelude_self_destruction": {
+        "occurrences": 3,
+        "cards": 3
+      },
+      "missing_summon_negation": {
+        "occurrences": 40,
+        "cards": 40
+      },
+      "summon_negation_or_event_as_special_summon": {
+        "occurrences": 36,
+        "cards": 31
+      },
+      "material_level_reference_as_substitution": {
+        "occurrences": 1,
+        "cards": 1
+      },
+      "summoned_token_reference_as_creation": {
+        "occurrences": 14,
+        "cards": 14
+      },
+      "face_up_adjective_as_reveal": {
+        "occurrences": 35,
+        "cards": 34
+      },
+      "missing_prelude_activation_permission": {
+        "occurrences": 46,
+        "cards": 46
+      },
+      "token_source_without_creation": {
+        "occurrences": 16,
+        "cards": 16
+      },
+      "summon_procedure_as_effect": {
+        "occurrences": 1,
+        "cards": 1
+      },
+      "normal_pendulum_scope": {
+        "occurrences": 38,
+        "cards": 38
+      },
+      "dictionary_export_contract": {
+        "occurrences": 8,
+        "cards": 4
+      },
+      "stat_formula_as_level_change": {
+        "occurrences": 4,
+        "cards": 4
+      },
+      "missing_common_option_payment": {
+        "occurrences": 3,
+        "cards": 3
+      },
+      "opponent_payment_event_as_payment": {
+        "occurrences": 1,
+        "cards": 1
+      }
+    },
+    "parse_errors": [],
+    "elapsed_seconds": 68.95,
+    "loaded_runtime_modules": [
+      "ygo_kito.native"
+    ],
+    "full_semantic_review_complete": false,
+    "official_live_full_pool_verified": false,
+    "local_full_row_scan_complete": true,
+    "local_full_canonical_projection_scan_complete": true,
+    "training_started": false,
+    "cb_started": false,
+    "native_engine_started": false,
+    "ci_run": false,
+    "outputs": [
+      "cards-final.jsonl",
+      "candidates-final.jsonl",
+      "live-blocks.jsonl.gz",
+      "baige-comparison-final/summary.json"
+    ],
+    "candidate_cards_total": 766,
+    "candidate_occurrences_total": 836,
+    "candidate_review_updated_at_utc": "2026-11-11T03:37:52.697076+00:00",
+    "candidate_input": "Existing complete live-blocks.jsonl.gz from the same b13/CDB scan; no reparse or model run"
+  },
+  "entry_reproduction": {
+    "41420027": {
+      "name": "神之宣告",
+      "actual_tags": [
+        {
+          "dimension": "effect",
+          "value": "发动无效"
+        },
+        {
+          "dimension": "effect",
+          "value": "破坏"
+        },
+        {
+          "dimension": "effect",
+          "value": "特召"
+        }
+      ],
+      "assessments": [
+        {
+          "value": "发动无效",
+          "status": "satisfied"
+        },
+        {
+          "value": "破坏",
+          "status": "satisfied"
+        },
+        {
+          "value": "特召",
+          "status": "satisfied"
+        }
+      ]
+    },
+    "84749824": {
+      "name": "神之警告",
+      "actual_tags": [
+        {
+          "dimension": "effect",
+          "value": "发动无效"
+        },
+        {
+          "dimension": "effect",
+          "value": "破坏"
+        },
+        {
+          "dimension": "effect",
+          "value": "特召"
+        }
+      ],
+      "assessments": [
+        {
+          "value": "发动无效",
+          "status": "satisfied"
+        },
+        {
+          "value": "破坏",
+          "status": "satisfied"
+        },
+        {
+          "value": "特召",
+          "status": "satisfied"
+        }
+      ]
+    },
+    "40605147": {
+      "name": "神之通告",
+      "actual_tags": [
+        {
+          "dimension": "effect",
+          "value": "发动无效"
+        },
+        {
+          "dimension": "effect",
+          "value": "破坏"
+        },
+        {
+          "dimension": "effect",
+          "value": "特召"
+        }
+      ],
+      "assessments": [
+        {
+          "value": "发动无效",
+          "status": "satisfied"
+        },
+        {
+          "value": "破坏",
+          "status": "satisfied"
+        },
+        {
+          "value": "特召",
+          "status": "satisfied"
+        }
+      ]
+    },
+    "71564252": {
+      "name": "雷王",
+      "actual_tags": [
+        {
+          "dimension": "effect",
+          "value": "特召"
+        },
+        {
+          "dimension": "effect",
+          "value": "破坏"
+        }
+      ],
+      "assessments": [
+        {
+          "value": "特召",
+          "status": "satisfied"
+        },
+        {
+          "value": "破坏",
+          "status": "satisfied"
+        }
+      ]
+    },
+    "export_reproduction": {
+      "card_id": 18940725,
+      "name": "随风旅鸟×知更鸟",
+      "error_type": "KeyError",
+      "error": "'tag'",
+      "target": "isolated audit output only"
+    }
+  },
+  "selected_tests": {
+    "selected_test_ids": [
+      "tests.test_effect_block_dictionary.EffectBlockDictionaryTests.test_all_ten_approved_function_sets",
+      "tests.test_effect_block_dictionary.EffectBlockDictionaryTests.test_charge_cost_and_vector_resolution_have_distinct_reasons_and_phases",
+      "tests.test_effect_block_dictionary.EffectBlockDictionaryTests.test_cost_materials_targets_and_identity_are_separate",
+      "tests.test_effect_block_dictionary.EffectBlockDictionaryTests.test_pendulum_duplicate_numbers_are_different_effects_and_not_costs",
+      "tests.test_effect_block_dictionary.EffectBlockDictionaryTests.test_choices_share_payment_but_do_not_merge_their_operations",
+      "tests.test_effect_block_dictionary.EffectBlockDictionaryTests.test_summoned_this_turn_is_not_a_summon_trigger",
+      "tests.test_effect_block_dictionary.EffectBlockDictionaryTests.test_reference_bullets_negatives_adjectives_and_reactive_ss_are_not_capabilities",
+      "tests.test_effect_block_dictionary.EffectBlockDictionaryTests.test_same_wording_different_ids_is_not_a_card_answer_table",
+      "tests.test_effect_block_dictionary.EffectBlockDictionaryTests.test_new_view_also_refines_shared_operation_records",
+      "tests.test_effect_block_dictionary.EffectBlockDictionaryTests.test_unresolved_payment_boundary_cannot_become_effect_send",
+      "tests.test_effect_block_dictionary.EffectBlockDictionaryTests.test_summoning_procedure_is_not_activation_payment_or_resolution",
+      "tests.test_effect_block_dictionary.EffectBlockDictionaryTests.test_offline_index_matches_live_view_and_excludes_aliases_and_tokens"
+    ],
+    "tests_run": 12,
+    "failures": [],
+    "errors": [],
+    "skipped": [],
+    "successful": true,
+    "torch_loaded": false,
+    "ci_run": false,
+    "native_engine_run": false,
+    "training_run": false
+  },
+  "normal_pendulum_scope": {
+    "cards": 38,
+    "cards_with_printed_pendulum_effect": 33
+  },
+  "source_differences": {
+    "text_different_cards": 31,
+    "cdb_engine_notes_only": 13,
+    "other_text_variants": 18,
+    "setcode_float_precision_suspected_cards": [
+      8512558,
+      55088578,
+      37279096
+    ],
+    "renamed_cards": [
+      2863439,
+      68870276,
+      63947968
+    ]
+  },
+  "current_source_modified": false,
+  "source_cdb_modified": false,
+  "saved_dictionary_modified": false,
+  "weights_modified": false,
+  "full_card_effect_semantics_individually_verified": false,
+  "remaining": [
+    "Review and resolve source-version/text differences before replacing bound runtime resources",
+    "Fix the confirmed effect-block/parser/export issues if implementation is authorized",
+    "Continue per-effect semantic review; rule candidates and class examples are not full semantic certification"
+  ],
+  "artifacts": {
+    "root": "N:\\YGO-Kito\\_publish_20261030\\.cache\\card-library-audit-20261111-003",
+    "per_card": "N:\\YGO-Kito\\_publish_20261030\\.cache\\card-library-audit-20261111-003\\cards-final.jsonl",
+    "candidates": "N:\\YGO-Kito\\_publish_20261030\\.cache\\card-library-audit-20261111-003\\candidates-final.jsonl",
+    "live_snapshot": "N:\\YGO-Kito\\_publish_20261030\\.cache\\card-library-audit-20261111-003\\live-blocks.jsonl.gz",
+    "baige_per_card": "N:\\YGO-Kito\\_publish_20261030\\.cache\\card-library-audit-20261111-003\\baige-comparison-final\\baige-cards.jsonl",
+    "baige_differences": "N:\\YGO-Kito\\_publish_20261030\\.cache\\card-library-audit-20261111-003\\baige-comparison-final\\differences.json",
+    "baige_local_reverse_check": "N:\\YGO-Kito\\_publish_20261030\\.cache\\card-library-audit-20261111-003\\baige-comparison-final\\local-cards.jsonl",
+    "per_function_examples": "N:\\YGO-Kito\\_publish_20261030\\.cache\\card-library-audit-20261111-003\\function-representatives.json",
+    "selected_tests": "N:\\YGO-Kito\\_publish_20261030\\.cache\\card-library-audit-20261111-003\\selected-tests.json"
+  },
+  "earlier_diagnostic_attempts": {
+    "local_scan_001": "Audit checker assumed all restrictions used per-effect source spans/block IDs; corrected; not a parser crash",
+    "local_scan_002": "Full live scan passed; final scan additionally checked every stored tag/connector index",
+    "baige_comparison_initial": "Checker corrected mapping-counter handling, metadata-only records, and normal-Pendulum headers; use baige-comparison-final only"
+  },
+  "ci_verified": false,
+  "external_model_called": false,
+  "native_engine_executed": false,
+  "publish_or_merge_performed": false,
+  "later_review": {
+    "report": "docs/reports/2026-11-11-card-library-semantic-review.md",
+    "artifacts": "docs/reports/2026-11-11-card-library-review/",
+    "project_rows": 15071,
+    "independent_non_token_cards": 14299,
+    "old_filter_missing_distinct_rule_name_alias_cards": 19,
+    "confirmed_problem_cards": 929,
+    "confirmed_findings": 1070,
+    "cards_with_pending_clauses": 1945,
+    "pending_clauses": 2223,
+    "full_semantic_certification": false,
+    "note": "earlier 14280 canonical_cards is the alias=0 selection, not the full independent-card universe; early candidate counts are not final confirmed errors"
+  }
+}

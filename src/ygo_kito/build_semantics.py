@@ -104,7 +104,7 @@ def preference_value(task,deck,assets):
     return sum(item['weight']*count(deck,item,assets.rows) for item in task.goal['preferences'])
 
 
-def solve_candidates(task,assets,base=None,*,max_edits=None,seconds=3.,candidate_count=None):
+def solve_candidates(task,assets,base=None,*,max_edits=None,seconds=3.,candidate_count=None,skeleton=None,candidate_ids=None):
     from .build_contracts import DeckParts,ZONES
     from .deck_profile import validate_deck_parts
     from .build_pipeline import EXTRA_TYPES
@@ -118,13 +118,18 @@ def solve_candidates(task,assets,base=None,*,max_edits=None,seconds=3.,candidate
     if base is not None:
         validate_deck_parts(base.to_dict(),assets.rows,assets.limits,allowed=set(task.pool))
         if any(len(getattr(base,z))!=task.sizes[z] for z in ZONES):raise ContractError('existing section sizes differ')
+    if skeleton is not None:
+        assets.validate_skeleton(task, skeleton)
     wanted=min(task.candidate_budget,8) if candidate_count is None else integer(candidate_count,'semantic candidates',1,min(task.candidate_budget,8))
     if not seconds:return {'status':'not_found_within_budget','candidates':[],'solver_calls':0,'solver_statuses':[]}
     try:
         import numpy as np
         from scipy.optimize import Bounds,LinearConstraint,milp
     except ImportError as error:raise ContractError('semantic construction requires the pinned CPU scipy extra') from error
-    variables=[(z,c) for z in ZONES for c in task.pool
+    pool = task.pool if candidate_ids is None else tuple(candidate_ids)
+    if not set(pool) <= set(task.pool) or not set(base.main+base.extra+base.side if base else ()) <= set(pool):
+        raise ContractError('solver query exceeds task pool or omits its input inventory')
+    variables=[(z,c) for z in ZONES for c in pool
                if z=='side' or bool(assets.rows[c]['type']&EXTRA_TYPES)==(z=='extra')]
     size=len(variables);overlap=size if base is not None and max_edits is not None else 0
     low=np.zeros(size+overlap);high=np.full(size+overlap,3.)
@@ -144,6 +149,9 @@ def solve_candidates(task,assets,base=None,*,max_edits=None,seconds=3.,candidate
         low[indices[0]],high[indices[0]]=req['minimum'],req['maximum']
     for item in task.goal['constraints']:
         constraint({i:1 for i,(z,c) in enumerate(variables) if z in item['zones'] and matches(assets.rows[c],item['predicate'])},item['minimum'],item['maximum'])
+    if skeleton is not None:
+        for i, (zone, code) in enumerate(variables):
+            low[i] = max(low[i], getattr(skeleton, zone).count(code))
     if overlap:
         for i,(z,c) in enumerate(variables):
             high[size+i]=getattr(base,z).count(c)
@@ -192,10 +200,10 @@ def route_task(task):
     Physical core/scripts/cards/banlist stay identical. The v2 route probe and
     v5 general-duel DTOs remain separately labelled, never silently interchanged.
     """
-    from .build_contracts import BuildTask
-    goal=fields(task.goal.get('route_goal'),{'kind','card_id','starting_conditions'},{'route','fusion_witness'})
-    if goal['kind'] not in ('synchro_summon','xyz_summon','fusion_summon'):
-        raise ContractError('combined goal supports explicit conditional synchro/xyz/fusion objectives')
+    from .build_contracts import BuildTask, DISCOVERY_GOALS
+    goal=fields(task.goal.get('route_goal'),{'kind','card_id','starting_conditions'},{'route','fusion_witness','effect_objective'})
+    if goal['kind'] not in DISCOVERY_GOALS:
+        raise ContractError('combined goal requires a supported conditional discovery objective')
     raw=task.to_dict();raw['schema_version']=3;raw['goal']=raw['goal']['route_goal']
     if 'route' in raw['goal']:raise ContractError('combined objective uses core discovery, not a prewritten route')
     if raw['environment']['release_cutoff'] is None:

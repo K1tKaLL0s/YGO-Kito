@@ -26,6 +26,8 @@ PYTHONPATH=src python scripts/bot_qualification.py \
 
 默认显式执行选择全部桌面候选；`--bot-id`可重复，未选项仍在报告内。生产入口只能调用实际 `BotSourceRegistry.training_adapter`，不接受room、策略、引擎或process-runner回调替代真实Executor。每个候选须保同一源、牌表、profile、资源和实现身份；失败注明audit gate、启动或正常对局阶段，不静默跳过。先独占预留报告并落盘“未完成”标记，再允许任何执行；已有报告不覆盖且零调用。日志/卡组原文不进入错误摘要，启动半途不明时保留`null`，不能写成已知未启动。
 
-`seconds`同时传入自管C#会话watchdog，并由宿主在每个决策检查；不声称能硬中断正在执行的原生core调用。退出清理可能有短暂grace，不能拿CPU fixture当实机时限证明。只有真实core终局且至少一次由该bot作出合法选择，才记该行`normal_duel_verified:true`；所有所选项是否通过另有独立字段。过程不更新模型、训练索引或能力标签，历史合法性和强度始终未据此认证。
+`seconds` 为每个资格作业的宿主限时，覆盖工作进程的启动、正常对局和结果保存。到期或用户停止时，宿主回收自己启动的作业，并保留其日志。C# 会话看门狗另行约束其房间生命周期。只有取得真实核心终局且至少一次由该 bot 作出合法选择，该行才记为 `normal_duel_verified:true`。 [宿主实现与限定验证](../reports/2026-11-11-design-implementation-repair-runtime.md)
+
+显式执行时可加 `--gpu-device-index 0`，指定 `nvidia-smi` 中的设备编号。采样在资格作业结束后进行，报告的 `host_resources` 包含设备 UUID、驱动、占用率、显存及各指标来源。设备或采样工具不可用时，对应字段为 null。默认使用进程级 CPU、内存和 I/O 监测。工作进程的数据保存在每行的 `resources`，含加载和正常对局耗时。`decisions_per_second` 使用记录到的决策数除以该段正常对局总耗时。该数值包括启动与清理开销。
 
 当前云端没有可用Mono；本轮只实际运行只读矩阵及明确CPU控制fixture，未调用`--execute`。原专项授权仍有效，系统权限和已配置签名源HTTP403阻碍仍按[实际回执](../reports/2026-10-25-bot-toolchain-block.json)处理，未重试或绕过。

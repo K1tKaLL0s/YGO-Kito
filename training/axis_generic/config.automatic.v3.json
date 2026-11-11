@@ -1,0 +1,21 @@
+{
+  "version": "axis-automatic-v3",
+  "prepare_config": "config.v3.json",
+  "train_config": "config.train.v3.json",
+  "state_dir": "N:/YGO-Kito/data/axis_generic/v3/automatic-full18-20261110-002",
+  "minimum_free_gib": 5,
+  "calibration_reservation": {
+    "fraction": 0.25,
+    "minimum_groups": 2
+  },
+  "postprocess": {
+    "calibrate": true,
+    "evaluate_folds": [
+      "test",
+      "retrospective_test"
+    ]
+  },
+  "full18_evidence_dir": "N:\\YGO-Kito\\data\\axis_generic\\v3\\full18-20261110-008",
+  "require_full18_readiness": true,
+  "measure_training_time": true
+}

@@ -1,9 +1,23 @@
 # 构筑前效果语义与机制接口
 
+2026-11-02 更新：用户确认案例粒度后，已在现有语义记录上建立全卡池通用效果积木词典 v1，原 3,164 组已全部补齐，现有 127 类短功能，全库未分类分组为 0；实际条目与逐组结果见[建库报告](../reports/2026-11-02-effect-block-dictionary-build.md)。此前“默认只有卡组送墓／墓地融合”的观察属于[改造前核验](../reports/2026-11-02-effect-block-dictionary-and-cb-owner-audit.md)。新的模型职责和迭代规则仍见[分工设计](../plans/2026-11-02-construction-role-reassignment.md)；这次建库没有启动训练或 CB，也没有实施模型职责轮换。
+
+## 当前词典入口
+
+`MechanismCatalog.effect_records(card_id)` 的 v2 记录复用原触发、cost、次数、限制和规则引用，增加 `scope`、`effect_key` 和 `block_view`。短积木按 `dimension + value` 存储，限定和原文单独保留；`blocks`、`cost_blocks`、`procedure_blocks`、`restrictions`、`description_blocks` 与 `connectors` 分开。攻击支付使用 `attack_payment`，费用代替是另一付款的替代能力，不生成自身发动费用。P／怪兽同编号、二选一、共同费用、前序处理关系均保持身份。
+
+`MechanismCatalog.effect_blocks(card_id)` 和 `BuildEncoder.effect_blocks(card_id)` 返回同一视图；`construction_effect_blocks`、构筑绑定、库存依赖和关系检查消费这些记录。指向具体操作的条件连接进入现有关系条件；新卡片选择依赖在尚未解析时继续标记未知。`operations` 已按同一短动作识别修正，引用的对方能力、被否定动作和未知费用边界不会从旧字段重新漏入。既有两种标签保留为限定别名；零预算与未知标签的既有禁读行为保留。
+
+离线入口为 `scripts/build_effect_block_dictionary.py`，存储提供卡号、标签和连接件索引。全库不套用 2207 禁限或发行截止，实际构筑仍受原任务卡池约束。词典有条目不等于每条效果的完整条件已解析；未识别内容留在来源记录，不算配套满足。
+
+`public-effect-blocks-v1`、`public-effect-records-v2`、`public-mechanism-summary-v2` 标识本次视图。原 `public-effect-clauses-v2` 和 18 维固定模型输入继续保留兼容含义；没有改模型参数布局或更新权重。新增短标签已经供结构化构筑接口读取，并不意味着已有神经模型通过训练学会了这些新标签。
+
 本增量使用有边界的中文卡文句式识别，不按卡 ID、主题名或八张卡的答案表分支。
 这是程序识别与候选提议，不能称为已训练模型的卡效理解或陌生主题泛化。
 
 ## 数据与未知
+
+2026-11-02 用户强调：cost 堆墓与效果堆墓必须分别保留，不能合为同一种可触发来源。光之援军“自己卡组顶3张送墓”是 cost，其效果是检索；爆风偏向“双方卡组顶各2张送墓”是效果。两者都可以提供墓地库存，但只有后者的送墓原因符合珠泪“被效果送墓”条件。随机／定向是另一维度。基础 CB 已确认允许固定随机堆墓动作，不推理命中后的分支。确认样例见[随机10张卡的效果积木](../plans/2026-11-02-effect-block-random10-examples.md)。
 
 `effect_mechanisms.analyze_card(row, cards_sha256)` 保留来源摘要和编号效果。
 每个 `EffectSemantics` 包含：
@@ -52,8 +66,9 @@
 不能把宿主指定的教学答案称作模型自主推导。
 
 阶段1图继续使用无卡 ID 轻量标签；推导的机制标签是程序图提议，与用户明确要求分列。
-狭义主题仍按字段/种族选主轴，广义仍跳过该步。四次目标/优化交替及之后的基础 CB
-由现有构筑流程负责，本增量未新增最终 CB、全图或全卡效完备门槛。
+狭义主题仍按字段/种族选主轴，广义仍跳过该步。当前代码的四次目标/优化交替及之后的基础 CB
+属于既有构筑流程；最新设计已改为目标第一层、优化第二层持续迭代、达标后基础 CB，尚待实施。
+本语义接口不承担全图或全卡效完备认证。
 
 `BuildEncoder.batch` 与课程任务选择的 `_task_batch` 均提供真实 `mechanisms` 张量，
 同一组 `BuildRanker` 的小型线性投影消费该张量。特征包含效果送墓、墓地融合、

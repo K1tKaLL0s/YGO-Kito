@@ -1,0 +1,16 @@
+{
+  "version": "axis-generic-assessment-v3",
+  "label_protocol": "axis-generic-label-v3-m4",
+  "layers": ["raw", "calibrated", "applied"],
+  "tasks": ["legacy:large_axis", "legacy:small_axis", "legacy:strategic_core", "legacy:support_role", "legacy:generic_utility", "legacy:compatibility", "legacy:pairs", "mechanism", "axis_membership", "axis_function", "function_role", "contribution", "pair_relation", "axis_position", "axis_origin", "transferability", "receiver_compatibility", "state_readiness", "copy_preference"],
+  "bootstrap": {"repetitions": 1000, "seed": 261114, "unit": "leakage_group"},
+  "reliability_bins": 10,
+  "partitions": ["validation", "test", "retrospective_test"],
+  "missing_prediction": "unknown; fixed known-label denominator; true-class false negative",
+  "uncovered_class": "uncovered; complete-task score unavailable",
+  "source_aggregation": "equal leakage-group macro with whole-group bootstrap",
+  "axis_matching": "maximum total member IoU over natural candidates; explicit gold candidate mappings report recall separately",
+  "selection_and_calibration": "separate source groups; test/retrospective_test never selects thresholds or checkpoints",
+  "human_gold": false,
+  "capability_accepted": false
+}

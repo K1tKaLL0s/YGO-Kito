@@ -19,7 +19,8 @@ import torch
 from .agent_monitor import RunMonitor, RunReporter
 from .agent_registry import identifier
 from .build_contracts import BuildTask, DeckParts, digest
-from .build_pipeline import BuildAssets, alternate_build
+from .construction_fill import construct_task
+from .build_pipeline import BuildAssets
 from .build_training import (BuildTrainer, BuildTrainingConfig, binding_for, engineering_dataset,
                              load_checkpoint as load_build, save_checkpoint as save_build)
 from .coord_contracts import FeedbackPolicy
@@ -226,9 +227,10 @@ def run_model_group_smoke(root, state_root, run_id, task, policy=None):
         data = engineering_dataset(task, assets)
         for _ in range(2):
             updates.extend(builder.step(data))
-        construction = alternate_build(task, assets, builder.models, builder.encoder)
-        if len(construction["stages"]) != 4:
-            raise ContractError("model-group construction did not verify four stages")
+        construction = construct_task(task, assets, builder.models, builder.encoder)
+        if not construction['construction_passed']:
+            from .construction_progress import ConstructionSuspended
+            raise ConstructionSuspended(construction)
         profile = read_json(ROOT / "configs/effect-duel-v1.json")
         card_ids = sorted(c for c in assets.rows if 0 < c < 2**32)
         duel = CpuTrainer(CpuTrainingConfig(), card_ids)

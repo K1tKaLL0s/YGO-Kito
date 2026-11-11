@@ -1,0 +1,19 @@
+{
+  "names": [
+    "tests.test_construction_selection.ConstructionSelectionTests.test_pre_cb_slice_ingests_strict_optimizer_samples_once_without_real_updates",
+    "tests.test_coordinator_shared_adapters.SharedBudgetTests.test_completed_shared_cycle_receipt_closes_only_warning_without_erasing_history"
+  ],
+  "tests": 2,
+  "failures": [],
+  "errors": [
+    [
+      "test_completed_shared_cycle_receipt_closes_only_warning_without_erasing_history (tests.test_coordinator_shared_adapters.SharedBudgetTests.test_completed_shared_cycle_receipt_closes_only_warning_without_erasing_history)",
+      "Traceback (most recent call last):\n  File \"/mnt/n/YGO-Kito/_publish_20261030/tests/test_coordinator_shared_adapters.py\", line 54, in test_completed_shared_cycle_receipt_closes_only_warning_without_erasing_history\n    summary=cycle(course,None,Path(tmp),Path(tmp)/'stop',lambda *a,**k:None,\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/n/YGO-Kito/_publish_20261030/scripts/local_course_collaboration.py\", line 220, in cycle\n    goal_rows.append(task_supervision(task,deck,assets,private_evidence=matched[1]['proof'] if matched else None))\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/mnt/n/YGO-Kito/_publish_20261030/src/ygo_kito/construction_course_evidence.py\", line 19, in task_supervision\n    assets.validate(task,deck)\n    ^^^^^^^^^^^^^^^\nAttributeError: 'types.SimpleNamespace' object has no attribute 'validate'\n"
+    ]
+  ],
+  "skips": [],
+  "passed": false,
+  "training_executed": false,
+  "basic_cb_executed": false,
+  "native_executed": false
+}

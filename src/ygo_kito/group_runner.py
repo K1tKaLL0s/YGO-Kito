@@ -26,7 +26,7 @@ WORKFLOW = "four-model-alternating-v1"
 PHASES = ("build_goal", "build_optimizer", "duel_train", "coordinator_train", "evaluate", "feedback")
 ROLE_PHASE = {"build_goal": 0, "build_optimizer": 1, "duel": 2, "coordinator": 3}
 EXTRA_FIELDS = {"workflow", "task", "adapters", "bootstrap_seed", "stages_per_worker"}
-OPTIONAL_FIELDS = {"construction_curriculum", "execution", "allocated_gpu_count", "period_inputs", "coordinator_supervision", "initialize_from"}
+OPTIONAL_FIELDS = {"construction_curriculum", "execution", "allocated_gpu_count", "period_inputs", "coordinator_supervision", "initialize_from", "construction_quality_policy"}
 
 
 def period_host(recipe):
@@ -112,6 +112,8 @@ def check_initialization_provenance(recipe, provenance, binding):
 
 
 def validate_recipe(value):
+    from .construction_progress import quality_policy
+    if isinstance(value,dict):quality_policy(value.get('construction_quality_policy'))
     from .training_runner import validate_recipe as validate_duel
     fields(value, {"schema_version", "max_updates", "validate_every", "checkpoint_every", "wall_seconds", "cpu_config",
                    "train", "validation"} | EXTRA_FIELDS, OPTIONAL_FIELDS)
@@ -666,31 +668,6 @@ def record_episode(state, episode, generation):
                              "policy_version": episode["policy_version"], "policy_sha256": episode["policy_sha256"],**extra})
 
 
-def select_goal(state):
-    import torch
-    import time
-    from .build_pipeline import goal_candidates, verify_goal
-    base = None if state.deck is None else DeckParts.from_dict(state.deck)
-    from .construction_curriculum import candidates as curriculum_candidates
-    candidates = curriculum_candidates(state) or goal_candidates(state.task, state.assets, base)
-    if not candidates:
-        raise ContractError("group goal stage found no legal candidate")
-    model = state.builder.models["build_goal"]
-    model.eval()
-    with torch.no_grad():
-        scores = model(state.builder.encoder.batch(state.task, candidates))
-    combined='route_goal' in state.task.goal;started=time.monotonic()
-    for index in scores.argsort(descending=True).tolist():
-        remaining=30.-(time.monotonic()-started) if combined else 30.
-        if remaining<=0:break
-        proof = verify_goal(state.task, candidates[index], state.assets,
-                            attempts=64 if state.task.goal["kind"] != "normal_summon" else 16, seconds=remaining)
-        from .build_semantics import accepted_status
-        if proof["status"] == accepted_status(state.task):
-            state.deck = candidates[index].to_dict()
-            return {"deck": state.deck, "validation": without_timing(proof), "model_score_uncalibrated": float(scores[index])}
-    raise ContractError("group goal route remains unverified")
-
 
 def profile_deck(profile, player):
     return DeckParts(tuple(profile["decks"][player]), tuple(profile.get("extras", [[], []])[player]),
@@ -830,9 +807,9 @@ def evaluate(state, generation):
 
 @host_operation
 def execute_stage(state, generation):
-    from .construction_curriculum import initialize, consume, alternate as alternate_curriculum
+    from .construction_curriculum import initialize, consume
     from .lora_group import construction_loss, coordinator_loss, ppo_inputs, ppo_loss
-    from .build_pipeline import alternate_build
+    from .construction_fill import construct_task
     from .model_group import route_with_model
     from .semantic_curriculum import configured,admission,opponent as semantic_opponent,ingest_episode
     period_host(state.row["recipe"])
@@ -857,17 +834,23 @@ def execute_stage(state, generation):
                 "coordinator_supervision": coordinator_supervision_report(state.coordinator_examples)}
     if state.phase in ("build_goal", "build_optimizer"):
         role = state.phase
+        prior = (state.last_feedback or {}).get('construction_continuation')
+        construction = construct_task(state.task, state.assets, state.builder.models, state.builder.encoder,
+            base=DeckParts.from_dict(state.deck) if state.deck else None, continuation=prior,
+            max_iterations=0 if role == 'build_goal' else 4,
+            quality_criteria=state.row['recipe'].get('construction_quality_policy'),
+            lora_versions={r:state.sessions[r].version_id() for r in state.builder.models})
+        state.last_feedback = dict(state.last_feedback or {}, construction_continuation=construction['session'])
+        ready = construction.get('construction_candidate') is not None if role == 'build_goal' else construction['construction_passed']
+        if not ready:
+            from .construction_progress import ConstructionSuspended
+            raise ConstructionSuspended(construction)
         update = state.sessions[role].step(construction_loss(role, state.sessions[role], state.builder, state.task, state.data,
                                                           data_admission=admission(state) if semantic else None))
         consume(state, role)
-        if role == "build_goal":
-            construction = select_goal(state)
-        else:
-            construction = alternate_curriculum(state) if state.construction_state is not None else alternate_build(state.task, state.assets, state.builder.models, state.builder.encoder,
-                base=DeckParts.from_dict(state.deck), lora_versions={r: state.sessions[r].version_id() for r in state.builder.models})
-            if len(construction["stages"]) != 4 or construction["best_deck"] is None:
-                raise ContractError("group goal/optimizer inner alternation remains unverified")
-            state.deck = construction["best_deck"]
+        if role == 'build_optimizer':
+            state.deck = construction['best_deck']
+            state.last_feedback.pop('construction_continuation',None)
         return {"kind": "conditional-construction-adapter-update", "update": update, "construction": without_timing(construction),
                 "hard_constraints": state.assets.validate(state.task, DeckParts.from_dict(state.deck)),
                 "previous_feedback": state.last_feedback}
@@ -968,7 +951,21 @@ def _stage_transaction(state, state_root, run_id, generation, row, reporter):
     if binding_for(state.assets.root, row) != row["binding"]:
         raise ContractError("group stage implementation/resources changed")
     before_cursor = state.cursor()
-    payload = execute_stage(state, generation)
+    from .construction_progress import ConstructionSuspended
+    try:
+        payload = execute_stage(state, generation)
+    except ConstructionSuspended as error:
+        from uuid import uuid4
+        receipt = write_checkpoint(state, state_root, row,
+            checkpoint_id='construction-slice-' + uuid4().hex)
+        with closing(_connect(state_root)) as db, db:
+            db.execute('BEGIN IMMEDIATE')
+            current = get_row(db,run_id)
+            current['checkpoint_ids'].append(receipt['checkpoint_id'])
+            current.update(desired='paused', phase='checkpoint_boundary', reason=error.result['stop_reason'], revision=current['revision']+1)
+            current['history'].append(dict(event='construction_slice_saved', checkpoint_id=receipt['checkpoint_id'], cursor=state.cursor()))
+            put_row(db,current)
+        return
     state.advance(payload)
     assert_period_hosts_unchanged()
     receipt = write_checkpoint(state, state_root, row)
@@ -1030,7 +1027,7 @@ def worker(state_root, run_id, generation, reporter):
                     elif state.phase == "evaluate":
                         reserve += comparison_seconds
                     elif state.phase == "build_optimizer":
-                        reserve = 4 * 30 + 3  # four independently bounded goal revalidations
+                        reserve = 33  # one construction slice, no automatic CB
             if row["wall_limit_seconds"] - elapsed(row) <= reserve:
                 row.update(desired="stopped", reason="wall_budget_reserve_reached")
                 put_row(db, row)

@@ -13,8 +13,6 @@ import math
 import re
 import time
 
-import torch
-
 from .build_contracts import BuildTask, DeckParts, digest
 from .contracts import DecisionRequest
 from .duel_effect_limits import EffectLimitTracker, RULES
@@ -50,6 +48,8 @@ class ComboPlan:
     opening: tuple
     steps: tuple  # (operation, tuple(card_ids)); own intents, never native refs
     effect_descriptions: tuple = ()  # optional exact native descriptions, aligned with steps
+    goal_kind: str | None = None
+    effect_objective: tuple = ()
 
     def __post_init__(self):
         integer(self.goal_card, "CB goal", 1, 2**32-1)
@@ -65,6 +65,9 @@ class ComboPlan:
             raise ContractError("CB effect descriptions must align with exact steps")
         for description in self.effect_descriptions:
             if description is not None: integer(description,"CB effect description",0,2**32-1)
+        if self.effect_objective:
+            if self.goal_kind != 'effect_resolution' or len(self.effect_objective) != 3:
+                raise ContractError('conditional effect plan requires its exact objective')
 
 
 def plans_from_construction(task, construction, *, deck=None):
@@ -122,6 +125,13 @@ def plans_from_construction(task, construction, *, deck=None):
                     not isinstance(evidence,dict) or evidence.get('conditional_only') is not True):continue
             if evidence.get('versions')!=native_task.environment['versions']:
                 raise ContractError('basic CB route uses different source versions')
+            if native_task.goal['kind'] in ('link_summon', 'ritual_summon', 'effect_resolution'):
+                from .contracts import Observation
+                from .route_search import route_witness
+                observation = Observation.from_dict(evidence['final_observation'])
+                actual = route_witness(native_task.goal, evidence['core_event_audit_not_policy_input'], observation)
+                if actual is None or actual != evidence.get('objective_evidence'):
+                    raise ContractError('basic CB objective lost its public event binding')
             opening=Counter(native_task.goal['starting_conditions']['requires_opening_hand'])
             if any(Counter(constructed.main)[c]<n for c,n in opening.items()):
                 raise ContractError('basic CB opening is absent from its constructed deck')
@@ -161,7 +171,9 @@ def plans_from_construction(task, construction, *, deck=None):
         if any(c not in own_pool for _,codes in steps for c in codes): continue
         opening = tuple(goal.get("starting_conditions", {}).get("requires_opening_hand", ()))
         ident = digest([goal["card_id"], opening, steps,descriptions])
-        plan = ComboPlan(ident, goal["card_id"], opening, steps,descriptions)
+        objective = goal.get('effect_objective')
+        bound = (objective['kind'], objective['effect_index'], objective['minimum']) if objective else ()
+        plan = ComboPlan(ident, goal["card_id"], opening, steps, descriptions, goal.get('kind'), bound)
         if plan not in plans: plans.append(plan)
     return tuple(plans)
 
@@ -698,6 +710,7 @@ class DuelPlanner:
                 if self._step_matches(p,state.cursors[n],operation,codes,effect_description)]
 
     def evaluate(self, request, neural_logits):
+        import torch
         if not isinstance(request, DecisionRequest): raise ContractError("validated player request required")
         if request.context.seed is not None: raise ContractError("controller duel seeds cannot enter planning")
         if neural_logits.ndim != 1 or len(neural_logits) != len(request.actions): raise ContractError("complete root logits required")
@@ -854,6 +867,7 @@ class DuelPlanner:
 
 
 def replay_planning_bias(logits, steps):
+    import torch
     """Replay the SAME conditional behavior policy in base and LoRA PPO."""
     offsets = torch.zeros_like(logits)
     for i,step in enumerate(steps):

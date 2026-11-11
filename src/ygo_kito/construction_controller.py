@@ -9,23 +9,25 @@ from .validation import ContractError
 
 
 class ConstructionController:
-    def __init__(self, graph_adapter, binding_adapter, coordinator, *, host=None):
+    def __init__(self, graph_adapter, binding_adapter, coordinator, *, host=None, layer_context_provider=None):
         if not isinstance(coordinator, CoordinatorTrainer):
             raise ContractError("existing CoordinatorTrainer required for actual learned advice")
         if host is not None and not isinstance(host, Coordinator):
             raise ContractError("existing Coordinator ledger host required")
         self.graph_adapter, self.binding_adapter = graph_adapter, binding_adapter
         self.coordinator, self.host = coordinator, host
+        from .construction_layer_flow import ConstructionLayerAdapter
+        self.layer_adapter = ConstructionLayerAdapter(binding_adapter, context_provider=layer_context_provider)
 
-    def bind(self, graph, task, deck):
+    def bind(self, graph, task, deck, *, partial=False):
         if not set(self.graph_adapter.required_connector_kinds)<={e.kind for e in graph.connectors}:
             raise ContractError("requested coarse connection is absent")
-        result=self.binding_adapter.bind(graph,task,deck,required_tags=self.graph_adapter.required_tags)
+        result=self.binding_adapter.bind(graph,task,deck,required_tags=self.graph_adapter.required_tags,partial=partial)
         if result.proposal is None:
             raise ContractError("requested logic features cannot be bound: "+"; ".join(result.reasons))
         return result.proposal
 
-    def run(self, session, *, scopes=(), base=None, verifier=None, candidate_id=None, parent_candidate_id=None,basic_cb_provider=None,mechanism_groups=None):
+    def run(self, session, *, scopes=(), base=None, verifier=None, candidate_id=None, parent_candidate_id=None,basic_cb_provider=None,mechanism_groups=None, **iteration_options):
         session.check_goal()
         if session.task.sha256 != self.graph_adapter.task.sha256:
             raise ContractError("construction controller task binding differs")
@@ -43,10 +45,16 @@ class ConstructionController:
             "score_mean":None,"forecast":None}
         action, reason=rule_route(context)
         advice=self.coordinator.advice(context)  # Actual existing MLP forward.
+        if session.construction_progress is not None and session.construction_progress['status'] != 'passed':
+            from .construction_progress import record_optimization_feedback
+            current = session.construction_progress
+            record_optimization_feedback(session, dict(feedback_id='coordinator-' + str(current['candidate_version']) + '-' + digest(advice)[:12],
+                source='coordinator', task_sha256=session.task.sha256,
+                candidate_sha256=current['candidate']['deck_sha256'], issue=str(advice)))
         result=construction_cycle(session,self.graph_adapter.deck_encoder.assets,self.graph_adapter.providers(),
             scopes=scopes,base=base,models=self.graph_adapter.models,encoder=self.graph_adapter.deck_encoder,
             binding_provider=self.bind,text_reviewer=self.binding_adapter.reviewer,verifier=verifier,
-            basic_cb_provider=basic_cb_provider,mechanism_groups=mechanism_groups)
+            basic_cb_provider=basic_cb_provider,mechanism_groups=mechanism_groups,layer_adapter=self.layer_adapter, **iteration_options)
         result["coordinator"]={"authoritative_action":action,"reason":reason,"advice":advice,
             "mode":"existing_network_advisory_rule_authoritative"}
         result["graph_model_selections"]=dict(self.graph_adapter.last_selection)
@@ -54,7 +62,7 @@ class ConstructionController:
             "graph_role_updates":dict(self.graph_adapter.updates),"generalization_verified":False,
             "cycle_performed_training":False}
         result["handoff"]={"status":"not_submitted"}
-        if result["best"] and self.host is not None:
+        if result["best"] and result['cb_verified'] and self.host is not None:
             if candidate_id is None:
                 raise ContractError("explicit candidate ID required for coordinator ledger handoff")
             if self.host.source != "real_engine":

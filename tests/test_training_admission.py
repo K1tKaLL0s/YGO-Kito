@@ -55,6 +55,10 @@ def receipt_fixture():
     cb={'status':'routes_inferred','task_sha256':task.sha256,'subject_deck_sha256':subject,'inference_completed':True,
         'initial_state_mode':'hypothetical_exact_hand_v1','opening_probability_evaluated':False,
         'routes':[{'task':derived.to_dict(),'proof':proof}]}
+    from tests.fixtures import synthetic_cb_mainline
+    scope=synthetic_cb_mainline(native['route_evidence']['exploration']['discovered_intents'])
+    native['route_evidence']['basic_cb_scope']=scope
+    cb['scope_version']=scope['version'];cb['routes'][0]['mainline']=deepcopy(scope)
     return task,deck,assets,cb
 
 
@@ -69,6 +73,15 @@ class MemoryRoot:
 
 
 class TrainingAdmissionTests(unittest.TestCase):
+    def test_legacy_or_random_dependent_receipt_cannot_claim_linear_basic_cb(self):
+        task,deck,assets,cb=receipt_fixture()
+        for field in ('scope_version','mainline','unknown'):
+            broken=deepcopy(cb)
+            if field=='scope_version':broken.pop(field)
+            elif field=='mainline':broken['routes'][0].pop(field)
+            else:broken['routes'][0]['proof']['native_route']['route_evidence']['basic_cb_scope']['unknown']=['random_hit']
+            self.assertFalse(verified_conditional_basic_cb(task,deck,broken,assets=assets))
+
     def test_saved_native_success_requires_actual_target_material_action_and_resource_evidence(self):
         task,deck,assets,cb=receipt_fixture()
         with patch('ygo_kito.extra_routes.engine_for_goal') as native:

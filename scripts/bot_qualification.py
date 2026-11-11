@@ -34,7 +34,10 @@ def main():
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--seconds", type=float, default=60)
     parser.add_argument("--max-decisions", type=int, default=3000)
+    parser.add_argument("--gpu-device-index", type=int, help="Sample this host GPU after the requested qualification jobs")
     args = parser.parse_args()
+    if args.gpu_device_index is not None and (not args.execute or args.gpu_device_index < 0):
+        parser.error('--gpu-device-index requires --execute and a nonnegative device index')
     try:
         args.report.parent.mkdir(parents=True, exist_ok=True)
         output = args.report.open("x", encoding="utf-8")
@@ -68,8 +71,14 @@ def main():
             result = execute_qualification(registry, result, args.native_root, actor,
                 audits=audits, mono=args.mono, workspace=args.workspace,
                 selected_bot_ids=args.bot_id, seed=args.seed, seconds=args.seconds,
-                max_decisions=args.max_decisions, variant_root=args.variant_root)
-            code = 0 if result["all_selected_normal_verified"] else 2
+                max_decisions=args.max_decisions, variant_root=args.variant_root,
+                gpu_device_index=args.gpu_device_index,
+                log_directory=args.report.with_name(args.report.stem+'-workers'))
+            code = 130 if result['cancelled'] else 0 if result["all_selected_normal_verified"] else 2
+    except KeyboardInterrupt:
+        result, code = dict(status='qualification_cancelled', stop_reason='user_pause',
+            native_executed=None if execution_call_started else False,
+            csharp_executed=None if execution_call_started else False, training_updates=0), 130
     except (ContractError, OSError, ValueError, KeyError, TypeError, RuntimeError) as error:
         result, code = {"error": str(error), "stage": "qualification_plan_or_explicit_preflight",
                         "native_executed": None if execution_call_started else False,

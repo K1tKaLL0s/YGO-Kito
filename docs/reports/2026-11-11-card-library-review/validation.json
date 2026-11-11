@@ -1,0 +1,26 @@
+{
+  "successful": true,
+  "checks": [
+    "all Baige CIDs, per-row outcomes and totals",
+    "all 15071 project IDs, duplicate links and original-row checks",
+    "82752 source clauses retained",
+    "1070 confirmed findings on 929 independent cards",
+    "2223 pending clauses on 1945 cards",
+    "explicit positive and negative controls; rejected cost/reference false alarms",
+    "526 non-Token alias rows: 507 duplicates and 19 distinct",
+    "all four audit scripts parse",
+    "original Baige checksum and bound CDB hash",
+    "CSV rows and packaged files"
+  ],
+  "semantic_review_command": "python -B scripts/review_card_effects.py --baige data/staging/baige-20261111/cards.json --live .cache/card-library-audit-20261111-003/live-blocks.jsonl.gz --aliases .cache/card-library-audit-20261111-004/rule-name-alias-live.jsonl --candidates .cache/card-library-audit-20261111-003/candidates-final.jsonl --output <new-review-directory>",
+  "finalization_command": "python -B scripts/finalize_card_library_review.py --evidence .cache/card-library-audit-20261111-004 --baseline .cache/card-library-audit-20261111-003 --baige data/staging/baige-20261111/cards.json --semantic <new-review-directory>/per-card.jsonl --output <new-final-directory>",
+  "python": "N:/YGO-Kito/_local_cpu_20261027/venv/Scripts/python.exe",
+  "torch_loaded": false,
+  "ci_run": false,
+  "training_run": false,
+  "native_engine_run": false,
+  "external_model_called": false,
+  "full_semantic_certification": false,
+  "quota_currently_verifiable": false,
+  "quota_reason": "no usage-limit tool available in this delegated environment"
+}

@@ -1,0 +1,3769 @@
+[
+  {
+    "card_id": 64866,
+    "name": "电子界代码魔术师",
+    "alias": 64865,
+    "alias_name": "电子界代码魔术师",
+    "different_fields": []
+  },
+  {
+    "card_id": 295517,
+    "name": "传说之都 亚特兰蒂斯",
+    "alias": 22702055,
+    "alias_name": "海",
+    "different_fields": [
+      "name",
+      "desc"
+    ]
+  },
+  {
+    "card_id": 423706,
+    "name": "铁骑士 基亚·弗里德",
+    "alias": 423705,
+    "alias_name": "铁骑士 基亚·弗里德",
+    "different_fields": []
+  },
+  {
+    "card_id": 759394,
+    "name": "火灵使 希塔",
+    "alias": 759393,
+    "alias_name": "火灵使 希塔",
+    "different_fields": []
+  },
+  {
+    "card_id": 759395,
+    "name": "火灵使 希塔",
+    "alias": 759393,
+    "alias_name": "火灵使 希塔",
+    "different_fields": []
+  },
+  {
+    "card_id": 980974,
+    "name": "武装龙 LV3",
+    "alias": 980973,
+    "alias_name": "武装龙 LV3",
+    "different_fields": []
+  },
+  {
+    "card_id": 1186448,
+    "name": "星读之魔术师-星占之魔术士",
+    "alias": 1186447,
+    "alias_name": "星读之魔术师-星占之魔术士",
+    "different_fields": []
+  },
+  {
+    "card_id": 1264320,
+    "name": "宝石骑士融合",
+    "alias": 1264319,
+    "alias_name": "宝石骑士融合",
+    "different_fields": []
+  },
+  {
+    "card_id": 1498450,
+    "name": "星辰炮手 宝瓶魔",
+    "alias": 1498449,
+    "alias_name": "星辰炮手 宝瓶魔",
+    "different_fields": []
+  },
+  {
+    "card_id": 1546124,
+    "name": "电子终结龙",
+    "alias": 1546123,
+    "alias_name": "电子终结龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 1861630,
+    "name": "解码语者",
+    "alias": 1861629,
+    "alias_name": "解码语者",
+    "different_fields": []
+  },
+  {
+    "card_id": 1861631,
+    "name": "解码语者",
+    "alias": 1861629,
+    "alias_name": "解码语者",
+    "different_fields": []
+  },
+  {
+    "card_id": 2263870,
+    "name": "月女神之镞",
+    "alias": 2263869,
+    "alias_name": "月女神之镞",
+    "different_fields": []
+  },
+  {
+    "card_id": 2295441,
+    "name": "一对一",
+    "alias": 2295440,
+    "alias_name": "一对一",
+    "different_fields": []
+  },
+  {
+    "card_id": 2347657,
+    "name": "白银之城的拉比林斯",
+    "alias": 2347656,
+    "alias_name": "白银之城的拉比林斯",
+    "different_fields": []
+  },
+  {
+    "card_id": 2347658,
+    "name": "白银之城的拉比林斯",
+    "alias": 2347656,
+    "alias_name": "白银之城的拉比林斯",
+    "different_fields": []
+  },
+  {
+    "card_id": 2419597,
+    "name": "No.101 寂静荣誉方舟骑士-灵魂庇护",
+    "alias": 2419596,
+    "alias_name": "No.101 寂静荣誉方舟骑士-灵魂庇护",
+    "different_fields": []
+  },
+  {
+    "card_id": 2772338,
+    "name": "赐炎之咎姬",
+    "alias": 2772337,
+    "alias_name": "赐炎之咎姬",
+    "different_fields": []
+  },
+  {
+    "card_id": 2819435,
+    "name": "幻煌之都 帕西菲斯",
+    "alias": 22702055,
+    "alias_name": "海",
+    "different_fields": [
+      "name",
+      "desc"
+    ]
+  },
+  {
+    "card_id": 3294539,
+    "name": "深红剑龙",
+    "alias": 80321197,
+    "alias_name": "深红剑士",
+    "different_fields": [
+      "name",
+      "desc",
+      "atk",
+      "level",
+      "race",
+      "attribute"
+    ]
+  },
+  {
+    "card_id": 3606729,
+    "name": "我我我少女",
+    "alias": 3606728,
+    "alias_name": "我我我少女",
+    "different_fields": []
+  },
+  {
+    "card_id": 3635139,
+    "name": "来自冥府的使者",
+    "alias": 3635138,
+    "alias_name": "来自冥府的使者",
+    "different_fields": []
+  },
+  {
+    "card_id": 4280259,
+    "name": "召命之神弓-阿波罗萨",
+    "alias": 4280258,
+    "alias_name": "召命之神弓-阿波罗萨",
+    "different_fields": []
+  },
+  {
+    "card_id": 4376659,
+    "name": "凭依装着-希塔",
+    "alias": 4376658,
+    "alias_name": "凭依装着-希塔",
+    "different_fields": []
+  },
+  {
+    "card_id": 4731784,
+    "name": "无光之影 阿-宝·阿·库",
+    "alias": 4731783,
+    "alias_name": "无光之影 阿-宝·阿·库",
+    "different_fields": []
+  },
+  {
+    "card_id": 5043011,
+    "name": "防火龙",
+    "alias": 5043010,
+    "alias_name": "防火龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 5043012,
+    "name": "防火龙",
+    "alias": 5043010,
+    "alias_name": "防火龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 5043013,
+    "name": "防火龙",
+    "alias": 5043010,
+    "alias_name": "防火龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 5318640,
+    "name": "旋风",
+    "alias": 5318639,
+    "alias_name": "旋风",
+    "different_fields": []
+  },
+  {
+    "card_id": 5405695,
+    "name": "混沌战士",
+    "alias": 5405694,
+    "alias_name": "混沌战士",
+    "different_fields": [
+      "desc",
+      "type"
+    ]
+  },
+  {
+    "card_id": 5405696,
+    "name": "混沌战士",
+    "alias": 5405694,
+    "alias_name": "混沌战士",
+    "different_fields": []
+  },
+  {
+    "card_id": 6007214,
+    "name": "神炎皇 乌利亚",
+    "alias": 6007213,
+    "alias_name": "神炎皇 乌利亚",
+    "different_fields": []
+  },
+  {
+    "card_id": 6150045,
+    "name": "天位骑士",
+    "alias": 6150044,
+    "alias_name": "天位骑士",
+    "different_fields": []
+  },
+  {
+    "card_id": 6218704,
+    "name": "霸王天龙 异色眼霸弧光迹龙",
+    "alias": 13331639,
+    "alias_name": "霸王龙 扎克",
+    "different_fields": [
+      "name",
+      "desc",
+      "level",
+      "attribute"
+    ]
+  },
+  {
+    "card_id": 6218705,
+    "name": "霸王天龙 异色眼霸弧光迹龙",
+    "alias": 6218704,
+    "alias_name": "霸王天龙 异色眼霸弧光迹龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 6327735,
+    "name": "珠之御巫 狐理",
+    "alias": 6327734,
+    "alias_name": "珠之御巫 狐理",
+    "different_fields": []
+  },
+  {
+    "card_id": 6368039,
+    "name": "暗黑骑士 盖亚",
+    "alias": 6368038,
+    "alias_name": "暗黑骑士 盖亚",
+    "different_fields": []
+  },
+  {
+    "card_id": 6368040,
+    "name": "暗黑骑士 盖亚",
+    "alias": 6368038,
+    "alias_name": "暗黑骑士 盖亚",
+    "different_fields": []
+  },
+  {
+    "card_id": 6498707,
+    "name": "融合派兵",
+    "alias": 6498706,
+    "alias_name": "融合派兵",
+    "different_fields": []
+  },
+  {
+    "card_id": 7852510,
+    "name": "破坏轮回",
+    "alias": 7852509,
+    "alias_name": "破坏轮回",
+    "different_fields": []
+  },
+  {
+    "card_id": 7894707,
+    "name": "混沌之三幻魔",
+    "alias": 7894706,
+    "alias_name": "混沌之三幻魔",
+    "different_fields": []
+  },
+  {
+    "card_id": 8491309,
+    "name": "闪刀姬-飒天",
+    "alias": 8491308,
+    "alias_name": "闪刀姬-飒天",
+    "different_fields": []
+  },
+  {
+    "card_id": 9012917,
+    "name": "黑翼龙",
+    "alias": 9012916,
+    "alias_name": "黑翼龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 9205574,
+    "name": "邪恶★双子 姬丝基勒",
+    "alias": 9205573,
+    "alias_name": "邪恶★双子 姬丝基勒",
+    "different_fields": []
+  },
+  {
+    "card_id": 9603253,
+    "name": "魔女术代理师傅",
+    "alias": 9603252,
+    "alias_name": "魔女术代理师傅",
+    "different_fields": []
+  },
+  {
+    "card_id": 9726841,
+    "name": "闪刀起动-连刀",
+    "alias": 9726840,
+    "alias_name": "闪刀起动-连刀",
+    "different_fields": []
+  },
+  {
+    "card_id": 10000001,
+    "name": "欧贝利斯克之巨神兵",
+    "alias": 10000000,
+    "alias_name": "欧贝利斯克之巨神兵",
+    "different_fields": []
+  },
+  {
+    "card_id": 10000002,
+    "name": "欧贝利斯克之巨神兵",
+    "alias": 10000000,
+    "alias_name": "欧贝利斯克之巨神兵",
+    "different_fields": []
+  },
+  {
+    "card_id": 10000003,
+    "name": "欧贝利斯克之巨神兵",
+    "alias": 10000000,
+    "alias_name": "欧贝利斯克之巨神兵",
+    "different_fields": []
+  },
+  {
+    "card_id": 10000004,
+    "name": "欧贝利斯克之巨神兵",
+    "alias": 10000000,
+    "alias_name": "欧贝利斯克之巨神兵",
+    "different_fields": []
+  },
+  {
+    "card_id": 10000005,
+    "name": "欧贝利斯克之巨神兵",
+    "alias": 10000000,
+    "alias_name": "欧贝利斯克之巨神兵",
+    "different_fields": []
+  },
+  {
+    "card_id": 10000011,
+    "name": "拉之翼神龙",
+    "alias": 10000010,
+    "alias_name": "拉之翼神龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 10000012,
+    "name": "拉之翼神龙",
+    "alias": 10000010,
+    "alias_name": "拉之翼神龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 10000013,
+    "name": "拉之翼神龙",
+    "alias": 10000010,
+    "alias_name": "拉之翼神龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 10000014,
+    "name": "拉之翼神龙",
+    "alias": 10000010,
+    "alias_name": "拉之翼神龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 10000015,
+    "name": "拉之翼神龙",
+    "alias": 10000010,
+    "alias_name": "拉之翼神龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 10000021,
+    "name": "奥西里斯之天空龙",
+    "alias": 10000020,
+    "alias_name": "奥西里斯之天空龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 10000022,
+    "name": "奥西里斯之天空龙",
+    "alias": 10000020,
+    "alias_name": "奥西里斯之天空龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 10000023,
+    "name": "奥西里斯之天空龙",
+    "alias": 10000020,
+    "alias_name": "奥西里斯之天空龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 10000024,
+    "name": "奥西里斯之天空龙",
+    "alias": 10000020,
+    "alias_name": "奥西里斯之天空龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 10000025,
+    "name": "奥西里斯之天空龙",
+    "alias": 10000020,
+    "alias_name": "奥西里斯之天空龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 10045475,
+    "name": "无限泡影",
+    "alias": 10045474,
+    "alias_name": "无限泡影",
+    "different_fields": []
+  },
+  {
+    "card_id": 10383555,
+    "name": "魔玩具·轮锯狮",
+    "alias": 10383554,
+    "alias_name": "魔玩具·轮锯狮",
+    "different_fields": []
+  },
+  {
+    "card_id": 10443958,
+    "name": "电子龙·无限",
+    "alias": 10443957,
+    "alias_name": "电子龙·无限",
+    "different_fields": []
+  },
+  {
+    "card_id": 10802916,
+    "name": "由魔界到现世的死亡导游",
+    "alias": 10802915,
+    "alias_name": "由魔界到现世的死亡导游",
+    "different_fields": []
+  },
+  {
+    "card_id": 10802917,
+    "name": "由魔界到现世的死亡导游",
+    "alias": 10802915,
+    "alias_name": "由魔界到现世的死亡导游",
+    "different_fields": []
+  },
+  {
+    "card_id": 10802918,
+    "name": "由魔界到现世的死亡导游",
+    "alias": 10802915,
+    "alias_name": "由魔界到现世的死亡导游",
+    "different_fields": []
+  },
+  {
+    "card_id": 12381101,
+    "name": "究极龙魔导师",
+    "alias": 12381100,
+    "alias_name": "究极龙魔导师",
+    "different_fields": []
+  },
+  {
+    "card_id": 12580478,
+    "name": "雷击",
+    "alias": 12580477,
+    "alias_name": "雷击",
+    "different_fields": []
+  },
+  {
+    "card_id": 12580479,
+    "name": "雷击",
+    "alias": 12580477,
+    "alias_name": "雷击",
+    "different_fields": []
+  },
+  {
+    "card_id": 12908095,
+    "name": "我我我魔术师-我我我魔导",
+    "alias": 12908094,
+    "alias_name": "我我我魔术师-我我我魔导",
+    "different_fields": []
+  },
+  {
+    "card_id": 13021683,
+    "name": "群星废品同调士",
+    "alias": 13021682,
+    "alias_name": "群星废品同调士",
+    "different_fields": []
+  },
+  {
+    "card_id": 13048473,
+    "name": "仪式的事前准备",
+    "alias": 13048472,
+    "alias_name": "仪式的事前准备",
+    "different_fields": []
+  },
+  {
+    "card_id": 13171877,
+    "name": "半龙女仆·洗衣龙女",
+    "alias": 13171876,
+    "alias_name": "半龙女仆·洗衣龙女",
+    "different_fields": []
+  },
+  {
+    "card_id": 13243125,
+    "name": "至爱英雄 火焰翼侠",
+    "alias": 13243124,
+    "alias_name": "至爱英雄 火焰翼侠",
+    "different_fields": []
+  },
+  {
+    "card_id": 13331640,
+    "name": "霸王龙 扎克",
+    "alias": 13331639,
+    "alias_name": "霸王龙 扎克",
+    "different_fields": []
+  },
+  {
+    "card_id": 13857930,
+    "name": "新空间侠·闪烁青苔",
+    "alias": 17732278,
+    "alias_name": "新空间侠·光辉青苔",
+    "different_fields": [
+      "name",
+      "desc",
+      "type",
+      "atk",
+      "def",
+      "level"
+    ]
+  },
+  {
+    "card_id": 14391626,
+    "name": "维萨斯-僧娑洛",
+    "alias": 14391625,
+    "alias_name": "维萨斯-僧娑洛",
+    "different_fields": []
+  },
+  {
+    "card_id": 14532164,
+    "name": "闪电风暴",
+    "alias": 14532163,
+    "alias_name": "闪电风暴",
+    "different_fields": []
+  },
+  {
+    "card_id": 14558128,
+    "name": "灰流丽",
+    "alias": 14558127,
+    "alias_name": "灰流丽",
+    "different_fields": []
+  },
+  {
+    "card_id": 14558129,
+    "name": "灰流丽",
+    "alias": 14558127,
+    "alias_name": "灰流丽",
+    "different_fields": []
+  },
+  {
+    "card_id": 14878872,
+    "name": "救援猫",
+    "alias": 14878871,
+    "alias_name": "救援猫",
+    "different_fields": []
+  },
+  {
+    "card_id": 14898067,
+    "name": "血腥魔兽人",
+    "alias": 14898066,
+    "alias_name": "血腥魔兽人",
+    "different_fields": []
+  },
+  {
+    "card_id": 14965713,
+    "name": "增殖的栗子球！",
+    "alias": 14965712,
+    "alias_name": "增殖的栗子球！",
+    "different_fields": []
+  },
+  {
+    "card_id": 15259704,
+    "name": "卡通世界",
+    "alias": 15259703,
+    "alias_name": "卡通世界",
+    "different_fields": []
+  },
+  {
+    "card_id": 16178682,
+    "name": "异色眼灵摆龙",
+    "alias": 16178681,
+    "alias_name": "异色眼灵摆龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 16178683,
+    "name": "异色眼灵摆龙",
+    "alias": 16178681,
+    "alias_name": "异色眼灵摆龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 16178684,
+    "name": "异色眼灵摆龙",
+    "alias": 16178681,
+    "alias_name": "异色眼灵摆龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 16195943,
+    "name": "暗叛逆超量龙",
+    "alias": 16195942,
+    "alias_name": "暗叛逆超量龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 16475473,
+    "name": "下位恶魔",
+    "alias": 16475472,
+    "alias_name": "下位恶魔",
+    "different_fields": []
+  },
+  {
+    "card_id": 17242023,
+    "name": "真红眼超越黑龙",
+    "alias": 17242022,
+    "alias_name": "真红眼超越黑龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 17548457,
+    "name": "朱罗纪陨石兽",
+    "alias": 17548456,
+    "alias_name": "朱罗纪陨石兽",
+    "different_fields": []
+  },
+  {
+    "card_id": 17955767,
+    "name": "新空间侠·水波海豚",
+    "alias": 17955766,
+    "alias_name": "新空间侠·水波海豚",
+    "different_fields": []
+  },
+  {
+    "card_id": 18144507,
+    "name": "鹰身女妖的羽毛扫",
+    "alias": 18144506,
+    "alias_name": "鹰身女妖的羽毛扫",
+    "different_fields": []
+  },
+  {
+    "card_id": 18144508,
+    "name": "鹰身女妖的羽毛扫",
+    "alias": 18144506,
+    "alias_name": "鹰身女妖的羽毛扫",
+    "different_fields": []
+  },
+  {
+    "card_id": 18807109,
+    "name": "六芒星之咒缚",
+    "alias": 18807108,
+    "alias_name": "六芒星之咒缚",
+    "different_fields": []
+  },
+  {
+    "card_id": 19230408,
+    "name": "给死者的供物",
+    "alias": 19230407,
+    "alias_name": "给死者的供物",
+    "different_fields": []
+  },
+  {
+    "card_id": 19327349,
+    "name": "暗灵使 达克",
+    "alias": 19327348,
+    "alias_name": "暗灵使 达克",
+    "different_fields": []
+  },
+  {
+    "card_id": 19899074,
+    "name": "天丛云之巳剑",
+    "alias": 19899073,
+    "alias_name": "天丛云之巳剑",
+    "different_fields": []
+  },
+  {
+    "card_id": 20366275,
+    "name": "神影依·拿非利",
+    "alias": 20366274,
+    "alias_name": "神影依·拿非利",
+    "different_fields": []
+  },
+  {
+    "card_id": 20366276,
+    "name": "神影依·拿非利",
+    "alias": 20366274,
+    "alias_name": "神影依·拿非利",
+    "different_fields": []
+  },
+  {
+    "card_id": 20721929,
+    "name": "元素英雄 电光侠",
+    "alias": 20721928,
+    "alias_name": "元素英雄 电光侠",
+    "different_fields": []
+  },
+  {
+    "card_id": 20721930,
+    "name": "元素英雄 电光侠",
+    "alias": 20721928,
+    "alias_name": "元素英雄 电光侠",
+    "different_fields": []
+  },
+  {
+    "card_id": 21143941,
+    "name": "假面变化",
+    "alias": 21143940,
+    "alias_name": "假面变化",
+    "different_fields": []
+  },
+  {
+    "card_id": 21522602,
+    "name": "魔女术师傅·玻璃女巫",
+    "alias": 21522601,
+    "alias_name": "魔女术师傅·玻璃女巫",
+    "different_fields": []
+  },
+  {
+    "card_id": 21522603,
+    "name": "魔女术师傅·玻璃女巫",
+    "alias": 21522601,
+    "alias_name": "魔女术师傅·玻璃女巫",
+    "different_fields": []
+  },
+  {
+    "card_id": 21637211,
+    "name": "防火龙·奇点",
+    "alias": 21637210,
+    "alias_name": "防火龙·奇点",
+    "different_fields": []
+  },
+  {
+    "card_id": 21844577,
+    "name": "元素英雄 羽翼侠",
+    "alias": 21844576,
+    "alias_name": "元素英雄 羽翼侠",
+    "different_fields": []
+  },
+  {
+    "card_id": 21887176,
+    "name": "双穹之骑士 阿斯特拉姆",
+    "alias": 21887175,
+    "alias_name": "双穹之骑士 阿斯特拉姆",
+    "different_fields": []
+  },
+  {
+    "card_id": 22819093,
+    "name": "鱼群探知机",
+    "alias": 22819092,
+    "alias_name": "鱼群探知机",
+    "different_fields": []
+  },
+  {
+    "card_id": 22850703,
+    "name": "混沌之双翼",
+    "alias": 22850702,
+    "alias_name": "混沌之双翼",
+    "different_fields": []
+  },
+  {
+    "card_id": 23153228,
+    "name": "七皇升格",
+    "alias": 23153227,
+    "alias_name": "七皇升格",
+    "different_fields": []
+  },
+  {
+    "card_id": 23171611,
+    "name": "限制解除",
+    "alias": 23171610,
+    "alias_name": "限制解除",
+    "different_fields": []
+  },
+  {
+    "card_id": 23401840,
+    "name": "千手神",
+    "alias": 23401839,
+    "alias_name": "千手神",
+    "different_fields": []
+  },
+  {
+    "card_id": 23434539,
+    "name": "增殖的G",
+    "alias": 23434538,
+    "alias_name": "增殖的G",
+    "different_fields": []
+  },
+  {
+    "card_id": 23923759,
+    "name": "包烤蒸骑-汉堡排",
+    "alias": 23923758,
+    "alias_name": "包烤蒸骑-汉堡排",
+    "different_fields": []
+  },
+  {
+    "card_id": 23995347,
+    "name": "青眼究极龙",
+    "alias": 23995346,
+    "alias_name": "青眼究极龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 23995348,
+    "name": "青眼究极龙",
+    "alias": 23995346,
+    "alias_name": "青眼究极龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 23995349,
+    "name": "青眼究极龙",
+    "alias": 23995346,
+    "alias_name": "青眼究极龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 23995350,
+    "name": "青眼究极龙",
+    "alias": 23995346,
+    "alias_name": "青眼究极龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 24094654,
+    "name": "融合",
+    "alias": 24094653,
+    "alias_name": "融合",
+    "different_fields": []
+  },
+  {
+    "card_id": 24094655,
+    "name": "融合",
+    "alias": 24094653,
+    "alias_name": "融合",
+    "different_fields": []
+  },
+  {
+    "card_id": 24094656,
+    "name": "融合",
+    "alias": 24094653,
+    "alias_name": "融合",
+    "different_fields": []
+  },
+  {
+    "card_id": 24203750,
+    "name": "天下独步之大义贼",
+    "alias": 24203749,
+    "alias_name": "天下独步之大义贼",
+    "different_fields": []
+  },
+  {
+    "card_id": 24224831,
+    "name": "墓穴的指名者",
+    "alias": 24224830,
+    "alias_name": "墓穴的指名者",
+    "different_fields": []
+  },
+  {
+    "card_id": 24224832,
+    "name": "墓穴的指名者",
+    "alias": 24224830,
+    "alias_name": "墓穴的指名者",
+    "different_fields": []
+  },
+  {
+    "card_id": 24269962,
+    "name": "破械神王 阎摩",
+    "alias": 24269961,
+    "alias_name": "破械神王 阎摩",
+    "different_fields": []
+  },
+  {
+    "card_id": 24433921,
+    "name": "单摆刃拷问机械",
+    "alias": 24433920,
+    "alias_name": "单摆刃拷问机械",
+    "different_fields": []
+  },
+  {
+    "card_id": 25542643,
+    "name": "幻影雾剑",
+    "alias": 25542642,
+    "alias_name": "幻影雾剑",
+    "different_fields": []
+  },
+  {
+    "card_id": 25592143,
+    "name": "白森林的阿斯忒瑞亚",
+    "alias": 25592142,
+    "alias_name": "白森林的阿斯忒瑞亚",
+    "different_fields": []
+  },
+  {
+    "card_id": 25789293,
+    "name": "禁忌的圣杯",
+    "alias": 25789292,
+    "alias_name": "禁忌的圣杯",
+    "different_fields": []
+  },
+  {
+    "card_id": 26077388,
+    "name": "闪刀姬-零衣",
+    "alias": 26077387,
+    "alias_name": "闪刀姬-零衣",
+    "different_fields": []
+  },
+  {
+    "card_id": 26077389,
+    "name": "闪刀姬-零衣",
+    "alias": 26077387,
+    "alias_name": "闪刀姬-零衣",
+    "different_fields": []
+  },
+  {
+    "card_id": 26077390,
+    "name": "闪刀姬-零衣",
+    "alias": 26077387,
+    "alias_name": "闪刀姬-零衣",
+    "different_fields": []
+  },
+  {
+    "card_id": 26096329,
+    "name": "超重型炮塔列车 破天巨爱",
+    "alias": 26096328,
+    "alias_name": "超重型炮塔列车 破天巨爱",
+    "different_fields": []
+  },
+  {
+    "card_id": 26534688,
+    "name": "深海之都 墨瓦腊泥加",
+    "alias": 22702055,
+    "alias_name": "海",
+    "different_fields": [
+      "name",
+      "desc"
+    ]
+  },
+  {
+    "card_id": 26633848,
+    "name": "闪电战士-闪电之战士 吉尔福德",
+    "alias": 26633847,
+    "alias_name": "闪电战士-闪电之战士 吉尔福德",
+    "different_fields": []
+  },
+  {
+    "card_id": 27096834,
+    "name": "装弹枪管解放龙",
+    "alias": 27096833,
+    "alias_name": "装弹枪管解放龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 27118422,
+    "name": "四天之龙 凶饿毒融合龙",
+    "alias": 27118421,
+    "alias_name": "四天之龙 凶饿毒融合龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 27204313,
+    "name": "原始生命态 尼比鲁",
+    "alias": 27204311,
+    "alias_name": "原始生命态 尼比鲁",
+    "different_fields": []
+  },
+  {
+    "card_id": 27204314,
+    "name": "原始生命态 尼比鲁",
+    "alias": 27204311,
+    "alias_name": "原始生命态 尼比鲁",
+    "different_fields": []
+  },
+  {
+    "card_id": 27420824,
+    "name": "K9-17号 “撕裂者”",
+    "alias": 27420823,
+    "alias_name": "K9-17号 “撕裂者”",
+    "different_fields": []
+  },
+  {
+    "card_id": 27855496,
+    "name": "机械龙-左轮手枪龙",
+    "alias": 27855495,
+    "alias_name": "机械龙-左轮手枪龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 27911550,
+    "name": "寄生虫 帕拉赛德",
+    "alias": 27911549,
+    "alias_name": "寄生虫 帕拉赛德",
+    "different_fields": []
+  },
+  {
+    "card_id": 27927359,
+    "name": "鹰身女郎2",
+    "alias": 76812113,
+    "alias_name": "鹰身女郎",
+    "different_fields": [
+      "name",
+      "desc",
+      "type"
+    ]
+  },
+  {
+    "card_id": 28306253,
+    "name": "愤怒的汉堡",
+    "alias": 30243636,
+    "alias_name": "饥饿的汉堡",
+    "different_fields": [
+      "name",
+      "desc",
+      "type",
+      "atk"
+    ]
+  },
+  {
+    "card_id": 28331070,
+    "name": "超银河眼光子龙-光子咆哮",
+    "alias": 28331069,
+    "alias_name": "超银河眼光子龙-光子咆哮",
+    "different_fields": []
+  },
+  {
+    "card_id": 28403803,
+    "name": "朋克即兴 驾龙",
+    "alias": 28403802,
+    "alias_name": "朋克即兴 驾龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 29053657,
+    "name": "红龙 魁札尔科亚特尔",
+    "alias": 29053656,
+    "alias_name": "红龙 魁札尔科亚特尔",
+    "different_fields": []
+  },
+  {
+    "card_id": 29155213,
+    "name": "幽灵王-南瓜王-",
+    "alias": 29155212,
+    "alias_name": "幽灵王-南瓜王-",
+    "different_fields": []
+  },
+  {
+    "card_id": 29301451,
+    "name": "S：P小夜骑士",
+    "alias": 29301450,
+    "alias_name": "S：P小夜骑士",
+    "different_fields": []
+  },
+  {
+    "card_id": 29302859,
+    "name": "征服斗魂 螺禅",
+    "alias": 29302858,
+    "alias_name": "征服斗魂 螺禅",
+    "different_fields": []
+  },
+  {
+    "card_id": 29479266,
+    "name": "破械双王神 来迎",
+    "alias": 29479265,
+    "alias_name": "破械双王神 来迎",
+    "different_fields": []
+  },
+  {
+    "card_id": 29508347,
+    "name": "对手见冤家",
+    "alias": 29508346,
+    "alias_name": "对手见冤家",
+    "different_fields": []
+  },
+  {
+    "card_id": 29599814,
+    "name": "纯爱妖精可爱回忆",
+    "alias": 29599813,
+    "alias_name": "纯爱妖精可爱回忆",
+    "different_fields": []
+  },
+  {
+    "card_id": 29843095,
+    "name": "扰乱三人组",
+    "alias": 29843091,
+    "alias_name": "扰乱三人组",
+    "different_fields": []
+  },
+  {
+    "card_id": 29981922,
+    "name": "真六武众-紫炎",
+    "alias": 29981921,
+    "alias_name": "真六武众-紫炎",
+    "different_fields": []
+  },
+  {
+    "card_id": 30068121,
+    "name": "锋利小鬼·剪刀",
+    "alias": 30068120,
+    "alias_name": "锋利小鬼·剪刀",
+    "different_fields": []
+  },
+  {
+    "card_id": 30275299,
+    "name": "终击龙-电子终结龙",
+    "alias": 30275298,
+    "alias_name": "终击龙-电子终结龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 30397787,
+    "name": "白色幻兽-青眼白龙",
+    "alias": 30397786,
+    "alias_name": "白色幻兽-青眼白龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 30581602,
+    "name": "味美喵★点心抓取猫",
+    "alias": 30581601,
+    "alias_name": "味美喵★点心抓取猫",
+    "different_fields": []
+  },
+  {
+    "card_id": 30752325,
+    "name": "古之秘仪",
+    "alias": 30752324,
+    "alias_name": "古之秘仪",
+    "different_fields": []
+  },
+  {
+    "card_id": 31122091,
+    "name": "逆转之女神",
+    "alias": 31122090,
+    "alias_name": "逆转之女神",
+    "different_fields": []
+  },
+  {
+    "card_id": 31305912,
+    "name": "棉花糖",
+    "alias": 31305911,
+    "alias_name": "棉花糖",
+    "different_fields": []
+  },
+  {
+    "card_id": 31444250,
+    "name": "炼狱的虚梦",
+    "alias": 31444249,
+    "alias_name": "炼狱的虚梦",
+    "different_fields": []
+  },
+  {
+    "card_id": 31764354,
+    "name": "凭依装着-薇茵",
+    "alias": 31764353,
+    "alias_name": "凭依装着-薇茵",
+    "different_fields": []
+  },
+  {
+    "card_id": 31801518,
+    "name": "No.62 银河眼光子龙皇",
+    "alias": 31801517,
+    "alias_name": "No.62 银河眼光子龙皇",
+    "different_fields": []
+  },
+  {
+    "card_id": 31833039,
+    "name": "装弹枪管龙",
+    "alias": 31833038,
+    "alias_name": "装弹枪管龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 31887906,
+    "name": "凭依装着-奥丝",
+    "alias": 31887905,
+    "alias_name": "凭依装着-奥丝",
+    "different_fields": []
+  },
+  {
+    "card_id": 32003339,
+    "name": "No.34 电算机兽 太字节",
+    "alias": 32003338,
+    "alias_name": "No.34 电算机兽 太字节",
+    "different_fields": []
+  },
+  {
+    "card_id": 32012842,
+    "name": "千年盾",
+    "alias": 32012841,
+    "alias_name": "千年盾",
+    "different_fields": []
+  },
+  {
+    "card_id": 32274491,
+    "name": "白骨",
+    "alias": 32274490,
+    "alias_name": "白骨",
+    "different_fields": []
+  },
+  {
+    "card_id": 32274492,
+    "name": "白骨",
+    "alias": 32274490,
+    "alias_name": "白骨",
+    "different_fields": []
+  },
+  {
+    "card_id": 32448766,
+    "name": "淘气仙星·霍莉安琪儿",
+    "alias": 32448765,
+    "alias_name": "淘气仙星·霍莉安琪儿",
+    "different_fields": []
+  },
+  {
+    "card_id": 32491823,
+    "name": "降雷皇 哈蒙",
+    "alias": 32491822,
+    "alias_name": "降雷皇 哈蒙",
+    "different_fields": []
+  },
+  {
+    "card_id": 32807847,
+    "name": "增援",
+    "alias": 32807846,
+    "alias_name": "增援",
+    "different_fields": []
+  },
+  {
+    "card_id": 32807848,
+    "name": "增援",
+    "alias": 32807846,
+    "alias_name": "增援",
+    "different_fields": []
+  },
+  {
+    "card_id": 32807849,
+    "name": "增援",
+    "alias": 32807846,
+    "alias_name": "增援",
+    "different_fields": []
+  },
+  {
+    "card_id": 32828467,
+    "name": "唤醒你沉睡的元素英雄",
+    "alias": 32828466,
+    "alias_name": "唤醒你沉睡的元素英雄",
+    "different_fields": []
+  },
+  {
+    "card_id": 33396949,
+    "name": "被封印的艾克佐迪亚",
+    "alias": 33396948,
+    "alias_name": "被封印的艾克佐迪亚",
+    "different_fields": []
+  },
+  {
+    "card_id": 33396950,
+    "name": "被封印的艾克佐迪亚",
+    "alias": 33396948,
+    "alias_name": "被封印的艾克佐迪亚",
+    "different_fields": []
+  },
+  {
+    "card_id": 34103656,
+    "name": "忘却之都 利莫里亚",
+    "alias": 22702055,
+    "alias_name": "海",
+    "different_fields": [
+      "name",
+      "desc"
+    ]
+  },
+  {
+    "card_id": 34755995,
+    "name": "圣魔之少女 阿耳特弥斯",
+    "alias": 34755994,
+    "alias_name": "圣魔之少女 阿耳特弥斯",
+    "different_fields": []
+  },
+  {
+    "card_id": 35269905,
+    "name": "三战之号",
+    "alias": 35269904,
+    "alias_name": "三战之号",
+    "different_fields": []
+  },
+  {
+    "card_id": 35405756,
+    "name": "俱利伽罗天童",
+    "alias": 35405755,
+    "alias_name": "俱利伽罗天童",
+    "different_fields": []
+  },
+  {
+    "card_id": 35686188,
+    "name": "断头台的惨剧",
+    "alias": 35686187,
+    "alias_name": "断头台的惨剧",
+    "different_fields": []
+  },
+  {
+    "card_id": 35809263,
+    "name": "元素英雄 火焰翼侠",
+    "alias": 35809262,
+    "alias_name": "元素英雄 火焰翼侠",
+    "different_fields": []
+  },
+  {
+    "card_id": 35952885,
+    "name": "流天类星龙",
+    "alias": 35952884,
+    "alias_name": "流天类星龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 36354008,
+    "name": "闪电之战士 吉尔福德",
+    "alias": 36354007,
+    "alias_name": "闪电之战士 吉尔福德",
+    "different_fields": []
+  },
+  {
+    "card_id": 36609519,
+    "name": "邪恶★双子 璃拉",
+    "alias": 36609518,
+    "alias_name": "邪恶★双子 璃拉",
+    "different_fields": []
+  },
+  {
+    "card_id": 37351134,
+    "name": "闪刀姬-露世",
+    "alias": 37351133,
+    "alias_name": "闪刀姬-露世",
+    "different_fields": []
+  },
+  {
+    "card_id": 37351135,
+    "name": "闪刀姬-露世",
+    "alias": 37351133,
+    "alias_name": "闪刀姬-露世",
+    "different_fields": []
+  },
+  {
+    "card_id": 37390590,
+    "name": "附锁链的回力镖",
+    "alias": 37390589,
+    "alias_name": "附锁链的回力镖",
+    "different_fields": []
+  },
+  {
+    "card_id": 37458565,
+    "name": "电子界契约魔女",
+    "alias": 37458564,
+    "alias_name": "电子界契约魔女",
+    "different_fields": []
+  },
+  {
+    "card_id": 37495767,
+    "name": "救援ACE队 涡轮湍流消防战车",
+    "alias": 37495766,
+    "alias_name": "救援ACE队 涡轮湍流消防战车",
+    "different_fields": []
+  },
+  {
+    "card_id": 37742479,
+    "name": "欧尼斯特",
+    "alias": 37742478,
+    "alias_name": "欧尼斯特",
+    "different_fields": []
+  },
+  {
+    "card_id": 37744403,
+    "name": "风灵使 薇茵",
+    "alias": 37744402,
+    "alias_name": "风灵使 薇茵",
+    "different_fields": []
+  },
+  {
+    "card_id": 37744404,
+    "name": "风灵使 薇茵",
+    "alias": 37744402,
+    "alias_name": "风灵使 薇茵",
+    "different_fields": []
+  },
+  {
+    "card_id": 37818795,
+    "name": "超魔导龙骑士-真红眼龙骑士",
+    "alias": 37818794,
+    "alias_name": "超魔导龙骑士-真红眼龙骑士",
+    "different_fields": []
+  },
+  {
+    "card_id": 37970941,
+    "name": "地灵使 奥丝",
+    "alias": 37970940,
+    "alias_name": "地灵使 奥丝",
+    "different_fields": []
+  },
+  {
+    "card_id": 37970942,
+    "name": "地灵使 奥丝",
+    "alias": 37970940,
+    "alias_name": "地灵使 奥丝",
+    "different_fields": []
+  },
+  {
+    "card_id": 38033122,
+    "name": "黑魔术少女",
+    "alias": 38033121,
+    "alias_name": "黑魔术少女",
+    "different_fields": []
+  },
+  {
+    "card_id": 38033123,
+    "name": "黑魔术少女",
+    "alias": 38033121,
+    "alias_name": "黑魔术少女",
+    "different_fields": []
+  },
+  {
+    "card_id": 38033124,
+    "name": "黑魔术少女",
+    "alias": 38033121,
+    "alias_name": "黑魔术少女",
+    "different_fields": []
+  },
+  {
+    "card_id": 38033125,
+    "name": "黑魔术少女",
+    "alias": 38033121,
+    "alias_name": "黑魔术少女",
+    "different_fields": []
+  },
+  {
+    "card_id": 38033126,
+    "name": "黑魔术少女",
+    "alias": 38033121,
+    "alias_name": "黑魔术少女",
+    "different_fields": []
+  },
+  {
+    "card_id": 38033127,
+    "name": "黑魔术少女",
+    "alias": 38033121,
+    "alias_name": "黑魔术少女",
+    "different_fields": []
+  },
+  {
+    "card_id": 38033128,
+    "name": "黑魔术少女",
+    "alias": 38033121,
+    "alias_name": "黑魔术少女",
+    "different_fields": []
+  },
+  {
+    "card_id": 38033129,
+    "name": "黑魔术少女",
+    "alias": 38033121,
+    "alias_name": "黑魔术少女",
+    "different_fields": []
+  },
+  {
+    "card_id": 38033130,
+    "name": "黑魔术少女",
+    "alias": 38033121,
+    "alias_name": "黑魔术少女",
+    "different_fields": []
+  },
+  {
+    "card_id": 38033131,
+    "name": "黑魔术少女",
+    "alias": 38033121,
+    "alias_name": "黑魔术少女",
+    "different_fields": []
+  },
+  {
+    "card_id": 38033132,
+    "name": "黑魔术少女",
+    "alias": 38033121,
+    "alias_name": "黑魔术少女",
+    "different_fields": []
+  },
+  {
+    "card_id": 38033133,
+    "name": "黑魔术少女",
+    "alias": 38033121,
+    "alias_name": "黑魔术少女",
+    "different_fields": []
+  },
+  {
+    "card_id": 38342336,
+    "name": "梦幻崩影·独角兽",
+    "alias": 38342335,
+    "alias_name": "梦幻崩影·独角兽",
+    "different_fields": []
+  },
+  {
+    "card_id": 38495397,
+    "name": "星圣神龙 托勒密星团M7",
+    "alias": 38495396,
+    "alias_name": "星圣神龙 托勒密星团M7",
+    "different_fields": []
+  },
+  {
+    "card_id": 38578077,
+    "name": "完全羽化-究极完全态大飞蛾",
+    "alias": 38578076,
+    "alias_name": "完全羽化-究极完全态大飞蛾",
+    "different_fields": []
+  },
+  {
+    "card_id": 38817296,
+    "name": "月女神的至天",
+    "alias": 38817295,
+    "alias_name": "月女神的至天",
+    "different_fields": []
+  },
+  {
+    "card_id": 39030884,
+    "name": "暗黑武装龙·击灭",
+    "alias": 39030883,
+    "alias_name": "暗黑武装龙·击灭",
+    "different_fields": []
+  },
+  {
+    "card_id": 39568068,
+    "name": "命运之旅路",
+    "alias": 39568067,
+    "alias_name": "命运之旅路",
+    "different_fields": []
+  },
+  {
+    "card_id": 39751094,
+    "name": "龙宫之姬",
+    "alias": 39751093,
+    "alias_name": "龙宫之姬",
+    "different_fields": []
+  },
+  {
+    "card_id": 40044919,
+    "name": "元素英雄 天空侠",
+    "alias": 40044918,
+    "alias_name": "元素英雄 天空侠",
+    "different_fields": []
+  },
+  {
+    "card_id": 40237840,
+    "name": "羽翼栗子球·萨巴希尔 LV10",
+    "alias": 40237839,
+    "alias_name": "羽翼栗子球·萨巴希尔 LV10",
+    "different_fields": []
+  },
+  {
+    "card_id": 40366668,
+    "name": "灵王的波动",
+    "alias": 40366667,
+    "alias_name": "灵王的波动",
+    "different_fields": []
+  },
+  {
+    "card_id": 40542826,
+    "name": "凭依装着-莱娜",
+    "alias": 40542825,
+    "alias_name": "凭依装着-莱娜",
+    "different_fields": []
+  },
+  {
+    "card_id": 40640058,
+    "name": "栗子球",
+    "alias": 40640057,
+    "alias_name": "栗子球",
+    "different_fields": []
+  },
+  {
+    "card_id": 40640059,
+    "name": "栗子球",
+    "alias": 40640057,
+    "alias_name": "栗子球",
+    "different_fields": []
+  },
+  {
+    "card_id": 40640060,
+    "name": "栗子球",
+    "alias": 40640057,
+    "alias_name": "栗子球",
+    "different_fields": []
+  },
+  {
+    "card_id": 40640061,
+    "name": "栗子球",
+    "alias": 40640057,
+    "alias_name": "栗子球",
+    "different_fields": []
+  },
+  {
+    "card_id": 41209828,
+    "name": "凶饿毒融合龙",
+    "alias": 41209827,
+    "alias_name": "凶饿毒融合龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 41232648,
+    "name": "半龙女仆·龙女管家",
+    "alias": 41232647,
+    "alias_name": "半龙女仆·龙女管家",
+    "different_fields": []
+  },
+  {
+    "card_id": 41350418,
+    "name": "黑魔导的幕帘",
+    "alias": 41350417,
+    "alias_name": "黑魔导的幕帘",
+    "different_fields": []
+  },
+  {
+    "card_id": 41356846,
+    "name": "蓄积硫酸的落穴",
+    "alias": 41356845,
+    "alias_name": "蓄积硫酸的落穴",
+    "different_fields": []
+  },
+  {
+    "card_id": 41371603,
+    "name": "起立吧百夫长骑士！",
+    "alias": 41371602,
+    "alias_name": "起立吧百夫长骑士！",
+    "different_fields": []
+  },
+  {
+    "card_id": 41420028,
+    "name": "神之宣告",
+    "alias": 41420027,
+    "alias_name": "神之宣告",
+    "different_fields": []
+  },
+  {
+    "card_id": 41462084,
+    "name": "千年龙",
+    "alias": 41462083,
+    "alias_name": "千年龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 41463182,
+    "name": "转生炎兽 炽热多头狮",
+    "alias": 41463181,
+    "alias_name": "转生炎兽 炽热多头狮",
+    "different_fields": []
+  },
+  {
+    "card_id": 42035045,
+    "name": "漆黑之豹战士",
+    "alias": 42035044,
+    "alias_name": "漆黑之豹战士",
+    "different_fields": []
+  },
+  {
+    "card_id": 42705244,
+    "name": "御巫之契",
+    "alias": 42705243,
+    "alias_name": "御巫之契",
+    "different_fields": []
+  },
+  {
+    "card_id": 42741438,
+    "name": "救祓少女·米迦埃莉丝",
+    "alias": 42741437,
+    "alias_name": "救祓少女·米迦埃莉丝",
+    "different_fields": []
+  },
+  {
+    "card_id": 43316239,
+    "name": "未界域的大脚怪",
+    "alias": 43316238,
+    "alias_name": "未界域的大脚怪",
+    "different_fields": []
+  },
+  {
+    "card_id": 43892409,
+    "name": "龙骑士 黑魔术少女",
+    "alias": 43892408,
+    "alias_name": "龙骑士 黑魔术少女",
+    "different_fields": []
+  },
+  {
+    "card_id": 44001994,
+    "name": "黑色混沌之魔术师 黑混沌",
+    "alias": 44001993,
+    "alias_name": "黑色混沌之魔术师 黑混沌",
+    "different_fields": []
+  },
+  {
+    "card_id": 44146296,
+    "name": "冰剑龙 幻冰龙",
+    "alias": 44146295,
+    "alias_name": "冰剑龙 幻冰龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 44330100,
+    "name": "冥府之使者 格斯",
+    "alias": 44330098,
+    "alias_name": "冥府之使者 格斯",
+    "different_fields": []
+  },
+  {
+    "card_id": 44508095,
+    "name": "星尘龙",
+    "alias": 44508094,
+    "alias_name": "星尘龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 44508096,
+    "name": "星尘龙",
+    "alias": 44508094,
+    "alias_name": "星尘龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 44508097,
+    "name": "星尘龙",
+    "alias": 44508094,
+    "alias_name": "星尘龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 45231178,
+    "name": "炎之剑士",
+    "alias": 45231177,
+    "alias_name": "炎之剑士",
+    "different_fields": []
+  },
+  {
+    "card_id": 45627619,
+    "name": "霸王黑龙 异色眼叛逆龙",
+    "alias": 45627618,
+    "alias_name": "霸王黑龙 异色眼叛逆龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 46986415,
+    "name": "黑魔术师",
+    "alias": 46986414,
+    "alias_name": "黑魔术师",
+    "different_fields": []
+  },
+  {
+    "card_id": 46986416,
+    "name": "黑魔术师",
+    "alias": 46986414,
+    "alias_name": "黑魔术师",
+    "different_fields": []
+  },
+  {
+    "card_id": 46986417,
+    "name": "黑魔术师",
+    "alias": 46986414,
+    "alias_name": "黑魔术师",
+    "different_fields": []
+  },
+  {
+    "card_id": 46986418,
+    "name": "黑魔术师",
+    "alias": 46986414,
+    "alias_name": "黑魔术师",
+    "different_fields": []
+  },
+  {
+    "card_id": 46986419,
+    "name": "黑魔术师",
+    "alias": 46986414,
+    "alias_name": "黑魔术师",
+    "different_fields": []
+  },
+  {
+    "card_id": 46986420,
+    "name": "黑魔术师",
+    "alias": 46986414,
+    "alias_name": "黑魔术师",
+    "different_fields": []
+  },
+  {
+    "card_id": 46986421,
+    "name": "黑魔术师",
+    "alias": 46986414,
+    "alias_name": "黑魔术师",
+    "different_fields": []
+  },
+  {
+    "card_id": 46986422,
+    "name": "黑魔术师",
+    "alias": 46986414,
+    "alias_name": "黑魔术师",
+    "different_fields": []
+  },
+  {
+    "card_id": 46986423,
+    "name": "黑魔术师",
+    "alias": 46986414,
+    "alias_name": "黑魔术师",
+    "different_fields": []
+  },
+  {
+    "card_id": 46986424,
+    "name": "黑魔术师",
+    "alias": 46986414,
+    "alias_name": "黑魔术师",
+    "different_fields": []
+  },
+  {
+    "card_id": 46986425,
+    "name": "黑魔术师",
+    "alias": 46986414,
+    "alias_name": "黑魔术师",
+    "different_fields": []
+  },
+  {
+    "card_id": 46986426,
+    "name": "黑魔术师",
+    "alias": 46986414,
+    "alias_name": "黑魔术师",
+    "different_fields": []
+  },
+  {
+    "card_id": 46986427,
+    "name": "黑魔术师",
+    "alias": 46986414,
+    "alias_name": "黑魔术师",
+    "different_fields": []
+  },
+  {
+    "card_id": 46986428,
+    "name": "黑魔术师",
+    "alias": 46986414,
+    "alias_name": "黑魔术师",
+    "different_fields": []
+  },
+  {
+    "card_id": 46986429,
+    "name": "黑魔术师",
+    "alias": 46986414,
+    "alias_name": "黑魔术师",
+    "different_fields": []
+  },
+  {
+    "card_id": 46986430,
+    "name": "黑魔术师",
+    "alias": 46986414,
+    "alias_name": "黑魔术师",
+    "different_fields": []
+  },
+  {
+    "card_id": 46986431,
+    "name": "黑魔术师",
+    "alias": 46986414,
+    "alias_name": "黑魔术师",
+    "different_fields": []
+  },
+  {
+    "card_id": 47222537,
+    "name": "黑魔导阵",
+    "alias": 47222536,
+    "alias_name": "黑魔导阵",
+    "different_fields": []
+  },
+  {
+    "card_id": 47325506,
+    "name": "化石调查",
+    "alias": 47325505,
+    "alias_name": "化石调查",
+    "different_fields": []
+  },
+  {
+    "card_id": 47852925,
+    "name": "天使的鲜血",
+    "alias": 47852924,
+    "alias_name": "天使的鲜血",
+    "different_fields": []
+  },
+  {
+    "card_id": 48063986,
+    "name": "圣灵兽骑 雷鹰",
+    "alias": 48063985,
+    "alias_name": "圣灵兽骑 雷鹰",
+    "different_fields": []
+  },
+  {
+    "card_id": 48130398,
+    "name": "超融合",
+    "alias": 48130397,
+    "alias_name": "超融合",
+    "different_fields": []
+  },
+  {
+    "card_id": 48171152,
+    "name": "星霜之魔术师-宙读之魔术士",
+    "alias": 48171151,
+    "alias_name": "星霜之魔术师-宙读之魔术士",
+    "different_fields": []
+  },
+  {
+    "card_id": 48393694,
+    "name": "我我我少女-零零通话",
+    "alias": 48393693,
+    "alias_name": "我我我少女-零零通话",
+    "different_fields": []
+  },
+  {
+    "card_id": 48770334,
+    "name": "雷击坏兽 雷鸣龙王",
+    "alias": 48770333,
+    "alias_name": "雷击坏兽 雷鸣龙王",
+    "different_fields": []
+  },
+  {
+    "card_id": 49238329,
+    "name": "强欲而金满之壶",
+    "alias": 49238328,
+    "alias_name": "强欲而金满之壶",
+    "different_fields": []
+  },
+  {
+    "card_id": 49415282,
+    "name": "同调紧急",
+    "alias": 49415281,
+    "alias_name": "同调紧急",
+    "different_fields": []
+  },
+  {
+    "card_id": 49791928,
+    "name": "老虎斧战士",
+    "alias": 49791927,
+    "alias_name": "老虎斧战士",
+    "different_fields": []
+  },
+  {
+    "card_id": 50208445,
+    "name": "精灵世妃 树精",
+    "alias": 50208444,
+    "alias_name": "精灵世妃 树精",
+    "different_fields": []
+  },
+  {
+    "card_id": 50277356,
+    "name": "交织绵羊",
+    "alias": 50277355,
+    "alias_name": "交织绵羊",
+    "different_fields": []
+  },
+  {
+    "card_id": 52038442,
+    "name": "朔夜时雨",
+    "alias": 52038441,
+    "alias_name": "朔夜时雨",
+    "different_fields": []
+  },
+  {
+    "card_id": 52038443,
+    "name": "朔夜时雨",
+    "alias": 52038441,
+    "alias_name": "朔夜时雨",
+    "different_fields": []
+  },
+  {
+    "card_id": 52068433,
+    "name": "三叉龙之影灵衣",
+    "alias": 52068432,
+    "alias_name": "三叉龙之影灵衣",
+    "different_fields": []
+  },
+  {
+    "card_id": 52245127,
+    "name": "冰原之始祖 欧德姆布拉",
+    "alias": 52245126,
+    "alias_name": "冰原之始祖 欧德姆布拉",
+    "different_fields": []
+  },
+  {
+    "card_id": 52687917,
+    "name": "冰结界之龙 三叉龙",
+    "alias": 52687916,
+    "alias_name": "冰结界之龙 三叉龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 53038956,
+    "name": "波动之超魔导剑士-黑魔导剑士",
+    "alias": 53038955,
+    "alias_name": "波动之超魔导剑士-黑魔导剑士",
+    "different_fields": []
+  },
+  {
+    "card_id": 53183601,
+    "name": "青眼卡通龙",
+    "alias": 53183600,
+    "alias_name": "青眼卡通龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 53325668,
+    "name": "花园蔷薇少女",
+    "alias": 53325667,
+    "alias_name": "花园蔷薇少女",
+    "different_fields": []
+  },
+  {
+    "card_id": 53481939,
+    "name": "弹丸雨幕龙",
+    "alias": 53481938,
+    "alias_name": "弹丸雨幕龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 53765053,
+    "name": "原罪之迪亚贝尔泽",
+    "alias": 53765052,
+    "alias_name": "原罪之迪亚贝尔泽",
+    "different_fields": []
+  },
+  {
+    "card_id": 53839838,
+    "name": "吸血鬼领主",
+    "alias": 53839837,
+    "alias_name": "吸血鬼领主",
+    "different_fields": []
+  },
+  {
+    "card_id": 54415063,
+    "name": "鹰身女郎3",
+    "alias": 76812113,
+    "alias_name": "鹰身女郎",
+    "different_fields": [
+      "name",
+      "desc",
+      "type"
+    ]
+  },
+  {
+    "card_id": 54577951,
+    "name": "远古者的见证人",
+    "alias": 54577949,
+    "alias_name": "远古者的见证人",
+    "different_fields": []
+  },
+  {
+    "card_id": 54603526,
+    "name": "四天之龙 幻透翼同调龙",
+    "alias": 54603525,
+    "alias_name": "四天之龙 幻透翼同调龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 54693927,
+    "name": "冥王结界波",
+    "alias": 54693926,
+    "alias_name": "冥王结界波",
+    "different_fields": []
+  },
+  {
+    "card_id": 54725178,
+    "name": "银河眼辉光子龙",
+    "alias": 54725177,
+    "alias_name": "银河眼辉光子龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 55273561,
+    "name": "白之圣女 艾克莉西娅",
+    "alias": 55273560,
+    "alias_name": "白之圣女 艾克莉西娅",
+    "different_fields": []
+  },
+  {
+    "card_id": 55273562,
+    "name": "白之圣女 艾克莉西娅",
+    "alias": 55273560,
+    "alias_name": "白之圣女 艾克莉西娅",
+    "different_fields": []
+  },
+  {
+    "card_id": 55410872,
+    "name": "青眼混沌极龙",
+    "alias": 55410871,
+    "alias_name": "青眼混沌极龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 55878039,
+    "name": "混源龙 巨涡始祖神",
+    "alias": 55878038,
+    "alias_name": "混源龙 巨涡始祖神",
+    "different_fields": []
+  },
+  {
+    "card_id": 56043447,
+    "name": "万力魔神 死亡拷问机",
+    "alias": 56043446,
+    "alias_name": "万力魔神 死亡拷问机",
+    "different_fields": []
+  },
+  {
+    "card_id": 56196386,
+    "name": "铁兽战线 姬特",
+    "alias": 56196385,
+    "alias_name": "铁兽战线 姬特",
+    "different_fields": []
+  },
+  {
+    "card_id": 56638326,
+    "name": "星辉士 夏三角",
+    "alias": 56638325,
+    "alias_name": "星辉士 夏三角",
+    "different_fields": []
+  },
+  {
+    "card_id": 56787190,
+    "name": "开放的大地",
+    "alias": 56787189,
+    "alias_name": "开放的大地",
+    "different_fields": []
+  },
+  {
+    "card_id": 56993277,
+    "name": "电气抵消",
+    "alias": 56993276,
+    "alias_name": "电气抵消",
+    "different_fields": []
+  },
+  {
+    "card_id": 57103970,
+    "name": "炎舞-「天玑」",
+    "alias": 57103969,
+    "alias_name": "炎舞-「天玑」",
+    "different_fields": []
+  },
+  {
+    "card_id": 57116034,
+    "name": "羽翼栗子球",
+    "alias": 57116033,
+    "alias_name": "羽翼栗子球",
+    "different_fields": []
+  },
+  {
+    "card_id": 57116035,
+    "name": "羽翼栗子球",
+    "alias": 57116033,
+    "alias_name": "羽翼栗子球",
+    "different_fields": []
+  },
+  {
+    "card_id": 57728571,
+    "name": "死之卡组破坏病毒",
+    "alias": 57728570,
+    "alias_name": "死之卡组破坏病毒",
+    "different_fields": []
+  },
+  {
+    "card_id": 58143853,
+    "name": "幻惑之见习魔术师",
+    "alias": 58143852,
+    "alias_name": "幻惑之见习魔术师",
+    "different_fields": []
+  },
+  {
+    "card_id": 58481573,
+    "name": "假面英雄 暗爪",
+    "alias": 58481572,
+    "alias_name": "假面英雄 暗爪",
+    "different_fields": []
+  },
+  {
+    "card_id": 58932616,
+    "name": "元素英雄 爆热女郎",
+    "alias": 58932615,
+    "alias_name": "元素英雄 爆热女郎",
+    "different_fields": []
+  },
+  {
+    "card_id": 59242458,
+    "name": "救祓少女们的圣母颂歌",
+    "alias": 59242457,
+    "alias_name": "救祓少女们的圣母颂歌",
+    "different_fields": []
+  },
+  {
+    "card_id": 59438931,
+    "name": "幽鬼兔",
+    "alias": 59438930,
+    "alias_name": "幽鬼兔",
+    "different_fields": []
+  },
+  {
+    "card_id": 59438932,
+    "name": "幽鬼兔",
+    "alias": 59438930,
+    "alias_name": "幽鬼兔",
+    "different_fields": []
+  },
+  {
+    "card_id": 59464594,
+    "name": "武装龙 LV10",
+    "alias": 59464593,
+    "alias_name": "武装龙 LV10",
+    "different_fields": []
+  },
+  {
+    "card_id": 59514117,
+    "name": "黑魔术的秘仪",
+    "alias": 59514116,
+    "alias_name": "黑魔术的秘仪",
+    "different_fields": []
+  },
+  {
+    "card_id": 60303689,
+    "name": "教导的圣女 艾克莉西娅",
+    "alias": 60303688,
+    "alias_name": "教导的圣女 艾克莉西娅",
+    "different_fields": []
+  },
+  {
+    "card_id": 60643554,
+    "name": "儚无水木",
+    "alias": 60643553,
+    "alias_name": "儚无水木",
+    "different_fields": []
+  },
+  {
+    "card_id": 60800382,
+    "name": "废品战士",
+    "alias": 60800381,
+    "alias_name": "废品战士",
+    "different_fields": []
+  },
+  {
+    "card_id": 60800383,
+    "name": "废品战士",
+    "alias": 60800381,
+    "alias_name": "废品战士",
+    "different_fields": []
+  },
+  {
+    "card_id": 60800384,
+    "name": "废品战士",
+    "alias": 60800381,
+    "alias_name": "废品战士",
+    "different_fields": []
+  },
+  {
+    "card_id": 61257790,
+    "name": "星尘龙/爆裂体",
+    "alias": 61257789,
+    "alias_name": "星尘龙/爆裂体",
+    "different_fields": []
+  },
+  {
+    "card_id": 62015409,
+    "name": "浮幽樱",
+    "alias": 62015408,
+    "alias_name": "浮幽樱",
+    "different_fields": []
+  },
+  {
+    "card_id": 62279056,
+    "name": "魔法筒",
+    "alias": 62279055,
+    "alias_name": "魔法筒",
+    "different_fields": []
+  },
+  {
+    "card_id": 62962631,
+    "name": "死狱乡的导化 阿鲁伯",
+    "alias": 62962630,
+    "alias_name": "死狱乡的导化 阿鲁伯",
+    "different_fields": []
+  },
+  {
+    "card_id": 63166096,
+    "name": "闪刀起动-交闪",
+    "alias": 63166095,
+    "alias_name": "闪刀起动-交闪",
+    "different_fields": []
+  },
+  {
+    "card_id": 63166097,
+    "name": "闪刀起动-交闪",
+    "alias": 63166095,
+    "alias_name": "闪刀起动-交闪",
+    "different_fields": []
+  },
+  {
+    "card_id": 63250534,
+    "name": "幻想之邪眼-纳祭之魔",
+    "alias": 63250533,
+    "alias_name": "幻想之邪眼-纳祭之魔",
+    "different_fields": []
+  },
+  {
+    "card_id": 63288574,
+    "name": "闪刀姬-燎里",
+    "alias": 63288573,
+    "alias_name": "闪刀姬-燎里",
+    "different_fields": []
+  },
+  {
+    "card_id": 64034256,
+    "name": "盟军·次世代鸟人兵",
+    "alias": 64034255,
+    "alias_name": "盟军·次世代鸟人兵",
+    "different_fields": []
+  },
+  {
+    "card_id": 64335805,
+    "name": "真红眼黑钢龙",
+    "alias": 64335804,
+    "alias_name": "真红眼黑钢龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 64972182,
+    "name": "鹰身女郎-华丽的分身-",
+    "alias": 64972181,
+    "alias_name": "鹰身女郎-华丽的分身-",
+    "different_fields": []
+  },
+  {
+    "card_id": 65302904,
+    "name": "圣王女 罗丝帕梅拉",
+    "alias": 65302903,
+    "alias_name": "圣王女 罗丝帕梅拉",
+    "different_fields": []
+  },
+  {
+    "card_id": 65305469,
+    "name": "未来No.0 未来皇 霍普",
+    "alias": 65305468,
+    "alias_name": "未来No.0 未来皇 霍普",
+    "different_fields": []
+  },
+  {
+    "card_id": 65424482,
+    "name": "冰结界的龙胤 千枪龙",
+    "alias": 65424481,
+    "alias_name": "冰结界的龙胤 千枪龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 65541656,
+    "name": "真红莲新星龙-燃烧之魂",
+    "alias": 65541655,
+    "alias_name": "真红莲新星龙-燃烧之魂",
+    "different_fields": []
+  },
+  {
+    "card_id": 65676462,
+    "name": "No.32 海咬龙 鲨龙兽",
+    "alias": 65676461,
+    "alias_name": "No.32 海咬龙 鲨龙兽",
+    "different_fields": []
+  },
+  {
+    "card_id": 65681984,
+    "name": "抹杀之指名者",
+    "alias": 65681983,
+    "alias_name": "抹杀之指名者",
+    "different_fields": []
+  },
+  {
+    "card_id": 65741787,
+    "name": "I：P百变莱娜",
+    "alias": 65741786,
+    "alias_name": "I：P百变莱娜",
+    "different_fields": []
+  },
+  {
+    "card_id": 65741788,
+    "name": "I：P百变莱娜",
+    "alias": 65741786,
+    "alias_name": "I：P百变莱娜",
+    "different_fields": []
+  },
+  {
+    "card_id": 65741789,
+    "name": "I：P百变莱娜",
+    "alias": 65741786,
+    "alias_name": "I：P百变莱娜",
+    "different_fields": []
+  },
+  {
+    "card_id": 66247040,
+    "name": "神圣心灵防护罩 -心灵之力-",
+    "alias": 66247039,
+    "alias_name": "神圣心灵防护罩 -心灵之力-",
+    "different_fields": []
+  },
+  {
+    "card_id": 66331856,
+    "name": "变形斗士·打火机",
+    "alias": 66331855,
+    "alias_name": "变形斗士·打火机",
+    "different_fields": []
+  },
+  {
+    "card_id": 66540885,
+    "name": "诡计恶魔",
+    "alias": 66540884,
+    "alias_name": "诡计恶魔",
+    "different_fields": []
+  },
+  {
+    "card_id": 66664204,
+    "name": "机光龙-电子龙",
+    "alias": 66664203,
+    "alias_name": "机光龙-电子龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 66957585,
+    "name": "永火炮",
+    "alias": 66957584,
+    "alias_name": "永火炮",
+    "different_fields": []
+  },
+  {
+    "card_id": 67169063,
+    "name": "贪欲之壶",
+    "alias": 67169062,
+    "alias_name": "贪欲之壶",
+    "different_fields": []
+  },
+  {
+    "card_id": 67886896,
+    "name": "苍之深渊 渊眼白龙",
+    "alias": 67886895,
+    "alias_name": "苍之深渊 渊眼白龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 68337210,
+    "name": "码丽丝梦游地下界",
+    "alias": 68337209,
+    "alias_name": "码丽丝梦游地下界",
+    "different_fields": []
+  },
+  {
+    "card_id": 68468460,
+    "name": "阿不思的落胤",
+    "alias": 68468459,
+    "alias_name": "阿不思的落胤",
+    "different_fields": []
+  },
+  {
+    "card_id": 68468461,
+    "name": "阿不思的落胤",
+    "alias": 68468459,
+    "alias_name": "阿不思的落胤",
+    "different_fields": []
+  },
+  {
+    "card_id": 68540059,
+    "name": "金属化·魔法反射装甲",
+    "alias": 68540058,
+    "alias_name": "金属化·魔法反射装甲",
+    "different_fields": []
+  },
+  {
+    "card_id": 68679595,
+    "name": "兽装合体 狮子霍普雷",
+    "alias": 56840427,
+    "alias_name": "混沌No.39 希望皇 霍普雷",
+    "different_fields": [
+      "name",
+      "desc",
+      "level"
+    ]
+  },
+  {
+    "card_id": 68881650,
+    "name": "凭依装着-艾莉娅",
+    "alias": 68881649,
+    "alias_name": "凭依装着-艾莉娅",
+    "different_fields": []
+  },
+  {
+    "card_id": 69140099,
+    "name": "双生精灵",
+    "alias": 69140098,
+    "alias_name": "双生精灵",
+    "different_fields": []
+  },
+  {
+    "card_id": 69272450,
+    "name": "码丽丝<兵卒>白兔",
+    "alias": 69272449,
+    "alias_name": "码丽丝<兵卒>白兔",
+    "different_fields": []
+  },
+  {
+    "card_id": 69579762,
+    "name": "死亡树熊",
+    "alias": 69579761,
+    "alias_name": "死亡树熊",
+    "different_fields": []
+  },
+  {
+    "card_id": 69680032,
+    "name": "教导的骑士 弗勒德莉丝",
+    "alias": 69680031,
+    "alias_name": "教导的骑士 弗勒德莉丝",
+    "different_fields": []
+  },
+  {
+    "card_id": 70095155,
+    "name": "电子龙",
+    "alias": 70095154,
+    "alias_name": "电子龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 70405002,
+    "name": "光与暗之战士 混沌战士",
+    "alias": 70405001,
+    "alias_name": "光与暗之战士 混沌战士",
+    "different_fields": []
+  },
+  {
+    "card_id": 70781053,
+    "name": "恶魔召唤",
+    "alias": 70781052,
+    "alias_name": "恶魔召唤",
+    "different_fields": []
+  },
+  {
+    "card_id": 70781054,
+    "name": "恶魔召唤",
+    "alias": 70781052,
+    "alias_name": "恶魔召唤",
+    "different_fields": []
+  },
+  {
+    "card_id": 70781055,
+    "name": "恶魔召唤",
+    "alias": 70781052,
+    "alias_name": "恶魔召唤",
+    "different_fields": []
+  },
+  {
+    "card_id": 70781056,
+    "name": "恶魔召唤",
+    "alias": 70781052,
+    "alias_name": "恶魔召唤",
+    "different_fields": []
+  },
+  {
+    "card_id": 70781057,
+    "name": "恶魔召唤",
+    "alias": 70781052,
+    "alias_name": "恶魔召唤",
+    "different_fields": []
+  },
+  {
+    "card_id": 71413902,
+    "name": "魔导战士 破坏者",
+    "alias": 71413901,
+    "alias_name": "魔导战士 破坏者",
+    "different_fields": []
+  },
+  {
+    "card_id": 71564253,
+    "name": "雷王",
+    "alias": 71564252,
+    "alias_name": "雷王",
+    "different_fields": []
+  },
+  {
+    "card_id": 71625223,
+    "name": "时间魔术师",
+    "alias": 71625222,
+    "alias_name": "时间魔术师",
+    "different_fields": []
+  },
+  {
+    "card_id": 71625224,
+    "name": "时间魔术师",
+    "alias": 71625222,
+    "alias_name": "时间魔术师",
+    "different_fields": []
+  },
+  {
+    "card_id": 72270340,
+    "name": "黑魔女 迪亚贝尔斯塔尔",
+    "alias": 72270339,
+    "alias_name": "黑魔女 迪亚贝尔斯塔尔",
+    "different_fields": []
+  },
+  {
+    "card_id": 72270341,
+    "name": "黑魔女 迪亚贝尔斯塔尔",
+    "alias": 72270339,
+    "alias_name": "黑魔女 迪亚贝尔斯塔尔",
+    "different_fields": []
+  },
+  {
+    "card_id": 72302404,
+    "name": "光之护封剑",
+    "alias": 72302403,
+    "alias_name": "光之护封剑",
+    "different_fields": []
+  },
+  {
+    "card_id": 72443569,
+    "name": "沉默魔术师 LV8",
+    "alias": 72443568,
+    "alias_name": "沉默魔术师 LV8",
+    "different_fields": []
+  },
+  {
+    "card_id": 72989440,
+    "name": "混沌战士 -开辟的使者-",
+    "alias": 72989439,
+    "alias_name": "混沌战士 -开辟的使者-",
+    "different_fields": []
+  },
+  {
+    "card_id": 73134082,
+    "name": "火刑",
+    "alias": 73134081,
+    "alias_name": "火刑",
+    "different_fields": []
+  },
+  {
+    "card_id": 73318864,
+    "name": "光灵使 莱娜",
+    "alias": 73318863,
+    "alias_name": "光灵使 莱娜",
+    "different_fields": []
+  },
+  {
+    "card_id": 73580472,
+    "name": "黑蔷薇龙",
+    "alias": 73580471,
+    "alias_name": "黑蔷薇龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 73580473,
+    "name": "黑蔷薇龙",
+    "alias": 73580471,
+    "alias_name": "黑蔷薇龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 73639100,
+    "name": "塞拉之虫惑魔",
+    "alias": 73639099,
+    "alias_name": "塞拉之虫惑魔",
+    "different_fields": []
+  },
+  {
+    "card_id": 73642297,
+    "name": "屋敷童",
+    "alias": 73642296,
+    "alias_name": "屋敷童",
+    "different_fields": []
+  },
+  {
+    "card_id": 73642298,
+    "name": "屋敷童",
+    "alias": 73642296,
+    "alias_name": "屋敷童",
+    "different_fields": []
+  },
+  {
+    "card_id": 73819701,
+    "name": "白龙之落胤",
+    "alias": 68468459,
+    "alias_name": "阿不思的落胤",
+    "different_fields": [
+      "name",
+      "desc"
+    ]
+  },
+  {
+    "card_id": 73915056,
+    "name": "替罪羊",
+    "alias": 73915051,
+    "alias_name": "替罪羊",
+    "different_fields": []
+  },
+  {
+    "card_id": 74063035,
+    "name": "召唤魔术",
+    "alias": 74063034,
+    "alias_name": "召唤魔术",
+    "different_fields": []
+  },
+  {
+    "card_id": 74294677,
+    "name": "进化帝·半鸟龙",
+    "alias": 74294676,
+    "alias_name": "进化帝·半鸟龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 74335036,
+    "name": "置换融合",
+    "alias": 24094653,
+    "alias_name": "融合",
+    "different_fields": [
+      "name",
+      "desc"
+    ]
+  },
+  {
+    "card_id": 74364660,
+    "name": "水灵使 艾莉娅",
+    "alias": 74364659,
+    "alias_name": "水灵使 艾莉娅",
+    "different_fields": []
+  },
+  {
+    "card_id": 74364661,
+    "name": "水灵使 艾莉娅",
+    "alias": 74364659,
+    "alias_name": "水灵使 艾莉娅",
+    "different_fields": []
+  },
+  {
+    "card_id": 74665151,
+    "name": "解码语者·集成",
+    "alias": 74665150,
+    "alias_name": "解码语者·集成",
+    "different_fields": []
+  },
+  {
+    "card_id": 74677423,
+    "name": "真红眼黑龙",
+    "alias": 74677422,
+    "alias_name": "真红眼黑龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 74677424,
+    "name": "真红眼黑龙",
+    "alias": 74677422,
+    "alias_name": "真红眼黑龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 74677425,
+    "name": "真红眼黑龙",
+    "alias": 74677422,
+    "alias_name": "真红眼黑龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 74677426,
+    "name": "真红眼黑龙",
+    "alias": 74677422,
+    "alias_name": "真红眼黑龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 74677427,
+    "name": "真红眼黑龙",
+    "alias": 74677422,
+    "alias_name": "真红眼黑龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 74677428,
+    "name": "真红眼黑龙",
+    "alias": 74677422,
+    "alias_name": "真红眼黑龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 74677429,
+    "name": "真红眼黑龙",
+    "alias": 74677422,
+    "alias_name": "真红眼黑龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 74677430,
+    "name": "真红眼黑龙",
+    "alias": 74677422,
+    "alias_name": "真红眼黑龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 74677431,
+    "name": "真红眼黑龙",
+    "alias": 74677422,
+    "alias_name": "真红眼黑龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 74677432,
+    "name": "真红眼黑龙",
+    "alias": 74677422,
+    "alias_name": "真红眼黑龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 75286622,
+    "name": "召唤兽 梅尔卡巴",
+    "alias": 75286621,
+    "alias_name": "召唤兽 梅尔卡巴",
+    "different_fields": []
+  },
+  {
+    "card_id": 75402014,
+    "name": "龙装合体 龙王霍普雷",
+    "alias": 56840427,
+    "alias_name": "混沌No.39 希望皇 霍普雷",
+    "different_fields": [
+      "name",
+      "desc",
+      "level"
+    ]
+  },
+  {
+    "card_id": 75787709,
+    "name": "四天之龙 异色眼灵摆龙",
+    "alias": 75787708,
+    "alias_name": "四天之龙 异色眼灵摆龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 76290638,
+    "name": "机关傀儡-机械降临的粉丝幻想",
+    "alias": 76290637,
+    "alias_name": "机关傀儡-机械降临的粉丝幻想",
+    "different_fields": []
+  },
+  {
+    "card_id": 76504387,
+    "name": "No.39 光之使者 希望皇 霍普",
+    "alias": 76504386,
+    "alias_name": "No.39 光之使者 希望皇 霍普",
+    "different_fields": []
+  },
+  {
+    "card_id": 76636979,
+    "name": "星尘龙-牺牲者的圣域",
+    "alias": 76636978,
+    "alias_name": "星尘龙-牺牲者的圣域",
+    "different_fields": []
+  },
+  {
+    "card_id": 77585514,
+    "name": "人造人-念力震慑者",
+    "alias": 77585513,
+    "alias_name": "人造人-念力震慑者",
+    "different_fields": []
+  },
+  {
+    "card_id": 77754945,
+    "name": "万能地雷 阔剑式",
+    "alias": 77754944,
+    "alias_name": "万能地雷 阔剑式",
+    "different_fields": []
+  },
+  {
+    "card_id": 78193832,
+    "name": "破坏之剑士",
+    "alias": 78193831,
+    "alias_name": "破坏之剑士",
+    "different_fields": []
+  },
+  {
+    "card_id": 78193833,
+    "name": "破坏之剑士",
+    "alias": 78193831,
+    "alias_name": "破坏之剑士",
+    "different_fields": []
+  },
+  {
+    "card_id": 78193834,
+    "name": "破坏之剑士",
+    "alias": 78193831,
+    "alias_name": "破坏之剑士",
+    "different_fields": []
+  },
+  {
+    "card_id": 78231356,
+    "name": "半龙女仆的盛情",
+    "alias": 78231355,
+    "alias_name": "半龙女仆的盛情",
+    "different_fields": []
+  },
+  {
+    "card_id": 78437365,
+    "name": "刚鬼 巨人食人魔",
+    "alias": 78437364,
+    "alias_name": "刚鬼 巨人食人魔",
+    "different_fields": []
+  },
+  {
+    "card_id": 78661339,
+    "name": "幻创龙 奇幻龙人神",
+    "alias": 78661338,
+    "alias_name": "幻创龙 奇幻龙人神",
+    "different_fields": []
+  },
+  {
+    "card_id": 78734254,
+    "name": "新空间侠·海洋海豚",
+    "alias": 17955766,
+    "alias_name": "新空间侠·水波海豚",
+    "different_fields": [
+      "name",
+      "desc",
+      "type",
+      "atk",
+      "def",
+      "level"
+    ]
+  },
+  {
+    "card_id": 79791696,
+    "name": "混沌超量 冀望皇龙 混沌异晶龙",
+    "alias": 79791695,
+    "alias_name": "混沌超量 冀望皇龙 混沌异晶龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 80101900,
+    "name": "蛊惑谋陷",
+    "alias": 80101899,
+    "alias_name": "蛊惑谋陷",
+    "different_fields": []
+  },
+  {
+    "card_id": 80193356,
+    "name": "救出剧",
+    "alias": 80193355,
+    "alias_name": "救出剧",
+    "different_fields": []
+  },
+  {
+    "card_id": 80316585,
+    "name": "鹰身女郎 电子紧身装束",
+    "alias": 76812113,
+    "alias_name": "鹰身女郎",
+    "different_fields": [
+      "name",
+      "desc",
+      "type",
+      "atk",
+      "def"
+    ]
+  },
+  {
+    "card_id": 80604092,
+    "name": "血之代偿",
+    "alias": 80604091,
+    "alias_name": "血之代偿",
+    "different_fields": []
+  },
+  {
+    "card_id": 81172177,
+    "name": "恶魔喜剧演员",
+    "alias": 81172176,
+    "alias_name": "恶魔喜剧演员",
+    "different_fields": []
+  },
+  {
+    "card_id": 81260680,
+    "name": "大日女之御巫",
+    "alias": 81260679,
+    "alias_name": "大日女之御巫",
+    "different_fields": []
+  },
+  {
+    "card_id": 81439174,
+    "name": "愚蠢的埋葬",
+    "alias": 81439173,
+    "alias_name": "愚蠢的埋葬",
+    "different_fields": []
+  },
+  {
+    "card_id": 81439175,
+    "name": "愚蠢的埋葬",
+    "alias": 81439173,
+    "alias_name": "愚蠢的埋葬",
+    "different_fields": []
+  },
+  {
+    "card_id": 81497286,
+    "name": "迷宫城的白银姬",
+    "alias": 81497285,
+    "alias_name": "迷宫城的白银姬",
+    "different_fields": []
+  },
+  {
+    "card_id": 82044280,
+    "name": "幻透翼同调龙",
+    "alias": 82044279,
+    "alias_name": "幻透翼同调龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 82344138,
+    "name": "初始之神 法拉",
+    "alias": 82344137,
+    "alias_name": "初始之神 法拉",
+    "different_fields": []
+  },
+  {
+    "card_id": 82616239,
+    "name": "轻水龙",
+    "alias": 85066822,
+    "alias_name": "水龙",
+    "different_fields": [
+      "name",
+      "desc",
+      "type",
+      "atk",
+      "def",
+      "level"
+    ]
+  },
+  {
+    "card_id": 83011278,
+    "name": "杀人番茄",
+    "alias": 83011277,
+    "alias_name": "杀人番茄",
+    "different_fields": []
+  },
+  {
+    "card_id": 83555667,
+    "name": "破坏轮",
+    "alias": 83555666,
+    "alias_name": "破坏轮",
+    "different_fields": []
+  },
+  {
+    "card_id": 83764719,
+    "name": "死者苏生",
+    "alias": 83764718,
+    "alias_name": "死者苏生",
+    "different_fields": []
+  },
+  {
+    "card_id": 83764720,
+    "name": "死者苏生",
+    "alias": 83764718,
+    "alias_name": "死者苏生",
+    "different_fields": []
+  },
+  {
+    "card_id": 83764721,
+    "name": "死者苏生",
+    "alias": 83764718,
+    "alias_name": "死者苏生",
+    "different_fields": []
+  },
+  {
+    "card_id": 83764722,
+    "name": "死者苏生",
+    "alias": 83764718,
+    "alias_name": "死者苏生",
+    "different_fields": []
+  },
+  {
+    "card_id": 83965311,
+    "name": "命运英雄 血魔-D",
+    "alias": 83965310,
+    "alias_name": "命运英雄 血魔-D",
+    "different_fields": []
+  },
+  {
+    "card_id": 84013238,
+    "name": "No.39 希望皇 霍普",
+    "alias": 84013237,
+    "alias_name": "No.39 希望皇 霍普",
+    "different_fields": []
+  },
+  {
+    "card_id": 84013239,
+    "name": "No.39 希望皇 霍普",
+    "alias": 84013237,
+    "alias_name": "No.39 希望皇 霍普",
+    "different_fields": []
+  },
+  {
+    "card_id": 84013240,
+    "name": "No.39 希望皇 霍普",
+    "alias": 84013237,
+    "alias_name": "No.39 希望皇 霍普",
+    "different_fields": []
+  },
+  {
+    "card_id": 84080939,
+    "name": "大慈大悲的修女",
+    "alias": 84080938,
+    "alias_name": "大慈大悲的修女",
+    "different_fields": []
+  },
+  {
+    "card_id": 84206436,
+    "name": "冰结界的纹章",
+    "alias": 84206435,
+    "alias_name": "冰结界的纹章",
+    "different_fields": []
+  },
+  {
+    "card_id": 84257640,
+    "name": "治疗之神 迪安·凯特",
+    "alias": 84257639,
+    "alias_name": "治疗之神 迪安·凯特",
+    "different_fields": []
+  },
+  {
+    "card_id": 84749825,
+    "name": "神之警告",
+    "alias": 84749824,
+    "alias_name": "神之警告",
+    "different_fields": []
+  },
+  {
+    "card_id": 85138717,
+    "name": "救援兔",
+    "alias": 85138716,
+    "alias_name": "救援兔",
+    "different_fields": []
+  },
+  {
+    "card_id": 85289966,
+    "name": "刺刀枪管龙",
+    "alias": 85289965,
+    "alias_name": "刺刀枪管龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 86066373,
+    "name": "访问码语者",
+    "alias": 86066372,
+    "alias_name": "访问码语者",
+    "different_fields": []
+  },
+  {
+    "card_id": 86120752,
+    "name": "召唤师 阿莱斯特",
+    "alias": 86120751,
+    "alias_name": "召唤师 阿莱斯特",
+    "different_fields": []
+  },
+  {
+    "card_id": 87116929,
+    "name": "嵌合巨舰龙",
+    "alias": 87116928,
+    "alias_name": "嵌合巨舰龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 87322378,
+    "name": "TM-1火箭炮蜘蛛",
+    "alias": 87322377,
+    "alias_name": "TM-1火箭炮蜘蛛",
+    "different_fields": []
+  },
+  {
+    "card_id": 87758526,
+    "name": "至爱英雄 闪光火焰翼侠",
+    "alias": 87758525,
+    "alias_name": "至爱英雄 闪光火焰翼侠",
+    "different_fields": []
+  },
+  {
+    "card_id": 88177325,
+    "name": "No.107 银河眼时空龙",
+    "alias": 88177324,
+    "alias_name": "No.107 银河眼时空龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 88264979,
+    "name": "真红眼暗钢龙",
+    "alias": 88264978,
+    "alias_name": "真红眼暗钢龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 88570004,
+    "name": "王之仆人-黑魔术师",
+    "alias": 88570003,
+    "alias_name": "王之仆人-黑魔术师",
+    "different_fields": []
+  },
+  {
+    "card_id": 88875133,
+    "name": "爆走轨道 冲天飞马",
+    "alias": 88875132,
+    "alias_name": "爆走轨道 冲天飞马",
+    "different_fields": []
+  },
+  {
+    "card_id": 89631140,
+    "name": "青眼白龙",
+    "alias": 89631139,
+    "alias_name": "青眼白龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 89631141,
+    "name": "青眼白龙",
+    "alias": 89631139,
+    "alias_name": "青眼白龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 89631142,
+    "name": "青眼白龙",
+    "alias": 89631139,
+    "alias_name": "青眼白龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 89631143,
+    "name": "青眼白龙",
+    "alias": 89631139,
+    "alias_name": "青眼白龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 89631144,
+    "name": "青眼白龙",
+    "alias": 89631139,
+    "alias_name": "青眼白龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 89631145,
+    "name": "青眼白龙",
+    "alias": 89631139,
+    "alias_name": "青眼白龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 89631146,
+    "name": "青眼白龙",
+    "alias": 89631139,
+    "alias_name": "青眼白龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 89631147,
+    "name": "青眼白龙",
+    "alias": 89631139,
+    "alias_name": "青眼白龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 89631148,
+    "name": "青眼白龙",
+    "alias": 89631139,
+    "alias_name": "青眼白龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 89631149,
+    "name": "青眼白龙",
+    "alias": 89631139,
+    "alias_name": "青眼白龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 89631150,
+    "name": "青眼白龙",
+    "alias": 89631139,
+    "alias_name": "青眼白龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 89631151,
+    "name": "青眼白龙",
+    "alias": 89631139,
+    "alias_name": "青眼白龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 89631152,
+    "name": "青眼白龙",
+    "alias": 89631139,
+    "alias_name": "青眼白龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 89631153,
+    "name": "青眼白龙",
+    "alias": 89631139,
+    "alias_name": "青眼白龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 89631154,
+    "name": "青眼白龙",
+    "alias": 89631139,
+    "alias_name": "青眼白龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 89631155,
+    "name": "青眼白龙",
+    "alias": 89631139,
+    "alias_name": "青眼白龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 89875647,
+    "name": "三重枪管旋转",
+    "alias": 89875646,
+    "alias_name": "三重枪管旋转",
+    "different_fields": []
+  },
+  {
+    "card_id": 89943724,
+    "name": "元素英雄 新宇侠",
+    "alias": 89943723,
+    "alias_name": "元素英雄 新宇侠",
+    "different_fields": []
+  },
+  {
+    "card_id": 89943725,
+    "name": "元素英雄 新宇侠",
+    "alias": 89943723,
+    "alias_name": "元素英雄 新宇侠",
+    "different_fields": []
+  },
+  {
+    "card_id": 89943726,
+    "name": "元素英雄 新宇侠",
+    "alias": 89943723,
+    "alias_name": "元素英雄 新宇侠",
+    "different_fields": []
+  },
+  {
+    "card_id": 90091225,
+    "name": "四天之龙 暗叛逆超量龙",
+    "alias": 90091224,
+    "alias_name": "四天之龙 暗叛逆超量龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 90249149,
+    "name": "死之世界的支配者-暗黑人偶 妮可罗菲娅",
+    "alias": 90249148,
+    "alias_name": "死之世界的支配者-暗黑人偶 妮可罗菲娅",
+    "different_fields": []
+  },
+  {
+    "card_id": 90330454,
+    "name": "魔女狩猎",
+    "alias": 90330453,
+    "alias_name": "魔女狩猎",
+    "different_fields": []
+  },
+  {
+    "card_id": 90448280,
+    "name": "天霆号 阿宙斯",
+    "alias": 90448279,
+    "alias_name": "天霆号 阿宙斯",
+    "different_fields": []
+  },
+  {
+    "card_id": 90448281,
+    "name": "天霆号 阿宙斯",
+    "alias": 90448279,
+    "alias_name": "天霆号 阿宙斯",
+    "different_fields": []
+  },
+  {
+    "card_id": 90448282,
+    "name": "天霆号 阿宙斯",
+    "alias": 90448279,
+    "alias_name": "天霆号 阿宙斯",
+    "different_fields": []
+  },
+  {
+    "card_id": 90590304,
+    "name": "No.41 泥睡魔兽 睡梦貘",
+    "alias": 90590303,
+    "alias_name": "No.41 泥睡魔兽 睡梦貘",
+    "different_fields": []
+  },
+  {
+    "card_id": 90673289,
+    "name": "闪刀姬-雫空",
+    "alias": 90673288,
+    "alias_name": "闪刀姬-雫空",
+    "different_fields": []
+  },
+  {
+    "card_id": 90740330,
+    "name": "挑衅",
+    "alias": 90740329,
+    "alias_name": "挑衅",
+    "different_fields": []
+  },
+  {
+    "card_id": 90960359,
+    "name": "卡通黑魔术少女",
+    "alias": 90960358,
+    "alias_name": "卡通黑魔术少女",
+    "different_fields": []
+  },
+  {
+    "card_id": 91073014,
+    "name": "征服斗魂 龙帝 瓦利乌斯",
+    "alias": 91073013,
+    "alias_name": "征服斗魂 龙帝 瓦利乌斯",
+    "different_fields": []
+  },
+  {
+    "card_id": 91152257,
+    "name": "精灵剑士",
+    "alias": 91152256,
+    "alias_name": "精灵剑士",
+    "different_fields": []
+  },
+  {
+    "card_id": 91152258,
+    "name": "精灵剑士",
+    "alias": 91152256,
+    "alias_name": "精灵剑士",
+    "different_fields": []
+  },
+  {
+    "card_id": 91461781,
+    "name": "超越神的仆人-青眼究极龙",
+    "alias": 91461780,
+    "alias_name": "超越神的仆人-青眼究极龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 91530237,
+    "name": "精灵术的术使",
+    "alias": 91530236,
+    "alias_name": "精灵术的术使",
+    "different_fields": []
+  },
+  {
+    "card_id": 91583379,
+    "name": "业火之魔神 艾克佐迪亚",
+    "alias": 91583378,
+    "alias_name": "业火之魔神 艾克佐迪亚",
+    "different_fields": []
+  },
+  {
+    "card_id": 91714773,
+    "name": "银河防卫机器人·轨道 7",
+    "alias": 91714772,
+    "alias_name": "银河防卫机器人·轨道 7",
+    "different_fields": []
+  },
+  {
+    "card_id": 91800274,
+    "name": "次元吸引者",
+    "alias": 91800273,
+    "alias_name": "次元吸引者",
+    "different_fields": []
+  },
+  {
+    "card_id": 91932350,
+    "name": "鹰身女郎1",
+    "alias": 76812113,
+    "alias_name": "鹰身女郎",
+    "different_fields": [
+      "name",
+      "desc",
+      "type"
+    ]
+  },
+  {
+    "card_id": 91998120,
+    "name": "XYZ-神龙炮",
+    "alias": 91998119,
+    "alias_name": "XYZ-神龙炮",
+    "different_fields": []
+  },
+  {
+    "card_id": 91998121,
+    "name": "XYZ-神龙炮",
+    "alias": 91998119,
+    "alias_name": "XYZ-神龙炮",
+    "different_fields": []
+  },
+  {
+    "card_id": 91998122,
+    "name": "XYZ-神龙炮",
+    "alias": 91998119,
+    "alias_name": "XYZ-神龙炮",
+    "different_fields": []
+  },
+  {
+    "card_id": 92058903,
+    "name": "未来融合·新星",
+    "alias": 92058902,
+    "alias_name": "未来融合·新星",
+    "different_fields": []
+  },
+  {
+    "card_id": 92936365,
+    "name": "红莲魔族之链",
+    "alias": 92936364,
+    "alias_name": "红莲魔族之链",
+    "different_fields": []
+  },
+  {
+    "card_id": 93039340,
+    "name": "灾厄之星 提·丰",
+    "alias": 93039339,
+    "alias_name": "灾厄之星 提·丰",
+    "different_fields": []
+  },
+  {
+    "card_id": 93717134,
+    "name": "银河眼光子龙",
+    "alias": 93717133,
+    "alias_name": "银河眼光子龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 93717135,
+    "name": "银河眼光子龙",
+    "alias": 93717133,
+    "alias_name": "银河眼光子龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 93854894,
+    "name": "宵星之机神 丁吉尔苏",
+    "alias": 93854893,
+    "alias_name": "宵星之机神 丁吉尔苏",
+    "different_fields": []
+  },
+  {
+    "card_id": 93871600,
+    "name": "龙引导呼笛",
+    "alias": 93871599,
+    "alias_name": "龙引导呼笛",
+    "different_fields": []
+  },
+  {
+    "card_id": 94145022,
+    "name": "小丑与锁鸟",
+    "alias": 94145021,
+    "alias_name": "小丑与锁鸟",
+    "different_fields": []
+  },
+  {
+    "card_id": 94192410,
+    "name": "强制脱出装置",
+    "alias": 94192409,
+    "alias_name": "强制脱出装置",
+    "different_fields": []
+  },
+  {
+    "card_id": 94677446,
+    "name": "星杯的神子 夏娃",
+    "alias": 94677445,
+    "alias_name": "星杯的神子 夏娃",
+    "different_fields": []
+  },
+  {
+    "card_id": 94977270,
+    "name": "神影依·米德拉什",
+    "alias": 94977269,
+    "alias_name": "神影依·米德拉什",
+    "different_fields": []
+  },
+  {
+    "card_id": 95134949,
+    "name": "No.99 希望皇 霍普德拉戈纳",
+    "alias": 95134948,
+    "alias_name": "No.99 希望皇 霍普德拉戈纳",
+    "different_fields": []
+  },
+  {
+    "card_id": 95440947,
+    "name": "黄金卿 黄金国巫妖",
+    "alias": 95440946,
+    "alias_name": "黄金卿 黄金国巫妖",
+    "different_fields": []
+  },
+  {
+    "card_id": 95440948,
+    "name": "黄金卿 黄金国巫妖",
+    "alias": 95440946,
+    "alias_name": "黄金卿 黄金国巫妖",
+    "different_fields": []
+  },
+  {
+    "card_id": 95515790,
+    "name": "赫之圣女 卡尔特西娅",
+    "alias": 95515789,
+    "alias_name": "赫之圣女 卡尔特西娅",
+    "different_fields": []
+  },
+  {
+    "card_id": 96363154,
+    "name": "调律",
+    "alias": 96363153,
+    "alias_name": "调律",
+    "different_fields": []
+  },
+  {
+    "card_id": 97045738,
+    "name": "圣王的粉碎",
+    "alias": 97045737,
+    "alias_name": "圣王的粉碎",
+    "different_fields": []
+  },
+  {
+    "card_id": 97077564,
+    "name": "活死人的呼声",
+    "alias": 97077563,
+    "alias_name": "活死人的呼声",
+    "different_fields": []
+  },
+  {
+    "card_id": 97268403,
+    "name": "效果遮蒙者",
+    "alias": 97268402,
+    "alias_name": "效果遮蒙者",
+    "different_fields": []
+  },
+  {
+    "card_id": 97489702,
+    "name": "真红莲新星龙",
+    "alias": 97489701,
+    "alias_name": "真红莲新星龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 97590748,
+    "name": "灯之魔精",
+    "alias": 97590747,
+    "alias_name": "灯之魔精",
+    "different_fields": []
+  },
+  {
+    "card_id": 97651499,
+    "name": "魔轰神 路里",
+    "alias": 97651498,
+    "alias_name": "魔轰神 路里",
+    "different_fields": []
+  },
+  {
+    "card_id": 98127547,
+    "name": "闭锁世界的冥神",
+    "alias": 98127546,
+    "alias_name": "闭锁世界的冥神",
+    "different_fields": []
+  },
+  {
+    "card_id": 98338153,
+    "name": "闪刀机-黑寡妇抓锚",
+    "alias": 98338152,
+    "alias_name": "闪刀机-黑寡妇抓锚",
+    "different_fields": []
+  },
+  {
+    "card_id": 98502114,
+    "name": "超魔导剑士-黑魔导剑士",
+    "alias": 98502113,
+    "alias_name": "超魔导剑士-黑魔导剑士",
+    "different_fields": []
+  },
+  {
+    "card_id": 98502115,
+    "name": "超魔导剑士-黑魔导剑士",
+    "alias": 98502113,
+    "alias_name": "超魔导剑士-黑魔导剑士",
+    "different_fields": []
+  },
+  {
+    "card_id": 98502116,
+    "name": "超魔导剑士-黑魔导剑士",
+    "alias": 98502113,
+    "alias_name": "超魔导剑士-黑魔导剑士",
+    "different_fields": []
+  },
+  {
+    "card_id": 98502117,
+    "name": "超魔导剑士-黑魔导剑士",
+    "alias": 98502113,
+    "alias_name": "超魔导剑士-黑魔导剑士",
+    "different_fields": []
+  },
+  {
+    "card_id": 98630721,
+    "name": "前托枪管龙",
+    "alias": 98630720,
+    "alias_name": "前托枪管龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 99267151,
+    "name": "五神龙",
+    "alias": 99267150,
+    "alias_name": "五神龙",
+    "different_fields": []
+  },
+  {
+    "card_id": 99522651,
+    "name": "沉默斗者-沉默魔术师",
+    "alias": 99522650,
+    "alias_name": "沉默斗者-沉默魔术师",
+    "different_fields": []
+  },
+  {
+    "card_id": 99585851,
+    "name": "真红莲超新星龙",
+    "alias": 99585850,
+    "alias_name": "真红莲超新星龙",
+    "different_fields": []
+  }
+]

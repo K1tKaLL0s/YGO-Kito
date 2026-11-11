@@ -1,0 +1,186 @@
+{
+  "version": "axis-full18-expert-weak-v2",
+  "annotation_method": "Assistant reviewed the pinned local card text and explicit functional scenarios; weak context annotation, not human gold or engine execution.",
+  "card_mechanisms": {
+    "38814750": ["negate_activation","destroy","special_summon","banish","interfere","resource_supply"],
+    "86120751": ["search","starter"],
+    "74063034": ["fusion_summon","recover","return_cards_to_deck","banish","follow_up","resource_conversion"],
+    "34755994": ["link","search"],
+    "75286621": ["negate_activation","banish","interfere"],
+    "47679935": ["search","protect"],
+    "1984618": ["send_grave","search","recover","starter"],
+    "80532587": ["destroy","special_summon","interfere"],
+    "60303688": ["search","special_summon","protect"],
+    "69680031": ["special_summon","interfere"],
+    "572850": ["mill","send_grave","special_summon","fusion_summon","return_cards_to_deck","starter"],
+    "74078255": ["mill","fusion_summon","return_cards_to_deck","starter"],
+    "92731385": ["mill","search","send_grave","special_summon"],
+    "55761792": ["ritual","tribute","special_summon","resource_conversion"],
+    "74586817": ["synchro","banish","return_cards_to_deck","follow_up","interfere"],
+    "81275020": ["search","special_summon","starter","resource_supply"],
+    "53932291": ["special_summon","tribute","resource_supply"],
+    "71068247": ["xyz","negate_activation","destroy","interfere"],
+    "10802915": ["special_summon","starter","resource_supply"],
+    "26202165": ["search","follow_up"],
+    "58699500": ["link","protect","send_grave"],
+    "31562086": ["search","banish","special_summon","starter"],
+    "92107604": ["draw","return_cards_to_deck","follow_up","resource_supply"],
+    "55990317": ["search","protect","banish"],
+    "67835547": ["protect","banish","special_summon","interfere"],
+    "7394770": ["fusion_summon","special_summon","resource_conversion"],
+    "3113836": ["resource_supply"],
+    "35622739": ["recover"],
+    "27204311": ["tribute","special_summon","interfere"],
+    "23431858": ["special_summon","banish","interfere","starter"],
+    "32519092": ["link"],
+    "53129443": ["destroy","interfere"],
+    "18144506": ["destroy","interfere"]
+  },
+  "mechanism_contrasts": [
+    {"card_id": 53129443, "focus": "destroy", "quote": "场上的怪兽全部破坏", "coordinates": {"destroy": 1, "target": 0, "draw": 0, "search": 0}, "basis": "The entire printed effect destroys all field monsters with no activation target, draw or search."},
+    {"card_id": 26202165, "focus": "search", "quote": "从卡组把1只攻击力1500以下的怪兽加入手卡", "coordinates": {"search": 1, "draw": 0, "target": 0, "destroy": 0}, "basis": "The printed deck selection adds an eligible monster to hand. The trigger and activation lock contain no draw, target or destruction."},
+    {"card_id": 67723438, "focus": "special_summon", "quote": "从手卡·卡组把1只3星以下的念动力族怪兽特殊召唤", "coordinates": {"special_summon": 1, "search": 0, "draw": 0, "target": 0}, "basis": "The card summons during resolution and later banishes the summoned monster. It neither targets at activation nor adds a card to hand."},
+    {"card_id": 91800273, "focus": "resource_conversion", "quote": "把这张卡从手卡送去墓地才能发动", "coordinates": {"cost": 1, "send_grave": 0, "target": 0, "draw": 0}, "basis": "The printed send to the GY is an activation cost. Its resolving effect replaces destinations and does not send a card to the GY as an effect."},
+    {"card_id": 97268402, "focus": "interfere", "quote": "以对方场上1只效果怪兽为对象才能发动。那只对方怪兽的效果直到回合结束时无效", "coordinates": {"target": 1, "negate_activation": 0, "destroy": 0, "search": 0}, "basis": "The text targets an Effect Monster and negates its effects. It never negates an activation, destroys, or searches."},
+    {"card_id": 38814750, "focus": "negate_activation", "quote": "那个发动无效并破坏", "coordinates": {"negate_activation": 1, "destroy": 1, "draw": 0, "search": 0, "target": 0}, "basis": "The response negates the activation and destroys the card. The summons and delayed banishment do not target at activation, draw, or search."}
+  ],
+  "receiver_contrasts": [
+    {"id": "extra-payment", "card_id": 49238328, "focus": "draw", "check": "extra_cost", "quote": "额外卡组3张或6张里侧的卡随机里侧除外", "extra_stock": [80532587, 20366274, 41578483]},
+    {"id": "extra-fusion-target", "card_id": 1845204, "focus": "fusion_summon", "check": "target", "quote": "把1只5星以下的融合怪兽当作融合召唤从额外卡组特殊召唤", "section": "extra", "eligible": 41578483, "ineligible": 20366274},
+    {"id": "main-psychic-target", "card_id": 67723438, "focus": "special_summon", "check": "target", "quote": "从手卡·卡组把1只3星以下的念动力族怪兽特殊召唤", "section": "main", "eligible": 59438930, "ineligible": 69247929},
+    {"id": "grave-destination", "card_id": 572850, "focus": "mill", "check": "grave_destination", "quote": "从自己卡组上面把3张卡送去墓地", "context_card": 91800273, "context_quote": "被送去墓地的卡不去墓地而除外"},
+    {"id": "normal-activation-lock", "card_id": 75878039, "focus": "search", "check": "normal_lock", "quote": "这张卡召唤·反转召唤·特殊召唤的场合才能发动", "context_card": 3285551, "context_quote": "自己不能把特殊召唤的怪兽以外的场上的怪兽的效果发动"}
+  ],
+  "units": [
+    {
+      "id": "gamma_response", "cards": [38814750,49036338], "focus": "negate_activation",
+      "functions": ["negate_activation","destroy","special_summon","banish","interfere","resource_supply"],
+      "negative_functions": ["draw","search","recover","mill","tribute","fusion_summon","ritual","synchro","xyz","link"],
+      "role_positive": ["interaction","terminal","resource"], "role_negative": ["starter","recovery","bridge"],
+      "transferability": "open", "origin": "external", "normal_summon": false,
+      "legacy_generic_utility": 1, "exclude_required_member": 49036338,
+      "quotes": [[38814750,"手卡的这张卡和自己的手卡·卡组·墓地1只「PSY骨架驱动者」特殊召唤"],[38814750,"那个发动无效并破坏"]],
+      "basis": "The complete Gamma/Driver response is self-contained; empty field and response timing are activation-state conditions, not a missing receiver engine. End-phase banishment is retained. No draw/search or other summoning method is supplied."
+    },
+    {
+      "id": "invoked_fusion_bridge", "cards": [86120751,74063034,34755994,75286621,47679935], "focus": "fusion_summon",
+      "functions": ["search","fusion_summon","recover","return_cards_to_deck","banish","negate_activation","starter","follow_up","link","interfere","resource_conversion","special_summon","protect"],
+      "negative_functions": ["draw","mill","tribute","ritual","synchro","xyz"],
+      "role_positive": ["starter","bridge","terminal","recovery","interaction"], "role_negative": ["extender"],
+      "transferability": "conditional", "origin": "mixed", "normal_summon": true,
+      "enhancer": 47679935,
+      "quotes": [[86120751,"从卡组把1张「召唤魔术」加入手卡"],[74063034,"「召唤兽」融合怪兽融合召唤的场合"],[34755994,"4星以下的魔法师族怪兽1只"],[75286621,"「召唤师 阿莱斯特」＋光属性怪兽"],[47679935,"那个发动不会被无效化"]],
+      "basis": "Aleister, the generic LIGHT Artemis bridge, Invocation and Mechaba close a reviewed fusion route; Meltdown protects activation rather than performing Fusion Summoning. Requires a normal-summon allocation and compatible extra-deck plan."
+    },
+    {
+      "id": "invoked_named_recursion", "cards": [86120751,74063034], "focus": "recover",
+      "functions": ["recover","return_cards_to_deck","follow_up"],
+      "negative_functions": ["draw","mill","tribute","ritual","synchro","xyz","link","destroy","protect"],
+      "role_positive": ["recovery","resource"], "role_negative": ["starter","terminal","interaction","extender","bridge"],
+      "transferability": "closed", "origin": "intrinsic", "normal_summon": false,
+      "quotes": [[74063034,"以自己的除外状态的1只「召唤师 阿莱斯特」为对象才能发动"],[74063034,"这张卡回到卡组，作为对象的怪兽加入手卡"]],
+      "basis": "This scope is the complete named recursion service, not the whole portable fusion package. It presupposes the receiver's spent Invocation/banished Aleister cycle; it does not recover an arbitrary receiver card. Closed denotes receiver-mechanism-specific usefulness, not inability to put the two cards in another deck."
+    },
+    {
+      "id": "dogmatika_send_search", "cards": [1984618,80532587,60303688,69680031], "focus": "send_grave",
+      "functions": ["send_grave","search","recover","destroy","special_summon","interfere","protect","starter","follow_up","resource_supply"],
+      "negative_functions": ["draw","mill","tribute","ritual","synchro","xyz","link","fusion_summon","banish","return_cards_to_deck"],
+      "role_positive": ["starter","resource","interaction"], "role_negative": ["recovery","terminal"],
+      "transferability": "conditional", "origin": "mixed", "normal_summon": false,
+      "locks_extra": true,
+      "quotes": [[1984618,"从额外卡组把1只怪兽送去墓地"],[1984618,"自己不能从额外卡组把怪兽特殊召唤"],[80532587,"那张卡破坏"]],
+      "basis": "Nadir sends N'tss and obtains an explicitly named Dogmatika receiver; N'tss destroys on being sent. Extra-deck sequencing restrictions remain structural compatibility requirements. Its presence as a Fusion monster is not evidence of Fusion Summoning this unit."
+    },
+    {
+      "id": "tear_mill_fusion", "cards": [572850,74078255,92731385], "focus": "mill",
+      "functions": ["mill","send_grave","search","special_summon","fusion_summon","return_cards_to_deck","starter","follow_up","resource_conversion"],
+      "negative_functions": ["draw","tribute","ritual","synchro","xyz","link","negate_activation","destroy","protect"],
+      "role_positive": ["starter","resource","bridge"], "role_negative": ["interaction","terminal"],
+      "transferability": "conditional", "origin": "intrinsic", "normal_summon": false,
+      "quotes": [[572850,"从自己卡组上面把3张卡送去墓地"],[74078255,"融合素材怪兽从自己的手卡·场上·墓地"],[92731385,"从自己卡组上面把5张卡送去墓地"]],
+      "basis": "The annotation records available milling and named AQUA fusion branches, not guaranteed hits. Scheiren's discard by effect, Merrli's trigger and the Kitkallos material clause are distinguished; no random-mill success or simultaneous route execution is claimed."
+    },
+    {
+      "id": "black_luster_ritual", "cards": [5405694,55761792,89631139], "focus": "ritual",
+      "functions": ["ritual","tribute","special_summon","resource_conversion"],
+      "negative_functions": ["draw","search","recover","mill","starter","follow_up","fusion_summon","return_cards_to_deck","banish","synchro","xyz","link","protect","negate_activation","destroy","interfere"],
+      "role_positive": ["terminal","bridge"], "role_negative": ["starter","extender","recovery","interaction","resource"],
+      "transferability": "conditional", "origin": "intrinsic", "normal_summon": false,
+      "quotes": [[55761792,"等级合计直到8以上的怪兽解放"],[55761792,"从手卡把「混沌战士」仪式召唤"]],
+      "basis": "The ritual spell, Level-8 tribute and named ritual monster close a concrete ritual conversion. All three required hand/field resources must be available; a normal-summon grant or extra-deck summoning method is not inferred."
+    },
+    {
+      "id": "gamma_omega_synchro", "cards": [38814750,49036338,74586817], "focus": "synchro",
+      "functions": ["synchro","special_summon","negate_activation","destroy","banish","recover","return_cards_to_deck","follow_up","interfere","resource_conversion"],
+      "negative_functions": ["draw","search","mill","tribute","fusion_summon","ritual","xyz","link"],
+      "role_positive": ["bridge","terminal","interaction"], "role_negative": ["starter","extender"],
+      "transferability": "conditional", "origin": "mixed", "normal_summon": false,
+      "quotes": [[38814750,"手卡的这张卡和自己的手卡·卡组·墓地1只「PSY骨架驱动者」特殊召唤"],[74586817,"调整＋调整以外的怪兽1只以上"]],
+      "basis": "The Level-2 Tuner and Level-6 non-Tuner match the Level-8 Synchro procedure. Their response window and end-phase removal remain explicit; a current legal Synchro timing is not asserted without a scenario."
+    },
+    {
+      "id": "speedroid_totem_xyz", "cards": [81275020,53932291,71068247], "focus": "xyz",
+      "functions": ["search","special_summon","resource_supply","starter","xyz","negate_activation","destroy","interfere","resource_conversion"],
+      "negative_functions": ["draw","recover","mill","fusion_summon","return_cards_to_deck","banish","ritual","synchro","link","protect","follow_up"],
+      "role_positive": ["starter","extender","resource","bridge","terminal","interaction"], "role_negative": ["recovery"],
+      "transferability": "conditional", "origin": "mixed", "normal_summon": false,
+      "legacy_generic_utility": 1, "exclude_required_member": 53932291,
+      "quotes": [[81275020,"这张卡可以从手卡特殊召唤"],[53932291,"自己场上有风属性怪兽存在"],[71068247,"风属性3星怪兽×2"]],
+      "basis": "The reviewed branch uses Terrortop to obtain Taketomborg, then its hand-summon condition and two WIND Level-3 materials for Totem Bird. Taketomborg's separate tuner-recruiting effect is not needed or silently imposed on this branch."
+    },
+    {
+      "id": "tourguide_link", "cards": [10802915,26202165,58699500], "focus": "link",
+      "functions": ["special_summon","search","link","starter","follow_up","protect","resource_supply","resource_conversion"],
+      "negative_functions": ["draw","mill","tribute","fusion_summon","return_cards_to_deck","banish","ritual","synchro","xyz","negate_activation","destroy"],
+      "role_positive": ["starter","resource","bridge"], "role_negative": ["extender","terminal","recovery","interaction"],
+      "transferability": "conditional", "origin": "mixed", "normal_summon": true,
+      "quotes": [[10802915,"恶魔族·3星怪兽特殊召唤"],[10802915,"不能作为同调素材"],[58699500,"3星怪兽2只"],[26202165,"这张卡从场上送去墓地"]],
+      "basis": "Normal Summon Tour Guide, recruit Sangan and use the two Level-3 bodies for Cherubini; Sangan's later search and its same-turn activation restriction are retained. Tour Guide is not treated as a Synchro route."
+    },
+    {
+      "id": "runick_draw_protection", "cards": [31562086,92107604,55990317,67835547], "focus": "draw",
+      "functions": ["draw","search","return_cards_to_deck","banish","special_summon","protect","interfere","starter","follow_up","resource_supply"],
+      "negative_functions": ["mill","tribute","fusion_summon","ritual","synchro","xyz","link","negate_activation","destroy"],
+      "role_positive": ["starter","recovery","resource","interaction"], "role_negative": ["terminal","extender","bridge"],
+      "transferability": "conditional", "origin": "intrinsic", "normal_summon": false,
+      "quotes": [[92107604,"自己墓地最多3张「神碑」速攻魔法卡"],[92107604,"自己从卡组抽出回去的数量"],[55990317,"可以作为代替把场上的这张卡除外"],[31562086,"下次的自己战斗阶段跳过"]],
+      "basis": "Fountain returns used Runick spells and draws that count; Hugin substitutes destruction and Slumber protects a monster. Summoning Hugin by a Runick spell is not Fusion Summoning. Battle-phase incompatibility is retained."
+    },
+    {
+      "id": "brilliant_normal_bridge", "cards": [7394770,3113836,35622739,27204311], "focus": "resource_conversion",
+      "functions": ["fusion_summon","send_grave","resource_conversion","resource_supply","follow_up"],
+      "negative_functions": ["draw","mill","ritual","synchro","xyz","link","protect","negate_activation","banish"],
+      "role_positive": ["bridge","resource","extender"], "role_negative": ["interaction","terminal"],
+      "transferability": "conditional", "origin": "mixed", "normal_summon": false,
+      "quotes": [[7394770,"自己卡组的怪兽作为融合素材"],[3113836,"自己在通常召唤外加上只有1次"],[3113836,"「宝石骑士」怪兽＋光属性怪兽"]],
+      "basis": "Brilliant Fusion converts a Gem-Knight and a LIGHT material into Seraphinite's additional normal-summon resource. Nibiru is only the LIGHT material here; its separate response is not credited to this branch. Quartz's extra-deck lock is only imposed if its separate hand effect is used."
+    },
+    {
+      "id": "tenyi_bounce", "cards": [23431858,32519092], "focus": "interfere",
+      "functions": ["special_summon","link","banish","interfere","starter","resource_conversion"],
+      "negative_functions": ["draw","search","recover","mill","tribute","fusion_summon","ritual","synchro","xyz","negate_activation","destroy","protect","return_cards_to_deck"],
+      "role_positive": ["starter","bridge","interaction"], "role_negative": ["recovery","terminal","extender"],
+      "transferability": "conditional", "origin": "mixed", "normal_summon": false,
+      "legacy_generic_utility": 1, "exclude_required_member": 32519092,
+      "quotes": [[23431858,"自己场上没有效果怪兽存在"],[23431858,"那张卡回到持有者手卡"],[32519092,"连接怪兽以外的「天威」怪兽1只"]],
+      "basis": "Vishuda supplies itself and is converted to the non-effect Monk, enabling its banish/target/bounce function. Returning a card to hand is not destruction or returning it to deck."
+    },
+    {
+      "id": "two_normal_materials", "cards": [69247929,7359741], "focus": "resource_supply",
+      "functions": ["resource_supply"], "negative_functions": ["negate_activation","destroy","draw","search","recover","send_grave","mill","special_summon","starter","follow_up","tribute","fusion_summon","return_cards_to_deck","banish","ritual","synchro","xyz","link","protect","interfere","resource_conversion"],
+      "role_positive": ["resource","extender"], "role_negative": ["starter","terminal","recovery","interaction","bridge"],
+      "transferability": "open", "origin": "external", "normal_summon": false,
+      "normal_control": true,
+      "quotes": [[69247929,"被遗传基因操作所强化的狼人"],[7359741,"听从机械王的命令"]],
+      "basis": "This query explicitly supplies two already available normal-monster bodies for a generic two-material requirement. Neither card has an effect. It does not claim that merely registering the cards summons them or executes a Link/Synchro/Xyz procedure."
+    },
+    {
+      "id": "complementary_board_clear", "cards": [53129443,18144506], "focus": "destroy",
+      "functions": ["destroy","interfere"], "negative_functions": ["negate_activation","draw","search","recover","send_grave","mill","special_summon","starter","follow_up","tribute","fusion_summon","return_cards_to_deck","banish","ritual","synchro","xyz","link","protect","resource_supply","resource_conversion"],
+      "role_positive": ["interaction","terminal"], "role_negative": ["starter","extender","recovery","resource","bridge"],
+      "transferability": "open", "origin": "external", "normal_summon": false,
+      "quotes": [[53129443,"场上的怪兽全部破坏"],[18144506,"对方场上的魔法·陷阱卡全部破坏"]],
+      "basis": "The scope is complementary monster-and-backrow clearing with both distinct spell effects; it is not a claim that both are needed to destroy one arbitrary card. No other card effects, summons or new resources are supplied by this two-spell unit."
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "version": "mechanism-alignment-v1",
+  "note": "Family-level alignment annotations only; per-deck review pending. Unlisted families carry no mechanism metadata.",
+  "by_family": {
+    "Unchained": {
+      "core_action": "destroy",
+      "core_action_class": "interaction",
+      "source_zone": "field",
+      "destination_zone": "grave",
+      "payoff": ["destroy_trigger"],
+      "constraints": ["fiend"],
+      "win_path": "battle",
+      "confidence": 0.6,
+      "source": "family-level mechanism alignment annotation; per-deck review pending",
+      "period_ref": null,
+      "condition_zones": [],
+      "role": "primary"
+    },
+    "Runick": {
+      "core_action": "banish",
+      "core_action_class": "interaction",
+      "source_zone": "deck",
+      "destination_zone": "banish",
+      "payoff": ["board_terminal", "search_recover"],
+      "constraints": ["extra_deck", "once_per_turn"],
+      "win_path": "deck_out",
+      "confidence": 0.6,
+      "source": "family-level mechanism alignment annotation; per-deck review pending",
+      "period_ref": null,
+      "condition_zones": [],
+      "role": "primary"
+    },
+    "branded": {
+      "core_action": "fusion",
+      "core_action_class": "resource_conversion",
+      "source_zone": "deck",
+      "destination_zone": "field",
+      "payoff": ["board_terminal", "grave_effect"],
+      "constraints": ["named_partner"],
+      "win_path": "battle",
+      "confidence": 0.6,
+      "source": "family-level mechanism alignment annotation; per-deck review pending",
+      "period_ref": null,
+      "condition_zones": [],
+      "role": "primary"
+    },
+    "striker": {
+      "core_action": "search",
+      "core_action_class": "resource_acquisition",
+      "source_zone": "deck",
+      "destination_zone": "hand",
+      "payoff": ["board_terminal", "resource_loop"],
+      "constraints": ["zone", "spell"],
+      "win_path": "resource",
+      "confidence": 0.6,
+      "source": "family-level mechanism alignment annotation; per-deck review pending",
+      "period_ref": null,
+      "condition_zones": [],
+      "role": "primary"
+    }
+  },
+  "by_case": {}
+}

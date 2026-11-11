@@ -1,5 +1,7 @@
 # 安全 CPU CI
 
+2026-11-11 的构筑、Agent 生命周期、基础 CB 静态目标、机器人作业隔离和自然候选回归沿 `scripts/check_merge_candidate.py` 的显式白名单登记。当前结果来自筛选后的本地回归及单项 WSL 夹具，完整 CI 和远程 Actions 结果以实际回执为准。 [本轮验收](../reports/2026-11-11-design-implementation-repair-runtime.md)
+
 `Safe CPU contracts` 在 PR 打开、更新、重开、转为可审查以及 main 推送时运行；草稿 PR 也运行。人工 `workflow_dispatch` 只有该 workflow 已在默认分支存在后才可从界面使用。它不部署、不调用 provider、不准备或执行原生引擎，也不运行未筛选的测试发现。
 
 CI 使用 GitHub 默认 `ubuntu-24.04` runner、Python 3.12.14、CPU-only PyTorch 2.9.1，限制 OMP/MKL 各2线程；单任务15分钟、安装10分钟、测试4分钟。没有配置外部付费服务或提高仓库权限，token 仅 `contents: read`，检出后不持久化凭据。GitHub Actions 可用包含额度和实际计费由仓库账户决定，本实现未读取或更改账单设置，不保证任何 runner 分钟免费。

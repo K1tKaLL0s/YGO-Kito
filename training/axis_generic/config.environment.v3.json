@@ -1,0 +1,25 @@
+{
+  "formal_training": false,
+  "automatic_lora": false,
+  "core_course_resumed": false,
+  "load_mode": "fresh",
+  "epochs": 20,
+  "batch_size": 32,
+  "run_dir": "E:\\CodexData\\artifacts\\ygo-kito\\axis-generic\\v3\\environment-001",
+  "records_file": "E:\\CodexData\\artifacts\\ygo-kito\\axis-generic\\v3\\environment-feedback-v3.json",
+  "base": {
+    "checkpoint": null,
+    "network": null,
+    "binding": null,
+    "label_protocol_sha256": null,
+    "release": null,
+    "calibration": null,
+    "assessment_report": null,
+    "baseline_report": null,
+    "device": "cuda:0"
+  },
+  "adapter": {"mode": "lora_head", "rank": 4, "alpha": 4.0, "seed": 211, "learning_rate": 0.001, "weight_decay": 0.0001},
+  "adapter_learning_rate": 0.001,
+  "full_copy_learning_rate": 0.0001,
+  "adapter_checkpoint": null
+}

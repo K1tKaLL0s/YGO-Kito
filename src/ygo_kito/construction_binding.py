@@ -171,9 +171,16 @@ class CatalogBindingAdapter:
             return ("satisfied" if satisfied else "unsatisfied"), "public-fact:" + fact.source
         assessment = self.assessments.get((row["id"], tag))
         if assessment is None:
-            profile = self.semantic_catalog.card(row['id'])
-            if tag.dimension == 'effect' and tag.value in profile.tags:
-                return 'satisfied', SEMANTIC_VERSION+': source-bound effect semantics; execution unproved'
+            # Keep the established cheap compatibility path: zero layer/fact
+            # budgets must not start reading detailed effect records.
+            if tag.dimension=='effect' and tag.value in ('卡组送墓','墓地融合'):
+                if tag.value in self.semantic_catalog.card(row['id']).tags:
+                    return 'satisfied', SEMANTIC_VERSION+': source-bound effect semantics; execution unproved'
+                return 'unknown', 'no recognized compatibility function for '+tag.value
+            from .effect_blocks import BLOCK_VERSION, LABELS, functional_tags
+            if tag.dimension == 'effect' and tag.value in LABELS.values() and any(item['tag']['value']==tag.value for item in
+                    functional_tags(self.semantic_catalog.effect_blocks(row['id']))):
+                return 'satisfied', BLOCK_VERSION+': source-bound function; scoped dependencies retained'
             return "unknown", "no source-bound assessment for " + tag.value
         if (assessment.cards_sha256 != self.cards_sha256 or assessment.effect_text_sha256 != digest(row["desc"])
                 or assessment.quote not in row["desc"]):
@@ -202,10 +209,10 @@ class CatalogBindingAdapter:
         return NodeTextReview(node.node_id, status, node.tags, tuple(evidence), "catalog-binding-adapter",
                               "; ".join(dict.fromkeys(notes))[:1024])
 
-    def bind(self, graph, task, deck, *, required_tags=()):
+    def bind(self, graph, task, deck, *, required_tags=(), partial=False):
         if not isinstance(graph, ConstructionLogic) or not isinstance(task, BuildTask) or not isinstance(deck, DeckParts):
             raise ContractError("typed graph, task and concrete deck required")
-        self.assets.validate(task, deck)
+        (self.assets.validate_skeleton if partial else self.assets.validate)(task, deck)
         candidates, details = {}, []
         for node in graph.nodes:
             hits = []
@@ -270,8 +277,8 @@ class CatalogBindingAdapter:
                               ("public facts/source-bound assessments support node tags; connectors still need engine verification",)),
                              tuple(details))
 
-    def __call__(self, graph, task, deck):
-        result = self.bind(graph, task, deck)
+    def __call__(self, graph, task, deck, *, partial=False):
+        result = self.bind(graph, task, deck, partial=partial)
         if result.proposal is None:
             raise ContractError("catalog binding unmatched: " + "; ".join(result.reasons))
         return result.proposal

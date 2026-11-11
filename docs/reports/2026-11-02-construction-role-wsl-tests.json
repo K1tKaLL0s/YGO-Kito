@@ -1,0 +1,24 @@
+{
+  "names": [
+    "tests.test_construction_selection",
+    "tests.test_autonomous_construction.AutonomousKernelTests.test_explicit_disabled_cb_keeps_optimizer_suspended_without_provider",
+    "tests.test_construction_service.ConstructionServiceTests.test_actual_run_reaches_existing_controller_models_binding_without_native",
+    "tests.test_effect_construction_integration.EffectConstructionIntegrationTests.test_run_selected_passes_current_groups_to_actual_portfolio_before_construction_ends",
+    "tests.test_scenario_course.ScenarioConstructionCompletionTests",
+    "tests.test_coordinator_control.LedgerFixture.test_warning_review_can_keep_deck_but_cannot_waive_later_mandatory_rebuild",
+    "tests.test_design_supervisor.IndependentDesignSupervisorTests.test_separate_process_accepts_correct_evidence_without_trusting_main_flags",
+    "tests.test_design_supervisor.IndependentDesignSupervisorTests.test_detects_wrong_real_deck_handoff_despite_passed_flag",
+    "tests.test_design_supervisor.IndependentDesignSupervisorTests.test_detects_cb_payload_for_old_deck_even_when_subject_is_claimed_correct",
+    "tests.test_design_supervisor.IndependentDesignSupervisorTests.test_side_deck_may_legally_contain_extra_deck_monsters",
+    "tests.test_design_supervisor.IndependentDesignSupervisorTests.test_rejects_same_deck_cb_payload_for_wrong_task"
+  ],
+  "tests": 16,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0,
+  "passed": true,
+  "torch_version": "2.9.1+cpu",
+  "training_executed": false,
+  "basic_cb_executed": false,
+  "native_executed": false
+}

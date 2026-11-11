@@ -3,14 +3,17 @@ from contextlib import contextmanager
 from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
+import io
 import json
+import os
+import subprocess
 import sys
 import unittest
 from unittest.mock import patch, Mock
 
 from tests import test_bot_deployment as source_fixtures
 from ygo_kito.bot_deployment import BotSourceRegistry
-from ygo_kito.bot_qualification import prepare_qualification, execute_qualification, normal_engineering_actor
+from ygo_kito.bot_qualification import prepare_qualification, _execute_qualification, execute_qualification, normal_engineering_actor
 from ygo_kito.validation import ContractError
 
 
@@ -35,7 +38,7 @@ class BotQualificationTests(unittest.TestCase):
         self.audits = {'ice':{'path':str(self.root/'not-a-real-audit.json'),'sha256':'a'*64}}
 
     def execute(self, **kwargs):
-        return execute_qualification(self.registry, self.plan, self.root, self.actor, audits=self.audits,
+        return _execute_qualification(self.registry, self.plan, self.root, self.actor, audits=self.audits,
             mono='/unused/mono', workspace=self.root, selected_bot_ids=[self.ice['bot_id']], **kwargs)
 
     def test_plan_preserves_all_origins_and_never_calls_any_runtime(self):
@@ -117,7 +120,7 @@ class BotQualificationTests(unittest.TestCase):
         self.assertFalse(result['historical_qualified']);self.assertFalse(result['strength_qualified'])
 
     def test_default_only_selects_desktop_candidates_and_retains_source_only_rows(self):
-        result=execute_qualification(self.registry,self.plan,self.root,self.actor,audits={},mono='/unused/mono',workspace=self.root)
+        result=_execute_qualification(self.registry,self.plan,self.root,self.actor,audits={},mono='/unused/mono',workspace=self.root)
         library=next(r for r in result['rows'] if r['source_id']=='library')
         self.assertEqual(library['status'],'source_only_not_desktop_qualified')
         self.assertEqual(len(result['rows']),3)
@@ -128,7 +131,7 @@ class BotQualificationTests(unittest.TestCase):
             for seconds in (True,0,float('nan'),float('inf'),301):
                 with self.subTest(seconds=seconds),self.assertRaises(ContractError): self.execute(seconds=seconds)
             with self.assertRaisesRegex(ContractError,'unknown qualification'):
-                execute_qualification(self.registry,self.plan,self.root,self.actor,audits={},mono='/unused/mono',
+                _execute_qualification(self.registry,self.plan,self.root,self.actor,audits={},mono='/unused/mono',
                                       workspace=self.root,selected_bot_ids=['not-a-source-bot'])
         runtime.assert_not_called()
 
@@ -140,6 +143,153 @@ class BotQualificationTests(unittest.TestCase):
         with patch.object(sys,'argv',argv),patch.object(cli,'BotSourceRegistry') as registry:
             self.assertEqual(cli.main(),2)
         registry.assert_not_called();self.assertEqual(report.read_text(),'preserve')
+
+    def test_public_execution_uses_the_fixed_worker_and_preserves_timeout_log(self):
+        def timed_out(argv, *, log_path, seconds, **options):
+            self.assertEqual(argv[2:4], ['-m', 'ygo_kito.bot_qualification'])
+            self.assertEqual(seconds, 2)
+            request = json.loads(Path(argv[4]).read_text(encoding='utf-8'))
+            self.assertEqual(request['options']['selected_bot_ids'], [self.ice['bot_id']])
+            log_path.write_text('owned native worker started', encoding='utf-8')
+            return dict(process_started=True, child_reaped=True, process_tree_terminated=True, stop_reason='timeout')
+        with patch('ygo_kito.owned_runtime.run_owned_process', side_effect=timed_out), \
+             patch('ygo_kito.agent_monitor.RunReporter._sample', return_value=({}, {})), \
+             patch('ygo_kito.agent_monitor.nvidia_device_sample') as gpu_sample, \
+             patch('ygo_kito.bot_qualification.NativeNormalEngine', side_effect=AssertionError('native forbidden')):
+            result = execute_qualification(self.registry, self.plan, self.root, self.actor, audits=self.audits,
+                mono='/unused/mono', workspace=self.root, log_directory=self.root/'worker-logs',
+                selected_bot_ids=[self.ice['bot_id']], seconds=2)
+        row = next(value for value in result['rows'] if value['bot_id'] == self.ice['bot_id'])
+        self.assertEqual(row['failed_stage'], 'owned_native_worker')
+        self.assertEqual(row['reason'], 'timeout')
+        self.assertIsNone(row['native_executed'])
+        self.assertIsNone(row['csharp_executed'])
+        self.assertEqual(Path(row['worker_log']).read_text(encoding='utf-8'), 'owned native worker started')
+        gpu_sample.assert_not_called()
+        self.assertIsNone(result['host_resources']['hardware']['gpu'])
+        self.assertIsNone(result['host_resources']['metrics']['gpu_memory_bytes'])
+
+    def test_cli_gpu_selection_reaches_host_sampler_after_owned_worker(self):
+        from scripts import bot_qualification as cli
+        calls = []
+        def complete(argv, *, log_path, seconds, **options):
+            calls.append('worker')
+            self.assertEqual(seconds, 2)
+            child = deepcopy(self.plan)
+            for row in child['rows']:
+                selected = row['bot_id'] == self.ice['bot_id']
+                row.update(native_executed=selected, csharp_executed=selected, decisions=10 if selected else 0,
+                           bot_decisions=5 if selected else 0, normal_duel_verified=selected,
+                           status='normal_game_verified' if selected else 'not_selected')
+            Path(argv[5]).write_text(json.dumps(child), encoding='utf-8')
+            log_path.write_text('fixture completed', encoding='utf-8')
+            return dict(process_started=True, child_reaped=True, stop_reason='completed')
+        def sample(index):
+            self.assertEqual(calls, ['worker'])
+            calls.append('gpu')
+            self.assertEqual(index, 2)
+            return dict(device=dict(uuid='fixture-device', name='fixture GPU', driver='fixture driver'),
+                metrics=dict(gpu_memory_bytes=123, gpu_memory_total_bytes=456, gpu_utilization_percent=20),
+                source='fixture nvidia-smi')
+        audits = self.root/'audits.json'
+        audits.write_text(json.dumps(self.audits), encoding='utf-8')
+        lock = self.root/'host-sampling-lock.json'
+        lock.write_text(json.dumps(self.lock), encoding='utf-8')
+        report = self.root/'qualified-with-device.json'
+        argv = ['bot_qualification.py', '--installed-root', str(self.root), '--native-root', str(self.root),
+                '--workspace', str(self.root), '--lock', str(lock), '--report', str(report), '--execute', '--audits', str(audits),
+                '--mono', '/unused/mono', '--bot-id', self.ice['bot_id'], '--seconds', '2', '--gpu-device-index', '2']
+        with patch.object(sys, 'argv', argv), patch.object(cli, 'BotSourceRegistry', return_value=self.registry), \
+             patch('ygo_kito.owned_runtime.run_owned_process', side_effect=complete), \
+             patch('ygo_kito.agent_monitor.RunReporter._sample', return_value=({}, {})), \
+             patch('ygo_kito.agent_monitor.nvidia_device_sample', side_effect=sample), \
+             patch('ygo_kito.bot_qualification.NativeNormalEngine', side_effect=AssertionError('native forbidden')), \
+             patch('builtins.print'):
+            self.assertEqual(cli.main(), 0)
+        actual = json.loads(report.read_text(encoding='utf-8'))['host_resources']
+        self.assertEqual(calls, ['worker', 'gpu'])
+        self.assertEqual(actual['binding']['gpu_device_index'], 2)
+        self.assertEqual(actual['binding']['gpu_sample_stage'], 'after_qualification_jobs')
+        self.assertEqual(actual['hardware']['gpu']['uuid'], 'fixture-device')
+        self.assertEqual(actual['metrics']['gpu_memory_bytes'], 123)
+        self.assertEqual(actual['metric_sources']['gpu_memory_bytes'], 'fixture nvidia-smi')
+        self.assertGreaterEqual(actual['stage_seconds']['end_to_end'], actual['stage_seconds']['qualification_jobs'])
+
+    def test_missing_device_and_cancelled_or_unverified_jobs_keep_unmeasured_gpu(self):
+        for reason, tree_terminated, probes in (('timeout', True, 1), ('user_pause', True, 0), ('timeout', False, 0)):
+            with self.subTest(reason=reason, tree_terminated=tree_terminated):
+                receipt = dict(process_started=True, child_reaped=True,
+                               process_tree_terminated=tree_terminated, stop_reason=reason)
+                with patch('ygo_kito.owned_runtime.run_owned_process', return_value=receipt), \
+                     patch('ygo_kito.agent_monitor.RunReporter._sample', return_value=({}, {})), \
+                     patch('ygo_kito.agent_monitor.nvidia_device_sample', return_value=None) as gpu_sample, \
+                     patch('ygo_kito.bot_qualification.NativeNormalEngine', side_effect=AssertionError('native forbidden')):
+                    result = execute_qualification(self.registry, self.plan, self.root, self.actor, audits=self.audits,
+                        mono='/unused/mono', workspace=self.root, selected_bot_ids=[self.ice['bot_id']],
+                        seconds=2, gpu_device_index=0)
+                self.assertEqual(gpu_sample.call_count, probes)
+                self.assertIsNone(result['host_resources']['hardware']['gpu'])
+                self.assertIsNone(result['host_resources']['metrics']['gpu_memory_bytes'])
+                self.assertIsNone(result['host_resources']['metric_sources']['gpu_memory_bytes'])
+
+    def test_owned_worker_rate_uses_recorded_decisions_and_managed_game_time(self):
+        from ygo_kito.bot_qualification import _owned_worker
+        request, destination = self.root/'worker-request.json', self.root/'worker-result.json'
+        request.write_text(json.dumps(dict(lock=self.lock, installed_root=str(self.root), plan=self.plan,
+            native_root=str(self.root), actor_profile=self.actor,
+            options=dict(selected_bot_ids=[self.ice['bot_id']], seconds=2))), encoding='utf-8')
+        result = dict(resources=self.plan['resources'], rows=[dict(bot_id=self.ice['bot_id'], elapsed_seconds=2., decisions=10)])
+        with patch('ygo_kito.bot_qualification.BotSourceRegistry', return_value=self.registry), \
+             patch('ygo_kito.bot_qualification._execute_qualification', return_value=result), \
+             patch('ygo_kito.agent_monitor.RunReporter._sample', return_value=({}, {})), \
+             patch('ygo_kito.agent_monitor.nvidia_device_sample', side_effect=AssertionError('device sample belongs to host')):
+            _owned_worker(request, destination)
+        actual = json.loads(destination.read_text(encoding='utf-8'))['rows'][0]['resources']
+        self.assertEqual(actual['metrics']['decisions_per_second'], 5.)
+        self.assertEqual(actual['metric_sources']['decisions_per_second'], 'recorded decisions / managed-game wall seconds')
+
+    def test_cli_device_sampling_requires_execution_and_a_valid_device_index(self):
+        from scripts import bot_qualification as cli
+        for index, flags in enumerate((['--gpu-device-index', '0'], ['--execute', '--gpu-device-index', '-1'])):
+            report = self.root/f'invalid-device-{index}.json'
+            argv = ['bot_qualification.py', '--installed-root', str(self.root), '--native-root', str(self.root),
+                    '--report', str(report), *flags]
+            with patch.object(sys, 'argv', argv), patch.object(cli, 'BotSourceRegistry') as registry, \
+                 patch('ygo_kito.agent_monitor.nvidia_device_sample') as gpu_sample, \
+                 patch('sys.stderr', new_callable=io.StringIO):
+                with self.assertRaises(SystemExit) as error:
+                    cli.main()
+            self.assertEqual(error.exception.code, 2)
+            registry.assert_not_called()
+            gpu_sample.assert_not_called()
+            self.assertFalse(report.exists())
+
+    def test_ordinary_owned_children_timeout_or_cancel_without_touching_another_child(self):
+        from ygo_kito.owned_runtime import run_owned_process
+
+        def command(source):
+            return [sys.executable, '-B', '-c', source]
+        unaffected = subprocess.Popen(command('import time; time.sleep(15)'), stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
+        try:
+            done = run_owned_process(command('print("done", flush=True)'), cwd=self.root,
+                                     log_path=self.root/'done.log', seconds=4.)
+            self.assertEqual((done['stop_reason'], done['exit_code']), ('completed', 0))
+            sleeper = command('import time; print("ready", flush=True); time.sleep(15)')
+            for reason in ('timeout', 'user_pause'):
+                log = self.root/(reason+'.log')
+                pause = (lambda: log.is_file() and log.stat().st_size > 0) if reason=='user_pause' else None
+                result = run_owned_process(sleeper, cwd=self.root, log_path=log,
+                                           seconds=1. if pause is None else 5., cancel_requested=pause)
+                self.assertEqual(result['stop_reason'], reason)
+                self.assertTrue(result['child_reaped'])
+                self.assertIn(b'ready', log.read_bytes())
+                self.assertIsNone(unaffected.poll())
+        finally:
+            if unaffected.poll() is None:
+                unaffected.terminate()
+            unaffected.wait(timeout=4)
 
 
 if __name__=='__main__': unittest.main()

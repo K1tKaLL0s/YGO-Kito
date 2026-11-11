@@ -1,0 +1,66 @@
+{
+  "observed_at_utc": "2026-11-11T10:01:44.826297+00:00",
+  "dictionary_revision": "local-library-review-20261111-b19",
+  "card_id": 64389297,
+  "card_name": "迷宫变化",
+  "official_source": {
+    "id": "konami-cid4658-20200401",
+    "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?cid=4658&ope=4&request_locale=ja",
+    "supplement_updated_on": "2020-04-01",
+    "verified_on": "2026-11-11",
+    "finding": "装备后的效果在自己主要阶段于场上任意发动，不取对象；发动费用只解放装备着本卡的迷宫壁1只。",
+    "card_id": 64389297,
+    "text_sha256": "45930b12695e1046350c559836d09bca712b1179b90988cc118e1e9453a6eb9e",
+    "effect_key": "spell_trap:0:1"
+  },
+  "test_modules": [
+    "tests.test_effect_block_dictionary",
+    "tests.test_construction_text_completion",
+    "tests.test_card_library_repairs"
+  ],
+  "tests_run": 133,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0,
+  "full_dictionary_cards_compared": 14299,
+  "changed_card_ids": [
+    64389297
+  ],
+  "other_card_semantics_unchanged": true,
+  "other_card_indexes_unchanged": true,
+  "target_source_errors": [],
+  "target_indexes_verified": true,
+  "target_saved_equals_live": true,
+  "before": {
+    "release_quantity": null,
+    "effect_event": "card_activation"
+  },
+  "after": {
+    "release_quantity": 1,
+    "cost_subject": "equipped_monster",
+    "effect_event": "own_main_phase",
+    "effect_activation_kind": "effect_activation",
+    "effect_zone": "field",
+    "targeted": false
+  },
+  "formal_dictionary": "N:\\YGO-Kito\\_local_cpu_20261027\\assets\\effect-blocks\\effect-blocks-v1.sqlite3",
+  "formal_dictionary_matches_checked_candidate": true,
+  "previous_dictionary_backup": "N:\\YGO-Kito\\_publish_20261030\\.cache\\card-library-ruling-20261111\\formal-before-b19.sqlite3",
+  "previous_full_pool_validation": "2026-11-11-card-library-repair-validation.json",
+  "remaining_source_ruling_details": 0,
+  "full_semantic_rulings_certified": false,
+  "raw_cdb_changed": false,
+  "legacy_feature_definition_changed": false,
+  "ci_run": false,
+  "native_engine_started": false,
+  "external_model_connection_tested": false,
+  "live_quota_verified": false,
+  "quota_limit_fraction": 0.5,
+  "source_files": {
+    "src/ygo_kito/effect_rulings.py": "2e9d9a6772debced9eddf742027e810d0154fd37b6e231d8e3f83c9b21c9cad5",
+    "src/ygo_kito/resources/rules/card-text-rulings.json": "991113590e7f594620364f4dcc5f8592820c2c8355d772e75f777a839d62f127",
+    "src/ygo_kito/effect_records.py": "0909c0877982eb37f2e418a79b74f02c4075e796ce4e8f683bdd4d58ff719f11",
+    "src/ygo_kito/effect_blocks.py": "72ad033ddb6e1313dad1d340c80c31232040e94921579c6b4d60911b19ca19ac",
+    "tests/test_card_library_repairs.py": "5448bb1db19c2327f4aed8bc6bb6aa32268eb0d77c7171f6776e73333ad4d975"
+  }
+}

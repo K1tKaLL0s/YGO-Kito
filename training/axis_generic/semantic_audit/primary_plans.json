@@ -1,0 +1,3094 @@
+{
+  "schema_version": "semantic-primary-plans-v1",
+  "phase": "1-goal-only",
+  "source": "../goal_intake.json",
+  "source_sha256": "2d160d4c177f733abf7dbc256fb7d7e769af84b94111a1232306ab4f22189dac",
+  "row_count": 118,
+  "role_labels_read_before_freeze": false,
+  "definition": "主计划依据原始 objective 的明确声明；保留明确起动链和资源组织，不把本次查询/准备动作自动提升为主计划。实体 kind 仅描述原文动作位置，不表示 core/support。",
+  "unknown_primary_plan_case_count": 23,
+  "cases": [
+    {
+      "case_id": "gamma_empty_response",
+      "primary_plan_text": "以杀手级调整曲同调持续控场",
+      "evidence_quote": "以杀手级调整曲同调持续控场",
+      "confidence": "high",
+      "operation_tags": [
+        "synchro"
+      ],
+      "entities": [
+        {
+          "surface": "杀手级调整曲",
+          "kind": "terminal",
+          "name_contains": "杀手级调整曲",
+          "type_constraint": "synchro",
+          "evidence_quote": "以杀手级调整曲同调持续控场"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "gamma_occupied_field",
+      "primary_plan_text": "以卡通怪兽攻击取胜",
+      "evidence_quote": "以卡通怪兽攻击取胜",
+      "confidence": "high",
+      "operation_tags": [
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "卡通怪兽",
+          "kind": "actor",
+          "name_contains": "卡通怪兽",
+          "type_constraint": "monster",
+          "evidence_quote": "以卡通怪兽攻击取胜"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "gamma_state_unknown",
+      "primary_plan_text": "以杀手级调整曲同调持续换取场面",
+      "evidence_quote": "以杀手级调整曲同调持续换取场面",
+      "confidence": "high",
+      "operation_tags": [
+        "synchro"
+      ],
+      "entities": [
+        {
+          "surface": "杀手级调整曲",
+          "kind": "terminal",
+          "name_contains": "杀手级调整曲",
+          "type_constraint": "synchro",
+          "evidence_quote": "以杀手级调整曲同调持续换取场面"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "invoked_artemis_cycle",
+      "primary_plan_text": "以反复通常召唤阿莱斯特、融合梅尔卡巴、回收阿莱斯特的循环取得场面优势，靠该循环的无效与攻击取胜",
+      "evidence_quote": "以反复通常召唤阿莱斯特、融合梅尔卡巴、回收阿莱斯特的循环取得场面优势，靠该循环的无效与攻击取胜",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion",
+        "negate",
+        "recover",
+        "attack",
+        "normal_summon"
+      ],
+      "entities": [
+        {
+          "surface": "阿莱斯特",
+          "kind": "actor",
+          "name_contains": "阿莱斯特",
+          "type_constraint": "monster",
+          "evidence_quote": "以反复通常召唤阿莱斯特、融合梅尔卡巴、回收阿莱斯特的循环取得场面优势，靠该循环的无效与攻击取胜"
+        },
+        {
+          "surface": "梅尔卡巴",
+          "kind": "terminal",
+          "name_contains": "梅尔卡巴",
+          "type_constraint": "fusion",
+          "evidence_quote": "以反复通常召唤阿莱斯特、融合梅尔卡巴、回收阿莱斯特的循环取得场面优势，靠该循环的无效与攻击取胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "invoked_artemis_ritual_plan",
+      "primary_plan_text": "以光与暗的仪式、黑混沌仪式怪兽及仪式资源循环取得优势，之后让仪式怪兽从手卡或墓地回卡组特召超魔剑士黑混沌，用除外及攻击终结",
+      "evidence_quote": "以光与暗的仪式、黑混沌仪式怪兽及仪式资源循环取得优势，之后让仪式怪兽从手卡或墓地回卡组特召超魔剑士黑混沌，用除外及攻击终结",
+      "confidence": "high",
+      "operation_tags": [
+        "ritual",
+        "special_summon",
+        "grave",
+        "banish",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "光与暗的仪式",
+          "kind": "actor",
+          "name_contains": "光与暗的仪式",
+          "type_constraint": "spell",
+          "evidence_quote": "以光与暗的仪式、黑混沌仪式怪兽及仪式资源循环取得优势，之后让仪式怪兽从手卡或墓地回卡组特召超魔剑士黑混沌，用除外及攻击终结"
+        },
+        {
+          "surface": "黑混沌仪式怪兽",
+          "kind": "actor",
+          "name_contains": "黑混沌仪式怪兽",
+          "type_constraint": "ritual",
+          "evidence_quote": "以光与暗的仪式、黑混沌仪式怪兽及仪式资源循环取得优势，之后让仪式怪兽从手卡或墓地回卡组特召超魔剑士黑混沌，用除外及攻击终结"
+        },
+        {
+          "surface": "超魔剑士黑混沌",
+          "kind": "terminal",
+          "name_contains": "超魔剑士黑混沌",
+          "type_constraint": "monster",
+          "evidence_quote": "以光与暗的仪式、黑混沌仪式怪兽及仪式资源循环取得优势，之后让仪式怪兽从手卡或墓地回卡组特召超魔剑士黑混沌，用除外及攻击终结"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "invoked_almiraj_gardna",
+      "primary_plan_text": "以阿莱斯特的梅尔卡巴融合循环控场取胜；阿莱斯特通常召唤后依次连接独角兔、安全守卫者，以墓地阿莱斯特与场上光属性守卫者融合，回收阿莱斯特并以已备同类手牌回应发动。",
+      "evidence_quote": "以阿莱斯特的梅尔卡巴融合循环控场取胜；阿莱斯特通常召唤后依次连接独角兔、安全守卫者，以墓地阿莱斯特与场上光属性守卫者融合，回收阿莱斯特并以已备同类手牌回应发动。",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion",
+        "link",
+        "recover",
+        "grave",
+        "normal_summon"
+      ],
+      "entities": [
+        {
+          "surface": "阿莱斯特",
+          "kind": "actor",
+          "name_contains": "阿莱斯特",
+          "type_constraint": "monster",
+          "evidence_quote": "以阿莱斯特的梅尔卡巴融合循环控场取胜"
+        },
+        {
+          "surface": "梅尔卡巴",
+          "kind": "terminal",
+          "name_contains": "梅尔卡巴",
+          "type_constraint": "fusion",
+          "evidence_quote": "以阿莱斯特的梅尔卡巴融合循环控场取胜"
+        },
+        {
+          "surface": "独角兔",
+          "kind": "actor",
+          "name_contains": "独角兔",
+          "type_constraint": "link",
+          "evidence_quote": "阿莱斯特通常召唤后依次连接独角兔、安全守卫者，以墓地阿莱斯特与场上光属性守卫者融合，回收阿莱斯特并以已备同类手牌回应发动"
+        },
+        {
+          "surface": "安全守卫者",
+          "kind": "actor",
+          "name_contains": "安全守卫者",
+          "type_constraint": "link",
+          "evidence_quote": "阿莱斯特通常召唤后依次连接独角兔、安全守卫者，以墓地阿莱斯特与场上光属性守卫者融合，回收阿莱斯特并以已备同类手牌回应发动"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "destiny_dpe_actual_singleton",
+      "primary_plan_text": "以召唤兽和幻兽融合的场面优势取胜",
+      "evidence_quote": "以召唤兽和幻兽融合的场面优势取胜",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion"
+      ],
+      "entities": [
+        {
+          "surface": "召唤兽",
+          "kind": "actor",
+          "name_contains": "召唤兽",
+          "type_constraint": "fusion",
+          "evidence_quote": "以召唤兽和幻兽融合的场面优势取胜"
+        },
+        {
+          "surface": "幻兽",
+          "kind": "actor",
+          "name_contains": "幻兽",
+          "type_constraint": null,
+          "evidence_quote": "以召唤兽和幻兽融合的场面优势取胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "branded_complete_40",
+      "primary_plan_text": "以阿不思相关连续融合、冰剑龙除外及送墓后的结束阶段资源取得长期优势；通过导化、气炎、烙印融合与圣女衔接，在后续回合回收烙印魔陷和融合素材。",
+      "evidence_quote": "以阿不思相关连续融合、冰剑龙除外及送墓后的结束阶段资源取得长期优势；通过导化、气炎、烙印融合与圣女衔接，在后续回合回收烙印魔陷和融合素材。",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion",
+        "recover",
+        "grave",
+        "banish"
+      ],
+      "entities": [
+        {
+          "surface": "阿不思",
+          "kind": "actor",
+          "name_contains": "阿不思",
+          "type_constraint": "monster",
+          "evidence_quote": "以阿不思相关连续融合、冰剑龙除外及送墓后的结束阶段资源取得长期优势"
+        },
+        {
+          "surface": "冰剑龙",
+          "kind": "terminal",
+          "name_contains": "冰剑龙",
+          "type_constraint": "fusion",
+          "evidence_quote": "以阿不思相关连续融合、冰剑龙除外及送墓后的结束阶段资源取得长期优势"
+        },
+        {
+          "surface": "导化",
+          "kind": "actor",
+          "name_contains": "导化",
+          "type_constraint": "monster",
+          "evidence_quote": "通过导化、气炎、烙印融合与圣女衔接，在后续回合回收烙印魔陷和融合素材"
+        },
+        {
+          "surface": "气炎",
+          "kind": "actor",
+          "name_contains": "气炎",
+          "type_constraint": "spell",
+          "evidence_quote": "通过导化、气炎、烙印融合与圣女衔接，在后续回合回收烙印魔陷和融合素材"
+        },
+        {
+          "surface": "烙印融合",
+          "kind": "actor",
+          "name_contains": "烙印融合",
+          "type_constraint": "spell",
+          "evidence_quote": "通过导化、气炎、烙印融合与圣女衔接，在后续回合回收烙印魔陷和融合素材"
+        },
+        {
+          "surface": "圣女",
+          "kind": "actor",
+          "name_contains": "圣女",
+          "type_constraint": "monster",
+          "evidence_quote": "通过导化、气炎、烙印融合与圣女衔接，在后续回合回收烙印魔陷和融合素材"
+        },
+        {
+          "surface": "烙印魔陷",
+          "kind": "resource",
+          "name_contains": "烙印魔陷",
+          "type_constraint": null,
+          "evidence_quote": "通过导化、气炎、烙印融合与圣女衔接，在后续回合回收烙印魔陷和融合素材"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "branded_complete_60",
+      "primary_plan_text": "以阿不思融合体系反复建立冰剑龙等融合怪兽，结合墓地、除外和烙印魔陷回收，在较长资源交换中获胜；用白之烙印、赫之烙印、圣女及其它融合支路延续行动。",
+      "evidence_quote": "以阿不思融合体系反复建立冰剑龙等融合怪兽，结合墓地、除外和烙印魔陷回收，在较长资源交换中获胜；用白之烙印、赫之烙印、圣女及其它融合支路延续行动。",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion",
+        "recover",
+        "grave",
+        "banish"
+      ],
+      "entities": [
+        {
+          "surface": "阿不思",
+          "kind": "actor",
+          "name_contains": "阿不思",
+          "type_constraint": "monster",
+          "evidence_quote": "以阿不思融合体系反复建立冰剑龙等融合怪兽，结合墓地、除外和烙印魔陷回收，在较长资源交换中获胜"
+        },
+        {
+          "surface": "冰剑龙",
+          "kind": "terminal",
+          "name_contains": "冰剑龙",
+          "type_constraint": "fusion",
+          "evidence_quote": "以阿不思融合体系反复建立冰剑龙等融合怪兽，结合墓地、除外和烙印魔陷回收，在较长资源交换中获胜"
+        },
+        {
+          "surface": "烙印魔陷",
+          "kind": "resource",
+          "name_contains": "烙印魔陷",
+          "type_constraint": null,
+          "evidence_quote": "以阿不思融合体系反复建立冰剑龙等融合怪兽，结合墓地、除外和烙印魔陷回收，在较长资源交换中获胜"
+        },
+        {
+          "surface": "白之烙印",
+          "kind": "actor",
+          "name_contains": "白之烙印",
+          "type_constraint": "spell",
+          "evidence_quote": "用白之烙印、赫之烙印、圣女及其它融合支路延续行动"
+        },
+        {
+          "surface": "赫之烙印",
+          "kind": "actor",
+          "name_contains": "赫之烙印",
+          "type_constraint": "spell",
+          "evidence_quote": "用白之烙印、赫之烙印、圣女及其它融合支路延续行动"
+        },
+        {
+          "surface": "圣女",
+          "kind": "actor",
+          "name_contains": "圣女",
+          "type_constraint": "monster",
+          "evidence_quote": "用白之烙印、赫之烙印、圣女及其它融合支路延续行动"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "branded_compact_fusion_route",
+      "primary_plan_text": "以星辰融合怪兽完成攻击与场面交换",
+      "evidence_quote": "以星辰融合怪兽完成攻击与场面交换",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "星辰融合怪兽",
+          "kind": "terminal",
+          "name_contains": "星辰融合怪兽",
+          "type_constraint": "fusion",
+          "evidence_quote": "以星辰融合怪兽完成攻击与场面交换"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "hero_complete_clock_destiny",
+      "primary_plan_text": "围绕暗黑都市取得命运英雄、恶魔主宰人送墓并取得场地、无惧从者破坏场地叫出恐惧人，再转为无惧人检索与后续英雄融合，以凤凰人破坏循环和英雄攻击获胜。",
+      "evidence_quote": "围绕暗黑都市取得命运英雄、恶魔主宰人送墓并取得场地、无惧从者破坏场地叫出恐惧人，再转为无惧人检索与后续英雄融合，以凤凰人破坏循环和英雄攻击获胜。",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion",
+        "search",
+        "special_summon",
+        "destroy",
+        "grave",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "暗黑都市",
+          "kind": "actor",
+          "name_contains": "暗黑都市",
+          "type_constraint": "spell",
+          "evidence_quote": "围绕暗黑都市取得命运英雄、恶魔主宰人送墓并取得场地、无惧从者破坏场地叫出恐惧人，再转为无惧人检索与后续英雄融合，以凤凰人破坏循环和英雄攻击获胜"
+        },
+        {
+          "surface": "命运英雄",
+          "kind": "actor",
+          "name_contains": "命运英雄",
+          "type_constraint": "monster",
+          "evidence_quote": "围绕暗黑都市取得命运英雄、恶魔主宰人送墓并取得场地、无惧从者破坏场地叫出恐惧人，再转为无惧人检索与后续英雄融合，以凤凰人破坏循环和英雄攻击获胜"
+        },
+        {
+          "surface": "恶魔主宰人",
+          "kind": "actor",
+          "name_contains": "恶魔主宰人",
+          "type_constraint": "monster",
+          "evidence_quote": "围绕暗黑都市取得命运英雄、恶魔主宰人送墓并取得场地、无惧从者破坏场地叫出恐惧人，再转为无惧人检索与后续英雄融合，以凤凰人破坏循环和英雄攻击获胜"
+        },
+        {
+          "surface": "无惧从者",
+          "kind": "actor",
+          "name_contains": "无惧从者",
+          "type_constraint": "monster",
+          "evidence_quote": "围绕暗黑都市取得命运英雄、恶魔主宰人送墓并取得场地、无惧从者破坏场地叫出恐惧人，再转为无惧人检索与后续英雄融合，以凤凰人破坏循环和英雄攻击获胜"
+        },
+        {
+          "surface": "恐惧人",
+          "kind": "actor",
+          "name_contains": "恐惧人",
+          "type_constraint": "monster",
+          "evidence_quote": "围绕暗黑都市取得命运英雄、恶魔主宰人送墓并取得场地、无惧从者破坏场地叫出恐惧人，再转为无惧人检索与后续英雄融合，以凤凰人破坏循环和英雄攻击获胜"
+        },
+        {
+          "surface": "无惧人",
+          "kind": "actor",
+          "name_contains": "无惧人",
+          "type_constraint": "monster",
+          "evidence_quote": "围绕暗黑都市取得命运英雄、恶魔主宰人送墓并取得场地、无惧从者破坏场地叫出恐惧人，再转为无惧人检索与后续英雄融合，以凤凰人破坏循环和英雄攻击获胜"
+        },
+        {
+          "surface": "凤凰人",
+          "kind": "terminal",
+          "name_contains": "凤凰人",
+          "type_constraint": "fusion",
+          "evidence_quote": "围绕暗黑都市取得命运英雄、恶魔主宰人送墓并取得场地、无惧从者破坏场地叫出恐惧人，再转为无惧人检索与后续英雄融合，以凤凰人破坏循环和英雄攻击获胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "hero_complete_shadow_mask",
+      "primary_plan_text": "以命运英雄场地破坏、检索和融合循环组织进攻，同时用影雾女郎、暮鸦、炉火衔接假面变化及不同英雄额外怪兽，按本回合属性和召唤限制建立英雄终端后持续攻击。",
+      "evidence_quote": "以命运英雄场地破坏、检索和融合循环组织进攻，同时用影雾女郎、暮鸦、炉火衔接假面变化及不同英雄额外怪兽，按本回合属性和召唤限制建立英雄终端后持续攻击。",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion",
+        "search",
+        "destroy",
+        "transformation",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "命运英雄",
+          "kind": "actor",
+          "name_contains": "命运英雄",
+          "type_constraint": "monster",
+          "evidence_quote": "以命运英雄场地破坏、检索和融合循环组织进攻，同时用影雾女郎、暮鸦、炉火衔接假面变化及不同英雄额外怪兽，按本回合属性和召唤限制建立英雄终端后持续攻击"
+        },
+        {
+          "surface": "影雾女郎",
+          "kind": "actor",
+          "name_contains": "影雾女郎",
+          "type_constraint": "monster",
+          "evidence_quote": "以命运英雄场地破坏、检索和融合循环组织进攻，同时用影雾女郎、暮鸦、炉火衔接假面变化及不同英雄额外怪兽，按本回合属性和召唤限制建立英雄终端后持续攻击"
+        },
+        {
+          "surface": "暮鸦",
+          "kind": "actor",
+          "name_contains": "暮鸦",
+          "type_constraint": "monster",
+          "evidence_quote": "以命运英雄场地破坏、检索和融合循环组织进攻，同时用影雾女郎、暮鸦、炉火衔接假面变化及不同英雄额外怪兽，按本回合属性和召唤限制建立英雄终端后持续攻击"
+        },
+        {
+          "surface": "炉火",
+          "kind": "actor",
+          "name_contains": "炉火",
+          "type_constraint": "monster",
+          "evidence_quote": "以命运英雄场地破坏、检索和融合循环组织进攻，同时用影雾女郎、暮鸦、炉火衔接假面变化及不同英雄额外怪兽，按本回合属性和召唤限制建立英雄终端后持续攻击"
+        },
+        {
+          "surface": "假面变化",
+          "kind": "actor",
+          "name_contains": "假面变化",
+          "type_constraint": "spell",
+          "evidence_quote": "以命运英雄场地破坏、检索和融合循环组织进攻，同时用影雾女郎、暮鸦、炉火衔接假面变化及不同英雄额外怪兽，按本回合属性和召唤限制建立英雄终端后持续攻击"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "hero_crow_furnace_mask_route",
+      "primary_plan_text": "以恐惧人、无惧人、凤凰人的循环交换取胜",
+      "evidence_quote": "以恐惧人、无惧人、凤凰人的循环交换取胜",
+      "confidence": "high",
+      "operation_tags": [],
+      "entities": [
+        {
+          "surface": "恐惧人",
+          "kind": "actor",
+          "name_contains": "恐惧人",
+          "type_constraint": "monster",
+          "evidence_quote": "以恐惧人、无惧人、凤凰人的循环交换取胜"
+        },
+        {
+          "surface": "无惧人",
+          "kind": "actor",
+          "name_contains": "无惧人",
+          "type_constraint": "monster",
+          "evidence_quote": "以恐惧人、无惧人、凤凰人的循环交换取胜"
+        },
+        {
+          "surface": "凤凰人",
+          "kind": "terminal",
+          "name_contains": "凤凰人",
+          "type_constraint": "fusion",
+          "evidence_quote": "以恐惧人、无惧人、凤凰人的循环交换取胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "tourguide_link_search",
+      "primary_plan_text": "以破械连接怪兽持续交换对方场面",
+      "evidence_quote": "以破械连接怪兽持续交换对方场面",
+      "confidence": "high",
+      "operation_tags": [
+        "link"
+      ],
+      "entities": [
+        {
+          "surface": "破械连接怪兽",
+          "kind": "actor",
+          "name_contains": "破械连接怪兽",
+          "type_constraint": "link",
+          "evidence_quote": "以破械连接怪兽持续交换对方场面"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "tourguide_normal_already_used",
+      "primary_plan_text": "以破械连接怪兽交换场面",
+      "evidence_quote": "以破械连接怪兽交换场面",
+      "confidence": "high",
+      "operation_tags": [
+        "link"
+      ],
+      "entities": [
+        {
+          "surface": "破械连接怪兽",
+          "kind": "actor",
+          "name_contains": "破械连接怪兽",
+          "type_constraint": "link",
+          "evidence_quote": "以破械连接怪兽交换场面"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "dogmatika_late_turn_response",
+      "primary_plan_text": "以再世高星怪兽与后续资源取胜",
+      "evidence_quote": "以再世高星怪兽与后续资源取胜",
+      "confidence": "high",
+      "operation_tags": [],
+      "entities": [
+        {
+          "surface": "再世高星怪兽",
+          "kind": "actor",
+          "name_contains": "再世高星怪兽",
+          "type_constraint": "monster",
+          "evidence_quote": "以再世高星怪兽与后续资源取胜"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "dogmatika_extra_order_conflict",
+      "primary_plan_text": "以额外融合和连接怪兽接续展开获胜",
+      "evidence_quote": "以额外融合和连接怪兽接续展开获胜",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion",
+        "link"
+      ],
+      "entities": [],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。",
+        "额外融合与连接主计划未指名具体怪兽；不把后段天底、旧神与圣女作为主计划实体。"
+      ]
+    },
+    {
+      "case_id": "dogmatika_declared_battle_plan",
+      "primary_plan_text": "本局围绕天底送墓旧神取得教导圣女、圣女衔接骑士无效，后续回合再利用教导怪兽，并以教导攻击时的全体增攻逐步获胜",
+      "evidence_quote": "本局围绕天底送墓旧神取得教导圣女、圣女衔接骑士无效，后续回合再利用教导怪兽，并以教导攻击时的全体增攻逐步获胜",
+      "confidence": "high",
+      "operation_tags": [
+        "search",
+        "negate",
+        "grave",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "天底",
+          "kind": "actor",
+          "name_contains": "天底",
+          "type_constraint": "spell",
+          "evidence_quote": "本局围绕天底送墓旧神取得教导圣女、圣女衔接骑士无效，后续回合再利用教导怪兽，并以教导攻击时的全体增攻逐步获胜"
+        },
+        {
+          "surface": "旧神",
+          "kind": "resource",
+          "name_contains": "旧神",
+          "type_constraint": "fusion",
+          "evidence_quote": "本局围绕天底送墓旧神取得教导圣女、圣女衔接骑士无效，后续回合再利用教导怪兽，并以教导攻击时的全体增攻逐步获胜"
+        },
+        {
+          "surface": "教导圣女",
+          "kind": "actor",
+          "name_contains": "教导圣女",
+          "type_constraint": "monster",
+          "evidence_quote": "本局围绕天底送墓旧神取得教导圣女、圣女衔接骑士无效，后续回合再利用教导怪兽，并以教导攻击时的全体增攻逐步获胜"
+        },
+        {
+          "surface": "骑士",
+          "kind": "actor",
+          "name_contains": "骑士",
+          "type_constraint": "monster",
+          "evidence_quote": "本局围绕天底送墓旧神取得教导圣女、圣女衔接骑士无效，后续回合再利用教导怪兽，并以教导攻击时的全体增攻逐步获胜"
+        },
+        {
+          "surface": "教导怪兽",
+          "kind": "actor",
+          "name_contains": "教导怪兽",
+          "type_constraint": "monster",
+          "evidence_quote": "本局围绕天底送墓旧神取得教导圣女、圣女衔接骑士无效，后续回合再利用教导怪兽，并以教导攻击时的全体增攻逐步获胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "maxx_fusion_response",
+      "primary_plan_text": "以烙印连续融合取得长期优势",
+      "evidence_quote": "以烙印连续融合取得长期优势",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion"
+      ],
+      "entities": [
+        {
+          "surface": "烙印",
+          "kind": "actor",
+          "name_contains": "烙印",
+          "type_constraint": null,
+          "evidence_quote": "以烙印连续融合取得长期优势"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "maxx_future_summons_unknown",
+      "primary_plan_text": "以卡通攻击获胜",
+      "evidence_quote": "以卡通攻击获胜",
+      "confidence": "high",
+      "operation_tags": [
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "卡通",
+          "kind": "actor",
+          "name_contains": "卡通",
+          "type_constraint": null,
+          "evidence_quote": "以卡通攻击获胜"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "desires_striker_resources",
+      "primary_plan_text": "以闪刀魔法和连接循环取得资源",
+      "evidence_quote": "以闪刀魔法和连接循环取得资源",
+      "confidence": "high",
+      "operation_tags": [
+        "link"
+      ],
+      "entities": [
+        {
+          "surface": "闪刀魔法",
+          "kind": "actor",
+          "name_contains": "闪刀魔法",
+          "type_constraint": "spell",
+          "evidence_quote": "以闪刀魔法和连接循环取得资源"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "desires_low_deck",
+      "primary_plan_text": "以灵摆和指示物怪兽继续展开",
+      "evidence_quote": "以灵摆和指示物怪兽继续展开",
+      "confidence": "high",
+      "operation_tags": [
+        "spell_counter",
+        "pendulum"
+      ],
+      "entities": [],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。",
+        "未指名任何主计划卡片/系列；只有灵摆与指示物操作方向。"
+      ]
+    },
+    {
+      "case_id": "endymion_complete_spell_counters",
+      "primary_plan_text": "以恩底弥翁和魔导兽积累、转移、支付魔力指示物，由仆从从灵摆区带出怪兽，建立创圣魔导王、胡狼王持续无效，再以灵摆资源与怪兽攻击获胜。",
+      "evidence_quote": "以恩底弥翁和魔导兽积累、转移、支付魔力指示物，由仆从从灵摆区带出怪兽，建立创圣魔导王、胡狼王持续无效，再以灵摆资源与怪兽攻击获胜。",
+      "confidence": "high",
+      "operation_tags": [
+        "special_summon",
+        "negate",
+        "spell_counter",
+        "pendulum",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "恩底弥翁",
+          "kind": "actor",
+          "name_contains": "恩底弥翁",
+          "type_constraint": null,
+          "evidence_quote": "以恩底弥翁和魔导兽积累、转移、支付魔力指示物，由仆从从灵摆区带出怪兽，建立创圣魔导王、胡狼王持续无效，再以灵摆资源与怪兽攻击获胜"
+        },
+        {
+          "surface": "魔导兽",
+          "kind": "actor",
+          "name_contains": "魔导兽",
+          "type_constraint": "monster",
+          "evidence_quote": "以恩底弥翁和魔导兽积累、转移、支付魔力指示物，由仆从从灵摆区带出怪兽，建立创圣魔导王、胡狼王持续无效，再以灵摆资源与怪兽攻击获胜"
+        },
+        {
+          "surface": "仆从",
+          "kind": "actor",
+          "name_contains": "仆从",
+          "type_constraint": "monster",
+          "evidence_quote": "以恩底弥翁和魔导兽积累、转移、支付魔力指示物，由仆从从灵摆区带出怪兽，建立创圣魔导王、胡狼王持续无效，再以灵摆资源与怪兽攻击获胜"
+        },
+        {
+          "surface": "创圣魔导王",
+          "kind": "terminal",
+          "name_contains": "创圣魔导王",
+          "type_constraint": "monster",
+          "evidence_quote": "以恩底弥翁和魔导兽积累、转移、支付魔力指示物，由仆从从灵摆区带出怪兽，建立创圣魔导王、胡狼王持续无效，再以灵摆资源与怪兽攻击获胜"
+        },
+        {
+          "surface": "胡狼王",
+          "kind": "terminal",
+          "name_contains": "胡狼王",
+          "type_constraint": "monster",
+          "evidence_quote": "以恩底弥翁和魔导兽积累、转移、支付魔力指示物，由仆从从灵摆区带出怪兽，建立创圣魔导王、胡狼王持续无效，再以灵摆资源与怪兽攻击获胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "endymion_complete_modern_spellcasters",
+      "primary_plan_text": "以龙王绝火琐罗亚等魔法师融合怪兽和连接节点交换场面；统辖取得侍女或皇国，皇国取得雷古勒斯，展示另一魔法师特召并取得魔法；玻璃在发动过魔法后登场，杰妮把魔法师换成其它魔女术，继续取得后续行动的魔法师。",
+      "evidence_quote": "以龙王绝火琐罗亚等魔法师融合怪兽和连接节点交换场面；统辖取得侍女或皇国，皇国取得雷古勒斯，展示另一魔法师特召并取得魔法；玻璃在发动过魔法后登场，杰妮把魔法师换成其它魔女术，继续取得后续行动的魔法师。",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion",
+        "link",
+        "search",
+        "special_summon"
+      ],
+      "entities": [
+        {
+          "surface": "龙王绝火琐罗亚",
+          "kind": "terminal",
+          "name_contains": "龙王绝火琐罗亚",
+          "type_constraint": "fusion",
+          "evidence_quote": "以龙王绝火琐罗亚等魔法师融合怪兽和连接节点交换场面"
+        },
+        {
+          "surface": "统辖",
+          "kind": "actor",
+          "name_contains": "统辖",
+          "type_constraint": "spell",
+          "evidence_quote": "统辖取得侍女或皇国，皇国取得雷古勒斯，展示另一魔法师特召并取得魔法"
+        },
+        {
+          "surface": "侍女",
+          "kind": "actor",
+          "name_contains": "侍女",
+          "type_constraint": "monster",
+          "evidence_quote": "统辖取得侍女或皇国，皇国取得雷古勒斯，展示另一魔法师特召并取得魔法"
+        },
+        {
+          "surface": "皇国",
+          "kind": "actor",
+          "name_contains": "皇国",
+          "type_constraint": "spell",
+          "evidence_quote": "统辖取得侍女或皇国，皇国取得雷古勒斯，展示另一魔法师特召并取得魔法"
+        },
+        {
+          "surface": "雷古勒斯",
+          "kind": "actor",
+          "name_contains": "雷古勒斯",
+          "type_constraint": "monster",
+          "evidence_quote": "统辖取得侍女或皇国，皇国取得雷古勒斯，展示另一魔法师特召并取得魔法"
+        },
+        {
+          "surface": "玻璃",
+          "kind": "actor",
+          "name_contains": "玻璃",
+          "type_constraint": "monster",
+          "evidence_quote": "玻璃在发动过魔法后登场，杰妮把魔法师换成其它魔女术，继续取得后续行动的魔法师"
+        },
+        {
+          "surface": "杰妮",
+          "kind": "actor",
+          "name_contains": "杰妮",
+          "type_constraint": "monster",
+          "evidence_quote": "玻璃在发动过魔法后登场，杰妮把魔法师换成其它魔女术，继续取得后续行动的魔法师"
+        },
+        {
+          "surface": "魔女术",
+          "kind": "actor",
+          "name_contains": "魔女术",
+          "type_constraint": null,
+          "evidence_quote": "玻璃在发动过魔法后登场，杰妮把魔法师换成其它魔女术，继续取得后续行动的魔法师"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "endymion_complete_pendulum_context",
+      "primary_plan_text": "以七音服与龙剑士的灵摆资源转为后续连接进攻",
+      "evidence_quote": "以七音服与龙剑士的灵摆资源转为后续连接进攻",
+      "confidence": "high",
+      "operation_tags": [
+        "link",
+        "pendulum",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "七音服",
+          "kind": "actor",
+          "name_contains": "七音服",
+          "type_constraint": null,
+          "evidence_quote": "以七音服与龙剑士的灵摆资源转为后续连接进攻"
+        },
+        {
+          "surface": "龙剑士",
+          "kind": "actor",
+          "name_contains": "龙剑士",
+          "type_constraint": null,
+          "evidence_quote": "以七音服与龙剑士的灵摆资源转为后续连接进攻"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "adventurer_ritual_turn",
+      "primary_plan_text": "以巳剑仪式怪兽与仪式循环取胜",
+      "evidence_quote": "以巳剑仪式怪兽与仪式循环取胜",
+      "confidence": "high",
+      "operation_tags": [
+        "ritual"
+      ],
+      "entities": [
+        {
+          "surface": "巳剑仪式怪兽",
+          "kind": "actor",
+          "name_contains": "巳剑仪式怪兽",
+          "type_constraint": "ritual",
+          "evidence_quote": "以巳剑仪式怪兽与仪式循环取胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "adventurer_normal_effect_conflict",
+      "primary_plan_text": "以急袭猛禽升阶建立大型超量怪兽",
+      "evidence_quote": "以急袭猛禽升阶建立大型超量怪兽",
+      "confidence": "high",
+      "operation_tags": [
+        "xyz"
+      ],
+      "entities": [
+        {
+          "surface": "急袭猛禽",
+          "kind": "actor",
+          "name_contains": "急袭猛禽",
+          "type_constraint": null,
+          "evidence_quote": "以急袭猛禽升阶建立大型超量怪兽"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "tenyi_vishuda_monk",
+      "primary_plan_text": "以相剑同调怪兽持续进攻",
+      "evidence_quote": "以相剑同调怪兽持续进攻",
+      "confidence": "high",
+      "operation_tags": [
+        "synchro",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "相剑同调怪兽",
+          "kind": "terminal",
+          "name_contains": "相剑同调怪兽",
+          "type_constraint": "synchro",
+          "evidence_quote": "以相剑同调怪兽持续进攻"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "tenyi_effect_monster_present",
+      "primary_plan_text": "以超重和相剑同调接续展开",
+      "evidence_quote": "以超重和相剑同调接续展开",
+      "confidence": "high",
+      "operation_tags": [
+        "synchro"
+      ],
+      "entities": [
+        {
+          "surface": "超重",
+          "kind": "actor",
+          "name_contains": "超重",
+          "type_constraint": null,
+          "evidence_quote": "以超重和相剑同调接续展开"
+        },
+        {
+          "surface": "相剑",
+          "kind": "actor",
+          "name_contains": "相剑",
+          "type_constraint": null,
+          "evidence_quote": "以超重和相剑同调接续展开"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "darkhole_striker_board_clear",
+      "primary_plan_text": "以闪刀魔法和连接循环取胜",
+      "evidence_quote": "以闪刀魔法和连接循环取胜",
+      "confidence": "high",
+      "operation_tags": [
+        "link"
+      ],
+      "entities": [
+        {
+          "surface": "闪刀魔法",
+          "kind": "actor",
+          "name_contains": "闪刀魔法",
+          "type_constraint": "spell",
+          "evidence_quote": "以闪刀魔法和连接循环取胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "darkhole_kuriboh_defence",
+      "primary_plan_text": "以栗子球防守资源延长对局，再进入额外怪兽进攻",
+      "evidence_quote": "以栗子球防守资源延长对局，再进入额外怪兽进攻",
+      "confidence": "high",
+      "operation_tags": [
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "栗子球",
+          "kind": "resource",
+          "name_contains": "栗子球",
+          "type_constraint": "monster",
+          "evidence_quote": "以栗子球防守资源延长对局，再进入额外怪兽进攻"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "striker_complete_resource_plan",
+      "primary_plan_text": "以闪刀魔法和闪刀姬循环交换取胜：零衣进入额外区，交闪检索、燎里回收、雫空结束阶段取得魔法，双纽回收，再以连接怪兽与抓锚处理场面",
+      "evidence_quote": "以闪刀魔法和闪刀姬循环交换取胜：零衣进入额外区，交闪检索、燎里回收、雫空结束阶段取得魔法，双纽回收，再以连接怪兽与抓锚处理场面",
+      "confidence": "high",
+      "operation_tags": [
+        "link",
+        "search",
+        "recover"
+      ],
+      "entities": [
+        {
+          "surface": "闪刀魔法",
+          "kind": "actor",
+          "name_contains": "闪刀魔法",
+          "type_constraint": "spell",
+          "evidence_quote": "以闪刀魔法和闪刀姬循环交换取胜：零衣进入额外区，交闪检索、燎里回收、雫空结束阶段取得魔法，双纽回收，再以连接怪兽与抓锚处理场面"
+        },
+        {
+          "surface": "闪刀姬",
+          "kind": "actor",
+          "name_contains": "闪刀姬",
+          "type_constraint": null,
+          "evidence_quote": "以闪刀魔法和闪刀姬循环交换取胜：零衣进入额外区，交闪检索、燎里回收、雫空结束阶段取得魔法，双纽回收，再以连接怪兽与抓锚处理场面"
+        },
+        {
+          "surface": "零衣",
+          "kind": "actor",
+          "name_contains": "零衣",
+          "type_constraint": "monster",
+          "evidence_quote": "零衣进入额外区，交闪检索、燎里回收、雫空结束阶段取得魔法，双纽回收，再以连接怪兽与抓锚处理场面"
+        },
+        {
+          "surface": "交闪",
+          "kind": "actor",
+          "name_contains": "交闪",
+          "type_constraint": "spell",
+          "evidence_quote": "零衣进入额外区，交闪检索、燎里回收、雫空结束阶段取得魔法，双纽回收，再以连接怪兽与抓锚处理场面"
+        },
+        {
+          "surface": "燎里",
+          "kind": "actor",
+          "name_contains": "燎里",
+          "type_constraint": "link",
+          "evidence_quote": "零衣进入额外区，交闪检索、燎里回收、雫空结束阶段取得魔法，双纽回收，再以连接怪兽与抓锚处理场面"
+        },
+        {
+          "surface": "雫空",
+          "kind": "actor",
+          "name_contains": "雫空",
+          "type_constraint": "link",
+          "evidence_quote": "零衣进入额外区，交闪检索、燎里回收、雫空结束阶段取得魔法，双纽回收，再以连接怪兽与抓锚处理场面"
+        },
+        {
+          "surface": "双纽",
+          "kind": "actor",
+          "name_contains": "双纽",
+          "type_constraint": "spell",
+          "evidence_quote": "零衣进入额外区，交闪检索、燎里回收、雫空结束阶段取得魔法，双纽回收，再以连接怪兽与抓锚处理场面"
+        },
+        {
+          "surface": "抓锚",
+          "kind": "actor",
+          "name_contains": "抓锚",
+          "type_constraint": "spell",
+          "evidence_quote": "零衣进入额外区，交闪检索、燎里回收、雫空结束阶段取得魔法，双纽回收，再以连接怪兽与抓锚处理场面"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "striker_complete_ritual_finish",
+      "primary_plan_text": "以栗球兽卫、光与暗的仪式和黑混沌仪式怪兽的魔法回收建立资源，之后将仪式怪兽回卡组特召超魔剑士黑混沌，以其除外和攻击终结",
+      "evidence_quote": "以栗球兽卫、光与暗的仪式和黑混沌仪式怪兽的魔法回收建立资源，之后将仪式怪兽回卡组特召超魔剑士黑混沌，以其除外和攻击终结",
+      "confidence": "high",
+      "operation_tags": [
+        "ritual",
+        "special_summon",
+        "recover",
+        "banish",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "栗球兽卫",
+          "kind": "actor",
+          "name_contains": "栗球兽卫",
+          "type_constraint": "monster",
+          "evidence_quote": "以栗球兽卫、光与暗的仪式和黑混沌仪式怪兽的魔法回收建立资源，之后将仪式怪兽回卡组特召超魔剑士黑混沌，以其除外和攻击终结"
+        },
+        {
+          "surface": "光与暗的仪式",
+          "kind": "actor",
+          "name_contains": "光与暗的仪式",
+          "type_constraint": "spell",
+          "evidence_quote": "以栗球兽卫、光与暗的仪式和黑混沌仪式怪兽的魔法回收建立资源，之后将仪式怪兽回卡组特召超魔剑士黑混沌，以其除外和攻击终结"
+        },
+        {
+          "surface": "黑混沌仪式怪兽",
+          "kind": "actor",
+          "name_contains": "黑混沌仪式怪兽",
+          "type_constraint": "ritual",
+          "evidence_quote": "以栗球兽卫、光与暗的仪式和黑混沌仪式怪兽的魔法回收建立资源，之后将仪式怪兽回卡组特召超魔剑士黑混沌，以其除外和攻击终结"
+        },
+        {
+          "surface": "超魔剑士黑混沌",
+          "kind": "terminal",
+          "name_contains": "超魔剑士黑混沌",
+          "type_constraint": "monster",
+          "evidence_quote": "以栗球兽卫、光与暗的仪式和黑混沌仪式怪兽的魔法回收建立资源，之后将仪式怪兽回卡组特召超魔剑士黑混沌，以其除外和攻击终结"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "striker_drones_link_recover",
+      "primary_plan_text": "以味美喵及其它连接节点进入后续场面",
+      "evidence_quote": "以味美喵及其它连接节点进入后续场面",
+      "confidence": "high",
+      "operation_tags": [
+        "link"
+      ],
+      "entities": [
+        {
+          "surface": "味美喵",
+          "kind": "actor",
+          "name_contains": "味美喵",
+          "type_constraint": "link",
+          "evidence_quote": "以味美喵及其它连接节点进入后续场面"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "striker_drones_occupied_main",
+      "primary_plan_text": "以味美喵和其它连接怪兽维持场面",
+      "evidence_quote": "以味美喵和其它连接怪兽维持场面",
+      "confidence": "high",
+      "operation_tags": [
+        "link"
+      ],
+      "entities": [
+        {
+          "surface": "味美喵",
+          "kind": "actor",
+          "name_contains": "味美喵",
+          "type_constraint": "link",
+          "evidence_quote": "以味美喵和其它连接怪兽维持场面"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "predaplant_search_superpoly",
+      "primary_plan_text": "以捕食植物融合怪兽和后续场面交换获胜",
+      "evidence_quote": "以捕食植物融合怪兽和后续场面交换获胜",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion"
+      ],
+      "entities": [
+        {
+          "surface": "捕食植物融合怪兽",
+          "kind": "terminal",
+          "name_contains": "捕食植物融合怪兽",
+          "type_constraint": "fusion",
+          "evidence_quote": "以捕食植物融合怪兽和后续场面交换获胜"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "predaplant_compact_fusion_attack",
+      "primary_plan_text": "以蜂兰蝎叫出眼镜蛇、取得超融合，将场上两只暗属性捕食植物融合为凶饿毒融合龙，作为本局主要进攻路线",
+      "evidence_quote": "以蜂兰蝎叫出眼镜蛇、取得超融合，将场上两只暗属性捕食植物融合为凶饿毒融合龙，作为本局主要进攻路线",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion",
+        "search",
+        "special_summon",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "蜂兰蝎",
+          "kind": "actor",
+          "name_contains": "蜂兰蝎",
+          "type_constraint": "monster",
+          "evidence_quote": "以蜂兰蝎叫出眼镜蛇、取得超融合，将场上两只暗属性捕食植物融合为凶饿毒融合龙，作为本局主要进攻路线"
+        },
+        {
+          "surface": "眼镜蛇",
+          "kind": "actor",
+          "name_contains": "眼镜蛇",
+          "type_constraint": "monster",
+          "evidence_quote": "以蜂兰蝎叫出眼镜蛇、取得超融合，将场上两只暗属性捕食植物融合为凶饿毒融合龙，作为本局主要进攻路线"
+        },
+        {
+          "surface": "超融合",
+          "kind": "actor",
+          "name_contains": "超融合",
+          "type_constraint": "spell",
+          "evidence_quote": "以蜂兰蝎叫出眼镜蛇、取得超融合，将场上两只暗属性捕食植物融合为凶饿毒融合龙，作为本局主要进攻路线"
+        },
+        {
+          "surface": "暗属性捕食植物",
+          "kind": "resource",
+          "name_contains": "暗属性捕食植物",
+          "type_constraint": "monster",
+          "evidence_quote": "以蜂兰蝎叫出眼镜蛇、取得超融合，将场上两只暗属性捕食植物融合为凶饿毒融合龙，作为本局主要进攻路线"
+        },
+        {
+          "surface": "凶饿毒融合龙",
+          "kind": "terminal",
+          "name_contains": "凶饿毒融合龙",
+          "type_constraint": "fusion",
+          "evidence_quote": "以蜂兰蝎叫出眼镜蛇、取得超融合，将场上两只暗属性捕食植物融合为凶饿毒融合龙，作为本局主要进攻路线"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "predaplant_second_discard_missing",
+      "primary_plan_text": "以捕食融合怪兽推进场面",
+      "evidence_quote": "以捕食融合怪兽推进场面",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion"
+      ],
+      "entities": [
+        {
+          "surface": "捕食融合怪兽",
+          "kind": "terminal",
+          "name_contains": "捕食融合怪兽",
+          "type_constraint": "fusion",
+          "evidence_quote": "以捕食融合怪兽推进场面"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "duster_cartoon_backrow_clear",
+      "primary_plan_text": "以卡通怪兽和后续连接进攻获胜",
+      "evidence_quote": "以卡通怪兽和后续连接进攻获胜",
+      "confidence": "high",
+      "operation_tags": [
+        "link",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "卡通怪兽",
+          "kind": "actor",
+          "name_contains": "卡通怪兽",
+          "type_constraint": "monster",
+          "evidence_quote": "以卡通怪兽和后续连接进攻获胜"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "duster_no_backrow_now",
+      "primary_plan_text": "以烙印融合和墓地资源取得长期优势",
+      "evidence_quote": "以烙印融合和墓地资源取得长期优势",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion",
+        "grave"
+      ],
+      "entities": [
+        {
+          "surface": "烙印融合",
+          "kind": "actor",
+          "name_contains": "烙印融合",
+          "type_constraint": "spell",
+          "evidence_quote": "以烙印融合和墓地资源取得长期优势"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "v5_nibiru_single_live",
+      "primary_plan_text": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。",
+      "evidence_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion",
+        "negate",
+        "recover",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "梅尔卡巴",
+          "kind": "terminal",
+          "name_contains": "梅尔卡巴",
+          "type_constraint": "fusion",
+          "evidence_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜"
+        },
+        {
+          "surface": "阿莱斯特",
+          "kind": "resource",
+          "name_contains": "阿莱斯特",
+          "type_constraint": "monster",
+          "evidence_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "v5_nibiru_below_threshold",
+      "primary_plan_text": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。",
+      "evidence_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion",
+        "negate",
+        "recover",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "梅尔卡巴",
+          "kind": "terminal",
+          "name_contains": "梅尔卡巴",
+          "type_constraint": "fusion",
+          "evidence_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜"
+        },
+        {
+          "surface": "阿莱斯特",
+          "kind": "resource",
+          "name_contains": "阿莱斯特",
+          "type_constraint": "monster",
+          "evidence_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "v5_etele_ogre_from_deck",
+      "primary_plan_text": "以同调召唤建立鲜花女男爵等怪兽的无效场面，再以这些怪兽攻击获胜。",
+      "evidence_quote": "以同调召唤建立鲜花女男爵等怪兽的无效场面，再以这些怪兽攻击获胜。",
+      "confidence": "high",
+      "operation_tags": [
+        "synchro",
+        "negate",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "鲜花女男爵",
+          "kind": "terminal",
+          "name_contains": "鲜花女男爵",
+          "type_constraint": "synchro",
+          "evidence_quote": "以同调召唤建立鲜花女男爵等怪兽的无效场面，再以这些怪兽攻击获胜"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "v5_etele_ogre_from_hand",
+      "primary_plan_text": "以同调召唤建立鲜花女男爵等怪兽的无效场面，再以这些怪兽攻击获胜。",
+      "evidence_quote": "以同调召唤建立鲜花女男爵等怪兽的无效场面，再以这些怪兽攻击获胜。",
+      "confidence": "high",
+      "operation_tags": [
+        "synchro",
+        "negate",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "鲜花女男爵",
+          "kind": "terminal",
+          "name_contains": "鲜花女男爵",
+          "type_constraint": "synchro",
+          "evidence_quote": "以同调召唤建立鲜花女男爵等怪兽的无效场面，再以这些怪兽攻击获胜"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "v5_quick_launch_tracer_deck",
+      "primary_plan_text": "通过龙族连接怪兽衔接资源，以装弹枪管狞猛龙等同调怪兽建立无效场面取得胜利。",
+      "evidence_quote": "通过龙族连接怪兽衔接资源，以装弹枪管狞猛龙等同调怪兽建立无效场面取得胜利。",
+      "confidence": "high",
+      "operation_tags": [
+        "link",
+        "synchro",
+        "negate"
+      ],
+      "entities": [
+        {
+          "surface": "装弹枪管狞猛龙",
+          "kind": "terminal",
+          "name_contains": "装弹枪管狞猛龙",
+          "type_constraint": "synchro",
+          "evidence_quote": "通过龙族连接怪兽衔接资源，以装弹枪管狞猛龙等同调怪兽建立无效场面取得胜利"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "v5_quick_launch_target_only_in_hand",
+      "primary_plan_text": "通过龙族连接怪兽衔接资源，以装弹枪管狞猛龙等同调怪兽建立无效场面取得胜利。",
+      "evidence_quote": "通过龙族连接怪兽衔接资源，以装弹枪管狞猛龙等同调怪兽建立无效场面取得胜利。",
+      "confidence": "high",
+      "operation_tags": [
+        "link",
+        "synchro",
+        "negate"
+      ],
+      "entities": [
+        {
+          "surface": "装弹枪管狞猛龙",
+          "kind": "terminal",
+          "name_contains": "装弹枪管狞猛龙",
+          "type_constraint": "synchro",
+          "evidence_quote": "通过龙族连接怪兽衔接资源，以装弹枪管狞猛龙等同调怪兽建立无效场面取得胜利"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "v5_unexpected_dai_seed",
+      "primary_plan_text": "通过植物族的连接召唤衔接圣天树、圣蔓与其它植物资源，最终以植物怪兽攻击获胜。",
+      "evidence_quote": "通过植物族的连接召唤衔接圣天树、圣蔓与其它植物资源，最终以植物怪兽攻击获胜。",
+      "confidence": "high",
+      "operation_tags": [
+        "link",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "圣天树",
+          "kind": "actor",
+          "name_contains": "圣天树",
+          "type_constraint": null,
+          "evidence_quote": "通过植物族的连接召唤衔接圣天树、圣蔓与其它植物资源，最终以植物怪兽攻击获胜"
+        },
+        {
+          "surface": "圣蔓",
+          "kind": "actor",
+          "name_contains": "圣蔓",
+          "type_constraint": null,
+          "evidence_quote": "通过植物族的连接召唤衔接圣天树、圣蔓与其它植物资源，最终以植物怪兽攻击获胜"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "v5_gamma_query_missing_driver",
+      "primary_plan_text": "以杀手级调整曲等同调怪兽持续组织场面，并以同调怪兽攻击取得胜利。",
+      "evidence_quote": "以杀手级调整曲等同调怪兽持续组织场面，并以同调怪兽攻击取得胜利。",
+      "confidence": "high",
+      "operation_tags": [
+        "synchro",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "杀手级调整曲",
+          "kind": "terminal",
+          "name_contains": "杀手级调整曲",
+          "type_constraint": "synchro",
+          "evidence_quote": "以杀手级调整曲等同调怪兽持续组织场面，并以同调怪兽攻击取得胜利"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "v5_driver_query_missing_gamma",
+      "primary_plan_text": "以杀手级调整曲等同调怪兽持续组织场面，并以同调怪兽攻击取得胜利。",
+      "evidence_quote": "以杀手级调整曲等同调怪兽持续组织场面，并以同调怪兽攻击取得胜利。",
+      "confidence": "high",
+      "operation_tags": [
+        "synchro",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "杀手级调整曲",
+          "kind": "terminal",
+          "name_contains": "杀手级调整曲",
+          "type_constraint": "synchro",
+          "evidence_quote": "以杀手级调整曲等同调怪兽持续组织场面，并以同调怪兽攻击取得胜利"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "v5_invoked_query_missing_artemis",
+      "primary_plan_text": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。",
+      "evidence_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion",
+        "negate",
+        "recover",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "梅尔卡巴",
+          "kind": "terminal",
+          "name_contains": "梅尔卡巴",
+          "type_constraint": "fusion",
+          "evidence_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜"
+        },
+        {
+          "surface": "阿莱斯特",
+          "kind": "resource",
+          "name_contains": "阿莱斯特",
+          "type_constraint": "monster",
+          "evidence_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "v5_invoked_query_missing_invocation",
+      "primary_plan_text": "以S：P小夜骑士等连接怪兽反复除外对方资源，在后续回合以怪兽攻击获胜。",
+      "evidence_quote": "以S：P小夜骑士等连接怪兽反复除外对方资源，在后续回合以怪兽攻击获胜。",
+      "confidence": "high",
+      "operation_tags": [
+        "link",
+        "banish",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "S：P小夜骑士",
+          "kind": "terminal",
+          "name_contains": "S：P小夜骑士",
+          "type_constraint": "link",
+          "evidence_quote": "以S：P小夜骑士等连接怪兽反复除外对方资源，在后续回合以怪兽攻击获胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "v5_invoked_query_missing_mechaba",
+      "primary_plan_text": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。",
+      "evidence_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion",
+        "negate",
+        "recover",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "梅尔卡巴",
+          "kind": "terminal",
+          "name_contains": "梅尔卡巴",
+          "type_constraint": "fusion",
+          "evidence_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜"
+        },
+        {
+          "surface": "阿莱斯特",
+          "kind": "resource",
+          "name_contains": "阿莱斯特",
+          "type_constraint": "monster",
+          "evidence_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "v5_invoked_query_missing_aleister",
+      "primary_plan_text": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。",
+      "evidence_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion",
+        "negate",
+        "recover",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "梅尔卡巴",
+          "kind": "terminal",
+          "name_contains": "梅尔卡巴",
+          "type_constraint": "fusion",
+          "evidence_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜"
+        },
+        {
+          "surface": "阿莱斯特",
+          "kind": "resource",
+          "name_contains": "阿莱斯特",
+          "type_constraint": "monster",
+          "evidence_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "v5_tourguide_query_missing_sangan",
+      "primary_plan_text": "以破械连接怪兽将对方怪兽转成连接素材，回收恶魔族资源，反复交换场面取得胜利。",
+      "evidence_quote": "以破械连接怪兽将对方怪兽转成连接素材，回收恶魔族资源，反复交换场面取得胜利。",
+      "confidence": "high",
+      "operation_tags": [
+        "link",
+        "recover"
+      ],
+      "entities": [
+        {
+          "surface": "破械连接怪兽",
+          "kind": "actor",
+          "name_contains": "破械连接怪兽",
+          "type_constraint": "link",
+          "evidence_quote": "以破械连接怪兽将对方怪兽转成连接素材，回收恶魔族资源，反复交换场面取得胜利"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "v5_tourguide_without_cherubini_material_contract",
+      "primary_plan_text": "以破械连接怪兽将对方怪兽转成连接素材，回收恶魔族资源，反复交换场面取得胜利。",
+      "evidence_quote": "以破械连接怪兽将对方怪兽转成连接素材，回收恶魔族资源，反复交换场面取得胜利。",
+      "confidence": "high",
+      "operation_tags": [
+        "link",
+        "recover"
+      ],
+      "entities": [
+        {
+          "surface": "破械连接怪兽",
+          "kind": "actor",
+          "name_contains": "破械连接怪兽",
+          "type_constraint": "link",
+          "evidence_quote": "以破械连接怪兽将对方怪兽转成连接素材，回收恶魔族资源，反复交换场面取得胜利"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "v5_branded_full_with_minimum_fusion_contract",
+      "primary_plan_text": "以阿不思相关连续融合、墓地回收与冰剑龙的除外换取长期场面优势并获胜。",
+      "evidence_quote": "以阿不思相关连续融合、墓地回收与冰剑龙的除外换取长期场面优势并获胜。",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion",
+        "recover",
+        "grave",
+        "banish"
+      ],
+      "entities": [
+        {
+          "surface": "阿不思",
+          "kind": "actor",
+          "name_contains": "阿不思",
+          "type_constraint": "monster",
+          "evidence_quote": "以阿不思相关连续融合、墓地回收与冰剑龙的除外换取长期场面优势并获胜"
+        },
+        {
+          "surface": "冰剑龙",
+          "kind": "terminal",
+          "name_contains": "冰剑龙",
+          "type_constraint": "fusion",
+          "evidence_quote": "以阿不思相关连续融合、墓地回收与冰剑龙的除外换取长期场面优势并获胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "v5_hero_full_with_minimum_mask_contract",
+      "primary_plan_text": "以命运英雄场地破坏、复活和融合循环组织场面，通过凤凰人的破坏交换与英雄攻击获胜。",
+      "evidence_quote": "以命运英雄场地破坏、复活和融合循环组织场面，通过凤凰人的破坏交换与英雄攻击获胜。",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion",
+        "special_summon",
+        "destroy",
+        "recover",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "命运英雄",
+          "kind": "actor",
+          "name_contains": "命运英雄",
+          "type_constraint": "monster",
+          "evidence_quote": "以命运英雄场地破坏、复活和融合循环组织场面，通过凤凰人的破坏交换与英雄攻击获胜"
+        },
+        {
+          "surface": "凤凰人",
+          "kind": "terminal",
+          "name_contains": "凤凰人",
+          "type_constraint": "fusion",
+          "evidence_quote": "以命运英雄场地破坏、复活和融合循环组织场面，通过凤凰人的破坏交换与英雄攻击获胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v5-fs-01",
+      "primary_plan_text": "以刻魔融合怪兽的持续干扰和战斗结束对局，破械怪兽负责提供额外身体与后续交换",
+      "evidence_quote": "以刻魔融合怪兽的持续干扰和战斗结束对局，破械怪兽负责提供额外身体与后续交换",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "刻魔融合怪兽",
+          "kind": "terminal",
+          "name_contains": "刻魔融合怪兽",
+          "type_constraint": "fusion",
+          "evidence_quote": "以刻魔融合怪兽的持续干扰和战斗结束对局，破械怪兽负责提供额外身体与后续交换"
+        },
+        {
+          "surface": "破械怪兽",
+          "kind": "actor",
+          "name_contains": "破械怪兽",
+          "type_constraint": "monster",
+          "evidence_quote": "以刻魔融合怪兽的持续干扰和战斗结束对局，破械怪兽负责提供额外身体与后续交换"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v5-fs-02",
+      "primary_plan_text": "用破械连接怪兽处理对方怪兽并靠破坏后的续接维持场面",
+      "evidence_quote": "用破械连接怪兽处理对方怪兽并靠破坏后的续接维持场面",
+      "confidence": "high",
+      "operation_tags": [
+        "link",
+        "destroy"
+      ],
+      "entities": [
+        {
+          "surface": "破械连接怪兽",
+          "kind": "actor",
+          "name_contains": "破械连接怪兽",
+          "type_constraint": "link",
+          "evidence_quote": "用破械连接怪兽处理对方怪兽并靠破坏后的续接维持场面"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "blind-v5-fs-03",
+      "primary_plan_text": "通过无垢大艺术与狱神使的形态转换和额外怪兽持续推进",
+      "evidence_quote": "通过无垢大艺术与狱神使的形态转换和额外怪兽持续推进",
+      "confidence": "high",
+      "operation_tags": [
+        "transformation"
+      ],
+      "entities": [
+        {
+          "surface": "无垢大艺术",
+          "kind": "actor",
+          "name_contains": "无垢大艺术",
+          "type_constraint": null,
+          "evidence_quote": "通过无垢大艺术与狱神使的形态转换和额外怪兽持续推进"
+        },
+        {
+          "surface": "狱神使",
+          "kind": "actor",
+          "name_contains": "狱神使",
+          "type_constraint": null,
+          "evidence_quote": "通过无垢大艺术与狱神使的形态转换和额外怪兽持续推进"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v5-fs-04",
+      "primary_plan_text": "以破械连接怪兽和破坏触发续接构建场面，再由恶魔族怪兽攻击取胜",
+      "evidence_quote": "以破械连接怪兽和破坏触发续接构建场面，再由恶魔族怪兽攻击取胜",
+      "confidence": "high",
+      "operation_tags": [
+        "link",
+        "destroy",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "破械连接怪兽",
+          "kind": "actor",
+          "name_contains": "破械连接怪兽",
+          "type_constraint": "link",
+          "evidence_quote": "以破械连接怪兽和破坏触发续接构建场面，再由恶魔族怪兽攻击取胜"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "blind-v5-fs-05",
+      "primary_plan_text": "以无垢大艺术的形态转换与额外怪兽交换取胜",
+      "evidence_quote": "以无垢大艺术的形态转换与额外怪兽交换取胜",
+      "confidence": "high",
+      "operation_tags": [
+        "transformation"
+      ],
+      "entities": [
+        {
+          "surface": "无垢大艺术",
+          "kind": "actor",
+          "name_contains": "无垢大艺术",
+          "type_constraint": null,
+          "evidence_quote": "以无垢大艺术的形态转换与额外怪兽交换取胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v5-fs-06",
+      "primary_plan_text": "以三幻魔大型怪兽压场并通过战斗结束对局",
+      "evidence_quote": "以三幻魔大型怪兽压场并通过战斗结束对局",
+      "confidence": "high",
+      "operation_tags": [
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "三幻魔",
+          "kind": "actor",
+          "name_contains": "三幻魔",
+          "type_constraint": "monster",
+          "evidence_quote": "以三幻魔大型怪兽压场并通过战斗结束对局"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v5-fk-01",
+      "primary_plan_text": "通过炎王怪兽反复破坏、复活与检索建立资源优势，再以炎属性额外怪兽和大鹏不死鸟的清场攻击取胜",
+      "evidence_quote": "通过炎王怪兽反复破坏、复活与检索建立资源优势，再以炎属性额外怪兽和大鹏不死鸟的清场攻击取胜",
+      "confidence": "high",
+      "operation_tags": [
+        "search",
+        "special_summon",
+        "destroy",
+        "recover",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "炎王怪兽",
+          "kind": "actor",
+          "name_contains": "炎王怪兽",
+          "type_constraint": "monster",
+          "evidence_quote": "通过炎王怪兽反复破坏、复活与检索建立资源优势，再以炎属性额外怪兽和大鹏不死鸟的清场攻击取胜"
+        },
+        {
+          "surface": "大鹏不死鸟",
+          "kind": "terminal",
+          "name_contains": "大鹏不死鸟",
+          "type_constraint": "monster",
+          "evidence_quote": "通过炎王怪兽反复破坏、复活与检索建立资源优势，再以炎属性额外怪兽和大鹏不死鸟的清场攻击取胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v5-fk-02",
+      "primary_plan_text": "用朱罗纪与其它恐龙怪兽的展开进入炎属性额外怪兽，并以战斗结束对局",
+      "evidence_quote": "用朱罗纪与其它恐龙怪兽的展开进入炎属性额外怪兽，并以战斗结束对局",
+      "confidence": "high",
+      "operation_tags": [
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "朱罗纪",
+          "kind": "actor",
+          "name_contains": "朱罗纪",
+          "type_constraint": "monster",
+          "evidence_quote": "用朱罗纪与其它恐龙怪兽的展开进入炎属性额外怪兽，并以战斗结束对局"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "blind-v5-fk-03",
+      "primary_plan_text": "以朱罗纪与恐龙展开进入炎属性额外怪兽，再通过战斗取胜",
+      "evidence_quote": "以朱罗纪与恐龙展开进入炎属性额外怪兽，再通过战斗取胜",
+      "confidence": "high",
+      "operation_tags": [
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "朱罗纪",
+          "kind": "actor",
+          "name_contains": "朱罗纪",
+          "type_constraint": "monster",
+          "evidence_quote": "以朱罗纪与恐龙展开进入炎属性额外怪兽，再通过战斗取胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v5-fk-04",
+      "primary_plan_text": "利用朱罗纪怪兽被破坏后的送墓与后续召唤，进入炎属性额外怪兽",
+      "evidence_quote": "利用朱罗纪怪兽被破坏后的送墓与后续召唤，进入炎属性额外怪兽",
+      "confidence": "high",
+      "operation_tags": [
+        "destroy",
+        "grave"
+      ],
+      "entities": [
+        {
+          "surface": "朱罗纪",
+          "kind": "actor",
+          "name_contains": "朱罗纪",
+          "type_constraint": "monster",
+          "evidence_quote": "利用朱罗纪怪兽被破坏后的送墓与后续召唤，进入炎属性额外怪兽"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v5-fk-05",
+      "primary_plan_text": "以圣炎王、凤凰不死鸟和麒麟的破坏循环配合朱罗纪怪兽触发，持续补充身体并攻击取胜",
+      "evidence_quote": "以圣炎王、凤凰不死鸟和麒麟的破坏循环配合朱罗纪怪兽触发，持续补充身体并攻击取胜",
+      "confidence": "high",
+      "operation_tags": [
+        "destroy",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "圣炎王",
+          "kind": "actor",
+          "name_contains": "圣炎王",
+          "type_constraint": "monster",
+          "evidence_quote": "以圣炎王、凤凰不死鸟和麒麟的破坏循环配合朱罗纪怪兽触发，持续补充身体并攻击取胜"
+        },
+        {
+          "surface": "凤凰不死鸟",
+          "kind": "actor",
+          "name_contains": "凤凰不死鸟",
+          "type_constraint": "monster",
+          "evidence_quote": "以圣炎王、凤凰不死鸟和麒麟的破坏循环配合朱罗纪怪兽触发，持续补充身体并攻击取胜"
+        },
+        {
+          "surface": "麒麟",
+          "kind": "actor",
+          "name_contains": "麒麟",
+          "type_constraint": "monster",
+          "evidence_quote": "以圣炎王、凤凰不死鸟和麒麟的破坏循环配合朱罗纪怪兽触发，持续补充身体并攻击取胜"
+        },
+        {
+          "surface": "朱罗纪",
+          "kind": "actor",
+          "name_contains": "朱罗纪",
+          "type_constraint": "monster",
+          "evidence_quote": "以圣炎王、凤凰不死鸟和麒麟的破坏循环配合朱罗纪怪兽触发，持续补充身体并攻击取胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v5-fk-06",
+      "primary_plan_text": "用青眼与原石的8星怪兽展开，保留进攻身体并通过战斗取胜",
+      "evidence_quote": "用青眼与原石的8星怪兽展开，保留进攻身体并通过战斗取胜",
+      "confidence": "high",
+      "operation_tags": [
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "青眼",
+          "kind": "actor",
+          "name_contains": "青眼",
+          "type_constraint": "monster",
+          "evidence_quote": "用青眼与原石的8星怪兽展开，保留进攻身体并通过战斗取胜"
+        },
+        {
+          "surface": "原石",
+          "kind": "actor",
+          "name_contains": "原石",
+          "type_constraint": null,
+          "evidence_quote": "用青眼与原石的8星怪兽展开，保留进攻身体并通过战斗取胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v5-rn-01",
+      "primary_plan_text": "通过神碑速攻魔法反复除外对方卡组、阻止对方推进，并以神碑之泉回收补充手牌，最终使对方无法抽卡",
+      "evidence_quote": "通过神碑速攻魔法反复除外对方卡组、阻止对方推进，并以神碑之泉回收补充手牌，最终使对方无法抽卡",
+      "confidence": "high",
+      "operation_tags": [
+        "draw",
+        "recover",
+        "banish"
+      ],
+      "entities": [
+        {
+          "surface": "神碑速攻魔法",
+          "kind": "actor",
+          "name_contains": "神碑速攻魔法",
+          "type_constraint": "spell",
+          "evidence_quote": "通过神碑速攻魔法反复除外对方卡组、阻止对方推进，并以神碑之泉回收补充手牌，最终使对方无法抽卡"
+        },
+        {
+          "surface": "神碑之泉",
+          "kind": "actor",
+          "name_contains": "神碑之泉",
+          "type_constraint": "spell",
+          "evidence_quote": "通过神碑速攻魔法反复除外对方卡组、阻止对方推进，并以神碑之泉回收补充手牌，最终使对方无法抽卡"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v5-rn-02",
+      "primary_plan_text": "用光与暗的仪式召唤混沌战士或黑混沌，积累场面后以战斗取胜",
+      "evidence_quote": "用光与暗的仪式召唤混沌战士或黑混沌，积累场面后以战斗取胜",
+      "confidence": "high",
+      "operation_tags": [
+        "ritual",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "光与暗的仪式",
+          "kind": "actor",
+          "name_contains": "光与暗的仪式",
+          "type_constraint": "spell",
+          "evidence_quote": "用光与暗的仪式召唤混沌战士或黑混沌，积累场面后以战斗取胜"
+        },
+        {
+          "surface": "混沌战士",
+          "kind": "terminal",
+          "name_contains": "混沌战士",
+          "type_constraint": "ritual",
+          "evidence_quote": "用光与暗的仪式召唤混沌战士或黑混沌，积累场面后以战斗取胜"
+        },
+        {
+          "surface": "黑混沌",
+          "kind": "terminal",
+          "name_contains": "黑混沌",
+          "type_constraint": "ritual",
+          "evidence_quote": "用光与暗的仪式召唤混沌战士或黑混沌，积累场面后以战斗取胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v5-rn-03",
+      "primary_plan_text": "先积累仪式召唤所需的手牌与场面，之后以光与暗仪式怪兽攻击取胜",
+      "evidence_quote": "先积累仪式召唤所需的手牌与场面，之后以光与暗仪式怪兽攻击取胜",
+      "confidence": "high",
+      "operation_tags": [
+        "ritual",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "光与暗仪式怪兽",
+          "kind": "terminal",
+          "name_contains": "光与暗仪式怪兽",
+          "type_constraint": "ritual",
+          "evidence_quote": "先积累仪式召唤所需的手牌与场面，之后以光与暗仪式怪兽攻击取胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v5-rn-04",
+      "primary_plan_text": "用光与暗的仪式及混沌怪兽建立场面，再通过战斗结束对局",
+      "evidence_quote": "用光与暗的仪式及混沌怪兽建立场面，再通过战斗结束对局",
+      "confidence": "high",
+      "operation_tags": [
+        "ritual",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "光与暗的仪式",
+          "kind": "actor",
+          "name_contains": "光与暗的仪式",
+          "type_constraint": "spell",
+          "evidence_quote": "用光与暗的仪式及混沌怪兽建立场面，再通过战斗结束对局"
+        },
+        {
+          "surface": "混沌怪兽",
+          "kind": "terminal",
+          "name_contains": "混沌怪兽",
+          "type_constraint": "monster",
+          "evidence_quote": "用光与暗的仪式及混沌怪兽建立场面，再通过战斗结束对局"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v5-rn-05",
+      "primary_plan_text": "在准备回合完成光与暗仪式怪兽的场面，之后再通过战斗取胜",
+      "evidence_quote": "在准备回合完成光与暗仪式怪兽的场面，之后再通过战斗取胜",
+      "confidence": "high",
+      "operation_tags": [
+        "ritual",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "光与暗仪式怪兽",
+          "kind": "terminal",
+          "name_contains": "光与暗仪式怪兽",
+          "type_constraint": "ritual",
+          "evidence_quote": "在准备回合完成光与暗仪式怪兽的场面，之后再通过战斗取胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v5-rn-06",
+      "primary_plan_text": "用光与暗的仪式建立混沌怪兽场面，之后依靠战斗取胜",
+      "evidence_quote": "用光与暗的仪式建立混沌怪兽场面，之后依靠战斗取胜",
+      "confidence": "high",
+      "operation_tags": [
+        "ritual",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "光与暗的仪式",
+          "kind": "actor",
+          "name_contains": "光与暗的仪式",
+          "type_constraint": "spell",
+          "evidence_quote": "用光与暗的仪式建立混沌怪兽场面，之后依靠战斗取胜"
+        },
+        {
+          "surface": "混沌怪兽",
+          "kind": "terminal",
+          "name_contains": "混沌怪兽",
+          "type_constraint": "monster",
+          "evidence_quote": "用光与暗的仪式建立混沌怪兽场面，之后依靠战斗取胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v5-kj-01",
+      "primary_plan_text": "用星辰与融合怪兽建立场面，并在之后通过战斗取胜",
+      "evidence_quote": "用星辰与融合怪兽建立场面，并在之后通过战斗取胜",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "星辰",
+          "kind": "actor",
+          "name_contains": "星辰",
+          "type_constraint": null,
+          "evidence_quote": "用星辰与融合怪兽建立场面，并在之后通过战斗取胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v5-kj-02",
+      "primary_plan_text": "保留己方的星辰融合场面并依靠后续战斗取胜",
+      "evidence_quote": "保留己方的星辰融合场面并依靠后续战斗取胜",
+      "confidence": "high",
+      "operation_tags": [
+        "fusion",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "星辰",
+          "kind": "actor",
+          "name_contains": "星辰",
+          "type_constraint": null,
+          "evidence_quote": "保留己方的星辰融合场面并依靠后续战斗取胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v5-kj-03",
+      "primary_plan_text": "用僵尸牧人围绕原本持有者为自己的对方怪兽获得控制权，再用大怪进入8阶怪兽的进攻路线",
+      "evidence_quote": "用僵尸牧人围绕原本持有者为自己的对方怪兽获得控制权，再用大怪进入8阶怪兽的进攻路线",
+      "confidence": "high",
+      "operation_tags": [
+        "attack",
+        "xyz"
+      ],
+      "entities": [
+        {
+          "surface": "僵尸牧人",
+          "kind": "actor",
+          "name_contains": "僵尸牧人",
+          "type_constraint": "monster",
+          "evidence_quote": "用僵尸牧人围绕原本持有者为自己的对方怪兽获得控制权，再用大怪进入8阶怪兽的进攻路线"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v5-kj-04",
+      "primary_plan_text": "用僵尸牧人围绕自己原本持有而被放到对方场上的怪兽进行控制权操作，并由8阶进攻结束对局",
+      "evidence_quote": "用僵尸牧人围绕自己原本持有而被放到对方场上的怪兽进行控制权操作，并由8阶进攻结束对局",
+      "confidence": "high",
+      "operation_tags": [
+        "attack",
+        "xyz"
+      ],
+      "entities": [
+        {
+          "surface": "僵尸牧人",
+          "kind": "actor",
+          "name_contains": "僵尸牧人",
+          "type_constraint": "monster",
+          "evidence_quote": "用僵尸牧人围绕自己原本持有而被放到对方场上的怪兽进行控制权操作，并由8阶进攻结束对局"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v5-kj-05",
+      "primary_plan_text": "用僵尸牧人配合原本属于自己的对方怪兽进行控制权操作，并由8阶进攻取胜",
+      "evidence_quote": "用僵尸牧人配合原本属于自己的对方怪兽进行控制权操作，并由8阶进攻取胜",
+      "confidence": "high",
+      "operation_tags": [
+        "attack",
+        "xyz"
+      ],
+      "entities": [
+        {
+          "surface": "僵尸牧人",
+          "kind": "actor",
+          "name_contains": "僵尸牧人",
+          "type_constraint": "monster",
+          "evidence_quote": "用僵尸牧人配合原本属于自己的对方怪兽进行控制权操作，并由8阶进攻取胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v5-kj-06",
+      "primary_plan_text": "反复将坏兽配置到双方场上，以京塔和坏兽的出现记录积累指示物、检索与更换怪兽，再用己方坏兽的干扰和攻击取胜；荷鲁斯提供额外身体",
+      "evidence_quote": "反复将坏兽配置到双方场上，以京塔和坏兽的出现记录积累指示物、检索与更换怪兽，再用己方坏兽的干扰和攻击取胜；荷鲁斯提供额外身体",
+      "confidence": "high",
+      "operation_tags": [
+        "search",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "坏兽",
+          "kind": "actor",
+          "name_contains": "坏兽",
+          "type_constraint": "monster",
+          "evidence_quote": "反复将坏兽配置到双方场上，以京塔和坏兽的出现记录积累指示物、检索与更换怪兽，再用己方坏兽的干扰和攻击取胜"
+        },
+        {
+          "surface": "京塔",
+          "kind": "actor",
+          "name_contains": "京塔",
+          "type_constraint": "spell",
+          "evidence_quote": "反复将坏兽配置到双方场上，以京塔和坏兽的出现记录积累指示物、检索与更换怪兽，再用己方坏兽的干扰和攻击取胜"
+        },
+        {
+          "surface": "出现记录",
+          "kind": "actor",
+          "name_contains": "出现记录",
+          "type_constraint": "spell",
+          "evidence_quote": "反复将坏兽配置到双方场上，以京塔和坏兽的出现记录积累指示物、检索与更换怪兽，再用己方坏兽的干扰和攻击取胜"
+        },
+        {
+          "surface": "荷鲁斯",
+          "kind": "actor",
+          "name_contains": "荷鲁斯",
+          "type_constraint": "monster",
+          "evidence_quote": "荷鲁斯提供额外身体"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v6-uc-01",
+      "primary_plan_text": "通过破坏自己的破械卡取得新身体，以阎摩调度、破械连接怪兽使用对方身体以及墓地/结束阶段恢复组织多回合资源交换，再以恶魔族连接怪兽的干扰、破坏与攻击终结",
+      "evidence_quote": "通过破坏自己的破械卡取得新身体，以阎摩调度、破械连接怪兽使用对方身体以及墓地/结束阶段恢复组织多回合资源交换，再以恶魔族连接怪兽的干扰、破坏与攻击终结",
+      "confidence": "high",
+      "operation_tags": [
+        "link",
+        "search",
+        "destroy",
+        "recover",
+        "grave",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "阎摩",
+          "kind": "actor",
+          "name_contains": "阎摩",
+          "type_constraint": "link",
+          "evidence_quote": "通过破坏自己的破械卡取得新身体，以阎摩调度、破械连接怪兽使用对方身体以及墓地/结束阶段恢复组织多回合资源交换，再以恶魔族连接怪兽的干扰、破坏与攻击终结"
+        },
+        {
+          "surface": "破械连接怪兽",
+          "kind": "actor",
+          "name_contains": "破械连接怪兽",
+          "type_constraint": "link",
+          "evidence_quote": "通过破坏自己的破械卡取得新身体，以阎摩调度、破械连接怪兽使用对方身体以及墓地/结束阶段恢复组织多回合资源交换，再以恶魔族连接怪兽的干扰、破坏与攻击终结"
+        }
+      ],
+      "unknown_information": [
+        "主计划有明确机制/方向，但未逐一指名全部终端或组织路径；仅保留原文明确命名的实体。"
+      ]
+    },
+    {
+      "case_id": "blind-v6-uc-02",
+      "primary_plan_text": "主要依赖萨巴拉破坏盖放唱导、唱导再招募阿罗汉取得双恶魔身体，以此反复接入破械连接和破坏交换，最后以破械怪兽攻击取胜",
+      "evidence_quote": "主要依赖萨巴拉破坏盖放唱导、唱导再招募阿罗汉取得双恶魔身体，以此反复接入破械连接和破坏交换，最后以破械怪兽攻击取胜",
+      "confidence": "high",
+      "operation_tags": [
+        "link",
+        "special_summon",
+        "destroy",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "萨巴拉",
+          "kind": "actor",
+          "name_contains": "萨巴拉",
+          "type_constraint": "monster",
+          "evidence_quote": "主要依赖萨巴拉破坏盖放唱导、唱导再招募阿罗汉取得双恶魔身体，以此反复接入破械连接和破坏交换，最后以破械怪兽攻击取胜"
+        },
+        {
+          "surface": "唱导",
+          "kind": "resource",
+          "name_contains": "唱导",
+          "type_constraint": "trap",
+          "evidence_quote": "主要依赖萨巴拉破坏盖放唱导、唱导再招募阿罗汉取得双恶魔身体，以此反复接入破械连接和破坏交换，最后以破械怪兽攻击取胜"
+        },
+        {
+          "surface": "阿罗汉",
+          "kind": "resource",
+          "name_contains": "阿罗汉",
+          "type_constraint": "monster",
+          "evidence_quote": "主要依赖萨巴拉破坏盖放唱导、唱导再招募阿罗汉取得双恶魔身体，以此反复接入破械连接和破坏交换，最后以破械怪兽攻击取胜"
+        },
+        {
+          "surface": "破械怪兽",
+          "kind": "actor",
+          "name_contains": "破械怪兽",
+          "type_constraint": "monster",
+          "evidence_quote": "主要依赖萨巴拉破坏盖放唱导、唱导再招募阿罗汉取得双恶魔身体，以此反复接入破械连接和破坏交换，最后以破械怪兽攻击取胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v6-uc-03",
+      "primary_plan_text": "用邪恶双子姬丝基勒与璃拉的复活、抽牌和破坏维持主要场面，再以连接怪兽攻击取胜；直播双子的起始动作已经完成，当前只在额外阶段取得可用恶魔身体",
+      "evidence_quote": "用邪恶双子姬丝基勒与璃拉的复活、抽牌和破坏维持主要场面，再以连接怪兽攻击取胜；直播双子的起始动作已经完成，当前只在额外阶段取得可用恶魔身体",
+      "confidence": "high",
+      "operation_tags": [
+        "link",
+        "special_summon",
+        "destroy",
+        "draw",
+        "recover",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "邪恶双子姬丝基勒",
+          "kind": "actor",
+          "name_contains": "邪恶双子姬丝基勒",
+          "type_constraint": "link",
+          "evidence_quote": "用邪恶双子姬丝基勒与璃拉的复活、抽牌和破坏维持主要场面，再以连接怪兽攻击取胜"
+        },
+        {
+          "surface": "璃拉",
+          "kind": "actor",
+          "name_contains": "璃拉",
+          "type_constraint": "link",
+          "evidence_quote": "用邪恶双子姬丝基勒与璃拉的复活、抽牌和破坏维持主要场面，再以连接怪兽攻击取胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v6-uc-04",
+      "primary_plan_text": "反事实主计划仍为邪恶双子复活、抽牌与破坏后攻击",
+      "evidence_quote": "反事实主计划仍为邪恶双子复活、抽牌与破坏后攻击",
+      "confidence": "high",
+      "operation_tags": [
+        "special_summon",
+        "destroy",
+        "draw",
+        "recover",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "邪恶双子",
+          "kind": "actor",
+          "name_contains": "邪恶双子",
+          "type_constraint": null,
+          "evidence_quote": "反事实主计划仍为邪恶双子复活、抽牌与破坏后攻击"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v6-uc-05",
+      "primary_plan_text": "邪恶双子通过复活、抽牌和破坏组织主要场面并攻击取胜",
+      "evidence_quote": "邪恶双子通过复活、抽牌和破坏组织主要场面并攻击取胜",
+      "confidence": "high",
+      "operation_tags": [
+        "special_summon",
+        "destroy",
+        "draw",
+        "recover",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "邪恶双子",
+          "kind": "actor",
+          "name_contains": "邪恶双子",
+          "type_constraint": null,
+          "evidence_quote": "邪恶双子通过复活、抽牌和破坏组织主要场面并攻击取胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v6-uc-06",
+      "primary_plan_text": "通过破械资源交换取得场面后，主要依靠来迎的多时点破坏与攻击完成终结",
+      "evidence_quote": "通过破械资源交换取得场面后，主要依靠来迎的多时点破坏与攻击完成终结",
+      "confidence": "high",
+      "operation_tags": [
+        "destroy",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "来迎",
+          "kind": "terminal",
+          "name_contains": "来迎",
+          "type_constraint": "link",
+          "evidence_quote": "通过破械资源交换取得场面后，主要依靠来迎的多时点破坏与攻击完成终结"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v6-rk-01",
+      "primary_plan_text": "以一瓣的调度及后续回场、来来的调度与解放替代、叶牡丹/绚烂搜索、白姬无效和六花超量终端组织主要资源交换，通过解放对方怪兽与植物族攻击取胜",
+      "evidence_quote": "以一瓣的调度及后续回场、来来的调度与解放替代、叶牡丹/绚烂搜索、白姬无效和六花超量终端组织主要资源交换，通过解放对方怪兽与植物族攻击取胜",
+      "confidence": "high",
+      "operation_tags": [
+        "search",
+        "special_summon",
+        "negate",
+        "recover",
+        "attack",
+        "xyz",
+        "tribute"
+      ],
+      "entities": [
+        {
+          "surface": "一瓣",
+          "kind": "actor",
+          "name_contains": "一瓣",
+          "type_constraint": "monster",
+          "evidence_quote": "以一瓣的调度及后续回场、来来的调度与解放替代、叶牡丹/绚烂搜索、白姬无效和六花超量终端组织主要资源交换，通过解放对方怪兽与植物族攻击取胜"
+        },
+        {
+          "surface": "来来",
+          "kind": "actor",
+          "name_contains": "来来",
+          "type_constraint": "spell",
+          "evidence_quote": "以一瓣的调度及后续回场、来来的调度与解放替代、叶牡丹/绚烂搜索、白姬无效和六花超量终端组织主要资源交换，通过解放对方怪兽与植物族攻击取胜"
+        },
+        {
+          "surface": "叶牡丹",
+          "kind": "actor",
+          "name_contains": "叶牡丹",
+          "type_constraint": "monster",
+          "evidence_quote": "以一瓣的调度及后续回场、来来的调度与解放替代、叶牡丹/绚烂搜索、白姬无效和六花超量终端组织主要资源交换，通过解放对方怪兽与植物族攻击取胜"
+        },
+        {
+          "surface": "绚烂",
+          "kind": "actor",
+          "name_contains": "绚烂",
+          "type_constraint": "spell",
+          "evidence_quote": "以一瓣的调度及后续回场、来来的调度与解放替代、叶牡丹/绚烂搜索、白姬无效和六花超量终端组织主要资源交换，通过解放对方怪兽与植物族攻击取胜"
+        },
+        {
+          "surface": "白姬",
+          "kind": "actor",
+          "name_contains": "白姬",
+          "type_constraint": "monster",
+          "evidence_quote": "以一瓣的调度及后续回场、来来的调度与解放替代、叶牡丹/绚烂搜索、白姬无效和六花超量终端组织主要资源交换，通过解放对方怪兽与植物族攻击取胜"
+        },
+        {
+          "surface": "六花超量终端",
+          "kind": "terminal",
+          "name_contains": "六花超量终端",
+          "type_constraint": "xyz",
+          "evidence_quote": "以一瓣的调度及后续回场、来来的调度与解放替代、叶牡丹/绚烂搜索、白姬无效和六花超量终端组织主要资源交换，通过解放对方怪兽与植物族攻击取胜"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v6-rk-02",
+      "primary_plan_text": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结",
+      "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结",
+      "confidence": "high",
+      "operation_tags": [
+        "link",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "圣种之地灵",
+          "kind": "actor",
+          "name_contains": "圣种之地灵",
+          "type_constraint": "monster",
+          "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结"
+        },
+        {
+          "surface": "圣蔓的播种",
+          "kind": "actor",
+          "name_contains": "圣蔓的播种",
+          "type_constraint": "spell",
+          "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结"
+        },
+        {
+          "surface": "圣天树",
+          "kind": "actor",
+          "name_contains": "圣天树",
+          "type_constraint": null,
+          "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结"
+        },
+        {
+          "surface": "芳香",
+          "kind": "actor",
+          "name_contains": "芳香",
+          "type_constraint": null,
+          "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v6-rk-03",
+      "primary_plan_text": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结",
+      "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结",
+      "confidence": "high",
+      "operation_tags": [
+        "link",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "圣种之地灵",
+          "kind": "actor",
+          "name_contains": "圣种之地灵",
+          "type_constraint": "monster",
+          "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结"
+        },
+        {
+          "surface": "圣蔓的播种",
+          "kind": "actor",
+          "name_contains": "圣蔓的播种",
+          "type_constraint": "spell",
+          "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结"
+        },
+        {
+          "surface": "圣天树",
+          "kind": "actor",
+          "name_contains": "圣天树",
+          "type_constraint": null,
+          "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结"
+        },
+        {
+          "surface": "芳香",
+          "kind": "actor",
+          "name_contains": "芳香",
+          "type_constraint": null,
+          "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v6-rk-04",
+      "primary_plan_text": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结",
+      "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结",
+      "confidence": "high",
+      "operation_tags": [
+        "link",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "圣种之地灵",
+          "kind": "actor",
+          "name_contains": "圣种之地灵",
+          "type_constraint": "monster",
+          "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结"
+        },
+        {
+          "surface": "圣蔓的播种",
+          "kind": "actor",
+          "name_contains": "圣蔓的播种",
+          "type_constraint": "spell",
+          "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结"
+        },
+        {
+          "surface": "圣天树",
+          "kind": "actor",
+          "name_contains": "圣天树",
+          "type_constraint": null,
+          "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结"
+        },
+        {
+          "surface": "芳香",
+          "kind": "actor",
+          "name_contains": "芳香",
+          "type_constraint": null,
+          "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v6-rk-05",
+      "primary_plan_text": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结",
+      "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结",
+      "confidence": "high",
+      "operation_tags": [
+        "link",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "圣种之地灵",
+          "kind": "actor",
+          "name_contains": "圣种之地灵",
+          "type_constraint": "monster",
+          "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结"
+        },
+        {
+          "surface": "圣蔓的播种",
+          "kind": "actor",
+          "name_contains": "圣蔓的播种",
+          "type_constraint": "spell",
+          "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结"
+        },
+        {
+          "surface": "圣天树",
+          "kind": "actor",
+          "name_contains": "圣天树",
+          "type_constraint": null,
+          "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结"
+        },
+        {
+          "surface": "芳香",
+          "kind": "actor",
+          "name_contains": "芳香",
+          "type_constraint": null,
+          "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "blind-v6-rk-06",
+      "primary_plan_text": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结",
+      "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结",
+      "confidence": "high",
+      "operation_tags": [
+        "link",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "圣种之地灵",
+          "kind": "actor",
+          "name_contains": "圣种之地灵",
+          "type_constraint": "monster",
+          "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结"
+        },
+        {
+          "surface": "圣蔓的播种",
+          "kind": "actor",
+          "name_contains": "圣蔓的播种",
+          "type_constraint": "spell",
+          "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结"
+        },
+        {
+          "surface": "圣天树",
+          "kind": "actor",
+          "name_contains": "圣天树",
+          "type_constraint": null,
+          "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结"
+        },
+        {
+          "surface": "芳香",
+          "kind": "actor",
+          "name_contains": "芳香",
+          "type_constraint": null,
+          "evidence_quote": "以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "BF-ORC-01",
+      "primary_plan_text": "本次取胜计划是靠自奏圣乐的墓地、除外区和连接怪兽反复交换资源，建立通天塔下的对手回合响应，用丁吉尔苏等处理对手场面，再以机械怪兽继续进攻。",
+      "evidence_quote": "本次取胜计划是靠自奏圣乐的墓地、除外区和连接怪兽反复交换资源，建立通天塔下的对手回合响应，用丁吉尔苏等处理对手场面，再以机械怪兽继续进攻。",
+      "confidence": "high",
+      "operation_tags": [
+        "link",
+        "grave",
+        "banish",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "自奏圣乐",
+          "kind": "actor",
+          "name_contains": "自奏圣乐",
+          "type_constraint": null,
+          "evidence_quote": "本次取胜计划是靠自奏圣乐的墓地、除外区和连接怪兽反复交换资源，建立通天塔下的对手回合响应，用丁吉尔苏等处理对手场面，再以机械怪兽继续进攻"
+        },
+        {
+          "surface": "通天塔",
+          "kind": "actor",
+          "name_contains": "通天塔",
+          "type_constraint": "spell",
+          "evidence_quote": "本次取胜计划是靠自奏圣乐的墓地、除外区和连接怪兽反复交换资源，建立通天塔下的对手回合响应，用丁吉尔苏等处理对手场面，再以机械怪兽继续进攻"
+        },
+        {
+          "surface": "丁吉尔苏",
+          "kind": "terminal",
+          "name_contains": "丁吉尔苏",
+          "type_constraint": "xyz",
+          "evidence_quote": "本次取胜计划是靠自奏圣乐的墓地、除外区和连接怪兽反复交换资源，建立通天塔下的对手回合响应，用丁吉尔苏等处理对手场面，再以机械怪兽继续进攻"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "BF-ORC-02",
+      "primary_plan_text": "本次取胜计划是让三幻魔怪兽持续站场并战斗；希望在本轮所需的非暗属性特殊召唤全部完成后，再通过自奏圣乐取得一轮墓地响应和后续资源，使三幻魔场面被处理后仍可继续行动。下一回合重新安排召唤顺序；不在暗属性限制已生效后要求特殊召唤非暗怪兽。",
+      "evidence_quote": "本次取胜计划是让三幻魔怪兽持续站场并战斗；希望在本轮所需的非暗属性特殊召唤全部完成后，再通过自奏圣乐取得一轮墓地响应和后续资源，使三幻魔场面被处理后仍可继续行动。下一回合重新安排召唤顺序；不在暗属性限制已生效后要求特殊召唤非暗怪兽。",
+      "confidence": "high",
+      "operation_tags": [
+        "special_summon",
+        "grave",
+        "attack"
+      ],
+      "entities": [
+        {
+          "surface": "三幻魔",
+          "kind": "actor",
+          "name_contains": "三幻魔",
+          "type_constraint": "monster",
+          "evidence_quote": "本次取胜计划是让三幻魔怪兽持续站场并战斗"
+        },
+        {
+          "surface": "自奏圣乐",
+          "kind": "actor",
+          "name_contains": "自奏圣乐",
+          "type_constraint": null,
+          "evidence_quote": "希望在本轮所需的非暗属性特殊召唤全部完成后，再通过自奏圣乐取得一轮墓地响应和后续资源，使三幻魔场面被处理后仍可继续行动"
+        }
+      ],
+      "unknown_information": []
+    },
+    {
+      "case_id": "BF-ORC-03",
+      "primary_plan_text": null,
+      "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望在对方主要阶段把墓地的骷髅除外，复活墓地已正规登场过的丁吉尔苏，接其特殊召唤触发将对方场上1张卡送墓；只判断这条三张卡功能链。",
+      "confidence": "unknown",
+      "operation_tags": [],
+      "entities": [],
+      "unknown_information": [
+        "未声明独立于本次局部功能查询的主策略/取胜计划；不能从焦点功能、选组或卡数量反推核心与支援。"
+      ],
+      "declared_local_goal_text": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望在对方主要阶段把墓地的骷髅除外，复活墓地已正规登场过的丁吉尔苏，接其特殊召唤触发将对方场上1张卡送墓；只判断这条三张卡功能链。",
+      "scope_note": "局部功能目标已保留，但没有据此补写全局主计划。"
+    },
+    {
+      "case_id": "BF-ORC-04",
+      "primary_plan_text": null,
+      "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。目的仍是在对方主要阶段用骷髅复活丁吉尔苏并将对方场上1张卡送墓；本次查询只含骷髅和丁吉尔苏。实际牌表中的通天塔不在场上且不属于本查询单元，不借用其它时点转换。",
+      "confidence": "unknown",
+      "operation_tags": [],
+      "entities": [],
+      "unknown_information": [
+        "未声明独立于本次局部功能查询的主策略/取胜计划；不能从焦点功能、选组或卡数量反推核心与支援。"
+      ],
+      "declared_local_goal_text": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。目的仍是在对方主要阶段用骷髅复活丁吉尔苏并将对方场上1张卡送墓；本次查询只含骷髅和丁吉尔苏。实际牌表中的通天塔不在场上且不属于本查询单元，不借用其它时点转换。",
+      "scope_note": "局部功能目标已保留，但没有据此补写全局主计划。"
+    },
+    {
+      "case_id": "BF-ORC-05",
+      "primary_plan_text": null,
+      "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望在对方主要阶段以骷髅复活丁吉尔苏并送墓对方卡；通天塔有效，但这个丁吉尔苏是直接从额外卡组送墓，未正规登场过。",
+      "confidence": "unknown",
+      "operation_tags": [],
+      "entities": [],
+      "unknown_information": [
+        "未声明独立于本次局部功能查询的主策略/取胜计划；不能从焦点功能、选组或卡数量反推核心与支援。"
+      ],
+      "declared_local_goal_text": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望在对方主要阶段以骷髅复活丁吉尔苏并送墓对方卡；通天塔有效，但这个丁吉尔苏是直接从额外卡组送墓，未正规登场过。",
+      "scope_note": "局部功能目标已保留，但没有据此补写全局主计划。"
+    },
+    {
+      "case_id": "BF-ORC-06",
+      "primary_plan_text": null,
+      "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望在对方主要阶段通过骷髅复活墓地丁吉尔苏来送墓对方卡；通天塔有效，但未给丁吉尔苏此前的登场历史，其余资源与时点均按三张链情境满足。",
+      "confidence": "unknown",
+      "operation_tags": [],
+      "entities": [],
+      "unknown_information": [
+        "未声明独立于本次局部功能查询的主策略/取胜计划；不能从焦点功能、选组或卡数量反推核心与支援。"
+      ],
+      "declared_local_goal_text": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望在对方主要阶段通过骷髅复活墓地丁吉尔苏来送墓对方卡；通天塔有效，但未给丁吉尔苏此前的登场历史，其余资源与时点均按三张链情境满足。",
+      "scope_note": "局部功能目标已保留，但没有据此补写全局主计划。"
+    },
+    {
+      "case_id": "BF-SPD-01",
+      "primary_plan_text": null,
+      "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。保留通常召唤给六武众；从空怪兽场用手中贝陀螺集合体特殊召唤、检索竹蜻蜓电子人，再利用风属性怪兽存在使竹蜻蜓从手卡特殊召唤，取得两只3星怪兽供后续使用。此例终点就是两体，不借用竹蜻蜓解放自己的效果，也不要求已选额外终点。",
+      "confidence": "unknown",
+      "operation_tags": [],
+      "entities": [],
+      "unknown_information": [
+        "未声明独立于本次局部功能查询的主策略/取胜计划；不能从焦点功能、选组或卡数量反推核心与支援。"
+      ],
+      "declared_local_goal_text": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。保留通常召唤给六武众；从空怪兽场用手中贝陀螺集合体特殊召唤、检索竹蜻蜓电子人，再利用风属性怪兽存在使竹蜻蜓从手卡特殊召唤，取得两只3星怪兽供后续使用。此例终点就是两体，不借用竹蜻蜓解放自己的效果，也不要求已选额外终点。",
+      "scope_note": "局部功能目标已保留，但没有据此补写全局主计划。"
+    },
+    {
+      "case_id": "BF-SPD-02",
+      "primary_plan_text": null,
+      "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。保留通常召唤给其它六武众行动；先走贝陀螺检索竹蜻蜓的两体路线，以两只3星叠放真实额外中的失X-剑士 招来者，取除1个素材，从卡组守备表示叫出真六武众-辉斩。辉斩作为本回合继续展开的素材，在结束阶段破坏以前使用；不假定它的效果被招来者无效。",
+      "confidence": "unknown",
+      "operation_tags": [],
+      "entities": [],
+      "unknown_information": [
+        "未声明独立于本次局部功能查询的主策略/取胜计划；不能从焦点功能、选组或卡数量反推核心与支援。"
+      ],
+      "declared_local_goal_text": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。保留通常召唤给其它六武众行动；先走贝陀螺检索竹蜻蜓的两体路线，以两只3星叠放真实额外中的失X-剑士 招来者，取除1个素材，从卡组守备表示叫出真六武众-辉斩。辉斩作为本回合继续展开的素材，在结束阶段破坏以前使用；不假定它的效果被招来者无效。",
+      "scope_note": "局部功能目标已保留，但没有据此补写全局主计划。"
+    },
+    {
+      "case_id": "BF-SPD-03",
+      "primary_plan_text": null,
+      "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。目的仍是不花通常召唤取得贝陀螺与竹蜻蜓两体；本次只查询贝陀螺集合体，明确排除竹蜻蜓，不借用实际牌表里未纳入查询的卡或其它疾行机人路线。",
+      "confidence": "unknown",
+      "operation_tags": [],
+      "entities": [],
+      "unknown_information": [
+        "未声明独立于本次局部功能查询的主策略/取胜计划；不能从焦点功能、选组或卡数量反推核心与支援。"
+      ],
+      "declared_local_goal_text": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。目的仍是不花通常召唤取得贝陀螺与竹蜻蜓两体；本次只查询贝陀螺集合体，明确排除竹蜻蜓，不借用实际牌表里未纳入查询的卡或其它疾行机人路线。",
+      "scope_note": "局部功能目标已保留，但没有据此补写全局主计划。"
+    },
+    {
+      "case_id": "BF-SPD-04",
+      "primary_plan_text": null,
+      "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望通过手中贝陀螺与卡组内竹蜻蜓取得两体而不再消耗通常召唤；但自己已有一只非风属性怪兽，通常召唤已用完，也没有其它特殊召唤入口。",
+      "confidence": "unknown",
+      "operation_tags": [],
+      "entities": [],
+      "unknown_information": [
+        "未声明独立于本次局部功能查询的主策略/取胜计划；不能从焦点功能、选组或卡数量反推核心与支援。"
+      ],
+      "declared_local_goal_text": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望通过手中贝陀螺与卡组内竹蜻蜓取得两体而不再消耗通常召唤；但自己已有一只非风属性怪兽，通常召唤已用完，也没有其它特殊召唤入口。",
+      "scope_note": "局部功能目标已保留，但没有据此补写全局主计划。"
+    },
+    {
+      "case_id": "BF-SPD-05",
+      "primary_plan_text": null,
+      "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望通过贝陀螺特殊召唤并检索竹蜻蜓，在通常召唤已使用后取得两体；给出手卡和卡组目标，但未给自己怪兽场是否为空，也没有声明其它入口。",
+      "confidence": "unknown",
+      "operation_tags": [],
+      "entities": [],
+      "unknown_information": [
+        "未声明独立于本次局部功能查询的主策略/取胜计划；不能从焦点功能、选组或卡数量反推核心与支援。"
+      ],
+      "declared_local_goal_text": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望通过贝陀螺特殊召唤并检索竹蜻蜓，在通常召唤已使用后取得两体；给出手卡和卡组目标，但未给自己怪兽场是否为空，也没有声明其它入口。",
+      "scope_note": "局部功能目标已保留，但没有据此补写全局主计划。"
+    },
+    {
+      "case_id": "BF-SPD-06",
+      "primary_plan_text": null,
+      "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。自己现在空怪兽场，手中贝陀螺可特殊召唤，想接出卡组内竹蜻蜓取得两体；但本回合另一张贝陀螺已经用过同名检索效果，通常召唤已用，也没有其它取得竹蜻蜓的方法。",
+      "confidence": "unknown",
+      "operation_tags": [],
+      "entities": [],
+      "unknown_information": [
+        "未声明独立于本次局部功能查询的主策略/取胜计划；不能从焦点功能、选组或卡数量反推核心与支援。"
+      ],
+      "declared_local_goal_text": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。自己现在空怪兽场，手中贝陀螺可特殊召唤，想接出卡组内竹蜻蜓取得两体；但本回合另一张贝陀螺已经用过同名检索效果，通常召唤已用，也没有其它取得竹蜻蜓的方法。",
+      "scope_note": "局部功能目标已保留，但没有据此补写全局主计划。"
+    },
+    {
+      "case_id": "BF-BRF-01",
+      "primary_plan_text": null,
+      "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。为了让后续宝石骑士与影依行动在同一主要阶段多进行一次通常召唤，以明亮融合把卡组中的宝石骑士·石英和尼比鲁送墓，融合斜绿并保留其表侧效果。此处尼比鲁只作为另一只光属性融合素材，不发动其手卡效果；不要求石榴或青晶。",
+      "confidence": "unknown",
+      "operation_tags": [],
+      "entities": [],
+      "unknown_information": [
+        "未声明独立于本次局部功能查询的主策略/取胜计划；不能从焦点功能、选组或卡数量反推核心与支援。"
+      ],
+      "declared_local_goal_text": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。为了让后续宝石骑士与影依行动在同一主要阶段多进行一次通常召唤，以明亮融合把卡组中的宝石骑士·石英和尼比鲁送墓，融合斜绿并保留其表侧效果。此处尼比鲁只作为另一只光属性融合素材，不发动其手卡效果；不要求石榴或青晶。",
+      "scope_note": "局部功能目标已保留，但没有据此补写全局主计划。"
+    },
+    {
+      "case_id": "BF-BRF-02",
+      "primary_plan_text": null,
+      "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望在得到斜绿额外通常召唤的同时，继续取得宝石骑士融合：明亮融合用卡组的石英和拿非琉融合斜绿；拿非琉从卡组送墓后，另送1张手卡去墓地并特殊召唤自己，再以其登场效果检索卡组中的宝石骑士融合，接续手卡或场上融合行动。不依赖石英的回收效果；后续融合的其它材料不纳入此处已承诺完成的功能。",
+      "confidence": "unknown",
+      "operation_tags": [],
+      "entities": [],
+      "unknown_information": [
+        "未声明独立于本次局部功能查询的主策略/取胜计划；不能从焦点功能、选组或卡数量反推核心与支援。"
+      ],
+      "declared_local_goal_text": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望在得到斜绿额外通常召唤的同时，继续取得宝石骑士融合：明亮融合用卡组的石英和拿非琉融合斜绿；拿非琉从卡组送墓后，另送1张手卡去墓地并特殊召唤自己，再以其登场效果检索卡组中的宝石骑士融合，接续手卡或场上融合行动。不依赖石英的回收效果；后续融合的其它材料不纳入此处已承诺完成的功能。",
+      "scope_note": "局部功能目标已保留，但没有据此补写全局主计划。"
+    },
+    {
+      "case_id": "BF-BRF-03",
+      "primary_plan_text": null,
+      "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。想用明亮融合叫出斜绿增加通常召唤，但本次只查询明亮融合、尼比鲁和斜绿；把石英及所有其它宝石骑士主卡组素材排除，不从整副牌借用它们，也不考虑其它融合终点。",
+      "confidence": "unknown",
+      "operation_tags": [],
+      "entities": [],
+      "unknown_information": [
+        "未声明独立于本次局部功能查询的主策略/取胜计划；不能从焦点功能、选组或卡数量反推核心与支援。"
+      ],
+      "declared_local_goal_text": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。想用明亮融合叫出斜绿增加通常召唤，但本次只查询明亮融合、尼比鲁和斜绿；把石英及所有其它宝石骑士主卡组素材排除，不从整副牌借用它们，也不考虑其它融合终点。",
+      "scope_note": "局部功能目标已保留，但没有据此补写全局主计划。"
+    },
+    {
+      "case_id": "BF-BRF-04",
+      "primary_plan_text": null,
+      "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。想用明亮融合叫出斜绿增加通常召唤；本次只有明亮融合、石英和斜绿，另一只光属性素材尼比鲁明确排除，实际牌表内其它光怪兽也不纳入该查询单元。",
+      "confidence": "unknown",
+      "operation_tags": [],
+      "entities": [],
+      "unknown_information": [
+        "未声明独立于本次局部功能查询的主策略/取胜计划；不能从焦点功能、选组或卡数量反推核心与支援。"
+      ],
+      "declared_local_goal_text": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。想用明亮融合叫出斜绿增加通常召唤；本次只有明亮融合、石英和斜绿，另一只光属性素材尼比鲁明确排除，实际牌表内其它光怪兽也不纳入该查询单元。",
+      "scope_note": "局部功能目标已保留，但没有据此补写全局主计划。"
+    },
+    {
+      "case_id": "BF-BRF-05",
+      "primary_plan_text": null,
+      "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望以明亮融合叫出斜绿；查询的四个成员都存在，但指定光素材尼比鲁已在手卡，石英仍在卡组，不借用任何其它光属性素材，也不使用其它融合魔法。",
+      "confidence": "unknown",
+      "operation_tags": [],
+      "entities": [],
+      "unknown_information": [
+        "未声明独立于本次局部功能查询的主策略/取胜计划；不能从焦点功能、选组或卡数量反推核心与支援。"
+      ],
+      "declared_local_goal_text": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望以明亮融合叫出斜绿；查询的四个成员都存在，但指定光素材尼比鲁已在手卡，石英仍在卡组，不借用任何其它光属性素材，也不使用其它融合魔法。",
+      "scope_note": "局部功能目标已保留，但没有据此补写全局主计划。"
+    },
+    {
+      "case_id": "BF-BRF-06",
+      "primary_plan_text": null,
+      "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望以明亮融合用石英与尼比鲁叫出斜绿增加通常召唤；已给明亮融合在手、斜绿可用，但没有给两个指定素材现在是否还在卡组，其余条件按可执行情况满足。",
+      "confidence": "unknown",
+      "operation_tags": [],
+      "entities": [],
+      "unknown_information": [
+        "未声明独立于本次局部功能查询的主策略/取胜计划；不能从焦点功能、选组或卡数量反推核心与支援。"
+      ],
+      "declared_local_goal_text": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望以明亮融合用石英与尼比鲁叫出斜绿增加通常召唤；已给明亮融合在手、斜绿可用，但没有给两个指定素材现在是否还在卡组，其余条件按可执行情况满足。",
+      "scope_note": "局部功能目标已保留，但没有据此补写全局主计划。"
+    },
+    {
+      "case_id": "BF-NIB-01",
+      "primary_plan_text": null,
+      "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望用手卡尼比鲁解放双方场上的表侧怪兽，特殊召唤自己并给对方衍生物，减少对方已展开的表侧场面，为之后的行动留出机会；此功能是解放，不称为破坏。",
+      "confidence": "unknown",
+      "operation_tags": [],
+      "entities": [],
+      "unknown_information": [
+        "未声明独立于本次局部功能查询的主策略/取胜计划；不能从焦点功能、选组或卡数量反推核心与支援。"
+      ],
+      "declared_local_goal_text": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望用手卡尼比鲁解放双方场上的表侧怪兽，特殊召唤自己并给对方衍生物，减少对方已展开的表侧场面，为之后的行动留出机会；此功能是解放，不称为破坏。",
+      "scope_note": "局部功能目标已保留，但没有据此补写全局主计划。"
+    },
+    {
+      "case_id": "BF-NIB-02",
+      "primary_plan_text": null,
+      "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望用手卡尼比鲁解放双方场上的表侧怪兽，特殊召唤自己并给对方衍生物，减少对方已展开的表侧场面，为之后的行动留出机会；此功能是解放，不称为破坏。当前是对方主要阶段，但本回合对方合计只召唤或特殊召唤4只怪兽。",
+      "confidence": "unknown",
+      "operation_tags": [],
+      "entities": [],
+      "unknown_information": [
+        "未声明独立于本次局部功能查询的主策略/取胜计划；不能从焦点功能、选组或卡数量反推核心与支援。"
+      ],
+      "declared_local_goal_text": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望用手卡尼比鲁解放双方场上的表侧怪兽，特殊召唤自己并给对方衍生物，减少对方已展开的表侧场面，为之后的行动留出机会；此功能是解放，不称为破坏。当前是对方主要阶段，但本回合对方合计只召唤或特殊召唤4只怪兽。",
+      "scope_note": "局部功能目标已保留，但没有据此补写全局主计划。"
+    },
+    {
+      "case_id": "BF-NIB-03",
+      "primary_plan_text": null,
+      "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望用手卡尼比鲁解放双方场上的表侧怪兽，特殊召唤自己并给对方衍生物，减少对方已展开的表侧场面，为之后的行动留出机会；此功能是解放，不称为破坏。对方本回合已召唤至少5只怪兽，但当前在战斗阶段，尚未进入主要阶段2。",
+      "confidence": "unknown",
+      "operation_tags": [],
+      "entities": [],
+      "unknown_information": [
+        "未声明独立于本次局部功能查询的主策略/取胜计划；不能从焦点功能、选组或卡数量反推核心与支援。"
+      ],
+      "declared_local_goal_text": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望用手卡尼比鲁解放双方场上的表侧怪兽，特殊召唤自己并给对方衍生物，减少对方已展开的表侧场面，为之后的行动留出机会；此功能是解放，不称为破坏。对方本回合已召唤至少5只怪兽，但当前在战斗阶段，尚未进入主要阶段2。",
+      "scope_note": "局部功能目标已保留，但没有据此补写全局主计划。"
+    },
+    {
+      "case_id": "BF-NIB-04",
+      "primary_plan_text": null,
+      "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望用手卡尼比鲁解放双方场上的表侧怪兽，特殊召唤自己并给对方衍生物，减少对方已展开的表侧场面，为之后的行动留出机会；此功能是解放，不称为破坏。当前主要阶段与手卡位置已给，但对方本回合已召唤多少只怪兽未给出。",
+      "confidence": "unknown",
+      "operation_tags": [],
+      "entities": [],
+      "unknown_information": [
+        "未声明独立于本次局部功能查询的主策略/取胜计划；不能从焦点功能、选组或卡数量反推核心与支援。"
+      ],
+      "declared_local_goal_text": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望用手卡尼比鲁解放双方场上的表侧怪兽，特殊召唤自己并给对方衍生物，减少对方已展开的表侧场面，为之后的行动留出机会；此功能是解放，不称为破坏。当前主要阶段与手卡位置已给，但对方本回合已召唤多少只怪兽未给出。",
+      "scope_note": "局部功能目标已保留，但没有据此补写全局主计划。"
+    },
+    {
+      "case_id": "BF-NIB-05",
+      "primary_plan_text": null,
+      "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望用手卡尼比鲁解放双方场上的表侧怪兽，特殊召唤自己并给对方衍生物，减少对方已展开的表侧场面，为之后的行动留出机会；此功能是解放，不称为破坏。五只门槛和主要阶段满足，但本次查询的尼比鲁在墓地，不在手卡，也没有查询内的回收手段。",
+      "confidence": "unknown",
+      "operation_tags": [],
+      "entities": [],
+      "unknown_information": [
+        "未声明独立于本次局部功能查询的主策略/取胜计划；不能从焦点功能、选组或卡数量反推核心与支援。"
+      ],
+      "declared_local_goal_text": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望用手卡尼比鲁解放双方场上的表侧怪兽，特殊召唤自己并给对方衍生物，减少对方已展开的表侧场面，为之后的行动留出机会；此功能是解放，不称为破坏。五只门槛和主要阶段满足，但本次查询的尼比鲁在墓地，不在手卡，也没有查询内的回收手段。",
+      "scope_note": "局部功能目标已保留，但没有据此补写全局主计划。"
+    },
+    {
+      "case_id": "BF-NIB-06",
+      "primary_plan_text": null,
+      "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望用手卡尼比鲁解放双方场上的表侧怪兽，特殊召唤自己并给对方衍生物，减少对方已展开的表侧场面，为之后的行动留出机会；此功能是解放，不称为破坏。当前在自己的主要阶段，对方已在此回合通过其效果召唤至少5只怪兽；自己较早成功发动了实际牌表中的嬉游曲恶魔墓地效果，非暗属性特殊召唤限制仍在适用。嬉游曲恶魔只作为外部已生效限制的来源，不加入尼比鲁查询单元。",
+      "confidence": "unknown",
+      "operation_tags": [],
+      "entities": [],
+      "unknown_information": [
+        "未声明独立于本次局部功能查询的主策略/取胜计划；不能从焦点功能、选组或卡数量反推核心与支援。"
+      ],
+      "declared_local_goal_text": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望用手卡尼比鲁解放双方场上的表侧怪兽，特殊召唤自己并给对方衍生物，减少对方已展开的表侧场面，为之后的行动留出机会；此功能是解放，不称为破坏。当前在自己的主要阶段，对方已在此回合通过其效果召唤至少5只怪兽；自己较早成功发动了实际牌表中的嬉游曲恶魔墓地效果，非暗属性特殊召唤限制仍在适用。嬉游曲恶魔只作为外部已生效限制的来源，不加入尼比鲁查询单元。",
+      "scope_note": "局部功能目标已保留，但没有据此补写全局主计划。"
+    },
+    {
+      "case_id": "BF-NIB-07",
+      "primary_plan_text": null,
+      "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望用手卡尼比鲁解放双方场上的表侧怪兽，特殊召唤自己并给对方衍生物，减少对方已展开的表侧场面，为之后的行动留出机会；此功能是解放，不称为破坏。本次背景改为六武众牌表；尚未开始自己的六武众展开，处在对方主要阶段，不受任何自己的特殊召唤自肃，门槛、手卡、次数与区域条件逐项满足。",
+      "confidence": "unknown",
+      "operation_tags": [],
+      "entities": [],
+      "unknown_information": [
+        "未声明独立于本次局部功能查询的主策略/取胜计划；不能从焦点功能、选组或卡数量反推核心与支援。"
+      ],
+      "declared_local_goal_text": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望用手卡尼比鲁解放双方场上的表侧怪兽，特殊召唤自己并给对方衍生物，减少对方已展开的表侧场面，为之后的行动留出机会；此功能是解放，不称为破坏。本次背景改为六武众牌表；尚未开始自己的六武众展开，处在对方主要阶段，不受任何自己的特殊召唤自肃，门槛、手卡、次数与区域条件逐项满足。",
+      "scope_note": "局部功能目标已保留，但没有据此补写全局主计划。"
+    }
+  ]
+}

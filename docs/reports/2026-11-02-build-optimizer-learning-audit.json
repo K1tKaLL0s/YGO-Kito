@@ -1,0 +1,1141 @@
+{
+  "kind": "historical-build-optimizer-learning-audit-v1",
+  "date": "2026-11-02",
+  "timezone": "Asia/Hong_Kong",
+  "conclusion": "formal_optimizer_forward_used_but_no_successful_saved_learning_updates",
+  "training_executed": false,
+  "cb_executed": false,
+  "checkpoint_read_only": true,
+  "checkpoint_metadata_unchanged": true,
+  "database_read_only": true,
+  "database_metadata_unchanged": true,
+  "checkpoints": [
+    {
+      "path": "/mnt/n/YGO-Kito/_local_cpu_20261027/source/.cache/local-base-training-20261027/2207-base-006/migrated-initial.weights",
+      "model_kind": "course-four-role-full-state-v1",
+      "cursors": {
+        "build_updates": {
+          "build_goal": 2,
+          "build_optimizer": 0
+        },
+        "build_batch": 2,
+        "duel_updates": 1,
+        "duel_episodes": 1,
+        "coordinator_updates": 3
+      },
+      "optimizers": {
+        "build_goal": {
+          "state_entries": 29,
+          "steps": [
+            2.0
+          ]
+        },
+        "build_optimizer": {
+          "state_entries": 0,
+          "steps": []
+        }
+      },
+      "optimizer_vs_earliest_saved_initial": {
+        "common_tensors": 29,
+        "changed_common_tensors": [],
+        "added_tensors": {},
+        "removed_tensors": []
+      },
+      "feedback_counts": {},
+      "feedback_pending": null,
+      "kernel_updates": {
+        "build_goal": 2,
+        "build_optimizer": 0
+      },
+      "kernel_graph_updates": null
+    },
+    {
+      "path": "/mnt/n/YGO-Kito/_local_cpu_20261027/source/.cache/local-base-training-20261027/2207-course-001/initial-full.weights",
+      "model_kind": "course-four-role-full-state-v1",
+      "cursors": {
+        "build_updates": {
+          "build_goal": 2,
+          "build_optimizer": 0
+        },
+        "build_batch": 2,
+        "duel_updates": 1,
+        "duel_episodes": 1,
+        "coordinator_updates": 3
+      },
+      "optimizers": {
+        "build_goal": {
+          "state_entries": 29,
+          "steps": [
+            2.0
+          ]
+        },
+        "build_optimizer": {
+          "state_entries": 0,
+          "steps": []
+        }
+      },
+      "optimizer_vs_earliest_saved_initial": {
+        "common_tensors": 29,
+        "changed_common_tensors": [],
+        "added_tensors": {},
+        "removed_tensors": []
+      },
+      "feedback_counts": {},
+      "feedback_pending": null,
+      "kernel_updates": {
+        "build_goal": 2,
+        "build_optimizer": 0
+      },
+      "kernel_graph_updates": null
+    },
+    {
+      "path": "/mnt/n/YGO-Kito/_local_cpu_20261027/source/.cache/local-base-training-20261027/2207-course-002/initial-full.weights",
+      "model_kind": "course-four-role-full-state-v1",
+      "cursors": {
+        "build_updates": {
+          "build_goal": 2,
+          "build_optimizer": 0
+        },
+        "build_batch": 2,
+        "duel_updates": 1,
+        "duel_episodes": 1,
+        "coordinator_updates": 3
+      },
+      "optimizers": {
+        "build_goal": {
+          "state_entries": 29,
+          "steps": [
+            2.0
+          ]
+        },
+        "build_optimizer": {
+          "state_entries": 0,
+          "steps": []
+        }
+      },
+      "optimizer_vs_earliest_saved_initial": {
+        "common_tensors": 29,
+        "changed_common_tensors": [],
+        "added_tensors": {},
+        "removed_tensors": []
+      },
+      "feedback_counts": {},
+      "feedback_pending": null,
+      "kernel_updates": {
+        "build_goal": 2,
+        "build_optimizer": 0
+      },
+      "kernel_graph_updates": null
+    },
+    {
+      "path": "/mnt/n/YGO-Kito/_local_cpu_20261027/source/.cache/local-base-training-20261027/2207-course-002/course/checkpoint-100.weights",
+      "model_kind": "course-four-role-full-state-v1",
+      "cursors": {
+        "build_updates": {
+          "build_goal": 4,
+          "build_optimizer": 0
+        },
+        "build_batch": 4,
+        "duel_updates": 22,
+        "duel_episodes": 22,
+        "coordinator_updates": 30
+      },
+      "optimizers": {
+        "build_goal": {
+          "state_entries": 29,
+          "steps": [
+            4.0
+          ]
+        },
+        "build_optimizer": {
+          "state_entries": 0,
+          "steps": []
+        }
+      },
+      "optimizer_vs_earliest_saved_initial": {
+        "common_tensors": 29,
+        "changed_common_tensors": [],
+        "added_tensors": {},
+        "removed_tensors": []
+      },
+      "feedback_counts": {
+        "build_goal": 2,
+        "coordinator": 27
+      },
+      "feedback_pending": null,
+      "kernel_updates": {
+        "build_goal": 4,
+        "build_optimizer": 0
+      },
+      "kernel_graph_updates": null
+    },
+    {
+      "path": "/mnt/n/YGO-Kito/_local_cpu_20261027/source/.cache/local-base-training-20261027/2207-course-003/initial-full.weights",
+      "model_kind": "course-four-role-full-state-v1",
+      "cursors": {
+        "build_updates": {
+          "build_goal": 4,
+          "build_optimizer": 0
+        },
+        "build_batch": 4,
+        "duel_updates": 22,
+        "duel_episodes": 22,
+        "coordinator_updates": 30
+      },
+      "optimizers": {
+        "build_goal": {
+          "state_entries": 29,
+          "steps": [
+            4.0
+          ]
+        },
+        "build_optimizer": {
+          "state_entries": 0,
+          "steps": []
+        }
+      },
+      "optimizer_vs_earliest_saved_initial": {
+        "common_tensors": 29,
+        "changed_common_tensors": [],
+        "added_tensors": {},
+        "removed_tensors": []
+      },
+      "feedback_counts": {},
+      "feedback_pending": null,
+      "kernel_updates": {
+        "build_goal": 4,
+        "build_optimizer": 0
+      },
+      "kernel_graph_updates": null
+    },
+    {
+      "path": "/mnt/n/YGO-Kito/_local_cpu_20261027/source/.cache/local-base-training-20261027/2207-course-003/course/checkpoint-5.weights",
+      "model_kind": "course-four-role-full-state-v1",
+      "cursors": {
+        "build_updates": {
+          "build_goal": 4,
+          "build_optimizer": 0
+        },
+        "build_batch": 4,
+        "duel_updates": 23,
+        "duel_episodes": 23,
+        "coordinator_updates": 30
+      },
+      "optimizers": {
+        "build_goal": {
+          "state_entries": 29,
+          "steps": [
+            4.0
+          ]
+        },
+        "build_optimizer": {
+          "state_entries": 0,
+          "steps": []
+        }
+      },
+      "optimizer_vs_earliest_saved_initial": {
+        "common_tensors": 29,
+        "changed_common_tensors": [],
+        "added_tensors": {},
+        "removed_tensors": []
+      },
+      "feedback_counts": {
+        "build_goal": 2,
+        "coordinator": 27
+      },
+      "feedback_pending": null,
+      "kernel_updates": {
+        "build_goal": 4,
+        "build_optimizer": 0
+      },
+      "kernel_graph_updates": null
+    },
+    {
+      "path": "/mnt/n/YGO-Kito/_local_cpu_20261027/source/.cache/local-base-training-20261027/2207-course-004/initial-full.weights",
+      "model_kind": "course-four-role-full-state-v1",
+      "cursors": {
+        "build_updates": {
+          "build_goal": 4,
+          "build_optimizer": 0
+        },
+        "build_batch": 4,
+        "duel_updates": 23,
+        "duel_episodes": 23,
+        "coordinator_updates": 30
+      },
+      "optimizers": {
+        "build_goal": {
+          "state_entries": 29,
+          "steps": [
+            4.0
+          ]
+        },
+        "build_optimizer": {
+          "state_entries": 0,
+          "steps": []
+        }
+      },
+      "optimizer_vs_earliest_saved_initial": {
+        "common_tensors": 29,
+        "changed_common_tensors": [],
+        "added_tensors": {},
+        "removed_tensors": []
+      },
+      "feedback_counts": {},
+      "feedback_pending": null,
+      "kernel_updates": {
+        "build_goal": 4,
+        "build_optimizer": 0
+      },
+      "kernel_graph_updates": null
+    },
+    {
+      "path": "/mnt/n/YGO-Kito/_local_cpu_20261027/source/.cache/local-base-training-20261027/2207-course-004/course/checkpoint-10.weights",
+      "model_kind": "course-four-role-full-state-v1",
+      "cursors": {
+        "build_updates": {
+          "build_goal": 4,
+          "build_optimizer": 0
+        },
+        "build_batch": 4,
+        "duel_updates": 25,
+        "duel_episodes": 25,
+        "coordinator_updates": 32
+      },
+      "optimizers": {
+        "build_goal": {
+          "state_entries": 29,
+          "steps": [
+            4.0
+          ]
+        },
+        "build_optimizer": {
+          "state_entries": 0,
+          "steps": []
+        }
+      },
+      "optimizer_vs_earliest_saved_initial": {
+        "common_tensors": 29,
+        "changed_common_tensors": [],
+        "added_tensors": {},
+        "removed_tensors": []
+      },
+      "feedback_counts": {
+        "build_goal": 2,
+        "coordinator": 29
+      },
+      "feedback_pending": null,
+      "kernel_updates": {
+        "build_goal": 4,
+        "build_optimizer": 0
+      },
+      "kernel_graph_updates": null
+    },
+    {
+      "path": "/mnt/n/YGO-Kito/_local_cpu_20261027/source/.cache/local-base-training-20261027/2207-course-005/initial-full.weights",
+      "model_kind": "course-four-role-full-state-v1",
+      "cursors": {
+        "build_updates": {
+          "build_goal": 4,
+          "build_optimizer": 0
+        },
+        "build_batch": 4,
+        "duel_updates": 25,
+        "duel_episodes": 25,
+        "coordinator_updates": 32
+      },
+      "optimizers": {
+        "build_goal": {
+          "state_entries": 29,
+          "steps": [
+            4.0
+          ]
+        },
+        "build_optimizer": {
+          "state_entries": 0,
+          "steps": []
+        }
+      },
+      "optimizer_vs_earliest_saved_initial": {
+        "common_tensors": 29,
+        "changed_common_tensors": [],
+        "added_tensors": {},
+        "removed_tensors": []
+      },
+      "feedback_counts": {},
+      "feedback_pending": null,
+      "kernel_updates": {
+        "build_goal": 4,
+        "build_optimizer": 0
+      },
+      "kernel_graph_updates": null
+    },
+    {
+      "path": "/mnt/n/YGO-Kito/_local_cpu_20261027/source/.cache/local-base-training-20261027/2207-course-005/course/checkpoint-16.weights",
+      "model_kind": "course-four-role-full-state-v1",
+      "cursors": {
+        "build_updates": {
+          "build_goal": 5,
+          "build_optimizer": 0
+        },
+        "build_batch": 5,
+        "duel_updates": 27,
+        "duel_episodes": 27,
+        "coordinator_updates": 37
+      },
+      "optimizers": {
+        "build_goal": {
+          "state_entries": 29,
+          "steps": [
+            5.0
+          ]
+        },
+        "build_optimizer": {
+          "state_entries": 0,
+          "steps": []
+        }
+      },
+      "optimizer_vs_earliest_saved_initial": {
+        "common_tensors": 29,
+        "changed_common_tensors": [],
+        "added_tensors": {},
+        "removed_tensors": []
+      },
+      "feedback_counts": {
+        "build_goal": 3,
+        "coordinator": 34
+      },
+      "feedback_pending": null,
+      "kernel_updates": {
+        "build_goal": 5,
+        "build_optimizer": 0
+      },
+      "kernel_graph_updates": null
+    },
+    {
+      "path": "/mnt/n/YGO-Kito/_local_cpu_20261027/reports/optimization-20261031/2207-course-006/initial-full.weights",
+      "model_kind": "course-four-role-full-state-v1",
+      "cursors": {
+        "build_updates": {
+          "build_goal": 5,
+          "build_optimizer": 0
+        },
+        "build_batch": 5,
+        "duel_updates": 27,
+        "duel_episodes": 27,
+        "coordinator_updates": 37
+      },
+      "optimizers": {
+        "build_goal": {
+          "state_entries": 29,
+          "steps": [
+            5.0
+          ]
+        },
+        "build_optimizer": {
+          "state_entries": 0,
+          "steps": []
+        }
+      },
+      "optimizer_vs_earliest_saved_initial": {
+        "common_tensors": 29,
+        "changed_common_tensors": [],
+        "added_tensors": {
+          "mechanism.weight": {
+            "shape": [
+              32,
+              18
+            ],
+            "all_zero": true
+          }
+        },
+        "removed_tensors": []
+      },
+      "feedback_counts": {},
+      "feedback_pending": null,
+      "kernel_updates": {
+        "build_goal": 5,
+        "build_optimizer": 0
+      },
+      "kernel_graph_updates": {
+        "build_goal": 0,
+        "build_optimizer": 0
+      }
+    },
+    {
+      "path": "/mnt/n/YGO-Kito/_local_cpu_20261027/reports/optimization-20261031/2207-course-006/course/checkpoint-1.weights",
+      "model_kind": "course-four-role-full-state-v1",
+      "cursors": {
+        "build_updates": {
+          "build_goal": 5,
+          "build_optimizer": 0
+        },
+        "build_batch": 5,
+        "duel_updates": 27,
+        "duel_episodes": 27,
+        "coordinator_updates": 37
+      },
+      "optimizers": {
+        "build_goal": {
+          "state_entries": 29,
+          "steps": [
+            5.0
+          ]
+        },
+        "build_optimizer": {
+          "state_entries": 0,
+          "steps": []
+        }
+      },
+      "optimizer_vs_earliest_saved_initial": {
+        "common_tensors": 29,
+        "changed_common_tensors": [],
+        "added_tensors": {
+          "mechanism.weight": {
+            "shape": [
+              32,
+              18
+            ],
+            "all_zero": true
+          }
+        },
+        "removed_tensors": []
+      },
+      "feedback_counts": {
+        "build_goal": 3,
+        "coordinator": 34
+      },
+      "feedback_pending": null,
+      "kernel_updates": {
+        "build_goal": 5,
+        "build_optimizer": 0
+      },
+      "kernel_graph_updates": {
+        "build_goal": 0,
+        "build_optimizer": 0
+      }
+    }
+  ],
+  "initialization_provenance": {
+    "kind": "explicit-fresh-untrained-course-models",
+    "ability_verified": false,
+    "source_checkpoint": null,
+    "optimizer_state_inherited": false,
+    "continuation_source_migrations": [
+      {
+        "kind": "explicit-full-base-state-source-compatibility-migration-v1",
+        "time_utc": "2026-10-27T17:08:37.668271+00:00",
+        "source_checkpoint": {
+          "path": ".cache/base-training-20261027/2207-autonomous-v2/latest.weights",
+          "sha256": "fb693e40d14811869777aed26296319afadf865b95582b230956203e4c613811"
+        },
+        "original_binding_sha256": "f66224f2c3a400f8251d914f1a98c55f734ab5797337942a85ef8ebf849a2c18",
+        "new_binding_sha256": "85d82bf979968a2081580402d75a1dba89ae6175b84e51440354611e4de5ed1e",
+        "changed_files": [
+          "training_pilot.py"
+        ],
+        "reason": "explicit non-driver qualification-source compatibility handling; model/trainer formats unchanged",
+        "kernel_search_cache": "archived with original checkpoint, regenerated under new binding",
+        "weights_optimizers_rng_and_training_cursors_preserved": true,
+        "qualification_normal_game_reexecuted": false
+      },
+      {
+        "kind": "explicit-full-base-state-source-compatibility-migration-v1",
+        "time_utc": "2026-10-27T17:10:43.670864+00:00",
+        "source_checkpoint": {
+          "path": ".cache/base-training-20261027/2207-autonomous-v3/latest.weights",
+          "sha256": "402d0319f0e0e7b12be6ab5a7e1b173c95c82310583b771610bb938e75af9cf8"
+        },
+        "original_binding_sha256": "85d82bf979968a2081580402d75a1dba89ae6175b84e51440354611e4de5ed1e",
+        "new_binding_sha256": "98e23c84eb4eef5206aeae89183485967f567fc0ca2b0757d07e403826c532a7",
+        "changed_files": [
+          "training_pilot.py"
+        ],
+        "reason": "explicit non-driver qualification-source compatibility handling; model/trainer formats unchanged",
+        "kernel_search_cache": "archived with original checkpoint, regenerated under new binding",
+        "weights_optimizers_rng_and_training_cursors_preserved": true,
+        "qualification_normal_game_reexecuted": false
+      },
+      {
+        "kind": "explicit-full-base-state-source-compatibility-migration-v1",
+        "time_utc": "2026-10-27T17:34:14.737453+00:00",
+        "source_checkpoint": {
+          "path": ".cache/base-training-20261027/2207-autonomous-v4/latest-after-duel-001.weights",
+          "sha256": "543801acd1e9a57361c0cee9f5d591db565456e533a6ba26ad576bb8ac937520"
+        },
+        "original_binding_sha256": "98e23c84eb4eef5206aeae89183485967f567fc0ca2b0757d07e403826c532a7",
+        "new_binding_sha256": "565de258194f870a0645c4781538913dadb898d96090057b43b76af4369ce28c",
+        "changed_files": [
+          "construction_fill.py",
+          "training_pilot.py"
+        ],
+        "reason": "explicit non-driver qualification-source compatibility handling; model/trainer formats unchanged",
+        "kernel_search_cache": "archived with original checkpoint, regenerated under new binding",
+        "weights_optimizers_rng_and_training_cursors_preserved": true,
+        "qualification_normal_game_reexecuted": false
+      }
+    ]
+  },
+  "construction_artifacts": [
+    {
+      "artifact_id": "pearl-actual-construction-001",
+      "dataset_id": "pearl-base-goal-data",
+      "purpose": "train",
+      "source": "catalog_constraint_and_explicit_preference_v1",
+      "goal_count": 2,
+      "goal_labels": {
+        "1.0": 1,
+        "0.0": 1
+      },
+      "pair_count": 0
+    },
+    {
+      "artifact_id": "pearl-fusion-actual-goal-001",
+      "dataset_id": "pearl-fusion-goal-2207-v1",
+      "purpose": "train",
+      "source": "catalog_constraint_and_explicit_preference_v1",
+      "goal_count": 2,
+      "goal_labels": {
+        "1.0": 1,
+        "0.0": 1
+      },
+      "pair_count": 0
+    },
+    {
+      "artifact_id": "course-0-native-goal",
+      "dataset_id": "course-build-b0323b78dcbd281e5435a936",
+      "purpose": "train",
+      "source": "catalog_constraint_and_explicit_preference_v1",
+      "goal_count": 2,
+      "goal_labels": {
+        "1.0": 2
+      },
+      "pair_count": 0
+    },
+    {
+      "artifact_id": "course-16-native-goal",
+      "dataset_id": "course-build-b0323b78dcbd281e5435a936",
+      "purpose": "train",
+      "source": "catalog_constraint_and_explicit_preference_v1",
+      "goal_count": 2,
+      "goal_labels": {
+        "1.0": 2
+      },
+      "pair_count": 0
+    },
+    {
+      "artifact_id": "course-v2-0-native-goal",
+      "dataset_id": "course-build-b0323b78dcbd281e5435a936",
+      "purpose": "train",
+      "source": "catalog_constraint_and_explicit_preference_v1",
+      "goal_count": 1,
+      "goal_labels": {
+        "1.0": 1
+      },
+      "pair_count": 0
+    }
+  ],
+  "comparisons": [
+    {
+      "name": "initial",
+      "path": "N:\\YGO-Kito\\_local_cpu_20261027\\source\\.cache\\local-base-training-20261027\\2207-base-006\\paired-comparison-001\\comparison.json",
+      "status": "no_strict_label",
+      "preferred_index": null,
+      "mean_scores": [
+        0.0,
+        0.0
+      ],
+      "paired_differences": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "uncertainty": {
+        "paired_case_count": 8,
+        "mean_candidate_1_minus_0": 0.0,
+        "descriptive_standard_error": 0.0,
+        "confidence_gate_passed": false,
+        "independent_test": false,
+        "failure_attribution": "unresolved_driver_deck_interaction; no_single_loss_defect_label"
+      },
+      "game_count": 16,
+      "score_counts": {
+        "0.0": 16
+      },
+      "all_terminal": true,
+      "all_replays_verified": true,
+      "purpose": "construction_train"
+    },
+    {
+      "name": "after_16_formal_matches",
+      "path": "N:\\YGO-Kito\\_local_cpu_20261027\\source\\.cache\\local-base-training-20261027\\2207-course-002\\collaboration-000016\\fixed-model-pairs\\comparison.json",
+      "status": "no_strict_label",
+      "preferred_index": null,
+      "mean_scores": [
+        0.0,
+        0.0
+      ],
+      "paired_differences": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "uncertainty": {
+        "paired_case_count": 8,
+        "mean_candidate_1_minus_0": 0.0,
+        "descriptive_standard_error": 0.0,
+        "confidence_gate_passed": false,
+        "independent_test": false,
+        "failure_attribution": "unresolved_driver_deck_interaction; no_single_loss_defect_label"
+      },
+      "game_count": 16,
+      "score_counts": {
+        "0.0": 16
+      },
+      "all_terminal": true,
+      "all_replays_verified": true,
+      "purpose": "construction_train"
+    }
+  ],
+  "historical_flows": [
+    {
+      "path": "N:\\YGO-Kito\\_local_cpu_20261027\\source\\.cache\\local-base-training-20261027\\2207-course-002\\collaboration-000000",
+      "summary": {
+        "formal_matches": 0,
+        "goal_updates": 3,
+        "optimizer_updates": 0,
+        "duel_updates": 1,
+        "coordinator_updates": 6,
+        "actual_four_stage": true,
+        "paired_training_status": "initial_separate_comparison_preserved",
+        "formal_credit_for_comparison": false,
+        "forecast_training": false,
+        "independent_acceptance": false
+      },
+      "phases": [
+        {
+          "phase": 1,
+          "role": "build_goal",
+          "ranking": "existing_role_model_uncalibrated",
+          "first_attempt_score": -0.24122582376003265,
+          "first_attempt_status": "task_goal_verified_logic_unproven",
+          "input_equals_output": false
+        },
+        {
+          "phase": 2,
+          "role": "build_optimizer",
+          "ranking": "existing_role_model_uncalibrated",
+          "first_attempt_score": -0.14170025289058685,
+          "first_attempt_status": "task_goal_verified_logic_unproven",
+          "input_equals_output": false
+        },
+        {
+          "phase": 3,
+          "role": "build_goal",
+          "ranking": "existing_role_model_uncalibrated",
+          "first_attempt_score": -0.24080446362495422,
+          "first_attempt_status": "task_goal_verified_logic_unproven",
+          "input_equals_output": false
+        },
+        {
+          "phase": 4,
+          "role": "build_optimizer",
+          "ranking": "existing_role_model_uncalibrated",
+          "first_attempt_score": -0.14170025289058685,
+          "first_attempt_status": "task_goal_verified_logic_unproven",
+          "input_equals_output": false
+        }
+      ],
+      "optimization_training": "pending_actual_attributable_comparison_labels",
+      "graph_model_selections": {
+        "build_goal": {
+          "candidate_generation": "bounded_program_graphs",
+          "selection": "existing_BuildRanker",
+          "scores": [
+            -0.30698835849761963,
+            -0.3370080590248108,
+            -0.310263991355896,
+            -0.310263991355896,
+            -0.31105250120162964,
+            -0.31105250120162964,
+            -0.30776822566986084
+          ],
+          "selected_index": 0,
+          "model_sha256": "cbcbc47c80c86b43c1ee5f725399b10920261060655e4d60fb2ce8662960c26e",
+          "graph_training_updates": 2,
+          "graph_sha256": "a4f1c194336ac2bad90279936b9004b6da820043c2a38e9741809139ee2d65d4",
+          "required_tags": [
+            {
+              "dimension": "effect",
+              "value": "卡组送墓"
+            },
+            {
+              "dimension": "effect",
+              "value": "墓地融合"
+            }
+          ],
+          "codec_sha256": "935b9f3606be7d2960b51d4b4edb2483b4ebc6bac171e2877d09294ef20ed235",
+          "feature_version": "construction-graph-numeric-v1"
+        },
+        "build_optimizer": {
+          "candidate_generation": "bounded_program_graphs",
+          "selection": "existing_BuildRanker",
+          "scores": [
+            -0.28761571645736694,
+            -0.3099434971809387,
+            -0.2884076237678528,
+            -0.2884076237678528,
+            -0.2890806198120117,
+            -0.2890806198120117,
+            -0.2882837653160095
+          ],
+          "selected_index": 0,
+          "model_sha256": "c73763d0e80502d36de5a24451ebcbb78f1076bd1f0410fc8981b2266b8ecbf0",
+          "graph_training_updates": 0,
+          "graph_sha256": "106b4e5ae67f91c61f20a6175b7cba07c06d4acd04dbbb67f0256a0d7e39eb2c",
+          "required_tags": [
+            {
+              "dimension": "effect",
+              "value": "卡组送墓"
+            },
+            {
+              "dimension": "effect",
+              "value": "墓地融合"
+            }
+          ],
+          "codec_sha256": "935b9f3606be7d2960b51d4b4edb2483b4ebc6bac171e2877d09294ef20ed235",
+          "feature_version": "construction-graph-numeric-v1"
+        }
+      }
+    },
+    {
+      "path": "N:\\YGO-Kito\\_local_cpu_20261027\\source\\.cache\\local-base-training-20261027\\2207-course-002\\collaboration-000016",
+      "summary": {
+        "formal_matches": 16,
+        "goal_updates": 4,
+        "optimizer_updates": 0,
+        "duel_updates": 17,
+        "coordinator_updates": 25,
+        "actual_four_stage": true,
+        "paired_training_status": "no_strict_label",
+        "formal_credit_for_comparison": false,
+        "forecast_training": false,
+        "independent_acceptance": false
+      },
+      "phases": [
+        {
+          "phase": 1,
+          "role": "build_goal",
+          "ranking": "existing_role_model_uncalibrated",
+          "first_attempt_score": -0.10850585252046585,
+          "first_attempt_status": "task_goal_verified_logic_unproven",
+          "input_equals_output": false
+        },
+        {
+          "phase": 2,
+          "role": "build_optimizer",
+          "ranking": "existing_role_model_uncalibrated",
+          "first_attempt_score": -0.14170025289058685,
+          "first_attempt_status": "task_goal_verified_logic_unproven",
+          "input_equals_output": false
+        },
+        {
+          "phase": 3,
+          "role": "build_goal",
+          "ranking": "existing_role_model_uncalibrated",
+          "first_attempt_score": -0.10850585252046585,
+          "first_attempt_status": "task_goal_verified_logic_unproven",
+          "input_equals_output": false
+        },
+        {
+          "phase": 4,
+          "role": "build_optimizer",
+          "ranking": "existing_role_model_uncalibrated",
+          "first_attempt_score": -0.14170025289058685,
+          "first_attempt_status": "task_goal_verified_logic_unproven",
+          "input_equals_output": false
+        }
+      ],
+      "optimization_training": "pending_actual_attributable_comparison_labels",
+      "graph_model_selections": {
+        "build_goal": {
+          "candidate_generation": "bounded_program_graphs",
+          "selection": "existing_BuildRanker",
+          "scores": [
+            -0.23527458310127258,
+            -0.23349282145500183,
+            -0.23703798651695251,
+            -0.23703798651695251,
+            -0.23749566078186035,
+            -0.23749569058418274,
+            -0.2357286512851715
+          ],
+          "selected_index": 1,
+          "model_sha256": "594055e4e181f12ba53296d7df3681a4451cb6e4385347cca2e305fa63d81ec9",
+          "graph_training_updates": 3,
+          "graph_sha256": "59690bc2fd469e5ed181a5c43b091b06049209bfd191d89cad82e0a526edbfdb",
+          "required_tags": [
+            {
+              "dimension": "effect",
+              "value": "卡组送墓"
+            },
+            {
+              "dimension": "effect",
+              "value": "墓地融合"
+            }
+          ],
+          "codec_sha256": "935b9f3606be7d2960b51d4b4edb2483b4ebc6bac171e2877d09294ef20ed235",
+          "feature_version": "construction-graph-numeric-v1"
+        },
+        "build_optimizer": {
+          "candidate_generation": "bounded_program_graphs",
+          "selection": "existing_BuildRanker",
+          "scores": [
+            -0.3057659864425659,
+            -0.29302728176116943,
+            -0.29302728176116943,
+            -0.2927296757698059,
+            -0.29338452219963074,
+            -0.29338452219963074,
+            -0.2930854260921478
+          ],
+          "selected_index": 3,
+          "model_sha256": "c73763d0e80502d36de5a24451ebcbb78f1076bd1f0410fc8981b2266b8ecbf0",
+          "graph_training_updates": 0,
+          "graph_sha256": "c562005eaf24f07b73d2d0c2f4336bef516f23c8a1356714ef858b5984ee8a88",
+          "required_tags": [
+            {
+              "dimension": "effect",
+              "value": "卡组送墓"
+            },
+            {
+              "dimension": "effect",
+              "value": "墓地融合"
+            }
+          ],
+          "codec_sha256": "935b9f3606be7d2960b51d4b4edb2483b4ebc6bac171e2877d09294ef20ed235",
+          "feature_version": "construction-graph-numeric-v1"
+        }
+      }
+    },
+    {
+      "path": "N:\\YGO-Kito\\_local_cpu_20261027\\source\\.cache\\local-base-training-20261027\\2207-course-005\\collaboration-v2-000000",
+      "summary": {
+        "formal_matches": 0,
+        "goal_updates": 5,
+        "optimizer_updates": 0,
+        "duel_updates": 25,
+        "coordinator_updates": 36,
+        "actual_four_stage": true,
+        "paired_training_status": "initial_separate_comparison_preserved",
+        "formal_credit_for_comparison": false,
+        "forecast_training": false,
+        "independent_acceptance": false,
+        "auxiliary_preferred_index": null,
+        "auxiliary_reason": "not_in_prospective_policy_window"
+      },
+      "phases": [
+        {
+          "phase": 1,
+          "role": "build_goal",
+          "ranking": "existing_role_model_uncalibrated",
+          "first_attempt_score": 0.02207373082637787,
+          "first_attempt_status": "concrete_candidate_cb_pending",
+          "input_equals_output": false
+        },
+        {
+          "phase": 2,
+          "role": "build_optimizer",
+          "ranking": "existing_role_model_uncalibrated",
+          "first_attempt_score": -0.14170025289058685,
+          "first_attempt_status": "concrete_candidate_cb_pending",
+          "input_equals_output": false
+        },
+        {
+          "phase": 3,
+          "role": "build_goal",
+          "ranking": "existing_role_model_uncalibrated",
+          "first_attempt_score": 0.02253611385822296,
+          "first_attempt_status": "concrete_candidate_cb_pending",
+          "input_equals_output": false
+        },
+        {
+          "phase": 4,
+          "role": "build_optimizer",
+          "ranking": "existing_role_model_uncalibrated",
+          "first_attempt_score": -0.14204618334770203,
+          "first_attempt_status": "concrete_candidate_cb_pending",
+          "input_equals_output": false
+        }
+      ],
+      "optimization_training": "pending_actual_attributable_comparison_labels",
+      "graph_model_selections": {
+        "build_goal": {
+          "candidate_generation": "bounded_program_graphs",
+          "selection": "existing_BuildRanker",
+          "scores": [
+            -0.11111327260732651,
+            -0.11120416969060898,
+            -0.11163590848445892,
+            -0.11162711679935455,
+            -0.11260956525802612,
+            -0.11251075565814972
+          ],
+          "selected_index": 0,
+          "model_sha256": "f7fa0c67f351ceb6c91ead5e4855ccf883e90a8a16ee0f5c915060ffe020025a",
+          "graph_training_updates": 4,
+          "graph_sha256": "7a4b83e0a5846691f77f5fda69f55bc2ca62b2e4f120a5c96be1fd90c4d0287c",
+          "required_tags": [
+            {
+              "dimension": "effect",
+              "value": "卡组送墓"
+            },
+            {
+              "dimension": "effect",
+              "value": "墓地融合"
+            },
+            {
+              "dimension": "field",
+              "value": "setcode:181"
+            }
+          ],
+          "required_connector_kinds": [
+            "送墓时发动"
+          ],
+          "requirements_sha256": "070cc06a7a8d471b9ee33f953aeb6624934ea6b8de672489f08c1496c4253845",
+          "codec_sha256": "6c2eef513e052a1eba9d59011f5982a4a7d571e6725d0f1bb7d60ea532b46886",
+          "feature_version": "construction-graph-numeric-v1"
+        },
+        "build_optimizer": {
+          "candidate_generation": "bounded_program_graphs",
+          "selection": "existing_BuildRanker",
+          "scores": [
+            -0.2499759942293167,
+            -0.2511715292930603,
+            -0.2504473924636841,
+            -0.25157850980758667,
+            -0.251760870218277,
+            -0.251695454120636
+          ],
+          "selected_index": 0,
+          "model_sha256": "c73763d0e80502d36de5a24451ebcbb78f1076bd1f0410fc8981b2266b8ecbf0",
+          "graph_training_updates": 0,
+          "graph_sha256": "a498611301cb2851c5e4f4fde7067aa2de178b4322282b6b6da7ecf5e672abec",
+          "required_tags": [
+            {
+              "dimension": "effect",
+              "value": "卡组送墓"
+            },
+            {
+              "dimension": "effect",
+              "value": "墓地融合"
+            },
+            {
+              "dimension": "field",
+              "value": "setcode:181"
+            }
+          ],
+          "required_connector_kinds": [
+            "送墓时发动"
+          ],
+          "requirements_sha256": "070cc06a7a8d471b9ee33f953aeb6624934ea6b8de672489f08c1496c4253845",
+          "codec_sha256": "6c2eef513e052a1eba9d59011f5982a4a7d571e6725d0f1bb7d60ea532b46886",
+          "feature_version": "construction-graph-numeric-v1"
+        }
+      }
+    }
+  ],
+  "latest_construction_events": [
+    {
+      "kind": "actual_collaborative_role_feedback",
+      "complete_matches": 0,
+      "paired_training_status": "no_new_pair_label",
+      "single_game_quality_label": false,
+      "forecast_supervision": false
+    },
+    {
+      "kind": "actual_collaborative_role_feedback",
+      "complete_matches": 16,
+      "paired_training_status": "no_strict_label",
+      "single_game_quality_label": false,
+      "forecast_supervision": false
+    },
+    {
+      "kind": "actual_collaborative_role_feedback",
+      "complete_matches": 0,
+      "paired_training_status": "no_new_pair_label",
+      "final_proposal_deck_sha256": "33db929699b58853d91b641caf121eb1a25ecb86ab92afd1e98612c8a42cc8f6",
+      "deployed_deck_sha256": "33db929699b58853d91b641caf121eb1a25ecb86ab92afd1e98612c8a42cc8f6",
+      "candidate_and_deployment_distinct": true,
+      "single_game_quality_label": false,
+      "forecast_supervision": false
+    }
+  ],
+  "isolated_validation": {
+    "production_state_preserved": true,
+    "formal_training_started": false,
+    "formal_matches_added": 0,
+    "optimizer_update": [
+      {
+        "feedback_id": "one-reviewed-comparison",
+        "artifact_id": "reviewed-candidates",
+        "role": "build_optimizer",
+        "artifact_payload_sha256": "1c82d32d2c6a5b5520868fbc0783a6ce3bfc7bba41dbf3d2a150ed51fb5e8258",
+        "request_sha256": "c9411f2a7342065a48c3ba388bbc6fad7541e3c760df826e49113d7b0cf34891",
+        "content_key": "ff460979e8c22eb909cdb90a0586ad4c1d36dffac8d830ce779e6d8953725a84",
+        "before_sha256": "4df6fc5fb70f6de38281b7d80cb0b3c3607f5384861c2201331551f8931d133d",
+        "after_sha256": "c0839c87ca80697da3afe73125a5062686367f9ede727484007abba4f5b57855",
+        "label_source": "explicit_catalog_constraints_and_user_preferences_not_strength",
+        "indexed_purpose": "train",
+        "learning_stage": "base",
+        "update": {
+          "role": "build_optimizer",
+          "optimizer_step": 1,
+          "loss": 0.6931191086769104,
+          "gradient_norm_before_clip": 0.010583460330963135,
+          "changed_parameter_elements": 13267,
+          "parameter_delta_l2": 0.1132436643850107,
+          "head_delta_l2": 0.032940537093880486,
+          "before_sha256": "4df6fc5fb70f6de38281b7d80cb0b3c3607f5384861c2201331551f8931d133d",
+          "after_sha256": "c0839c87ca80697da3afe73125a5062686367f9ede727484007abba4f5b57855",
+          "learning_rate_next": 0.00099
+        },
+        "ability_verified": false,
+        "quality_inferred_from_single_duel": false
+      }
+    ],
+    "production_checkpoint_sha256": "67de51d0910d144ae71b4c89352486f227f534fdda8e8ccb39809ab96c8d5637"
+  },
+  "hold": {
+    "kind": "explicit-user-training-hold",
+    "created_utc": "2026-10-28T00:53:59.665515+00:00",
+    "reason": "Finish and integrate necessary repairs across windows before resuming training.",
+    "formal_training_authorized_now": false,
+    "nontraining_construction_and_isolated_validation_allowed": true,
+    "resume_owner": "parent coordination after integration",
+    "automatic_release": false
+  },
+  "last_formal_worker": {
+    "stage": "paused_at_boundary",
+    "desired": "paused",
+    "heartbeat_utc": "2026-10-28T00:27:43.338779+00:00",
+    "formal_course_bo1": 2,
+    "formal_course_bo3": 0,
+    "job_script_sha256": "83dac147977f5c8358322615578bec823cf28a636ee4cf6d8598bbf98dcc5057",
+    "worker_script_sha256": "82a1758d583ca539e563fb0b103b94381ffadd0fa1177bae1cb542ce3001f535"
+  },
+  "raw_evidence": [
+    "N:\\YGO-Kito\\_publish_20261030\\.cache\\optimizer-learning-audit-20261102\\checkpoint-inspection.json",
+    "N:\\YGO-Kito\\_publish_20261030\\.cache\\optimizer-learning-audit-20261102\\history-inspection.json"
+  ]
+}

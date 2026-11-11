@@ -1,0 +1,3586 @@
+{
+  "source": "../existing_cases.json",
+  "cases": [
+    {
+      "case_id": "gamma_empty_response",
+      "selected_main": [
+        {
+          "card_id": 38814750,
+          "count": 1,
+          "name": "PSY骨架装备·γ"
+        },
+        {
+          "card_id": 49036338,
+          "count": 1,
+          "name": "PSY骨架驱动者"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "gamma_occupied_field",
+      "selected_main": [
+        {
+          "card_id": 38814750,
+          "count": 1,
+          "name": "PSY骨架装备·γ"
+        },
+        {
+          "card_id": 49036338,
+          "count": 1,
+          "name": "PSY骨架驱动者"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "gamma_state_unknown",
+      "selected_main": [
+        {
+          "card_id": 38814750,
+          "count": 1,
+          "name": "PSY骨架装备·γ"
+        },
+        {
+          "card_id": 49036338,
+          "count": 1,
+          "name": "PSY骨架驱动者"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "invoked_artemis_cycle",
+      "selected_main": [
+        {
+          "card_id": 74063034,
+          "count": 1,
+          "name": "召唤魔术"
+        },
+        {
+          "card_id": 86120751,
+          "count": 1,
+          "name": "召唤师 阿莱斯特"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 34755994,
+          "count": 1,
+          "name": "圣魔之少女 阿耳特弥斯"
+        },
+        {
+          "card_id": 75286621,
+          "count": 1,
+          "name": "召唤兽 梅尔卡巴"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "invoked_artemis_ritual_plan",
+      "selected_main": [
+        {
+          "card_id": 74063034,
+          "count": 1,
+          "name": "召唤魔术"
+        },
+        {
+          "card_id": 86120751,
+          "count": 1,
+          "name": "召唤师 阿莱斯特"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 34755994,
+          "count": 1,
+          "name": "圣魔之少女 阿耳特弥斯"
+        },
+        {
+          "card_id": 75286621,
+          "count": 1,
+          "name": "召唤兽 梅尔卡巴"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "invoked_almiraj_gardna",
+      "selected_main": [
+        {
+          "card_id": 74063034,
+          "count": 1,
+          "name": "召唤魔术"
+        },
+        {
+          "card_id": 86120751,
+          "count": 1,
+          "name": "召唤师 阿莱斯特"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 2220237,
+          "count": 1,
+          "name": "安全守卫者"
+        },
+        {
+          "card_id": 60303245,
+          "count": 1,
+          "name": "转生炎兽 独角兔"
+        },
+        {
+          "card_id": 75286621,
+          "count": 1,
+          "name": "召唤兽 梅尔卡巴"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "destiny_dpe_actual_singleton",
+      "selected_main": [
+        {
+          "card_id": 52947044,
+          "count": 1,
+          "name": "融合命运"
+        },
+        {
+          "card_id": 63362460,
+          "count": 1,
+          "name": "命运英雄 神性人"
+        },
+        {
+          "card_id": 81866673,
+          "count": 1,
+          "name": "命运英雄 冲刺人"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 60461804,
+          "count": 1,
+          "name": "命运英雄 毁灭凤凰人"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "branded_complete_40",
+      "selected_main": [
+        {
+          "card_id": 17751597,
+          "count": 1,
+          "name": "烙印断罪"
+        },
+        {
+          "card_id": 19304410,
+          "count": 1,
+          "name": "铁兽炎工 姬特"
+        },
+        {
+          "card_id": 29948294,
+          "count": 3,
+          "name": "烙印的气炎"
+        },
+        {
+          "card_id": 30271097,
+          "count": 3,
+          "name": "落胤与圣女"
+        },
+        {
+          "card_id": 44362883,
+          "count": 1,
+          "name": "烙印融合"
+        },
+        {
+          "card_id": 45883110,
+          "count": 1,
+          "name": "引导的圣女 奎姆"
+        },
+        {
+          "card_id": 55273560,
+          "count": 2,
+          "name": "白之圣女 艾克莉西娅"
+        },
+        {
+          "card_id": 62962630,
+          "count": 3,
+          "name": "死狱乡的导化 阿鲁伯"
+        },
+        {
+          "card_id": 68468459,
+          "count": 3,
+          "name": "阿不思的落胤"
+        },
+        {
+          "card_id": 82738008,
+          "count": 1,
+          "name": "赫之烙印"
+        },
+        {
+          "card_id": 95515789,
+          "count": 1,
+          "name": "赫之圣女 卡尔特西娅"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 24915933,
+          "count": 1,
+          "name": "赫焉龙 大木偶剧场龙"
+        },
+        {
+          "card_id": 38811586,
+          "count": 1,
+          "name": "真炎龙 白界龙"
+        },
+        {
+          "card_id": 41373230,
+          "count": 1,
+          "name": "灰烬龙 落胤龙"
+        },
+        {
+          "card_id": 44146295,
+          "count": 1,
+          "name": "冰剑龙 幻冰龙"
+        },
+        {
+          "card_id": 51409648,
+          "count": 1,
+          "name": "击铁龙 蓝迅龙"
+        },
+        {
+          "card_id": 74405783,
+          "count": 1,
+          "name": "三英之相剑师"
+        },
+        {
+          "card_id": 76666602,
+          "count": 2,
+          "name": "吞食圣痕之龙"
+        },
+        {
+          "card_id": 78397661,
+          "count": 1,
+          "name": "黑龙之艾克莉西娅"
+        },
+        {
+          "card_id": 87746184,
+          "count": 2,
+          "name": "烙印龙 白界龙"
+        },
+        {
+          "card_id": 89851827,
+          "count": 1,
+          "name": "圣秘之龙骑士"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "branded_complete_60",
+      "selected_main": [
+        {
+          "card_id": 17751597,
+          "count": 1,
+          "name": "烙印断罪"
+        },
+        {
+          "card_id": 19096726,
+          "count": 1,
+          "name": "铁兽鸟 墨丘利信使"
+        },
+        {
+          "card_id": 19304410,
+          "count": 1,
+          "name": "铁兽炎工 姬特"
+        },
+        {
+          "card_id": 25451383,
+          "count": 1,
+          "name": "黑衣龙 白界龙"
+        },
+        {
+          "card_id": 29948294,
+          "count": 3,
+          "name": "烙印的气炎"
+        },
+        {
+          "card_id": 30271097,
+          "count": 3,
+          "name": "落胤与圣女"
+        },
+        {
+          "card_id": 34995106,
+          "count": 1,
+          "name": "白之烙印"
+        },
+        {
+          "card_id": 36637374,
+          "count": 1,
+          "name": "烙印开幕"
+        },
+        {
+          "card_id": 44362883,
+          "count": 1,
+          "name": "烙印融合"
+        },
+        {
+          "card_id": 45484331,
+          "count": 1,
+          "name": "护宝炮妖·姬特"
+        },
+        {
+          "card_id": 45883110,
+          "count": 1,
+          "name": "引导的圣女 奎姆"
+        },
+        {
+          "card_id": 55273560,
+          "count": 2,
+          "name": "白之圣女 艾克莉西娅"
+        },
+        {
+          "card_id": 60242223,
+          "count": 1,
+          "name": "深渊之兽 萨隆魔龙"
+        },
+        {
+          "card_id": 62962630,
+          "count": 3,
+          "name": "死狱乡的导化 阿鲁伯"
+        },
+        {
+          "card_id": 68468459,
+          "count": 3,
+          "name": "阿不思的落胤"
+        },
+        {
+          "card_id": 81767888,
+          "count": 1,
+          "name": "烙印之剑"
+        },
+        {
+          "card_id": 82489470,
+          "count": 1,
+          "name": "轩辕之相剑师"
+        },
+        {
+          "card_id": 82738008,
+          "count": 1,
+          "name": "赫之烙印"
+        },
+        {
+          "card_id": 95515789,
+          "count": 1,
+          "name": "赫之圣女 卡尔特西娅"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 1906812,
+          "count": 1,
+          "name": "铁驱龙 迅妖龙"
+        },
+        {
+          "card_id": 3410461,
+          "count": 1,
+          "name": "深渊龙 白界转生龙"
+        },
+        {
+          "card_id": 24915933,
+          "count": 1,
+          "name": "赫焉龙 大木偶剧场龙"
+        },
+        {
+          "card_id": 38811586,
+          "count": 1,
+          "name": "真炎龙 白界龙"
+        },
+        {
+          "card_id": 41373230,
+          "count": 1,
+          "name": "灰烬龙 落胤龙"
+        },
+        {
+          "card_id": 44146295,
+          "count": 1,
+          "name": "冰剑龙 幻冰龙"
+        },
+        {
+          "card_id": 51409648,
+          "count": 1,
+          "name": "击铁龙 蓝迅龙"
+        },
+        {
+          "card_id": 70534340,
+          "count": 1,
+          "name": "神炎龙 赫界龙"
+        },
+        {
+          "card_id": 74405783,
+          "count": 1,
+          "name": "三英之相剑师"
+        },
+        {
+          "card_id": 76666602,
+          "count": 2,
+          "name": "吞食圣痕之龙"
+        },
+        {
+          "card_id": 78397661,
+          "count": 1,
+          "name": "黑龙之艾克莉西娅"
+        },
+        {
+          "card_id": 87746184,
+          "count": 2,
+          "name": "烙印龙 白界龙"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "branded_compact_fusion_route",
+      "selected_main": [
+        {
+          "card_id": 44362883,
+          "count": 1,
+          "name": "烙印融合"
+        },
+        {
+          "card_id": 55273560,
+          "count": 1,
+          "name": "白之圣女 艾克莉西娅"
+        },
+        {
+          "card_id": 68468459,
+          "count": 2,
+          "name": "阿不思的落胤"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 41373230,
+          "count": 1,
+          "name": "灰烬龙 落胤龙"
+        },
+        {
+          "card_id": 44146295,
+          "count": 1,
+          "name": "冰剑龙 幻冰龙"
+        },
+        {
+          "card_id": 87746184,
+          "count": 1,
+          "name": "烙印龙 白界龙"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "hero_complete_clock_destiny",
+      "selected_main": [
+        {
+          "card_id": 4663194,
+          "count": 3,
+          "name": "幽狱之时计都市-暗黑都市"
+        },
+        {
+          "card_id": 10808715,
+          "count": 1,
+          "name": "假面英雄 暮鸦"
+        },
+        {
+          "card_id": 16605586,
+          "count": 1,
+          "name": "命运英雄 否定人"
+        },
+        {
+          "card_id": 21143940,
+          "count": 1,
+          "name": "假面变化"
+        },
+        {
+          "card_id": 24094653,
+          "count": 1,
+          "name": "融合"
+        },
+        {
+          "card_id": 25158975,
+          "count": 1,
+          "name": "命运英雄 死亡教义人"
+        },
+        {
+          "card_id": 26964762,
+          "count": 1,
+          "name": "命运英雄 暗黑天使"
+        },
+        {
+          "card_id": 40591390,
+          "count": 1,
+          "name": "命运英雄 恐惧人"
+        },
+        {
+          "card_id": 52947044,
+          "count": 3,
+          "name": "融合命运"
+        },
+        {
+          "card_id": 58288218,
+          "count": 1,
+          "name": "假面英雄 炉火"
+        },
+        {
+          "card_id": 62542673,
+          "count": 3,
+          "name": "命运英雄 恶魔主宰人"
+        },
+        {
+          "card_id": 98931282,
+          "count": 1,
+          "name": "命运英雄 无惧从者"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 23204029,
+          "count": 1,
+          "name": "对极英雄 混沌侠"
+        },
+        {
+          "card_id": 54641720,
+          "count": 1,
+          "name": "命运英雄 无惧人"
+        },
+        {
+          "card_id": 58004362,
+          "count": 2,
+          "name": "特异英雄 十字人"
+        },
+        {
+          "card_id": 58481572,
+          "count": 1,
+          "name": "假面英雄 暗爪"
+        },
+        {
+          "card_id": 60461804,
+          "count": 1,
+          "name": "命运英雄 毁灭凤凰人"
+        },
+        {
+          "card_id": 63813056,
+          "count": 1,
+          "name": "特异英雄 恐惧破坏者"
+        },
+        {
+          "card_id": 69394324,
+          "count": 1,
+          "name": "命运英雄 统治人"
+        },
+        {
+          "card_id": 90579153,
+          "count": 1,
+          "name": "命运英雄 敌托邦人"
+        },
+        {
+          "card_id": 93657021,
+          "count": 1,
+          "name": "命运英雄 暮托邦人"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "hero_complete_shadow_mask",
+      "selected_main": [
+        {
+          "card_id": 4663194,
+          "count": 3,
+          "name": "幽狱之时计都市-暗黑都市"
+        },
+        {
+          "card_id": 10808715,
+          "count": 1,
+          "name": "假面英雄 暮鸦"
+        },
+        {
+          "card_id": 16605586,
+          "count": 1,
+          "name": "命运英雄 否定人"
+        },
+        {
+          "card_id": 21143940,
+          "count": 1,
+          "name": "假面变化"
+        },
+        {
+          "card_id": 24094653,
+          "count": 1,
+          "name": "融合"
+        },
+        {
+          "card_id": 25158975,
+          "count": 1,
+          "name": "命运英雄 死亡教义人"
+        },
+        {
+          "card_id": 26964762,
+          "count": 1,
+          "name": "命运英雄 暗黑天使"
+        },
+        {
+          "card_id": 40591390,
+          "count": 1,
+          "name": "命运英雄 恐惧人"
+        },
+        {
+          "card_id": 50720316,
+          "count": 1,
+          "name": "元素英雄 影雾女郎"
+        },
+        {
+          "card_id": 52947044,
+          "count": 3,
+          "name": "融合命运"
+        },
+        {
+          "card_id": 58288218,
+          "count": 1,
+          "name": "假面英雄 炉火"
+        },
+        {
+          "card_id": 62542673,
+          "count": 3,
+          "name": "命运英雄 恶魔主宰人"
+        },
+        {
+          "card_id": 98931282,
+          "count": 1,
+          "name": "命运英雄 无惧从者"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 8593259,
+          "count": 1,
+          "name": "元素英雄 黏土守卫侠"
+        },
+        {
+          "card_id": 19324993,
+          "count": 1,
+          "name": "特异英雄 地狱裂魔"
+        },
+        {
+          "card_id": 23204029,
+          "count": 1,
+          "name": "对极英雄 混沌侠"
+        },
+        {
+          "card_id": 30757127,
+          "count": 1,
+          "name": "命运英雄 绝命人"
+        },
+        {
+          "card_id": 54641720,
+          "count": 1,
+          "name": "命运英雄 无惧人"
+        },
+        {
+          "card_id": 55171412,
+          "count": 1,
+          "name": "元素英雄 水波新宇侠"
+        },
+        {
+          "card_id": 58004362,
+          "count": 2,
+          "name": "特异英雄 十字人"
+        },
+        {
+          "card_id": 58481572,
+          "count": 1,
+          "name": "假面英雄 暗爪"
+        },
+        {
+          "card_id": 60461804,
+          "count": 1,
+          "name": "命运英雄 毁灭凤凰人"
+        },
+        {
+          "card_id": 90579153,
+          "count": 1,
+          "name": "命运英雄 敌托邦人"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "hero_crow_furnace_mask_route",
+      "selected_main": [
+        {
+          "card_id": 10808715,
+          "count": 1,
+          "name": "假面英雄 暮鸦"
+        },
+        {
+          "card_id": 21143940,
+          "count": 1,
+          "name": "假面变化"
+        },
+        {
+          "card_id": 58288218,
+          "count": 1,
+          "name": "假面英雄 炉火"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 58481572,
+          "count": 1,
+          "name": "假面英雄 暗爪"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "tourguide_link_search",
+      "selected_main": [
+        {
+          "card_id": 10802915,
+          "count": 1,
+          "name": "由魔界到现世的死亡导游"
+        },
+        {
+          "card_id": 26202165,
+          "count": 1,
+          "name": "三眼怪"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 58699500,
+          "count": 1,
+          "name": "彼岸的黑天使 基路伯"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "tourguide_normal_already_used",
+      "selected_main": [
+        {
+          "card_id": 10802915,
+          "count": 1,
+          "name": "由魔界到现世的死亡导游"
+        },
+        {
+          "card_id": 26202165,
+          "count": 1,
+          "name": "三眼怪"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 58699500,
+          "count": 1,
+          "name": "彼岸的黑天使 基路伯"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "dogmatika_late_turn_response",
+      "selected_main": [
+        {
+          "card_id": 1984618,
+          "count": 1,
+          "name": "天底的使徒"
+        },
+        {
+          "card_id": 60303688,
+          "count": 1,
+          "name": "教导的圣女 艾克莉西娅"
+        },
+        {
+          "card_id": 69680031,
+          "count": 1,
+          "name": "教导的骑士 弗勒德莉丝"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 80532587,
+          "count": 1,
+          "name": "旧神 努茨"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "dogmatika_extra_order_conflict",
+      "selected_main": [
+        {
+          "card_id": 1984618,
+          "count": 1,
+          "name": "天底的使徒"
+        },
+        {
+          "card_id": 60303688,
+          "count": 1,
+          "name": "教导的圣女 艾克莉西娅"
+        },
+        {
+          "card_id": 69680031,
+          "count": 1,
+          "name": "教导的骑士 弗勒德莉丝"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 80532587,
+          "count": 1,
+          "name": "旧神 努茨"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "dogmatika_declared_battle_plan",
+      "selected_main": [
+        {
+          "card_id": 1984618,
+          "count": 1,
+          "name": "天底的使徒"
+        },
+        {
+          "card_id": 60303688,
+          "count": 1,
+          "name": "教导的圣女 艾克莉西娅"
+        },
+        {
+          "card_id": 69680031,
+          "count": 1,
+          "name": "教导的骑士 弗勒德莉丝"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 80532587,
+          "count": 1,
+          "name": "旧神 努茨"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "maxx_fusion_response",
+      "selected_main": [
+        {
+          "card_id": 23434538,
+          "count": 1,
+          "name": "增殖的G"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "maxx_future_summons_unknown",
+      "selected_main": [
+        {
+          "card_id": 23434538,
+          "count": 1,
+          "name": "增殖的G"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "desires_striker_resources",
+      "selected_main": [
+        {
+          "card_id": 35261759,
+          "count": 1,
+          "name": "强欲而贪欲之壶"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "desires_low_deck",
+      "selected_main": [
+        {
+          "card_id": 35261759,
+          "count": 1,
+          "name": "强欲而贪欲之壶"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "endymion_complete_spell_counters",
+      "selected_main": [
+        {
+          "card_id": 3611830,
+          "count": 3,
+          "name": "创圣魔导王 恩底弥翁"
+        },
+        {
+          "card_id": 27354732,
+          "count": 2,
+          "name": "魔导兽 胡狼王"
+        },
+        {
+          "card_id": 38943357,
+          "count": 3,
+          "name": "魔力统辖"
+        },
+        {
+          "card_id": 39123673,
+          "count": 3,
+          "name": "魔力到达"
+        },
+        {
+          "card_id": 53842431,
+          "count": 2,
+          "name": "魔导兽 刻耳柏洛斯尊主"
+        },
+        {
+          "card_id": 92559258,
+          "count": 3,
+          "name": "恩底弥翁的仆从"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "endymion_complete_modern_spellcasters",
+      "selected_main": [
+        {
+          "card_id": 7656689,
+          "count": 1,
+          "name": "恩底弥翁的侍女 杰妮"
+        },
+        {
+          "card_id": 22623509,
+          "count": 1,
+          "name": "恩底弥翁的侍女 玻璃"
+        },
+        {
+          "card_id": 32353566,
+          "count": 1,
+          "name": "魔女的圣夜行"
+        },
+        {
+          "card_id": 34041788,
+          "count": 1,
+          "name": "恩底弥翁皇国"
+        },
+        {
+          "card_id": 38943357,
+          "count": 2,
+          "name": "魔力统辖"
+        },
+        {
+          "card_id": 64756282,
+          "count": 1,
+          "name": "魔女术工匠·万能杰妮"
+        },
+        {
+          "card_id": 96228804,
+          "count": 2,
+          "name": "圣月之皇太子 雷古勒斯"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "endymion_complete_pendulum_context",
+      "selected_main": [
+        {
+          "card_id": 3611830,
+          "count": 3,
+          "name": "创圣魔导王 恩底弥翁"
+        },
+        {
+          "card_id": 27354732,
+          "count": 2,
+          "name": "魔导兽 胡狼王"
+        },
+        {
+          "card_id": 38943357,
+          "count": 3,
+          "name": "魔力统辖"
+        },
+        {
+          "card_id": 39123673,
+          "count": 3,
+          "name": "魔力到达"
+        },
+        {
+          "card_id": 53842431,
+          "count": 2,
+          "name": "魔导兽 刻耳柏洛斯尊主"
+        },
+        {
+          "card_id": 92559258,
+          "count": 3,
+          "name": "恩底弥翁的仆从"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "adventurer_ritual_turn",
+      "selected_main": [
+        {
+          "card_id": 2563463,
+          "count": 1,
+          "name": "流离的狮鹫骑手"
+        },
+        {
+          "card_id": 3285551,
+          "count": 1,
+          "name": "阿拉弥赛亚之仪"
+        },
+        {
+          "card_id": 38745520,
+          "count": 1,
+          "name": "骑龙 驮龙"
+        },
+        {
+          "card_id": 39568067,
+          "count": 1,
+          "name": "命运之旅路"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "adventurer_normal_effect_conflict",
+      "selected_main": [
+        {
+          "card_id": 2563463,
+          "count": 1,
+          "name": "流离的狮鹫骑手"
+        },
+        {
+          "card_id": 3285551,
+          "count": 1,
+          "name": "阿拉弥赛亚之仪"
+        },
+        {
+          "card_id": 38745520,
+          "count": 1,
+          "name": "骑龙 驮龙"
+        },
+        {
+          "card_id": 39568067,
+          "count": 1,
+          "name": "命运之旅路"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "tenyi_vishuda_monk",
+      "selected_main": [
+        {
+          "card_id": 23431858,
+          "count": 1,
+          "name": "天威龙-大同蟠龙"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 32519092,
+          "count": 1,
+          "name": "天威之拳僧"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "tenyi_effect_monster_present",
+      "selected_main": [
+        {
+          "card_id": 23431858,
+          "count": 1,
+          "name": "天威龙-大同蟠龙"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 32519092,
+          "count": 1,
+          "name": "天威之拳僧"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "darkhole_striker_board_clear",
+      "selected_main": [
+        {
+          "card_id": 53129443,
+          "count": 1,
+          "name": "黑洞"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "darkhole_kuriboh_defence",
+      "selected_main": [
+        {
+          "card_id": 53129443,
+          "count": 1,
+          "name": "黑洞"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "striker_complete_resource_plan",
+      "selected_main": [
+        {
+          "card_id": 9726840,
+          "count": 3,
+          "name": "闪刀起动-连刀"
+        },
+        {
+          "card_id": 26077387,
+          "count": 3,
+          "name": "闪刀姬-零衣"
+        },
+        {
+          "card_id": 34433770,
+          "count": 2,
+          "name": "闪刀亚式-双纽闪门"
+        },
+        {
+          "card_id": 37351133,
+          "count": 2,
+          "name": "闪刀姬-露世"
+        },
+        {
+          "card_id": 63166095,
+          "count": 3,
+          "name": "闪刀起动-交闪"
+        },
+        {
+          "card_id": 98338152,
+          "count": 3,
+          "name": "闪刀机-黑寡妇抓锚"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 8491308,
+          "count": 1,
+          "name": "闪刀姬-飒天"
+        },
+        {
+          "card_id": 25072579,
+          "count": 1,
+          "name": "试号闪刀姬-天津"
+        },
+        {
+          "card_id": 63013339,
+          "count": 1,
+          "name": "闪刀姬-卡米丽娅"
+        },
+        {
+          "card_id": 63288573,
+          "count": 3,
+          "name": "闪刀姬-燎里"
+        },
+        {
+          "card_id": 75147529,
+          "count": 1,
+          "name": "闪刀姬-泽克"
+        },
+        {
+          "card_id": 76072561,
+          "count": 3,
+          "name": "闪刀姬=零露"
+        },
+        {
+          "card_id": 90673288,
+          "count": 1,
+          "name": "闪刀姬-雫空"
+        },
+        {
+          "card_id": 98462037,
+          "count": 1,
+          "name": "闪刀姬-阿泽莉娅"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "striker_complete_ritual_finish",
+      "selected_main": [
+        {
+          "card_id": 9726840,
+          "count": 3,
+          "name": "闪刀起动-连刀"
+        },
+        {
+          "card_id": 26077387,
+          "count": 2,
+          "name": "闪刀姬-零衣"
+        },
+        {
+          "card_id": 34433770,
+          "count": 1,
+          "name": "闪刀亚式-双纽闪门"
+        },
+        {
+          "card_id": 37351133,
+          "count": 1,
+          "name": "闪刀姬-露世"
+        },
+        {
+          "card_id": 63166095,
+          "count": 3,
+          "name": "闪刀起动-交闪"
+        },
+        {
+          "card_id": 98338152,
+          "count": 2,
+          "name": "闪刀机-黑寡妇抓锚"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 8491308,
+          "count": 1,
+          "name": "闪刀姬-飒天"
+        },
+        {
+          "card_id": 25072579,
+          "count": 1,
+          "name": "试号闪刀姬-天津"
+        },
+        {
+          "card_id": 63013339,
+          "count": 1,
+          "name": "闪刀姬-卡米丽娅"
+        },
+        {
+          "card_id": 63288573,
+          "count": 2,
+          "name": "闪刀姬-燎里"
+        },
+        {
+          "card_id": 75147529,
+          "count": 1,
+          "name": "闪刀姬-泽克"
+        },
+        {
+          "card_id": 76072561,
+          "count": 2,
+          "name": "闪刀姬=零露"
+        },
+        {
+          "card_id": 90673288,
+          "count": 1,
+          "name": "闪刀姬-雫空"
+        },
+        {
+          "card_id": 98462037,
+          "count": 1,
+          "name": "闪刀姬-阿泽莉娅"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "striker_drones_link_recover",
+      "selected_main": [
+        {
+          "card_id": 52340444,
+          "count": 1,
+          "name": "闪刀机-大黄蜂浮游单元"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 63288573,
+          "count": 1,
+          "name": "闪刀姬-燎里"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "striker_drones_occupied_main",
+      "selected_main": [
+        {
+          "card_id": 52340444,
+          "count": 1,
+          "name": "闪刀机-大黄蜂浮游单元"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 63288573,
+          "count": 1,
+          "name": "闪刀姬-燎里"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "predaplant_search_superpoly",
+      "selected_main": [
+        {
+          "card_id": 35272499,
+          "count": 1,
+          "name": "捕食植物 蜂兰蝎"
+        },
+        {
+          "card_id": 48130397,
+          "count": 1,
+          "name": "超融合"
+        },
+        {
+          "card_id": 61677004,
+          "count": 1,
+          "name": "捕食植物 蛇瓶草眼镜蛇"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "predaplant_compact_fusion_attack",
+      "selected_main": [
+        {
+          "card_id": 35272499,
+          "count": 1,
+          "name": "捕食植物 蜂兰蝎"
+        },
+        {
+          "card_id": 48130397,
+          "count": 1,
+          "name": "超融合"
+        },
+        {
+          "card_id": 61677004,
+          "count": 1,
+          "name": "捕食植物 蛇瓶草眼镜蛇"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 41209827,
+          "count": 1,
+          "name": "凶饿毒融合龙"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "predaplant_second_discard_missing",
+      "selected_main": [
+        {
+          "card_id": 35272499,
+          "count": 1,
+          "name": "捕食植物 蜂兰蝎"
+        },
+        {
+          "card_id": 48130397,
+          "count": 1,
+          "name": "超融合"
+        },
+        {
+          "card_id": 61677004,
+          "count": 1,
+          "name": "捕食植物 蛇瓶草眼镜蛇"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 25586143,
+          "count": 1,
+          "name": "捕食植物 奇美拉大花草"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "duster_cartoon_backrow_clear",
+      "selected_main": [
+        {
+          "card_id": 18144506,
+          "count": 1,
+          "name": "鹰身女妖的羽毛扫"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "duster_no_backrow_now",
+      "selected_main": [
+        {
+          "card_id": 18144506,
+          "count": 1,
+          "name": "鹰身女妖的羽毛扫"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "v5_nibiru_single_live",
+      "selected_main": [
+        {
+          "card_id": 27204311,
+          "count": 1,
+          "name": "原始生命态 尼比鲁"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "v5_nibiru_below_threshold",
+      "selected_main": [
+        {
+          "card_id": 27204311,
+          "count": 1,
+          "name": "原始生命态 尼比鲁"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "v5_etele_ogre_from_deck",
+      "selected_main": [
+        {
+          "card_id": 59438930,
+          "count": 1,
+          "name": "幽鬼兔"
+        },
+        {
+          "card_id": 67723438,
+          "count": 1,
+          "name": "紧急瞬间移动"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "v5_etele_ogre_from_hand",
+      "selected_main": [
+        {
+          "card_id": 59438930,
+          "count": 1,
+          "name": "幽鬼兔"
+        },
+        {
+          "card_id": 67723438,
+          "count": 1,
+          "name": "紧急瞬间移动"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "v5_quick_launch_tracer_deck",
+      "selected_main": [
+        {
+          "card_id": 31443476,
+          "count": 1,
+          "name": "速攻旋转"
+        },
+        {
+          "card_id": 68464358,
+          "count": 1,
+          "name": "弹丸曳光龙"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "v5_quick_launch_target_only_in_hand",
+      "selected_main": [
+        {
+          "card_id": 31443476,
+          "count": 1,
+          "name": "速攻旋转"
+        },
+        {
+          "card_id": 68464358,
+          "count": 1,
+          "name": "弹丸曳光龙"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "v5_unexpected_dai_seed",
+      "selected_main": [
+        {
+          "card_id": 911883,
+          "count": 1,
+          "name": "粗人预料"
+        },
+        {
+          "card_id": 27520594,
+          "count": 1,
+          "name": "圣种之地灵"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "v5_gamma_query_missing_driver",
+      "selected_main": [
+        {
+          "card_id": 38814750,
+          "count": 1,
+          "name": "PSY骨架装备·γ"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "v5_driver_query_missing_gamma",
+      "selected_main": [
+        {
+          "card_id": 49036338,
+          "count": 1,
+          "name": "PSY骨架驱动者"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "v5_invoked_query_missing_artemis",
+      "selected_main": [
+        {
+          "card_id": 74063034,
+          "count": 1,
+          "name": "召唤魔术"
+        },
+        {
+          "card_id": 86120751,
+          "count": 1,
+          "name": "召唤师 阿莱斯特"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 75286621,
+          "count": 1,
+          "name": "召唤兽 梅尔卡巴"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "v5_invoked_query_missing_invocation",
+      "selected_main": [
+        {
+          "card_id": 86120751,
+          "count": 1,
+          "name": "召唤师 阿莱斯特"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 34755994,
+          "count": 1,
+          "name": "圣魔之少女 阿耳特弥斯"
+        },
+        {
+          "card_id": 75286621,
+          "count": 1,
+          "name": "召唤兽 梅尔卡巴"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "v5_invoked_query_missing_mechaba",
+      "selected_main": [
+        {
+          "card_id": 74063034,
+          "count": 1,
+          "name": "召唤魔术"
+        },
+        {
+          "card_id": 86120751,
+          "count": 1,
+          "name": "召唤师 阿莱斯特"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 34755994,
+          "count": 1,
+          "name": "圣魔之少女 阿耳特弥斯"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "v5_invoked_query_missing_aleister",
+      "selected_main": [
+        {
+          "card_id": 74063034,
+          "count": 1,
+          "name": "召唤魔术"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 34755994,
+          "count": 1,
+          "name": "圣魔之少女 阿耳特弥斯"
+        },
+        {
+          "card_id": 75286621,
+          "count": 1,
+          "name": "召唤兽 梅尔卡巴"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "v5_tourguide_query_missing_sangan",
+      "selected_main": [
+        {
+          "card_id": 10802915,
+          "count": 1,
+          "name": "由魔界到现世的死亡导游"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 58699500,
+          "count": 1,
+          "name": "彼岸的黑天使 基路伯"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "v5_tourguide_without_cherubini_material_contract",
+      "selected_main": [
+        {
+          "card_id": 10802915,
+          "count": 1,
+          "name": "由魔界到现世的死亡导游"
+        },
+        {
+          "card_id": 26202165,
+          "count": 1,
+          "name": "三眼怪"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "v5_branded_full_with_minimum_fusion_contract",
+      "selected_main": [
+        {
+          "card_id": 17751597,
+          "count": 1,
+          "name": "烙印断罪"
+        },
+        {
+          "card_id": 19304410,
+          "count": 1,
+          "name": "铁兽炎工 姬特"
+        },
+        {
+          "card_id": 29948294,
+          "count": 3,
+          "name": "烙印的气炎"
+        },
+        {
+          "card_id": 30271097,
+          "count": 3,
+          "name": "落胤与圣女"
+        },
+        {
+          "card_id": 44362883,
+          "count": 1,
+          "name": "烙印融合"
+        },
+        {
+          "card_id": 45883110,
+          "count": 1,
+          "name": "引导的圣女 奎姆"
+        },
+        {
+          "card_id": 55273560,
+          "count": 2,
+          "name": "白之圣女 艾克莉西娅"
+        },
+        {
+          "card_id": 62962630,
+          "count": 3,
+          "name": "死狱乡的导化 阿鲁伯"
+        },
+        {
+          "card_id": 68468459,
+          "count": 3,
+          "name": "阿不思的落胤"
+        },
+        {
+          "card_id": 82738008,
+          "count": 1,
+          "name": "赫之烙印"
+        },
+        {
+          "card_id": 95515789,
+          "count": 1,
+          "name": "赫之圣女 卡尔特西娅"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 24915933,
+          "count": 1,
+          "name": "赫焉龙 大木偶剧场龙"
+        },
+        {
+          "card_id": 38811586,
+          "count": 1,
+          "name": "真炎龙 白界龙"
+        },
+        {
+          "card_id": 41373230,
+          "count": 1,
+          "name": "灰烬龙 落胤龙"
+        },
+        {
+          "card_id": 44146295,
+          "count": 1,
+          "name": "冰剑龙 幻冰龙"
+        },
+        {
+          "card_id": 51409648,
+          "count": 1,
+          "name": "击铁龙 蓝迅龙"
+        },
+        {
+          "card_id": 74405783,
+          "count": 1,
+          "name": "三英之相剑师"
+        },
+        {
+          "card_id": 76666602,
+          "count": 2,
+          "name": "吞食圣痕之龙"
+        },
+        {
+          "card_id": 78397661,
+          "count": 1,
+          "name": "黑龙之艾克莉西娅"
+        },
+        {
+          "card_id": 87746184,
+          "count": 2,
+          "name": "烙印龙 白界龙"
+        },
+        {
+          "card_id": 89851827,
+          "count": 1,
+          "name": "圣秘之龙骑士"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "v5_hero_full_with_minimum_mask_contract",
+      "selected_main": [
+        {
+          "card_id": 4663194,
+          "count": 3,
+          "name": "幽狱之时计都市-暗黑都市"
+        },
+        {
+          "card_id": 10808715,
+          "count": 1,
+          "name": "假面英雄 暮鸦"
+        },
+        {
+          "card_id": 16605586,
+          "count": 1,
+          "name": "命运英雄 否定人"
+        },
+        {
+          "card_id": 21143940,
+          "count": 1,
+          "name": "假面变化"
+        },
+        {
+          "card_id": 24094653,
+          "count": 1,
+          "name": "融合"
+        },
+        {
+          "card_id": 25158975,
+          "count": 1,
+          "name": "命运英雄 死亡教义人"
+        },
+        {
+          "card_id": 26964762,
+          "count": 1,
+          "name": "命运英雄 暗黑天使"
+        },
+        {
+          "card_id": 40591390,
+          "count": 1,
+          "name": "命运英雄 恐惧人"
+        },
+        {
+          "card_id": 52947044,
+          "count": 3,
+          "name": "融合命运"
+        },
+        {
+          "card_id": 58288218,
+          "count": 1,
+          "name": "假面英雄 炉火"
+        },
+        {
+          "card_id": 62542673,
+          "count": 3,
+          "name": "命运英雄 恶魔主宰人"
+        },
+        {
+          "card_id": 98931282,
+          "count": 1,
+          "name": "命运英雄 无惧从者"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 23204029,
+          "count": 1,
+          "name": "对极英雄 混沌侠"
+        },
+        {
+          "card_id": 54641720,
+          "count": 1,
+          "name": "命运英雄 无惧人"
+        },
+        {
+          "card_id": 58004362,
+          "count": 2,
+          "name": "特异英雄 十字人"
+        },
+        {
+          "card_id": 58481572,
+          "count": 1,
+          "name": "假面英雄 暗爪"
+        },
+        {
+          "card_id": 60461804,
+          "count": 1,
+          "name": "命运英雄 毁灭凤凰人"
+        },
+        {
+          "card_id": 63813056,
+          "count": 1,
+          "name": "特异英雄 恐惧破坏者"
+        },
+        {
+          "card_id": 69394324,
+          "count": 1,
+          "name": "命运英雄 统治人"
+        },
+        {
+          "card_id": 90579153,
+          "count": 1,
+          "name": "命运英雄 敌托邦人"
+        },
+        {
+          "card_id": 93657021,
+          "count": 1,
+          "name": "命运英雄 暮托邦人"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-fs-01",
+      "selected_main": [
+        {
+          "card_id": 28803166,
+          "count": 1,
+          "name": "红泪之魔 落泪"
+        },
+        {
+          "card_id": 60764609,
+          "count": 1,
+          "name": "刻印群魔的刻魔锻冶师"
+        },
+        {
+          "card_id": 97651498,
+          "count": 1,
+          "name": "魔轰神 路里"
+        },
+        {
+          "card_id": 98567237,
+          "count": 1,
+          "name": "刻魔的咏圣"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 2463794,
+          "count": 1,
+          "name": "刻魔的镇魂棺"
+        },
+        {
+          "card_id": 32991300,
+          "count": 1,
+          "name": "刻魔的神圣棺"
+        },
+        {
+          "card_id": 46640168,
+          "count": 1,
+          "name": "刻魔 落泪之日"
+        },
+        {
+          "card_id": 49867899,
+          "count": 1,
+          "name": "刻魔的大圣棺"
+        },
+        {
+          "card_id": 82135803,
+          "count": 1,
+          "name": "刻魔 震怒之日"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-fs-02",
+      "selected_main": [
+        {
+          "card_id": 28803166,
+          "count": 1,
+          "name": "红泪之魔 落泪"
+        },
+        {
+          "card_id": 60764609,
+          "count": 1,
+          "name": "刻印群魔的刻魔锻冶师"
+        },
+        {
+          "card_id": 97651498,
+          "count": 1,
+          "name": "魔轰神 路里"
+        },
+        {
+          "card_id": 98567237,
+          "count": 1,
+          "name": "刻魔的咏圣"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 2463794,
+          "count": 1,
+          "name": "刻魔的镇魂棺"
+        },
+        {
+          "card_id": 46640168,
+          "count": 1,
+          "name": "刻魔 落泪之日"
+        },
+        {
+          "card_id": 49867899,
+          "count": 1,
+          "name": "刻魔的大圣棺"
+        },
+        {
+          "card_id": 82135803,
+          "count": 1,
+          "name": "刻魔 震怒之日"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-fs-03",
+      "selected_main": [
+        {
+          "card_id": 60764609,
+          "count": 1,
+          "name": "刻印群魔的刻魔锻冶师"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 2463794,
+          "count": 1,
+          "name": "刻魔的镇魂棺"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-fs-04",
+      "selected_main": [
+        {
+          "card_id": 35552985,
+          "count": 1,
+          "name": "刻魔的赞圣"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-fs-05",
+      "selected_main": [],
+      "selected_extra": [
+        {
+          "card_id": 2463794,
+          "count": 1,
+          "name": "刻魔的镇魂棺"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-fs-06",
+      "selected_main": [
+        {
+          "card_id": 60764609,
+          "count": 1,
+          "name": "刻印群魔的刻魔锻冶师"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 2463794,
+          "count": 1,
+          "name": "刻魔的镇魂棺"
+        },
+        {
+          "card_id": 49867899,
+          "count": 1,
+          "name": "刻魔的大圣棺"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-fk-01",
+      "selected_main": [
+        {
+          "card_id": 2526224,
+          "count": 3,
+          "name": "炎王神兽 麒麟"
+        },
+        {
+          "card_id": 18621798,
+          "count": 1,
+          "name": "炎王兽 甘尼许"
+        },
+        {
+          "card_id": 23015896,
+          "count": 1,
+          "name": "炎王神兽 大鹏不死鸟"
+        },
+        {
+          "card_id": 44455560,
+          "count": 3,
+          "name": "炎王妃 火神不死鸟"
+        },
+        {
+          "card_id": 57554544,
+          "count": 1,
+          "name": "炎王的孤岛"
+        },
+        {
+          "card_id": 65305978,
+          "count": 1,
+          "name": "炎王的圣域"
+        },
+        {
+          "card_id": 66431519,
+          "count": 3,
+          "name": "圣炎王 大鹏不死鸟"
+        },
+        {
+          "card_id": 90681088,
+          "count": 3,
+          "name": "真炎王 凤凰不死鸟"
+        },
+        {
+          "card_id": 91703676,
+          "count": 1,
+          "name": "炎王神天烧"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 64182380,
+          "count": 2,
+          "name": "炎王神 大鹏不死鸟·永炎"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-fk-02",
+      "selected_main": [
+        {
+          "card_id": 2526224,
+          "count": 1,
+          "name": "炎王神兽 麒麟"
+        },
+        {
+          "card_id": 90681088,
+          "count": 1,
+          "name": "真炎王 凤凰不死鸟"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-fk-03",
+      "selected_main": [
+        {
+          "card_id": 2526224,
+          "count": 1,
+          "name": "炎王神兽 麒麟"
+        },
+        {
+          "card_id": 90681088,
+          "count": 1,
+          "name": "真炎王 凤凰不死鸟"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-fk-04",
+      "selected_main": [
+        {
+          "card_id": 2526224,
+          "count": 1,
+          "name": "炎王神兽 麒麟"
+        },
+        {
+          "card_id": 57554544,
+          "count": 1,
+          "name": "炎王的孤岛"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-fk-05",
+      "selected_main": [
+        {
+          "card_id": 2526224,
+          "count": 3,
+          "name": "炎王神兽 麒麟"
+        },
+        {
+          "card_id": 18621798,
+          "count": 1,
+          "name": "炎王兽 甘尼许"
+        },
+        {
+          "card_id": 57554544,
+          "count": 1,
+          "name": "炎王的孤岛"
+        },
+        {
+          "card_id": 65305978,
+          "count": 1,
+          "name": "炎王的圣域"
+        },
+        {
+          "card_id": 66431519,
+          "count": 3,
+          "name": "圣炎王 大鹏不死鸟"
+        },
+        {
+          "card_id": 90681088,
+          "count": 3,
+          "name": "真炎王 凤凰不死鸟"
+        },
+        {
+          "card_id": 91703676,
+          "count": 1,
+          "name": "炎王神天烧"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 64182380,
+          "count": 1,
+          "name": "炎王神 大鹏不死鸟·永炎"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-fk-06",
+      "selected_main": [],
+      "selected_extra": [
+        {
+          "card_id": 64182380,
+          "count": 1,
+          "name": "炎王神 大鹏不死鸟·永炎"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-rn-01",
+      "selected_main": [
+        {
+          "card_id": 30430448,
+          "count": 3,
+          "name": "冰冻诅咒的神碑"
+        },
+        {
+          "card_id": 31562086,
+          "count": 3,
+          "name": "神碑的锋芒"
+        },
+        {
+          "card_id": 67835547,
+          "count": 3,
+          "name": "微睡的神碑"
+        },
+        {
+          "card_id": 68957034,
+          "count": 3,
+          "name": "辉耀之炎的神碑"
+        },
+        {
+          "card_id": 92107604,
+          "count": 1,
+          "name": "神碑之泉"
+        },
+        {
+          "card_id": 94445733,
+          "count": 3,
+          "name": "破坏的神碑"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 28373620,
+          "count": 3,
+          "name": "神碑之牙 格利"
+        },
+        {
+          "card_id": 47219274,
+          "count": 3,
+          "name": "神碑之牙 弗利基"
+        },
+        {
+          "card_id": 55990317,
+          "count": 3,
+          "name": "神碑之翼 胡基"
+        },
+        {
+          "card_id": 74659582,
+          "count": 2,
+          "name": "神碑之鬣 史莱普尼尔"
+        },
+        {
+          "card_id": 92385016,
+          "count": 3,
+          "name": "神碑之翼 穆宁"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-rn-02",
+      "selected_main": [
+        {
+          "card_id": 30430448,
+          "count": 1,
+          "name": "冰冻诅咒的神碑"
+        },
+        {
+          "card_id": 31562086,
+          "count": 3,
+          "name": "神碑的锋芒"
+        },
+        {
+          "card_id": 67835547,
+          "count": 1,
+          "name": "微睡的神碑"
+        },
+        {
+          "card_id": 68957034,
+          "count": 1,
+          "name": "辉耀之炎的神碑"
+        },
+        {
+          "card_id": 92107604,
+          "count": 1,
+          "name": "神碑之泉"
+        },
+        {
+          "card_id": 94445733,
+          "count": 1,
+          "name": "破坏的神碑"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 28373620,
+          "count": 1,
+          "name": "神碑之牙 格利"
+        },
+        {
+          "card_id": 55990317,
+          "count": 2,
+          "name": "神碑之翼 胡基"
+        },
+        {
+          "card_id": 74659582,
+          "count": 1,
+          "name": "神碑之鬣 史莱普尼尔"
+        },
+        {
+          "card_id": 92385016,
+          "count": 1,
+          "name": "神碑之翼 穆宁"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-rn-03",
+      "selected_main": [
+        {
+          "card_id": 92107604,
+          "count": 1,
+          "name": "神碑之泉"
+        },
+        {
+          "card_id": 94445733,
+          "count": 1,
+          "name": "破坏的神碑"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-rn-04",
+      "selected_main": [
+        {
+          "card_id": 68957034,
+          "count": 1,
+          "name": "辉耀之炎的神碑"
+        },
+        {
+          "card_id": 94445733,
+          "count": 1,
+          "name": "破坏的神碑"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 55990317,
+          "count": 1,
+          "name": "神碑之翼 胡基"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-rn-05",
+      "selected_main": [
+        {
+          "card_id": 68957034,
+          "count": 1,
+          "name": "辉耀之炎的神碑"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-rn-06",
+      "selected_main": [
+        {
+          "card_id": 68957034,
+          "count": 1,
+          "name": "辉耀之炎的神碑"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-kj-01",
+      "selected_main": [
+        {
+          "card_id": 55063751,
+          "count": 1,
+          "name": "海龟坏兽 加美西耶勒"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-kj-02",
+      "selected_main": [
+        {
+          "card_id": 55063751,
+          "count": 1,
+          "name": "海龟坏兽 加美西耶勒"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-kj-03",
+      "selected_main": [
+        {
+          "card_id": 55063751,
+          "count": 1,
+          "name": "海龟坏兽 加美西耶勒"
+        },
+        {
+          "card_id": 93332803,
+          "count": 1,
+          "name": "怒炎坏兽 多哥兰"
+        },
+        {
+          "card_id": 99330325,
+          "count": 1,
+          "name": "遭受妨碍的坏兽安眠"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-kj-04",
+      "selected_main": [
+        {
+          "card_id": 55063751,
+          "count": 1,
+          "name": "海龟坏兽 加美西耶勒"
+        },
+        {
+          "card_id": 99330325,
+          "count": 1,
+          "name": "遭受妨碍的坏兽安眠"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-kj-05",
+      "selected_main": [
+        {
+          "card_id": 55063751,
+          "count": 1,
+          "name": "海龟坏兽 加美西耶勒"
+        },
+        {
+          "card_id": 99330325,
+          "count": 1,
+          "name": "遭受妨碍的坏兽安眠"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v5-kj-06",
+      "selected_main": [
+        {
+          "card_id": 11163040,
+          "count": 1,
+          "name": "坏兽的出现记录"
+        },
+        {
+          "card_id": 28674152,
+          "count": 2,
+          "name": "多次元坏兽 拉迪安"
+        },
+        {
+          "card_id": 29726552,
+          "count": 2,
+          "name": "黏丝坏兽 库莫古斯"
+        },
+        {
+          "card_id": 29913783,
+          "count": 1,
+          "name": "对坏兽用决战兵器 机械雷鸣王"
+        },
+        {
+          "card_id": 36956512,
+          "count": 2,
+          "name": "怪粉坏兽 加达拉"
+        },
+        {
+          "card_id": 48770333,
+          "count": 1,
+          "name": "雷击坏兽 雷鸣龙王"
+        },
+        {
+          "card_id": 55063751,
+          "count": 2,
+          "name": "海龟坏兽 加美西耶勒"
+        },
+        {
+          "card_id": 56111151,
+          "count": 2,
+          "name": "京塔 海滨地区"
+        },
+        {
+          "card_id": 63941210,
+          "count": 1,
+          "name": "坏星坏兽 席兹奇埃鲁"
+        },
+        {
+          "card_id": 81057455,
+          "count": 1,
+          "name": "坏兽捕获大作战"
+        },
+        {
+          "card_id": 84769941,
+          "count": 1,
+          "name": "对坏兽用决战兵器 超级机械多哥兰"
+        },
+        {
+          "card_id": 93332803,
+          "count": 2,
+          "name": "怒炎坏兽 多哥兰"
+        },
+        {
+          "card_id": 99330325,
+          "count": 3,
+          "name": "遭受妨碍的坏兽安眠"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v6-uc-01",
+      "selected_main": [
+        {
+          "card_id": 1966438,
+          "count": 1,
+          "name": "双极之破械神"
+        },
+        {
+          "card_id": 26236560,
+          "count": 2,
+          "name": "破械童子 阿罗汉"
+        },
+        {
+          "card_id": 27412542,
+          "count": 3,
+          "name": "双王之械"
+        },
+        {
+          "card_id": 31531914,
+          "count": 3,
+          "name": "破械式鬼 斯玛"
+        },
+        {
+          "card_id": 31588572,
+          "count": 1,
+          "name": "破械童子 娑罗摩"
+        },
+        {
+          "card_id": 41165831,
+          "count": 3,
+          "name": "破械神 萨巴拉"
+        },
+        {
+          "card_id": 53417695,
+          "count": 1,
+          "name": "破械唱导"
+        },
+        {
+          "card_id": 53624265,
+          "count": 1,
+          "name": "破械童子 罗鬼刹"
+        },
+        {
+          "card_id": 54807656,
+          "count": 1,
+          "name": "破械神的恸哭"
+        },
+        {
+          "card_id": 67803035,
+          "count": 3,
+          "name": "破械转生"
+        },
+        {
+          "card_id": 68625623,
+          "count": 1,
+          "name": "破械冥官 篁"
+        },
+        {
+          "card_id": 80801743,
+          "count": 1,
+          "name": "破械双极"
+        },
+        {
+          "card_id": 88554436,
+          "count": 1,
+          "name": "破械神 萨玛"
+        },
+        {
+          "card_id": 89019964,
+          "count": 1,
+          "name": "破械神的祸灵"
+        },
+        {
+          "card_id": 93898740,
+          "count": 1,
+          "name": "破械习合"
+        },
+        {
+          "card_id": 95136979,
+          "count": 1,
+          "name": "破械式鬼 萨拉"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 21419436,
+          "count": 1,
+          "name": "破械神双 罗寂刹"
+        },
+        {
+          "card_id": 24269961,
+          "count": 2,
+          "name": "破械神王 阎摩"
+        },
+        {
+          "card_id": 29479265,
+          "count": 1,
+          "name": "破械双王神 来迎"
+        },
+        {
+          "card_id": 67680512,
+          "count": 1,
+          "name": "破械神 罗寂刹"
+        },
+        {
+          "card_id": 93084621,
+          "count": 1,
+          "name": "破械神 阿罗魃"
+        },
+        {
+          "card_id": 94014327,
+          "count": 1,
+          "name": "破械焰魔天 阎摩"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v6-uc-02",
+      "selected_main": [
+        {
+          "card_id": 26236560,
+          "count": 1,
+          "name": "破械童子 阿罗汉"
+        },
+        {
+          "card_id": 41165831,
+          "count": 1,
+          "name": "破械神 萨巴拉"
+        },
+        {
+          "card_id": 53417695,
+          "count": 1,
+          "name": "破械唱导"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v6-uc-03",
+      "selected_main": [
+        {
+          "card_id": 26236560,
+          "count": 1,
+          "name": "破械童子 阿罗汉"
+        },
+        {
+          "card_id": 41165831,
+          "count": 1,
+          "name": "破械神 萨巴拉"
+        },
+        {
+          "card_id": 53417695,
+          "count": 1,
+          "name": "破械唱导"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v6-uc-04",
+      "selected_main": [
+        {
+          "card_id": 26236560,
+          "count": 1,
+          "name": "破械童子 阿罗汉"
+        },
+        {
+          "card_id": 41165831,
+          "count": 1,
+          "name": "破械神 萨巴拉"
+        },
+        {
+          "card_id": 53417695,
+          "count": 1,
+          "name": "破械唱导"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v6-uc-05",
+      "selected_main": [
+        {
+          "card_id": 26236560,
+          "count": 1,
+          "name": "破械童子 阿罗汉"
+        },
+        {
+          "card_id": 41165831,
+          "count": 1,
+          "name": "破械神 萨巴拉"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v6-uc-06",
+      "selected_main": [],
+      "selected_extra": [
+        {
+          "card_id": 29479265,
+          "count": 1,
+          "name": "破械双王神 来迎"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v6-rk-01",
+      "selected_main": [
+        {
+          "card_id": 132308,
+          "count": 3,
+          "name": "六花的白姬"
+        },
+        {
+          "card_id": 8129306,
+          "count": 1,
+          "name": "六花精 樱草"
+        },
+        {
+          "card_id": 33491462,
+          "count": 1,
+          "name": "六花精 雪花莲"
+        },
+        {
+          "card_id": 68941332,
+          "count": 2,
+          "name": "六花的薄冰"
+        },
+        {
+          "card_id": 69164989,
+          "count": 2,
+          "name": "六花绚烂"
+        },
+        {
+          "card_id": 71002019,
+          "count": 2,
+          "name": "六花精 叶牡丹"
+        },
+        {
+          "card_id": 71734607,
+          "count": 3,
+          "name": "六花的一瓣"
+        },
+        {
+          "card_id": 76869711,
+          "count": 3,
+          "name": "六花来来"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 3828844,
+          "count": 2,
+          "name": "六花圣 力量女神花圈"
+        },
+        {
+          "card_id": 33779875,
+          "count": 1,
+          "name": "六花圣 泪滴花束雪花莲"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v6-rk-02",
+      "selected_main": [
+        {
+          "card_id": 132308,
+          "count": 3,
+          "name": "六花的白姬"
+        },
+        {
+          "card_id": 8129306,
+          "count": 1,
+          "name": "六花精 樱草"
+        },
+        {
+          "card_id": 33491462,
+          "count": 1,
+          "name": "六花精 雪花莲"
+        },
+        {
+          "card_id": 68941332,
+          "count": 2,
+          "name": "六花的薄冰"
+        },
+        {
+          "card_id": 69164989,
+          "count": 2,
+          "name": "六花绚烂"
+        },
+        {
+          "card_id": 71002019,
+          "count": 2,
+          "name": "六花精 叶牡丹"
+        },
+        {
+          "card_id": 71734607,
+          "count": 3,
+          "name": "六花的一瓣"
+        },
+        {
+          "card_id": 76869711,
+          "count": 3,
+          "name": "六花来来"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 3828844,
+          "count": 2,
+          "name": "六花圣 力量女神花圈"
+        },
+        {
+          "card_id": 33779875,
+          "count": 1,
+          "name": "六花圣 泪滴花束雪花莲"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v6-rk-03",
+      "selected_main": [
+        {
+          "card_id": 69164989,
+          "count": 1,
+          "name": "六花绚烂"
+        },
+        {
+          "card_id": 71002019,
+          "count": 1,
+          "name": "六花精 叶牡丹"
+        },
+        {
+          "card_id": 76869711,
+          "count": 1,
+          "name": "六花来来"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v6-rk-04",
+      "selected_main": [
+        {
+          "card_id": 69164989,
+          "count": 1,
+          "name": "六花绚烂"
+        },
+        {
+          "card_id": 71002019,
+          "count": 1,
+          "name": "六花精 叶牡丹"
+        },
+        {
+          "card_id": 76869711,
+          "count": 1,
+          "name": "六花来来"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v6-rk-05",
+      "selected_main": [
+        {
+          "card_id": 69164989,
+          "count": 1,
+          "name": "六花绚烂"
+        },
+        {
+          "card_id": 71002019,
+          "count": 1,
+          "name": "六花精 叶牡丹"
+        },
+        {
+          "card_id": 76869711,
+          "count": 1,
+          "name": "六花来来"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "blind-v6-rk-06",
+      "selected_main": [],
+      "selected_extra": [
+        {
+          "card_id": 33779875,
+          "count": 1,
+          "name": "六花圣 泪滴花束雪花莲"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-ORC-01",
+      "selected_main": [
+        {
+          "card_id": 703897,
+          "count": 1,
+          "name": "自奏圣乐之阶"
+        },
+        {
+          "card_id": 4055337,
+          "count": 1,
+          "name": "自奏圣乐·梦幻崩影"
+        },
+        {
+          "card_id": 21441617,
+          "count": 1,
+          "name": "自奏圣乐·谐谑曲骷髅"
+        },
+        {
+          "card_id": 57835716,
+          "count": 3,
+          "name": "自奏圣乐·嬉游曲恶魔"
+        },
+        {
+          "card_id": 69811710,
+          "count": 1,
+          "name": "宵星之骑士 吉尔苏"
+        },
+        {
+          "card_id": 90351981,
+          "count": 1,
+          "name": "自奏圣乐的通天塔"
+        },
+        {
+          "card_id": 93920420,
+          "count": 1,
+          "name": "星遗物-『星杖』"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 30741503,
+          "count": 1,
+          "name": "自奏圣乐·伽拉忒亚"
+        },
+        {
+          "card_id": 48835607,
+          "count": 1,
+          "name": "自奏圣乐·伽拉忒亚i"
+        },
+        {
+          "card_id": 74820316,
+          "count": 1,
+          "name": "宵星之骑士 恩利尔吉尔苏"
+        },
+        {
+          "card_id": 93854893,
+          "count": 1,
+          "name": "宵星之机神 丁吉尔苏"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-ORC-02",
+      "selected_main": [
+        {
+          "card_id": 703897,
+          "count": 1,
+          "name": "自奏圣乐之阶"
+        },
+        {
+          "card_id": 4055337,
+          "count": 1,
+          "name": "自奏圣乐·梦幻崩影"
+        },
+        {
+          "card_id": 21441617,
+          "count": 1,
+          "name": "自奏圣乐·谐谑曲骷髅"
+        },
+        {
+          "card_id": 57835716,
+          "count": 3,
+          "name": "自奏圣乐·嬉游曲恶魔"
+        },
+        {
+          "card_id": 69811710,
+          "count": 1,
+          "name": "宵星之骑士 吉尔苏"
+        },
+        {
+          "card_id": 90351981,
+          "count": 1,
+          "name": "自奏圣乐的通天塔"
+        },
+        {
+          "card_id": 93920420,
+          "count": 1,
+          "name": "星遗物-『星杖』"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 30741503,
+          "count": 1,
+          "name": "自奏圣乐·伽拉忒亚"
+        },
+        {
+          "card_id": 48835607,
+          "count": 1,
+          "name": "自奏圣乐·伽拉忒亚i"
+        },
+        {
+          "card_id": 74820316,
+          "count": 1,
+          "name": "宵星之骑士 恩利尔吉尔苏"
+        },
+        {
+          "card_id": 93854893,
+          "count": 1,
+          "name": "宵星之机神 丁吉尔苏"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-ORC-03",
+      "selected_main": [
+        {
+          "card_id": 21441617,
+          "count": 1,
+          "name": "自奏圣乐·谐谑曲骷髅"
+        },
+        {
+          "card_id": 90351981,
+          "count": 1,
+          "name": "自奏圣乐的通天塔"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 93854893,
+          "count": 1,
+          "name": "宵星之机神 丁吉尔苏"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-ORC-04",
+      "selected_main": [
+        {
+          "card_id": 21441617,
+          "count": 1,
+          "name": "自奏圣乐·谐谑曲骷髅"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 93854893,
+          "count": 1,
+          "name": "宵星之机神 丁吉尔苏"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-ORC-05",
+      "selected_main": [
+        {
+          "card_id": 21441617,
+          "count": 1,
+          "name": "自奏圣乐·谐谑曲骷髅"
+        },
+        {
+          "card_id": 90351981,
+          "count": 1,
+          "name": "自奏圣乐的通天塔"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 93854893,
+          "count": 1,
+          "name": "宵星之机神 丁吉尔苏"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-ORC-06",
+      "selected_main": [
+        {
+          "card_id": 21441617,
+          "count": 1,
+          "name": "自奏圣乐·谐谑曲骷髅"
+        },
+        {
+          "card_id": 90351981,
+          "count": 1,
+          "name": "自奏圣乐的通天塔"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 93854893,
+          "count": 1,
+          "name": "宵星之机神 丁吉尔苏"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-SPD-01",
+      "selected_main": [
+        {
+          "card_id": 81275020,
+          "count": 1,
+          "name": "疾行机人 贝陀螺集合体"
+        },
+        {
+          "card_id": 53932291,
+          "count": 1,
+          "name": "疾行机人 竹蜻蜓电子人"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-SPD-02",
+      "selected_main": [
+        {
+          "card_id": 81275020,
+          "count": 1,
+          "name": "疾行机人 贝陀螺集合体"
+        },
+        {
+          "card_id": 53932291,
+          "count": 1,
+          "name": "疾行机人 竹蜻蜓电子人"
+        },
+        {
+          "card_id": 49721904,
+          "count": 1,
+          "name": "真六武众-辉斩"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 4423206,
+          "count": 1,
+          "name": "失X-剑士 招来者"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-SPD-03",
+      "selected_main": [
+        {
+          "card_id": 81275020,
+          "count": 1,
+          "name": "疾行机人 贝陀螺集合体"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-SPD-04",
+      "selected_main": [
+        {
+          "card_id": 81275020,
+          "count": 1,
+          "name": "疾行机人 贝陀螺集合体"
+        },
+        {
+          "card_id": 53932291,
+          "count": 1,
+          "name": "疾行机人 竹蜻蜓电子人"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-SPD-05",
+      "selected_main": [
+        {
+          "card_id": 81275020,
+          "count": 1,
+          "name": "疾行机人 贝陀螺集合体"
+        },
+        {
+          "card_id": 53932291,
+          "count": 1,
+          "name": "疾行机人 竹蜻蜓电子人"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-SPD-06",
+      "selected_main": [
+        {
+          "card_id": 81275020,
+          "count": 1,
+          "name": "疾行机人 贝陀螺集合体"
+        },
+        {
+          "card_id": 53932291,
+          "count": 1,
+          "name": "疾行机人 竹蜻蜓电子人"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-BRF-01",
+      "selected_main": [
+        {
+          "card_id": 7394770,
+          "count": 1,
+          "name": "明亮融合"
+        },
+        {
+          "card_id": 35622739,
+          "count": 1,
+          "name": "宝石骑士·石英"
+        },
+        {
+          "card_id": 27204311,
+          "count": 1,
+          "name": "原始生命态 尼比鲁"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 3113836,
+          "count": 1,
+          "name": "宝石骑士·斜绿"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-BRF-02",
+      "selected_main": [
+        {
+          "card_id": 7394770,
+          "count": 1,
+          "name": "明亮融合"
+        },
+        {
+          "card_id": 35622739,
+          "count": 1,
+          "name": "宝石骑士·石英"
+        },
+        {
+          "card_id": 51831560,
+          "count": 1,
+          "name": "宝石骑士·拿非琉"
+        },
+        {
+          "card_id": 1264319,
+          "count": 1,
+          "name": "宝石骑士融合"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 3113836,
+          "count": 1,
+          "name": "宝石骑士·斜绿"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-BRF-03",
+      "selected_main": [
+        {
+          "card_id": 7394770,
+          "count": 1,
+          "name": "明亮融合"
+        },
+        {
+          "card_id": 27204311,
+          "count": 1,
+          "name": "原始生命态 尼比鲁"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 3113836,
+          "count": 1,
+          "name": "宝石骑士·斜绿"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-BRF-04",
+      "selected_main": [
+        {
+          "card_id": 7394770,
+          "count": 1,
+          "name": "明亮融合"
+        },
+        {
+          "card_id": 35622739,
+          "count": 1,
+          "name": "宝石骑士·石英"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 3113836,
+          "count": 1,
+          "name": "宝石骑士·斜绿"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-BRF-05",
+      "selected_main": [
+        {
+          "card_id": 7394770,
+          "count": 1,
+          "name": "明亮融合"
+        },
+        {
+          "card_id": 35622739,
+          "count": 1,
+          "name": "宝石骑士·石英"
+        },
+        {
+          "card_id": 27204311,
+          "count": 1,
+          "name": "原始生命态 尼比鲁"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 3113836,
+          "count": 1,
+          "name": "宝石骑士·斜绿"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-BRF-06",
+      "selected_main": [
+        {
+          "card_id": 7394770,
+          "count": 1,
+          "name": "明亮融合"
+        },
+        {
+          "card_id": 35622739,
+          "count": 1,
+          "name": "宝石骑士·石英"
+        },
+        {
+          "card_id": 27204311,
+          "count": 1,
+          "name": "原始生命态 尼比鲁"
+        }
+      ],
+      "selected_extra": [
+        {
+          "card_id": 3113836,
+          "count": 1,
+          "name": "宝石骑士·斜绿"
+        }
+      ],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-NIB-01",
+      "selected_main": [
+        {
+          "card_id": 27204311,
+          "count": 1,
+          "name": "原始生命态 尼比鲁"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-NIB-02",
+      "selected_main": [
+        {
+          "card_id": 27204311,
+          "count": 1,
+          "name": "原始生命态 尼比鲁"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-NIB-03",
+      "selected_main": [
+        {
+          "card_id": 27204311,
+          "count": 1,
+          "name": "原始生命态 尼比鲁"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-NIB-04",
+      "selected_main": [
+        {
+          "card_id": 27204311,
+          "count": 1,
+          "name": "原始生命态 尼比鲁"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-NIB-05",
+      "selected_main": [
+        {
+          "card_id": 27204311,
+          "count": 1,
+          "name": "原始生命态 尼比鲁"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-NIB-06",
+      "selected_main": [
+        {
+          "card_id": 27204311,
+          "count": 1,
+          "name": "原始生命态 尼比鲁"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    },
+    {
+      "case_id": "BF-NIB-07",
+      "selected_main": [
+        {
+          "card_id": 27204311,
+          "count": 1,
+          "name": "原始生命态 尼比鲁"
+        }
+      ],
+      "selected_extra": [],
+      "objective_differs_from_goal_intake": false
+    }
+  ]
+}

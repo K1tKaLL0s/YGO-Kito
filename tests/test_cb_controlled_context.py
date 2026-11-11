@@ -1,4 +1,5 @@
 """CB hypotheses are explicit initial states, never lucky random deals."""
+from tests.fixtures import synthetic_cb_authorization
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
@@ -44,7 +45,7 @@ class ControlledCbContextTests(unittest.TestCase):
         def verify(candidate,deck,assets,**limits):
             return discover_goal(route_task(candidate),deck,assets,**limits)
         with patch('ygo_kito.basic_cb_inference.proposals',return_value=[candidate]):
-            result=infer_basic_cb(task,deck,assets,verifier=verify,seconds=1.,limit=1)
+            result=infer_basic_cb(task,deck,assets,**synthetic_cb_authorization(task,deck),verifier=verify,seconds=1.,limit=1)
         self.assertEqual(len(calls),1)
         self.assertFalse(_CONDITIONAL_CB.get())
         self.assertEqual(result['initial_state_mode'],'hypothetical_exact_hand_v1')

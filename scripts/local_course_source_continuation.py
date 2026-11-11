@@ -4,6 +4,26 @@ import hashlib,json
 from pathlib import Path
 
 
+def validate_continuation(continuation, base):
+    """Resolve a closed state; implementation archives are optional audit input."""
+    if not isinstance(continuation, dict) or set(continuation) not in (
+            {'state_root'}, {'state_root', 'source_manifest', 'source_archive'}):
+        raise ValueError('Expected a state root, optionally with its historical source archive')
+    base = Path(base).resolve()
+    try:
+        target = Path(continuation['state_root']).resolve(strict=True)
+    except OSError as error:
+        raise ValueError('Continuation requires an existing migrated course directory') from error
+    if not target.is_relative_to(base) or not target.is_dir():
+        raise ValueError('Continuation state must be an existing directory inside the resource base')
+    if not (target/'course/latest.json').is_file():
+        raise ValueError('Continuation requires an existing closed course checkpoint')
+    for name in ('in-flight.json', 'feedback-in-flight.json'):
+        if (target/'course'/name).exists():
+            raise ValueError('Continuation has an unresolved transaction: '+name)
+    return target
+
+
 def import_source_continuation(course,target):
     import torch
     from ygo_kito.build_contracts import DeckParts,digest

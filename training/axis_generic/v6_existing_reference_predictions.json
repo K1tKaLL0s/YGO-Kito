@@ -1,0 +1,3135 @@
+[
+  {
+    "case_id": "gamma_empty_response",
+    "family": "gamma",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      1,
+      1
+    ],
+    "prediction": [
+      0.0020632087253034115,
+      0.9808908700942993,
+      0.0011261935578659177,
+      0.975395143032074,
+      0.9311124682426453
+    ],
+    "input_key": "3a7ed2feff311b23cde0a61465b5cc5e556411179fd7e0a4ff6139af3fc5bac2",
+    "primary_operation_tags": [
+      "synchro"
+    ],
+    "focal_members": 2,
+    "relations": 11
+  },
+  {
+    "case_id": "gamma_occupied_field",
+    "family": "gamma",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "prediction": [
+      0.00026336885639466345,
+      0.7819355726242065,
+      0.005782241467386484,
+      0.017949962988495827,
+      0.004816387314349413
+    ],
+    "input_key": "92aa46fe58ec414ad380d185a44f17403ca7fb92a024066d12a6f334e3f97616",
+    "primary_operation_tags": [
+      "attack"
+    ],
+    "focal_members": 2,
+    "relations": 11
+  },
+  {
+    "case_id": "gamma_state_unknown",
+    "family": "gamma",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      null,
+      null
+    ],
+    "prediction": [
+      0.00023320144100580364,
+      0.6870841979980469,
+      0.0009431702783331275,
+      0.11931547522544861,
+      0.0036676444578915834
+    ],
+    "input_key": "5ee8c0b5652ac419ef76722c2ab87ac81b3d8c4442cf36bd810efa4eae1e48d9",
+    "primary_operation_tags": [
+      "synchro"
+    ],
+    "focal_members": 2,
+    "relations": 11
+  },
+  {
+    "case_id": "invoked_artemis_cycle",
+    "family": "invoked",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      1,
+      0,
+      1
+    ],
+    "prediction": [
+      0.021432964131236076,
+      0.8357586860656738,
+      0.9657499194145203,
+      0.013333857990801334,
+      0.3077266812324524
+    ],
+    "input_key": "f110d733c46f041a90adcad3ea3935f2ab612aaa60671f29e2d6f150030aaecb",
+    "primary_operation_tags": [
+      "fusion",
+      "negate",
+      "recover",
+      "attack",
+      "normal_summon"
+    ],
+    "focal_members": 4,
+    "relations": 18
+  },
+  {
+    "case_id": "invoked_artemis_ritual_plan",
+    "family": "invoked",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      1,
+      1
+    ],
+    "prediction": [
+      0.006557101383805275,
+      0.9926808476448059,
+      0.0015516889980062842,
+      0.9964080452919006,
+      0.49072039127349854
+    ],
+    "input_key": "94a86205775ea9c36f4fa93791bea0167b9b9eab3ab64593c4b4b49c4d33fd1e",
+    "primary_operation_tags": [
+      "ritual",
+      "special_summon",
+      "recover",
+      "banish",
+      "attack"
+    ],
+    "focal_members": 4,
+    "relations": 18
+  },
+  {
+    "case_id": "invoked_almiraj_gardna",
+    "family": "invoked",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      1,
+      0,
+      1
+    ],
+    "prediction": [
+      0.01476101204752922,
+      0.9680525660514832,
+      0.9137883186340332,
+      0.05463189631700516,
+      0.3218211233615875
+    ],
+    "input_key": "b3e384921554c8e150a976d26f570521560470ff10cf059fb392b073107123f7",
+    "primary_operation_tags": [
+      "fusion",
+      "link",
+      "negate",
+      "recover",
+      "normal_summon"
+    ],
+    "focal_members": 5,
+    "relations": 21
+  },
+  {
+    "case_id": "destiny_dpe_actual_singleton",
+    "family": "destiny",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      1,
+      1
+    ],
+    "prediction": [
+      0.00343475304543972,
+      0.9929595589637756,
+      0.00307528511621058,
+      0.9811697602272034,
+      0.9124705195426941
+    ],
+    "input_key": "6828793b3f1bf4955243b3c84bb98653134dbc91073bc4334f640659b78ecf21",
+    "primary_operation_tags": [
+      "fusion"
+    ],
+    "focal_members": 4,
+    "relations": 20
+  },
+  {
+    "case_id": "branded_complete_40",
+    "family": "branded",
+    "origin": "development",
+    "roles": [
+      1,
+      0,
+      1,
+      0,
+      null
+    ],
+    "prediction": [
+      0.999397873878479,
+      0.009091749787330627,
+      0.998672604560852,
+      0.010217809118330479,
+      0.749448835849762
+    ],
+    "input_key": "d9c3ce42bb0875a5070e2e6b56e29f50942016f26607eeaaa2a0325188b08a12",
+    "primary_operation_tags": [
+      "fusion",
+      "recover",
+      "grave",
+      "banish"
+    ],
+    "focal_members": 32,
+    "relations": 73
+  },
+  {
+    "case_id": "branded_complete_60",
+    "family": "branded",
+    "origin": "development",
+    "roles": [
+      1,
+      0,
+      1,
+      0,
+      null
+    ],
+    "prediction": [
+      0.9997989535331726,
+      0.002968413522467017,
+      0.9995761513710022,
+      0.0024972278624773026,
+      0.7687599062919617
+    ],
+    "input_key": "d1292fe23cf90eb914b01a29604cad3f083c48c3ef3e17e54c7c7eba58e63f38",
+    "primary_operation_tags": [
+      "fusion",
+      "recover",
+      "grave",
+      "banish"
+    ],
+    "focal_members": 42,
+    "relations": 127
+  },
+  {
+    "case_id": "branded_compact_fusion_route",
+    "family": "branded",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      1,
+      1
+    ],
+    "prediction": [
+      0.002884509041905403,
+      0.9724447727203369,
+      0.0007606854778714478,
+      0.9954962730407715,
+      0.7461612224578857
+    ],
+    "input_key": "484d8127580998414e2d7cd70151a89dfbb2348e54aea576aa423189b36d6bf7",
+    "primary_operation_tags": [
+      "fusion",
+      "attack"
+    ],
+    "focal_members": 7,
+    "relations": 26
+  },
+  {
+    "case_id": "hero_complete_clock_destiny",
+    "family": "hero",
+    "origin": "development",
+    "roles": [
+      1,
+      0,
+      1,
+      0,
+      null
+    ],
+    "prediction": [
+      0.9994719624519348,
+      0.0069171106442809105,
+      0.9997699856758118,
+      0.00100624724291265,
+      0.8114902973175049
+    ],
+    "input_key": "c0222b039ead90da7c3ac9bf2563634205a8cc559d2cda3421bddbcd75600744",
+    "primary_operation_tags": [
+      "fusion",
+      "search",
+      "special_summon",
+      "destroy",
+      "grave",
+      "attack"
+    ],
+    "focal_members": 28,
+    "relations": 239
+  },
+  {
+    "case_id": "hero_complete_shadow_mask",
+    "family": "hero",
+    "origin": "development",
+    "roles": [
+      1,
+      0,
+      1,
+      0,
+      null
+    ],
+    "prediction": [
+      0.9995887875556946,
+      0.005856800824403763,
+      0.9998040795326233,
+      0.0009091950487345457,
+      0.8076768517494202
+    ],
+    "input_key": "1024233592d08dbe7441670c7c5a7026049244f8f0e64c00b045ce31af0841a2",
+    "primary_operation_tags": [
+      "fusion",
+      "search",
+      "destroy",
+      "transformation",
+      "attack"
+    ],
+    "focal_members": 30,
+    "relations": 297
+  },
+  {
+    "case_id": "hero_crow_furnace_mask_route",
+    "family": "hero",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      1,
+      1
+    ],
+    "prediction": [
+      0.005529632326215506,
+      0.9917480945587158,
+      0.0014256210997700691,
+      0.9961296319961548,
+      0.5618817806243896
+    ],
+    "input_key": "98ddebcac5e9f9f50c84e3da8f53ed8b8aa1c4891a8f965bf022eedefddc35ef",
+    "primary_operation_tags": [
+      "search",
+      "special_summon",
+      "destroy",
+      "grave"
+    ],
+    "focal_members": 4,
+    "relations": 22
+  },
+  {
+    "case_id": "tourguide_link_search",
+    "family": "tourguide",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      1,
+      1
+    ],
+    "prediction": [
+      0.0010041154455393553,
+      0.9812931418418884,
+      0.0003434079990256578,
+      0.9871301054954529,
+      0.16254442930221558
+    ],
+    "input_key": "e35104f6b4d527a38045b8f4cfa9aa014f6c21fac2f8f7798bb54102629b7dd4",
+    "primary_operation_tags": [
+      "link"
+    ],
+    "focal_members": 3,
+    "relations": 13
+  },
+  {
+    "case_id": "tourguide_normal_already_used",
+    "family": "tourguide",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "prediction": [
+      0.00039492390351369977,
+      0.5750176906585693,
+      0.0011023464612662792,
+      0.3040671646595001,
+      0.0034546854440122843
+    ],
+    "input_key": "c9fa8cacbf6a011f22cfd79cae23a7a84bbafc7fde7ca8f770bc5efb5e65e289",
+    "primary_operation_tags": [
+      "link"
+    ],
+    "focal_members": 3,
+    "relations": 12
+  },
+  {
+    "case_id": "dogmatika_late_turn_response",
+    "family": "dogmatika",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      1,
+      1
+    ],
+    "prediction": [
+      0.001783565036021173,
+      0.9974055886268616,
+      0.00023799082555342466,
+      0.9941233992576599,
+      0.7544925212860107
+    ],
+    "input_key": "8657feb3989ed55e2108e17ebf9ae5aa83af95023f3834f9ae6de53d1076f05b",
+    "primary_operation_tags": [],
+    "focal_members": 4,
+    "relations": 18
+  },
+  {
+    "case_id": "dogmatika_extra_order_conflict",
+    "family": "dogmatika",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "prediction": [
+      0.000327513727825135,
+      0.9234441518783569,
+      0.0070058912970125675,
+      0.03118288144469261,
+      0.00479139294475317
+    ],
+    "input_key": "d5da12d8d8a1fc90a6172503db817c33c38939d50227a151efe9db563af63562",
+    "primary_operation_tags": [
+      "fusion",
+      "link"
+    ],
+    "focal_members": 4,
+    "relations": 17
+  },
+  {
+    "case_id": "dogmatika_declared_battle_plan",
+    "family": "dogmatika",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      1,
+      0,
+      1
+    ],
+    "prediction": [
+      0.008241517469286919,
+      0.9577108025550842,
+      0.9368464946746826,
+      0.0065087080001831055,
+      0.4338667094707489
+    ],
+    "input_key": "2c994df15b70ae234c55183a0d75cff250d5e53410245f2dc6942a3c74836f15",
+    "primary_operation_tags": [
+      "search",
+      "negate",
+      "grave",
+      "attack"
+    ],
+    "focal_members": 4,
+    "relations": 18
+  },
+  {
+    "case_id": "maxx_fusion_response",
+    "family": "maxx_single",
+    "origin": "development",
+    "roles": [
+      0,
+      0,
+      0,
+      1,
+      1
+    ],
+    "prediction": [
+      0.008782279677689075,
+      0.06556669622659683,
+      0.0022748876363039017,
+      0.87714684009552,
+      0.9580724239349365
+    ],
+    "input_key": "7c900a708ff5c296afd7cdfeff2cd0c6c555c06e1e0ce57abf60600ea1358acf",
+    "primary_operation_tags": [
+      "fusion"
+    ],
+    "focal_members": 1,
+    "relations": 6
+  },
+  {
+    "case_id": "maxx_future_summons_unknown",
+    "family": "maxx_single",
+    "origin": "development",
+    "roles": [
+      0,
+      0,
+      0,
+      null,
+      null
+    ],
+    "prediction": [
+      0.0011609408538788557,
+      0.005981234833598137,
+      0.003766563953831792,
+      0.056005001068115234,
+      0.0294134970754385
+    ],
+    "input_key": "b14f80a278fd0598eecbcfebfc31687209fdedd28db6ec3790d6ca97d4b3e605",
+    "primary_operation_tags": [
+      "attack"
+    ],
+    "focal_members": 1,
+    "relations": 6
+  },
+  {
+    "case_id": "desires_striker_resources",
+    "family": "desires_single",
+    "origin": "development",
+    "roles": [
+      0,
+      0,
+      0,
+      1,
+      1
+    ],
+    "prediction": [
+      0.005006327293813229,
+      0.2190505862236023,
+      0.0006988554960116744,
+      0.9544066190719604,
+      0.9570336937904358
+    ],
+    "input_key": "d50c9ad00b293783097aeddf3ef2392a4f5eacbfaf7c23dbe7effdad02270bd6",
+    "primary_operation_tags": [
+      "link"
+    ],
+    "focal_members": 1,
+    "relations": 6
+  },
+  {
+    "case_id": "desires_low_deck",
+    "family": "desires_single",
+    "origin": "development",
+    "roles": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "prediction": [
+      0.0010095912730321288,
+      0.009121369570493698,
+      0.004519116599112749,
+      0.03961958736181259,
+      0.01757540926337242
+    ],
+    "input_key": "67343b195e98af4d1d274b651eab48d15b5dec4431bfa45cd711f814bc9c2907",
+    "primary_operation_tags": [
+      "spell_counter",
+      "pendulum"
+    ],
+    "focal_members": 1,
+    "relations": 6
+  },
+  {
+    "case_id": "endymion_complete_spell_counters",
+    "family": "endymion",
+    "origin": "development",
+    "roles": [
+      1,
+      0,
+      1,
+      0,
+      null
+    ],
+    "prediction": [
+      0.7420014142990112,
+      0.46503618359565735,
+      0.9859939813613892,
+      0.010813388042151928,
+      0.25242021679878235
+    ],
+    "input_key": "baf18ac0efdd2435db17582cf309e313a7aa3ac6e19c85c0e3a7839e2baa0502",
+    "primary_operation_tags": [
+      "special_summon",
+      "negate",
+      "spell_counter",
+      "pendulum",
+      "attack"
+    ],
+    "focal_members": 16,
+    "relations": 13
+  },
+  {
+    "case_id": "endymion_complete_modern_spellcasters",
+    "family": "endymion",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      1,
+      null
+    ],
+    "prediction": [
+      0.00768140098080039,
+      0.9741898775100708,
+      0.002744455588981509,
+      0.9274840354919434,
+      0.015313479118049145
+    ],
+    "input_key": "24816f90e9d3806341c8b366cbb20d314ba6096ea22a31e892e0f8a11762ae29",
+    "primary_operation_tags": [
+      "fusion",
+      "link"
+    ],
+    "focal_members": 9,
+    "relations": 16
+  },
+  {
+    "case_id": "endymion_complete_pendulum_context",
+    "family": "endymion",
+    "origin": "development",
+    "roles": [
+      1,
+      0,
+      0,
+      1,
+      null
+    ],
+    "prediction": [
+      0.18020707368850708,
+      0.9781224727630615,
+      0.03507782146334648,
+      0.9384007453918457,
+      0.0834416002035141
+    ],
+    "input_key": "ae942559274efa13b5e354dfc989851d020db461130eb725f4e1a0df77dce233",
+    "primary_operation_tags": [
+      "link",
+      "pendulum",
+      "attack"
+    ],
+    "focal_members": 16,
+    "relations": 13
+  },
+  {
+    "case_id": "adventurer_ritual_turn",
+    "family": "adventurer",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      1,
+      1
+    ],
+    "prediction": [
+      0.0018477373523637652,
+      0.9916041493415833,
+      0.0003103127528447658,
+      0.99580317735672,
+      0.6020612120628357
+    ],
+    "input_key": "2b4a788e5686218bfed7ec98c6d4e09a93d1103a3ebab2b899c54ac908d1e40e",
+    "primary_operation_tags": [
+      "ritual"
+    ],
+    "focal_members": 4,
+    "relations": 16
+  },
+  {
+    "case_id": "adventurer_normal_effect_conflict",
+    "family": "adventurer",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "prediction": [
+      0.00033235797309316695,
+      0.8440398573875427,
+      0.0010417302837595344,
+      0.3661290109157562,
+      0.003021573880687356
+    ],
+    "input_key": "40b6df8e7b96bd1555613585a83a02913c0bf1e1f82ed162f3e291b53cb77636",
+    "primary_operation_tags": [
+      "xyz"
+    ],
+    "focal_members": 4,
+    "relations": 15
+  },
+  {
+    "case_id": "tenyi_vishuda_monk",
+    "family": "tenyi",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      1,
+      1
+    ],
+    "prediction": [
+      0.0006574064027518034,
+      0.8556675910949707,
+      0.0002991593792103231,
+      0.9551075100898743,
+      0.11831898987293243
+    ],
+    "input_key": "f67437f23adcafb9bb1cca3a02cd5ee18c76ef98fe5143d5ed09255e2af24815",
+    "primary_operation_tags": [
+      "synchro",
+      "attack"
+    ],
+    "focal_members": 2,
+    "relations": 11
+  },
+  {
+    "case_id": "tenyi_effect_monster_present",
+    "family": "tenyi",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "prediction": [
+      0.0003892936510965228,
+      0.20554478466510773,
+      0.0016308709746226668,
+      0.0857231616973877,
+      0.0034630713053047657
+    ],
+    "input_key": "c87c90801fca587c20c9d55609113980dd82a371a12b66adc4d179c5099d34ca",
+    "primary_operation_tags": [
+      "synchro"
+    ],
+    "focal_members": 2,
+    "relations": 10
+  },
+  {
+    "case_id": "darkhole_striker_board_clear",
+    "family": "darkhole_single",
+    "origin": "development",
+    "roles": [
+      0,
+      0,
+      0,
+      1,
+      1
+    ],
+    "prediction": [
+      0.0010176784126088023,
+      0.9113132357597351,
+      0.00018158924649469554,
+      0.976098358631134,
+      0.7606673836708069
+    ],
+    "input_key": "00784ddb41e9bb4d43f7983285e931788acea1bde7d45c68a85c3f444f0dc126",
+    "primary_operation_tags": [
+      "link"
+    ],
+    "focal_members": 1,
+    "relations": 6
+  },
+  {
+    "case_id": "darkhole_kuriboh_defence",
+    "family": "darkhole_single",
+    "origin": "development",
+    "roles": [
+      0,
+      0,
+      0,
+      1,
+      1
+    ],
+    "prediction": [
+      0.0009402658906765282,
+      0.6939786672592163,
+      0.00019061840430367738,
+      0.9580739140510559,
+      0.7801154255867004
+    ],
+    "input_key": "3215be09c5dba1721c40aed4650d1d2747239b2087817f8f08a94d6ed00dcec1",
+    "primary_operation_tags": [
+      "attack"
+    ],
+    "focal_members": 1,
+    "relations": 6
+  },
+  {
+    "case_id": "striker_complete_resource_plan",
+    "family": "striker",
+    "origin": "development",
+    "roles": [
+      1,
+      0,
+      1,
+      0,
+      null
+    ],
+    "prediction": [
+      0.9992423057556152,
+      0.012209109961986542,
+      0.9989758729934692,
+      0.006516927387565374,
+      0.7662535309791565
+    ],
+    "input_key": "62e4e8610c8d03d0d8bbe079dc3769207287855a4b0dc0e777ff087ad1f5ba63",
+    "primary_operation_tags": [
+      "link",
+      "search",
+      "recover"
+    ],
+    "focal_members": 28,
+    "relations": 143
+  },
+  {
+    "case_id": "striker_complete_ritual_finish",
+    "family": "striker",
+    "origin": "development",
+    "roles": [
+      1,
+      0,
+      0,
+      1,
+      null
+    ],
+    "prediction": [
+      0.9958655834197998,
+      0.08206604421138763,
+      0.9455546140670776,
+      0.29321199655532837,
+      0.6963500380516052
+    ],
+    "input_key": "9c42c61bdb301eccb1899b6cb19db011222d7b3737e285bce23491d0dea1930e",
+    "primary_operation_tags": [
+      "ritual",
+      "special_summon",
+      "recover",
+      "banish",
+      "attack"
+    ],
+    "focal_members": 22,
+    "relations": 143
+  },
+  {
+    "case_id": "striker_drones_link_recover",
+    "family": "striker",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      1,
+      1
+    ],
+    "prediction": [
+      0.0017586353933438659,
+      0.9827916026115417,
+      0.00037654690095223486,
+      0.9938544034957886,
+      0.5145953297615051
+    ],
+    "input_key": "e35030c615461673d61fe79d95ca534bd7aac532e39e9c81f5bbcfa5790f832f",
+    "primary_operation_tags": [
+      "link"
+    ],
+    "focal_members": 2,
+    "relations": 11
+  },
+  {
+    "case_id": "striker_drones_occupied_main",
+    "family": "striker",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "prediction": [
+      0.00040549319237470627,
+      0.6090789437294006,
+      0.0009792923228815198,
+      0.35818177461624146,
+      0.004154422786086798
+    ],
+    "input_key": "6c761d19fe3296dffcda96db5f666c6eecb76c58bbcd5e04288d585b6a50acc3",
+    "primary_operation_tags": [
+      "link"
+    ],
+    "focal_members": 2,
+    "relations": 10
+  },
+  {
+    "case_id": "predaplant_search_superpoly",
+    "family": "predaplant",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      1,
+      1
+    ],
+    "prediction": [
+      0.003045705845579505,
+      0.9833842515945435,
+      0.0008732374990358949,
+      0.9944813251495361,
+      0.5396291017532349
+    ],
+    "input_key": "1cf4827b3f991e03a9c9adea76175eb3922ce987593cdf1688932e34a385011a",
+    "primary_operation_tags": [
+      "fusion"
+    ],
+    "focal_members": 3,
+    "relations": 15
+  },
+  {
+    "case_id": "predaplant_compact_fusion_attack",
+    "family": "predaplant",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      1,
+      0,
+      1
+    ],
+    "prediction": [
+      0.028105661273002625,
+      0.9581385254859924,
+      0.04208119213581085,
+      0.9748856425285339,
+      0.8566035628318787
+    ],
+    "input_key": "4ba1c6a56bba70f75e312b406d58afe6407cc82f119ce5b330603554ef49d34c",
+    "primary_operation_tags": [
+      "fusion",
+      "search",
+      "special_summon",
+      "attack"
+    ],
+    "focal_members": 4,
+    "relations": 19
+  },
+  {
+    "case_id": "predaplant_second_discard_missing",
+    "family": "predaplant",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "prediction": [
+      0.0005722735077142715,
+      0.8376907110214233,
+      0.0015879740240052342,
+      0.5204530358314514,
+      0.004082612227648497
+    ],
+    "input_key": "0de6d2379316facd8c013f7fa4a3caa02878c26973a1f91bc9840911836d00c4",
+    "primary_operation_tags": [
+      "fusion"
+    ],
+    "focal_members": 4,
+    "relations": 20
+  },
+  {
+    "case_id": "duster_cartoon_backrow_clear",
+    "family": "duster_single",
+    "origin": "development",
+    "roles": [
+      0,
+      0,
+      0,
+      1,
+      1
+    ],
+    "prediction": [
+      0.0009850998176261783,
+      0.6689609885215759,
+      0.00021119292068760842,
+      0.9539531469345093,
+      0.7464392781257629
+    ],
+    "input_key": "56246321593942571d7d50410fe7ed08fc989388c46e9fe0ae3fb0e75a7c7c04",
+    "primary_operation_tags": [
+      "link",
+      "attack"
+    ],
+    "focal_members": 1,
+    "relations": 6
+  },
+  {
+    "case_id": "duster_no_backrow_now",
+    "family": "duster_single",
+    "origin": "development",
+    "roles": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "prediction": [
+      0.0006018390995450318,
+      0.0390811450779438,
+      0.004676135256886482,
+      0.025162000209093094,
+      0.006824982352554798
+    ],
+    "input_key": "5523ae528120fbf6cd680a36a9530b2528e1079778bb5ad7eb443d5c87779995",
+    "primary_operation_tags": [
+      "fusion",
+      "grave"
+    ],
+    "focal_members": 1,
+    "relations": 6
+  },
+  {
+    "case_id": "v5_nibiru_single_live",
+    "family": "nibiru_single",
+    "origin": "development",
+    "roles": [
+      0,
+      0,
+      0,
+      1,
+      1
+    ],
+    "prediction": [
+      0.006040154956281185,
+      0.007795620709657669,
+      0.007375674322247505,
+      0.554941713809967,
+      0.8609633445739746
+    ],
+    "input_key": "9d6713501c270ceb61828786ebe89a6079a1dc911c66cdd5734ab144c01540f1",
+    "primary_operation_tags": [
+      "fusion",
+      "negate",
+      "recover",
+      "attack"
+    ],
+    "focal_members": 1,
+    "relations": 7
+  },
+  {
+    "case_id": "v5_nibiru_below_threshold",
+    "family": "nibiru_single",
+    "origin": "development",
+    "roles": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "prediction": [
+      0.0010449766414240003,
+      0.005378148518502712,
+      0.008119188249111176,
+      0.03263445198535919,
+      0.023161256685853004
+    ],
+    "input_key": "f03b5fc7b5eda2354e20ce5d775e0034e34456242c2f4ba245496535b3160369",
+    "primary_operation_tags": [
+      "fusion",
+      "negate",
+      "recover",
+      "attack"
+    ],
+    "focal_members": 1,
+    "relations": 7
+  },
+  {
+    "case_id": "v5_etele_ogre_from_deck",
+    "family": "etele_material",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      1,
+      1
+    ],
+    "prediction": [
+      0.0005903668352402747,
+      0.9169059991836548,
+      0.0006433663656935096,
+      0.9309648871421814,
+      0.10915639996528625
+    ],
+    "input_key": "30530c409f3167280554b3bfb95610b7d8d9a7e3bced767c86b7440776616c14",
+    "primary_operation_tags": [
+      "synchro",
+      "negate",
+      "attack"
+    ],
+    "focal_members": 2,
+    "relations": 11
+  },
+  {
+    "case_id": "v5_etele_ogre_from_hand",
+    "family": "etele_material",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      1,
+      1
+    ],
+    "prediction": [
+      0.0006055932608433068,
+      0.9163315892219543,
+      0.0006371001363731921,
+      0.9345277547836304,
+      0.11095449328422546
+    ],
+    "input_key": "a47520ea80cde76d7d9222dbc4148298b22f0b6888e21c38cbafada328987c41",
+    "primary_operation_tags": [
+      "synchro",
+      "negate",
+      "attack"
+    ],
+    "focal_members": 2,
+    "relations": 11
+  },
+  {
+    "case_id": "v5_quick_launch_tracer_deck",
+    "family": "quick_launch_material",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      1,
+      1
+    ],
+    "prediction": [
+      0.0010745493927970529,
+      0.9901524186134338,
+      0.0004961853846907616,
+      0.9820220470428467,
+      0.6702924370765686
+    ],
+    "input_key": "ca1345e09beb428d6e482cb5ba5db3c3569089b41b702204358b2c9f7d029842",
+    "primary_operation_tags": [
+      "link",
+      "synchro",
+      "negate"
+    ],
+    "focal_members": 2,
+    "relations": 11
+  },
+  {
+    "case_id": "v5_quick_launch_target_only_in_hand",
+    "family": "quick_launch_material",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "prediction": [
+      0.00023867524578236043,
+      0.5376706719398499,
+      0.0022368640638887882,
+      0.04269815981388092,
+      0.0027916221879422665
+    ],
+    "input_key": "31e8f7715398b5700cd90ca4ce428a8d58fd28174de8766cae4f9be51c004ba6",
+    "primary_operation_tags": [
+      "link",
+      "synchro",
+      "negate"
+    ],
+    "focal_members": 2,
+    "relations": 11
+  },
+  {
+    "case_id": "v5_unexpected_dai_seed",
+    "family": "unexpected_dai_material",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      1,
+      1
+    ],
+    "prediction": [
+      0.0006372772040776908,
+      0.8194350004196167,
+      0.0003149233525618911,
+      0.9504029154777527,
+      0.09380949288606644
+    ],
+    "input_key": "912cf7c74c3b2adc4da66a2bd013fdd8b8fcdc639e857fb7d66f33999475e747",
+    "primary_operation_tags": [
+      "link",
+      "attack"
+    ],
+    "focal_members": 2,
+    "relations": 10
+  },
+  {
+    "case_id": "v5_gamma_query_missing_driver",
+    "family": "gamma",
+    "origin": "development",
+    "roles": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "prediction": [
+      0.000677658012136817,
+      0.030738577246665955,
+      0.003863508580252528,
+      0.03530265390872955,
+      0.006458845920860767
+    ],
+    "input_key": "53a14e0d9ffd652d8348dbd134bcc93a9cffdabaab46d3e9d7fc9f5297269b08",
+    "primary_operation_tags": [
+      "synchro",
+      "attack"
+    ],
+    "focal_members": 1,
+    "relations": 10
+  },
+  {
+    "case_id": "v5_driver_query_missing_gamma",
+    "family": "gamma",
+    "origin": "development",
+    "roles": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "prediction": [
+      0.0006767771556042135,
+      0.02467094175517559,
+      0.003627821570262313,
+      0.04190570488572121,
+      0.007241328712552786
+    ],
+    "input_key": "e2bbbd96c787488ee569f3b642f7656be1c1739c5a838bab97d74edecb3e58b1",
+    "primary_operation_tags": [
+      "synchro",
+      "attack"
+    ],
+    "focal_members": 1,
+    "relations": 10
+  },
+  {
+    "case_id": "v5_invoked_query_missing_artemis",
+    "family": "invoked",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      null,
+      null,
+      0
+    ],
+    "prediction": [
+      0.000608222559094429,
+      0.4100726246833801,
+      0.029598727822303772,
+      0.026731621474027634,
+      0.003515362972393632
+    ],
+    "input_key": "3ac1445c583b0354fd4f63005104c86e06e5ad26a2510e5cc8032a235329189b",
+    "primary_operation_tags": [
+      "fusion",
+      "negate",
+      "recover",
+      "attack"
+    ],
+    "focal_members": 3,
+    "relations": 17
+  },
+  {
+    "case_id": "v5_invoked_query_missing_invocation",
+    "family": "invoked",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      1,
+      0
+    ],
+    "prediction": [
+      0.0007334327674470842,
+      0.8421746492385864,
+      0.0013393473345786333,
+      0.6927155256271362,
+      0.004937978461384773
+    ],
+    "input_key": "021ffae234d817f74998f407c1d9901f885589985802cda1f9633a114b7878dd",
+    "primary_operation_tags": [
+      "link",
+      "banish",
+      "attack"
+    ],
+    "focal_members": 3,
+    "relations": 17
+  },
+  {
+    "case_id": "v5_invoked_query_missing_mechaba",
+    "family": "invoked",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      null,
+      null,
+      0
+    ],
+    "prediction": [
+      0.0005235730204731226,
+      0.1818821281194687,
+      0.013354562222957611,
+      0.03504107519984245,
+      0.0032855928875505924
+    ],
+    "input_key": "a49731c464859c91835ff6c4fdec16f3ae103667486928087d7a2eb30ec92dc4",
+    "primary_operation_tags": [
+      "fusion",
+      "negate",
+      "recover",
+      "attack"
+    ],
+    "focal_members": 3,
+    "relations": 17
+  },
+  {
+    "case_id": "v5_invoked_query_missing_aleister",
+    "family": "invoked",
+    "origin": "development",
+    "roles": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "prediction": [
+      0.0005185406189411879,
+      0.16509586572647095,
+      0.014821299351751804,
+      0.02797640673816204,
+      0.0034417686983942986
+    ],
+    "input_key": "48ac1412f54c722a374ed062585f15b3762d158e2f92cbe1171d9b19dc7a2aaa",
+    "primary_operation_tags": [
+      "fusion",
+      "negate",
+      "recover",
+      "attack"
+    ],
+    "focal_members": 3,
+    "relations": 18
+  },
+  {
+    "case_id": "v5_tourguide_query_missing_sangan",
+    "family": "tourguide",
+    "origin": "development",
+    "roles": [
+      0,
+      0,
+      0,
+      1,
+      0
+    ],
+    "prediction": [
+      0.0004011950804851949,
+      0.25895583629608154,
+      0.002077639102935791,
+      0.12162228673696518,
+      0.0030143389012664557
+    ],
+    "input_key": "4a2d8c4398e88e9758912fdbd104cd65eda5878ce9ef75cf644fe966d8923a4e",
+    "primary_operation_tags": [
+      "link",
+      "recover"
+    ],
+    "focal_members": 2,
+    "relations": 13
+  },
+  {
+    "case_id": "v5_tourguide_without_cherubini_material_contract",
+    "family": "tourguide",
+    "origin": "development",
+    "roles": [
+      0,
+      1,
+      0,
+      1,
+      1
+    ],
+    "prediction": [
+      0.0007971415761858225,
+      0.9242039322853088,
+      0.00037509965477511287,
+      0.9733144640922546,
+      0.15472333133220673
+    ],
+    "input_key": "6db5224e79f5ddc65b577cac8d8bea5beadbc8f58a748c960673ba2317899aba",
+    "primary_operation_tags": [
+      "link",
+      "recover"
+    ],
+    "focal_members": 2,
+    "relations": 10
+  },
+  {
+    "case_id": "v5_branded_full_with_minimum_fusion_contract",
+    "family": "branded",
+    "origin": "development",
+    "roles": [
+      1,
+      0,
+      1,
+      0,
+      null
+    ],
+    "prediction": [
+      0.9955475330352783,
+      0.04185628890991211,
+      0.9920520782470703,
+      0.05023818090558052,
+      0.8234346508979797
+    ],
+    "input_key": "2e03417c10649ca943becc4f7eca84262f07870abd077fe94a0d031352601a38",
+    "primary_operation_tags": [
+      "fusion",
+      "grave",
+      "recover",
+      "banish"
+    ],
+    "focal_members": 32,
+    "relations": 83
+  },
+  {
+    "case_id": "v5_hero_full_with_minimum_mask_contract",
+    "family": "hero",
+    "origin": "development",
+    "roles": [
+      1,
+      0,
+      1,
+      0,
+      null
+    ],
+    "prediction": [
+      0.9986106157302856,
+      0.015633292496204376,
+      0.9989123344421387,
+      0.006657550111413002,
+      0.8058802485466003
+    ],
+    "input_key": "a42488c93ceb162e4751c7916f0cc45cfa6265b2458a3d511d1cb42594fe539e",
+    "primary_operation_tags": [
+      "fusion",
+      "special_summon",
+      "destroy",
+      "attack"
+    ],
+    "focal_members": 28,
+    "relations": 248
+  },
+  {
+    "case_id": "blind-v5-fs-01",
+    "family": "fiendsmith",
+    "origin": "consumed_v5",
+    "roles": [
+      0.8,
+      0.95,
+      0.96,
+      0.58,
+      null
+    ],
+    "prediction": [
+      0.9886493682861328,
+      0.13708437979221344,
+      0.991823136806488,
+      0.031714875251054764,
+      0.4651295244693756
+    ],
+    "input_key": "db65334dc4c9e950c70a67b0c74e47d63003d930bafcd609ad9ee4721a87fbd6",
+    "primary_operation_tags": [
+      "fusion",
+      "negate",
+      "attack"
+    ],
+    "focal_members": 9,
+    "relations": 35
+  },
+  {
+    "case_id": "blind-v5-fs-02",
+    "family": "fiendsmith",
+    "origin": "consumed_v5",
+    "roles": [
+      0.78,
+      0.95,
+      0.23,
+      0.96,
+      null
+    ],
+    "prediction": [
+      0.5676246881484985,
+      0.9429832100868225,
+      0.05084163695573807,
+      0.9807028770446777,
+      0.3996153473854065
+    ],
+    "input_key": "32bc7485967d4aa78960c957686f830f74c02e4a8054a24deb73b9be26809468",
+    "primary_operation_tags": [
+      "link",
+      "destroy"
+    ],
+    "focal_members": 8,
+    "relations": 30
+  },
+  {
+    "case_id": "blind-v5-fs-03",
+    "family": "fiendsmith",
+    "origin": "consumed_v5",
+    "roles": [
+      0.08,
+      0.78,
+      0.12,
+      0.91,
+      0.96
+    ],
+    "prediction": [
+      0.0032584546133875847,
+      0.9827427864074707,
+      0.0005656219436787069,
+      0.9958834052085876,
+      0.8323854804039001
+    ],
+    "input_key": "5d5f8e07666462294f7e792cbcf2b9438fe9c71a1c962563311bc234f6fefed9",
+    "primary_operation_tags": [
+      "transformation",
+      "special_summon"
+    ],
+    "focal_members": 2,
+    "relations": 11
+  },
+  {
+    "case_id": "blind-v5-fs-04",
+    "family": "fiendsmith",
+    "origin": "consumed_v5",
+    "roles": [
+      0.0,
+      0.06,
+      0.09,
+      0.91,
+      0.97
+    ],
+    "prediction": [
+      0.001228498644195497,
+      0.17098434269428253,
+      0.000315311539452523,
+      0.9364045858383179,
+      0.679249107837677
+    ],
+    "input_key": "42b1b7b01f9652d5a3a374755b5d86a7848383b84d5ce6c70bbaeb4f63bdfcb5",
+    "primary_operation_tags": [
+      "link",
+      "destroy",
+      "attack"
+    ],
+    "focal_members": 1,
+    "relations": 7
+  },
+  {
+    "case_id": "blind-v5-fs-05",
+    "family": "fiendsmith",
+    "origin": "consumed_v5",
+    "roles": [
+      0.0,
+      0.1,
+      0.04,
+      0.15,
+      0.0
+    ],
+    "prediction": [
+      0.000450111081590876,
+      0.17799049615859985,
+      0.0015182269271463156,
+      0.15724961459636688,
+      0.004393985960632563
+    ],
+    "input_key": "8857594f7423682115fc8caffd7d1d37d9625a1f04658654b9eea81fbd57bafe",
+    "primary_operation_tags": [
+      "transformation",
+      "special_summon"
+    ],
+    "focal_members": 1,
+    "relations": 11
+  },
+  {
+    "case_id": "blind-v5-fs-06",
+    "family": "fiendsmith",
+    "origin": "consumed_v5",
+    "roles": [
+      0.33,
+      0.85,
+      0.18,
+      0.86,
+      0.0
+    ],
+    "prediction": [
+      0.0010075696045532823,
+      0.817106306552887,
+      0.0011143245501443744,
+      0.7641377449035645,
+      0.008323505520820618
+    ],
+    "input_key": "361e4b1988475de1efb214691deb3c85c9e2cb4ba42aa01d4cc0622be87a6ddc",
+    "primary_operation_tags": [
+      "special_summon",
+      "attack"
+    ],
+    "focal_members": 3,
+    "relations": 20
+  },
+  {
+    "case_id": "blind-v5-fk-01",
+    "family": "fire king",
+    "origin": "consumed_v5",
+    "roles": [
+      0.97,
+      0.96,
+      0.98,
+      0.55,
+      null
+    ],
+    "prediction": [
+      0.996772825717926,
+      0.0801430195569992,
+      0.9882672429084778,
+      0.09174315631389618,
+      0.6546414494514465
+    ],
+    "input_key": "117959546bf0c4caf6116b8c30bbd4e533eab4497344392a63090daaeca8e6af",
+    "primary_operation_tags": [
+      "destroy",
+      "recover",
+      "special_summon"
+    ],
+    "focal_members": 19,
+    "relations": 75
+  },
+  {
+    "case_id": "blind-v5-fk-02",
+    "family": "fire king",
+    "origin": "consumed_v5",
+    "roles": [
+      0.08,
+      0.79,
+      0.18,
+      0.94,
+      0.95
+    ],
+    "prediction": [
+      0.004539400804787874,
+      0.9790275692939758,
+      0.0014761839993298054,
+      0.9940714240074158,
+      0.8932908177375793
+    ],
+    "input_key": "ded757b89e6ca4ceff4b121971e501b0a23c3a8a0007fea0469d0d86fc7bb063",
+    "primary_operation_tags": [
+      "special_summon",
+      "attack"
+    ],
+    "focal_members": 2,
+    "relations": 11
+  },
+  {
+    "case_id": "blind-v5-fk-03",
+    "family": "fire king",
+    "origin": "consumed_v5",
+    "roles": [
+      0.08,
+      0.79,
+      0.18,
+      0.74,
+      0.0
+    ],
+    "prediction": [
+      0.0004469995619729161,
+      0.9719926714897156,
+      0.0011215460253879428,
+      0.7649442553520203,
+      0.013166609220206738
+    ],
+    "input_key": "f0c68c79e20a43db25d93ac67edf7bd033d231993f761ee28aa6147367a7580a",
+    "primary_operation_tags": [
+      "special_summon",
+      "attack"
+    ],
+    "focal_members": 2,
+    "relations": 10
+  },
+  {
+    "case_id": "blind-v5-fk-04",
+    "family": "fire king",
+    "origin": "consumed_v5",
+    "roles": [
+      0.08,
+      0.7,
+      0.17,
+      0.94,
+      0.93
+    ],
+    "prediction": [
+      0.005014353431761265,
+      0.9779797792434692,
+      0.0010827049845829606,
+      0.9948640465736389,
+      0.9155206680297852
+    ],
+    "input_key": "87b4378f07249ca36ed93f71954c41f9c40add0f7256752b49ae4b8f10ba5dc3",
+    "primary_operation_tags": [
+      "destroy",
+      "special_summon"
+    ],
+    "focal_members": 2,
+    "relations": 11
+  },
+  {
+    "case_id": "blind-v5-fk-05",
+    "family": "fire king",
+    "origin": "consumed_v5",
+    "roles": [
+      0.91,
+      0.94,
+      0.86,
+      0.77,
+      0.0
+    ],
+    "prediction": [
+      0.44770342111587524,
+      0.9050247073173523,
+      0.9356946349143982,
+      0.017297817394137383,
+      0.16896305978298187
+    ],
+    "input_key": "93ff32b94a9666b0005c72f610ae5d256a36cd8510b68ba541682a521256dc93",
+    "primary_operation_tags": [
+      "destroy",
+      "recover",
+      "attack"
+    ],
+    "focal_members": 14,
+    "relations": 84
+  },
+  {
+    "case_id": "blind-v5-fk-06",
+    "family": "fire king",
+    "origin": "consumed_v5",
+    "roles": [
+      0.03,
+      0.12,
+      0.32,
+      0.89,
+      0.98
+    ],
+    "prediction": [
+      0.002760709496214986,
+      0.7962091565132141,
+      0.0006348002934828401,
+      0.9796947836875916,
+      0.9583590626716614
+    ],
+    "input_key": "39a02fa5116e7b6a2dd3aee62fcfdff49daf54015dd136ac61bd1d6ad6833faf",
+    "primary_operation_tags": [
+      "special_summon",
+      "attack"
+    ],
+    "focal_members": 1,
+    "relations": 7
+  },
+  {
+    "case_id": "blind-v5-rn-01",
+    "family": "runick",
+    "origin": "consumed_v5",
+    "roles": [
+      0.97,
+      0.98,
+      0.98,
+      0.24,
+      null
+    ],
+    "prediction": [
+      0.27451854944229126,
+      0.9607792496681213,
+      0.037985436618328094,
+      0.9740167260169983,
+      0.6434087753295898
+    ],
+    "input_key": "0e5012badb3a7fee1935f9154de01922f57b16dd2726e47f1febb84142d73289",
+    "primary_operation_tags": [
+      "banish",
+      "draw"
+    ],
+    "focal_members": 30,
+    "relations": 132
+  },
+  {
+    "case_id": "blind-v5-rn-02",
+    "family": "runick",
+    "origin": "consumed_v5",
+    "roles": [
+      0.79,
+      0.94,
+      0.26,
+      0.86,
+      null
+    ],
+    "prediction": [
+      0.13290071487426758,
+      0.980385422706604,
+      0.015302482061088085,
+      0.9811651706695557,
+      0.5184727311134338
+    ],
+    "input_key": "8f337f4d3bda0de08d8d934639c46498b698817bbcd249d0f9225e1e099f78b9",
+    "primary_operation_tags": [
+      "ritual",
+      "attack"
+    ],
+    "focal_members": 13,
+    "relations": 112
+  },
+  {
+    "case_id": "blind-v5-rn-03",
+    "family": "runick",
+    "origin": "consumed_v5",
+    "roles": [
+      0.08,
+      0.87,
+      0.21,
+      0.95,
+      0.98
+    ],
+    "prediction": [
+      0.00457655917853117,
+      0.9651942849159241,
+      0.0010394675191491842,
+      0.9903727769851685,
+      0.9607568383216858
+    ],
+    "input_key": "6eb90a8aed4f15aa1be11fd5a217be1a5da9ee2b58d92c7bd0891a48cc48fd69",
+    "primary_operation_tags": [
+      "ritual",
+      "special_summon"
+    ],
+    "focal_members": 2,
+    "relations": 16
+  },
+  {
+    "case_id": "blind-v5-rn-04",
+    "family": "runick",
+    "origin": "consumed_v5",
+    "roles": [
+      0.26,
+      0.84,
+      0.12,
+      0.76,
+      0.0
+    ],
+    "prediction": [
+      0.001278281444683671,
+      0.9384899735450745,
+      0.0011304562212899327,
+      0.512762725353241,
+      0.009184437803924084
+    ],
+    "input_key": "96c57e19bc1724e088cc94d71103a22b1092973974b9ebe587e9841296ef0b94",
+    "primary_operation_tags": [
+      "ritual",
+      "attack"
+    ],
+    "focal_members": 3,
+    "relations": 31
+  },
+  {
+    "case_id": "blind-v5-rn-05",
+    "family": "runick",
+    "origin": "consumed_v5",
+    "roles": [
+      0.0,
+      0.05,
+      0.11,
+      0.93,
+      0.99
+    ],
+    "prediction": [
+      0.002297760918736458,
+      0.9186208844184875,
+      0.00038535043131560087,
+      0.9836238622665405,
+      0.936545729637146
+    ],
+    "input_key": "0f6d6cc791304bacc28ef7e15b47647268001d9a1ecc58b18c8fc91d81856c12",
+    "primary_operation_tags": [
+      "ritual",
+      "attack"
+    ],
+    "focal_members": 1,
+    "relations": 11
+  },
+  {
+    "case_id": "blind-v5-rn-06",
+    "family": "runick",
+    "origin": "consumed_v5",
+    "roles": [
+      0.0,
+      0.05,
+      0.11,
+      0.82,
+      null
+    ],
+    "prediction": [
+      0.00024938586284406483,
+      0.5326624512672424,
+      0.0007587199215777218,
+      0.08998912572860718,
+      0.007047806866466999
+    ],
+    "input_key": "c3e8486ff5d5aa7b3f2b4f939d07d30730120664c5f62925c3cbafca174abb22",
+    "primary_operation_tags": [
+      "ritual",
+      "attack"
+    ],
+    "focal_members": 1,
+    "relations": 11
+  },
+  {
+    "case_id": "blind-v5-kj-01",
+    "family": "kaiju",
+    "origin": "consumed_v5",
+    "roles": [
+      0.0,
+      0.0,
+      0.1,
+      0.98,
+      0.99
+    ],
+    "prediction": [
+      0.004346121102571487,
+      0.022659946233034134,
+      0.001442174892872572,
+      0.8566941618919373,
+      0.8619170784950256
+    ],
+    "input_key": "c79c322d00d4f45ef355b11eb5bbc8ab8325b591283e6142f4e67aae164f607a",
+    "primary_operation_tags": [
+      "fusion",
+      "attack"
+    ],
+    "focal_members": 1,
+    "relations": 6
+  },
+  {
+    "case_id": "blind-v5-kj-02",
+    "family": "kaiju",
+    "origin": "consumed_v5",
+    "roles": [
+      0.0,
+      0.0,
+      0.05,
+      0.14,
+      0.0
+    ],
+    "prediction": [
+      0.0009845527820289135,
+      0.010848990641534328,
+      0.0048460946418344975,
+      0.041827891021966934,
+      0.01355370506644249
+    ],
+    "input_key": "670952c5b24e667f69cc2dacb685ebf03e5228bb7e456fb8a17473b1f8b65bf1",
+    "primary_operation_tags": [
+      "fusion",
+      "attack"
+    ],
+    "focal_members": 1,
+    "relations": 6
+  },
+  {
+    "case_id": "blind-v5-kj-03",
+    "family": "kaiju",
+    "origin": "consumed_v5",
+    "roles": [
+      0.15,
+      0.89,
+      0.38,
+      0.97,
+      0.98
+    ],
+    "prediction": [
+      0.0072221229784190655,
+      0.9677985906600952,
+      0.0022087995894253254,
+      0.9911674857139587,
+      0.9579796195030212
+    ],
+    "input_key": "6d24b57e6b2200ebd560678ba6f1fd3f2e6d4dfe3abf240301f444bc4b684437",
+    "primary_operation_tags": [
+      "special_summon",
+      "attack"
+    ],
+    "focal_members": 3,
+    "relations": 18
+  },
+  {
+    "case_id": "blind-v5-kj-04",
+    "family": "kaiju",
+    "origin": "consumed_v5",
+    "roles": [
+      0.03,
+      0.63,
+      0.14,
+      0.92,
+      0.97
+    ],
+    "prediction": [
+      0.0033867256715893745,
+      0.9733879566192627,
+      0.000885232409927994,
+      0.9948663711547852,
+      0.771674633026123
+    ],
+    "input_key": "0ddf4c65567b0c81719620fca3daf07ffbb08a46407d8d78945567302b0825ae",
+    "primary_operation_tags": [
+      "special_summon",
+      "attack"
+    ],
+    "focal_members": 2,
+    "relations": 11
+  },
+  {
+    "case_id": "blind-v5-kj-05",
+    "family": "kaiju",
+    "origin": "consumed_v5",
+    "roles": [
+      0.03,
+      0.63,
+      0.14,
+      0.58,
+      0.0
+    ],
+    "prediction": [
+      0.0004390442918520421,
+      0.6282931566238403,
+      0.0014363252557814121,
+      0.39047184586524963,
+      0.0042269849218428135
+    ],
+    "input_key": "a35ebecd3d516a48d71e670638fa1c52c39d437ea890482370db6ab8a2912dbd",
+    "primary_operation_tags": [
+      "special_summon",
+      "attack"
+    ],
+    "focal_members": 2,
+    "relations": 11
+  },
+  {
+    "case_id": "blind-v5-kj-06",
+    "family": "kaiju",
+    "origin": "consumed_v5",
+    "roles": [
+      0.94,
+      0.96,
+      0.96,
+      0.62,
+      null
+    ],
+    "prediction": [
+      0.9983129501342773,
+      0.036158617585897446,
+      0.9974415302276611,
+      0.015613952651619911,
+      0.7078823447227478
+    ],
+    "input_key": "a751461349a3c2f76f12f4fe0b1ae17b3c00de47b767b0443a9a744ac2e0d9da",
+    "primary_operation_tags": [
+      "negate",
+      "attack"
+    ],
+    "focal_members": 21,
+    "relations": 158
+  },
+  {
+    "case_id": "blind-v6-uc-01",
+    "family": "unchained",
+    "origin": "consumed_v6",
+    "roles": [
+      0.98,
+      0.21,
+      0.98,
+      0.51,
+      0.04
+    ],
+    "prediction": [
+      0.9996989965438843,
+      0.004428350366652012,
+      0.9996291399002075,
+      0.0021347913425415754,
+      0.7727499604225159
+    ],
+    "input_key": "c579d5f5aa8521c5814f43630e2fa70edfbde90d5597571229475cfc734acbd2",
+    "primary_operation_tags": [
+      "destroy",
+      "link",
+      "special_summon",
+      "recover",
+      "attack"
+    ],
+    "focal_members": 32,
+    "relations": 305
+  },
+  {
+    "case_id": "blind-v6-uc-02",
+    "family": "unchained",
+    "origin": "consumed_v6",
+    "roles": [
+      0.1,
+      0.92,
+      0.86,
+      0.6,
+      0.94
+    ],
+    "prediction": [
+      0.007999466732144356,
+      0.9822781085968018,
+      0.00392129784449935,
+      0.986560583114624,
+      0.9469326138496399
+    ],
+    "input_key": "ca8fc122ad7af883079f45a2d9af4fc5b8020ea5c9d4730fce8f9f9095e9131e",
+    "primary_operation_tags": [
+      "special_summon",
+      "destroy",
+      "link",
+      "attack"
+    ],
+    "focal_members": 3,
+    "relations": 17
+  },
+  {
+    "case_id": "blind-v6-uc-03",
+    "family": "unchained",
+    "origin": "consumed_v6",
+    "roles": [
+      0.1,
+      0.92,
+      0.1,
+      0.87,
+      0.94
+    ],
+    "prediction": [
+      0.008607548661530018,
+      0.9738338589668274,
+      0.02595144882798195,
+      0.9056332111358643,
+      0.9613826870918274
+    ],
+    "input_key": "3b9dee6e95dfb150f3f5d3e36140c4bd9ab1fed0f8dee1dd25d42a83f57f4078",
+    "primary_operation_tags": [
+      "link",
+      "recover",
+      "draw",
+      "destroy",
+      "attack"
+    ],
+    "focal_members": 3,
+    "relations": 17
+  },
+  {
+    "case_id": "blind-v6-uc-04",
+    "family": "unchained",
+    "origin": "consumed_v6",
+    "roles": [
+      0.1,
+      0.92,
+      0.1,
+      0.0,
+      0.0
+    ],
+    "prediction": [
+      0.0003566265804693103,
+      0.9317112565040588,
+      0.00403203908354044,
+      0.0571853443980217,
+      0.00578676350414753
+    ],
+    "input_key": "6b8d38927a120304f01c980e4f4e2ec56f7186de5b4b7b3b85bc44ed98786441",
+    "primary_operation_tags": [
+      "link",
+      "draw",
+      "destroy",
+      "attack"
+    ],
+    "focal_members": 3,
+    "relations": 16
+  },
+  {
+    "case_id": "blind-v6-uc-05",
+    "family": "unchained",
+    "origin": "consumed_v6",
+    "roles": [
+      0.11,
+      0.88,
+      0.11,
+      0.0,
+      0.0
+    ],
+    "prediction": [
+      0.0003095828869845718,
+      0.8798165917396545,
+      0.003555967705324292,
+      0.0483289398252964,
+      0.004529659170657396
+    ],
+    "input_key": "f0a1aacbc14f6be27024ee89796b487bdacc47e7216451416163793b8f9c6cc0",
+    "primary_operation_tags": [
+      "link",
+      "draw",
+      "destroy",
+      "attack"
+    ],
+    "focal_members": 2,
+    "relations": 17
+  },
+  {
+    "case_id": "blind-v6-uc-06",
+    "family": "unchained",
+    "origin": "consumed_v6",
+    "roles": [
+      0.06,
+      0.05,
+      0.87,
+      0.62,
+      0.9
+    ],
+    "prediction": [
+      0.0049805729649960995,
+      0.8431791663169861,
+      0.001898662419989705,
+      0.9749442934989929,
+      0.9712583422660828
+    ],
+    "input_key": "32d9271ec5e59cd797fd3edfd77c17d54b4553aad3a439c9c8440369bfd92217",
+    "primary_operation_tags": [
+      "destroy",
+      "attack"
+    ],
+    "focal_members": 1,
+    "relations": 6
+  },
+  {
+    "case_id": "blind-v6-rk-01",
+    "family": "rikka",
+    "origin": "consumed_v6",
+    "roles": [
+      0.95,
+      0.28,
+      0.97,
+      0.55,
+      0.06
+    ],
+    "prediction": [
+      0.9965403079986572,
+      0.05170191824436188,
+      0.9969629645347595,
+      0.01668618433177471,
+      0.6045320630073547
+    ],
+    "input_key": "19dcc18a51b77089a00f32f072b57243478c937a315fbe4bc1283e1e8d9cad58",
+    "primary_operation_tags": [
+      "tribute",
+      "search",
+      "xyz",
+      "recover",
+      "negate_effect",
+      "attack"
+    ],
+    "focal_members": 20,
+    "relations": 65
+  },
+  {
+    "case_id": "blind-v6-rk-02",
+    "family": "rikka",
+    "origin": "consumed_v6",
+    "roles": [
+      0.95,
+      0.28,
+      0.15,
+      0.94,
+      0.06
+    ],
+    "prediction": [
+      0.9522016644477844,
+      0.5820136666297913,
+      0.4897897243499756,
+      0.8499695658683777,
+      0.4069720208644867
+    ],
+    "input_key": "8ac0ac13e77d463620248bd611e6738e6b5cd41d12f0bc89574c6a393c1e01d5",
+    "primary_operation_tags": [
+      "link",
+      "special_summon",
+      "attack"
+    ],
+    "focal_members": 20,
+    "relations": 65
+  },
+  {
+    "case_id": "blind-v6-rk-03",
+    "family": "rikka",
+    "origin": "consumed_v6",
+    "roles": [
+      0.12,
+      0.93,
+      0.12,
+      0.92,
+      0.91
+    ],
+    "prediction": [
+      0.004313796758651733,
+      0.9615070819854736,
+      0.0006891089724376798,
+      0.9959198236465454,
+      0.8677785396575928
+    ],
+    "input_key": "3b6eecd3be4f67a65d55f5a203012f6f019a43acd0c94c403963faeff7766b4f",
+    "primary_operation_tags": [
+      "link",
+      "special_summon",
+      "attack"
+    ],
+    "focal_members": 3,
+    "relations": 18
+  },
+  {
+    "case_id": "blind-v6-rk-04",
+    "family": "rikka",
+    "origin": "consumed_v6",
+    "roles": [
+      0.12,
+      0.93,
+      0.12,
+      0.0,
+      0.0
+    ],
+    "prediction": [
+      0.0005687951343134046,
+      0.6021649241447449,
+      0.0010598242515698075,
+      0.5706725716590881,
+      0.006585471797734499
+    ],
+    "input_key": "c698a850f575c31a7d4163951660e830a4a5c2570910a7a24db2c0b280ca1473",
+    "primary_operation_tags": [
+      "link",
+      "special_summon",
+      "attack"
+    ],
+    "focal_members": 3,
+    "relations": 17
+  },
+  {
+    "case_id": "blind-v6-rk-05",
+    "family": "rikka",
+    "origin": "consumed_v6",
+    "roles": [
+      0.12,
+      0.93,
+      0.12,
+      null,
+      null
+    ],
+    "prediction": [
+      0.0005967532633803785,
+      0.8684019446372986,
+      0.0006693830364383757,
+      0.8658300042152405,
+      0.01580430194735527
+    ],
+    "input_key": "ed885e0d1c5eebd01d8778a0b986acb1fd19701471e132080b436d9bd8862d21",
+    "primary_operation_tags": [
+      "link",
+      "special_summon",
+      "attack"
+    ],
+    "focal_members": 3,
+    "relations": 18
+  },
+  {
+    "case_id": "blind-v6-rk-06",
+    "family": "rikka",
+    "origin": "consumed_v6",
+    "roles": [
+      0.04,
+      0.05,
+      0.16,
+      0.9,
+      0.91
+    ],
+    "prediction": [
+      0.0025813127867877483,
+      0.2054521143436432,
+      0.00045680641778744757,
+      0.9588615298271179,
+      0.8918240666389465
+    ],
+    "input_key": "6f0b3069989121cf0fb589630cdd63068f0c487f46cdd199180cc63fbc98f50f",
+    "primary_operation_tags": [
+      "link",
+      "attack"
+    ],
+    "focal_members": 1,
+    "relations": 6
+  },
+  {
+    "case_id": "BF-ORC-01",
+    "family": "orcust",
+    "origin": "consumed_v4",
+    "roles": [
+      0.95,
+      0.3,
+      0.96,
+      0.55,
+      null
+    ],
+    "prediction": [
+      0.9941600561141968,
+      0.06197436526417732,
+      0.9984015822410583,
+      0.008114381693303585,
+      0.6877409219741821
+    ],
+    "input_key": "9332359b08e8bc293dec82f9c0049be545c081c0d3bf2a34bcd0d79f10233e51",
+    "primary_operation_tags": [
+      "link",
+      "search",
+      "grave",
+      "banish",
+      "special_summon",
+      "recover",
+      "negate"
+    ],
+    "focal_members": 13,
+    "relations": 76
+  },
+  {
+    "case_id": "BF-ORC-02",
+    "family": "orcust",
+    "origin": "consumed_v4",
+    "roles": [
+      0.94,
+      0.32,
+      0.28,
+      0.96,
+      null
+    ],
+    "prediction": [
+      0.9941600561141968,
+      0.06197436526417732,
+      0.9984015822410583,
+      0.008114381693303585,
+      0.6877409219741821
+    ],
+    "input_key": "9332359b08e8bc293dec82f9c0049be545c081c0d3bf2a34bcd0d79f10233e51",
+    "primary_operation_tags": [
+      "link",
+      "search",
+      "grave",
+      "banish",
+      "special_summon",
+      "recover",
+      "negate"
+    ],
+    "focal_members": 13,
+    "relations": 76
+  },
+  {
+    "case_id": "BF-ORC-03",
+    "family": "orcust",
+    "origin": "consumed_v4",
+    "roles": [
+      0.08,
+      0.92,
+      0.32,
+      0.94,
+      1.0
+    ],
+    "prediction": [
+      0.0004659675760194659,
+      0.9665015339851379,
+      0.0005010429304093122,
+      0.9320881366729736,
+      0.050872478634119034
+    ],
+    "input_key": "ffa5542bf43ac8ee5f50ff72f8e82718ff78a155018409be9cda6fbe61ea7034",
+    "primary_operation_tags": [
+      "grave",
+      "banish",
+      "special_summon"
+    ],
+    "focal_members": 3,
+    "relations": 20
+  },
+  {
+    "case_id": "BF-ORC-04",
+    "family": "orcust",
+    "origin": "consumed_v4",
+    "roles": [
+      0.02,
+      0.42,
+      0.08,
+      0.18,
+      0.0
+    ],
+    "prediction": [
+      0.00040849755168892443,
+      0.14928516745567322,
+      0.0022878446616232395,
+      0.07057751715183258,
+      0.0038195073138922453
+    ],
+    "input_key": "1dc3e2c9b9482a30090f6d2fbad50067cf678de066c6cbf0ef9c9254788b95e4",
+    "primary_operation_tags": [
+      "grave",
+      "banish",
+      "special_summon"
+    ],
+    "focal_members": 2,
+    "relations": 20
+  },
+  {
+    "case_id": "BF-ORC-05",
+    "family": "orcust",
+    "origin": "consumed_v4",
+    "roles": [
+      0.08,
+      0.78,
+      0.1,
+      0.22,
+      0.0
+    ],
+    "prediction": [
+      0.0003553410351742059,
+      0.29086804389953613,
+      0.0020234480034559965,
+      0.09026646614074707,
+      0.0031795096583664417
+    ],
+    "input_key": "3835978c11b01f7363a8471a353680bd13be7d266470821abdf7ad0fadb6db73",
+    "primary_operation_tags": [
+      "grave",
+      "banish",
+      "special_summon"
+    ],
+    "focal_members": 3,
+    "relations": 20
+  },
+  {
+    "case_id": "BF-ORC-06",
+    "family": "orcust",
+    "origin": "consumed_v4",
+    "roles": [
+      0.08,
+      0.88,
+      0.2,
+      0.61,
+      null
+    ],
+    "prediction": [
+      0.0003259245422668755,
+      0.44925904273986816,
+      0.00175069912802428,
+      0.13031399250030518,
+      0.0030411947518587112
+    ],
+    "input_key": "440a3f09e63b05934115d9e8dbea4211af2b9c5fc4dfd721e391b3ca647be0f7",
+    "primary_operation_tags": [
+      "grave",
+      "banish",
+      "special_summon"
+    ],
+    "focal_members": 3,
+    "relations": 20
+  },
+  {
+    "case_id": "BF-SPD-01",
+    "family": "speedroid_terrortop_taketomborg",
+    "origin": "consumed_v4",
+    "roles": [
+      0.04,
+      0.98,
+      0.22,
+      0.96,
+      1.0
+    ],
+    "prediction": [
+      0.00341746280901134,
+      0.9697825908660889,
+      0.0013140084920451045,
+      0.9937991499900818,
+      0.8232954740524292
+    ],
+    "input_key": "116dfdc802355c4cbf6dc5e6442bfa00d62ed680695bc378f5f689d7a4446e5e",
+    "primary_operation_tags": [
+      "search",
+      "special_summon"
+    ],
+    "focal_members": 2,
+    "relations": 13
+  },
+  {
+    "case_id": "BF-SPD-02",
+    "family": "speedroid_terrortop_taketomborg",
+    "origin": "consumed_v4",
+    "roles": [
+      0.15,
+      0.98,
+      0.31,
+      0.98,
+      1.0
+    ],
+    "prediction": [
+      0.0026498327497392893,
+      0.9855672121047974,
+      0.0012842341093346477,
+      0.9937835931777954,
+      0.7411341667175293
+    ],
+    "input_key": "bbfa7dee5bad152d29a92acd9d244416270453d658e950a27234ee1f6ff2d951",
+    "primary_operation_tags": [
+      "search",
+      "special_summon"
+    ],
+    "focal_members": 4,
+    "relations": 21
+  },
+  {
+    "case_id": "BF-SPD-03",
+    "family": "speedroid_terrortop_taketomborg",
+    "origin": "consumed_v4",
+    "roles": [
+      0.0,
+      0.12,
+      0.06,
+      0.1,
+      0.0
+    ],
+    "prediction": [
+      0.00044567338773049414,
+      0.16777905821800232,
+      0.0023805515374988317,
+      0.15117961168289185,
+      0.0039575775153934956
+    ],
+    "input_key": "5b0577931b8146a8d1b06fda6cb8d68caa6345d27713540e49b79447b6481eed",
+    "primary_operation_tags": [
+      "search",
+      "special_summon"
+    ],
+    "focal_members": 1,
+    "relations": 13
+  },
+  {
+    "case_id": "BF-SPD-04",
+    "family": "speedroid_terrortop_taketomborg",
+    "origin": "consumed_v4",
+    "roles": [
+      0.04,
+      0.91,
+      0.1,
+      0.24,
+      0.0
+    ],
+    "prediction": [
+      0.00041575884097255766,
+      0.7495110034942627,
+      0.0017247316427528858,
+      0.43353524804115295,
+      0.0045401593670248985
+    ],
+    "input_key": "fbf6aa71563653531f463f457aaaee774197263349a40d2e6f873c63eee1e64f",
+    "primary_operation_tags": [
+      "search",
+      "special_summon"
+    ],
+    "focal_members": 2,
+    "relations": 13
+  },
+  {
+    "case_id": "BF-SPD-05",
+    "family": "speedroid_terrortop_taketomborg",
+    "origin": "consumed_v4",
+    "roles": [
+      0.04,
+      0.95,
+      0.18,
+      0.62,
+      null
+    ],
+    "prediction": [
+      0.0004910302814096212,
+      0.9226019382476807,
+      0.0014235894195735455,
+      0.7600212693214417,
+      0.010593723505735397
+    ],
+    "input_key": "deb12a332c5d7525361b1036d8cb30b9662098ddc9aac97d6c439849bf1c45eb",
+    "primary_operation_tags": [
+      "search",
+      "special_summon"
+    ],
+    "focal_members": 2,
+    "relations": 13
+  },
+  {
+    "case_id": "BF-SPD-06",
+    "family": "speedroid_terrortop_taketomborg",
+    "origin": "consumed_v4",
+    "roles": [
+      0.04,
+      0.91,
+      0.1,
+      0.23,
+      0.0
+    ],
+    "prediction": [
+      0.00041571585461497307,
+      0.7497700452804565,
+      0.0017238272121176124,
+      0.4338130056858063,
+      0.004539043642580509
+    ],
+    "input_key": "9c4799efd1ae3b2c602ae7866a2b361778abf6bd2774f05e3ddd690f086be415",
+    "primary_operation_tags": [
+      "search",
+      "special_summon"
+    ],
+    "focal_members": 2,
+    "relations": 13
+  },
+  {
+    "case_id": "BF-BRF-01",
+    "family": "brilliant_fusion_seraphinite",
+    "origin": "consumed_v4",
+    "roles": [
+      0.1,
+      0.96,
+      0.34,
+      0.93,
+      1.0
+    ],
+    "prediction": [
+      0.00019970056018792093,
+      0.9781882762908936,
+      0.003079397138208151,
+      0.16403789818286896,
+      0.005799518432468176
+    ],
+    "input_key": "06b263f234a1440e62b5bec60e78919e089d0b2150abbbd89cd3fa43d567c502",
+    "primary_operation_tags": [
+      "fusion",
+      "grave"
+    ],
+    "focal_members": 4,
+    "relations": 20
+  },
+  {
+    "case_id": "BF-BRF-02",
+    "family": "brilliant_fusion_seraphinite",
+    "origin": "consumed_v4",
+    "roles": [
+      0.38,
+      0.97,
+      0.7,
+      0.94,
+      1.0
+    ],
+    "prediction": [
+      0.0025337731931358576,
+      0.992742657661438,
+      0.1784738451242447,
+      0.26131367683410645,
+      0.051236335188150406
+    ],
+    "input_key": "320f7a3a59e87205d0fabce5db543d7b53a31e93ec51c13986001e9c66d5e6b3",
+    "primary_operation_tags": [
+      "fusion",
+      "grave",
+      "search",
+      "special_summon"
+    ],
+    "focal_members": 5,
+    "relations": 33
+  },
+  {
+    "case_id": "BF-BRF-03",
+    "family": "brilliant_fusion_seraphinite",
+    "origin": "consumed_v4",
+    "roles": [
+      0.02,
+      0.2,
+      0.08,
+      0.07,
+      0.0
+    ],
+    "prediction": [
+      0.0003106057411059737,
+      0.17470313608646393,
+      0.0039917719550430775,
+      0.02683720551431179,
+      0.003262188984081149
+    ],
+    "input_key": "5a1742e99550c0fca31d440baa3f12ac1dd39ee0a676789723f5064f14ef44d1",
+    "primary_operation_tags": [
+      "fusion",
+      "grave"
+    ],
+    "focal_members": 3,
+    "relations": 20
+  },
+  {
+    "case_id": "BF-BRF-04",
+    "family": "brilliant_fusion_seraphinite",
+    "origin": "consumed_v4",
+    "roles": [
+      0.02,
+      0.18,
+      0.07,
+      0.06,
+      0.0
+    ],
+    "prediction": [
+      0.0002715185983106494,
+      0.3802894055843353,
+      0.0044626351445913315,
+      0.025818806141614914,
+      0.0027456211391836405
+    ],
+    "input_key": "a77947e5795b2ace83499adcd06e28b9d1e3c2ea353b3304d5a3e5fae6169e98",
+    "primary_operation_tags": [
+      "fusion",
+      "grave"
+    ],
+    "focal_members": 3,
+    "relations": 20
+  },
+  {
+    "case_id": "BF-BRF-05",
+    "family": "brilliant_fusion_seraphinite",
+    "origin": "consumed_v4",
+    "roles": [
+      0.1,
+      0.87,
+      0.15,
+      0.2,
+      0.0
+    ],
+    "prediction": [
+      0.000281394284684211,
+      0.30856916308403015,
+      0.00425281748175621,
+      0.026335474103689194,
+      0.0028427462093532085
+    ],
+    "input_key": "92b20aaaafdf361f67dbeea772fb61738962ae4ab470f2d7f3ce4813c747a037",
+    "primary_operation_tags": [
+      "fusion",
+      "grave"
+    ],
+    "focal_members": 4,
+    "relations": 20
+  },
+  {
+    "case_id": "BF-BRF-06",
+    "family": "brilliant_fusion_seraphinite",
+    "origin": "consumed_v4",
+    "roles": [
+      0.1,
+      0.92,
+      0.26,
+      0.63,
+      null
+    ],
+    "prediction": [
+      0.0002613328106235713,
+      0.44914108514785767,
+      0.004305955488234758,
+      0.029438193887472153,
+      0.0026347434613853693
+    ],
+    "input_key": "bb71265498089ab9c2b77c14f7de0dac6a5efde1c71a8c6a074eb534dbe67142",
+    "primary_operation_tags": [
+      "fusion",
+      "grave"
+    ],
+    "focal_members": 4,
+    "relations": 20
+  },
+  {
+    "case_id": "BF-NIB-01",
+    "family": "nibiru",
+    "origin": "consumed_v4",
+    "roles": [
+      0.0,
+      0.0,
+      0.04,
+      0.91,
+      1.0
+    ],
+    "prediction": [
+      0.002229718491435051,
+      0.4359387159347534,
+      0.00040629919385537505,
+      0.979526162147522,
+      0.9430409669876099
+    ],
+    "input_key": "08db7d053adbce1f4bf4b8f1835f843512c440b8d2c99d61dce1533854a5148e",
+    "primary_operation_tags": [
+      "special_summon"
+    ],
+    "focal_members": 1,
+    "relations": 10
+  },
+  {
+    "case_id": "BF-NIB-02",
+    "family": "nibiru",
+    "origin": "consumed_v4",
+    "roles": [
+      0.0,
+      0.0,
+      0.02,
+      0.12,
+      0.0
+    ],
+    "prediction": [
+      0.0004430915287230164,
+      0.01974847912788391,
+      0.0014993329532444477,
+      0.09438681602478027,
+      0.014041957445442677
+    ],
+    "input_key": "36671595d38e3fa1a86c9188b7d453e633c1210732af5f052b228a1585cfde1f",
+    "primary_operation_tags": [
+      "special_summon"
+    ],
+    "focal_members": 1,
+    "relations": 10
+  },
+  {
+    "case_id": "BF-NIB-03",
+    "family": "nibiru",
+    "origin": "consumed_v4",
+    "roles": [
+      0.0,
+      0.0,
+      0.02,
+      0.1,
+      0.0
+    ],
+    "prediction": [
+      0.0004433868161868304,
+      0.020779233425855637,
+      0.0015333103947341442,
+      0.09135118871927261,
+      0.013229467906057835
+    ],
+    "input_key": "8c62cd3d5bc049017e6a5d7a9c3262261a7b7e323ce317f05843e15f9055c0ff",
+    "primary_operation_tags": [
+      "special_summon"
+    ],
+    "focal_members": 1,
+    "relations": 10
+  },
+  {
+    "case_id": "BF-NIB-04",
+    "family": "nibiru",
+    "origin": "consumed_v4",
+    "roles": [
+      0.0,
+      0.0,
+      0.03,
+      0.56,
+      null
+    ],
+    "prediction": [
+      0.0003795263764914125,
+      0.028240740299224854,
+      0.0009720103116706014,
+      0.16357287764549255,
+      0.017059888690710068
+    ],
+    "input_key": "f6977586c6492e371f41c2cf93fa71906204e09ad1a77247f6b00ce99732a5b1",
+    "primary_operation_tags": [
+      "special_summon"
+    ],
+    "focal_members": 1,
+    "relations": 10
+  },
+  {
+    "case_id": "BF-NIB-05",
+    "family": "nibiru",
+    "origin": "consumed_v4",
+    "roles": [
+      0.0,
+      0.0,
+      0.02,
+      0.1,
+      0.0
+    ],
+    "prediction": [
+      0.00044274781248532236,
+      0.01977829448878765,
+      0.0014991986099630594,
+      0.09443677216768265,
+      0.014047754928469658
+    ],
+    "input_key": "317ba691b7f6c9a986847d07094d3554ed5f524cff61c580806522bd0b4395ba",
+    "primary_operation_tags": [
+      "special_summon"
+    ],
+    "focal_members": 1,
+    "relations": 10
+  },
+  {
+    "case_id": "BF-NIB-06",
+    "family": "nibiru",
+    "origin": "consumed_v4",
+    "roles": [
+      0.0,
+      0.0,
+      0.02,
+      0.08,
+      0.0
+    ],
+    "prediction": [
+      0.0004459759802557528,
+      0.020866846665740013,
+      0.001499782782047987,
+      0.09552016854286194,
+      0.013501400128006935
+    ],
+    "input_key": "1aabc2ef6dd867db825103f8856c6e897e644625b7b9c6c70c26e2fee67f18b2",
+    "primary_operation_tags": [
+      "special_summon"
+    ],
+    "focal_members": 1,
+    "relations": 10
+  },
+  {
+    "case_id": "BF-NIB-07",
+    "family": "nibiru",
+    "origin": "consumed_v4",
+    "roles": [
+      0.0,
+      0.0,
+      0.04,
+      0.92,
+      1.0
+    ],
+    "prediction": [
+      0.0022455682046711445,
+      0.4226440191268921,
+      0.0004246302996762097,
+      0.9785691499710083,
+      0.9457854628562927
+    ],
+    "input_key": "0d54f5656414c569e8955379c817b548db43a3df540352b1040deeb410c16992",
+    "primary_operation_tags": [
+      "special_summon"
+    ],
+    "focal_members": 1,
+    "relations": 10
+  }
+]

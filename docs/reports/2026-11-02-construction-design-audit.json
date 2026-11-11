@@ -1,0 +1,335 @@
+{
+  "date": "2026-11-02",
+  "status": "partial_design_compliance_with_confirmed_integration_defects",
+  "source_root": "N:\\YGO-Kito\\_publish_20261030",
+  "branch": "codex/optimization-20261031",
+  "head": "3f57198",
+  "includes_preexisting_uncommitted_work": true,
+  "findings": [
+    {
+      "id": "CD-AUD-01",
+      "priority": 1,
+      "status": "confirmed_by_isolated_probe",
+      "title": "未识别必要选择条件取得确定库存覆盖与优先关系",
+      "locations": [
+        {
+          "file": "src/ygo_kito/construction_inventory.py",
+          "line": 167
+        },
+        {
+          "file": "src/ygo_kito/construction_layer_flow.py",
+          "line": 323
+        }
+      ]
+    },
+    {
+      "id": "CD-AUD-02",
+      "priority": 1,
+      "status": "confirmed_by_isolated_probe",
+      "title": "学习后纯模型重排覆盖两层并误标公平比较",
+      "locations": [
+        {
+          "file": "scripts/local_course_collaboration.py",
+          "line": 247
+        },
+        {
+          "file": "src/ygo_kito/rubric_learning.py",
+          "line": 9
+        },
+        {
+          "file": "src/ygo_kito/construction_candidates.py",
+          "line": 352
+        }
+      ]
+    },
+    {
+      "id": "CD-AUD-03",
+      "priority": 2,
+      "status": "confirmed_by_current_source_and_saved_run",
+      "title": "缺口再检索仍限定于首次内部task.pool",
+      "locations": [
+        {
+          "file": "src/ygo_kito/autonomous_construction.py",
+          "line": 322
+        },
+        {
+          "file": "src/ygo_kito/construction_inventory.py",
+          "line": 214
+        }
+      ]
+    },
+    {
+      "id": "CD-AUD-04",
+      "priority": 2,
+      "status": "confirmed_by_isolated_probe_and_active_callers",
+      "title": "旧交替构筑分支未统一迁移",
+      "locations": [
+        {
+          "file": "src/ygo_kito/build_pipeline.py",
+          "line": 325
+        },
+        {
+          "file": "src/ygo_kito/group_runner.py",
+          "line": 866
+        },
+        {
+          "file": "src/ygo_kito/local_training.py",
+          "line": 482
+        }
+      ]
+    }
+  ],
+  "current_entry": {
+    "source_root": "/mnt/n/YGO-Kito/_publish_20261030",
+    "resource_base": "/mnt/n/YGO-Kito/_local_cpu_20261027",
+    "continuation": {
+      "state_root": "/mnt/n/YGO-Kito/_local_cpu_20261027/reports/optimization-20261031/2207-course-006"
+    },
+    "training_held": true,
+    "worker_started": false
+  },
+  "probes": {
+    "kind": "isolated_current_source_audit",
+    "reranking": {
+      "layer_selected": 1,
+      "layer_pairs": [
+        {
+          "before": 0,
+          "after": 1,
+          "status": "preferred",
+          "preferred_index": 1,
+          "advantages_before": [],
+          "advantages_after": [
+            "axis:coverage:node:goal:main",
+            "axis:node:goal:main:E",
+            "axis:node:goal:main:K",
+            "necessary_inventory_dependencies"
+          ],
+          "unresolved": []
+        }
+      ],
+      "model_reranked": 0,
+      "adopted_known_deficits": {
+        "effect:1:1:0:538ae846d331:shortfall": 1,
+        "effect:1:1:0:538ae846d331:blocked_copies": 1
+      },
+      "recorded_selection_rule": "completed_fair_comparison",
+      "fair_comparison_performed": false,
+      "model_update_performed": false
+    },
+    "legacy_path": {
+      "stages": 4,
+      "legacy_selected_missing_support": true,
+      "new_layer_selected_supported": true,
+      "legacy_has_layer_evaluation": false,
+      "criterion": "explicit_semantic_preferences_not_strength"
+    },
+    "unknown_selector": {
+      "selected": 1,
+      "pairs": [
+        {
+          "before": 0,
+          "after": 1,
+          "status": "preferred",
+          "preferred_index": 1,
+          "advantages_before": [],
+          "advantages_after": [
+            "axis:coverage:node:goal:main",
+            "axis:node:goal:main:E",
+            "axis:node:goal:main:K",
+            "necessary_inventory_dependencies"
+          ],
+          "unresolved": [
+            "conditions:node:goal"
+          ]
+        }
+      ],
+      "candidates": [
+        {
+          "index": 0,
+          "known_deficits": {
+            "effect:1:1:0:538ae846d331:shortfall": 1,
+            "effect:1:1:0:538ae846d331:blocked_copies": 1
+          },
+          "affected_effects": [
+            {
+              "status": "missing",
+              "requirements": [
+                {
+                  "query": {
+                    "level": 7,
+                    "name_contains": "绯色",
+                    "type": 1,
+                    "selector": "7星「绯色」怪兽"
+                  },
+                  "minimum": 1,
+                  "source": "从手卡把1只7星「绯色」怪兽送去墓地",
+                  "origin": "hand",
+                  "category": "costs",
+                  "available": 0,
+                  "matching_card_ids": [],
+                  "shortfall": 1
+                }
+              ],
+              "shortfall": 1,
+              "execution_status": "unknown",
+              "access_to_required_zone_verified": false,
+              "key": "effect:1:1:0:538ae846d331",
+              "nodes": [
+                "goal"
+              ],
+              "unknown_selectors": []
+            }
+          ],
+          "K": 0,
+          "E": 0.0,
+          "unknown_copies": []
+        },
+        {
+          "index": 1,
+          "known_deficits": {},
+          "affected_effects": [
+            {
+              "status": "inventory_present",
+              "requirements": [],
+              "shortfall": 0,
+              "execution_status": "unknown",
+              "access_to_required_zone_verified": false,
+              "key": "effect:2:1:0:538ae846d331",
+              "nodes": [
+                "goal"
+              ],
+              "unknown_selectors": [
+                {
+                  "category": "costs",
+                  "source": "从手卡把1只7星以上的「不存在」怪兽送去墓地"
+                }
+              ]
+            }
+          ],
+          "K": 1,
+          "E": 1.0,
+          "unknown_copies": []
+        }
+      ]
+    },
+    "guards": {
+      "cb_calls": 0,
+      "cb_proposal_calls": 0,
+      "native_calls": 0
+    },
+    "optimizer_created": false,
+    "parameter_updates": 0,
+    "production_checkpoint_loaded": false
+  },
+  "legacy_callers": [
+    {
+      "file": "src/ygo_kito/build_pipeline.py",
+      "line": 387,
+      "symbol": "engineering_proxy"
+    },
+    {
+      "file": "src/ygo_kito/build_pipeline.py",
+      "line": 381,
+      "symbol": "engineering_proxy"
+    },
+    {
+      "file": "src/ygo_kito/build_training.py",
+      "line": 387,
+      "symbol": "alternate_build"
+    },
+    {
+      "file": "src/ygo_kito/build_training.py",
+      "line": 176,
+      "symbol": "engineering_proxy"
+    },
+    {
+      "file": "src/ygo_kito/build_training.py",
+      "line": 176,
+      "symbol": "engineering_proxy"
+    },
+    {
+      "file": "src/ygo_kito/build_training.py",
+      "line": 179,
+      "symbol": "engineering_proxy"
+    },
+    {
+      "file": "src/ygo_kito/build_training.py",
+      "line": 179,
+      "symbol": "engineering_proxy"
+    },
+    {
+      "file": "src/ygo_kito/build_training.py",
+      "line": 135,
+      "symbol": "engineering_proxy"
+    },
+    {
+      "file": "src/ygo_kito/build_training.py",
+      "line": 136,
+      "symbol": "engineering_proxy"
+    },
+    {
+      "file": "src/ygo_kito/build_training.py",
+      "line": 172,
+      "symbol": "engineering_proxy"
+    },
+    {
+      "file": "src/ygo_kito/cli.py",
+      "line": 236,
+      "symbol": "classify_build_intent"
+    },
+    {
+      "file": "src/ygo_kito/construction_curriculum.py",
+      "line": 190,
+      "symbol": "alternate_build"
+    },
+    {
+      "file": "src/ygo_kito/construction_logic.py",
+      "line": 246,
+      "symbol": "classify_build_intent"
+    },
+    {
+      "file": "src/ygo_kito/construction_service.py",
+      "line": 74,
+      "symbol": "classify_build_intent"
+    },
+    {
+      "file": "src/ygo_kito/group_runner.py",
+      "line": 866,
+      "symbol": "alternate_build"
+    },
+    {
+      "file": "src/ygo_kito/intent_model.py",
+      "line": 104,
+      "symbol": "classify_build_intent"
+    },
+    {
+      "file": "src/ygo_kito/lora_group.py",
+      "line": 234,
+      "symbol": "alternate_build"
+    },
+    {
+      "file": "src/ygo_kito/model_group.py",
+      "line": 229,
+      "symbol": "alternate_build"
+    }
+  ],
+  "production_python_files_modified_by_this_audit": false,
+  "production_weights_modified": false,
+  "training_resumed": false,
+  "validation": {
+    "isolated_behavior_probes": 3,
+    "entry_check": "passed_readonly_no_worker",
+    "previous_regressions_reused": 120,
+    "new_full_suite_run": false,
+    "cb_calls": 0,
+    "native_calls": 0,
+    "remote_ci": "not_run"
+  },
+  "scope_notes": [
+    "新两层已进入自主构筑候选选择",
+    "新层模型特征与学习及完整总分为现行设计后置",
+    "旧70/56历史策略与迁移fixture明确保留，不能统一删除",
+    "本轮不执行CB或正式训练"
+  ]
+}

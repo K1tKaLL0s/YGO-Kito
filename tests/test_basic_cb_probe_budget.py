@@ -1,4 +1,5 @@
 """Probe scheduling fixtures only; no native execution or model inference."""
+from tests.fixtures import synthetic_cb_authorization
 from contextlib import contextmanager
 from types import SimpleNamespace
 import unittest
@@ -50,7 +51,8 @@ class BasicCbProbeBudgetTests(unittest.TestCase):
         assets = SimpleNamespace(rows={},validate=lambda *args: None)
         candidates = []
         for i in range(8):
-            goal = {'route_goal': {'kind': 'fusion_summon' if i < 4 else 'xyz_summon'}}
+            goal = {'route_goal': {'kind': 'fusion_summon' if i < 4 else 'xyz_summon',
+                                   'card_id':1 if i<4 else 2}}
             candidates.append(SimpleNamespace(sha256=str(i), goal=goal,
                                              to_dict=lambda i=i, goal=goal: {'id': i, 'goal': goal}))
 
@@ -77,7 +79,7 @@ class BasicCbProbeBudgetTests(unittest.TestCase):
 
                 with patch('ygo_kito.basic_cb_inference.proposals', return_value=candidates), \
                         patch('ygo_kito.basic_cb_inference.time.monotonic', side_effect=lambda: clock[0]):
-                    result = infer_basic_cb(task, deck, assets, seconds=20., verifier=verifier, budget=budget)
+                    result = infer_basic_cb(task, deck, assets, **synthetic_cb_authorization(task,deck), seconds=20., verifier=verifier, budget=budget)
 
                 self.assertEqual(calls[0][1], 10.)
                 self.assertEqual([ident for ident, _ in calls], ['0', '4', '1', '5', '2', '6', '3', '7'])

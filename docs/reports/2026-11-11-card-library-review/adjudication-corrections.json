@@ -1,0 +1,185 @@
+[
+  {
+    "review_id": 2164,
+    "previous": {
+      "review_id": 2164,
+      "card_id": 54577949,
+      "verdict": "confirmed_problem",
+      "reason": "原文明确将指定卡表侧放置到魔陷区或场地区，部分同时当作永续魔法；现有视图没有对应放置处理。",
+      "issue_families": [
+        "missing_faceup_placement"
+      ]
+    },
+    "current": {
+      "review_id": 2164,
+      "card_id": 54577949,
+      "verdict": "confirmed_problem",
+      "reason": "表侧放置及当作永续魔法均已记录，原缺放置疑点是以字异文造成的误报；但卡名不同的筛选条件被额外贴成卡名变更，属于确实多记功能。",
+      "issue_families": [
+        "selector_card_name_difference_as_name_change"
+      ]
+    }
+  },
+  {
+    "review_id": 2171,
+    "previous": {
+      "review_id": 2171,
+      "card_id": 28904860,
+      "verdict": "confirmed_problem",
+      "reason": "原文明确将指定卡表侧放置到魔陷区或场地区，部分同时当作永续魔法；现有视图没有对应放置处理。",
+      "issue_families": [
+        "missing_faceup_placement"
+      ]
+    },
+    "current": {
+      "review_id": 2171,
+      "card_id": 28904860,
+      "verdict": "confirmed_problem",
+      "reason": "放置和卡种变更功能已记录，原疑点来自以字异文；但放置时诱发的处理被合并标成continuous，未正确区分诱发处理与后续持续保护。",
+      "issue_families": [
+        "triggered_operation_as_continuous"
+      ]
+    }
+  },
+  {
+    "review_id": 2173,
+    "previous": {
+      "review_id": 2173,
+      "card_id": 17782288,
+      "verdict": "confirmed_problem",
+      "reason": "原文明确将指定卡表侧放置到魔陷区或场地区，部分同时当作永续魔法；现有视图没有对应放置处理。",
+      "issue_families": [
+        "missing_faceup_placement"
+      ]
+    },
+    "current": {
+      "review_id": 2173,
+      "card_id": 17782288,
+      "verdict": "covered",
+      "reason": "当前已有相同对象、区域的表侧放置及必要卡种变更；百鸽多一个以字导致原句未对齐，属于检查器误报。",
+      "issue_families": []
+    }
+  },
+  {
+    "review_id": 2176,
+    "previous": {
+      "review_id": 2176,
+      "card_id": 80565021,
+      "verdict": "confirmed_problem",
+      "reason": "原文明确将指定卡表侧放置到魔陷区或场地区，部分同时当作永续魔法；现有视图没有对应放置处理。",
+      "issue_families": [
+        "missing_faceup_placement"
+      ]
+    },
+    "current": {
+      "review_id": 2176,
+      "card_id": 80565021,
+      "verdict": "covered",
+      "reason": "当前已有相同对象、区域的表侧放置及必要卡种变更；百鸽多一个以字导致原句未对齐，属于检查器误报。",
+      "issue_families": []
+    }
+  },
+  {
+    "review_id": 2177,
+    "previous": {
+      "review_id": 2177,
+      "card_id": 80565021,
+      "verdict": "confirmed_problem",
+      "reason": "原文明确将指定卡表侧放置到魔陷区或场地区，部分同时当作永续魔法；现有视图没有对应放置处理。",
+      "issue_families": [
+        "missing_faceup_placement"
+      ]
+    },
+    "current": {
+      "review_id": 2177,
+      "card_id": 80565021,
+      "verdict": "covered",
+      "reason": "当前已有相同对象、区域的表侧放置及必要卡种变更；百鸽多一个以字导致原句未对齐，属于检查器误报。",
+      "issue_families": []
+    }
+  },
+  {
+    "review_id": 568,
+    "previous": {
+      "review_id": 568,
+      "card_id": 91188343,
+      "verdict": "confirmed_problem",
+      "reason": "天空圣域存在时改为检索许珀里翁，现有该作用域没有替代检索。",
+      "issue_families": [
+        "missing_alternative_search"
+      ]
+    },
+    "current": {
+      "review_id": 568,
+      "card_id": 91188343,
+      "verdict": "confirmed_problem",
+      "reason": "天空圣域存在时替换检索对象，实际记录另造一次加入手卡而未绑定替换关系。",
+      "issue_families": [
+        "search_modifier_as_extra_action"
+      ]
+    }
+  },
+  {
+    "review_id": 1510,
+    "previous": {
+      "review_id": 1510,
+      "card_id": 62941499,
+      "verdict": "confirmed_problem",
+      "reason": "任意数量素材取除是对应效果的发动费用，当前未记。",
+      "issue_families": [
+        "missing_detach_cost"
+      ]
+    },
+    "current": {
+      "review_id": 1510,
+      "card_id": 62941499,
+      "verdict": "confirmed_problem",
+      "reason": "取除素材在效果处理中进行，原记录缺少这项处理。此前将其写成发动费用有误；本地卡文与 c62941499.lua:80 RemoveOverlayCard(...,REASON_EFFECT) 一致。",
+      "issue_families": [
+        "missing_resolution_detach"
+      ]
+    }
+  },
+  {
+    "review_id": 1511,
+    "previous": {
+      "review_id": 1511,
+      "card_id": 9349094,
+      "verdict": "confirmed_problem",
+      "reason": "取除同种类超量素材是发动无效效果的费用，当前只记无效破坏。",
+      "issue_families": [
+        "missing_detach_cost"
+      ]
+    },
+    "current": {
+      "review_id": 1511,
+      "card_id": 9349094,
+      "verdict": "confirmed_problem",
+      "reason": "取除素材在效果处理中进行，原记录缺少这项处理。此前将其写成发动费用有误；本地卡文与 c9349094.lua:77 Duel.SendtoGrave(g,REASON_EFFECT) 一致。",
+      "issue_families": [
+        "missing_resolution_detach"
+      ]
+    }
+  },
+  {
+    "review_id": 2004,
+    "previous": {
+      "review_id": 2004,
+      "card_id": 9567495,
+      "verdict": "confirmed_problem",
+      "reason": "任意数量超量素材取除是发动费用，当前漏记。",
+      "issue_families": [
+        "missing_detach_cost"
+      ]
+    },
+    "current": {
+      "review_id": 2004,
+      "card_id": 9567495,
+      "verdict": "confirmed_problem",
+      "reason": "取除素材在效果处理中进行，原记录缺少这项处理。此前将其写成发动费用有误；本地卡文与 c9567495.lua:58 Duel.SendtoGrave(sg,REASON_EFFECT) 一致。",
+      "issue_families": [
+        "missing_resolution_detach"
+      ]
+    }
+  }
+]

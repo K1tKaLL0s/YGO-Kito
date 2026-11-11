@@ -28,7 +28,9 @@ def base_binding(trainer):
                          sha256=hashlib.sha256(value.detach().cpu().contiguous().numpy().tobytes()).hexdigest())
                for key, value in trainer.model.state_dict().items()}
     return digest(dict(weights=weights, updates=trainer.updates, data_digest=trainer.data_digest,
-                       config=trainer.model.config_dict(), label_protocol=trainer.label_protocol_sha256))
+                       config=trainer.model.config_dict(), label_protocol=trainer.label_protocol_sha256,
+                       experiment_binding=getattr(trainer,"binding",None),
+                       v3_task_weights=getattr(trainer,"task_weights",None)))
 
 
 @dataclass(frozen=True)
@@ -66,6 +68,7 @@ class AdapterEntry:
             self.deltas = nn.ModuleDict({str(i): LowRankDelta(model.get_submodule(name).in_features,
                                                             model.get_submodule(name).out_features, config)
                                          for i, name in enumerate(TARGETS)})
+        self.deltas.to(next(model.parameters()).device)
         self.optimizer = torch.optim.Adam(self.deltas.parameters(), lr=learning_rate)
         self.updates = {head: {kind: 0 for kind in SOURCE_KINDS} for head in OUTPUT_TASKS}
         self.steps, self.data_digest, self.data_cursor = 0, digest([]), ""
@@ -76,7 +79,7 @@ class AdapterBank:
     def validate_mode(trainer, engineering_mode):
         if type(engineering_mode) is not bool:
             raise FactorContractError("explicit adapter engineering mode required")
-        if not engineering_mode and any(trainer._base_head_status("role:" + role) != "trained_uncalibrated" for role in ROLES):
+        if not engineering_mode and any(trainer._base_head_status("role:" + role) not in ("trained_uncalibrated", "weakly_supervised_uncalibrated") for role in ROLES):
             raise FactorContractError("LoRA adaptation requires supervised base role records; random/engineering base is not learned concepts")
 
     def __init__(self, trainer, *, engineering_mode=False):

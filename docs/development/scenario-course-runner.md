@@ -49,7 +49,7 @@ PYTHONPATH=src .venv/bin/python scripts/scenario_course.py \
 
 BO3 draw裁决、历史“接近50%”容差、区间方法和重复观察规则未冻结时保留pending。2610严格>49%／>39%只属于第二阶段冻结实际小局先后手统计；stage1、pilot和训练结果不抵独立评测。继承工程更新不证明竞技能力。当前 Codex 容器缺真实C#运行资产，模板预检应blocked；新增普通核心功能结果另列，不能据CPU机制测试宣称完整课程、速度、能力或100h够用。
 
-最新暂停及 20/50、评分、CB 硬门槛见 [当前准入说明](course-admission-20-50.md)；修复后也须等用户审查并明确批准恢复。
+当前两层构筑、必要配套准入、20/50 预测反馈与暂停边界见 [当前准入说明](construction-admission.md)；正式训练继续暂停。
 
 ### 私有准入计数的保存与恢复
 

@@ -29,7 +29,7 @@ def validate_source_review_schema(review):
     for key in ('from_source_map','to_source_map'):
         mapping=review[key]
         if (not isinstance(mapping,dict) or not mapping or any(not isinstance(name,str) or
-                not re.fullmatch(r'[A-Za-z0-9_]+\.py',name) or not checksum(value) for name,value in mapping.items())):
+                not re.fullmatch(r'(?:[A-Za-z0-9_]+/)*[A-Za-z0-9_]+\.py',name) or not checksum(value) for name,value in mapping.items())):
             raise ContractError('source review needs complete module checksum maps')
     before,after=review['from_source_map'],review['to_source_map']
     expected={name:{'before_sha256':before.get(name),'after_sha256':after.get(name)}

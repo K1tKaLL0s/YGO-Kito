@@ -46,7 +46,7 @@ class EffectConstructionIntegrationTests(unittest.TestCase):
         original=portfolio
         def observe(bound,current_assets,**kwargs):
             groups=kwargs.get('mechanism_groups')
-            self.assertEqual(groups,expected)
+            self.assertEqual(list(groups),list(expected))
             self.assertTrue(all(code in bound.pool for group in groups for cards in group['zones'].values() for code in cards))
             rows=original(bound,current_assets,**kwargs)
             calls.append({'task':bound.sha256,'groups':groups,'rows':len(rows)})
@@ -54,8 +54,9 @@ class EffectConstructionIntegrationTests(unittest.TestCase):
         with patch('ygo_kito.construction_candidates.portfolio',side_effect=observe):
             result=kernel.run_selected(selection,base=base,verifier=None)
         self.assertTrue(calls)
-        self.assertTrue(result['alternation_completed'])
-        self.assertTrue(all(p['stage_3']['status']=='concrete_candidate_cb_pending' for p in result['phases']))
+        self.assertFalse(result['construction_passed'])
+        self.assertEqual(result['phases'][0]['stage_3']['status'],'axis_skeleton_ready')
+        self.assertTrue(all(p['stage_3']['status']=='concrete_candidate_cb_pending' for p in result['phases'][1:]))
         self.assertEqual(result['construction_mechanism_groups'],expected)
         self.assertEqual(builder.updates,before)
         self.assertFalse(result['cb_verified']);self.assertFalse(result['ability_verified'])

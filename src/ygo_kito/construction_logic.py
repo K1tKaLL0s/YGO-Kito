@@ -225,6 +225,14 @@ def select_main_axes(task, assets, classification, scopes=()):
     return {"status": "selected" if all(a["card_ids"] for a in axes) else "no_axis_candidates", "axes": axes}
 
 
+def declared_theme_scopes(task):
+    """Positive series/race requirements already fixed by a structured task."""
+    predicates = {(r['predicate']['field'],r['predicate']['value']) for r in task.goal.get('constraints',())
+        if r.get('minimum',0)>0 and r['predicate'].get('field') in ('setcode','race_any')}
+    return tuple(ThemeScope(field+':'+format(value,'x'),field,value,'original-task:'+task.sha256)
+                 for field,value in sorted(predicates))
+
+
 class ConstructionSession:
     """Deterministic coordinator around the existing goal/optimizer roles.
 
@@ -249,6 +257,8 @@ class ConstructionSession:
         self.history = []
         self.feedback = []
         self._accepted_fill = None
+        self.construction_progress = None
+        self.optimization_feedback = []
 
     @property
     def task(self):
@@ -260,7 +270,7 @@ class ConstructionSession:
             raise ContractError("user goal changed; start an explicitly revised request/session")
 
     def record_feedback(self, source, message):
-        member(source, "feedback source", ("user", "fill", "duel", "build_goal", "build_optimizer", "coordinator"))
+        member(source, "feedback source", ("user", "fill", "duel", "build_goal", "build_optimizer", "coordinator", "external_ai"))
         short(message, "feedback", 1024)
         self.feedback.append({"source": source, "message": message,
                               "logic_sha256": self.logic.sha256 if self.logic else None})
@@ -309,10 +319,14 @@ class ConstructionSession:
         self.submit_logic(ConstructionLogic.from_dict(proposal["logic"]), role=role, reason=proposal["reason"])
         return {"status": "logic_revised", "logic_sha256": self.logic.sha256}
 
-    def to_dict(self):
-        from .validation import canonical_json, parse_json
+    def _snapshot(self):
         self.check_goal()
-        return parse_json(canonical_json({"request": self.request, "task": self.task.to_dict(),
+        return {"request": self.request, "task": self.task.to_dict(),
             "goal_sha256": self.goal_sha256, "classification": self.classification.to_dict(),
             "logic": self.logic.to_dict() if self.logic else None, "history": self.history, "feedback": self.feedback,
-            "logic_requirements_sha256":getattr(self,"logic_requirements_sha256",None)}))
+            "construction_progress": self.construction_progress, "optimization_feedback": self.optimization_feedback,
+            "logic_requirements_sha256":getattr(self,"logic_requirements_sha256",None)}
+
+    def to_dict(self):
+        from .validation import canonical_json, parse_json
+        return parse_json(canonical_json(self._snapshot()))

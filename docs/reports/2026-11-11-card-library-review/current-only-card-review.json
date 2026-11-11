@@ -1,0 +1,44 @@
+[
+  {
+    "card_id": 20240828,
+    "name": "德科平",
+    "status": "normal_monster_description_no_effect",
+    "source_basis": "bound CDB only; no matching Baige password",
+    "confirmed_findings": [],
+    "pending_clauses": [],
+    "source_text": [
+      "神圣的投手区之上降临的幸福天使。据说是为了举行一种名叫开球仪式的特别仪式，跟搭档一起飞落到了这里。优雅的毛色、可爱的身姿令人们着迷，最后来个击掌结束了仪式。\r\n\r\n与搭档同行的SHO-TIME(翔时间)今后也将继续下去——"
+    ],
+    "actual_functions": []
+  },
+  {
+    "card_id": 68811206,
+    "name": "伟大的战士 泰勒",
+    "status": "confirmed_problem",
+    "source_basis": "bound CDB only; no matching Baige password",
+    "confirmed_findings": [
+      {
+        "card_id": 68811206,
+        "name": "伟大的战士 泰勒",
+        "family": "destroyed_monster_reference_as_destroy_effect",
+        "source": "给与对方等于被破坏怪兽的攻击力数值的伤害",
+        "actual_kind": "destroy",
+        "basis": "被破坏怪兽 is the damage formula reference; this instruction inflicts damage and does not destroy another monster"
+      }
+    ],
+    "pending_clauses": [],
+    "source_text": [
+      "这张卡不能特殊召唤。当这张卡战斗破坏怪兽并将它送去墓地时，给与对方等于被破坏怪兽的攻击力数值的伤害。"
+    ],
+    "actual_functions": [
+      {
+        "kind": "damage",
+        "source": "给与对方等于被破坏怪兽的攻击力数值的伤害"
+      },
+      {
+        "kind": "destroy",
+        "source": "给与对方等于被破坏怪兽的攻击力数值的伤害"
+      }
+    ]
+  }
+]

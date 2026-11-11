@@ -19,7 +19,8 @@ from .agent_monitor import RunMonitor, RunReporter
 from .agent_registry import identifier
 from .build_contracts import BuildTask, DeckParts, digest
 from .build_model import BuildEncoder, BuildModelConfig, BuildRanker, FEATURE_VERSION
-from .build_pipeline import BuildAssets, alternate_build, edit_candidates, engineering_proxy, goal_candidates, verify_goal
+from .construction_fill import construct_task
+from .build_pipeline import BuildAssets, edit_candidates, engineering_proxy, goal_candidates, verify_goal
 from .cpu_training import cpu_name
 from .duel_model import parameter_digest
 from .device import (resolve_device, execution_metadata, checkpoint_device, optimizer_to,
@@ -60,14 +61,7 @@ def config_from_dict(value):
     return BuildTrainingConfig(**d)
 
 
-def supervision_projection(data):
-    result={"task_sha256": data["task_sha256"],
-            "goals": [{"deck": r["deck"], "label": r["label"], "source": r["source"],
-                       "evidence_status": r["evidence"]["status"],
-                       "trajectory_sha256": r["evidence"].get("trajectory_sha256",r["evidence"].get('native_route',{}).get('trajectory_sha256'))} for r in data["goals"]],
-            "pairs": data["pairs"]}
-    if 'purpose' in data:result['purpose']=data['purpose']
-    return result
+from .semantic_training import supervision_projection
 
 
 def validate_supervision(task, assets, data):
@@ -384,9 +378,10 @@ def run_build_training_smoke(root, state_root, run_id, task, config=None):
         verified = (repeat == updates[-1] and all(parameter_digest(trainer.models[r]) == parameter_digest(recovered.models[r]) for r in ROLES))
         if not verified:
             raise ContractError("actual building continuation diverged")
-        alternation = alternate_build(task, assets, trainer.models, trainer.encoder)
-        if len(alternation["stages"]) != 4:
-            raise ContractError("four actual goal/optimizer stages not verified")
+        alternation = construct_task(task, assets, trainer.models, trainer.encoder)
+        if not alternation['construction_passed']:
+            from .construction_progress import ConstructionSuspended
+            raise ConstructionSuspended(alternation)
         metrics = publish("running")
         result = {"schema_version": 1, "ok": True, "scope": "bounded-goal-optimizer-cpu-engineering",
                   "source": ("actual-transformer-updates-and-combined-native-objectives" if 'route_goal' in task.goal else "actual-transformer-updates-and-catalog-constraints") if semantic else "actual-transformer-updates-and-real-core-goal-checks",

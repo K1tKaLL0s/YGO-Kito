@@ -1,11 +1,17 @@
-"""Independent, stdlib-only design observer. It never imports the trainer."""
+"""Independent design observer using current pure contracts, never the trainer."""
 import argparse
 from collections import Counter
 from datetime import datetime,timezone
-import hashlib,json,os,signal,sqlite3,time
+import hashlib,json,os,signal,sqlite3,sys,time
 from pathlib import Path
 
-ROLES=['build_goal','build_optimizer','build_goal','build_optimizer']
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
+from ygo_kito.build_contracts import DeckParts
+from ygo_kito.build_semantics import matches as matches_task_predicate
+from ygo_kito.construction_progress import FUNCTIONAL_GATE_VERSION, _quality_binding
+from ygo_kito.construction_quality import FUNCTIONAL_QUALITY_VERSION, functional_delta
+from ygo_kito.validation import ContractError
+
 EXTRA=0x40|0x2000|0x800000|0x4000000
 class Unknown(Exception):pass
 class Violation(Exception):pass
@@ -57,18 +63,18 @@ class Catalog:
         for p,mtime,size in self.paths:
             s=p.stat()
             if s.st_mtime_ns!=mtime or s.st_size!=size:raise Unknown('pinned catalog changed during observation')
-    def deck(self,deck,task=None):
+    def deck(self,deck,task=None,*,partial=False):
         if not isinstance(deck,dict) or set(deck)!={'main','extra','side'}:raise Violation('invalid three-section deck')
-        bounds={'main':(40,60),'extra':(0,15),'side':(0,15)};all_cards=[];rows={}
+        bounds={'main':(0 if partial else 40,60),'extra':(0,15),'side':(0,15)};all_cards=[];rows={}
         for zone,(low,high) in bounds.items():
             cards=deck[zone]
             if not isinstance(cards,list) or not low<=len(cards)<=high:raise Violation('illegal '+zone+' size')
-            if task and len(cards)!=task['sizes'][zone]:raise Violation('concrete deck misses declared section size')
+            if task and (len(cards)>task['sizes'][zone] or not partial and len(cards)!=task['sizes'][zone]):raise Violation('concrete deck misses declared section size')
             for code in cards:
                 if type(code) is not int or not 0<code<2**32:raise Violation('invalid card ID')
                 if task and code not in task['pool']:raise Violation('card outside declared task pool')
                 if code not in rows:
-                    row=self.db.execute('SELECT id,alias,ot,type,setcode,race,attribute FROM datas WHERE id=?',(code,)).fetchone()
+                    row=self.db.execute('SELECT id,alias,ot,type,setcode,race,attribute,level FROM datas WHERE id=?',(code,)).fetchone()
                     if row is None:raise Violation('unknown card ID '+str(code))
                     rows[code]=dict(row)
                 row=rows[code]
@@ -84,35 +90,65 @@ class Catalog:
                 n=deck[r['zone']].count(r['card_id'])
                 if not r['minimum']<=n<=r['maximum']:raise Violation('declared mandatory quantity missed')
             for c in task['goal'].get('constraints',[]):
-                p=c['predicate'];field=p['field'];value=p['value']
-                def match(code):
-                    row=rows[code]
-                    if field=='setcode':return any(((row['setcode']%(1<<64))>>shift)&0xffff==value for shift in (0,16,32,48))
-                    if field=='card_ids':return code in value
-                    if field.endswith('_all'):return row[field[:-4]]&value==value
-                    if field.endswith('_any'):return bool(row[field[:-4]]&value)
-                    raise Unknown('unsupported hard constraint requires explicit support: '+field)
-                n=sum(match(code) for zone in c['zones'] for code in deck[zone])
-                if not c['minimum']<=n<=c['maximum']:raise Violation('declared hard constraint missed '+c['id'])
+                n=sum(matches_task_predicate(rows[code],c['predicate']) for zone in c['zones'] for code in deck[zone])
+                if n>c['maximum'] or not partial and n<c['minimum']:raise Violation('declared hard constraint missed '+c['id'])
 
 def inspect_artifact(path,root,catalog):
     result,sha=stable(path);phases=result.get('phases')
-    if not isinstance(phases,list) or len(phases)!=4:raise Unknown('four-step construction is incomplete')
-    if [p.get('role') for p in phases]!=ROLES:raise Violation('wrong four-step role order')
+    handoffs=result.get('handoffs',[])
+    if not handoffs or handoffs[0].get('role')!='build_goal':raise Unknown('goal skeleton handoff missing')
+    if any(p.get('role')!='build_optimizer' for p in handoffs[1:]):raise Violation('optimizer continuation changed role')
+    if any(b.get('input_deck_sha256')!=a.get('output_deck_sha256') for a,b in zip(handoffs,handoffs[1:])):raise Violation('saved handoff ancestry differs')
+    gate=result.get('construction_gate') or {}
+    if (result.get('construction_passed') is not True or gate.get('status')!='passed'
+            or gate.get('version')!=FUNCTIONAL_GATE_VERSION or gate.get('cb_result_used') is not False):
+        raise Unknown('construction has not passed its pre-CB gate')
+    if not isinstance(phases,list):raise Unknown('construction slice trace missing')
     for i,p in enumerate(phases):
-        if p.get('phase_number')!=i+1:raise Violation('wrong phase ordinal')
+        if p.get('role') not in ('build_goal','build_optimizer'):raise Violation('unknown construction role')
         if not isinstance(p.get('proposal_deck'),dict):raise Unknown('concrete phase output is not available')
         if i and p.get('input_deck')!=phases[i-1]['proposal_deck']:raise Violation('actual deck handoff mismatch '+str(i+1))
-        attempts=p.get('stage_3',{}).get('attempts',[])
-        concrete=[a['concrete_proposal'] for a in attempts if isinstance(a,dict) and 'concrete_proposal' in a]
+        fill=p.get('stage_3',{})
+        attempts=fill.get('attempts',[])
+        concrete=([fill['concrete_proposal']] if p['role']=='build_goal' and
+            fill.get('status')=='axis_skeleton_ready' and isinstance(fill.get('concrete_proposal'),dict) else
+            [a['concrete_proposal'] for a in attempts if isinstance(a,dict) and 'concrete_proposal' in a])
         if not any(q.get('deck')==p['proposal_deck'] for q in concrete):raise Violation('phase output lacks its concrete fill record')
         # Intermediate fills may contain text/constraint checks, never CB runs.
         for a in attempts:
             v=a.get('engine_validation',{})
-            if v.get('status','not_run')!='not_run':raise Violation('CB was executed before all four steps')
-    output=phases[-1]['proposal_deck']
+            if v.get('status','not_run')!='not_run':raise Violation('CB was executed inside an unfinished construction iteration')
+    output=(result.get('construction_candidate') or {}).get('deck')
+    if not isinstance(output,dict) or digest(output)!=handoffs[-1]['output_deck_sha256']:raise Violation('final inventory differs from saved handoff')
+    if gate.get('deck_sha256')!=digest(output):raise Violation('construction gate belongs to another deck')
     candidate=result.get('construction_candidate') or result.get('final_candidate') or result.get('best')
-    if not isinstance(candidate,dict) or candidate.get('deck')!=output:raise Violation('reported construction is not the fourth output')
+    if not isinstance(candidate,dict) or candidate.get('deck')!=output:raise Violation('reported construction differs from passed candidate')
+    quality=candidate.get('quality_evaluation')
+    if not isinstance(quality,dict) or quality.get('version')!=FUNCTIONAL_QUALITY_VERSION:
+        raise Unknown('current functional quality evaluation is required before clearance')
+    try:
+        binding=_quality_binding(gate.get('policy'),quality,DeckParts.from_dict(output))
+        if binding!=gate.get('quality_binding') or quality.get('task_sha256')!=gate.get('task_sha256'):
+            raise ContractError('gate differs from its current quality binding')
+        if not all(binding.get(k) is True for k in ('required','present','complete','scope_complete')):
+            raise Unknown('current functional quality is not complete')
+        if any(r['status']!='satisfied' for r in quality.get('hard_requirements',())):
+            raise ContractError('original required functions do not support the reported pass')
+        if candidate.get('construction_gate')!=gate:
+            raise ContractError('candidate gate differs from the reported pass')
+        policy=gate['policy']
+        if policy['pass']['mode']=='reference_ratio':
+            reference=(result.get('continuation') or {}).get('reference_evaluation')
+            if not isinstance(reference,dict):raise Unknown('specified reference evaluation is missing')
+            reference_binding=_quality_binding(policy,reference,DeckParts.from_dict(reference['inventory']))
+            if (reference.get('deck_sha256')!=policy['pass']['reference']['deck_sha256']
+                    or reference.get('task_sha256')!=gate.get('task_sha256')
+                    or not reference_binding['complete'] or reference['score']['value']<=0
+                    or any(r['status']!='satisfied' for r in reference.get('hard_requirements',()))
+                    or functional_delta(reference,quality,ratio=policy['pass']['minimum_reference_ratio'])['lower']<0):
+                raise ContractError('specified reference does not support the reported pass')
+    except (ContractError,KeyError,TypeError) as error:
+        raise Violation('current quality binding invalid: '+str(error)) from error
     cb=result.get('basic_cb')
     if cb is None:cb=result.get('final_cb') # Read historical terminology; no extra capability gate.
     if not isinstance(cb,dict):raise Unknown('basic CB inference record is not available')
@@ -155,21 +191,22 @@ def inspect_artifact(path,root,catalog):
             raise Unknown('separate post-construction CB input record is missing')
     if task.get('environment',{}).get('release_cutoff')!=catalog.policy['release_cutoff']:raise Violation('task period differs')
     if result.get('selected_task_sha256')!=digest(task):raise Violation('construction and CB task identity differ')
+    if gate.get('task_sha256')!=digest(task):raise Violation('current construction gate belongs to another task')
     for p in phases:
-        if p.get('input_deck') is not None:catalog.deck(p['input_deck'],task)
-        catalog.deck(p['proposal_deck'],task)
+        if p.get('input_deck') is not None:catalog.deck(p['input_deck'],task,partial=any(len(p['input_deck'][z])<task['sizes'][z] for z in task['sizes']))
+        catalog.deck(p['proposal_deck'],task,partial=p['role']=='build_goal')
     # Independently check the raw input and output association. Do not treat
     # cb_verified/passed or a whole-graph execution flag as conformance proof.
     if digest(raw['deck'])!=subject:raise Violation('raw CB input differs from construction')
     return {'artifact':str(path.relative_to(root)),'artifact_sha256':sha,'deck_sha256':subject,
         'task_sha256':task_sha,'cb_source':str(raw_path.relative_to(root)),
-        'checked':['four_actual_handoffs','basic_cb_subject','card_id_type_quantity_period'],
+        'checked':['role_handoffs_and_pre_cb_gate','basic_cb_subject','card_id_type_quantity_period'],
         'whole_graph_execution_or_competitive_strength_certified':False}
 
 def audit(base,policy,catalog):
     root=confined(base,policy['course_root']);catalog.unchanged()
-    if not (root/'initial-four-stage-construction.json').exists():raise Unknown('awaiting initial four-step construction evidence; formal clearance withheld')
-    paths=[root/'initial-four-stage-construction.json',*sorted(root.glob('collaboration-v2-*/actual-four-stage.json'))]
+    if not (root/'initial-construction.json').exists():raise Unknown('awaiting initial construction evidence; formal clearance withheld')
+    paths=[root/'initial-construction.json',*sorted(root.glob('collaboration-v2-*/construction-result.json'))]
     receipts=[]
     for path in paths:receipts.append(inspect_artifact(path,root,catalog))
     for value in policy.get('opponent_decks',[]):
@@ -212,7 +249,7 @@ def main():
                 state.update(verdict='violation',reason=str(error),receipts=[]);stop_main(base,policy,str(error))
             except Unknown as error:
                 state.update(verdict='unknown',reason=str(error),receipts=[]);unknowns+=1
-                bootstrap=str(error).startswith('awaiting initial four-step construction evidence;')
+                bootstrap=str(error).startswith('awaiting initial construction evidence;')
                 if (a.once or unknowns>=2) and not bootstrap:stop_main(base,policy,'unknown: '+str(error))
             save()
             if a.once:

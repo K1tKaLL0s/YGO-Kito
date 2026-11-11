@@ -82,7 +82,7 @@ class ConstructionReviewFixes(unittest.TestCase):
         self.assertNotEqual(cb['status'],proof(self.task,self.base,self.assets)['status'])
         with self.assertRaisesRegex(ContractError,'different task/deck'):
             _candidate_basic_cb(self.task,self.base,self.assets,
-                lambda *args:{'status':'bounded_inference_unknown','subject_deck_sha256':'0'*64})
+                lambda *args, **kwargs:{'status':'bounded_inference_unknown','subject_deck_sha256':'0'*64})
 
     def test_forced_cycle_requires_persisted_identity(self):
         with self.assertRaisesRegex(ContractError,'persisted host cycle_id'):cycle_identity(0,True,None)
@@ -111,8 +111,8 @@ class ConstructionReviewFixes(unittest.TestCase):
         candidate={'deck':self.base.to_dict(),'logic':session.logic.to_dict(),'logic_sha256':session.logic.sha256,
                    'validation':validation,'basic_cb':inference,'task_verified':True,'cb_verified':False}
         phases=[{'phase_number':i+1,'role':r,'stage_3':{'status':'concrete_candidate_cb_pending'}}
-                for i,r in enumerate(('build_goal','build_optimizer','build_goal','build_optimizer'))]
-        result={'best':candidate,'phases':phases,'retained_candidates':[],'basic_cb':inference,
+                for i,r in enumerate(('build_goal','build_optimizer','build_optimizer'))]
+        result={'best':candidate,'phases':phases,'handoffs':phases,'construction_passed':True,'retained_candidates':[],'basic_cb':inference,
             'construction_candidate':candidate,'cb_verified':False,'task_verified':True,'goal_sha256':session.goal_sha256,
             'latest_logic_sha256':session.logic.sha256}
         calls=[]

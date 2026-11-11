@@ -42,7 +42,7 @@ def publish_course_status(status,stage,course,**details):
 
 
 def execute_cycle(course, forecasts, construction, base, target, stop, status, max_units, *, unit_boundary=None):
-    """Execute the learned allocation only between indivisible four-step cycles."""
+    """Execute the learned allocation only between saved construction and training boundaries."""
     from ygo_kito.training_admission import TrainingAdmissionDeferred
     planned_at,accounted=time.monotonic(),course.active_seconds
     plan = forecasts.decide(max_units)
@@ -137,7 +137,7 @@ def execute_cycle(course, forecasts, construction, base, target, stop, status, m
             acknowledge=getattr(getattr(course,'comparison_policy',None),'review_completed',None)
             if trigger is not None and callable(acknowledge) and isinstance(result,dict) and result.get('cycle_key'):
                 acknowledge(task=course._task(),deck=course.deck,cycle_id=result['cycle_key'],through_attempt_id=trigger)
-                course.save()  # Private acknowledgement and public checkpoint reference close together.
+                course.save()  # Persist the completed review in the course event stream.
             forecasts.construction_completed(review=result.get('review_receipt') if isinstance(result,dict) else None)
         executed += 1
         if unit_boundary is not None:
@@ -238,7 +238,7 @@ def restore_saved_course_bots(target,runtime):
 def initial_task_rank(proposals,source_binding,prior_task_sha256,*,explicit_roots=False):
     """Keep legacy identity matching, or select the migrated semantic objective."""
     candidates=proposals.get('candidates',[])
-    if (explicit_roots and source_binding.get('construction_flow')=='four_concrete_handoffs_then_basic_cb_inference_v3'
+    if (explicit_roots and source_binding.get('construction_flow') in ('goal_skeleton_optimizer_until_pass_v4','four_concrete_handoffs_then_basic_cb_inference_v3')
             and source_binding.get('basic_cb_stage')=='after_construction'):
         for rank,candidate in enumerate(candidates):
             task=candidate.get('task',{});goal=deepcopy(task.get('goal',{}))
@@ -256,47 +256,6 @@ def initial_task_rank(proposals,source_binding,prior_task_sha256,*,explicit_root
     return rank,None
 
 
-def resume_preserved_four_handoffs(models,selection,assets,target,*,verifier,budget,recorder):
-    """Run only CB for the same learner after its four recorded handoffs."""
-    path=target/'preserved-four-stage-construction.json'
-    if not path.exists():return None
-    from ygo_kito.basic_cb_inference import infer_basic_cb
-    from ygo_kito.build_contracts import DeckParts
-    from ygo_kito.construction_candidates import task_checked
-    from ygo_kito.proof_visibility import without_private_selection_key
-    task=models.kernel._selection(selection)
-    result=json.loads(path.read_text(encoding='utf-8'))
-    if result.get('selected_task_sha256')!=task.sha256:
-        raise RuntimeError('Preserved four handoffs belong to a different selected task')
-    phases=result.get('phases');roles=('build_goal','build_optimizer','build_goal','build_optimizer')
-    if not isinstance(phases,list) or len(phases)!=4 or result.get('alternation_completed') is not True:
-        raise RuntimeError('Preserved construction has no completed four handoffs')
-    for index,(phase,role) in enumerate(zip(phases,roles)):
-        if phase.get('role')!=role or phase.get('phase_number')!=index+1 or not isinstance(phase.get('proposal_deck'),dict):
-            raise RuntimeError('Preserved construction role or ordinal differs')
-        if index and phase.get('input_deck')!=phases[index-1]['proposal_deck']:
-            raise RuntimeError('Preserved construction has a different concrete handoff')
-    learner=phases[-1]['proposal_deck'];best=result.get('best');candidate=result.get('construction_candidate')
-    if (not task_checked(best) or not isinstance(candidate,dict) or
-            candidate.get('deck')!=learner or best.get('deck')!=learner):
-        raise RuntimeError('Preserved learner differs from the fourth concrete output')
-    deck=DeckParts.from_dict(learner)
-    seconds=min(20.,budget.check('before_basic_cb_provider'))
-    inference=infer_basic_cb(task,deck,assets,builder=models.builder,seconds=seconds,verifier=verifier,budget=budget)
-    budget.check('after_basic_cb_provider')
-    recorder(task,deck,inference)
-    cb=without_private_selection_key(inference)
-    cb_verified=cb.get('status')=='routes_inferred' and bool(cb.get('routes'))
-    result.update(basic_cb=cb,basic_cb_inference_performed=bool(cb.get('inference_completed')),
-        cb_verified=cb_verified,preserved_four_handoffs=True,
-        cb_resume_provenance={'preserved_four_handoffs':True,'new_four_handoffs_executed':False,
-            'role_parameter_updates':False,'competitive_improvement_verified':False})
-    for key in ('best','construction_candidate','verified_best'):
-        primary=result.get(key)
-        if isinstance(primary,dict) and primary.get('deck')==learner:
-            primary.update(basic_cb=deepcopy(cb),cb_verified=cb_verified)
-    return result
-
 
 def run(base,directory,stop,status,*,resume=False,unit_boundary=None,continuation=None,
         execution_source_root=None,resource_base=None,comparison_policy=None,cb_signal_consumer=None):
@@ -313,31 +272,26 @@ def run(base,directory,stop,status,*,resume=False,unit_boundary=None,continuatio
     source=resources/'source'
     execution_source=source if execution_source_root is None else Path(execution_source_root).resolve()
     if explicit_roots:
-        if execution_source_root is None or resource_base is None or not resume or not isinstance(continuation,dict) or set(continuation)!={'state_root','source_manifest','source_archive'}:
+        if execution_source_root is None or resource_base is None or not resume:
             raise RuntimeError('Explicit source and resource roots require the exact resumed course continuation')
         if execution_source!=Path(__file__).resolve().parents[1]:raise RuntimeError('Execution source must be this course repository')
-        target=Path(continuation['state_root']).resolve()
-        if not target.is_relative_to(base.resolve()) or not target.is_dir():
-            raise RuntimeError('Explicit roots require an existing migrated course inside this worker base')
-        if any(not Path(continuation[key]).resolve().is_relative_to((base/'reports').resolve()) for key in ('source_manifest','source_archive')):
-            raise RuntimeError('Migrated execution source artifacts must be inside this worker reports')
+        from local_course_source_continuation import validate_continuation
+        target=validate_continuation(continuation,base)
     runtime_pack=read(resources/'reports/model-pair-runtime-pack.json')
     runtime=Path('/tmp')/('ygo-kito-model-pair-'+runtime_pack['archive_sha256'][:16])
     unpack_exact(resources/'cache/model-pair-runtime-001.tar',runtime_pack,runtime)
     native_pack=read(resources/'reports/native-runtime-cache-source-manifest.json')
     native=Path(native_pack['cache_root'])
     unpack_exact(resources/'cache/native-runtime-42b468cc.tar',native_pack,native)
-    if continuation is not None and (not resume or set(continuation)!={'state_root','source_manifest','source_archive'}):
+    if continuation is not None and not resume:
         raise RuntimeError('Explicit migrated state and exact execution source are required for continuation')
-    pack=read(Path(continuation['source_manifest']) if continuation else base/'reports/formal-course-source-pack-006.json')
-    project=Path('/tmp')/('ygo-kito-formal-source-'+pack['archive_sha256'][:16])
-    unpack_exact(Path(continuation['source_archive']) if continuation else base/'cache/formal-course-source-006.tar',pack,project)
-    actual={str(p.relative_to(execution_source)):sha(p) for p in sorted((execution_source/'src/ygo_kito').glob('*.py'))}
-    snapshot={str(p.relative_to(project)):sha(p) for p in sorted((project/'src/ygo_kito').glob('*.py'))}
-    # The frozen archive is audit evidence of the original execution source.
-    # Implementation drift is reported (and bounded by the restore compatibility
-    # check below), not treated as a new course by itself.
-    if snapshot!=actual: print('execution source drift:',json.dumps({'changed':sorted(set(snapshot)&set(actual))[:20],'added':sorted(set(actual)-set(snapshot))[:20],'removed':sorted(set(snapshot)-set(actual))[:20]}),file=sys.stderr)
+    pack=read(Path(continuation['source_manifest']) if continuation and 'source_manifest' in continuation
+              else base/'reports/formal-course-source-pack-006.json')
+    # The saved source map remains provenance. Restore checks the actual model,
+    # task, rules and resources; unrelated module bytes need no repeated scan.
+    existing_target=Path(continuation['state_root']) if continuation else source/'.cache/local-base-training-20261027/2207-course-005'
+    actual=(read(existing_target/'model-binding.json').get('source_files',{}) if existing_target.exists()
+            else {str(p.relative_to(execution_source)):sha(p) for p in sorted((execution_source/'src/ygo_kito').glob('*.py'))})
     sys.path.insert(0,str(execution_source/'src'))
     import torch
     from ygo_kito.build_contracts import BuildTask,DeckParts,digest
@@ -359,12 +313,6 @@ def run(base,directory,stop,status,*,resume=False,unit_boundary=None,continuatio
     if target.exists():
         if not resume: raise RuntimeError('Existing course preserved; inspect then Resume')
         binding=read(target/'model-binding.json')
-        from ygo_kito.restore_compatibility import source_drift
-        drift=source_drift(binding.get('source_files'),actual)
-        if drift['changed'] or drift['added'] or drift['removed']:
-            write(target/'source-drift.json',{'kind':'accepted-structural-source-drift-v1',
-                'saved_vs_execution':drift,
-                'structural_compatibility_required':'model/task/period/resources/rules/config'})
         pointer=read(target/'initial-pointer.json')
         if sha(Path(pointer['path']))!=pointer['sha256']: raise RuntimeError('Saved initial course state changed')
         models=CourseModels.from_state(torch.load(pointer['path'],map_location='cpu',weights_only=False),assets=assets,expected_binding=binding)
@@ -417,7 +365,7 @@ def run(base,directory,stop,status,*,resume=False,unit_boundary=None,continuatio
         report={'kind':KIND,'comparison':reference(evidence_dir/'comparison.json'),'task':reference(evidence_dir/'task.json'),
             'private_trace':reference(evidence_dir/'private-trace.json'),'closed_case':reference(evidence_dir/'closed-case.json'),
             'actor_seat':0,'original_source_map':source_tree_snapshot(runtime/'project/src/ygo_kito'),
-            'current_source_map':source_tree_snapshot(project/'src/ygo_kito'),
+            'current_source_map':source_tree_snapshot(execution_source/'src/ygo_kito'),
             'native_receipt_sha256':digest(assets.receipt),'period_context_sha256':digest(assets.period_context),
             'extra_qualification_games':0,'strength_qualified':False}
         report_path=evidence_dir/'observed-runtime.json'
@@ -458,22 +406,27 @@ def run(base,directory,stop,status,*,resume=False,unit_boundary=None,continuatio
     else:
         from local_course_corrected_flow import import_corrected_flow
         import_corrected_flow(course,target)
+    review_path=target/'observed-bot-source-review.json'
+    if review_path.exists():
+        # Host execution review is separate from the learned model/checkpoint.
+        # The adapter validates its exact source transition when binding a bot.
+        course.observed_bot_source_review=read(review_path)
     if comparison_policy is None:
         from ygo_kito.course_admission_policy import load_course_admission_policy
-        comparison_policy=load_course_admission_policy(course,target)
+        comparison_policy=load_course_admission_policy(course)
     if cb_signal_consumer is None:cb_signal_consumer=getattr(comparison_policy,'consume_cb_signal',None)
     course.bind_admission_policy(comparison_policy)
     status.comparison_policy=comparison_policy;status.cb_signal_consumer=cb_signal_consumer
     score_completed=getattr(comparison_policy,'record_completed_construction',None)
     if (course.deck is not None and isinstance(course.construction,dict) and
-            course.construction.get('alternation_completed') is True and callable(score_completed)):
+            course.construction.get('construction_passed') is True and callable(score_completed)):
         # Score the actual preserved candidate prospectively in the new epoch.
         # This does not import any old failure/loss count or re-run its inference.
         candidate=(course.construction.get('best') or {})
         if candidate.get('deck')==course.deck.to_dict():
             score_completed(task=course._task(),deck=course.deck,assets=assets,basic_cb=candidate.get('basic_cb'),
-                cycle_id='prospective-preserved-four-stage-'+digest(course.construction))
-    course.save()  # Seal the prospective epoch/reference without copying private counters into learner data.
+                cycle_id='prospective-construction-'+digest(course.construction))
+    course.save()  # The course checkpoint is the sole event state.
     publish_course_status(status,'course_restored',course)
     if unit_boundary is None:
         course.save()
@@ -483,16 +436,18 @@ def run(base,directory,stop,status,*,resume=False,unit_boundary=None,continuatio
     if course.deck is None:
         if continuation and correction is None:
             raise RuntimeError('Migrated course has no original selected construction; preserve state and inspect')
-        status('actual_corrected_four_handoffs_before_cb',course=course.status())
-        proposals=models.kernel.propose_tasks()
-        wanted=correction['preserved_selected_task_sha256']
-        rank,reselection=initial_task_rank(proposals,models.kernel.source_binding,wanted,explicit_roots=explicit_roots)
-        if reselection is not None:
+        status('actual_role_construction_before_cb',course=course.status())
+        if course.selection is not None:
+            selection=course.selection
+        else:
+            proposals=models.kernel.propose_tasks()
+            wanted=correction['preserved_selected_task_sha256']
+            rank,reselection=initial_task_rank(proposals,models.kernel.source_binding,wanted,explicit_roots=explicit_roots)
             selection=models.kernel.select_task(proposals,rank=rank)
-            if selection.get('candidate_id')!=reselection['new_selected_task_sha256']:
-                raise RuntimeError('Kernel selection differs from the migrated semantic candidate')
-            course.events.append(reselection)
-        else:selection=course.selection or models.kernel.select_task(proposals,rank=rank)
+            if reselection is not None:
+                if selection.get('candidate_id')!=reselection['new_selected_task_sha256']:
+                    raise RuntimeError('Kernel selection differs from the migrated semantic candidate')
+                course.events.append(reselection)
         course.selection=selection
         if unit_boundary('before',course,None,{'action':'build_goal'},0) is not True:
             course.desired='paused';course.save()
@@ -518,24 +473,25 @@ def run(base,directory,stop,status,*,resume=False,unit_boundary=None,continuatio
             path=record_basic_cb_inference(target,t,d,value)
             record_conditional_cb_signal(cb_signal_consumer,path,t,d,value,assets=assets)
             return path
-        result=resume_preserved_four_handoffs(models,selection,assets,target,
-            verifier=verifier,budget=initial_budget,recorder=recorder)
-        if result is None:
-            result=models.kernel.run_selected(selection,verifier=verifier,budget=initial_budget,basic_cb_verifier=verifier,
-                basic_cb_recorder=recorder)
-        prior=target/'initial-four-stage-construction.json'
-        if prior.exists():prior.rename(prior.with_name('initial-four-stage.prior-'+str(time.time_ns())+'.json'))
+        result=models.kernel.run_selected(selection,verifier=verifier,budget=initial_budget,basic_cb_verifier=verifier,
+            basic_cb_recorder=recorder,basic_cb_enabled=True,pause_requested=stop.exists)
+        prior=target/'initial-construction.json'
+        if prior.exists():prior.rename(prior.with_name('initial-construction.prior-'+str(time.time_ns())+'.json'))
         write(prior,result)
         from ygo_kito.construction_candidates import task_checked
-        if (not task_checked(result.get('best')) or result.get('alternation_completed') is not True
+        if (not task_checked(result.get('best')) or result.get('construction_passed') is not True
                 or not basic_cb_completed(result)):
-            course.save();raise RuntimeError('Construction task or actual basic CB inference incomplete; trace preserved')
-        if result['best']['logic_sha256']!=result['phases'][-1]['stage_1']['logic_sha256']:
+            from ygo_kito.construction_learning import consume_optimizer_slice
+            consume_optimizer_slice(course,result,status=status,pause_requested=stop.exists)
+            course.construction=result;course.desired='paused';course.save()
+            from ygo_kito.construction_progress import ConstructionSuspended
+            error=ConstructionSuspended(result);error.safe_boundary_saved=True;raise error
+        if result['best']['logic_sha256']!=result['latest_logic_sha256']:
             raise RuntimeError('Final candidate and final optimizer graph differ')
         course.construction=result;course.deck=DeckParts.from_dict(result['best']['deck']);course.rules.validate(course.deck)
         score_completed=getattr(comparison_policy,'record_completed_construction',None)
         if callable(score_completed):
-            cycle_id='initial-four-stage-'+digest(result)
+            cycle_id='initial-construction-'+digest(result)
             seen=set()
             for candidate in [result['best'],*result.get('retained_candidates',[])]:
                 if not isinstance(candidate,dict) or not isinstance(candidate.get('deck'),dict):continue

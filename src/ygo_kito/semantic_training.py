@@ -6,9 +6,18 @@ from .validation import ContractError,fields,array
 SOURCE='catalog_constraint_and_explicit_preference_v1'
 
 
+def supervision_projection(data):
+    result={"task_sha256": data["task_sha256"],
+            "goals": [{"deck": r["deck"], "label": r["label"], "source": r["source"],
+                       "evidence_status": r["evidence"]["status"],
+                       "trajectory_sha256": r["evidence"].get("trajectory_sha256",r["evidence"].get('native_route',{}).get('trajectory_sha256'))} for r in data["goals"]],
+            "pairs": data["pairs"]}
+    if 'purpose' in data:result['purpose']=data['purpose']
+    return result
+
+
 def dataset(task,assets,*,purpose='train'):
     from .build_pipeline import goal_candidates,edit_candidates
-    from .build_training import supervision_projection
     candidates=goal_candidates(task,assets)
     if len(candidates)<2:raise ContractError('two independently checked semantic candidates required')
     goals=[]
@@ -42,7 +51,6 @@ def dataset(task,assets,*,purpose='train'):
 
 
 def validate(task,assets,data,*,for_training=True):
-    from .build_training import supervision_projection
     fields(data,{'source','purpose','task_sha256','goals','pairs','supervision_sha256','unknown_routes_used_as_negative','competitive_quality_labels','public_effect_receipts'})
     from .data_isolation import PURPOSES
     if data['purpose'] not in PURPOSES or for_training and data['purpose']!='train':raise ContractError('held-out semantic data cannot train building models')
@@ -84,6 +92,10 @@ def validate(task,assets,data,*,for_training=True):
         assets.validate(task,better);assets.validate(task,worse)
         if 'route_goal' in task.goal and any(digest(d.to_dict()) not in verified for d in (better,worse)):
             raise ContractError('combined optimizer comparisons require verified native goals on both sides')
+        from .construction_learning import SOURCE as quality_source,validate_pair
+        if pair['source']==quality_source:
+            validate_pair(task,pair)
+            continue
         from .model_build_feedback import SOURCE as model_source,validate_model_comparison
         from .model_auxiliary import SOURCES as auxiliary_sources,validate_auxiliary_comparison
         if pair['source'] in auxiliary_sources:

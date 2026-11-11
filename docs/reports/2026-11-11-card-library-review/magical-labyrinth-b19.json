@@ -1,0 +1,448 @@
+{
+  "dictionary_version": "public-effect-blocks-v1",
+  "dictionary_revision": "local-library-review-20261111-b19",
+  "card_id": 64389297,
+  "name": "迷宫变化",
+  "cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+  "text_sha256": "45930b12695e1046350c559836d09bca712b1179b90988cc118e1e9453a6eb9e",
+  "identity_tags": [
+    {
+      "dimension": "card_type",
+      "value": "魔法"
+    },
+    {
+      "dimension": "card_type",
+      "value": "装备"
+    }
+  ],
+  "effects": [
+    {
+      "version": "public-effect-blocks-v1",
+      "effect_key": "spell_trap:0:0",
+      "scope": "spell_trap",
+      "blocks": [
+        {
+          "block_id": "spell_trap:0:0:effect:0",
+          "tag": {
+            "dimension": "effect",
+            "value": "装备"
+          },
+          "kind": "equip",
+          "phase": "resolution",
+          "source": "给「迷宫壁」装备",
+          "source_span": [
+            0,
+            8
+          ],
+          "qualifiers": {
+            "from_zones": [],
+            "quantity": null,
+            "owner": "unknown"
+          },
+          "group": "spell_trap:0:0",
+          "branch": 0,
+          "order": 0
+        }
+      ],
+      "cost_blocks": [],
+      "procedure_blocks": [],
+      "restrictions": [],
+      "description_blocks": [],
+      "connectors": [
+        {
+          "connector_id": "spell_trap:0:0:connector:0",
+          "kind": "卡片发动",
+          "effect_key": "spell_trap:0:0",
+          "source": "condition",
+          "target": "effect_group",
+          "condition_source": null,
+          "starts_chain": true,
+          "activation_kind": "card_activation",
+          "ruling_source": "konami-cid4658-20200401"
+        },
+        {
+          "connector_id": "spell_trap:0:0:connector:1",
+          "kind": "自己主要阶段",
+          "effect_key": "spell_trap:0:0",
+          "source": "condition",
+          "target": "effect_group",
+          "condition_source": null,
+          "starts_chain": true,
+          "activation_kind": "card_activation",
+          "ruling_source": "konami-cid4658-20200401"
+        }
+      ],
+      "alternatives": null,
+      "count_limits": [],
+      "target_refs": [],
+      "grouping_status": "reviewed_effect_scope",
+      "status": "observed",
+      "unknown": [
+        "equip_target_requires_state"
+      ],
+      "official_rulings": [
+        {
+          "id": "konami-cid4658-20200401",
+          "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?cid=4658&ope=4&request_locale=ja",
+          "supplement_updated_on": "2020-04-01",
+          "verified_on": "2026-11-11",
+          "finding": "装备后的效果在自己主要阶段于场上任意发动，不取对象；发动费用只解放装备着本卡的迷宫壁1只。",
+          "card_id": 64389297,
+          "text_sha256": "45930b12695e1046350c559836d09bca712b1179b90988cc118e1e9453a6eb9e",
+          "effect_key": "spell_trap:0:0"
+        }
+      ]
+    },
+    {
+      "version": "public-effect-blocks-v1",
+      "effect_key": "spell_trap:0:1",
+      "scope": "spell_trap",
+      "blocks": [
+        {
+          "block_id": "spell_trap:0:1:effect:0",
+          "tag": {
+            "dimension": "effect",
+            "value": "特召"
+          },
+          "kind": "special_summon",
+          "phase": "resolution",
+          "source": "从卡组把「墙壁之影」特殊召唤",
+          "source_span": [
+            18,
+            32
+          ],
+          "qualifiers": {
+            "from_zones": [
+              "deck"
+            ],
+            "quantity": null,
+            "owner": "unknown",
+            "to_zone": "field"
+          },
+          "group": "spell_trap:0:1",
+          "branch": 0,
+          "order": 28
+        }
+      ],
+      "cost_blocks": [
+        {
+          "kind": "release",
+          "tag": {
+            "dimension": "cost",
+            "value": "解放"
+          },
+          "phase": "activation_payment",
+          "source": "把「迷宫壁」和装备的这张卡作为祭品",
+          "qualifiers": {
+            "reason": "cost",
+            "quantity": 1,
+            "quantity_status": "explicit",
+            "owner": "self",
+            "owner_status": "recognized",
+            "from_zones": [
+              "field"
+            ],
+            "to_zone": "grave",
+            "resource": "cards",
+            "quantity_basis": "official_ruling",
+            "subject": "equipped_monster",
+            "requires_equipped_to_source": true,
+            "selector_query": {
+              "exact_name": "迷宫壁",
+              "selector": "「迷宫壁」"
+            },
+            "ruling_source": "konami-cid4658-20200401"
+          },
+          "block_id": "spell_trap:0:1:cost:0",
+          "group": "spell_trap:0:1"
+        }
+      ],
+      "procedure_blocks": [],
+      "restrictions": [],
+      "description_blocks": [],
+      "connectors": [
+        {
+          "connector_id": "spell_trap:0:1:connector:0",
+          "kind": "发动",
+          "effect_key": "spell_trap:0:1",
+          "source": "condition",
+          "target": "effect_group",
+          "condition_source": null,
+          "starts_chain": true,
+          "activation_kind": "effect_activation",
+          "ruling_source": "konami-cid4658-20200401"
+        },
+        {
+          "connector_id": "spell_trap:0:1:connector:1",
+          "kind": "自己主要阶段",
+          "effect_key": "spell_trap:0:1",
+          "source": "condition",
+          "target": "effect_group",
+          "condition_source": null,
+          "starts_chain": true,
+          "activation_kind": "effect_activation",
+          "ruling_source": "konami-cid4658-20200401"
+        }
+      ],
+      "alternatives": null,
+      "count_limits": [],
+      "target_refs": [],
+      "grouping_status": "reviewed_effect_scope",
+      "status": "observed",
+      "unknown": [
+        "equipped_monster_binding_requires_state"
+      ],
+      "official_rulings": [
+        {
+          "id": "konami-cid4658-20200401",
+          "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?cid=4658&ope=4&request_locale=ja",
+          "supplement_updated_on": "2020-04-01",
+          "verified_on": "2026-11-11",
+          "finding": "装备后的效果在自己主要阶段于场上任意发动，不取对象；发动费用只解放装备着本卡的迷宫壁1只。",
+          "card_id": 64389297,
+          "text_sha256": "45930b12695e1046350c559836d09bca712b1179b90988cc118e1e9453a6eb9e",
+          "effect_key": "spell_trap:0:1"
+        }
+      ]
+    }
+  ],
+  "compatibility_tags": [],
+  "summon_materials": [],
+  "summon_material_source": null,
+  "card_restrictions": [],
+  "card_prelude": "给「迷宫壁」装备。把「迷宫壁」和装备的这张卡作为祭品，从卡组把「墙壁之影」特殊召唤。",
+  "source_records": [
+    {
+      "record_version": "public-effect-records-v2",
+      "semantic_version": "public-effect-clauses-v2",
+      "card_id": 64389297,
+      "cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+      "text_sha256": "45930b12695e1046350c559836d09bca712b1179b90988cc118e1e9453a6eb9e",
+      "effect_index": 0,
+      "source_text": "给「迷宫壁」装备。",
+      "scope": "spell_trap",
+      "effect_key": "spell_trap:0:0",
+      "trigger": {
+        "event": "card_activation",
+        "reason": "not_applicable",
+        "source": "",
+        "additional_conditions": "unknown",
+        "activation_annotation": "",
+        "activation_kind": "card_activation",
+        "phase": "own_main_phase",
+        "basis": "official_ruling"
+      },
+      "conditions": {
+        "source": "",
+        "status": "recognized",
+        "additional_conditions": "equip_target_requires_state",
+        "basis": "official_ruling"
+      },
+      "costs": [],
+      "targets": [],
+      "operations": [
+        {
+          "kind": "equip",
+          "quantity": null,
+          "reason": "effect",
+          "phase": "resolution",
+          "source": "给「迷宫壁」装备",
+          "order": 0,
+          "block_id": "spell_trap:0:0:effect:0",
+          "effect_key": "spell_trap:0:0"
+        }
+      ],
+      "count_limits": [],
+      "restrictions": [],
+      "card_restrictions": [],
+      "printed_materials": [],
+      "knowledge": {
+        "activation_boundary": "recognized",
+        "costs": "unknown",
+        "targets": "unknown",
+        "restrictions": "unknown",
+        "operation_projection": "public-effect-blocks-v1"
+      },
+      "unknown": [
+        "equip_target_requires_state"
+      ],
+      "legality_verified": false,
+      "rule_references": [],
+      "non_activation_costs": [],
+      "official_rulings": [
+        {
+          "id": "konami-cid4658-20200401",
+          "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?cid=4658&ope=4&request_locale=ja",
+          "supplement_updated_on": "2020-04-01",
+          "verified_on": "2026-11-11",
+          "finding": "装备后的效果在自己主要阶段于场上任意发动，不取对象；发动费用只解放装备着本卡的迷宫壁1只。",
+          "card_id": 64389297,
+          "text_sha256": "45930b12695e1046350c559836d09bca712b1179b90988cc118e1e9453a6eb9e",
+          "effect_key": "spell_trap:0:0"
+        }
+      ],
+      "resource_changes": []
+    },
+    {
+      "record_version": "public-effect-records-v2",
+      "semantic_version": "public-effect-clauses-v2",
+      "card_id": 64389297,
+      "cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+      "text_sha256": "45930b12695e1046350c559836d09bca712b1179b90988cc118e1e9453a6eb9e",
+      "effect_index": 0,
+      "source_text": "把「迷宫壁」和装备的这张卡作为祭品，从卡组把「墙壁之影」特殊召唤。",
+      "scope": "spell_trap",
+      "effect_key": "spell_trap:0:1",
+      "trigger": {
+        "event": "own_main_phase",
+        "reason": "not_applicable",
+        "source": "",
+        "additional_conditions": "none_in_recognized_activation_clause",
+        "activation_annotation": "",
+        "activation_kind": "effect_activation",
+        "zone": "field",
+        "phase": "own_main_phase",
+        "optional": true,
+        "card_state": "face_up_equipped",
+        "basis": "official_ruling"
+      },
+      "conditions": {
+        "source": "",
+        "status": "recognized",
+        "additional_conditions": "equipped_monster_binding_requires_state",
+        "basis": "official_ruling"
+      },
+      "costs": [
+        {
+          "kind": "release",
+          "reason": "cost",
+          "source": "把「迷宫壁」和装备的这张卡作为祭品",
+          "quantity": 1,
+          "quantity_status": "explicit",
+          "owner": "self",
+          "owner_status": "recognized",
+          "from_zones": [
+            "field"
+          ],
+          "to_zone": "grave",
+          "resource": "cards",
+          "cost_index": 0,
+          "effect_index": 0,
+          "quantity_basis": "official_ruling",
+          "subject": "equipped_monster",
+          "requires_equipped_to_source": true,
+          "selector_query": {
+            "exact_name": "迷宫壁",
+            "selector": "「迷宫壁」"
+          },
+          "ruling_source": "konami-cid4658-20200401"
+        }
+      ],
+      "targets": [],
+      "operations": [
+        {
+          "kind": "special_summon",
+          "reason": "effect",
+          "source": "从卡组把「墙壁之影」特殊召唤",
+          "order": 28,
+          "from_zones": [
+            "deck"
+          ],
+          "to_zone": "field",
+          "quantity": null,
+          "owner": "self",
+          "phase": "resolution",
+          "block_id": "spell_trap:0:1:effect:0",
+          "effect_key": "spell_trap:0:1"
+        }
+      ],
+      "count_limits": [],
+      "restrictions": [],
+      "card_restrictions": [],
+      "printed_materials": [],
+      "knowledge": {
+        "activation_boundary": "recognized",
+        "costs": "observed",
+        "targets": "none_in_reviewed_effect",
+        "restrictions": "unknown",
+        "operation_projection": "public-effect-blocks-v1"
+      },
+      "unknown": [
+        "equipped_monster_binding_requires_state"
+      ],
+      "legality_verified": false,
+      "rule_references": [
+        {
+          "rule_id": "COST_NOT_REFUNDED",
+          "lookup": "ygo_kito.rule_references.lookup_rule",
+          "status": "reference_only",
+          "applied_to_decision": false,
+          "binding": {
+            "card_id": 64389297,
+            "effect_index": 0,
+            "text_sha256": "45930b12695e1046350c559836d09bca712b1179b90988cc118e1e9453a6eb9e",
+            "scope": "this_effect_activation_payment",
+            "count_event": "payment",
+            "outcome": "unknown_requires_engine_event"
+          },
+          "applicability": "unknown_requires_confirmed_legal_payment"
+        }
+      ],
+      "non_activation_costs": [],
+      "official_rulings": [
+        {
+          "id": "konami-cid4658-20200401",
+          "url": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?cid=4658&ope=4&request_locale=ja",
+          "supplement_updated_on": "2020-04-01",
+          "verified_on": "2026-11-11",
+          "finding": "装备后的效果在自己主要阶段于场上任意发动，不取对象；发动费用只解放装备着本卡的迷宫壁1只。",
+          "card_id": 64389297,
+          "text_sha256": "45930b12695e1046350c559836d09bca712b1179b90988cc118e1e9453a6eb9e",
+          "effect_key": "spell_trap:0:1"
+        }
+      ],
+      "resource_changes": [
+        {
+          "kind": "release",
+          "reason": "cost",
+          "source": "把「迷宫壁」和装备的这张卡作为祭品",
+          "quantity": 1,
+          "quantity_status": "explicit",
+          "owner": "self",
+          "owner_status": "recognized",
+          "from_zones": [
+            "field"
+          ],
+          "to_zone": "grave",
+          "resource": "cards",
+          "cost_index": 0,
+          "effect_index": 0,
+          "quantity_basis": "official_ruling",
+          "subject": "equipped_monster",
+          "requires_equipped_to_source": true,
+          "selector_query": {
+            "exact_name": "迷宫壁",
+            "selector": "「迷宫壁」"
+          },
+          "ruling_source": "konami-cid4658-20200401",
+          "phase": "activation_payment"
+        },
+        {
+          "kind": "special_summon",
+          "reason": "effect",
+          "source": "从卡组把「墙壁之影」特殊召唤",
+          "order": 28,
+          "from_zones": [
+            "deck"
+          ],
+          "to_zone": "field",
+          "quantity": null,
+          "owner": "self",
+          "phase": "resolution",
+          "block_id": "spell_trap:0:1:effect:0",
+          "effect_key": "spell_trap:0:1"
+        }
+      ]
+    }
+  ]
+}

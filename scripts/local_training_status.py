@@ -20,7 +20,7 @@ def main():
     boot = Path('/proc/sys/kernel/random/boot_id').read_text().strip()
     stat = Path('/proc') / str(value['pid']) / 'stat'
     cmdline = stat.with_name('cmdline')
-    expected = (str(args.base / 'source/scripts/local_training_worker.py'),
+    expected = (value.get('worker_script', str(args.base / 'source/scripts/local_training_worker.py')),
                 '--base', str(args.base), '--run-id', args.run_id, '--job', value['job'])
     identity = False
     if boot == value['boot_id'] and stat.is_file():

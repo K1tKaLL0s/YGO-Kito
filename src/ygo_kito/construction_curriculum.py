@@ -179,45 +179,6 @@ def candidates(state):
     return [DeckParts.from_dict(d) for d in state.data["pairs"][0]["evidence"]["plan"]["candidates"]]
 
 
-def alternate(state):
-    """Model-ranked goal/optimizer/goal/optimizer, real-pair best incumbent."""
-    import torch
-    from .build_pipeline import apply_changes, deck_changes, verify_goal
-    from .duel_model import parameter_digest
-    from .semantic_curriculum import configured
-    if configured(state.row['recipe']):
-        from .build_pipeline import alternate_build
-        return alternate_build(state.task,state.assets,state.builder.models,state.builder.encoder,base=DeckParts.from_dict(state.deck),
-                               lora_versions={r:state.sessions[r].version_id() for r in state.builder.models})
-    bank = candidates(state)
-    comparison = state.data["pairs"][0]["evidence"]
-    current, stages, verified = DeckParts.from_dict(state.deck), [], []
-    for i in range(4):
-        role = "build_goal" if i % 2 == 0 else "build_optimizer"
-        model = state.builder.models[role]
-        model.eval()
-        with torch.no_grad():
-            scores = model(state.builder.encoder.batch(state.task, bank))
-        if not torch.isfinite(scores).all():
-            raise ContractError("nonfinite real curriculum construction scores")
-        chosen = int(scores.argmax())
-        deck = bank[chosen]
-        proof = verify_goal(state.task, deck, state.assets, attempts=64, seconds=30.)
-        if proof["status"] != "verified_success":
-            raise ContractError("model-selected curriculum candidate has no verified goal route")
-        changes = deck_changes(current, deck)
-        if apply_changes(current, changes) != deck:
-            raise ContractError("curriculum construction changes do not reproduce the proposed deck")
-        stages.append({"stage": i, "role": role, "task_sha256": state.task.sha256, "deck": deck.to_dict(), "changes": changes,
-                       "validation": proof, "model_sha256": parameter_digest(model), "lora_version": state.sessions[role].version_id(),
-                       "model_score_uncalibrated": float(scores[chosen]), "frozen_pair_engineering_score": comparison["mean_scores"][chosen]})
-        verified.append(chosen)
-        current = deck
-    best = max(verified, key=lambda index: comparison["mean_scores"][index])
-    return {"stages": stages, "best_deck": bank[best].to_dict(),
-            "best_criterion": "frozen-real-rule-driver-pair-mean-engineering-only",
-            "comparison_sha256": comparison["comparison_sha256"], "competitive_quality_validated": False}
-
 
 def evaluate(state, generation):
     from .semantic_curriculum import configured,evaluate as semantic_evaluate

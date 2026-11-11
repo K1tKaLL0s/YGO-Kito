@@ -11,6 +11,7 @@ SOURCES = ("real_engine", "synthetic_contract_test")
 OUTCOMES = ("win", "loss", "draw", "timeout", "crash", "invalid_action")
 ROUTES = ("build_goal", "build_optimizer", "register_forecast", "evaluate_duel", "train_duel", "diagnose", "stop")
 TWENTY_FIFTY_POLICY_EPOCH = "course-forecast-twenty-fifty-v2"
+RESPONSIVE_POLICY_EPOCH = "course-forecast-twenty-fifty-v3"
 
 
 def probability(value, label):
@@ -56,12 +57,26 @@ class FeedbackPolicy:
 
     @property
     def terminal_matches_only(self):
-        return self.policy_epoch == TWENTY_FIFTY_POLICY_EPOCH
+        return self.policy_epoch in (TWENTY_FIFTY_POLICY_EPOCH, RESPONSIVE_POLICY_EPOCH)
+
+    @classmethod
+    def responsive_twenty_fifty(cls):
+        """Prospective engineering rule: a one-sigma win deficit after 20 games.
+
+        This is an operational response, not a significance or confidence claim.
+        Legacy policy snapshots keep their original calculation.
+        """
+        return cls(checkpoints=tuple(range(20, 51)), minimum_matches=20,
+            review_horizon=20, rebuild_horizon=50, policy_epoch=RESPONSIVE_POLICY_EPOCH,
+            count_definition_id='completed-native-terminal-matches-only-v2',
+            significance_definition_id='engineering-win-deficit-one-predicted-sigma-minimum-one-win-v1')
 
     def alert_kinds(self, check):
         """Apply a conditional within-window response at a declared look."""
         if check is None or not check['low']:return ()
         n=check['matches']
+        if self.policy_epoch == RESPONSIVE_POLICY_EPOCH:
+            return ('reevaluate','mandatory_rebuild') if n >= self.rebuild_horizon else ('reevaluate',)
         if n <= self.review_horizon:return ('reevaluate',)
         if n <= self.rebuild_horizon:return ('reevaluate','mandatory_rebuild')
         return ()
@@ -92,7 +107,7 @@ class FeedbackPolicy:
             raise ContractError("feedback checkpoints must be sorted and unique")
         for n in self.checkpoints:
             integer(n, "feedback checkpoint", self.minimum_matches if self.minimum_matches is not None else 1, self.rebuild_horizon)
-        if (self.checkpoints or self._legacy_layout()) and (self.review_horizon not in self.checkpoints or self.rebuild_horizon not in self.checkpoints or
+        if self.policy_epoch != RESPONSIVE_POLICY_EPOCH and (self.checkpoints or self._legacy_layout()) and (self.review_horizon not in self.checkpoints or self.rebuild_horizon not in self.checkpoints or
                 not any(n < self.review_horizon for n in self.checkpoints) or
                 not any(self.review_horizon < n < self.rebuild_horizon for n in self.checkpoints)):
             raise ContractError("predeclare checks before and between the fixed forecast horizons")
@@ -130,6 +145,13 @@ class FeedbackPolicy:
         probability(mean, "observed mean")
         if n not in self.checkpoints:
             return None
+        if self.policy_epoch == RESPONSIVE_POLICY_EPOCH:
+            deficit = n * forecast - score_sum
+            required = max(1., math.sqrt(n * forecast * (1. - forecast)))
+            return {'matches':n, 'score_mean':mean, 'forecast':forecast,
+                'win_deficit':deficit, 'required_win_deficit':required,
+                'low':deficit > required, 'calibration':'pending',
+                'assumption':'operational response to fixed-scope completed outcomes; not a significance test'}
         alpha = self.family_alpha / (ordinal * (ordinal + 1))
         radius = math.sqrt(math.log(len(self.checkpoints) / alpha) / (2 * n))
         upper = min(1., mean + radius)

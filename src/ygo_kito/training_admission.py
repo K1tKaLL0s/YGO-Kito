@@ -61,7 +61,7 @@ def _verified_native_receipt(task,deck,assets,proof):
                    'core_attempts','responses','core_event_kinds','trajectory_sha256','elapsed_seconds','unmet','route_evidence'})
     evidence=fields(native['route_evidence'],{'driver','opponent','conditional_only','material_preference','sum_choices',
         'final_observation','core_event_audit_not_policy_input','versions','exploration'},
-        {'private_selection_key_audit_only','fusion_summon_evidence','opening_assumption'})
+        {'private_selection_key_audit_only','fusion_summon_evidence','opening_assumption','basic_cb_scope'})
     exploration=fields(evidence['exploration'],{'branches_executed','branch_budget','discovered_intents','prewritten_route_supplied','failed_branches'},
         {'required_activations','required_chain_resolutions','intent_schema_version','nodes_expanded'})
     integer(exploration['branch_budget'],'CB receipt branch budget',1,64)
@@ -140,9 +140,10 @@ def _verified_native_receipt(task,deck,assets,proof):
 def verified_conditional_basic_cb(task,deck,basic_cb,*,assets=None):
     """Require a verified actual route for this constructed deck and task."""
     from .basic_cb_inference import inference_requirements
+    from .basic_cb_scope import VERSION
     if assets is None:return False
     subject=digest(deck.to_dict())
-    if (not isinstance(basic_cb,dict) or basic_cb.get('status')!='routes_inferred' or
+    if (not isinstance(basic_cb,dict) or basic_cb.get('scope_version') != VERSION or basic_cb.get('status')!='routes_inferred' or
             basic_cb.get('inference_completed') is not True or basic_cb.get('task_sha256')!=task.sha256 or
             basic_cb.get('subject_deck_sha256')!=subject or basic_cb.get('initial_state_mode')!='hypothetical_exact_hand_v1' or
             basic_cb.get('opening_probability_evaluated') is not False):return False
@@ -160,6 +161,9 @@ def verified_conditional_basic_cb(task,deck,basic_cb,*,assets=None):
         except (ContractError,ValueError,TypeError,KeyError):continue
         proof=route.get('proof',{})
         if not isinstance(proof,dict):continue
+        scope=proof.get('native_route',proof).get('route_evidence',{}).get('basic_cb_scope',{})
+        if (scope.get('version') != VERSION or scope != route.get('mainline') or not scope.get('steps')
+                or scope.get('random_result_branches_expanded') is not False or scope.get('unknown')):continue
         try:
             if (proof.get('status')==accepted_status(derived) and proof.get('task_sha256')==derived.sha256 and
                     proof.get('deck_sha256')==subject and _verified_native_receipt(derived,deck,assets,proof)):return True
@@ -168,11 +172,7 @@ def verified_conditional_basic_cb(task,deck,basic_cb,*,assets=None):
 
 
 def require_training_admission(*,task,deck,basic_cb,assets,purpose,comparison_policy=None):
-    """Return admitted/deferred; missing score/count policy is always deferred.
-
-    The host policy owns score, counter, threshold-window and reset definitions.
-    This consumer neither derives them from legacy records nor changes ledgers.
-    """
+    """Combine candidate-owned CB proof with current construction admission."""
     identity={'task_sha256':None if task is None else task.sha256,'deck_sha256':None if deck is None else digest(deck.to_dict())}
     reasons=[]
     if task is None or deck is None:
@@ -183,7 +183,7 @@ def require_training_admission(*,task,deck,basic_cb,assets,purpose,comparison_po
     result={**identity,'status':'deferred','policy_epoch':None,'reasons':reasons,'evidence_refs':[],
             'signals':asdict(AdmissionSignals())}
     if not callable(comparison_policy):
-        result['reasons'].append('score_counter_and_forecast_policy_definitions_missing');return result
+        result['reasons'].append('construction_admission_policy_missing');return result
     verdict=comparison_policy(task=task,deck=deck,basic_cb=basic_cb,assets=assets,purpose=purpose)
     if not isinstance(verdict,dict):
         result['reasons'].append('invalid_comparison_policy_verdict');return result

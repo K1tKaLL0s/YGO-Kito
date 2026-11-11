@@ -25,10 +25,15 @@ class SharedBudgetTests(unittest.TestCase):
         from tests.test_coordinator_control import LedgerFixture
         ledger=LedgerFixture('runTest');ledger.setUp();self.addCleanup(ledger.doCleanups)
         ledger.results('forecast',100)
-        phases=[{'role':role} for role in ('build_goal','build_optimizer','build_goal','build_optimizer')]
-        result={'best':{'deck':DECK.to_dict()},'cb_verified':True,'alternation_completed':True,
-                'goal_sha256':digest(TASK.goal),'phases':phases}
-        proof={'status':'constraints_and_route_verified','task_sha256':TASK.sha256,
+        phases=[{'role':role} for role in ('build_goal','build_optimizer','build_optimizer')]
+        result={'best':{'deck':DECK.to_dict()},'cb_verified':True,'construction_passed':True,
+                'goal_sha256':digest(TASK.goal),'phases':phases,'handoffs':phases}
+        result['basic_cb']={'status':'bounded_inference_unknown','inference_completed':True,'routes':[]}
+        result['best'].update(basic_cb=deepcopy(result['basic_cb']),
+            validation={'status':'task_goal_verified_logic_unproven','best_deck':DECK.to_dict()})
+        result.update(task_verified=True,retained_candidates=[])
+        from ygo_kito.build_semantics import accepted_status
+        proof={'status':accepted_status(TASK),'task_sha256':TASK.sha256,'deck_sha256':digest(DECK.to_dict()),
                'native_route':{'core_attempts':[{'seed_audit_only':71}]}}
         def kernel(selection,**options):
             options['verifier'](TASK,DECK,course.assets)
@@ -40,18 +45,19 @@ class SharedBudgetTests(unittest.TestCase):
         consumed=[]
         course=SimpleNamespace(config={'wall_seconds':1000,'course_id':'fixture'},active_seconds=0.,
             counts=lambda:{'bo1':0,'bo3':0},_task=lambda:TASK,models=models,
-            assets=SimpleNamespace(effect_receipts=lambda task:[]),construction=deepcopy(result),deck=DECK,
+            assets=SimpleNamespace(validate=lambda *a:None,effect_receipts=lambda task:[]),construction=deepcopy(result),deck=DECK,
             selection={'candidate_id':'fixture'},records=[],events=[],save=lambda:None,
             feedback=SimpleNamespace(consumed=consumed),
             apply_feedback=lambda fid,aid,**kw:consumed.append({'feedback_id':fid}),
             data_index=SimpleNamespace(freeze=lambda value:None,ingest_construction=lambda *a,**k:None))
-        with tempfile.TemporaryDirectory(dir=ROOT.parent) as tmp,patch('ygo_kito.build_pipeline.verify_goal',return_value=proof):
+        with tempfile.TemporaryDirectory(dir=ROOT.parent) as tmp,patch('ygo_kito.build_pipeline.verify_goal',return_value=proof), \
+                patch('local_design_supervision.require_artifact_clearance',return_value=None):
             summary=cycle(course,None,Path(tmp),Path(tmp)/'stop',lambda *a,**k:None,
                 cycle_id='1-0',budget=CycleBudget(course),
                 feedback={'status':ledger.host.forecast_status('forecast')})
             receipt=summary['review_receipt']
             self.assertEqual(receipt['trace_sha256'],hashlib.sha256(
-                (Path(tmp)/'collaboration-v2-000000-cycle-1-0/actual-four-stage.json').read_bytes()).hexdigest())
+                (Path(tmp)/'collaboration-v2-000000-cycle-1-0/construction-result.json').read_bytes()).hexdigest())
             ledger.host.record_construction_review('candidate',receipt)
         status=ledger.host.forecast_status('forecast')
         self.assertFalse(status['pending_review']);self.assertEqual(status['matches'],100)

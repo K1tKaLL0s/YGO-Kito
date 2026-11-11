@@ -1,0 +1,16 @@
+{
+  "status": "PLAN_READY",
+  "phase": "1-goal-only-frozen",
+  "created_utc": "2026-11-01T18:44:21.6646552Z",
+  "primary_plans_file": "primary_plans.json",
+  "primary_plans_sha256": "53e9b1e2024a00f5e53de948710166d175bf594b37cbb5d288542467dd6dd9fa",
+  "row_count": 118,
+  "unknown_primary_plan_case_count": 23,
+  "read_sources": [
+    "E:\\CodexData\\2026-11-01\\task\\role-training-v7\\goal_intake.json",
+    "C:\\Users\\27499\\.codex\\skills\\preserve-intent-and-execute\\SKILL.md"
+  ],
+  "applicable_agents_files_found": [],
+  "role_intake_read_before_freeze": false,
+  "freeze_policy": "进入第二阶段后不再修改 primary_plans.json；仅在 reference_audit.json 记录参考标签语义判断及缺项。"
+}

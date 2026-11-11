@@ -1,9 +1,13 @@
 """Deterministic, allowlisted monitor data. No LLM calls or weight deserialization."""
 
 import hashlib
+import csv
 import math
 import os
 from pathlib import Path
+import platform
+import shutil
+import subprocess
 import sys
 import time
 from uuid import uuid4
@@ -15,7 +19,86 @@ METRICS = {"steps", "episodes", "loss", "reward_mean", "samples_per_second", "el
            "cpu_percent", "rss_bytes", "gpu_memory_bytes", "budget_instance_hours", "process_cpu_seconds", "process_peak_rss_bytes",
            "time_limit_seconds", "budget_seconds_remaining", "discarded_episodes", "recovery_count",
            "setup_process_cpu_seconds", "unmeasured_worker_segments", "validation_episodes", "committed_rounds",
-           "usage_segments", "usage_wall_seconds", "optimizer_updates", "cycles_completed", "committed_stages"}
+           "usage_segments", "usage_wall_seconds", "optimizer_updates", "cycles_completed", "committed_stages",
+           "process_read_bytes", "process_write_bytes", "gpu_utilization_percent", "gpu_memory_total_bytes",
+           "decisions_per_second"}
+
+PROCESS_COUNTERS = ('rss_bytes', 'process_peak_rss_bytes', 'process_read_bytes', 'process_write_bytes')
+GPU_COUNTERS = ('gpu_utilization_percent', 'gpu_memory_bytes', 'gpu_memory_total_bytes')
+
+
+def _windows_counters():
+    import ctypes
+    from ctypes import wintypes
+
+    class MemoryCounters(ctypes.Structure):
+        _fields_ = [('cb', wintypes.DWORD), ('faults', wintypes.DWORD)] + [
+            (field, ctypes.c_size_t) for field in ('peak', 'current', 'quota_peak_paged', 'quota_paged',
+                                                   'quota_peak_nonpaged', 'quota_nonpaged', 'pagefile', 'peak_pagefile')]
+
+    class IOCounters(ctypes.Structure):
+        _fields_ = [(field, ctypes.c_uint64) for field in ('reads', 'writes', 'others', 'read_bytes', 'write_bytes', 'other_bytes')]
+
+    kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+    psapi = ctypes.WinDLL('psapi', use_last_error=True)
+    kernel.GetCurrentProcess.restype = wintypes.HANDLE
+    kernel.GetProcessIoCounters.argtypes = [wintypes.HANDLE, ctypes.POINTER(IOCounters)]
+    psapi.GetProcessMemoryInfo.argtypes = [wintypes.HANDLE, ctypes.POINTER(MemoryCounters), wintypes.DWORD]
+    handle = kernel.GetCurrentProcess()
+    memory = MemoryCounters()
+    memory.cb = ctypes.sizeof(memory)
+    io = IOCounters()
+    values = {}
+    if psapi.GetProcessMemoryInfo(handle, ctypes.byref(memory), memory.cb):
+        values.update(rss_bytes=int(memory.current), process_peak_rss_bytes=int(memory.peak))
+    if kernel.GetProcessIoCounters(handle, ctypes.byref(io)):
+        values.update(process_read_bytes=int(io.read_bytes), process_write_bytes=int(io.write_bytes))
+    return values, 'Windows process working-set and I/O transfer counters'
+
+
+def _process_counters():
+    if os.name == 'nt':
+        try:
+            return _windows_counters()
+        except OSError:
+            return {}, 'Windows process counters unavailable'
+    values = {}
+    try:
+        import resource
+        rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        values['process_peak_rss_bytes'] = int(rss if sys.platform == 'darwin' else rss * 1024)
+    except (ImportError, OSError):
+        pass
+    for filename, mapping in (('status', {'VmRSS': ('rss_bytes', 1024)}), ('io', {
+            'read_bytes': ('process_read_bytes', 1), 'write_bytes': ('process_write_bytes', 1)})):
+        try:
+            for line in Path('/proc/self', filename).read_text(encoding='ascii').splitlines():
+                key, _, value = line.partition(':')
+                if key in mapping:
+                    field, scale = mapping[key]
+                    values[field] = int(value.split()[0]) * scale
+        except (OSError, UnicodeError):
+            pass
+    return values, 'POSIX getrusage and Linux /proc/self process counters'
+
+
+def nvidia_device_sample(device_index=0):
+    """Opt-in device counters for the selected host GPU."""
+    integer(device_index, 'GPU device index', 0)
+    executable = shutil.which('nvidia-smi')
+    if executable is None:
+        return None
+    try:
+        sample = subprocess.run([executable, '-i', str(device_index),
+            '--query-gpu=uuid,name,driver_version,utilization.gpu,memory.used,memory.total', '--format=csv,noheader,nounits'],
+            text=True, capture_output=True, check=True, timeout=2,
+            creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
+        identity, name, driver, utilization, used, capacity = [value.strip() for value in next(csv.reader(sample.stdout.splitlines()))]
+    except (OSError, subprocess.SubprocessError, StopIteration, ValueError):
+        return None
+    metrics = {key: int(raw)*scale for key, raw, scale in zip(GPU_COUNTERS, (utilization, used, capacity), (1, 2**20, 2**20))
+               if raw.isdecimal()}
+    return dict(device=dict(uuid=identity, name=name, driver=driver), metrics=metrics, source='nvidia-smi device counters')
 
 
 class RunMonitor:
@@ -62,7 +145,7 @@ class RunMonitor:
         for key, value in d["metrics"].items():
             if type(value) not in (int, float) or not math.isfinite(value):
                 raise ContractError("metric must be a finite number")
-            if key in ("steps", "episodes", "rss_bytes", "gpu_memory_bytes", "process_peak_rss_bytes"):
+            if key in ("steps", "episodes", "gpu_memory_bytes", "gpu_memory_total_bytes", *PROCESS_COUNTERS):
                 integer(value, key)
             if key not in ("loss", "reward_mean") and value < 0:
                 raise ContractError("count/resource metric cannot be negative")
@@ -100,16 +183,37 @@ class RunReporter(RunMonitor):
         super().__init__(state_root)
         self.started, self.cpu_started = time.monotonic(), time.process_time()
 
+    def _sample(self):
+        elapsed, cpu = time.monotonic() - self.started, time.process_time() - self.cpu_started
+        metrics = dict(elapsed_seconds=elapsed, process_cpu_seconds=cpu)
+        if elapsed > 0:
+            metrics['cpu_percent'] = 100 * cpu / elapsed
+        counters, source = _process_counters()
+        metrics.update(counters)
+        return metrics, {key: source if key in counters else 'process CPU and monotonic clocks' for key in metrics}
+
     def resources(self):
-        metrics = {"elapsed_seconds": time.monotonic() - self.started,
-                   "process_cpu_seconds": time.process_time() - self.cpu_started}
-        try:
-            import resource
-            rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-            metrics["process_peak_rss_bytes"] = int(rss if sys.platform == "darwin" else rss * 1024)
-        except ImportError:
-            pass
-        return metrics  # No fabricated GPU reading and no provider/LLM call.
+        return self._sample()[0]
+
+    def resource_snapshot(self, *, binding, stage_seconds=None, gpu_sampler=None):
+        metrics, sources = self._sample()
+        gpu = gpu_sampler() if gpu_sampler is not None else None
+        if gpu is not None:
+            values = fields(gpu['metrics'], set(), set(GPU_COUNTERS))
+            if any(type(value) not in (int, float) or not math.isfinite(value) or value < 0 for value in values.values()):
+                raise ContractError('GPU sample must contain finite measured counters')
+            metrics.update(values)
+            sources.update({key: gpu['source'] for key in values})
+        stages = dict(stage_seconds or {})
+        if any(value is not None and (type(value) not in (int, float) or not math.isfinite(value) or value < 0)
+               for value in stages.values()):
+            raise ContractError('stage latency must be a finite duration or null')
+        for key in ('cpu_percent', *PROCESS_COUNTERS, *GPU_COUNTERS):
+            metrics.setdefault(key, None)
+            sources.setdefault(key, None)
+        return dict(binding=binding, hardware=dict(system=platform.system(), architecture=platform.machine(),
+            logical_cpu_count=os.cpu_count(), gpu=gpu['device'] if gpu else None), metrics=metrics,
+            metric_sources=sources, stage_seconds=stages)
 
     def publish(self, value):
         if not isinstance(value, dict):

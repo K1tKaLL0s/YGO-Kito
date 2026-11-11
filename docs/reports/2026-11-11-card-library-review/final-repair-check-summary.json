@@ -1,0 +1,12 @@
+{
+  "total_findings": 2792,
+  "counts": {
+    "structure_check_passed": 2792
+  },
+  "remaining_families": {},
+  "checked_live_cards": 14299,
+  "all_semantic_repairs_verified": false,
+  "all_reported_structural_regressions_passed": true,
+  "full_export_readback_verified": true,
+  "note": "通过表示对应结构回归成立，不等于整卡裁定、规则引擎或构筑能力通过。未映射项仍保留。"
+}

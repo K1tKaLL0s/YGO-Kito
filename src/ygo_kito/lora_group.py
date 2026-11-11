@@ -16,7 +16,8 @@ from .agent_monitor import RunMonitor, RunReporter
 from .agent_registry import identifier
 from .build_contracts import DeckParts, digest
 from .build_model import FEATURE_VERSION as BUILD_FEATURES
-from .build_pipeline import BuildAssets, alternate_build
+from .construction_fill import construct_task
+from .build_pipeline import BuildAssets
 from .build_training import engineering_dataset
 from .coord_contracts import FeedbackPolicy, ROUTES
 from .coordinator import Coordinator
@@ -231,10 +232,11 @@ def run_lora_group_smoke(root, state_root, run_id, task, lora_config, policy=Non
                               "exact_base_output_restore": exact, "active_output_changed": changed, "base_sha256": session.verify_base()}
         receipts = {r: sessions[r].save(run / "adapters" / (r + ".weights")) for r in ROLES}
         versions = {r: sessions[r].version_id() for r in ROLES}
-        construction = alternate_build(task, assets, builder.models, builder.encoder,
+        construction = construct_task(task, assets, builder.models, builder.encoder,
                                        lora_versions={r: versions[r] for r in builder.models})
-        if len(construction["stages"]) != 4:
-            raise ContractError("adapted construction must retain four real verified stages")
+        if not construction['construction_passed']:
+            from .construction_progress import ConstructionSuspended
+            raise ConstructionSuspended(construction)
         old = call(host, "candidate.read", {"candidate_id": "group-candidate"})
         same_deck = digest(construction["best_deck"]) == old["deck_sha256"]
         candidate_id = "group-candidate" if same_deck else "lora-candidate"

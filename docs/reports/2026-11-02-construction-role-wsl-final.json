@@ -1,0 +1,15 @@
+{
+  "names": [
+    "tests.test_coordinator_shared_adapters.SharedBudgetTests.test_completed_shared_cycle_receipt_closes_only_warning_without_erasing_history",
+    "tests.test_construction_review_fixes.ConstructionReviewFixes.test_actual_course_script_accepts_unknown_cb_and_separates_forced_cycles",
+    "tests.test_construction_review_fixes.ConstructionReviewFixes.test_seed_collection_follows_all_evidence_types_and_keeps_unknowns_unlabelled"
+  ],
+  "tests": 3,
+  "failures": [],
+  "errors": [],
+  "skips": [],
+  "passed": true,
+  "training_executed": false,
+  "basic_cb_executed": false,
+  "native_executed": false
+}

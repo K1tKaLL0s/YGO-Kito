@@ -1,0 +1,22 @@
+{
+  "inputs": [
+    {
+      "file": "goal_intake.json",
+      "valid_utf8_bytes": true,
+      "sha256": "2d160d4c177f733abf7dbc256fb7d7e769af84b94111a1232306ab4f22189dac"
+    },
+    {
+      "file": "reference_audit_intake.json",
+      "valid_utf8_bytes": true,
+      "sha256": "5fc099d8fbd6e0fd289cdfa46b8ea459e41ab1b8010ef2361f4116e4e49ecee2"
+    },
+    {
+      "file": "existing_cases.json",
+      "valid_utf8_bytes": true,
+      "sha256": "4b06d15f90f69a132c375dbfbe5ac1b0b962259c2d1019f65b2f4572afc72c97"
+    }
+  ],
+  "replacement_character_issues": [],
+  "objective_differences": [],
+  "recovery_note": "已编码为 U+FFFD 的位置不能从该文件唯一还原原字；本检查不猜译、不覆写原输入。若存在未损坏的已授权原副本，应由根任务核实后另存恢复对照；阶段1冻结文件保持原样。"
+}

@@ -258,11 +258,11 @@ class Coordinator:
         """
         if self.role!='coordinator':raise ContractError('construction review is a host operation')
         fields(receipt,{'kind','cycle_id','task_sha256','deployed_deck_sha256','trace_sha256',
-                        'roles','task_verified','basic_cb_inference_performed','reviewed_forecasts'})
-        if (receipt['kind']!='completed_four_step_construction_review_v2' or receipt['task_verified'] is not True or
+                        'roles','task_verified','construction_passed','basic_cb_inference_performed','reviewed_forecasts'})
+        if (receipt['kind']!='completed_construction_review_v3' or receipt['task_verified'] is not True or
                 receipt['basic_cb_inference_performed'] is not True or
-                receipt['roles']!=['build_goal','build_optimizer','build_goal','build_optimizer']):
-            raise ContractError('a complete actual four-step/basic-CB review is required')
+                receipt.get('construction_passed') is not True or len(receipt['roles'])<2 or receipt['roles'][0]!='build_goal' or any(r!='build_optimizer' for r in receipt['roles'][1:])):
+            raise ContractError('a passed construction and completed basic-CB review is required')
         for key in ('task_sha256','deployed_deck_sha256','trace_sha256'):sha256(receipt[key])
         identifier(receipt['cycle_id'])
         with self._db() as db,db:

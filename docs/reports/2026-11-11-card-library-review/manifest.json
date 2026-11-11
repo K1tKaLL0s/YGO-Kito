@@ -1,0 +1,57 @@
+{
+  "source_cdb_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+  "baige_cards_json_sha256": "0e3dfa3b3cb1b5221638943d6d8fdff1ca8c6e824916584f059a6b1a50aa6f2b",
+  "live_revision": "public-text-completion-20261111-b13",
+  "artifacts": {
+    "all-alias-identity-review.json": {
+      "bytes": 88575,
+      "sha256": "7d940ae9e94da56f0d55e21e091ad8a9b21b5912b89abf93837efd5a7c4d1a63"
+    },
+    "all-confirmed-findings.jsonl": {
+      "bytes": 393268,
+      "sha256": "47f9fbd2d40b85bb3cfa0aae7c675b8ad3ec7d4327c55790c3453a7f25cc5c5e"
+    },
+    "clause-review.jsonl.gz": {
+      "bytes": 2376855,
+      "sha256": "c208e1959f67c889b468aa88b8fe9a9b8cc5124f4bb571ced503692b76d6286a"
+    },
+    "current-only-card-review.json": {
+      "bytes": 1766,
+      "sha256": "5405c0d997a8c563596476f21f5b63e1a1a64916d5517f60a60b7d1f0f5a95ec"
+    },
+    "pending-findings.jsonl": {
+      "bytes": 911210,
+      "sha256": "c64e797fac960602d59c2352d634284151d87c7ab9a6aabb5560ad6c64185ffe"
+    },
+    "per-card-review.csv": {
+      "bytes": 1323459,
+      "sha256": "ba58db1bbe857c57e0c9166f5f363f42d0121bda2d53480f810f52c682faddec"
+    },
+    "per-card-review.jsonl.gz": {
+      "bytes": 648406,
+      "sha256": "48e2668cf2e5c15d6c737b6691c15f0d01ec73d8fc84a89b3bf1cf0638990877"
+    },
+    "per-project-card-review.csv": {
+      "bytes": 1615819,
+      "sha256": "8fd55a747a869697edc69f42dbb5081c7e67d278241937afa6b0d83a3cc3d8d8"
+    },
+    "per-project-card-review.jsonl.gz": {
+      "bytes": 1173644,
+      "sha256": "169ac7358f8e4c1f2500b103bfbbb309f8cb2bb0a4a7d623114d5ede569420ce"
+    },
+    "summary.json": {
+      "bytes": 10534,
+      "sha256": "b2929a637ec90a5af92db6f7aad8a03d34aa52f7e21cad09dbfbe8258e5bffe2"
+    },
+    "validation.json": {
+      "bytes": 1635,
+      "sha256": "03be871a030550b917f0942bfbd3f6127c5c79dcb9cb80a1daf659f7b1e8828b"
+    }
+  },
+  "scripts": {
+    "audit_card_library.py": "c37302457c047b9e4c692d51d8e0efd5c26a1e4f3e0bdc169caf3bdaaeb14d3b",
+    "compare_baige_library.py": "bd2b8d78df7ebfcc519f5b069589933a7fe960ce2ca8d35109fab5db1311d4d8",
+    "review_card_effects.py": "09bd0c17dc0dbc2a942fe233a050f5727501da839ba0d0a3b74a2a04c89d2b45",
+    "finalize_card_library_review.py": "369722366bdfa8ba04dbd295772d24b3ed75ada6e2f905a487147143e7913b30"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "modules": [
+    "tests.test_construction_progress",
+    "tests.test_basic_cb_scope",
+    "tests.test_course_admission_policy",
+    "tests.test_construction_layer_flow",
+    "tests.test_construction_unification",
+    "tests.test_design_supervisor"
+  ],
+  "tests": 62,
+  "failures": 12,
+  "errors": 13,
+  "skips": 0,
+  "passed": false,
+  "training_executed": false,
+  "basic_cb_executed": false,
+  "native_executed": false
+}

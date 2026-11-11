@@ -1,0 +1,1526 @@
+[
+  {
+    "case_id": "gamma_empty_response",
+    "objective": "以杀手级调整曲同调持续控场；当前己方空场，γ在手、驱动者在卡组，对方发动怪兽效果，希望阻止该发动并保留之后展开机会。",
+    "objective_tags": [
+      "synchro"
+    ],
+    "objective_tag_evidence": "以杀手级调整曲同调持续控场"
+  },
+  {
+    "case_id": "gamma_occupied_field",
+    "objective": "以卡通怪兽攻击取胜；己方已有一只无法在本连锁前移走的效果怪兽，γ在手、驱动者在卡组，对方发动怪兽效果，希望立即阻止发动。",
+    "objective_tags": [
+      "attack"
+    ],
+    "objective_tag_evidence": "以卡通怪兽攻击取胜"
+  },
+  {
+    "case_id": "gamma_state_unknown",
+    "objective": "以杀手级调整曲同调持续换取场面；牌表中已投入γ和驱动者，当前只给出对方发动了怪兽效果，未给出己方场上状态、γ及驱动者位置和可用怪兽区。",
+    "objective_tags": [
+      "synchro"
+    ],
+    "objective_tag_evidence": "以杀手级调整曲同调持续换取场面"
+  },
+  {
+    "case_id": "invoked_artemis_cycle",
+    "objective": "以反复通常召唤阿莱斯特、融合梅尔卡巴、回收阿莱斯特的循环取得场面优势，靠该循环的无效与攻击取胜；当前通常召唤未用、额外区空，回应时有对应种类手牌。",
+    "objective_tags": [
+      "fusion",
+      "negate",
+      "recover",
+      "attack",
+      "normal_summon"
+    ],
+    "objective_tag_evidence": "以反复通常召唤阿莱斯特、融合梅尔卡巴、回收阿莱斯特的循环取得场面优势，靠该循环的无效与攻击取胜"
+  },
+  {
+    "case_id": "invoked_artemis_ritual_plan",
+    "objective": "以光与暗的仪式、黑混沌仪式怪兽及仪式资源循环取得优势，之后让仪式怪兽从手卡或墓地回卡组特召超魔剑士黑混沌，用除外及攻击终结；先通常召唤阿莱斯特，经阿耳特弥斯融合梅尔卡巴并回收阿莱斯特，回应时有同类手牌。",
+    "objective_tags": [
+      "ritual",
+      "special_summon",
+      "recover",
+      "banish",
+      "attack"
+    ],
+    "objective_tag_evidence": "以光与暗的仪式、黑混沌仪式怪兽及仪式资源循环取得优势，之后让仪式怪兽从手卡或墓地回卡组特召超魔剑士黑混沌，用除外及攻击终结"
+  },
+  {
+    "case_id": "invoked_almiraj_gardna",
+    "objective": "以阿莱斯特的梅尔卡巴融合循环控场取胜；阿莱斯特通常召唤后依次连接独角兔、安全守卫者，以墓地阿莱斯特与场上光属性守卫者融合，回收阿莱斯特并以已备同类手牌回应发动。",
+    "objective_tags": [
+      "fusion",
+      "link",
+      "negate",
+      "recover",
+      "normal_summon"
+    ],
+    "objective_tag_evidence": "以阿莱斯特的梅尔卡巴融合循环控场取胜"
+  },
+  {
+    "case_id": "destiny_dpe_actual_singleton",
+    "objective": "以召唤兽和幻兽融合的场面优势取胜；其它特殊召唤完成后，最后用融合命运从卡组取冲刺人与神性人融合凤凰人，双方回合破坏卡，并在其被破坏后准备阶段再叫回命运英雄。",
+    "objective_tags": [
+      "fusion"
+    ],
+    "objective_tag_evidence": "以召唤兽和幻兽融合的场面优势取胜"
+  },
+  {
+    "case_id": "branded_complete_40",
+    "objective": "以阿不思相关连续融合、冰剑龙除外及送墓后的结束阶段资源取得长期优势；通过导化、气炎、烙印融合与圣女衔接，在后续回合回收烙印魔陷和融合素材。",
+    "objective_tags": [
+      "fusion",
+      "recover",
+      "grave",
+      "banish"
+    ],
+    "objective_tag_evidence": "以阿不思相关连续融合、冰剑龙除外及送墓后的结束阶段资源取得长期优势"
+  },
+  {
+    "case_id": "branded_complete_60",
+    "objective": "以阿不思融合体系反复建立冰剑龙等融合怪兽，结合墓地、除外和烙印魔陷回收，在较长资源交换中获胜；用白之烙印、赫之烙印、圣女及其它融合支路延续行动。",
+    "objective_tags": [
+      "fusion",
+      "recover",
+      "grave",
+      "banish"
+    ],
+    "objective_tag_evidence": "以阿不思融合体系反复建立冰剑龙等融合怪兽，结合墓地、除外和烙印魔陷回收，在较长资源交换中获胜"
+  },
+  {
+    "case_id": "branded_compact_fusion_route",
+    "objective": "以星辰融合怪兽完成攻击与场面交换；整回合额外只召唤融合。手中烙印融合用卡组阿不思、白之圣女融合烙印龙，再除外阿不思和烙印龙融合冰剑龙，送墓额外灰烬龙以除外对方怪兽，结束阶段取得后续阿不思。",
+    "objective_tags": [
+      "fusion",
+      "attack"
+    ],
+    "objective_tag_evidence": "以星辰融合怪兽完成攻击与场面交换"
+  },
+  {
+    "case_id": "hero_complete_clock_destiny",
+    "objective": "围绕暗黑都市取得命运英雄、恶魔主宰人送墓并取得场地、无惧从者破坏场地叫出恐惧人，再转为无惧人检索与后续英雄融合，以凤凰人破坏循环和英雄攻击获胜。",
+    "objective_tags": [
+      "fusion",
+      "search",
+      "special_summon",
+      "destroy",
+      "grave",
+      "attack"
+    ],
+    "objective_tag_evidence": "围绕暗黑都市取得命运英雄、恶魔主宰人送墓并取得场地、无惧从者破坏场地叫出恐惧人，再转为无惧人检索与后续英雄融合，以凤凰人破坏循环和英雄攻击获胜"
+  },
+  {
+    "case_id": "hero_complete_shadow_mask",
+    "objective": "以命运英雄场地破坏、检索和融合循环组织进攻，同时用影雾女郎、暮鸦、炉火衔接假面变化及不同英雄额外怪兽，按本回合属性和召唤限制建立英雄终端后持续攻击。",
+    "objective_tags": [
+      "fusion",
+      "search",
+      "destroy",
+      "transformation",
+      "attack"
+    ],
+    "objective_tag_evidence": "以命运英雄场地破坏、检索和融合循环组织进攻，同时用影雾女郎、暮鸦、炉火衔接假面变化及不同英雄额外怪兽，按本回合属性和召唤限制建立英雄终端后持续攻击"
+  },
+  {
+    "case_id": "hero_crow_furnace_mask_route",
+    "objective": "以恐惧人、无惧人、凤凰人的循环交换取胜；开局通常召唤暮鸦检索炉火，展示炉火取得假面变化并丢弃炉火，再将暮鸦转为暗爪，使对方送墓资源转为除外。本回合额外只召唤英雄。",
+    "objective_tags": [
+      "search",
+      "special_summon",
+      "destroy",
+      "grave"
+    ],
+    "objective_tag_evidence": "以恐惧人、无惧人、凤凰人的循环交换取胜"
+  },
+  {
+    "case_id": "tourguide_link_search",
+    "objective": "以破械连接怪兽持续交换对方场面；通常召唤未用，手中死亡导游叫出卡组三眼怪后连接基路伯，三眼怪取得低攻击怪兽作为后续回合资源，并保留连接节点。",
+    "objective_tags": [
+      "link"
+    ],
+    "objective_tag_evidence": "以破械连接怪兽持续交换对方场面"
+  },
+  {
+    "case_id": "tourguide_normal_already_used",
+    "objective": "以破械连接怪兽交换场面；通常召唤已使用且没有追加次数，导游在手、三眼怪在卡组、基路伯在额外，希望当回合从这张手牌取得两只3星怪兽接续连接。",
+    "objective_tags": [
+      "link"
+    ],
+    "objective_tag_evidence": "以破械连接怪兽交换场面"
+  },
+  {
+    "case_id": "dogmatika_late_turn_response",
+    "objective": "以再世高星怪兽与后续资源取胜；额外召唤已完成，天底送墓旧神破坏对方另一张卡并取得教导圣女，圣女再检索骑士。对方额外出身怪兽持续在场，计划以圣女和骑士进行一次怪兽效果无效。",
+    "objective_tags": [],
+    "objective_tag_evidence": "以再世高星怪兽与后续资源取胜"
+  },
+  {
+    "case_id": "dogmatika_extra_order_conflict",
+    "objective": "以额外融合和连接怪兽接续展开获胜；希望先发动天底送墓旧神、取得圣女，随后在同一回合继续从额外召唤尚未登场的融合与连接怪兽。",
+    "objective_tags": [
+      "fusion",
+      "link"
+    ],
+    "objective_tag_evidence": "以额外融合和连接怪兽接续展开获胜"
+  },
+  {
+    "case_id": "dogmatika_declared_battle_plan",
+    "objective": "本局围绕天底送墓旧神取得教导圣女、圣女衔接骑士无效，后续回合再利用教导怪兽，并以教导攻击时的全体增攻逐步获胜；额外召唤在天底之前完成。",
+    "objective_tags": [
+      "search",
+      "negate",
+      "grave",
+      "attack"
+    ],
+    "objective_tag_evidence": "本局围绕天底送墓旧神取得教导圣女、圣女衔接骑士无效，后续回合再利用教导怪兽，并以教导攻击时的全体增攻逐步获胜"
+  },
+  {
+    "case_id": "maxx_fusion_response",
+    "objective": "以烙印连续融合取得长期优势；对方回合手持增殖的G，送墓不被替代，对方将在效果适用后连续特召，希望将这些特召转成手牌资源。",
+    "objective_tags": [
+      "fusion"
+    ],
+    "objective_tag_evidence": "以烙印连续融合取得长期优势"
+  },
+  {
+    "case_id": "maxx_future_summons_unknown",
+    "objective": "以卡通攻击获胜；当前仅知手中有增殖的G，未给出对方接下来是否特召、能否正常送墓，以及本回合同名效果是否已用，希望评估当前回合可取得的抽牌资源。",
+    "objective_tags": [
+      "attack"
+    ],
+    "objective_tag_evidence": "以卡通攻击获胜"
+  },
+  {
+    "case_id": "desires_striker_resources",
+    "objective": "以闪刀魔法和连接循环取得资源；卡组剩30张，强欲而贪欲之壶在手、本回合未用，希望支付顶10张里侧除外代价后抽2张，以接续当前行动。",
+    "objective_tags": [
+      "link"
+    ],
+    "objective_tag_evidence": "以闪刀魔法和连接循环取得资源"
+  },
+  {
+    "case_id": "desires_low_deck",
+    "objective": "以灵摆和指示物怪兽继续展开；后段卡组只剩9张，手中强欲而贪欲之壶，希望在当前主要阶段发动取得两张新手牌。",
+    "objective_tags": [
+      "spell_counter",
+      "pendulum"
+    ],
+    "objective_tag_evidence": "以灵摆和指示物怪兽继续展开"
+  },
+  {
+    "case_id": "endymion_complete_spell_counters",
+    "objective": "以恩底弥翁和魔导兽积累、转移、支付魔力指示物，由仆从从灵摆区带出怪兽，建立创圣魔导王、胡狼王持续无效，再以灵摆资源与怪兽攻击获胜。",
+    "objective_tags": [
+      "special_summon",
+      "negate",
+      "spell_counter",
+      "pendulum",
+      "attack"
+    ],
+    "objective_tag_evidence": "以恩底弥翁和魔导兽积累、转移、支付魔力指示物，由仆从从灵摆区带出怪兽，建立创圣魔导王、胡狼王持续无效，再以灵摆资源与怪兽攻击获胜"
+  },
+  {
+    "case_id": "endymion_complete_modern_spellcasters",
+    "objective": "以龙王绝火琐罗亚等魔法师融合怪兽和连接节点交换场面；统辖取得侍女或皇国，皇国取得雷古勒斯，展示另一魔法师特召并取得魔法；玻璃在发动过魔法后登场，杰妮把魔法师换成其它魔女术，继续取得后续行动的魔法师。",
+    "objective_tags": [
+      "fusion",
+      "link"
+    ],
+    "objective_tag_evidence": "以龙王绝火琐罗亚等魔法师融合怪兽和连接节点交换场面"
+  },
+  {
+    "case_id": "endymion_complete_pendulum_context",
+    "objective": "以七音服与龙剑士的灵摆资源转为后续连接进攻；先通过恩底弥翁、魔导兽积累指示物、仆从展开和设置无效，保护后续灵摆与连接推进。",
+    "objective_tags": [
+      "link",
+      "pendulum",
+      "attack"
+    ],
+    "objective_tag_evidence": "以七音服与龙剑士的灵摆资源转为后续连接进攻"
+  },
+  {
+    "case_id": "adventurer_ritual_turn",
+    "objective": "以巳剑仪式怪兽与仪式循环取胜；本回合所有在场发动效果的怪兽均为特召。仪式行动之前用仪建立勇者与旅路，取得骑手和驮龙，骑手回应效果发动，之后用驮龙处理对方场上卡。",
+    "objective_tags": [
+      "ritual"
+    ],
+    "objective_tag_evidence": "以巳剑仪式怪兽与仪式循环取胜"
+  },
+  {
+    "case_id": "adventurer_normal_effect_conflict",
+    "objective": "以急袭猛禽升阶建立大型超量怪兽；本回合已经发动通常召唤的急袭猛禽怪兽在场效果，随后希望发动仪取得勇者、旅路和骑手，继续完成升阶。",
+    "objective_tags": [
+      "xyz"
+    ],
+    "objective_tag_evidence": "以急袭猛禽升阶建立大型超量怪兽"
+  },
+  {
+    "case_id": "tenyi_vishuda_monk",
+    "objective": "以相剑同调怪兽持续进攻；开局己方空场，手中大同蟠龙先特召再连接拳僧，拳僧留场时将墓地大同蟠龙除外，使对方1张场上卡回手，再安排相剑行动。",
+    "objective_tags": [
+      "synchro",
+      "attack"
+    ],
+    "objective_tag_evidence": "以相剑同调怪兽持续进攻"
+  },
+  {
+    "case_id": "tenyi_effect_monster_present",
+    "objective": "以超重和相剑同调接续展开；己方已有无法移走的效果怪兽、通常召唤已用，手中大同蟠龙，希望自行特召后转拳僧并处理对方场面。",
+    "objective_tags": [
+      "synchro"
+    ],
+    "objective_tag_evidence": "以超重和相剑同调接续展开"
+  },
+  {
+    "case_id": "darkhole_striker_board_clear",
+    "objective": "以闪刀魔法和连接循环取胜；己方无怪兽，对方有能被效果破坏的怪兽，手中黑洞可正常发动，希望先清除怪兽再安排闪刀行动。",
+    "objective_tags": [
+      "link"
+    ],
+    "objective_tag_evidence": "以闪刀魔法和连接循环取胜"
+  },
+  {
+    "case_id": "darkhole_kuriboh_defence",
+    "objective": "以栗子球防守资源延长对局，再进入额外怪兽进攻；己方无怪兽，对方有可破坏的攻击怪兽，希望用手中黑洞重置场面，为下一回合取得行动空间。",
+    "objective_tags": [
+      "attack"
+    ],
+    "objective_tag_evidence": "以栗子球防守资源延长对局，再进入额外怪兽进攻"
+  },
+  {
+    "case_id": "striker_complete_resource_plan",
+    "objective": "以闪刀魔法和闪刀姬循环交换取胜：零衣进入额外区，交闪检索、燎里回收、雫空结束阶段取得魔法，双纽回收，再以连接怪兽与抓锚处理场面；主要怪兽区空置时使用相关魔法。",
+    "objective_tags": [
+      "link",
+      "search",
+      "recover"
+    ],
+    "objective_tag_evidence": "以闪刀魔法和闪刀姬循环交换取胜：零衣进入额外区，交闪检索、燎里回收、雫空结束阶段取得魔法，双纽回收，再以连接怪兽与抓锚处理场面"
+  },
+  {
+    "case_id": "striker_complete_ritual_finish",
+    "objective": "以栗球兽卫、光与暗的仪式和黑混沌仪式怪兽的魔法回收建立资源，之后将仪式怪兽回卡组特召超魔剑士黑混沌，以其除外和攻击终结；前中期在主要怪兽区空时，用闪刀姬、交闪、燎里、雫空、双纽和抓锚取得回收魔法并交换场面。",
+    "objective_tags": [
+      "ritual",
+      "special_summon",
+      "recover",
+      "banish",
+      "attack"
+    ],
+    "objective_tag_evidence": "以栗球兽卫、光与暗的仪式和黑混沌仪式怪兽的魔法回收建立资源，之后将仪式怪兽回卡组特召超魔剑士黑混沌，以其除外和攻击终结"
+  },
+  {
+    "case_id": "striker_drones_link_recover",
+    "objective": "以味美喵及其它连接节点进入后续场面；主要怪兽区空置，大黄蜂生成暗属性闪刀姬衍生物，连接燎里回收该魔法，再次使用取得新的衍生物作为后续连接资源。",
+    "objective_tags": [
+      "link"
+    ],
+    "objective_tag_evidence": "以味美喵及其它连接节点进入后续场面"
+  },
+  {
+    "case_id": "striker_drones_occupied_main",
+    "objective": "以味美喵和其它连接怪兽维持场面；主要怪兽区有一只无法先移走的怪兽，大黄蜂在手、燎里在额外，希望立即生成衍生物、转换燎里并回收魔法。",
+    "objective_tags": [
+      "link"
+    ],
+    "objective_tag_evidence": "以味美喵和其它连接怪兽维持场面"
+  },
+  {
+    "case_id": "predaplant_search_superpoly",
+    "objective": "以捕食植物融合怪兽和后续场面交换获胜；通常召唤蜂兰蝎，送墓另一只手卡怪兽，叫出眼镜蛇取得超融合，先获得两只怪兽及一张供后续时点使用的融合魔法。",
+    "objective_tags": [
+      "fusion"
+    ],
+    "objective_tag_evidence": "以捕食植物融合怪兽和后续场面交换获胜"
+  },
+  {
+    "case_id": "predaplant_compact_fusion_attack",
+    "objective": "以蜂兰蝎叫出眼镜蛇、取得超融合，将场上两只暗属性捕食植物融合为凶饿毒融合龙，作为本局主要进攻路线；当前另有可送墓手卡怪兽及另一张可丢弃手牌，额外凶饿毒可用。",
+    "objective_tags": [
+      "fusion",
+      "search",
+      "special_summon",
+      "attack"
+    ],
+    "objective_tag_evidence": "以蜂兰蝎叫出眼镜蛇、取得超融合，将场上两只暗属性捕食植物融合为凶饿毒融合龙，作为本局主要进攻路线"
+  },
+  {
+    "case_id": "predaplant_second_discard_missing",
+    "objective": "以捕食融合怪兽推进场面；初始手中仅蜂兰蝎与另一怪兽，通常召唤并送墓该怪兽后叫出眼镜蛇、检索超融合，手牌只剩超融合。场上两体齐全，额外奇美拉大花草可用，希望立即用超融合把两体融合。",
+    "objective_tags": [
+      "fusion"
+    ],
+    "objective_tag_evidence": "以捕食融合怪兽推进场面"
+  },
+  {
+    "case_id": "duster_cartoon_backrow_clear",
+    "objective": "以卡通怪兽和后续连接进攻获胜；对方有多张可破坏魔法陷阱，羽毛扫在手可正常发动，希望先清除这些卡，再攻击和展开。",
+    "objective_tags": [
+      "link",
+      "attack"
+    ],
+    "objective_tag_evidence": "以卡通怪兽和后续连接进攻获胜"
+  },
+  {
+    "case_id": "duster_no_backrow_now",
+    "objective": "以烙印融合和墓地资源取得长期优势；对方当前只有怪兽，没有魔法陷阱，也没有会在此时留下魔陷的已知连锁，手中羽毛扫，希望评估当前回合的实际清场贡献。",
+    "objective_tags": [
+      "fusion",
+      "grave"
+    ],
+    "objective_tag_evidence": "以烙印融合和墓地资源取得长期优势"
+  },
+  {
+    "case_id": "v5_nibiru_single_live",
+    "objective": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。 当前己方空场，对方本回合已召唤或特召至少5只怪兽，仍有可解放的表侧怪兽；尼比鲁在手，拟在主要阶段用它解放场面并特殊召唤自身，之后继续既定融合循环。",
+    "objective_tags": [
+      "fusion",
+      "negate",
+      "recover",
+      "attack"
+    ],
+    "objective_primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。",
+    "objective_tag_evidence": {
+      "fusion": [
+        {
+          "card_id": 74063034,
+          "basis": "召唤魔术融合召唤召唤兽。",
+          "source_ref": "card_texts.json#74063034",
+          "primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。"
+        }
+      ],
+      "negate": [
+        {
+          "card_id": 75286621,
+          "basis": "同种类手牌送墓，无效发动并除外。",
+          "source_ref": "card_texts.json#75286621",
+          "primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。"
+        }
+      ],
+      "recover": [
+        {
+          "card_id": 74063034,
+          "basis": "自身回卡组并回收除外阿莱斯特。",
+          "source_ref": "card_texts.json#74063034",
+          "primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。"
+        }
+      ],
+      "attack": [
+        {
+          "card_id": 75286621,
+          "basis": "梅尔卡巴攻击力2500，声明以融合怪兽攻击取胜。",
+          "source_ref": "card_texts.json#75286621",
+          "primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。"
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "v5_nibiru_below_threshold",
+    "objective": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。 当前己方空场，对方本回合仅召唤或特召合计4只怪兽且现在要结束主要阶段，尼比鲁在手，希望在这个时点清理其表侧怪兽并留下本体。",
+    "objective_tags": [
+      "fusion",
+      "negate",
+      "recover",
+      "attack"
+    ],
+    "objective_primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。",
+    "objective_tag_evidence": {
+      "fusion": [
+        {
+          "card_id": 74063034,
+          "basis": "召唤魔术融合召唤召唤兽。",
+          "source_ref": "card_texts.json#74063034",
+          "primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。"
+        }
+      ],
+      "negate": [
+        {
+          "card_id": 75286621,
+          "basis": "同种类手牌送墓，无效发动并除外。",
+          "source_ref": "card_texts.json#75286621",
+          "primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。"
+        }
+      ],
+      "recover": [
+        {
+          "card_id": 74063034,
+          "basis": "自身回卡组并回收除外阿莱斯特。",
+          "source_ref": "card_texts.json#74063034",
+          "primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。"
+        }
+      ],
+      "attack": [
+        {
+          "card_id": 75286621,
+          "basis": "梅尔卡巴攻击力2500，声明以融合怪兽攻击取胜。",
+          "source_ref": "card_texts.json#75286621",
+          "primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。"
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "v5_etele_ogre_from_deck",
+    "objective": "以同调召唤建立鲜花女男爵等怪兽的无效场面，再以这些怪兽攻击获胜。 当前已有后续同调所需的其它素材，手中紧急瞬间移动、卡组幽鬼兔可用；先取得这只3星调整，随后在结束阶段前用作同调素材，不发动幽鬼兔的破坏效果。",
+    "objective_tags": [
+      "synchro",
+      "negate",
+      "attack"
+    ],
+    "objective_primary_quote": "以同调召唤建立鲜花女男爵等怪兽的无效场面，再以这些怪兽攻击获胜。",
+    "objective_tag_evidence": {
+      "synchro": [
+        {
+          "card_id": 84815190,
+          "basis": "鲜花女男爵为同调怪兽，素材为调整＋非调整。",
+          "source_ref": "card_texts.json#84815190",
+          "primary_quote": "以同调召唤建立鲜花女男爵等怪兽的无效场面，再以这些怪兽攻击获胜。"
+        }
+      ],
+      "negate": [
+        {
+          "card_id": 84815190,
+          "basis": "表侧存在时可无效魔陷怪发动并破坏一次。",
+          "source_ref": "card_texts.json#84815190",
+          "primary_quote": "以同调召唤建立鲜花女男爵等怪兽的无效场面，再以这些怪兽攻击获胜。"
+        }
+      ],
+      "attack": [
+        {
+          "card_id": 84815190,
+          "basis": "声明以同调怪兽攻击取胜，女男爵攻击3000。",
+          "source_ref": "card_texts.json#84815190",
+          "primary_quote": "以同调召唤建立鲜花女男爵等怪兽的无效场面，再以这些怪兽攻击获胜。"
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "v5_etele_ogre_from_hand",
+    "objective": "以同调召唤建立鲜花女男爵等怪兽的无效场面，再以这些怪兽攻击获胜。 当前已有后续同调所需的其它素材，紧急瞬间移动与唯一可用幽鬼兔都在手；拟把幽鬼兔从手中特召，结束阶段前作为调整素材使用，不发动它的破坏效果。",
+    "objective_tags": [
+      "synchro",
+      "negate",
+      "attack"
+    ],
+    "objective_primary_quote": "以同调召唤建立鲜花女男爵等怪兽的无效场面，再以这些怪兽攻击获胜。",
+    "objective_tag_evidence": {
+      "synchro": [
+        {
+          "card_id": 84815190,
+          "basis": "鲜花女男爵为同调怪兽，素材为调整＋非调整。",
+          "source_ref": "card_texts.json#84815190",
+          "primary_quote": "以同调召唤建立鲜花女男爵等怪兽的无效场面，再以这些怪兽攻击获胜。"
+        }
+      ],
+      "negate": [
+        {
+          "card_id": 84815190,
+          "basis": "表侧存在时可无效魔陷怪发动并破坏一次。",
+          "source_ref": "card_texts.json#84815190",
+          "primary_quote": "以同调召唤建立鲜花女男爵等怪兽的无效场面，再以这些怪兽攻击获胜。"
+        }
+      ],
+      "attack": [
+        {
+          "card_id": 84815190,
+          "basis": "声明以同调怪兽攻击取胜，女男爵攻击3000。",
+          "source_ref": "card_texts.json#84815190",
+          "primary_quote": "以同调召唤建立鲜花女男爵等怪兽的无效场面，再以这些怪兽攻击获胜。"
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "v5_quick_launch_tracer_deck",
+    "objective": "通过龙族连接怪兽衔接资源，以装弹枪管狞猛龙等同调怪兽建立无效场面取得胜利。 已有后续连接或同调需要的其它素材；速攻旋转在手，曳光龙在卡组，拟先叫出这只4星调整并在结束阶段前作为素材，不发动曳光龙效果。",
+    "objective_tags": [
+      "link",
+      "synchro",
+      "negate"
+    ],
+    "objective_primary_quote": "通过龙族连接怪兽衔接资源，以装弹枪管狞猛龙等同调怪兽建立无效场面取得胜利。",
+    "objective_tag_evidence": {
+      "link": [
+        {
+          "card_id": 73539069,
+          "basis": "主动撞针龙以4星以下龙族1只为连接素材。",
+          "source_ref": "card_texts.json#73539069",
+          "primary_quote": "通过龙族连接怪兽衔接资源，以装弹枪管狞猛龙等同调怪兽建立无效场面取得胜利。"
+        }
+      ],
+      "synchro": [
+        {
+          "card_id": 27548199,
+          "basis": "装弹枪管狞猛龙为同调怪兽。",
+          "source_ref": "card_texts.json#27548199",
+          "primary_quote": "通过龙族连接怪兽衔接资源，以装弹枪管狞猛龙等同调怪兽建立无效场面取得胜利。"
+        }
+      ],
+      "negate": [
+        {
+          "card_id": 27548199,
+          "basis": "通过装备墓地连接怪兽取得指示物，支付指示物无效发动。",
+          "source_ref": "card_texts.json#27548199",
+          "primary_quote": "通过龙族连接怪兽衔接资源，以装弹枪管狞猛龙等同调怪兽建立无效场面取得胜利。"
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "v5_quick_launch_target_only_in_hand",
+    "objective": "通过龙族连接怪兽衔接资源，以装弹枪管狞猛龙等同调怪兽建立无效场面取得胜利。 速攻旋转在手，但本查询唯一指定目标曳光龙已在手卡，无法先回卡组；希望立刻取得这只4星调整，不借用完整牌表中其它未选中弹丸代替。",
+    "objective_tags": [
+      "link",
+      "synchro",
+      "negate"
+    ],
+    "objective_primary_quote": "通过龙族连接怪兽衔接资源，以装弹枪管狞猛龙等同调怪兽建立无效场面取得胜利。",
+    "objective_tag_evidence": {
+      "link": [
+        {
+          "card_id": 73539069,
+          "basis": "主动撞针龙以4星以下龙族1只为连接素材。",
+          "source_ref": "card_texts.json#73539069",
+          "primary_quote": "通过龙族连接怪兽衔接资源，以装弹枪管狞猛龙等同调怪兽建立无效场面取得胜利。"
+        }
+      ],
+      "synchro": [
+        {
+          "card_id": 27548199,
+          "basis": "装弹枪管狞猛龙为同调怪兽。",
+          "source_ref": "card_texts.json#27548199",
+          "primary_quote": "通过龙族连接怪兽衔接资源，以装弹枪管狞猛龙等同调怪兽建立无效场面取得胜利。"
+        }
+      ],
+      "negate": [
+        {
+          "card_id": 27548199,
+          "basis": "通过装备墓地连接怪兽取得指示物，支付指示物无效发动。",
+          "source_ref": "card_texts.json#27548199",
+          "primary_quote": "通过龙族连接怪兽衔接资源，以装弹枪管狞猛龙等同调怪兽建立无效场面取得胜利。"
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "v5_unexpected_dai_seed",
+    "objective": "通过植物族的连接召唤衔接圣天树、圣蔓与其它植物资源，最终以植物怪兽攻击获胜。 开局己方无怪兽，粗人预料在手，圣种之地灵在卡组；先从卡组取得地灵，作为后续植物连接召唤素材，本查询不把额外连接怪兽算入该最低素材单元。",
+    "objective_tags": [
+      "link",
+      "attack"
+    ],
+    "objective_primary_quote": "通过植物族的连接召唤衔接圣天树、圣蔓与其它植物资源，最终以植物怪兽攻击获胜。",
+    "objective_tag_evidence": {
+      "link": [
+        {
+          "card_id": 93896655,
+          "basis": "圣天树之幼精为连接怪兽，可由圣种地灵展开圣蔓魔法检索。",
+          "source_ref": "card_texts.json#93896655",
+          "primary_quote": "通过植物族的连接召唤衔接圣天树、圣蔓与其它植物资源，最终以植物怪兽攻击获胜。"
+        }
+      ],
+      "attack": [
+        {
+          "card_id": 91557476,
+          "basis": "圣蔓之剑士可按连接端圣天树的连接值提高攻击力。",
+          "source_ref": "card_texts.json#91557476",
+          "primary_quote": "通过植物族的连接召唤衔接圣天树、圣蔓与其它植物资源，最终以植物怪兽攻击获胜。"
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "v5_gamma_query_missing_driver",
+    "objective": "以杀手级调整曲等同调怪兽持续组织场面，并以同调怪兽攻击取得胜利。 本查询只选γ，不纳入驱动者；γ在手、己方空场，对方发动怪兽效果。评阅此精确查询单元能否取得原本的双体及响应，不借缓存完整牌表内未选中的驱动者补齐。",
+    "objective_tags": [
+      "synchro",
+      "attack"
+    ],
+    "objective_primary_quote": "以杀手级调整曲等同调怪兽持续组织场面，并以同调怪兽攻击取得胜利。",
+    "objective_tag_evidence": {
+      "synchro": [
+        {
+          "card_id": 15665977,
+          "basis": "本背景含杀手级调整曲·红印鉴唱片师等同调怪兽。",
+          "source_ref": "card_texts.json#15665977",
+          "primary_quote": "以杀手级调整曲等同调怪兽持续组织场面，并以同调怪兽攻击取得胜利。"
+        }
+      ],
+      "attack": [
+        {
+          "card_id": 15665977,
+          "basis": "声明通过同调怪兽攻击取胜；卡片存在攻击力。",
+          "source_ref": "card_texts.json#15665977",
+          "primary_quote": "以杀手级调整曲等同调怪兽持续组织场面，并以同调怪兽攻击取得胜利。"
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "v5_driver_query_missing_gamma",
+    "objective": "以杀手级调整曲等同调怪兽持续组织场面，并以同调怪兽攻击取得胜利。 本查询只选驱动者，不纳入γ；当前己方无怪兽可作上级召唤解放，也没有本单元外的特召办法，希望在当前回合为后续同调取得驱动者。",
+    "objective_tags": [
+      "synchro",
+      "attack"
+    ],
+    "objective_primary_quote": "以杀手级调整曲等同调怪兽持续组织场面，并以同调怪兽攻击取得胜利。",
+    "objective_tag_evidence": {
+      "synchro": [
+        {
+          "card_id": 15665977,
+          "basis": "本背景含杀手级调整曲·红印鉴唱片师等同调怪兽。",
+          "source_ref": "card_texts.json#15665977",
+          "primary_quote": "以杀手级调整曲等同调怪兽持续组织场面，并以同调怪兽攻击取得胜利。"
+        }
+      ],
+      "attack": [
+        {
+          "card_id": 15665977,
+          "basis": "声明通过同调怪兽攻击取胜；卡片存在攻击力。",
+          "source_ref": "card_texts.json#15665977",
+          "primary_quote": "以杀手级调整曲等同调怪兽持续组织场面，并以同调怪兽攻击取得胜利。"
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "v5_invoked_query_missing_artemis",
+    "objective": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。 本查询选阿莱斯特、召唤魔术、梅尔卡巴，未纳入阿耳特弥斯或其它光素材；阿莱斯特在手、通常召唤未用，召唤魔术在卡组。当前仍可先取得融合魔法，但原定光素材转换不从完整牌表其它卡补齐。",
+    "objective_tags": [
+      "fusion",
+      "negate",
+      "recover",
+      "attack"
+    ],
+    "objective_primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。",
+    "objective_tag_evidence": {
+      "fusion": [
+        {
+          "card_id": 74063034,
+          "basis": "召唤魔术融合召唤召唤兽。",
+          "source_ref": "card_texts.json#74063034",
+          "primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。"
+        }
+      ],
+      "negate": [
+        {
+          "card_id": 75286621,
+          "basis": "同种类手牌送墓，无效发动并除外。",
+          "source_ref": "card_texts.json#75286621",
+          "primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。"
+        }
+      ],
+      "recover": [
+        {
+          "card_id": 74063034,
+          "basis": "自身回卡组并回收除外阿莱斯特。",
+          "source_ref": "card_texts.json#74063034",
+          "primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。"
+        }
+      ],
+      "attack": [
+        {
+          "card_id": 75286621,
+          "basis": "梅尔卡巴攻击力2500，声明以融合怪兽攻击取胜。",
+          "source_ref": "card_texts.json#75286621",
+          "primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。"
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "v5_invoked_query_missing_invocation",
+    "objective": "以S：P小夜骑士等连接怪兽反复除外对方资源，在后续回合以怪兽攻击获胜。 本查询选阿莱斯特、阿耳特弥斯、梅尔卡巴，不纳入召唤魔术；阿莱斯特在手、通常召唤未用，可正常变为阿耳特弥斯。主计划另已准备一只效果怪兽供S：P连接，其余素材不补进本查询的召唤兽融合路线。",
+    "objective_tags": [
+      "link",
+      "banish",
+      "attack"
+    ],
+    "objective_primary_quote": "以S：P小夜骑士等连接怪兽反复除外对方资源，在后续回合以怪兽攻击获胜。",
+    "objective_tag_evidence": {
+      "link": [
+        {
+          "card_id": 29301450,
+          "basis": "S：P以效果怪兽2只为连接素材。",
+          "source_ref": "card_texts.json#29301450",
+          "primary_quote": "以S：P小夜骑士等连接怪兽反复除外对方资源，在后续回合以怪兽攻击获胜。"
+        }
+      ],
+      "banish": [
+        {
+          "card_id": 29301450,
+          "basis": "使用额外出身素材连接召唤时可除外场上或墓地1卡，另有暂时除外效果。",
+          "source_ref": "card_texts.json#29301450",
+          "primary_quote": "以S：P小夜骑士等连接怪兽反复除外对方资源，在后续回合以怪兽攻击获胜。"
+        }
+      ],
+      "attack": [
+        {
+          "card_id": 29301450,
+          "basis": "声明后续回合进攻，S：P攻击1600；其①当回合不能直接攻击。",
+          "source_ref": "card_texts.json#29301450",
+          "primary_quote": "以S：P小夜骑士等连接怪兽反复除外对方资源，在后续回合以怪兽攻击获胜。"
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "v5_invoked_query_missing_mechaba",
+    "objective": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。 本查询选阿莱斯特、召唤魔术、阿耳特弥斯，不纳入梅尔卡巴或替代融合终端；根在手、通常召唤和额外区域可用，先取得召唤魔术并连接阿耳特弥斯，当前不借其它额外终端补齐。",
+    "objective_tags": [
+      "fusion",
+      "negate",
+      "recover",
+      "attack"
+    ],
+    "objective_primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。",
+    "objective_tag_evidence": {
+      "fusion": [
+        {
+          "card_id": 74063034,
+          "basis": "召唤魔术融合召唤召唤兽。",
+          "source_ref": "card_texts.json#74063034",
+          "primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。"
+        }
+      ],
+      "negate": [
+        {
+          "card_id": 75286621,
+          "basis": "同种类手牌送墓，无效发动并除外。",
+          "source_ref": "card_texts.json#75286621",
+          "primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。"
+        }
+      ],
+      "recover": [
+        {
+          "card_id": 74063034,
+          "basis": "自身回卡组并回收除外阿莱斯特。",
+          "source_ref": "card_texts.json#74063034",
+          "primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。"
+        }
+      ],
+      "attack": [
+        {
+          "card_id": 75286621,
+          "basis": "梅尔卡巴攻击力2500，声明以融合怪兽攻击取胜。",
+          "source_ref": "card_texts.json#75286621",
+          "primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。"
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "v5_invoked_query_missing_aleister",
+    "objective": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。 本查询只选召唤魔术、阿耳特弥斯、梅尔卡巴，不纳入阿莱斯特；召唤魔术在手、其它两只在额外，当前没有本查询外的场上或手卡素材，也不借背景中的阿莱斯特补齐。",
+    "objective_tags": [
+      "fusion",
+      "negate",
+      "recover",
+      "attack"
+    ],
+    "objective_primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。",
+    "objective_tag_evidence": {
+      "fusion": [
+        {
+          "card_id": 74063034,
+          "basis": "召唤魔术融合召唤召唤兽。",
+          "source_ref": "card_texts.json#74063034",
+          "primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。"
+        }
+      ],
+      "negate": [
+        {
+          "card_id": 75286621,
+          "basis": "同种类手牌送墓，无效发动并除外。",
+          "source_ref": "card_texts.json#75286621",
+          "primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。"
+        }
+      ],
+      "recover": [
+        {
+          "card_id": 74063034,
+          "basis": "自身回卡组并回收除外阿莱斯特。",
+          "source_ref": "card_texts.json#74063034",
+          "primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。"
+        }
+      ],
+      "attack": [
+        {
+          "card_id": 75286621,
+          "basis": "梅尔卡巴攻击力2500，声明以融合怪兽攻击取胜。",
+          "source_ref": "card_texts.json#75286621",
+          "primary_quote": "以融合召唤反复建立梅尔卡巴的无效场面，并回收阿莱斯特延续后续回合，最终通过融合怪兽攻击获胜。"
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "v5_tourguide_query_missing_sangan",
+    "objective": "以破械连接怪兽将对方怪兽转成连接素材，回收恶魔族资源，反复交换场面取得胜利。 本查询选导游与基路伯，不纳入三眼怪或其它可由导游叫出的主卡目标；导游在手且通常召唤未用。主计划已另行准备一只非3星恶魔效果怪兽，正常召唤的导游可与之作破械连接素材，但不借它补齐原3星路线。",
+    "objective_tags": [
+      "link",
+      "recover"
+    ],
+    "objective_primary_quote": "以破械连接怪兽将对方怪兽转成连接素材，回收恶魔族资源，反复交换场面取得胜利。",
+    "objective_tag_evidence": {
+      "link": [
+        {
+          "card_id": 93084621,
+          "basis": "破械神阿罗魃可与对方怪兽进行连接召唤。",
+          "source_ref": "card_texts.json#93084621",
+          "primary_quote": "以破械连接怪兽将对方怪兽转成连接素材，回收恶魔族资源，反复交换场面取得胜利。"
+        }
+      ],
+      "recover": [
+        {
+          "card_id": 93084621,
+          "basis": "被破坏时可回收墓地其它恶魔族怪兽。",
+          "source_ref": "card_texts.json#93084621",
+          "primary_quote": "以破械连接怪兽将对方怪兽转成连接素材，回收恶魔族资源，反复交换场面取得胜利。"
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "v5_tourguide_without_cherubini_material_contract",
+    "objective": "以破械连接怪兽将对方怪兽转成连接素材，回收恶魔族资源，反复交换场面取得胜利。 本查询不纳入基路伯，只取导游、三眼怪；通常召唤未用、导游在手、三眼在卡组。当前目的为取得两只3星恶魔作为后续破械连接素材，不要求在这个最低单元内完成基路伯或送墓检索。",
+    "objective_tags": [
+      "link",
+      "recover"
+    ],
+    "objective_primary_quote": "以破械连接怪兽将对方怪兽转成连接素材，回收恶魔族资源，反复交换场面取得胜利。",
+    "objective_tag_evidence": {
+      "link": [
+        {
+          "card_id": 93084621,
+          "basis": "破械神阿罗魃可与对方怪兽进行连接召唤。",
+          "source_ref": "card_texts.json#93084621",
+          "primary_quote": "以破械连接怪兽将对方怪兽转成连接素材，回收恶魔族资源，反复交换场面取得胜利。"
+        }
+      ],
+      "recover": [
+        {
+          "card_id": 93084621,
+          "basis": "被破坏时可回收墓地其它恶魔族怪兽。",
+          "source_ref": "card_texts.json#93084621",
+          "primary_quote": "以破械连接怪兽将对方怪兽转成连接素材，回收恶魔族资源，反复交换场面取得胜利。"
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "v5_branded_full_with_minimum_fusion_contract",
+    "objective": "以阿不思相关连续融合、墓地回收与冰剑龙的除外换取长期场面优势并获胜。 评阅实际完整阿不思相关选组。另附一个仅描述首段融合烙印龙的合同：烙印融合在手，阿不思和光属性白之圣女在卡组，烙印龙在额外；本回合额外只融合、区域可用。该合同不声称覆盖后续全部分支。",
+    "objective_tags": [
+      "fusion",
+      "grave",
+      "recover",
+      "banish"
+    ],
+    "objective_primary_quote": "以阿不思相关连续融合、墓地回收与冰剑龙的除外换取长期场面优势并获胜。",
+    "objective_tag_evidence": {
+      "fusion": [
+        {
+          "card_id": 44362883,
+          "basis": "以手、卡组、场上素材融合。",
+          "source_ref": "card_texts.json#44362883",
+          "primary_quote": "以阿不思相关连续融合、墓地回收与冰剑龙的除外换取长期场面优势并获胜。"
+        }
+      ],
+      "grave": [
+        {
+          "card_id": 45883110,
+          "basis": "登场送墓阿不思相关卡。",
+          "source_ref": "card_texts.json#45883110",
+          "primary_quote": "以阿不思相关连续融合、墓地回收与冰剑龙的除外换取长期场面优势并获胜。"
+        }
+      ],
+      "recover": [
+        {
+          "card_id": 82738008,
+          "basis": "回收墓地阿不思或死狱乡后可融合。",
+          "source_ref": "card_texts.json#82738008",
+          "primary_quote": "以阿不思相关连续融合、墓地回收与冰剑龙的除外换取长期场面优势并获胜。"
+        }
+      ],
+      "banish": [
+        {
+          "card_id": 44146295,
+          "basis": "从额外送墓相关融合后除外怪兽。",
+          "source_ref": "card_texts.json#44146295",
+          "primary_quote": "以阿不思相关连续融合、墓地回收与冰剑龙的除外换取长期场面优势并获胜。"
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "v5_hero_full_with_minimum_mask_contract",
+    "objective": "以命运英雄场地破坏、复活和融合循环组织场面，通过凤凰人的破坏交换与英雄攻击获胜。 评阅实际完整英雄选组。另附以暮鸦为根取得暗爪的最低子合同：通常召唤暮鸦取得炉火，展示炉火检索假面变化并丢弃炉火，再把暮鸦变化成暗爪；本回合额外只召唤英雄，相关卡均可取用。",
+    "objective_tags": [
+      "fusion",
+      "special_summon",
+      "destroy",
+      "attack"
+    ],
+    "objective_primary_quote": "以命运英雄场地破坏、复活和融合循环组织场面，通过凤凰人的破坏交换与英雄攻击获胜。",
+    "objective_tag_evidence": {
+      "fusion": [
+        {
+          "card_id": 52947044,
+          "basis": "用手、卡组素材融合命运英雄。",
+          "source_ref": "card_texts.json#52947044",
+          "primary_quote": "以命运英雄场地破坏、复活和融合循环组织场面，通过凤凰人的破坏交换与英雄攻击获胜。"
+        }
+      ],
+      "special_summon": [
+        {
+          "card_id": 4663194,
+          "basis": "被破坏可按时计塔效果特召恐惧人。",
+          "source_ref": "card_texts.json#4663194",
+          "primary_quote": "以命运英雄场地破坏、复活和融合循环组织场面，通过凤凰人的破坏交换与英雄攻击获胜。"
+        }
+      ],
+      "destroy": [
+        {
+          "card_id": 60461804,
+          "basis": "双方回合破坏己方1卡和场上1卡。",
+          "source_ref": "card_texts.json#60461804",
+          "primary_quote": "以命运英雄场地破坏、复活和融合循环组织场面，通过凤凰人的破坏交换与英雄攻击获胜。"
+        }
+      ],
+      "attack": [
+        {
+          "card_id": 54641720,
+          "basis": "无惧人攻击力取其它命运英雄原攻击力合计。",
+          "source_ref": "card_texts.json#54641720",
+          "primary_quote": "以命运英雄场地破坏、复活和融合循环组织场面，通过凤凰人的破坏交换与英雄攻击获胜。"
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "blind-v5-fs-01",
+    "objective": "反事实主计划：以刻魔融合怪兽的持续干扰和战斗结束对局，破械怪兽负责提供额外身体与后续交换。查询从手中的锻冶师经过咏圣、路里、镇魂棺、大圣棺进入震怒之日，并用连接装备形成无效能力的整条路线。假定自己的主要阶段、无特殊召唤限制、所需卡仍在相应卡组且效果均未使用；这不是回放现场。",
+    "objective_tags": [
+      "fusion",
+      "negate",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v5-fs-02",
+    "objective": "反事实主计划：用破械连接怪兽处理对方怪兽并靠破坏后的续接维持场面。查询锻冶师经咏圣、路里和镇魂棺进入大圣棺，再融合落泪之日、复活墓地锻冶师，留下两只6星怪兽供后续额外召唤使用的路线。假定入口在手、各指定卡仍在卡组或额外卡组、无特殊召唤限制且本回合相关效果未使用。",
+    "objective_tags": [
+      "link",
+      "destroy"
+    ]
+  },
+  {
+    "case_id": "blind-v5-fs-03",
+    "objective": "反事实主计划：通过无垢大艺术与狱神使的形态转换和额外怪兽持续推进。查询在已经控制一只可作素材的光属性恶魔族怪兽时，连接镇魂棺、解放它并从卡组叫出锻冶师，得到可交给后续路线的一只怪兽。设定那只素材已经存在、锻冶师仍在卡组，当前主要阶段可合法特殊召唤。",
+    "objective_tags": [
+      "transformation",
+      "special_summon"
+    ]
+  },
+  {
+    "case_id": "blind-v5-fs-04",
+    "objective": "反事实主计划：以破械连接怪兽和破坏触发续接构建场面，再由恶魔族怪兽攻击取胜。查询在己方表侧怪兽为空的主要阶段，赞圣能否单独生成一只光属性恶魔族衍生物，供后续处理。设定可特殊召唤且接受本回合只能用恶魔族怪兽宣言攻击。",
+    "objective_tags": [
+      "link",
+      "destroy",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v5-fs-05",
+    "objective": "反事实主计划：以无垢大艺术的形态转换与额外怪兽交换取胜。查询一只已可连接召唤的镇魂棺能否解放自身，从自己的卡组叫出刻印群魔的刻魔锻冶师。缓存牌表没有锻冶师；只假定当前已有合法光属性恶魔族素材、区域与召唤次数可用，不额外补入卡。",
+    "objective_tags": [
+      "transformation",
+      "special_summon"
+    ]
+  },
+  {
+    "case_id": "blind-v5-fs-06",
+    "objective": "反事实主计划：以三幻魔大型怪兽压场并通过战斗结束对局。查询大圣棺能否把墓地锻冶师和另外两只光属性恶魔族怪兽回卡组，融合震怒之日并为其装备连接怪兽形成无效能力。缓存牌表没有震怒之日，保留实际存在的镇魂棺、锻冶师和大圣棺；假定另有一只可用光恶魔作为镇魂棺素材，但不声明墓地融合素材已经齐备。",
+    "objective_tags": [
+      "special_summon",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v5-fk-01",
+    "objective": "反事实主计划：通过炎王怪兽反复破坏、复活与检索建立资源优势，再以炎属性额外怪兽和大鹏不死鸟的清场攻击取胜。查询从凤凰不死鸟或炎王妃接入圣域、孤岛、圣炎王及麒麟，并把破坏变成新的召唤与续航的整体机制。未声明真实起手或回放场面；各路线按卡文分别要求手卡、墓地和时点，不声称所有效果同一回合同时完成。",
+    "objective_tags": [
+      "destroy",
+      "recover",
+      "special_summon"
+    ]
+  },
+  {
+    "case_id": "blind-v5-fk-02",
+    "objective": "反事实主计划：用朱罗纪与其它恐龙怪兽的展开进入炎属性额外怪兽，并以战斗结束对局。查询手中麒麟破坏另一张手中的凤凰不死鸟后自跳，并在下一次准备阶段取回凤凰不死鸟的两步功能。设定两张均在手、当前主要阶段可特殊召唤、凤凰会留在墓地直到下次准备阶段。",
+    "objective_tags": [
+      "special_summon",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v5-fk-03",
+    "objective": "反事实主计划：以朱罗纪与恐龙展开进入炎属性额外怪兽，再通过战斗取胜。查询此刻手中的麒麟能否破坏凤凰不死鸟后自跳并形成下次准备阶段回收。设定凤凰此刻仍在卡组，自己手卡与表侧场上没有麒麟以外的炎属性怪兽；不把卡组中的成员当成手卡素材。",
+    "objective_tags": [
+      "special_summon",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v5-fk-04",
+    "objective": "反事实主计划：利用朱罗纪怪兽被破坏后的送墓与后续召唤，进入炎属性额外怪兽。查询已在场的孤岛破坏手中的朱罗纪斑龙并从卡组检索麒麟这一具体调度功能。设定斑龙在手、麒麟在卡组、孤岛在场且其本回合两个择一效果均未使用。",
+    "objective_tags": [
+      "destroy",
+      "special_summon"
+    ]
+  },
+  {
+    "case_id": "blind-v5-fk-05",
+    "objective": "反事实主计划：以圣炎王、凤凰不死鸟和麒麟的破坏循环配合朱罗纪怪兽触发，持续补充身体并攻击取胜。额外查询是否能由圣炎王从卡组破坏炎王妃，再由炎王妃叫出传统的炎王神兽 大鹏不死鸟，安排其下次准备阶段复活清场。缓存中恰缺炎王妃与传统大鹏，不补牌；剩余炎王循环照实际牌表评阅。",
+    "objective_tags": [
+      "destroy",
+      "recover",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v5-fk-06",
+    "objective": "反事实主计划：用青眼与原石的8星怪兽展开，保留进攻身体并通过战斗取胜。查询将已经控制的两只8星怪兽叠放为永炎，在其超量召唤时破坏场上其它怪兽的功能。设定两只8星均可作素材、没有属性或种族的特殊召唤限制，场上另有可以被破坏的对方怪兽。",
+    "objective_tags": [
+      "special_summon",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v5-rn-01",
+    "objective": "反事实主计划：通过神碑速攻魔法反复除外对方卡组、阻止对方推进，并以神碑之泉回收补充手牌，最终使对方无法抽卡。查询锋芒、胡基找泉、速攻魔法处理与泉的循环以及保护泉的整体机制。未给出真实起手；每个反应效果仍分别要求其卡文目标，主计划接受跳过自己的战斗阶段。",
+    "objective_tags": [
+      "banish",
+      "draw"
+    ]
+  },
+  {
+    "case_id": "blind-v5-rn-02",
+    "objective": "反事实主计划：用光与暗的仪式召唤混沌战士或黑混沌，积累场面后以战斗取胜。查询神碑速攻经胡基接入神碑之泉、循环使用后回收抽卡，为仪式消耗补充手牌的整体路线。设定愿意把攻击延后到不受神碑跳过战斗阶段影响的回合；起手和即时墓地内容未知。",
+    "objective_tags": [
+      "ritual",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v5-rn-03",
+    "objective": "反事实主计划：先积累仪式召唤所需的手牌与场面，之后以光与暗仪式怪兽攻击取胜。查询在泉已在场时，用手中破坏的神碑破坏对方魔法陷阱，待该连锁处理后把刚用的这张速攻回到卡组下面并抽1张的具体功能。设定对方有可取对象且可被破坏的魔法陷阱、对方卡组至少4张，己方接受跳过下次战斗阶段。",
+    "objective_tags": [
+      "ritual",
+      "special_summon"
+    ]
+  },
+  {
+    "case_id": "blind-v5-rn-04",
+    "objective": "反事实主计划：用光与暗的仪式及混沌怪兽建立场面，再通过战斗结束对局。查询选中的神碑速攻和胡基能否形成把速攻回卡组并抽卡的泉循环。真实缓存没有神碑之泉；假定当前可以用速攻的额外召唤分支叫出胡基，保留其身体与保护效果，不补入缺失的场地。",
+    "objective_tags": [
+      "ritual",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v5-rn-05",
+    "objective": "反事实主计划：在准备回合完成光与暗仪式怪兽的场面，之后再通过战斗取胜。查询手中的辉耀之炎的神碑单独破坏一只对方特殊召唤的怪兽并除外其卡组上方2张的功能。设定该怪兽可被取对象与破坏、对方卡组至少2张，当前不要求发动后马上进入自己的战斗阶段。",
+    "objective_tags": [
+      "ritual",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v5-rn-06",
+    "objective": "反事实主计划：用光与暗的仪式建立混沌怪兽场面，之后依靠战斗取胜。查询此刻辉耀之炎的神碑能否破坏一只对方怪兽并除外其卡组上方2张。只声明己方主要阶段、速攻在手且愿意跳过下次战斗阶段；没有提供对方怪兽是否特殊召唤、能否被取对象与破坏，以及对方卡组剩余数。",
+    "objective_tags": [
+      "ritual",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v5-kj-01",
+    "objective": "反事实主计划：用星辰与融合怪兽建立场面，并在之后通过战斗取胜。查询手中的海龟坏兽能否解放对方一只难处理怪兽并往对方场上特殊召唤，从而为主计划清掉该怪兽。设定该怪兽可被解放、对方没有表侧坏兽、对方区域可放置且没有相关特殊召唤限制。",
+    "objective_tags": [
+      "fusion",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v5-kj-02",
+    "objective": "反事实主计划：保留己方的星辰融合场面并依靠后续战斗取胜。查询已经在自己怪兽区域的海龟坏兽能否发动④，无效对方一次效果发动并除外。设定双方场上坏兽指示物总数为0，没有即时获得指示物的效果；不把其解放对方怪兽的出场手续当作无效效果。",
+    "objective_tags": [
+      "fusion",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v5-kj-03",
+    "objective": "反事实主计划：用僵尸牧人围绕原本持有者为自己的对方怪兽获得控制权，再用大怪进入8阶怪兽的进攻路线。查询手中坏兽安眠破坏场上怪兽，再从卡组把海龟与多哥兰分别放到双方场上的清场与配置功能。设定两种坏兽各至少1张仍在卡组、双方原本都无表侧坏兽、存在可被破坏的怪兽且召唤处理合法。",
+    "objective_tags": [
+      "special_summon",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v5-kj-04",
+    "objective": "反事实主计划：用僵尸牧人围绕自己原本持有而被放到对方场上的怪兽进行控制权操作，并由8阶进攻结束对局。查询从上个回合已经在墓地的坏兽安眠除外自身，检索仍在卡组的海龟坏兽这一后续功能。设定现在是自己的主要阶段、安眠不是本回合送墓且能被除外。",
+    "objective_tags": [
+      "special_summon",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v5-kj-05",
+    "objective": "反事实主计划：用僵尸牧人配合原本属于自己的对方怪兽进行控制权操作，并由8阶进攻取胜。查询能否在安眠刚于本回合送入墓地后，立刻除外它并检索卡组中的海龟坏兽。设定海龟仍在卡组且安眠可除外，只把送墓时点改为本回合，不改造真实牌表。",
+    "objective_tags": [
+      "special_summon",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v5-kj-06",
+    "objective": "反事实主计划：反复将坏兽配置到双方场上，以京塔和坏兽的出现记录积累指示物、检索与更换怪兽，再用己方坏兽的干扰和攻击取胜；荷鲁斯提供额外身体。查询安眠、解放出场、京塔送墓计数、出现记录替换及海龟消耗指示物的完整机制。起手与即时指示物数未知，不声称现在已经能发动所有消耗效果；双方坏兽都可能使用场上的指示物。",
+    "objective_tags": [
+      "negate",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v6-uc-01",
+    "objective": "反事实主计划：通过破坏自己的破械卡取得新身体，以阎摩调度、破械连接怪兽使用对方身体以及墓地/结束阶段恢复组织多回合资源交换，再以恶魔族连接怪兽的干扰、破坏与攻击终结。查询实际选组的搜索、盖卡被破坏后招募、破坏触发、连接转换和后续资源关系。未给出当前起手与场墓；各条路线分别满足其成本与时点，不声称全部效果同一回合同时完成。",
+    "objective_tags": [
+      "destroy",
+      "link",
+      "special_summon",
+      "recover",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v6-uc-02",
+    "objective": "反事实主计划：主要依赖萨巴拉破坏盖放唱导、唱导再招募阿罗汉取得双恶魔身体，以此反复接入破械连接和破坏交换，最后以破械怪兽攻击取胜。本次只查询一次明确的两体功能：对方主要阶段，手中萨巴拉破坏已盖放唱导并特召自身，唱导被破坏后从卡组特召阿罗汉；不把之后任意连接或下一回合重建算作本次已完成。",
+    "objective_tags": [
+      "special_summon",
+      "destroy",
+      "link",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v6-uc-03",
+    "objective": "反事实主计划：用邪恶双子姬丝基勒与璃拉的复活、抽牌和破坏维持主要场面，再以连接怪兽攻击取胜；直播双子的起始动作已经完成，当前只在额外阶段取得可用恶魔身体。本次查询与另一主计划例完全相同：对方主要阶段手中萨巴拉破坏已盖放唱导并自跳，唱导随后从卡组招募阿罗汉，止于两体。不会因为两体都是恶魔族便宣称它们自动满足含姬丝基勒或璃拉的连接素材条件。",
+    "objective_tags": [
+      "link",
+      "recover",
+      "draw",
+      "destroy",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v6-uc-04",
+    "objective": "反事实主计划仍为邪恶双子复活、抽牌与破坏后攻击。本次查询萨巴拉—唱导—阿罗汉两体路线现在能否开始。对方主要阶段，萨巴拉在手，唱导和阿罗汉在卡组；自己场上没有恶魔族怪兽或里侧表示卡，也没有能在本次动作前设置卡或制造合格目标的其它可用效果。只检验此刻的两体路线，不增添起手或其它启动步骤。",
+    "objective_tags": [
+      "link",
+      "draw",
+      "destroy",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v6-uc-05",
+    "objective": "反事实主计划：邪恶双子通过复活、抽牌和破坏组织主要场面并攻击取胜。本次专门查询萨巴拉破坏盖放唱导后、自身加卡组阿罗汉成为两体的同一命名路线。真实缓存未投入唱导，不补牌。当前萨巴拉在手，阿罗汉在卡组，场上唯一可供破坏的里侧资源是冥王结界波；允许萨巴拉破坏它取得自身这一体，却不把未投入的唱导触发或卡组中其它盖卡路线补进当前场面。",
+    "objective_tags": [
+      "link",
+      "draw",
+      "destroy",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v6-uc-06",
+    "objective": "反事实主计划：通过破械资源交换取得场面后，主要依靠来迎的多时点破坏与攻击完成终结。本次仅查询已经合法连接召唤并由自己控制的来迎，在当前结束阶段用③破坏一张对方卡。设定③本回合未用，该对方卡可被取对象并被效果破坏，效果可正常处理；本次不查询来迎的召唤路线，也不同时声称①②已经触发。",
+    "objective_tags": [
+      "destroy",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v6-rk-01",
+    "objective": "反事实主计划：以一瓣的调度及后续回场、来来的调度与解放替代、叶牡丹/绚烂搜索、白姬无效和六花超量终端组织主要资源交换，通过解放对方怪兽与植物族攻击取胜。查询实际选中六花卡的搜索、解放成本、等级调整、白姬无效、超量回收与后续招募关系；没有即时起手、场墓或效果使用状态，不声称所有分支当前同时成立。",
+    "objective_tags": [
+      "tribute",
+      "search",
+      "xyz",
+      "recover",
+      "negate_effect",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v6-rk-02",
+    "objective": "反事实主计划：以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结。查询与另例完全相同的六花选组如何补充解放处理、手牌、身体与超量终端。查询实际选中六花卡的搜索、解放成本、等级调整、白姬无效、超量回收与后续招募关系；没有即时起手、场墓或效果使用状态，不声称所有分支当前同时成立。",
+    "objective_tags": [
+      "link",
+      "special_summon",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v6-rk-03",
+    "objective": "反事实主计划：以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结。本次只查询已在场来来让手中叶牡丹①把一只对方表侧怪兽作为解放成本，叶牡丹自跳后②检索卡组绚烂的一次具体功能；设定己方没有可解放植物，对方目标可按来来处理解放，来来替代次数及叶牡丹两效果均可用。不把搜索到绚烂后又能做什么算作本次已完成。",
+    "objective_tags": [
+      "link",
+      "special_summon",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v6-rk-04",
+    "objective": "反事实主计划：以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结。本次仍查询来来—叶牡丹—绚烂的同一功能，但来来②本回合已经适用过1次，自己场上也没有可解放植物。叶牡丹在手、绚烂在卡组，对方虽有可解放表侧怪兽，也不能因此再次使用来来②。只检验这个成本与本次自跳检索，不添加其它召唤或调度步骤。",
+    "objective_tags": [
+      "link",
+      "special_summon",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v6-rk-05",
+    "objective": "反事实主计划：以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结。查询此刻能否由来来让叶牡丹解放对方怪兽后自跳并检索绚烂。来来在场且②未适用，叶牡丹在手、绚烂在卡组，自己没有可解放植物；只知道对方有怪兽，未给是否表侧及能否被来来的替代处理解放。其余区域、叶牡丹次数与特召许可已明确可用，不用未知目标资格补作成功或失败。",
+    "objective_tags": [
+      "link",
+      "special_summon",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "blind-v6-rk-06",
+    "objective": "反事实主计划：以圣种之地灵、圣蔓的播种与圣天树/芳香的植物连接路线构建主要场面，之后由植物连接怪兽的压制和攻击终结。本次仅查询已合法超量召唤、现在由自己控制的泪滴花束雪花莲，在对方主要阶段取除1个素材并把一只对方怪兽解放的功能。设定泪滴持有2个植物族素材，①本回合未用；目标可被取对象并被这个效果解放，效果可正常处理。此处不查询从手卡展开到8阶的步骤，也不把解放说成破坏。",
+    "objective_tags": [
+      "link",
+      "attack"
+    ]
+  },
+  {
+    "case_id": "BF-ORC-01",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本次取胜计划是靠自奏圣乐的墓地、除外区和连接怪兽反复交换资源，建立通天塔下的对手回合响应，用丁吉尔苏等处理对手场面，再以机械怪兽继续进攻。三幻魔留作后续变化。所查询的是吉尔苏、嬉游曲恶魔、梦幻崩影、谐谑曲骷髅、星杖、通天塔、之阶，以及伽拉忒亚、伽拉忒亚i、恩利尔吉尔苏和丁吉尔苏组成的循环机制。给定自己主要阶段、吉尔苏在手、可用通常召唤、另有一张可送墓手卡，其余主卡仍在卡组，额外卡可用、区域足够、相关效果均未用、墓地效果与除外均可执行且没有无效干扰。吉尔苏送墓嬉游曲恶魔；后者除外并从卡组叫出另一自奏怪兽；伽拉忒亚回收除外机械并盖放之阶，伽拉忒亚i可送手卡取得通天塔；梦幻崩影送墓星杖或骷髅，星杖与骷髅衔接除外/墓地回收，丁吉尔苏和恩利尔吉尔苏分别提供后续送墓或控制变化。这些是分支与跨回合资源联系，不声称同一手牌一次同时做出全部终点。",
+    "objective_tags": [
+      "link",
+      "search",
+      "grave",
+      "banish",
+      "special_summon",
+      "recover",
+      "negate"
+    ]
+  },
+  {
+    "case_id": "BF-ORC-02",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本次取胜计划是让三幻魔怪兽持续站场并战斗；希望在本轮所需的非暗属性特殊召唤全部完成后，再通过自奏圣乐取得一轮墓地响应和后续资源，使三幻魔场面被处理后仍可继续行动。下一回合重新安排召唤顺序；不在暗属性限制已生效后要求特殊召唤非暗怪兽。所查询的是吉尔苏、嬉游曲恶魔、梦幻崩影、谐谑曲骷髅、星杖、通天塔、之阶，以及伽拉忒亚、伽拉忒亚i、恩利尔吉尔苏和丁吉尔苏组成的循环机制。给定自己主要阶段、吉尔苏在手、可用通常召唤、另有一张可送墓手卡，其余主卡仍在卡组，额外卡可用、区域足够、相关效果均未用、墓地效果与除外均可执行且没有无效干扰。吉尔苏送墓嬉游曲恶魔；后者除外并从卡组叫出另一自奏怪兽；伽拉忒亚回收除外机械并盖放之阶，伽拉忒亚i可送手卡取得通天塔；梦幻崩影送墓星杖或骷髅，星杖与骷髅衔接除外/墓地回收，丁吉尔苏和恩利尔吉尔苏分别提供后续送墓或控制变化。这些是分支与跨回合资源联系，不声称同一手牌一次同时做出全部终点。",
+    "objective_tags": [
+      "link",
+      "search",
+      "grave",
+      "banish",
+      "special_summon",
+      "recover",
+      "negate"
+    ]
+  },
+  {
+    "case_id": "BF-ORC-03",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望在对方主要阶段把墓地的骷髅除外，复活墓地已正规登场过的丁吉尔苏，接其特殊召唤触发将对方场上1张卡送墓；只判断这条三张卡功能链。",
+    "objective_tags": [
+      "grave",
+      "banish",
+      "special_summon"
+    ]
+  },
+  {
+    "case_id": "BF-ORC-04",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。目的仍是在对方主要阶段用骷髅复活丁吉尔苏并将对方场上1张卡送墓；本次查询只含骷髅和丁吉尔苏。实际牌表中的通天塔不在场上且不属于本查询单元，不借用其它时点转换。",
+    "objective_tags": [
+      "grave",
+      "banish",
+      "special_summon"
+    ]
+  },
+  {
+    "case_id": "BF-ORC-05",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望在对方主要阶段以骷髅复活丁吉尔苏并送墓对方卡；通天塔有效，但这个丁吉尔苏是直接从额外卡组送墓，未正规登场过。",
+    "objective_tags": [
+      "grave",
+      "banish",
+      "special_summon"
+    ]
+  },
+  {
+    "case_id": "BF-ORC-06",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望在对方主要阶段通过骷髅复活墓地丁吉尔苏来送墓对方卡；通天塔有效，但未给丁吉尔苏此前的登场历史，其余资源与时点均按三张链情境满足。",
+    "objective_tags": [
+      "grave",
+      "banish",
+      "special_summon"
+    ]
+  },
+  {
+    "case_id": "BF-SPD-01",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。保留通常召唤给六武众；从空怪兽场用手中贝陀螺集合体特殊召唤、检索竹蜻蜓电子人，再利用风属性怪兽存在使竹蜻蜓从手卡特殊召唤，取得两只3星怪兽供后续使用。此例终点就是两体，不借用竹蜻蜓解放自己的效果，也不要求已选额外终点。",
+    "objective_tags": [
+      "search",
+      "special_summon"
+    ]
+  },
+  {
+    "case_id": "BF-SPD-02",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。保留通常召唤给其它六武众行动；先走贝陀螺检索竹蜻蜓的两体路线，以两只3星叠放真实额外中的失X-剑士 招来者，取除1个素材，从卡组守备表示叫出真六武众-辉斩。辉斩作为本回合继续展开的素材，在结束阶段破坏以前使用；不假定它的效果被招来者无效。",
+    "objective_tags": [
+      "search",
+      "special_summon"
+    ]
+  },
+  {
+    "case_id": "BF-SPD-03",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。目的仍是不花通常召唤取得贝陀螺与竹蜻蜓两体；本次只查询贝陀螺集合体，明确排除竹蜻蜓，不借用实际牌表里未纳入查询的卡或其它疾行机人路线。",
+    "objective_tags": [
+      "search",
+      "special_summon"
+    ]
+  },
+  {
+    "case_id": "BF-SPD-04",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望通过手中贝陀螺与卡组内竹蜻蜓取得两体而不再消耗通常召唤；但自己已有一只非风属性怪兽，通常召唤已用完，也没有其它特殊召唤入口。",
+    "objective_tags": [
+      "search",
+      "special_summon"
+    ]
+  },
+  {
+    "case_id": "BF-SPD-05",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望通过贝陀螺特殊召唤并检索竹蜻蜓，在通常召唤已使用后取得两体；给出手卡和卡组目标，但未给自己怪兽场是否为空，也没有声明其它入口。",
+    "objective_tags": [
+      "search",
+      "special_summon"
+    ]
+  },
+  {
+    "case_id": "BF-SPD-06",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。自己现在空怪兽场，手中贝陀螺可特殊召唤，想接出卡组内竹蜻蜓取得两体；但本回合另一张贝陀螺已经用过同名检索效果，通常召唤已用，也没有其它取得竹蜻蜓的方法。",
+    "objective_tags": [
+      "search",
+      "special_summon"
+    ]
+  },
+  {
+    "case_id": "BF-BRF-01",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。为了让后续宝石骑士与影依行动在同一主要阶段多进行一次通常召唤，以明亮融合把卡组中的宝石骑士·石英和尼比鲁送墓，融合斜绿并保留其表侧效果。此处尼比鲁只作为另一只光属性融合素材，不发动其手卡效果；不要求石榴或青晶。",
+    "objective_tags": [
+      "fusion",
+      "grave"
+    ]
+  },
+  {
+    "case_id": "BF-BRF-02",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望在得到斜绿额外通常召唤的同时，继续取得宝石骑士融合：明亮融合用卡组的石英和拿非琉融合斜绿；拿非琉从卡组送墓后，另送1张手卡去墓地并特殊召唤自己，再以其登场效果检索卡组中的宝石骑士融合，接续手卡或场上融合行动。不依赖石英的回收效果；后续融合的其它材料不纳入此处已承诺完成的功能。",
+    "objective_tags": [
+      "fusion",
+      "grave",
+      "search",
+      "special_summon"
+    ]
+  },
+  {
+    "case_id": "BF-BRF-03",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。想用明亮融合叫出斜绿增加通常召唤，但本次只查询明亮融合、尼比鲁和斜绿；把石英及所有其它宝石骑士主卡组素材排除，不从整副牌借用它们，也不考虑其它融合终点。",
+    "objective_tags": [
+      "fusion",
+      "grave"
+    ]
+  },
+  {
+    "case_id": "BF-BRF-04",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。想用明亮融合叫出斜绿增加通常召唤；本次只有明亮融合、石英和斜绿，另一只光属性素材尼比鲁明确排除，实际牌表内其它光怪兽也不纳入该查询单元。",
+    "objective_tags": [
+      "fusion",
+      "grave"
+    ]
+  },
+  {
+    "case_id": "BF-BRF-05",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望以明亮融合叫出斜绿；查询的四个成员都存在，但指定光素材尼比鲁已在手卡，石英仍在卡组，不借用任何其它光属性素材，也不使用其它融合魔法。",
+    "objective_tags": [
+      "fusion",
+      "grave"
+    ]
+  },
+  {
+    "case_id": "BF-BRF-06",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望以明亮融合用石英与尼比鲁叫出斜绿增加通常召唤；已给明亮融合在手、斜绿可用，但没有给两个指定素材现在是否还在卡组，其余条件按可执行情况满足。",
+    "objective_tags": [
+      "fusion",
+      "grave"
+    ]
+  },
+  {
+    "case_id": "BF-NIB-01",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望用手卡尼比鲁解放双方场上的表侧怪兽，特殊召唤自己并给对方衍生物，减少对方已展开的表侧场面，为之后的行动留出机会；此功能是解放，不称为破坏。",
+    "objective_tags": [
+      "special_summon"
+    ]
+  },
+  {
+    "case_id": "BF-NIB-02",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望用手卡尼比鲁解放双方场上的表侧怪兽，特殊召唤自己并给对方衍生物，减少对方已展开的表侧场面，为之后的行动留出机会；此功能是解放，不称为破坏。当前是对方主要阶段，但本回合对方合计只召唤或特殊召唤4只怪兽。",
+    "objective_tags": [
+      "special_summon"
+    ]
+  },
+  {
+    "case_id": "BF-NIB-03",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望用手卡尼比鲁解放双方场上的表侧怪兽，特殊召唤自己并给对方衍生物，减少对方已展开的表侧场面，为之后的行动留出机会；此功能是解放，不称为破坏。对方本回合已召唤至少5只怪兽，但当前在战斗阶段，尚未进入主要阶段2。",
+    "objective_tags": [
+      "special_summon"
+    ]
+  },
+  {
+    "case_id": "BF-NIB-04",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望用手卡尼比鲁解放双方场上的表侧怪兽，特殊召唤自己并给对方衍生物，减少对方已展开的表侧场面，为之后的行动留出机会；此功能是解放，不称为破坏。当前主要阶段与手卡位置已给，但对方本回合已召唤多少只怪兽未给出。",
+    "objective_tags": [
+      "special_summon"
+    ]
+  },
+  {
+    "case_id": "BF-NIB-05",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望用手卡尼比鲁解放双方场上的表侧怪兽，特殊召唤自己并给对方衍生物，减少对方已展开的表侧场面，为之后的行动留出机会；此功能是解放，不称为破坏。五只门槛和主要阶段满足，但本次查询的尼比鲁在墓地，不在手卡，也没有查询内的回收手段。",
+    "objective_tags": [
+      "special_summon"
+    ]
+  },
+  {
+    "case_id": "BF-NIB-06",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望用手卡尼比鲁解放双方场上的表侧怪兽，特殊召唤自己并给对方衍生物，减少对方已展开的表侧场面，为之后的行动留出机会；此功能是解放，不称为破坏。当前在自己的主要阶段，对方已在此回合通过其效果召唤至少5只怪兽；自己较早成功发动了实际牌表中的嬉游曲恶魔墓地效果，非暗属性特殊召唤限制仍在适用。嬉游曲恶魔只作为外部已生效限制的来源，不加入尼比鲁查询单元。",
+    "objective_tags": [
+      "special_summon"
+    ]
+  },
+  {
+    "case_id": "BF-NIB-07",
+    "objective": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。希望用手卡尼比鲁解放双方场上的表侧怪兽，特殊召唤自己并给对方衍生物，减少对方已展开的表侧场面，为之后的行动留出机会；此功能是解放，不称为破坏。本次背景改为六武众牌表；尚未开始自己的六武众展开，处在对方主要阶段，不受任何自己的特殊召唤自肃，门槛、手卡、次数与区域条件逐项满足。",
+    "objective_tags": [
+      "special_summon"
+    ]
+  }
+]

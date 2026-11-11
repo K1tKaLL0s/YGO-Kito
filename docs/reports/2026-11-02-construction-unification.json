@@ -1,0 +1,6592 @@
+{
+  "date": "2026-11-02",
+  "status": "construction_flow_verified_with_explicit_unknowns",
+  "source_root": "N:\\YGO-Kito\\_publish_20261030",
+  "base_commit": "3f57198",
+  "run": "run-05",
+  "run_summary": {
+    "learning_pair_count": 8,
+    "status": "task_checked_candidate",
+    "checks": {
+      "four_handoffs": true,
+      "task_verified": true,
+      "started_empty": true,
+      "continuity": true,
+      "production_unchanged": true,
+      "parameters_unchanged": true,
+      "no_cb": true,
+      "no_native": true,
+      "whole_inventory_no_known_deficits": true,
+      "whole_inventory_covered": true,
+      "locked_archetype_registry_loaded": true,
+      "actual_layer_labels_validated": true
+    },
+    "construction_seconds": 19.15131507199999,
+    "total_seconds": 193.416753162,
+    "dependency_recall": {
+      "events": [
+        {
+          "round": 1,
+          "consumer": 1174075,
+          "card_id": 21576077,
+          "source": "从卡组把1张「龙辉巧」卡送去墓地",
+          "query": {
+            "name_contains": "龙辉巧",
+            "selector": "「龙辉巧」卡",
+            "setcode": 340
+          }
+        },
+        {
+          "round": 1,
+          "consumer": 5168381,
+          "card_id": 2511,
+          "source": "从卡组把1只恶魔族怪兽送去墓地",
+          "query": {
+            "race": 8,
+            "type": 1,
+            "selector": "恶魔族怪兽"
+          }
+        },
+        {
+          "round": 1,
+          "consumer": 23649496,
+          "card_id": 19310321,
+          "source": "从卡组把2只「纹章兽」怪兽送去墓地",
+          "query": {
+            "name_contains": "纹章兽",
+            "type": 1,
+            "selector": "「纹章兽」怪兽",
+            "setcode": 118
+          }
+        },
+        {
+          "round": 1,
+          "consumer": 32566831,
+          "card_id": 5186893,
+          "source": "从手卡把1只7星「真红眼」怪兽送去墓地",
+          "query": {
+            "level": 7,
+            "name_contains": "真红眼",
+            "type": 1,
+            "selector": "7星「真红眼」怪兽",
+            "setcode": 59
+          }
+        },
+        {
+          "round": 1,
+          "consumer": 32566831,
+          "card_id": 6556909,
+          "source": "从卡组把1只7星「真红眼」怪兽送去墓地",
+          "query": {
+            "level": 7,
+            "name_contains": "真红眼",
+            "type": 1,
+            "selector": "7星「真红眼」怪兽",
+            "setcode": 59
+          }
+        },
+        {
+          "round": 1,
+          "consumer": 47158777,
+          "card_id": 2602411,
+          "source": "从卡组把1张「破坏剑」卡送去墓地",
+          "query": {
+            "name_contains": "破坏剑",
+            "selector": "「破坏剑」卡",
+            "setcode": 214
+          }
+        },
+        {
+          "round": 1,
+          "consumer": 48285768,
+          "card_id": 20424878,
+          "source": "从卡组把1只「护宝炮妖」怪兽送去墓地",
+          "query": {
+            "name_contains": "护宝炮妖",
+            "type": 1,
+            "selector": "「护宝炮妖」怪兽",
+            "setcode": 341
+          }
+        },
+        {
+          "round": 1,
+          "consumer": 52198054,
+          "card_id": 17415895,
+          "source": "从卡组把1张「火山」卡送去墓地",
+          "query": {
+            "name_contains": "火山",
+            "selector": "「火山」卡",
+            "setcode": 50
+          }
+        },
+        {
+          "round": 1,
+          "consumer": 58468105,
+          "card_id": 29280589,
+          "source": "「锋利小鬼」怪兽",
+          "query": {
+            "name_contains": "锋利小鬼",
+            "selector": "「锋利小鬼」怪兽",
+            "type": 1,
+            "setcode": 195
+          }
+        },
+        {
+          "round": 1,
+          "consumer": 58468105,
+          "card_id": 2729285,
+          "source": "「毛绒动物」怪兽×2",
+          "query": {
+            "name_contains": "毛绒动物",
+            "selector": "「毛绒动物」怪兽×2",
+            "type": 1,
+            "setcode": 169
+          }
+        },
+        {
+          "round": 1,
+          "consumer": 71595845,
+          "card_id": 18106132,
+          "source": "从卡组把1张「人偶怪兽」卡送去墓地",
+          "query": {
+            "name_contains": "人偶怪兽",
+            "selector": "「人偶怪兽」卡",
+            "setcode": 346
+          }
+        },
+        {
+          "round": 1,
+          "consumer": 75840616,
+          "card_id": 5818294,
+          "source": "从卡组选1只「武神」怪兽加入手卡",
+          "query": {
+            "name_contains": "武神",
+            "type": 1,
+            "selector": "「武神」怪兽",
+            "setcode": 136
+          }
+        },
+        {
+          "round": 2,
+          "consumer": 2602411,
+          "card_id": 78193831,
+          "source": "以自己场上1只「破坏之剑士」为对象",
+          "query": {
+            "exact_name": "破坏之剑士",
+            "selector": "「破坏之剑士」"
+          }
+        },
+        {
+          "round": 2,
+          "consumer": 2729285,
+          "card_id": 24094653,
+          "source": "以自己墓地1张「融合」为对象",
+          "query": {
+            "exact_name": "融合",
+            "selector": "「融合」"
+          }
+        },
+        {
+          "round": 2,
+          "consumer": 6556909,
+          "card_id": 74677422,
+          "source": "以自己场上1只「真红眼黑龙」为对象",
+          "query": {
+            "exact_name": "真红眼黑龙",
+            "selector": "「真红眼黑龙」"
+          }
+        }
+      ],
+      "checks": 11847,
+      "truncated": false
+    },
+    "selected_task": {
+      "annotations": [
+        {
+          "condition": "construct from public legal pool without a reference deck",
+          "layer": "engineering_goal",
+          "source": "user_explicit_historical_theme",
+          "subject": "self",
+          "tag": "theme·tearlaments"
+        }
+      ],
+      "candidate_budget": 16,
+      "environment": {
+        "authority": "custom",
+        "environment_id": "period-runtime-2022-07",
+        "release_cutoff": "2022-09-30",
+        "versions": {
+          "banlist": "2022.7:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+          "card_pool": "native-private-knowledge-v5",
+          "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+          "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+          "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+          "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+        }
+      },
+      "goal": {
+        "constraints": [
+          {
+            "id": "public-pearl-main-axis",
+            "maximum": 60,
+            "minimum": 12,
+            "predicate": {
+              "field": "setcode",
+              "value": 385
+            },
+            "zones": [
+              "main"
+            ]
+          },
+          {
+            "id": "public-pearl-extra-axis",
+            "maximum": 15,
+            "minimum": 3,
+            "predicate": {
+              "field": "setcode",
+              "value": 385
+            },
+            "zones": [
+              "extra"
+            ]
+          },
+          {
+            "id": "autonomous-axis",
+            "maximum": 75,
+            "minimum": 1,
+            "predicate": {
+              "field": "setcode",
+              "value": 385
+            },
+            "zones": [
+              "main",
+              "extra"
+            ]
+          }
+        ],
+        "kind": "deck_constraints",
+        "preferences": []
+      },
+      "pool": [
+        2511,
+        572850,
+        1151281,
+        1174075,
+        1329620,
+        2602411,
+        2729285,
+        4836680,
+        5168381,
+        5186893,
+        5818294,
+        6556909,
+        6767771,
+        9126351,
+        17415895,
+        18106132,
+        19310321,
+        20424878,
+        21576077,
+        23649496,
+        24094653,
+        28226490,
+        29280589,
+        30100551,
+        31259606,
+        32566831,
+        33878367,
+        37961969,
+        38436986,
+        40597694,
+        41386308,
+        47158777,
+        48285768,
+        52198054,
+        58468105,
+        60362066,
+        71595845,
+        73956664,
+        74078255,
+        74677422,
+        74920585,
+        75840616,
+        78193831,
+        78420796,
+        81599449,
+        84330567,
+        92731385
+      ],
+      "requirements": [],
+      "schema_version": 4,
+      "sizes": {
+        "extra": 15,
+        "main": 40,
+        "side": 15
+      },
+      "source": "user_provided",
+      "task_id": "auto-906143e39c93fa87c2b697e6"
+    },
+    "checkpoint": "/mnt/n/YGO-Kito/_local_cpu_20261027/reports/optimization-20261031/2207-course-006/course/checkpoint-1.weights",
+    "cursors": {
+      "build_updates": {
+        "build_goal": 5,
+        "build_optimizer": 0
+      },
+      "build_batch": 5,
+      "duel_updates": 27,
+      "duel_episodes": 27,
+      "coordinator_updates": 37
+    },
+    "cb_calls": 0,
+    "cb_proposal_calls": 0,
+    "native_calls": 0,
+    "basic_cb": {
+      "kind": "basic_cb_inference_after_construction",
+      "status": "not_run",
+      "routes": [],
+      "inference_completed": false,
+      "unknown_is_not_negative": true,
+      "subject_deck_sha256": "985220a9fa657b78d749929be89fc29ddebf0f978f407367e14be78aa1a15103",
+      "task_sha256": "4d4321c932b341dae345acb81fa4486cfd0bc8552413f141ce2d1cb24157e87b",
+      "inference_scope": "basic_cb_for_constructed_deck_not_whole_graph_acceptance"
+    },
+    "phases": [
+      {
+        "phase": 1,
+        "role": "build_goal",
+        "candidate_count": 16,
+        "selected": 10,
+        "legacy_first": 10,
+        "pair_count": 120,
+        "known_deficits": {
+          "effect:1174075:1:0:candidate_component:shortfall": 1,
+          "effect:1174075:1:0:candidate_component:blocked_copies": 3,
+          "effect:2729285:1:0:candidate_component:shortfall": 1,
+          "effect:2729285:1:0:candidate_component:blocked_copies": 3,
+          "materials:28226490:shortfall": 1,
+          "materials:28226490:blocked_copies": 3,
+          "materials:58468105:shortfall": 1,
+          "materials:58468105:blocked_copies": 3
+        },
+        "changes": {
+          "main": {
+            "added": [
+              2511,
+              2511,
+              2511,
+              572850,
+              572850,
+              572850,
+              1151281,
+              1151281,
+              1151281,
+              2729285,
+              2729285,
+              2729285,
+              4836680,
+              4836680,
+              4836680,
+              5186893,
+              5186893,
+              5186893,
+              5818294,
+              5818294,
+              5818294,
+              6767771,
+              6767771,
+              6767771,
+              19310321,
+              19310321,
+              19310321,
+              32566831,
+              32566831,
+              32566831,
+              37961969,
+              37961969,
+              37961969,
+              38436986,
+              38436986,
+              38436986,
+              40597694,
+              40597694,
+              40597694,
+              74677422
+            ],
+            "removed": []
+          },
+          "extra": {
+            "added": [
+              1174075,
+              1174075,
+              1174075,
+              23649496,
+              23649496,
+              23649496,
+              28226490,
+              28226490,
+              28226490,
+              58468105,
+              58468105,
+              58468105,
+              92731385,
+              92731385,
+              92731385
+            ],
+            "removed": []
+          },
+          "side": {
+            "added": [
+              21576077,
+              21576077,
+              21576077,
+              41386308,
+              41386308,
+              41386308,
+              74078255,
+              74078255,
+              74078255,
+              74920585,
+              74920585,
+              74920585,
+              84330567,
+              84330567,
+              84330567
+            ],
+            "removed": []
+          }
+        },
+        "generation": {
+          "generator": "existing_goal_solver_and_portfolio",
+          "initial_candidates": 8,
+          "portfolio_candidates": 16,
+          "candidate_budget": 16,
+          "portfolio": {
+            "candidate_budget": 16,
+            "generated_strategy_counts": {
+              "fresh": 8,
+              "axis:setcode-46": 4,
+              "axis:setcode-88": 4,
+              "axis:setcode-154": 4,
+              "axis:setcode-155": 2,
+              "axis:setcode-1a0": 2,
+              "axis:mechanism:xyz-364170add97371650422": 2,
+              "axis:mechanism:fusion-733b235e83a07c2267c3": 4,
+              "axis:setcode-d6": 2,
+              "axis:setcode-181": 2,
+              "axis:mechanism:fusion-3baa9afa63e17e6fd7e1": 2,
+              "axis:mechanism:xyz-2d10ad07d73463a496f3": 2,
+              "axis:mechanism:fusion-a1f341f05a671d167588": 2,
+              "axis:mechanism:xyz-143c338af66ac96d65ea": 2,
+              "axis:mechanism:xyz-50305aa72b36df5f58e5": 2,
+              "axis:mechanism:xyz-71aad96502abbb97c875": 2,
+              "dependency:inventory": 11
+            },
+            "family_order": [
+              "dependency:inventory",
+              "fresh",
+              "axis_and_mechanism_packages"
+            ],
+            "admitted_by_family": {
+              "dependency:inventory": 6,
+              "fresh": 5,
+              "axis_and_mechanism_packages": 5
+            },
+            "rounds": 6,
+            "filtered": {},
+            "remaining_generated_rows": 41,
+            "axis_internal_filter_trace": "not_available",
+            "budget_order_is_quality_label": false
+          },
+          "internal_solver_filter_trace": "not_available"
+        }
+      },
+      {
+        "phase": 2,
+        "role": "build_optimizer",
+        "candidate_count": 16,
+        "selected": 1,
+        "legacy_first": 5,
+        "pair_count": 120,
+        "known_deficits": {},
+        "changes": {
+          "main": {
+            "added": [
+              21576077,
+              24094653,
+              29280589,
+              73956664
+            ],
+            "removed": [
+              2511,
+              2511,
+              2511,
+              2729285
+            ]
+          },
+          "extra": {
+            "added": [],
+            "removed": []
+          },
+          "side": {
+            "added": [
+              2511
+            ],
+            "removed": [
+              21576077
+            ]
+          }
+        },
+        "generation": {
+          "generator": "bounded_substitutions_and_atomic_exchanges",
+          "families": {
+            "single:main": {
+              "attempted": 27,
+              "accepted": 12,
+              "filtered": {
+                "deck aliases exceed combined copy limit": 10,
+                "extra-deck card cannot be placed in main deck": 4,
+                "combined main/extra/side alias limit exceeded": 1
+              },
+              "rejection_samples": [
+                {
+                  "edit": {
+                    "kind": "single_zone_substitution",
+                    "zones": [
+                      "main"
+                    ],
+                    "removed": {
+                      "main": 2511
+                    },
+                    "added": {
+                      "main": 572850
+                    }
+                  },
+                  "reason": "deck aliases exceed combined copy limit"
+                },
+                {
+                  "edit": {
+                    "kind": "single_zone_substitution",
+                    "zones": [
+                      "main"
+                    ],
+                    "removed": {
+                      "main": 2511
+                    },
+                    "added": {
+                      "main": 1151281
+                    }
+                  },
+                  "reason": "deck aliases exceed combined copy limit"
+                }
+              ]
+            },
+            "exchange:main+extra": {
+              "attempted": 27,
+              "accepted": 0,
+              "filtered": {
+                "extra-deck card cannot be placed in main deck": 27
+              },
+              "rejection_samples": [
+                {
+                  "edit": {
+                    "kind": "atomic_cross_zone_exchange",
+                    "zones": [
+                      "main",
+                      "extra"
+                    ],
+                    "removed": {
+                      "main": 2511,
+                      "extra": 1174075
+                    },
+                    "added": {
+                      "main": 1174075,
+                      "extra": 2511
+                    },
+                    "combined_inventory_preserved": true
+                  },
+                  "reason": "extra-deck card cannot be placed in main deck"
+                },
+                {
+                  "edit": {
+                    "kind": "atomic_cross_zone_exchange",
+                    "zones": [
+                      "main",
+                      "extra"
+                    ],
+                    "removed": {
+                      "main": 2511,
+                      "extra": 23649496
+                    },
+                    "added": {
+                      "main": 23649496,
+                      "extra": 2511
+                    },
+                    "combined_inventory_preserved": true
+                  },
+                  "reason": "extra-deck card cannot be placed in main deck"
+                }
+              ]
+            },
+            "exchange:main+side": {
+              "attempted": 27,
+              "accepted": 20,
+              "filtered": {
+                "extra-deck card cannot be placed in main deck": 5,
+                "deck violates semantic count constraint: public-pearl-main-axis": 2
+              },
+              "rejection_samples": [
+                {
+                  "edit": {
+                    "kind": "atomic_cross_zone_exchange",
+                    "zones": [
+                      "main",
+                      "side"
+                    ],
+                    "removed": {
+                      "main": 2511,
+                      "side": 84330567
+                    },
+                    "added": {
+                      "main": 84330567,
+                      "side": 2511
+                    },
+                    "combined_inventory_preserved": true
+                  },
+                  "reason": "extra-deck card cannot be placed in main deck"
+                },
+                {
+                  "edit": {
+                    "kind": "atomic_cross_zone_exchange",
+                    "zones": [
+                      "main",
+                      "side"
+                    ],
+                    "removed": {
+                      "main": 572850,
+                      "side": 21576077
+                    },
+                    "added": {
+                      "main": 21576077,
+                      "side": 572850
+                    },
+                    "combined_inventory_preserved": true
+                  },
+                  "reason": "deck violates semantic count constraint: public-pearl-main-axis"
+                }
+              ]
+            },
+            "single:extra": {
+              "attempted": 230,
+              "accepted": 20,
+              "filtered": {
+                "combined main/extra/side alias limit exceeded": 110,
+                "non-extra-deck card in extra deck": 100
+              },
+              "rejection_samples": [
+                {
+                  "edit": {
+                    "kind": "single_zone_substitution",
+                    "zones": [
+                      "extra"
+                    ],
+                    "removed": {
+                      "extra": 1174075
+                    },
+                    "added": {
+                      "extra": 2511
+                    }
+                  },
+                  "reason": "combined main/extra/side alias limit exceeded"
+                },
+                {
+                  "edit": {
+                    "kind": "single_zone_substitution",
+                    "zones": [
+                      "extra"
+                    ],
+                    "removed": {
+                      "extra": 1174075
+                    },
+                    "added": {
+                      "extra": 572850
+                    }
+                  },
+                  "reason": "combined main/extra/side alias limit exceeded"
+                }
+              ]
+            },
+            "exchange:extra+side": {
+              "attempted": 25,
+              "accepted": 5,
+              "filtered": {
+                "non-extra-deck card in extra deck": 20
+              },
+              "rejection_samples": [
+                {
+                  "edit": {
+                    "kind": "atomic_cross_zone_exchange",
+                    "zones": [
+                      "extra",
+                      "side"
+                    ],
+                    "removed": {
+                      "extra": 1174075,
+                      "side": 21576077
+                    },
+                    "added": {
+                      "extra": 21576077,
+                      "side": 1174075
+                    },
+                    "combined_inventory_preserved": true
+                  },
+                  "reason": "non-extra-deck card in extra deck"
+                },
+                {
+                  "edit": {
+                    "kind": "atomic_cross_zone_exchange",
+                    "zones": [
+                      "extra",
+                      "side"
+                    ],
+                    "removed": {
+                      "extra": 1174075,
+                      "side": 41386308
+                    },
+                    "added": {
+                      "extra": 41386308,
+                      "side": 1174075
+                    },
+                    "combined_inventory_preserved": true
+                  },
+                  "reason": "non-extra-deck card in extra deck"
+                }
+              ]
+            },
+            "single:side": {
+              "attempted": 64,
+              "accepted": 32,
+              "filtered": {
+                "combined main/extra/side alias limit exceeded": 32
+              },
+              "rejection_samples": [
+                {
+                  "edit": {
+                    "kind": "single_zone_substitution",
+                    "zones": [
+                      "side"
+                    ],
+                    "removed": {
+                      "side": 21576077
+                    },
+                    "added": {
+                      "side": 2511
+                    }
+                  },
+                  "reason": "combined main/extra/side alias limit exceeded"
+                },
+                {
+                  "edit": {
+                    "kind": "single_zone_substitution",
+                    "zones": [
+                      "side"
+                    ],
+                    "removed": {
+                      "side": 21576077
+                    },
+                    "added": {
+                      "side": 572850
+                    }
+                  },
+                  "reason": "combined main/extra/side alias limit exceeded"
+                }
+              ]
+            }
+          },
+          "zone_limits": {
+            "main": {
+              "accepted": 32,
+              "limit": 32,
+              "enumeration_complete": false
+            },
+            "extra": {
+              "accepted": 25,
+              "limit": 32,
+              "enumeration_complete": true
+            },
+            "side": {
+              "accepted": 32,
+              "limit": 32,
+              "enumeration_complete": false
+            }
+          },
+          "legal_edit_candidates": 89,
+          "portfolio_candidates": 16,
+          "legal_edits_outside_portfolio": 78,
+          "candidate_budget": 16,
+          "portfolio": {
+            "candidate_budget": 16,
+            "generated_strategy_counts": {
+              "incumbent": 1,
+              "axis:setcode-3b": 2,
+              "axis:setcode-46": 2,
+              "axis:setcode-88": 2,
+              "axis:setcode-d6": 2,
+              "axis:setcode-155": 2,
+              "axis:setcode-1a0": 2,
+              "axis:mechanism:fusion-3baa9afa63e17e6fd7e1": 2,
+              "axis:mechanism:fusion-733b235e83a07c2267c3": 2,
+              "axis:mechanism:xyz-143c338af66ac96d65ea": 2,
+              "axis:mechanism:xyz-50305aa72b36df5f58e5": 2,
+              "axis:mechanism:xyz-71aad96502abbb97c875": 2,
+              "dependency:inventory": 4,
+              "transfer:main+side": 20,
+              "single:main": 12,
+              "transfer:extra+side": 5,
+              "single:extra": 20,
+              "single:side": 32
+            },
+            "family_order": [
+              "incumbent",
+              "dependency:inventory",
+              "axis_and_mechanism_packages",
+              "edit:main",
+              "edit:extra",
+              "edit:side"
+            ],
+            "admitted_by_family": {
+              "incumbent": 1,
+              "dependency:inventory": 3,
+              "axis_and_mechanism_packages": 3,
+              "edit:main": 3,
+              "edit:extra": 3,
+              "edit:side": 3
+            },
+            "rounds": 3,
+            "filtered": {
+              "duplicate_deck": 2
+            },
+            "remaining_generated_rows": 98,
+            "axis_internal_filter_trace": "not_available",
+            "budget_order_is_quality_label": false
+          },
+          "constraints_checked": [
+            "section_sizes",
+            "destination_zone",
+            "combined_alias_copy_limits",
+            "explicit_task_constraints"
+          ]
+        }
+      },
+      {
+        "phase": 3,
+        "role": "build_goal",
+        "candidate_count": 16,
+        "selected": 6,
+        "legacy_first": 3,
+        "pair_count": 120,
+        "known_deficits": {},
+        "changes": {
+          "main": {
+            "added": [
+              2511
+            ],
+            "removed": [
+              572850
+            ]
+          },
+          "extra": {
+            "added": [],
+            "removed": []
+          },
+          "side": {
+            "added": [
+              572850
+            ],
+            "removed": [
+              2511
+            ]
+          }
+        },
+        "generation": {
+          "generator": "bounded_substitutions_and_atomic_exchanges",
+          "families": {
+            "single:main": {
+              "attempted": 23,
+              "accepted": 12,
+              "filtered": {
+                "deck aliases exceed combined copy limit": 6,
+                "extra-deck card cannot be placed in main deck": 4,
+                "combined main/extra/side alias limit exceeded": 1
+              },
+              "rejection_samples": [
+                {
+                  "edit": {
+                    "kind": "single_zone_substitution",
+                    "zones": [
+                      "main"
+                    ],
+                    "removed": {
+                      "main": 572850
+                    },
+                    "added": {
+                      "main": 1151281
+                    }
+                  },
+                  "reason": "deck aliases exceed combined copy limit"
+                },
+                {
+                  "edit": {
+                    "kind": "single_zone_substitution",
+                    "zones": [
+                      "main"
+                    ],
+                    "removed": {
+                      "main": 572850
+                    },
+                    "added": {
+                      "main": 1174075
+                    }
+                  },
+                  "reason": "extra-deck card cannot be placed in main deck"
+                }
+              ]
+            },
+            "exchange:main+extra": {
+              "attempted": 23,
+              "accepted": 0,
+              "filtered": {
+                "extra-deck card cannot be placed in main deck": 23
+              },
+              "rejection_samples": [
+                {
+                  "edit": {
+                    "kind": "atomic_cross_zone_exchange",
+                    "zones": [
+                      "main",
+                      "extra"
+                    ],
+                    "removed": {
+                      "main": 572850,
+                      "extra": 1174075
+                    },
+                    "added": {
+                      "main": 1174075,
+                      "extra": 572850
+                    },
+                    "combined_inventory_preserved": true
+                  },
+                  "reason": "extra-deck card cannot be placed in main deck"
+                },
+                {
+                  "edit": {
+                    "kind": "atomic_cross_zone_exchange",
+                    "zones": [
+                      "main",
+                      "extra"
+                    ],
+                    "removed": {
+                      "main": 572850,
+                      "extra": 23649496
+                    },
+                    "added": {
+                      "main": 23649496,
+                      "extra": 572850
+                    },
+                    "combined_inventory_preserved": true
+                  },
+                  "reason": "extra-deck card cannot be placed in main deck"
+                }
+              ]
+            },
+            "exchange:main+side": {
+              "attempted": 23,
+              "accepted": 20,
+              "filtered": {
+                "extra-deck card cannot be placed in main deck": 3
+              },
+              "rejection_samples": [
+                {
+                  "edit": {
+                    "kind": "atomic_cross_zone_exchange",
+                    "zones": [
+                      "main",
+                      "side"
+                    ],
+                    "removed": {
+                      "main": 572850,
+                      "side": 84330567
+                    },
+                    "added": {
+                      "main": 84330567,
+                      "side": 572850
+                    },
+                    "combined_inventory_preserved": true
+                  },
+                  "reason": "extra-deck card cannot be placed in main deck"
+                },
+                {
+                  "edit": {
+                    "kind": "atomic_cross_zone_exchange",
+                    "zones": [
+                      "main",
+                      "side"
+                    ],
+                    "removed": {
+                      "main": 1151281,
+                      "side": 84330567
+                    },
+                    "added": {
+                      "main": 84330567,
+                      "side": 1151281
+                    },
+                    "combined_inventory_preserved": true
+                  },
+                  "reason": "extra-deck card cannot be placed in main deck"
+                }
+              ]
+            },
+            "single:extra": {
+              "attempted": 230,
+              "accepted": 20,
+              "filtered": {
+                "non-extra-deck card in extra deck": 110,
+                "combined main/extra/side alias limit exceeded": 100
+              },
+              "rejection_samples": [
+                {
+                  "edit": {
+                    "kind": "single_zone_substitution",
+                    "zones": [
+                      "extra"
+                    ],
+                    "removed": {
+                      "extra": 1174075
+                    },
+                    "added": {
+                      "extra": 2511
+                    }
+                  },
+                  "reason": "non-extra-deck card in extra deck"
+                },
+                {
+                  "edit": {
+                    "kind": "single_zone_substitution",
+                    "zones": [
+                      "extra"
+                    ],
+                    "removed": {
+                      "extra": 1174075
+                    },
+                    "added": {
+                      "extra": 572850
+                    }
+                  },
+                  "reason": "combined main/extra/side alias limit exceeded"
+                }
+              ]
+            },
+            "exchange:extra+side": {
+              "attempted": 30,
+              "accepted": 5,
+              "filtered": {
+                "non-extra-deck card in extra deck": 25
+              },
+              "rejection_samples": [
+                {
+                  "edit": {
+                    "kind": "atomic_cross_zone_exchange",
+                    "zones": [
+                      "extra",
+                      "side"
+                    ],
+                    "removed": {
+                      "extra": 1174075,
+                      "side": 2511
+                    },
+                    "added": {
+                      "extra": 2511,
+                      "side": 1174075
+                    },
+                    "combined_inventory_preserved": true
+                  },
+                  "reason": "non-extra-deck card in extra deck"
+                },
+                {
+                  "edit": {
+                    "kind": "atomic_cross_zone_exchange",
+                    "zones": [
+                      "extra",
+                      "side"
+                    ],
+                    "removed": {
+                      "extra": 1174075,
+                      "side": 21576077
+                    },
+                    "added": {
+                      "extra": 21576077,
+                      "side": 1174075
+                    },
+                    "combined_inventory_preserved": true
+                  },
+                  "reason": "non-extra-deck card in extra deck"
+                }
+              ]
+            },
+            "single:side": {
+              "attempted": 60,
+              "accepted": 32,
+              "filtered": {
+                "combined main/extra/side alias limit exceeded": 28
+              },
+              "rejection_samples": [
+                {
+                  "edit": {
+                    "kind": "single_zone_substitution",
+                    "zones": [
+                      "side"
+                    ],
+                    "removed": {
+                      "side": 2511
+                    },
+                    "added": {
+                      "side": 572850
+                    }
+                  },
+                  "reason": "combined main/extra/side alias limit exceeded"
+                },
+                {
+                  "edit": {
+                    "kind": "single_zone_substitution",
+                    "zones": [
+                      "side"
+                    ],
+                    "removed": {
+                      "side": 2511
+                    },
+                    "added": {
+                      "side": 1151281
+                    }
+                  },
+                  "reason": "combined main/extra/side alias limit exceeded"
+                }
+              ]
+            }
+          },
+          "zone_limits": {
+            "main": {
+              "accepted": 32,
+              "limit": 32,
+              "enumeration_complete": false
+            },
+            "extra": {
+              "accepted": 25,
+              "limit": 32,
+              "enumeration_complete": true
+            },
+            "side": {
+              "accepted": 32,
+              "limit": 32,
+              "enumeration_complete": false
+            }
+          },
+          "legal_edit_candidates": 89,
+          "portfolio_candidates": 16,
+          "legal_edits_outside_portfolio": 75,
+          "candidate_budget": 16,
+          "portfolio": {
+            "candidate_budget": 16,
+            "generated_strategy_counts": {
+              "incumbent": 1,
+              "axis:setcode-3b": 2,
+              "axis:setcode-88": 2,
+              "axis:setcode-d6": 2,
+              "axis:setcode-155": 2,
+              "axis:mechanism:xyz-364170add97371650422": 2,
+              "axis:mechanism:xyz-143c338af66ac96d65ea": 2,
+              "axis:mechanism:xyz-50305aa72b36df5f58e5": 2,
+              "axis:mechanism:xyz-71aad96502abbb97c875": 2,
+              "dependency:inventory": 0,
+              "single:main": 12,
+              "transfer:main+side": 20,
+              "transfer:extra+side": 5,
+              "single:extra": 20,
+              "single:side": 32
+            },
+            "family_order": [
+              "incumbent",
+              "dependency:inventory",
+              "axis_and_mechanism_packages",
+              "edit:main",
+              "edit:extra",
+              "edit:side"
+            ],
+            "admitted_by_family": {
+              "incumbent": 1,
+              "dependency:inventory": 0,
+              "axis_and_mechanism_packages": 4,
+              "edit:main": 4,
+              "edit:extra": 4,
+              "edit:side": 3
+            },
+            "rounds": 4,
+            "filtered": {
+              "duplicate_deck": 2
+            },
+            "remaining_generated_rows": 88,
+            "axis_internal_filter_trace": "not_available",
+            "budget_order_is_quality_label": false
+          },
+          "constraints_checked": [
+            "section_sizes",
+            "destination_zone",
+            "combined_alias_copy_limits",
+            "explicit_task_constraints"
+          ]
+        }
+      },
+      {
+        "phase": 4,
+        "role": "build_optimizer",
+        "candidate_count": 16,
+        "selected": 13,
+        "legacy_first": 5,
+        "pair_count": 120,
+        "known_deficits": {},
+        "changes": {
+          "main": {
+            "added": [],
+            "removed": []
+          },
+          "extra": {
+            "added": [
+              75840616
+            ],
+            "removed": [
+              1174075
+            ]
+          },
+          "side": {
+            "added": [],
+            "removed": []
+          }
+        },
+        "generation": {
+          "generator": "bounded_substitutions_and_atomic_exchanges",
+          "families": {
+            "single:main": {
+              "attempted": 26,
+              "accepted": 13,
+              "filtered": {
+                "combined main/extra/side alias limit exceeded": 2,
+                "deck aliases exceed combined copy limit": 7,
+                "extra-deck card cannot be placed in main deck": 4
+              },
+              "rejection_samples": [
+                {
+                  "edit": {
+                    "kind": "single_zone_substitution",
+                    "zones": [
+                      "main"
+                    ],
+                    "removed": {
+                      "main": 2511
+                    },
+                    "added": {
+                      "main": 572850
+                    }
+                  },
+                  "reason": "combined main/extra/side alias limit exceeded"
+                },
+                {
+                  "edit": {
+                    "kind": "single_zone_substitution",
+                    "zones": [
+                      "main"
+                    ],
+                    "removed": {
+                      "main": 2511
+                    },
+                    "added": {
+                      "main": 1151281
+                    }
+                  },
+                  "reason": "deck aliases exceed combined copy limit"
+                }
+              ]
+            },
+            "exchange:main+extra": {
+              "attempted": 25,
+              "accepted": 0,
+              "filtered": {
+                "extra-deck card cannot be placed in main deck": 25
+              },
+              "rejection_samples": [
+                {
+                  "edit": {
+                    "kind": "atomic_cross_zone_exchange",
+                    "zones": [
+                      "main",
+                      "extra"
+                    ],
+                    "removed": {
+                      "main": 2511,
+                      "extra": 1174075
+                    },
+                    "added": {
+                      "main": 1174075,
+                      "extra": 2511
+                    },
+                    "combined_inventory_preserved": true
+                  },
+                  "reason": "extra-deck card cannot be placed in main deck"
+                },
+                {
+                  "edit": {
+                    "kind": "atomic_cross_zone_exchange",
+                    "zones": [
+                      "main",
+                      "extra"
+                    ],
+                    "removed": {
+                      "main": 2511,
+                      "extra": 23649496
+                    },
+                    "added": {
+                      "main": 23649496,
+                      "extra": 2511
+                    },
+                    "combined_inventory_preserved": true
+                  },
+                  "reason": "extra-deck card cannot be placed in main deck"
+                }
+              ]
+            },
+            "exchange:main+side": {
+              "attempted": 25,
+              "accepted": 19,
+              "filtered": {
+                "extra-deck card cannot be placed in main deck": 4,
+                "deck violates semantic count constraint: public-pearl-main-axis": 2
+              },
+              "rejection_samples": [
+                {
+                  "edit": {
+                    "kind": "atomic_cross_zone_exchange",
+                    "zones": [
+                      "main",
+                      "side"
+                    ],
+                    "removed": {
+                      "main": 2511,
+                      "side": 84330567
+                    },
+                    "added": {
+                      "main": 84330567,
+                      "side": 2511
+                    },
+                    "combined_inventory_preserved": true
+                  },
+                  "reason": "extra-deck card cannot be placed in main deck"
+                },
+                {
+                  "edit": {
+                    "kind": "atomic_cross_zone_exchange",
+                    "zones": [
+                      "main",
+                      "side"
+                    ],
+                    "removed": {
+                      "main": 572850,
+                      "side": 21576077
+                    },
+                    "added": {
+                      "main": 21576077,
+                      "side": 572850
+                    },
+                    "combined_inventory_preserved": true
+                  },
+                  "reason": "deck violates semantic count constraint: public-pearl-main-axis"
+                }
+              ]
+            },
+            "single:extra": {
+              "attempted": 230,
+              "accepted": 20,
+              "filtered": {
+                "non-extra-deck card in extra deck": 110,
+                "combined main/extra/side alias limit exceeded": 100
+              },
+              "rejection_samples": [
+                {
+                  "edit": {
+                    "kind": "single_zone_substitution",
+                    "zones": [
+                      "extra"
+                    ],
+                    "removed": {
+                      "extra": 1174075
+                    },
+                    "added": {
+                      "extra": 2511
+                    }
+                  },
+                  "reason": "non-extra-deck card in extra deck"
+                },
+                {
+                  "edit": {
+                    "kind": "single_zone_substitution",
+                    "zones": [
+                      "extra"
+                    ],
+                    "removed": {
+                      "extra": 1174075
+                    },
+                    "added": {
+                      "extra": 572850
+                    }
+                  },
+                  "reason": "combined main/extra/side alias limit exceeded"
+                }
+              ]
+            },
+            "exchange:extra+side": {
+              "attempted": 30,
+              "accepted": 5,
+              "filtered": {
+                "non-extra-deck card in extra deck": 25
+              },
+              "rejection_samples": [
+                {
+                  "edit": {
+                    "kind": "atomic_cross_zone_exchange",
+                    "zones": [
+                      "extra",
+                      "side"
+                    ],
+                    "removed": {
+                      "extra": 1174075,
+                      "side": 572850
+                    },
+                    "added": {
+                      "extra": 572850,
+                      "side": 1174075
+                    },
+                    "combined_inventory_preserved": true
+                  },
+                  "reason": "non-extra-deck card in extra deck"
+                },
+                {
+                  "edit": {
+                    "kind": "atomic_cross_zone_exchange",
+                    "zones": [
+                      "extra",
+                      "side"
+                    ],
+                    "removed": {
+                      "extra": 1174075,
+                      "side": 21576077
+                    },
+                    "added": {
+                      "extra": 21576077,
+                      "side": 1174075
+                    },
+                    "combined_inventory_preserved": true
+                  },
+                  "reason": "non-extra-deck card in extra deck"
+                }
+              ]
+            },
+            "single:side": {
+              "attempted": 58,
+              "accepted": 32,
+              "filtered": {
+                "combined main/extra/side alias limit exceeded": 26
+              },
+              "rejection_samples": [
+                {
+                  "edit": {
+                    "kind": "single_zone_substitution",
+                    "zones": [
+                      "side"
+                    ],
+                    "removed": {
+                      "side": 572850
+                    },
+                    "added": {
+                      "side": 1151281
+                    }
+                  },
+                  "reason": "combined main/extra/side alias limit exceeded"
+                },
+                {
+                  "edit": {
+                    "kind": "single_zone_substitution",
+                    "zones": [
+                      "side"
+                    ],
+                    "removed": {
+                      "side": 572850
+                    },
+                    "added": {
+                      "side": 1174075
+                    }
+                  },
+                  "reason": "combined main/extra/side alias limit exceeded"
+                }
+              ]
+            }
+          },
+          "zone_limits": {
+            "main": {
+              "accepted": 32,
+              "limit": 32,
+              "enumeration_complete": false
+            },
+            "extra": {
+              "accepted": 25,
+              "limit": 32,
+              "enumeration_complete": true
+            },
+            "side": {
+              "accepted": 32,
+              "limit": 32,
+              "enumeration_complete": false
+            }
+          },
+          "legal_edit_candidates": 89,
+          "portfolio_candidates": 16,
+          "legal_edits_outside_portfolio": 75,
+          "candidate_budget": 16,
+          "portfolio": {
+            "candidate_budget": 16,
+            "generated_strategy_counts": {
+              "incumbent": 1,
+              "axis:setcode-3b": 2,
+              "axis:setcode-88": 2,
+              "axis:setcode-d6": 2,
+              "axis:setcode-155": 2,
+              "axis:mechanism:xyz-364170add97371650422": 2,
+              "axis:mechanism:xyz-143c338af66ac96d65ea": 2,
+              "axis:mechanism:xyz-50305aa72b36df5f58e5": 2,
+              "axis:mechanism:xyz-71aad96502abbb97c875": 2,
+              "dependency:inventory": 0,
+              "transfer:main+side": 19,
+              "single:main": 13,
+              "transfer:extra+side": 5,
+              "single:extra": 20,
+              "single:side": 32
+            },
+            "family_order": [
+              "incumbent",
+              "dependency:inventory",
+              "axis_and_mechanism_packages",
+              "edit:main",
+              "edit:extra",
+              "edit:side"
+            ],
+            "admitted_by_family": {
+              "incumbent": 1,
+              "dependency:inventory": 0,
+              "axis_and_mechanism_packages": 4,
+              "edit:main": 4,
+              "edit:extra": 4,
+              "edit:side": 3
+            },
+            "rounds": 4,
+            "filtered": {
+              "duplicate_deck": 2
+            },
+            "remaining_generated_rows": 88,
+            "axis_internal_filter_trace": "not_available",
+            "budget_order_is_quality_label": false
+          },
+          "constraints_checked": [
+            "section_sizes",
+            "destination_zone",
+            "combined_alias_copy_limits",
+            "explicit_task_constraints"
+          ]
+        }
+      }
+    ]
+  },
+  "checkpoint_sha256": "67de51d0910d144ae71b4c89352486f227f534fdda8e8ccb39809ab96c8d5637",
+  "phases": [
+    {
+      "phase": 1,
+      "role": "build_goal",
+      "candidates": 16,
+      "comparisons": 120,
+      "comparison_statuses": {
+        "tradeoff": 83,
+        "undetermined": 15,
+        "preferred": 22
+      },
+      "selected": 10,
+      "previous_model_first": 10,
+      "known_deficits": {
+        "effect:1174075:1:0:candidate_component:shortfall": 1,
+        "effect:1174075:1:0:candidate_component:blocked_copies": 3,
+        "effect:2729285:1:0:candidate_component:shortfall": 1,
+        "effect:2729285:1:0:candidate_component:blocked_copies": 3,
+        "materials:28226490:shortfall": 1,
+        "materials:28226490:blocked_copies": 3,
+        "materials:58468105:shortfall": 1,
+        "materials:58468105:blocked_copies": 3
+      },
+      "unknown_groups": 13,
+      "input_deck": null,
+      "output_deck": {
+        "main": [
+          2511,
+          2511,
+          2511,
+          572850,
+          572850,
+          572850,
+          1151281,
+          1151281,
+          1151281,
+          2729285,
+          2729285,
+          2729285,
+          4836680,
+          4836680,
+          4836680,
+          5186893,
+          5186893,
+          5186893,
+          5818294,
+          5818294,
+          5818294,
+          6767771,
+          6767771,
+          6767771,
+          19310321,
+          19310321,
+          19310321,
+          32566831,
+          32566831,
+          32566831,
+          37961969,
+          37961969,
+          37961969,
+          38436986,
+          38436986,
+          38436986,
+          40597694,
+          40597694,
+          40597694,
+          74677422
+        ],
+        "extra": [
+          1174075,
+          1174075,
+          1174075,
+          23649496,
+          23649496,
+          23649496,
+          28226490,
+          28226490,
+          28226490,
+          58468105,
+          58468105,
+          58468105,
+          92731385,
+          92731385,
+          92731385
+        ],
+        "side": [
+          21576077,
+          21576077,
+          21576077,
+          41386308,
+          41386308,
+          41386308,
+          74078255,
+          74078255,
+          74078255,
+          74920585,
+          74920585,
+          74920585,
+          84330567,
+          84330567,
+          84330567
+        ]
+      },
+      "learning_candidates": 16
+    },
+    {
+      "phase": 2,
+      "role": "build_optimizer",
+      "candidates": 16,
+      "comparisons": 120,
+      "comparison_statuses": {
+        "undetermined": 23,
+        "preferred": 70,
+        "equivalent": 1,
+        "tradeoff": 26
+      },
+      "selected": 1,
+      "previous_model_first": 5,
+      "known_deficits": {},
+      "unknown_groups": 14,
+      "input_deck": {
+        "main": [
+          2511,
+          2511,
+          2511,
+          572850,
+          572850,
+          572850,
+          1151281,
+          1151281,
+          1151281,
+          2729285,
+          2729285,
+          2729285,
+          4836680,
+          4836680,
+          4836680,
+          5186893,
+          5186893,
+          5186893,
+          5818294,
+          5818294,
+          5818294,
+          6767771,
+          6767771,
+          6767771,
+          19310321,
+          19310321,
+          19310321,
+          32566831,
+          32566831,
+          32566831,
+          37961969,
+          37961969,
+          37961969,
+          38436986,
+          38436986,
+          38436986,
+          40597694,
+          40597694,
+          40597694,
+          74677422
+        ],
+        "extra": [
+          1174075,
+          1174075,
+          1174075,
+          23649496,
+          23649496,
+          23649496,
+          28226490,
+          28226490,
+          28226490,
+          58468105,
+          58468105,
+          58468105,
+          92731385,
+          92731385,
+          92731385
+        ],
+        "side": [
+          21576077,
+          21576077,
+          21576077,
+          41386308,
+          41386308,
+          41386308,
+          74078255,
+          74078255,
+          74078255,
+          74920585,
+          74920585,
+          74920585,
+          84330567,
+          84330567,
+          84330567
+        ]
+      },
+      "output_deck": {
+        "main": [
+          572850,
+          572850,
+          572850,
+          1151281,
+          1151281,
+          1151281,
+          2729285,
+          2729285,
+          4836680,
+          4836680,
+          4836680,
+          5186893,
+          5186893,
+          5186893,
+          5818294,
+          5818294,
+          5818294,
+          6767771,
+          6767771,
+          6767771,
+          19310321,
+          19310321,
+          19310321,
+          21576077,
+          24094653,
+          29280589,
+          32566831,
+          32566831,
+          32566831,
+          37961969,
+          37961969,
+          37961969,
+          38436986,
+          38436986,
+          38436986,
+          40597694,
+          40597694,
+          40597694,
+          73956664,
+          74677422
+        ],
+        "extra": [
+          1174075,
+          1174075,
+          1174075,
+          23649496,
+          23649496,
+          23649496,
+          28226490,
+          28226490,
+          28226490,
+          58468105,
+          58468105,
+          58468105,
+          92731385,
+          92731385,
+          92731385
+        ],
+        "side": [
+          2511,
+          21576077,
+          21576077,
+          41386308,
+          41386308,
+          41386308,
+          74078255,
+          74078255,
+          74078255,
+          74920585,
+          74920585,
+          74920585,
+          84330567,
+          84330567,
+          84330567
+        ]
+      },
+      "learning_candidates": 16
+    },
+    {
+      "phase": 3,
+      "role": "build_goal",
+      "candidates": 16,
+      "comparisons": 120,
+      "comparison_statuses": {
+        "tradeoff": 59,
+        "preferred": 27,
+        "equivalent": 7,
+        "undetermined": 27
+      },
+      "selected": 6,
+      "previous_model_first": 3,
+      "known_deficits": {},
+      "unknown_groups": 16,
+      "input_deck": {
+        "main": [
+          572850,
+          572850,
+          572850,
+          1151281,
+          1151281,
+          1151281,
+          2729285,
+          2729285,
+          4836680,
+          4836680,
+          4836680,
+          5186893,
+          5186893,
+          5186893,
+          5818294,
+          5818294,
+          5818294,
+          6767771,
+          6767771,
+          6767771,
+          19310321,
+          19310321,
+          19310321,
+          21576077,
+          24094653,
+          29280589,
+          32566831,
+          32566831,
+          32566831,
+          37961969,
+          37961969,
+          37961969,
+          38436986,
+          38436986,
+          38436986,
+          40597694,
+          40597694,
+          40597694,
+          73956664,
+          74677422
+        ],
+        "extra": [
+          1174075,
+          1174075,
+          1174075,
+          23649496,
+          23649496,
+          23649496,
+          28226490,
+          28226490,
+          28226490,
+          58468105,
+          58468105,
+          58468105,
+          92731385,
+          92731385,
+          92731385
+        ],
+        "side": [
+          2511,
+          21576077,
+          21576077,
+          41386308,
+          41386308,
+          41386308,
+          74078255,
+          74078255,
+          74078255,
+          74920585,
+          74920585,
+          74920585,
+          84330567,
+          84330567,
+          84330567
+        ]
+      },
+      "output_deck": {
+        "main": [
+          2511,
+          572850,
+          572850,
+          1151281,
+          1151281,
+          1151281,
+          2729285,
+          2729285,
+          4836680,
+          4836680,
+          4836680,
+          5186893,
+          5186893,
+          5186893,
+          5818294,
+          5818294,
+          5818294,
+          6767771,
+          6767771,
+          6767771,
+          19310321,
+          19310321,
+          19310321,
+          21576077,
+          24094653,
+          29280589,
+          32566831,
+          32566831,
+          32566831,
+          37961969,
+          37961969,
+          37961969,
+          38436986,
+          38436986,
+          38436986,
+          40597694,
+          40597694,
+          40597694,
+          73956664,
+          74677422
+        ],
+        "extra": [
+          1174075,
+          1174075,
+          1174075,
+          23649496,
+          23649496,
+          23649496,
+          28226490,
+          28226490,
+          28226490,
+          58468105,
+          58468105,
+          58468105,
+          92731385,
+          92731385,
+          92731385
+        ],
+        "side": [
+          572850,
+          21576077,
+          21576077,
+          41386308,
+          41386308,
+          41386308,
+          74078255,
+          74078255,
+          74078255,
+          74920585,
+          74920585,
+          74920585,
+          84330567,
+          84330567,
+          84330567
+        ]
+      },
+      "learning_candidates": 16
+    },
+    {
+      "phase": 4,
+      "role": "build_optimizer",
+      "candidates": 16,
+      "comparisons": 120,
+      "comparison_statuses": {
+        "tradeoff": 38,
+        "preferred": 37,
+        "equivalent": 6,
+        "undetermined": 39
+      },
+      "selected": 13,
+      "previous_model_first": 5,
+      "known_deficits": {},
+      "unknown_groups": 17,
+      "input_deck": {
+        "main": [
+          2511,
+          572850,
+          572850,
+          1151281,
+          1151281,
+          1151281,
+          2729285,
+          2729285,
+          4836680,
+          4836680,
+          4836680,
+          5186893,
+          5186893,
+          5186893,
+          5818294,
+          5818294,
+          5818294,
+          6767771,
+          6767771,
+          6767771,
+          19310321,
+          19310321,
+          19310321,
+          21576077,
+          24094653,
+          29280589,
+          32566831,
+          32566831,
+          32566831,
+          37961969,
+          37961969,
+          37961969,
+          38436986,
+          38436986,
+          38436986,
+          40597694,
+          40597694,
+          40597694,
+          73956664,
+          74677422
+        ],
+        "extra": [
+          1174075,
+          1174075,
+          1174075,
+          23649496,
+          23649496,
+          23649496,
+          28226490,
+          28226490,
+          28226490,
+          58468105,
+          58468105,
+          58468105,
+          92731385,
+          92731385,
+          92731385
+        ],
+        "side": [
+          572850,
+          21576077,
+          21576077,
+          41386308,
+          41386308,
+          41386308,
+          74078255,
+          74078255,
+          74078255,
+          74920585,
+          74920585,
+          74920585,
+          84330567,
+          84330567,
+          84330567
+        ]
+      },
+      "output_deck": {
+        "main": [
+          2511,
+          572850,
+          572850,
+          1151281,
+          1151281,
+          1151281,
+          2729285,
+          2729285,
+          4836680,
+          4836680,
+          4836680,
+          5186893,
+          5186893,
+          5186893,
+          5818294,
+          5818294,
+          5818294,
+          6767771,
+          6767771,
+          6767771,
+          19310321,
+          19310321,
+          19310321,
+          21576077,
+          24094653,
+          29280589,
+          32566831,
+          32566831,
+          32566831,
+          37961969,
+          37961969,
+          37961969,
+          38436986,
+          38436986,
+          38436986,
+          40597694,
+          40597694,
+          40597694,
+          73956664,
+          74677422
+        ],
+        "extra": [
+          1174075,
+          1174075,
+          23649496,
+          23649496,
+          23649496,
+          28226490,
+          28226490,
+          28226490,
+          58468105,
+          58468105,
+          58468105,
+          75840616,
+          92731385,
+          92731385,
+          92731385
+        ],
+        "side": [
+          572850,
+          21576077,
+          21576077,
+          41386308,
+          41386308,
+          41386308,
+          74078255,
+          74078255,
+          74078255,
+          74920585,
+          74920585,
+          74920585,
+          84330567,
+          84330567,
+          84330567
+        ]
+      },
+      "learning_candidates": 16
+    }
+  ],
+  "whole_inventory": {
+    "kind": "static_necessary_inventory_dependencies",
+    "cards": {
+      "2511": {
+        "effects": [
+          {
+            "status": "unknown",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [
+              {
+                "category": "costs",
+                "source": "把这张卡从手卡"
+              }
+            ],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:2511:1:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          },
+          {
+            "status": "unknown",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [
+              {
+                "category": "costs",
+                "source": "把「白银之城的狂时钟」以外的「拉比林斯迷宫」卡的效果或者通常陷阱卡发动而让手卡的卡被送去墓地"
+              }
+            ],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:2511:2:1:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "572850": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [
+              {
+                "query": {
+                  "type": 1,
+                  "selector": "怪兽"
+                },
+                "minimum": 1,
+                "source": "从自己手卡选1只怪兽送去墓地",
+                "origin": "hand",
+                "category": "operations",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从自己手卡选1只怪兽送去墓地",
+                  "order": 11,
+                  "from_zones": [
+                    "hand"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从自己手卡选1只怪兽送去墓地",
+                  "quantity": 1,
+                  "owner": "self"
+                },
+                "available": 26,
+                "matching_card_ids": [
+                  2511,
+                  572850,
+                  1151281,
+                  2729285,
+                  4836680,
+                  5186893,
+                  5818294,
+                  19310321,
+                  29280589,
+                  37961969,
+                  73956664,
+                  74677422
+                ],
+                "shortfall": 0
+              }
+            ],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:572850:1:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          },
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:572850:2:1:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "1151281": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:1151281:1:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          },
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:1151281:2:1:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          },
+          {
+            "status": "inventory_present",
+            "requirements": [
+              {
+                "query": {
+                  "selector": "卡"
+                },
+                "minimum": 1,
+                "source": "从卡组选1张卡送去墓地",
+                "origin": "deck",
+                "category": "operations",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从卡组选1张卡送去墓地",
+                  "order": 0,
+                  "from_zones": [
+                    "deck"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从卡组选1张卡送去墓地",
+                  "random": false,
+                  "quantity": 1,
+                  "owner": "self"
+                },
+                "available": 40,
+                "matching_card_ids": [
+                  2511,
+                  572850,
+                  1151281,
+                  2729285,
+                  4836680,
+                  5186893,
+                  5818294,
+                  6767771,
+                  19310321,
+                  21576077,
+                  24094653,
+                  29280589,
+                  32566831,
+                  37961969,
+                  38436986,
+                  40597694,
+                  73956664,
+                  74677422
+                ],
+                "shortfall": 0
+              }
+            ],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:1151281:3:2:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "1174075": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [
+              {
+                "query": {
+                  "name_contains": "龙辉巧",
+                  "selector": "「龙辉巧」卡",
+                  "setcode": 340
+                },
+                "minimum": 1,
+                "source": "从卡组把1张「龙辉巧」卡送去墓地",
+                "origin": "deck",
+                "category": "operations",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从卡组把1张「龙辉巧」卡送去墓地",
+                  "order": 0,
+                  "from_zones": [
+                    "deck"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从卡组把1张「龙辉巧」卡送去墓地",
+                  "random": false,
+                  "quantity": 1,
+                  "owner": "self"
+                },
+                "available": 1,
+                "matching_card_ids": [
+                  21576077
+                ],
+                "shortfall": 0
+              }
+            ],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:1174075:1:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          },
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:1174075:2:1:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          },
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:1174075:3:2:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "2729285": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [
+              {
+                "query": {
+                  "exact_name": "融合",
+                  "selector": "「融合」"
+                },
+                "minimum": 1,
+                "source": "以自己墓地1张「融合」为对象",
+                "origin": "grave",
+                "category": "targets",
+                "available": 1,
+                "matching_card_ids": [
+                  24094653
+                ],
+                "shortfall": 0
+              }
+            ],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:2729285:1:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "4836680": {
+        "effects": [
+          {
+            "status": "unknown",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [
+              {
+                "category": "targets",
+                "source": "以自己墓地1张「娱乐伙伴」卡或者「异色眼」卡为对象"
+              }
+            ],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:4836680:1:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          },
+          {
+            "status": "unknown",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [
+              {
+                "category": "costs",
+                "source": "把这张卡除外"
+              },
+              {
+                "category": "targets",
+                "source": "以自己墓地1只「娱乐伙伴」怪兽或者「异色眼」怪兽为对象"
+              },
+              {
+                "category": "operations",
+                "source": "从卡组选1只「娱乐伙伴」灵摆怪兽或者「异色眼」灵摆怪兽表侧表示加入自己的额外卡组或送去墓地",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从卡组选1只「娱乐伙伴」灵摆怪兽或者「异色眼」灵摆怪兽表侧表示加入自己的额外卡组或送去墓地",
+                  "order": 17,
+                  "from_zones": [
+                    "deck"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从卡组选1只「娱乐伙伴」灵摆怪兽或者「异色眼」灵摆怪兽表侧表示加入自己的额外卡组或送去墓地",
+                  "random": false,
+                  "quantity": 1,
+                  "owner": "self"
+                }
+              }
+            ],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:4836680:1:1:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "5186893": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:5186893:1:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "5818294": {
+        "effects": [
+          {
+            "status": "unknown",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [
+              {
+                "category": "costs",
+                "source": "把墓地的这张卡除外"
+              }
+            ],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:5818294:1:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "6767771": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:6767771:1:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          },
+          {
+            "status": "inventory_present",
+            "requirements": [
+              {
+                "query": {
+                  "name_contains": "珠泪哀歌族",
+                  "type": 4,
+                  "selector": "「珠泪哀歌族」陷阱卡",
+                  "setcode": 385
+                },
+                "minimum": 1,
+                "source": "从卡组把1张「珠泪哀歌族」陷阱卡加入手卡",
+                "origin": "deck",
+                "category": "operations",
+                "operation": {
+                  "kind": "search_or_recover",
+                  "reason": "effect",
+                  "source": "从卡组把1张「珠泪哀歌族」陷阱卡加入手卡",
+                  "order": 0,
+                  "from_zones": [
+                    "hand",
+                    "deck"
+                  ],
+                  "to_zone": "hand",
+                  "selector": "从卡组把1张「珠泪哀歌族」陷阱卡加入手卡",
+                  "quantity": 1,
+                  "owner": "self"
+                },
+                "available": 3,
+                "matching_card_ids": [
+                  38436986
+                ],
+                "shortfall": 0
+              }
+            ],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:6767771:2:1:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "19310321": {
+        "effects": [
+          {
+            "status": "unknown",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [
+              {
+                "category": "costs",
+                "source": "把墓地的这张卡从游戏中除外"
+              }
+            ],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:19310321:0:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "21576077": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [
+              {
+                "query": {
+                  "name_contains": "龙辉巧",
+                  "type": 1,
+                  "selector": "「龙辉巧」怪兽",
+                  "setcode": 340
+                },
+                "minimum": 1,
+                "source": "以自己墓地1只「龙辉巧」怪兽为对象",
+                "origin": "grave",
+                "category": "targets",
+                "available": 2,
+                "matching_card_ids": [
+                  1174075
+                ],
+                "shortfall": 0
+              }
+            ],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:21576077:1:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          },
+          {
+            "status": "unknown",
+            "requirements": [
+              {
+                "query": {
+                  "name_contains": "龙辉巧",
+                  "type": 1,
+                  "selector": "「龙辉巧」怪兽",
+                  "setcode": 340
+                },
+                "minimum": 1,
+                "source": "以自己场上1只「龙辉巧」怪兽为对象",
+                "origin": "field",
+                "category": "targets",
+                "available": 2,
+                "matching_card_ids": [
+                  1174075
+                ],
+                "shortfall": 0
+              }
+            ],
+            "shortfall": 0,
+            "unknown_selectors": [
+              {
+                "category": "costs",
+                "source": "把墓地的这张卡除外"
+              }
+            ],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:21576077:2:1:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "23649496": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:23649496:1:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          },
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:23649496:2:1:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          },
+          {
+            "status": "inventory_present",
+            "requirements": [
+              {
+                "query": {
+                  "name_contains": "纹章兽",
+                  "type": 1,
+                  "selector": "「纹章兽」怪兽",
+                  "setcode": 118
+                },
+                "minimum": 2,
+                "source": "从卡组把2只「纹章兽」怪兽送去墓地",
+                "origin": "deck",
+                "category": "operations",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从卡组把2只「纹章兽」怪兽送去墓地",
+                  "order": 0,
+                  "from_zones": [
+                    "deck"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从卡组把2只「纹章兽」怪兽送去墓地",
+                  "random": false,
+                  "quantity": 2,
+                  "owner": "self"
+                },
+                "available": 3,
+                "matching_card_ids": [
+                  19310321
+                ],
+                "shortfall": 0
+              }
+            ],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:23649496:3:2:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "24094653": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:24094653:1:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "28226490": {
+        "effects": [
+          {
+            "status": "unknown",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [
+              {
+                "category": "targets",
+                "source": "以对方场上1张卡为对象"
+              }
+            ],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:28226490:1:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          },
+          {
+            "status": "inventory_present",
+            "requirements": [
+              {
+                "query": {
+                  "name_contains": "珠泪哀歌族",
+                  "selector": "「珠泪哀歌族」卡",
+                  "setcode": 385
+                },
+                "minimum": 1,
+                "source": "从卡组把1张「珠泪哀歌族」卡送去墓地",
+                "origin": "deck",
+                "category": "operations",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从卡组把1张「珠泪哀歌族」卡送去墓地",
+                  "order": 8,
+                  "from_zones": [
+                    "deck"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从卡组把1张「珠泪哀歌族」卡送去墓地",
+                  "random": false,
+                  "quantity": 1,
+                  "owner": "self"
+                },
+                "available": 12,
+                "matching_card_ids": [
+                  572850,
+                  6767771,
+                  37961969,
+                  38436986,
+                  73956664
+                ],
+                "shortfall": 0
+              }
+            ],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:28226490:2:1:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": {
+          "status": "inventory_present",
+          "requirements": [
+            {
+              "query": {
+                "exact_name": "珠泪哀歌族·雷诺哈特",
+                "selector": "「珠泪哀歌族·雷诺哈特」"
+              },
+              "minimum": 1,
+              "source": "「珠泪哀歌族·雷诺哈特」",
+              "origin": "material",
+              "category": "material",
+              "available": 1,
+              "matching_card_ids": [
+                73956664
+              ],
+              "shortfall": 0
+            },
+            {
+              "query": {
+                "race": 64,
+                "selector": "水族怪兽×2"
+              },
+              "minimum": 2,
+              "source": "水族怪兽×2",
+              "origin": "material",
+              "category": "material",
+              "available": 11,
+              "matching_card_ids": [
+                572850,
+                1151281,
+                37961969,
+                92731385
+              ],
+              "shortfall": 0
+            }
+          ],
+          "shortfall": 0,
+          "unknown_selectors": [],
+          "execution_status": "unknown",
+          "access_to_required_zone_verified": false
+        }
+      },
+      "29280589": {
+        "effects": [
+          {
+            "status": "unknown",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [
+              {
+                "category": "costs",
+                "source": "把手卡"
+              },
+              {
+                "category": "operations",
+                "source": "从自己的手卡·场上把「魔玩具」融合怪兽卡决定的包含手卡的这张卡的融合素材怪兽送去墓地",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从自己的手卡·场上把「魔玩具」融合怪兽卡决定的包含手卡的这张卡的融合素材怪兽送去墓地",
+                  "order": 0,
+                  "from_zones": [
+                    "hand"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从自己的手卡·场上把「魔玩具」融合怪兽卡决定的包含手卡的这张卡的融合素材怪兽送去墓地",
+                  "quantity": null,
+                  "owner": "self"
+                }
+              }
+            ],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:29280589:1:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          },
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:29280589:2:1:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "32566831": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [
+              {
+                "query": {
+                  "level": 7,
+                  "name_contains": "真红眼",
+                  "type": 1,
+                  "selector": "7星「真红眼」怪兽",
+                  "setcode": 59
+                },
+                "minimum": 1,
+                "source": "从手卡把1只7星「真红眼」怪兽送去墓地",
+                "origin": "hand",
+                "category": "costs",
+                "available": 4,
+                "matching_card_ids": [
+                  5186893,
+                  74677422
+                ],
+                "shortfall": 0
+              },
+              {
+                "query": {
+                  "level": 7,
+                  "name_contains": "真红眼",
+                  "type": 1,
+                  "selector": "7星「真红眼」怪兽",
+                  "setcode": 59
+                },
+                "minimum": 1,
+                "source": "从卡组把1只7星「真红眼」怪兽送去墓地",
+                "origin": "deck",
+                "category": "operations",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从卡组把1只7星「真红眼」怪兽送去墓地",
+                  "order": 15,
+                  "from_zones": [
+                    "deck"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从卡组把1只7星「真红眼」怪兽送去墓地",
+                  "random": false,
+                  "quantity": 1,
+                  "owner": "self"
+                },
+                "available": 4,
+                "matching_card_ids": [
+                  5186893,
+                  74677422
+                ],
+                "shortfall": 0
+              }
+            ],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:32566831:1:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "37961969": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:37961969:1:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          },
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:37961969:2:1:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "38436986": {
+        "effects": [
+          {
+            "status": "unknown",
+            "requirements": [
+              {
+                "query": {
+                  "name_contains": "珠泪哀歌族",
+                  "type": 1,
+                  "selector": "「珠泪哀歌族」怪兽",
+                  "setcode": 385
+                },
+                "minimum": 1,
+                "source": "从卡组把1只「珠泪哀歌族」怪兽送去墓地",
+                "origin": "deck",
+                "category": "operations",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从卡组把1只「珠泪哀歌族」怪兽送去墓地",
+                  "order": 17,
+                  "from_zones": [
+                    "deck"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从卡组把1只「珠泪哀歌族」怪兽送去墓地",
+                  "random": false,
+                  "quantity": 1,
+                  "owner": "self"
+                },
+                "available": 6,
+                "matching_card_ids": [
+                  572850,
+                  37961969,
+                  73956664
+                ],
+                "shortfall": 0
+              }
+            ],
+            "shortfall": 0,
+            "unknown_selectors": [
+              {
+                "category": "targets",
+                "source": "以对方场上1只表侧表示怪兽为对象"
+              }
+            ],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:38436986:1:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          },
+          {
+            "status": "inventory_present",
+            "requirements": [
+              {
+                "query": {
+                  "name_contains": "珠泪哀歌族",
+                  "type": 1,
+                  "selector": "「珠泪哀歌族」怪兽",
+                  "setcode": 385
+                },
+                "minimum": 1,
+                "source": "以自己墓地1只「珠泪哀歌族」怪兽为对象",
+                "origin": "grave",
+                "category": "targets",
+                "available": 12,
+                "matching_card_ids": [
+                  572850,
+                  28226490,
+                  37961969,
+                  73956664,
+                  92731385
+                ],
+                "shortfall": 0
+              }
+            ],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:38436986:2:1:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "40597694": {
+        "effects": [
+          {
+            "status": "unknown",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [
+              {
+                "category": "operations",
+                "source": "从自己卡组送去墓地",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从自己卡组送去墓地",
+                  "order": 26,
+                  "from_zones": [
+                    "deck"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从自己卡组送去墓地",
+                  "random": false,
+                  "quantity": null,
+                  "owner": "self"
+                }
+              }
+            ],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:40597694:1:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "58468105": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:58468105:1:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          },
+          {
+            "status": "unknown",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [
+              {
+                "category": "operations",
+                "source": "从卡组送去墓地",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从卡组送去墓地",
+                  "order": 32,
+                  "from_zones": [
+                    "deck"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从卡组送去墓地",
+                  "random": false,
+                  "quantity": null,
+                  "owner": "self"
+                }
+              }
+            ],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:58468105:2:1:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          },
+          {
+            "status": "unknown",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [
+              {
+                "category": "costs",
+                "source": "把1只「魔玩具」怪兽除外"
+              }
+            ],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:58468105:3:2:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": {
+          "status": "inventory_present",
+          "requirements": [
+            {
+              "query": {
+                "name_contains": "锋利小鬼",
+                "selector": "「锋利小鬼」怪兽",
+                "type": 1,
+                "setcode": 195
+              },
+              "minimum": 1,
+              "source": "「锋利小鬼」怪兽",
+              "origin": "material",
+              "category": "material",
+              "available": 1,
+              "matching_card_ids": [
+                29280589
+              ],
+              "shortfall": 0
+            },
+            {
+              "query": {
+                "name_contains": "毛绒动物",
+                "selector": "「毛绒动物」怪兽×2",
+                "type": 1,
+                "setcode": 169
+              },
+              "minimum": 2,
+              "source": "「毛绒动物」怪兽×2",
+              "origin": "material",
+              "category": "material",
+              "available": 2,
+              "matching_card_ids": [
+                2729285
+              ],
+              "shortfall": 0
+            }
+          ],
+          "shortfall": 0,
+          "unknown_selectors": [],
+          "execution_status": "unknown",
+          "access_to_required_zone_verified": false
+        }
+      },
+      "73956664": {
+        "effects": [
+          {
+            "status": "unknown",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [
+              {
+                "category": "operations",
+                "source": "从卡组把「珠泪哀歌族·雷诺哈特」以外的1只「珠泪哀歌族」怪兽送去墓地",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从卡组把「珠泪哀歌族·雷诺哈特」以外的1只「珠泪哀歌族」怪兽送去墓地",
+                  "order": 0,
+                  "from_zones": [
+                    "deck"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从卡组把「珠泪哀歌族·雷诺哈特」以外的1只「珠泪哀歌族」怪兽送去墓地",
+                  "random": false,
+                  "quantity": 1,
+                  "owner": "self"
+                }
+              }
+            ],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:73956664:1:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          },
+          {
+            "status": "inventory_present",
+            "requirements": [
+              {
+                "query": {
+                  "name_contains": "珠泪哀歌族",
+                  "selector": "「珠泪哀歌族」卡",
+                  "setcode": 385
+                },
+                "minimum": 1,
+                "source": "从自己手卡选1张「珠泪哀歌族」卡送去墓地",
+                "origin": "hand",
+                "category": "operations",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从自己手卡选1张「珠泪哀歌族」卡送去墓地",
+                  "order": 8,
+                  "from_zones": [
+                    "hand"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从自己手卡选1张「珠泪哀歌族」卡送去墓地",
+                  "quantity": 1,
+                  "owner": "self"
+                },
+                "available": 12,
+                "matching_card_ids": [
+                  572850,
+                  6767771,
+                  37961969,
+                  38436986,
+                  73956664
+                ],
+                "shortfall": 0
+              }
+            ],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:73956664:2:1:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "74677422": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:74677422:0:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "75840616": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:75840616:1:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          },
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:75840616:2:1:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          },
+          {
+            "status": "unknown",
+            "requirements": [
+              {
+                "query": {
+                  "name_contains": "武神",
+                  "type": 1,
+                  "selector": "「武神」怪兽",
+                  "setcode": 136
+                },
+                "minimum": 1,
+                "source": "从卡组选1只「武神」怪兽加入手卡",
+                "origin": "deck",
+                "category": "operations",
+                "operation": {
+                  "kind": "search_or_recover",
+                  "reason": "effect",
+                  "source": "从卡组选1只「武神」怪兽加入手卡",
+                  "order": 0,
+                  "from_zones": [
+                    "hand",
+                    "deck"
+                  ],
+                  "to_zone": "hand",
+                  "selector": "从卡组选1只「武神」怪兽加入手卡",
+                  "quantity": 1,
+                  "owner": "self"
+                },
+                "available": 3,
+                "matching_card_ids": [
+                  5818294
+                ],
+                "shortfall": 0
+              }
+            ],
+            "shortfall": 0,
+            "unknown_selectors": [
+              {
+                "category": "operations",
+                "source": "从卡组选1只「武神」怪兽加入手卡或送去墓地",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从卡组选1只「武神」怪兽加入手卡或送去墓地",
+                  "order": 0,
+                  "from_zones": [
+                    "deck"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从卡组选1只「武神」怪兽加入手卡或送去墓地",
+                  "random": false,
+                  "quantity": 1,
+                  "owner": "self"
+                }
+              }
+            ],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:75840616:3:2:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "92731385": {
+        "effects": [
+          {
+            "status": "unknown",
+            "requirements": [
+              {
+                "query": {
+                  "name_contains": "珠泪哀歌族",
+                  "selector": "「珠泪哀歌族」卡",
+                  "setcode": 385
+                },
+                "minimum": 1,
+                "source": "从卡组选1张「珠泪哀歌族」卡加入手卡",
+                "origin": "deck",
+                "category": "operations",
+                "operation": {
+                  "kind": "search_or_recover",
+                  "reason": "effect",
+                  "source": "从卡组选1张「珠泪哀歌族」卡加入手卡",
+                  "order": 0,
+                  "from_zones": [
+                    "hand",
+                    "deck"
+                  ],
+                  "to_zone": "hand",
+                  "selector": "从卡组选1张「珠泪哀歌族」卡加入手卡",
+                  "quantity": 1,
+                  "owner": "self"
+                },
+                "available": 12,
+                "matching_card_ids": [
+                  572850,
+                  6767771,
+                  37961969,
+                  38436986,
+                  73956664
+                ],
+                "shortfall": 0
+              }
+            ],
+            "shortfall": 0,
+            "unknown_selectors": [
+              {
+                "category": "operations",
+                "source": "从卡组选1张「珠泪哀歌族」卡加入手卡或送去墓地",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从卡组选1张「珠泪哀歌族」卡加入手卡或送去墓地",
+                  "order": 0,
+                  "from_zones": [
+                    "deck"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从卡组选1张「珠泪哀歌族」卡加入手卡或送去墓地",
+                  "random": false,
+                  "quantity": 1,
+                  "owner": "self"
+                }
+              }
+            ],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:92731385:1:0:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          },
+          {
+            "status": "unknown",
+            "requirements": [
+              {
+                "query": {
+                  "type": 1,
+                  "selector": "怪兽"
+                },
+                "minimum": 1,
+                "source": "以自己场上1只怪兽为对象",
+                "origin": "field",
+                "category": "targets",
+                "available": 41,
+                "matching_card_ids": [
+                  2511,
+                  572850,
+                  1151281,
+                  1174075,
+                  2729285,
+                  4836680,
+                  5186893,
+                  5818294,
+                  19310321,
+                  23649496,
+                  28226490,
+                  29280589,
+                  37961969,
+                  58468105,
+                  73956664,
+                  74677422,
+                  75840616,
+                  92731385
+                ],
+                "shortfall": 0
+              }
+            ],
+            "shortfall": 0,
+            "unknown_selectors": [
+              {
+                "category": "operations",
+                "source": "从自己的手卡·墓地选1只「珠泪哀歌族」怪兽特殊召唤，作为对象的怪兽送去墓地",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从自己的手卡·墓地选1只「珠泪哀歌族」怪兽特殊召唤，作为对象的怪兽送去墓地",
+                  "order": 0,
+                  "from_zones": [
+                    "hand"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从自己的手卡·墓地选1只「珠泪哀歌族」怪兽特殊召唤，作为对象的怪兽送去墓地",
+                  "quantity": 1,
+                  "owner": "self"
+                }
+              }
+            ],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:92731385:2:1:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          },
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "unknown_selectors": [],
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:92731385:3:2:candidate_component",
+            "nodes": [
+              "candidate_component"
+            ]
+          }
+        ],
+        "materials": {
+          "status": "inventory_present",
+          "requirements": [
+            {
+              "query": {
+                "name_contains": "珠泪哀歌族",
+                "selector": "「珠泪哀歌族」怪兽",
+                "type": 1,
+                "setcode": 385
+              },
+              "minimum": 1,
+              "source": "「珠泪哀歌族」怪兽",
+              "origin": "material",
+              "category": "material",
+              "available": 8,
+              "matching_card_ids": [
+                572850,
+                37961969,
+                73956664,
+                92731385
+              ],
+              "shortfall": 0
+            },
+            {
+              "query": {
+                "race": 64,
+                "selector": "水族怪兽"
+              },
+              "minimum": 1,
+              "source": "水族怪兽",
+              "origin": "material",
+              "category": "material",
+              "available": 10,
+              "matching_card_ids": [
+                572850,
+                1151281,
+                37961969,
+                92731385
+              ],
+              "shortfall": 0
+            }
+          ],
+          "shortfall": 0,
+          "unknown_selectors": [],
+          "execution_status": "unknown",
+          "access_to_required_zone_verified": false
+        }
+      }
+    },
+    "known_deficits": {},
+    "scoped_deficits": {},
+    "unknown_requirements": {
+      "effect:2511:1:0:candidate_component": [
+        {
+          "category": "costs",
+          "source": "把这张卡从手卡"
+        }
+      ],
+      "effect:2511:2:1:candidate_component": [
+        {
+          "category": "costs",
+          "source": "把「白银之城的狂时钟」以外的「拉比林斯迷宫」卡的效果或者通常陷阱卡发动而让手卡的卡被送去墓地"
+        }
+      ],
+      "effect:4836680:1:0:candidate_component": [
+        {
+          "category": "targets",
+          "source": "以自己墓地1张「娱乐伙伴」卡或者「异色眼」卡为对象"
+        }
+      ],
+      "effect:4836680:1:1:candidate_component": [
+        {
+          "category": "costs",
+          "source": "把这张卡除外"
+        },
+        {
+          "category": "targets",
+          "source": "以自己墓地1只「娱乐伙伴」怪兽或者「异色眼」怪兽为对象"
+        },
+        {
+          "category": "operations",
+          "source": "从卡组选1只「娱乐伙伴」灵摆怪兽或者「异色眼」灵摆怪兽表侧表示加入自己的额外卡组或送去墓地",
+          "operation": {
+            "kind": "send_grave",
+            "reason": "effect",
+            "source": "从卡组选1只「娱乐伙伴」灵摆怪兽或者「异色眼」灵摆怪兽表侧表示加入自己的额外卡组或送去墓地",
+            "order": 17,
+            "from_zones": [
+              "deck"
+            ],
+            "to_zone": "grave",
+            "selector": "从卡组选1只「娱乐伙伴」灵摆怪兽或者「异色眼」灵摆怪兽表侧表示加入自己的额外卡组或送去墓地",
+            "random": false,
+            "quantity": 1,
+            "owner": "self"
+          }
+        }
+      ],
+      "effect:5818294:1:0:candidate_component": [
+        {
+          "category": "costs",
+          "source": "把墓地的这张卡除外"
+        }
+      ],
+      "effect:19310321:0:0:candidate_component": [
+        {
+          "category": "costs",
+          "source": "把墓地的这张卡从游戏中除外"
+        }
+      ],
+      "effect:21576077:2:1:candidate_component": [
+        {
+          "category": "costs",
+          "source": "把墓地的这张卡除外"
+        }
+      ],
+      "effect:28226490:1:0:candidate_component": [
+        {
+          "category": "targets",
+          "source": "以对方场上1张卡为对象"
+        }
+      ],
+      "effect:29280589:1:0:candidate_component": [
+        {
+          "category": "costs",
+          "source": "把手卡"
+        },
+        {
+          "category": "operations",
+          "source": "从自己的手卡·场上把「魔玩具」融合怪兽卡决定的包含手卡的这张卡的融合素材怪兽送去墓地",
+          "operation": {
+            "kind": "send_grave",
+            "reason": "effect",
+            "source": "从自己的手卡·场上把「魔玩具」融合怪兽卡决定的包含手卡的这张卡的融合素材怪兽送去墓地",
+            "order": 0,
+            "from_zones": [
+              "hand"
+            ],
+            "to_zone": "grave",
+            "selector": "从自己的手卡·场上把「魔玩具」融合怪兽卡决定的包含手卡的这张卡的融合素材怪兽送去墓地",
+            "quantity": null,
+            "owner": "self"
+          }
+        }
+      ],
+      "effect:38436986:1:0:candidate_component": [
+        {
+          "category": "targets",
+          "source": "以对方场上1只表侧表示怪兽为对象"
+        }
+      ],
+      "effect:40597694:1:0:candidate_component": [
+        {
+          "category": "operations",
+          "source": "从自己卡组送去墓地",
+          "operation": {
+            "kind": "send_grave",
+            "reason": "effect",
+            "source": "从自己卡组送去墓地",
+            "order": 26,
+            "from_zones": [
+              "deck"
+            ],
+            "to_zone": "grave",
+            "selector": "从自己卡组送去墓地",
+            "random": false,
+            "quantity": null,
+            "owner": "self"
+          }
+        }
+      ],
+      "effect:58468105:2:1:candidate_component": [
+        {
+          "category": "operations",
+          "source": "从卡组送去墓地",
+          "operation": {
+            "kind": "send_grave",
+            "reason": "effect",
+            "source": "从卡组送去墓地",
+            "order": 32,
+            "from_zones": [
+              "deck"
+            ],
+            "to_zone": "grave",
+            "selector": "从卡组送去墓地",
+            "random": false,
+            "quantity": null,
+            "owner": "self"
+          }
+        }
+      ],
+      "effect:58468105:3:2:candidate_component": [
+        {
+          "category": "costs",
+          "source": "把1只「魔玩具」怪兽除外"
+        }
+      ],
+      "effect:73956664:1:0:candidate_component": [
+        {
+          "category": "operations",
+          "source": "从卡组把「珠泪哀歌族·雷诺哈特」以外的1只「珠泪哀歌族」怪兽送去墓地",
+          "operation": {
+            "kind": "send_grave",
+            "reason": "effect",
+            "source": "从卡组把「珠泪哀歌族·雷诺哈特」以外的1只「珠泪哀歌族」怪兽送去墓地",
+            "order": 0,
+            "from_zones": [
+              "deck"
+            ],
+            "to_zone": "grave",
+            "selector": "从卡组把「珠泪哀歌族·雷诺哈特」以外的1只「珠泪哀歌族」怪兽送去墓地",
+            "random": false,
+            "quantity": 1,
+            "owner": "self"
+          }
+        }
+      ],
+      "effect:75840616:3:2:candidate_component": [
+        {
+          "category": "operations",
+          "source": "从卡组选1只「武神」怪兽加入手卡或送去墓地",
+          "operation": {
+            "kind": "send_grave",
+            "reason": "effect",
+            "source": "从卡组选1只「武神」怪兽加入手卡或送去墓地",
+            "order": 0,
+            "from_zones": [
+              "deck"
+            ],
+            "to_zone": "grave",
+            "selector": "从卡组选1只「武神」怪兽加入手卡或送去墓地",
+            "random": false,
+            "quantity": 1,
+            "owner": "self"
+          }
+        }
+      ],
+      "effect:92731385:1:0:candidate_component": [
+        {
+          "category": "operations",
+          "source": "从卡组选1张「珠泪哀歌族」卡加入手卡或送去墓地",
+          "operation": {
+            "kind": "send_grave",
+            "reason": "effect",
+            "source": "从卡组选1张「珠泪哀歌族」卡加入手卡或送去墓地",
+            "order": 0,
+            "from_zones": [
+              "deck"
+            ],
+            "to_zone": "grave",
+            "selector": "从卡组选1张「珠泪哀歌族」卡加入手卡或送去墓地",
+            "random": false,
+            "quantity": 1,
+            "owner": "self"
+          }
+        }
+      ],
+      "effect:92731385:2:1:candidate_component": [
+        {
+          "category": "operations",
+          "source": "从自己的手卡·墓地选1只「珠泪哀歌族」怪兽特殊召唤，作为对象的怪兽送去墓地",
+          "operation": {
+            "kind": "send_grave",
+            "reason": "effect",
+            "source": "从自己的手卡·墓地选1只「珠泪哀歌族」怪兽特殊召唤，作为对象的怪兽送去墓地",
+            "order": 0,
+            "from_zones": [
+              "hand"
+            ],
+            "to_zone": "grave",
+            "selector": "从自己的手卡·墓地选1只「珠泪哀歌族」怪兽特殊召唤，作为对象的怪兽送去墓地",
+            "quantity": 1,
+            "owner": "self"
+          }
+        }
+      ]
+    },
+    "uncovered_cards": [],
+    "archetype_membership": "catalog_setcode",
+    "archetype_registry_names": 599,
+    "archetype_registry_source": {
+      "database_commit": "217ae165c1886af2fc36b823fc08f9fc3ec13185",
+      "cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+      "file": "locales/zh-CN/strings.conf",
+      "file_sha256": "6992b30aa0cfe27cfbc499980ac92bee536f523738c679efa99be5eea57ef23b",
+      "registry_sha256": "36eacaa997485d989e9ecd1fa70116c4f3530792bd5ec7cfd9df532c93eb3df0"
+    },
+    "requirement_work": 47,
+    "side_supplies_resources": false,
+    "cb_performed": false
+  },
+  "deck_names": {
+    "main": [
+      {
+        "card_id": 2511,
+        "name": "白银之城的狂时钟",
+        "copies": 1
+      },
+      {
+        "card_id": 572850,
+        "name": "珠泪哀歌族·塞壬人鱼",
+        "copies": 2
+      },
+      {
+        "card_id": 1151281,
+        "name": "地中族邪界兽·爱奥荧冰精",
+        "copies": 3
+      },
+      {
+        "card_id": 2729285,
+        "name": "毛绒动物·猫",
+        "copies": 2
+      },
+      {
+        "card_id": 4836680,
+        "name": "娱乐伙伴 异色眼祭司",
+        "copies": 3
+      },
+      {
+        "card_id": 5186893,
+        "name": "真红眼不死龙",
+        "copies": 3
+      },
+      {
+        "card_id": 5818294,
+        "name": "武神器-边津",
+        "copies": 3
+      },
+      {
+        "card_id": 6767771,
+        "name": "劈穿壹世坏的弦声",
+        "copies": 3
+      },
+      {
+        "card_id": 19310321,
+        "name": "纹章兽 双头鹰",
+        "copies": 3
+      },
+      {
+        "card_id": 21576077,
+        "name": "食光之龙辉巧",
+        "copies": 1
+      },
+      {
+        "card_id": 24094653,
+        "name": "融合",
+        "copies": 1
+      },
+      {
+        "card_id": 29280589,
+        "name": "锋利小鬼·大镰刀",
+        "copies": 1
+      },
+      {
+        "card_id": 32566831,
+        "name": "红玉之宝札",
+        "copies": 3
+      },
+      {
+        "card_id": 37961969,
+        "name": "珠泪哀歌族·小美人鱼",
+        "copies": 3
+      },
+      {
+        "card_id": 38436986,
+        "name": "壹世坏摩擦的爪音",
+        "copies": 3
+      },
+      {
+        "card_id": 40597694,
+        "name": "分散融合",
+        "copies": 3
+      },
+      {
+        "card_id": 73956664,
+        "name": "珠泪哀歌族·雷诺哈特",
+        "copies": 1
+      },
+      {
+        "card_id": 74677422,
+        "name": "真红眼黑龙",
+        "copies": 1
+      }
+    ],
+    "extra": [
+      {
+        "card_id": 1174075,
+        "name": "龙辉巧-扶筐增二μβ'",
+        "copies": 2
+      },
+      {
+        "card_id": 23649496,
+        "name": "No.18 纹章祖 素徽",
+        "copies": 3
+      },
+      {
+        "card_id": 28226490,
+        "name": "珠泪哀歌族·卡雷多哈特",
+        "copies": 3
+      },
+      {
+        "card_id": 58468105,
+        "name": "凶邪魔玩具·梦魇玛丽",
+        "copies": 3
+      },
+      {
+        "card_id": 75840616,
+        "name": "武神帝-须佐之男",
+        "copies": 1
+      },
+      {
+        "card_id": 92731385,
+        "name": "珠泪哀歌族·水仙女人鱼",
+        "copies": 3
+      }
+    ],
+    "side": [
+      {
+        "card_id": 572850,
+        "name": "珠泪哀歌族·塞壬人鱼",
+        "copies": 1
+      },
+      {
+        "card_id": 21576077,
+        "name": "食光之龙辉巧",
+        "copies": 2
+      },
+      {
+        "card_id": 41386308,
+        "name": "数学家",
+        "copies": 3
+      },
+      {
+        "card_id": 74078255,
+        "name": "珠泪哀歌族·梅洛人鱼",
+        "copies": 3
+      },
+      {
+        "card_id": 74920585,
+        "name": "壹世坏奏响的哀唱",
+        "copies": 3
+      },
+      {
+        "card_id": 84330567,
+        "name": "珠泪哀歌族·鲁莎卡人鱼",
+        "copies": 3
+      }
+    ]
+  },
+  "learning_supervision": {
+    "source": "catalog_constraint_and_explicit_preference_v1",
+    "purpose": "train",
+    "task_sha256": "4d4321c932b341dae345acb81fa4486cfd0bc8552413f141ce2d1cb24157e87b",
+    "pairs": [
+      {
+        "better": {
+          "main": [
+            2511,
+            572850,
+            572850,
+            1329620,
+            1329620,
+            1329620,
+            5818294,
+            5818294,
+            5818294,
+            17415895,
+            17415895,
+            17415895,
+            20424878,
+            29280589,
+            29280589,
+            29280589,
+            31259606,
+            31259606,
+            31259606,
+            38436986,
+            38436986,
+            38436986,
+            41386308,
+            41386308,
+            41386308,
+            52198054,
+            52198054,
+            52198054,
+            73956664,
+            73956664,
+            73956664,
+            74078255,
+            74078255,
+            74078255,
+            74677422,
+            74677422,
+            74677422,
+            78420796,
+            78420796,
+            78420796
+          ],
+          "extra": [
+            1174075,
+            1174075,
+            23649496,
+            23649496,
+            23649496,
+            28226490,
+            28226490,
+            28226490,
+            30100551,
+            48285768,
+            48285768,
+            48285768,
+            58468105,
+            58468105,
+            58468105
+          ],
+          "side": [
+            5186893,
+            5186893,
+            5186893,
+            9126351,
+            9126351,
+            9126351,
+            32566831,
+            32566831,
+            32566831,
+            71595845,
+            71595845,
+            71595845,
+            81599449,
+            81599449,
+            81599449
+          ]
+        },
+        "worse": {
+          "main": [
+            2511,
+            572850,
+            572850,
+            1329620,
+            1329620,
+            1329620,
+            5818294,
+            5818294,
+            5818294,
+            17415895,
+            17415895,
+            17415895,
+            20424878,
+            29280589,
+            29280589,
+            29280589,
+            31259606,
+            31259606,
+            31259606,
+            38436986,
+            38436986,
+            38436986,
+            41386308,
+            41386308,
+            41386308,
+            52198054,
+            52198054,
+            52198054,
+            73956664,
+            73956664,
+            73956664,
+            74078255,
+            74078255,
+            74078255,
+            74677422,
+            74677422,
+            74677422,
+            78420796,
+            78420796,
+            78420796
+          ],
+          "extra": [
+            1174075,
+            1174075,
+            1174075,
+            23649496,
+            23649496,
+            23649496,
+            28226490,
+            28226490,
+            28226490,
+            48285768,
+            48285768,
+            48285768,
+            58468105,
+            58468105,
+            58468105
+          ],
+          "side": [
+            5186893,
+            5186893,
+            5186893,
+            9126351,
+            9126351,
+            9126351,
+            32566831,
+            32566831,
+            32566831,
+            71595845,
+            71595845,
+            71595845,
+            81599449,
+            81599449,
+            81599449
+          ]
+        },
+        "better_value": 1.0,
+        "worse_value": 0.0,
+        "source": "construction_layer_preference_v1",
+        "hard_constraints_checked": true,
+        "evidence": {
+          "task_sha256": "4d4321c932b341dae345acb81fa4486cfd0bc8552413f141ce2d1cb24157e87b",
+          "comparison": {
+            "status": "preferred",
+            "preferred": "after",
+            "task_sha256": "4d4321c932b341dae345acb81fa4486cfd0bc8552413f141ce2d1cb24157e87b",
+            "advantages_before": [],
+            "advantages_after": [
+              "necessary_inventory_dependencies"
+            ],
+            "unresolved": [],
+            "relations": {
+              "status": "equivalent",
+              "preferred": null,
+              "changes": {
+                "cards": {
+                  "main": {
+                    "added": [],
+                    "removed": []
+                  },
+                  "extra": {
+                    "added": [
+                      30100551
+                    ],
+                    "removed": [
+                      1174075
+                    ]
+                  },
+                  "side": {
+                    "added": [],
+                    "removed": []
+                  }
+                },
+                "slots": {
+                  "main": 0,
+                  "extra": 0
+                },
+                "uses": {
+                  "node:n0": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  }
+                }
+              },
+              "advantages_before": [],
+              "advantages_after": [],
+              "unresolved": []
+            },
+            "before_deck_sha256": "3fb6b72c919d76b6abbc04cc70b1e2e0c912f62e7efbe5fb958c99158e1f0544",
+            "after_deck_sha256": "cc6f1e50fc18c2227ff54986380cecff2d20fcc71bb0fb55c6d159d7cddb99a2"
+          },
+          "label_meaning": "scoped layer preference; no win or CB label",
+          "construction_phase": 1
+        }
+      },
+      {
+        "better": {
+          "main": [
+            2511,
+            2511,
+            2511,
+            572850,
+            572850,
+            572850,
+            1151281,
+            1151281,
+            1151281,
+            2729285,
+            2729285,
+            2729285,
+            4836680,
+            4836680,
+            4836680,
+            5186893,
+            5186893,
+            5186893,
+            5818294,
+            5818294,
+            5818294,
+            6767771,
+            6767771,
+            6767771,
+            19310321,
+            19310321,
+            19310321,
+            32566831,
+            32566831,
+            32566831,
+            37961969,
+            37961969,
+            37961969,
+            38436986,
+            38436986,
+            38436986,
+            40597694,
+            40597694,
+            40597694,
+            74677422
+          ],
+          "extra": [
+            1174075,
+            1174075,
+            23649496,
+            23649496,
+            23649496,
+            28226490,
+            28226490,
+            28226490,
+            30100551,
+            58468105,
+            58468105,
+            58468105,
+            92731385,
+            92731385,
+            92731385
+          ],
+          "side": [
+            21576077,
+            21576077,
+            21576077,
+            41386308,
+            41386308,
+            41386308,
+            74078255,
+            74078255,
+            74078255,
+            74920585,
+            74920585,
+            74920585,
+            84330567,
+            84330567,
+            84330567
+          ]
+        },
+        "worse": {
+          "main": [
+            2511,
+            2511,
+            2511,
+            572850,
+            572850,
+            572850,
+            1151281,
+            1151281,
+            1151281,
+            2729285,
+            2729285,
+            2729285,
+            4836680,
+            4836680,
+            4836680,
+            5186893,
+            5186893,
+            5186893,
+            5818294,
+            5818294,
+            5818294,
+            6767771,
+            6767771,
+            6767771,
+            19310321,
+            19310321,
+            19310321,
+            32566831,
+            32566831,
+            32566831,
+            37961969,
+            37961969,
+            37961969,
+            38436986,
+            38436986,
+            38436986,
+            40597694,
+            40597694,
+            40597694,
+            74677422
+          ],
+          "extra": [
+            1174075,
+            1174075,
+            1174075,
+            23649496,
+            23649496,
+            23649496,
+            28226490,
+            28226490,
+            28226490,
+            58468105,
+            58468105,
+            58468105,
+            92731385,
+            92731385,
+            92731385
+          ],
+          "side": [
+            1329620,
+            21576077,
+            21576077,
+            41386308,
+            41386308,
+            41386308,
+            74078255,
+            74078255,
+            74078255,
+            74920585,
+            74920585,
+            74920585,
+            84330567,
+            84330567,
+            84330567
+          ]
+        },
+        "better_value": 1.0,
+        "worse_value": 0.0,
+        "source": "construction_layer_preference_v1",
+        "hard_constraints_checked": true,
+        "evidence": {
+          "task_sha256": "4d4321c932b341dae345acb81fa4486cfd0bc8552413f141ce2d1cb24157e87b",
+          "comparison": {
+            "status": "preferred",
+            "preferred": "after",
+            "task_sha256": "4d4321c932b341dae345acb81fa4486cfd0bc8552413f141ce2d1cb24157e87b",
+            "advantages_before": [],
+            "advantages_after": [
+              "axis:extra:U",
+              "axis:node:n0:extra:K",
+              "necessary_inventory_dependencies"
+            ],
+            "unresolved": [],
+            "relations": {
+              "status": "equivalent",
+              "preferred": null,
+              "changes": {
+                "cards": {
+                  "main": {
+                    "added": [],
+                    "removed": []
+                  },
+                  "extra": {
+                    "added": [
+                      30100551
+                    ],
+                    "removed": [
+                      1174075
+                    ]
+                  },
+                  "side": {
+                    "added": [
+                      21576077
+                    ],
+                    "removed": [
+                      1329620
+                    ]
+                  }
+                },
+                "slots": {
+                  "main": 0,
+                  "extra": 0
+                },
+                "uses": {
+                  "node:n0": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  },
+                  "node:n1": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  },
+                  "node:n2": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  },
+                  "node:n3": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  }
+                }
+              },
+              "advantages_before": [],
+              "advantages_after": [],
+              "unresolved": []
+            },
+            "before_deck_sha256": "ab076b152110cfdcf50e75632172a0811b91dd77fe22c420d369427bda04ea78",
+            "after_deck_sha256": "48fc6e34c1ee8e3bef70615fbc37e02e46878b270b2053914e10bbb8ba085fcd"
+          },
+          "label_meaning": "scoped layer preference; no win or CB label",
+          "construction_phase": 2
+        }
+      },
+      {
+        "better": {
+          "main": [
+            572850,
+            572850,
+            572850,
+            1151281,
+            1151281,
+            1151281,
+            2729285,
+            2729285,
+            4836680,
+            4836680,
+            4836680,
+            5186893,
+            5186893,
+            5186893,
+            5818294,
+            5818294,
+            5818294,
+            6767771,
+            6767771,
+            6767771,
+            19310321,
+            19310321,
+            19310321,
+            21576077,
+            24094653,
+            29280589,
+            32566831,
+            32566831,
+            32566831,
+            37961969,
+            37961969,
+            37961969,
+            38436986,
+            38436986,
+            38436986,
+            40597694,
+            40597694,
+            40597694,
+            73956664,
+            74677422
+          ],
+          "extra": [
+            1174075,
+            1174075,
+            1174075,
+            23649496,
+            23649496,
+            23649496,
+            28226490,
+            28226490,
+            28226490,
+            58468105,
+            58468105,
+            58468105,
+            92731385,
+            92731385,
+            92731385
+          ],
+          "side": [
+            2511,
+            21576077,
+            21576077,
+            41386308,
+            41386308,
+            41386308,
+            74078255,
+            74078255,
+            74078255,
+            74920585,
+            74920585,
+            74920585,
+            84330567,
+            84330567,
+            84330567
+          ]
+        },
+        "worse": {
+          "main": [
+            572850,
+            572850,
+            572850,
+            1151281,
+            1151281,
+            1151281,
+            2729285,
+            2729285,
+            4836680,
+            4836680,
+            4836680,
+            5186893,
+            5186893,
+            5186893,
+            5818294,
+            5818294,
+            5818294,
+            6767771,
+            6767771,
+            6767771,
+            19310321,
+            19310321,
+            19310321,
+            21576077,
+            24094653,
+            29280589,
+            32566831,
+            32566831,
+            32566831,
+            37961969,
+            37961969,
+            37961969,
+            38436986,
+            38436986,
+            38436986,
+            40597694,
+            40597694,
+            40597694,
+            73956664,
+            74677422
+          ],
+          "extra": [
+            1174075,
+            1174075,
+            23649496,
+            23649496,
+            23649496,
+            28226490,
+            28226490,
+            28226490,
+            58468105,
+            58468105,
+            58468105,
+            84330567,
+            92731385,
+            92731385,
+            92731385
+          ],
+          "side": [
+            2511,
+            1174075,
+            21576077,
+            21576077,
+            41386308,
+            41386308,
+            41386308,
+            74078255,
+            74078255,
+            74078255,
+            74920585,
+            74920585,
+            74920585,
+            84330567,
+            84330567
+          ]
+        },
+        "better_value": 1.0,
+        "worse_value": 0.0,
+        "source": "construction_layer_preference_v1",
+        "hard_constraints_checked": true,
+        "evidence": {
+          "task_sha256": "4d4321c932b341dae345acb81fa4486cfd0bc8552413f141ce2d1cb24157e87b",
+          "comparison": {
+            "status": "preferred",
+            "preferred": "after",
+            "task_sha256": "4d4321c932b341dae345acb81fa4486cfd0bc8552413f141ce2d1cb24157e87b",
+            "advantages_before": [],
+            "advantages_after": [
+              "axis:extra:A",
+              "axis:extra:U",
+              "axis:node:n0:extra:K"
+            ],
+            "unresolved": [],
+            "relations": {
+              "status": "equivalent",
+              "preferred": null,
+              "changes": {
+                "cards": {
+                  "main": {
+                    "added": [],
+                    "removed": []
+                  },
+                  "extra": {
+                    "added": [
+                      1174075
+                    ],
+                    "removed": [
+                      84330567
+                    ]
+                  },
+                  "side": {
+                    "added": [
+                      84330567
+                    ],
+                    "removed": [
+                      1174075
+                    ]
+                  }
+                },
+                "slots": {
+                  "main": 0,
+                  "extra": 0
+                },
+                "uses": {
+                  "node:n0": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  },
+                  "node:n1": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  },
+                  "node:n2": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  },
+                  "node:n3": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  }
+                }
+              },
+              "advantages_before": [],
+              "advantages_after": [],
+              "unresolved": []
+            },
+            "before_deck_sha256": "9b25dbdeee54a46d3c4a7e210a9d62a429cc820ddc4b7a9e440f210313ba0d07",
+            "after_deck_sha256": "fefa9a31e96149a400c93cdb63c91b7f316544d68a030469f5f4278ea593e42d"
+          },
+          "label_meaning": "scoped layer preference; no win or CB label",
+          "construction_phase": 3
+        }
+      },
+      {
+        "better": {
+          "main": [
+            2511,
+            572850,
+            572850,
+            1151281,
+            1151281,
+            1151281,
+            2729285,
+            2729285,
+            4836680,
+            4836680,
+            4836680,
+            5186893,
+            5186893,
+            5186893,
+            5818294,
+            5818294,
+            5818294,
+            6767771,
+            6767771,
+            6767771,
+            19310321,
+            19310321,
+            19310321,
+            21576077,
+            24094653,
+            29280589,
+            32566831,
+            32566831,
+            32566831,
+            37961969,
+            37961969,
+            37961969,
+            38436986,
+            38436986,
+            38436986,
+            40597694,
+            40597694,
+            40597694,
+            73956664,
+            74677422
+          ],
+          "extra": [
+            1174075,
+            1174075,
+            23649496,
+            23649496,
+            23649496,
+            28226490,
+            28226490,
+            28226490,
+            30100551,
+            58468105,
+            58468105,
+            58468105,
+            92731385,
+            92731385,
+            92731385
+          ],
+          "side": [
+            572850,
+            21576077,
+            21576077,
+            41386308,
+            41386308,
+            41386308,
+            74078255,
+            74078255,
+            74078255,
+            74920585,
+            74920585,
+            74920585,
+            84330567,
+            84330567,
+            84330567
+          ]
+        },
+        "worse": {
+          "main": [
+            2511,
+            2511,
+            572850,
+            572850,
+            1151281,
+            1151281,
+            1151281,
+            2729285,
+            2729285,
+            4836680,
+            4836680,
+            4836680,
+            5186893,
+            5186893,
+            5186893,
+            5818294,
+            5818294,
+            5818294,
+            6767771,
+            6767771,
+            6767771,
+            19310321,
+            19310321,
+            19310321,
+            21576077,
+            24094653,
+            29280589,
+            32566831,
+            32566831,
+            32566831,
+            37961969,
+            37961969,
+            37961969,
+            38436986,
+            38436986,
+            38436986,
+            40597694,
+            40597694,
+            40597694,
+            73956664
+          ],
+          "extra": [
+            1174075,
+            1174075,
+            1174075,
+            23649496,
+            23649496,
+            23649496,
+            28226490,
+            28226490,
+            28226490,
+            58468105,
+            58468105,
+            58468105,
+            92731385,
+            92731385,
+            92731385
+          ],
+          "side": [
+            572850,
+            21576077,
+            21576077,
+            41386308,
+            41386308,
+            41386308,
+            74078255,
+            74078255,
+            74078255,
+            74920585,
+            74920585,
+            74920585,
+            84330567,
+            84330567,
+            84330567
+          ]
+        },
+        "better_value": 1.0,
+        "worse_value": 0.0,
+        "source": "construction_layer_preference_v1",
+        "hard_constraints_checked": true,
+        "evidence": {
+          "task_sha256": "4d4321c932b341dae345acb81fa4486cfd0bc8552413f141ce2d1cb24157e87b",
+          "comparison": {
+            "status": "preferred",
+            "preferred": "after",
+            "task_sha256": "4d4321c932b341dae345acb81fa4486cfd0bc8552413f141ce2d1cb24157e87b",
+            "advantages_before": [],
+            "advantages_after": [
+              "axis:extra:U"
+            ],
+            "unresolved": [],
+            "relations": {
+              "status": "equivalent",
+              "preferred": null,
+              "changes": {
+                "cards": {
+                  "main": {
+                    "added": [
+                      74677422
+                    ],
+                    "removed": [
+                      2511
+                    ]
+                  },
+                  "extra": {
+                    "added": [
+                      30100551
+                    ],
+                    "removed": [
+                      1174075
+                    ]
+                  },
+                  "side": {
+                    "added": [],
+                    "removed": []
+                  }
+                },
+                "slots": {
+                  "main": 0,
+                  "extra": 0
+                },
+                "uses": {
+                  "node:n0": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  },
+                  "node:n1": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  },
+                  "node:n2": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  },
+                  "node:n3": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  },
+                  "node:n4": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  }
+                }
+              },
+              "advantages_before": [],
+              "advantages_after": [],
+              "unresolved": []
+            },
+            "before_deck_sha256": "a731cd969f08252d74b6c85a8a7a0d33b241d883750d4cc4a0a1893e140b70ec",
+            "after_deck_sha256": "aedfb9a65ff55b3a889475b9532aad39bb4a236ac052db8094039e0a41d9d420"
+          },
+          "label_meaning": "scoped layer preference; no win or CB label",
+          "construction_phase": 4
+        }
+      },
+      {
+        "better": {
+          "main": [
+            2511,
+            572850,
+            572850,
+            1329620,
+            1329620,
+            1329620,
+            5818294,
+            5818294,
+            5818294,
+            17415895,
+            17415895,
+            17415895,
+            20424878,
+            29280589,
+            29280589,
+            29280589,
+            31259606,
+            31259606,
+            31259606,
+            38436986,
+            38436986,
+            38436986,
+            41386308,
+            41386308,
+            41386308,
+            52198054,
+            52198054,
+            52198054,
+            73956664,
+            73956664,
+            73956664,
+            74078255,
+            74078255,
+            74078255,
+            74677422,
+            74677422,
+            74677422,
+            78420796,
+            78420796,
+            78420796
+          ],
+          "extra": [
+            1174075,
+            1174075,
+            23649496,
+            23649496,
+            23649496,
+            28226490,
+            28226490,
+            28226490,
+            30100551,
+            48285768,
+            48285768,
+            48285768,
+            58468105,
+            58468105,
+            58468105
+          ],
+          "side": [
+            5186893,
+            5186893,
+            5186893,
+            9126351,
+            9126351,
+            9126351,
+            32566831,
+            32566831,
+            32566831,
+            71595845,
+            71595845,
+            71595845,
+            81599449,
+            81599449,
+            81599449
+          ]
+        },
+        "worse": {
+          "main": [
+            2511,
+            2511,
+            2511,
+            1329620,
+            1329620,
+            1329620,
+            5818294,
+            5818294,
+            5818294,
+            17415895,
+            17415895,
+            17415895,
+            20424878,
+            29280589,
+            29280589,
+            29280589,
+            31259606,
+            31259606,
+            31259606,
+            38436986,
+            38436986,
+            38436986,
+            41386308,
+            41386308,
+            41386308,
+            52198054,
+            52198054,
+            52198054,
+            73956664,
+            73956664,
+            73956664,
+            74078255,
+            74078255,
+            74078255,
+            74677422,
+            74677422,
+            74677422,
+            78420796,
+            78420796,
+            78420796
+          ],
+          "extra": [
+            1174075,
+            1174075,
+            1174075,
+            23649496,
+            23649496,
+            23649496,
+            28226490,
+            28226490,
+            28226490,
+            48285768,
+            48285768,
+            48285768,
+            58468105,
+            58468105,
+            58468105
+          ],
+          "side": [
+            5186893,
+            5186893,
+            5186893,
+            9126351,
+            9126351,
+            9126351,
+            32566831,
+            32566831,
+            32566831,
+            71595845,
+            71595845,
+            71595845,
+            81599449,
+            81599449,
+            81599449
+          ]
+        },
+        "better_value": 1.0,
+        "worse_value": 0.0,
+        "source": "construction_layer_preference_v1",
+        "hard_constraints_checked": true,
+        "evidence": {
+          "task_sha256": "4d4321c932b341dae345acb81fa4486cfd0bc8552413f141ce2d1cb24157e87b",
+          "comparison": {
+            "status": "preferred",
+            "preferred": "before",
+            "task_sha256": "4d4321c932b341dae345acb81fa4486cfd0bc8552413f141ce2d1cb24157e87b",
+            "advantages_before": [
+              "axis:node:n0:main:E",
+              "axis:node:n0:main:K",
+              "necessary_inventory_dependencies"
+            ],
+            "advantages_after": [
+              "axis:slots:main",
+              "slots:main"
+            ],
+            "unresolved": [],
+            "relations": {
+              "status": "preferred",
+              "preferred": "after",
+              "changes": {
+                "cards": {
+                  "main": {
+                    "added": [
+                      2511,
+                      2511
+                    ],
+                    "removed": [
+                      572850,
+                      572850
+                    ]
+                  },
+                  "extra": {
+                    "added": [
+                      1174075
+                    ],
+                    "removed": [
+                      30100551
+                    ]
+                  },
+                  "side": {
+                    "added": [],
+                    "removed": []
+                  }
+                },
+                "slots": {
+                  "main": -2,
+                  "extra": 0
+                },
+                "uses": {
+                  "node:n0": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  }
+                }
+              },
+              "advantages_before": [],
+              "advantages_after": [
+                "slots:main"
+              ],
+              "unresolved": []
+            },
+            "before_deck_sha256": "cc6f1e50fc18c2227ff54986380cecff2d20fcc71bb0fb55c6d159d7cddb99a2",
+            "after_deck_sha256": "4b0fa1439948dbcc26f7c427c4ade0288c9ac97088a3a4842021ea1e03ef30ce"
+          },
+          "label_meaning": "scoped layer preference; no win or CB label",
+          "construction_phase": 1
+        }
+      },
+      {
+        "better": {
+          "main": [
+            2511,
+            2511,
+            2511,
+            572850,
+            572850,
+            572850,
+            1151281,
+            1151281,
+            1151281,
+            2729285,
+            2729285,
+            2729285,
+            4836680,
+            4836680,
+            4836680,
+            5186893,
+            5186893,
+            5186893,
+            5818294,
+            5818294,
+            5818294,
+            6767771,
+            6767771,
+            6767771,
+            19310321,
+            19310321,
+            19310321,
+            32566831,
+            32566831,
+            32566831,
+            37961969,
+            37961969,
+            37961969,
+            38436986,
+            38436986,
+            38436986,
+            40597694,
+            40597694,
+            40597694,
+            74677422
+          ],
+          "extra": [
+            1174075,
+            1174075,
+            23649496,
+            23649496,
+            23649496,
+            28226490,
+            28226490,
+            28226490,
+            48285768,
+            58468105,
+            58468105,
+            58468105,
+            92731385,
+            92731385,
+            92731385
+          ],
+          "side": [
+            21576077,
+            21576077,
+            21576077,
+            41386308,
+            41386308,
+            41386308,
+            74078255,
+            74078255,
+            74078255,
+            74920585,
+            74920585,
+            74920585,
+            84330567,
+            84330567,
+            84330567
+          ]
+        },
+        "worse": {
+          "main": [
+            2511,
+            2511,
+            2511,
+            572850,
+            572850,
+            572850,
+            1151281,
+            1151281,
+            1151281,
+            2729285,
+            2729285,
+            2729285,
+            4836680,
+            4836680,
+            4836680,
+            5186893,
+            5186893,
+            5186893,
+            5818294,
+            5818294,
+            5818294,
+            6767771,
+            6767771,
+            6767771,
+            19310321,
+            19310321,
+            19310321,
+            32566831,
+            32566831,
+            32566831,
+            37961969,
+            37961969,
+            37961969,
+            38436986,
+            38436986,
+            38436986,
+            40597694,
+            40597694,
+            40597694,
+            74677422
+          ],
+          "extra": [
+            1174075,
+            1174075,
+            1174075,
+            23649496,
+            23649496,
+            23649496,
+            28226490,
+            28226490,
+            28226490,
+            58468105,
+            58468105,
+            58468105,
+            92731385,
+            92731385,
+            92731385
+          ],
+          "side": [
+            1329620,
+            21576077,
+            21576077,
+            41386308,
+            41386308,
+            41386308,
+            74078255,
+            74078255,
+            74078255,
+            74920585,
+            74920585,
+            74920585,
+            84330567,
+            84330567,
+            84330567
+          ]
+        },
+        "better_value": 1.0,
+        "worse_value": 0.0,
+        "source": "construction_layer_preference_v1",
+        "hard_constraints_checked": true,
+        "evidence": {
+          "task_sha256": "4d4321c932b341dae345acb81fa4486cfd0bc8552413f141ce2d1cb24157e87b",
+          "comparison": {
+            "status": "preferred",
+            "preferred": "after",
+            "task_sha256": "4d4321c932b341dae345acb81fa4486cfd0bc8552413f141ce2d1cb24157e87b",
+            "advantages_before": [],
+            "advantages_after": [
+              "axis:extra:U"
+            ],
+            "unresolved": [],
+            "relations": {
+              "status": "equivalent",
+              "preferred": null,
+              "changes": {
+                "cards": {
+                  "main": {
+                    "added": [],
+                    "removed": []
+                  },
+                  "extra": {
+                    "added": [
+                      48285768
+                    ],
+                    "removed": [
+                      1174075
+                    ]
+                  },
+                  "side": {
+                    "added": [
+                      21576077
+                    ],
+                    "removed": [
+                      1329620
+                    ]
+                  }
+                },
+                "slots": {
+                  "main": 0,
+                  "extra": 0
+                },
+                "uses": {
+                  "node:n0": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  },
+                  "node:n1": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  },
+                  "node:n2": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  },
+                  "node:n3": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  }
+                }
+              },
+              "advantages_before": [],
+              "advantages_after": [],
+              "unresolved": []
+            },
+            "before_deck_sha256": "ab076b152110cfdcf50e75632172a0811b91dd77fe22c420d369427bda04ea78",
+            "after_deck_sha256": "c99f8dc56e59485e937f8b694e890dd04f1c787ef27b8af2df653d92cdd615df"
+          },
+          "label_meaning": "scoped layer preference; no win or CB label",
+          "construction_phase": 2
+        }
+      },
+      {
+        "better": {
+          "main": [
+            572850,
+            572850,
+            572850,
+            1151281,
+            1151281,
+            1151281,
+            2729285,
+            2729285,
+            4836680,
+            4836680,
+            4836680,
+            5186893,
+            5186893,
+            5186893,
+            5818294,
+            5818294,
+            5818294,
+            6767771,
+            6767771,
+            6767771,
+            19310321,
+            19310321,
+            19310321,
+            21576077,
+            24094653,
+            29280589,
+            32566831,
+            32566831,
+            32566831,
+            37961969,
+            37961969,
+            37961969,
+            38436986,
+            38436986,
+            38436986,
+            40597694,
+            40597694,
+            40597694,
+            73956664,
+            74677422
+          ],
+          "extra": [
+            1174075,
+            1174075,
+            1174075,
+            23649496,
+            23649496,
+            23649496,
+            28226490,
+            28226490,
+            28226490,
+            58468105,
+            58468105,
+            58468105,
+            92731385,
+            92731385,
+            92731385
+          ],
+          "side": [
+            1329620,
+            21576077,
+            21576077,
+            41386308,
+            41386308,
+            41386308,
+            74078255,
+            74078255,
+            74078255,
+            74920585,
+            74920585,
+            74920585,
+            84330567,
+            84330567,
+            84330567
+          ]
+        },
+        "worse": {
+          "main": [
+            572850,
+            572850,
+            572850,
+            1151281,
+            1151281,
+            1151281,
+            2729285,
+            2729285,
+            4836680,
+            4836680,
+            4836680,
+            5186893,
+            5186893,
+            5186893,
+            5818294,
+            5818294,
+            5818294,
+            6767771,
+            6767771,
+            6767771,
+            19310321,
+            19310321,
+            19310321,
+            21576077,
+            24094653,
+            29280589,
+            32566831,
+            32566831,
+            32566831,
+            37961969,
+            37961969,
+            37961969,
+            38436986,
+            38436986,
+            38436986,
+            40597694,
+            40597694,
+            40597694,
+            73956664,
+            74677422
+          ],
+          "extra": [
+            1174075,
+            1174075,
+            23649496,
+            23649496,
+            23649496,
+            28226490,
+            28226490,
+            28226490,
+            58468105,
+            58468105,
+            58468105,
+            84330567,
+            92731385,
+            92731385,
+            92731385
+          ],
+          "side": [
+            2511,
+            1174075,
+            21576077,
+            21576077,
+            41386308,
+            41386308,
+            41386308,
+            74078255,
+            74078255,
+            74078255,
+            74920585,
+            74920585,
+            74920585,
+            84330567,
+            84330567
+          ]
+        },
+        "better_value": 1.0,
+        "worse_value": 0.0,
+        "source": "construction_layer_preference_v1",
+        "hard_constraints_checked": true,
+        "evidence": {
+          "task_sha256": "4d4321c932b341dae345acb81fa4486cfd0bc8552413f141ce2d1cb24157e87b",
+          "comparison": {
+            "status": "preferred",
+            "preferred": "after",
+            "task_sha256": "4d4321c932b341dae345acb81fa4486cfd0bc8552413f141ce2d1cb24157e87b",
+            "advantages_before": [],
+            "advantages_after": [
+              "axis:extra:A",
+              "axis:extra:U",
+              "axis:node:n0:extra:K"
+            ],
+            "unresolved": [],
+            "relations": {
+              "status": "equivalent",
+              "preferred": null,
+              "changes": {
+                "cards": {
+                  "main": {
+                    "added": [],
+                    "removed": []
+                  },
+                  "extra": {
+                    "added": [
+                      1174075
+                    ],
+                    "removed": [
+                      84330567
+                    ]
+                  },
+                  "side": {
+                    "added": [
+                      1329620,
+                      84330567
+                    ],
+                    "removed": [
+                      2511,
+                      1174075
+                    ]
+                  }
+                },
+                "slots": {
+                  "main": 0,
+                  "extra": 0
+                },
+                "uses": {
+                  "node:n0": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  },
+                  "node:n1": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  },
+                  "node:n2": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  },
+                  "node:n3": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  }
+                }
+              },
+              "advantages_before": [],
+              "advantages_after": [],
+              "unresolved": []
+            },
+            "before_deck_sha256": "9b25dbdeee54a46d3c4a7e210a9d62a429cc820ddc4b7a9e440f210313ba0d07",
+            "after_deck_sha256": "9da364faf042961da019251c9b1871cfdea4977dc92f33d4767c69f2c0578acb"
+          },
+          "label_meaning": "scoped layer preference; no win or CB label",
+          "construction_phase": 3
+        }
+      },
+      {
+        "better": {
+          "main": [
+            2511,
+            2511,
+            572850,
+            572850,
+            1151281,
+            1151281,
+            1151281,
+            2729285,
+            2729285,
+            4836680,
+            4836680,
+            4836680,
+            5186893,
+            5186893,
+            5186893,
+            5818294,
+            5818294,
+            5818294,
+            6767771,
+            6767771,
+            6767771,
+            19310321,
+            19310321,
+            19310321,
+            21576077,
+            24094653,
+            29280589,
+            32566831,
+            32566831,
+            32566831,
+            37961969,
+            37961969,
+            37961969,
+            38436986,
+            38436986,
+            38436986,
+            40597694,
+            40597694,
+            40597694,
+            73956664
+          ],
+          "extra": [
+            1174075,
+            1174075,
+            1174075,
+            23649496,
+            23649496,
+            23649496,
+            28226490,
+            28226490,
+            28226490,
+            58468105,
+            58468105,
+            58468105,
+            92731385,
+            92731385,
+            92731385
+          ],
+          "side": [
+            572850,
+            21576077,
+            21576077,
+            41386308,
+            41386308,
+            41386308,
+            74078255,
+            74078255,
+            74078255,
+            74920585,
+            74920585,
+            74920585,
+            84330567,
+            84330567,
+            84330567
+          ]
+        },
+        "worse": {
+          "main": [
+            2511,
+            572850,
+            572850,
+            1151281,
+            1151281,
+            1151281,
+            2729285,
+            2729285,
+            4836680,
+            4836680,
+            4836680,
+            5186893,
+            5186893,
+            5186893,
+            5818294,
+            5818294,
+            5818294,
+            6767771,
+            6767771,
+            6767771,
+            19310321,
+            19310321,
+            19310321,
+            21576077,
+            24094653,
+            29280589,
+            32566831,
+            32566831,
+            32566831,
+            37961969,
+            37961969,
+            37961969,
+            38436986,
+            38436986,
+            38436986,
+            40597694,
+            40597694,
+            40597694,
+            73956664,
+            74677422
+          ],
+          "extra": [
+            1174075,
+            1174075,
+            23649496,
+            23649496,
+            23649496,
+            28226490,
+            28226490,
+            28226490,
+            47158777,
+            58468105,
+            58468105,
+            58468105,
+            92731385,
+            92731385,
+            92731385
+          ],
+          "side": [
+            572850,
+            21576077,
+            21576077,
+            41386308,
+            41386308,
+            41386308,
+            74078255,
+            74078255,
+            74078255,
+            74920585,
+            74920585,
+            74920585,
+            84330567,
+            84330567,
+            84330567
+          ]
+        },
+        "better_value": 1.0,
+        "worse_value": 0.0,
+        "source": "construction_layer_preference_v1",
+        "hard_constraints_checked": true,
+        "evidence": {
+          "task_sha256": "4d4321c932b341dae345acb81fa4486cfd0bc8552413f141ce2d1cb24157e87b",
+          "comparison": {
+            "status": "preferred",
+            "preferred": "before",
+            "task_sha256": "4d4321c932b341dae345acb81fa4486cfd0bc8552413f141ce2d1cb24157e87b",
+            "advantages_before": [
+              "axis:node:n0:extra:K",
+              "axis:node:n1:extra:K",
+              "necessary_inventory_dependencies"
+            ],
+            "advantages_after": [
+              "axis:extra:U"
+            ],
+            "unresolved": [
+              "necessary_inventory_dependencies:unknown_requirements"
+            ],
+            "relations": {
+              "status": "equivalent",
+              "preferred": null,
+              "changes": {
+                "cards": {
+                  "main": {
+                    "added": [
+                      74677422
+                    ],
+                    "removed": [
+                      2511
+                    ]
+                  },
+                  "extra": {
+                    "added": [
+                      47158777
+                    ],
+                    "removed": [
+                      1174075
+                    ]
+                  },
+                  "side": {
+                    "added": [],
+                    "removed": []
+                  }
+                },
+                "slots": {
+                  "main": 0,
+                  "extra": 0
+                },
+                "uses": {
+                  "node:n0": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  },
+                  "node:n1": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  },
+                  "node:n2": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  },
+                  "node:n3": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  },
+                  "node:n4": {
+                    "before": "unknown",
+                    "after": "unknown",
+                    "details": {}
+                  }
+                }
+              },
+              "advantages_before": [],
+              "advantages_after": [],
+              "unresolved": []
+            },
+            "before_deck_sha256": "a731cd969f08252d74b6c85a8a7a0d33b241d883750d4cc4a0a1893e140b70ec",
+            "after_deck_sha256": "7b9fa7ef1f984bdee7c631ea9e53f100e60936b321624981c7471f75064d9589"
+          },
+          "label_meaning": "scoped layer preference; no win or CB label",
+          "construction_phase": 4
+        }
+      }
+    ],
+    "goals": [
+      {
+        "deck": {
+          "main": [
+            2511,
+            572850,
+            572850,
+            1151281,
+            1151281,
+            1151281,
+            2729285,
+            2729285,
+            4836680,
+            4836680,
+            4836680,
+            5186893,
+            5186893,
+            5186893,
+            5818294,
+            5818294,
+            5818294,
+            6767771,
+            6767771,
+            6767771,
+            19310321,
+            19310321,
+            19310321,
+            21576077,
+            24094653,
+            29280589,
+            32566831,
+            32566831,
+            32566831,
+            37961969,
+            37961969,
+            37961969,
+            38436986,
+            38436986,
+            38436986,
+            40597694,
+            40597694,
+            40597694,
+            73956664,
+            74677422
+          ],
+          "extra": [
+            1174075,
+            1174075,
+            23649496,
+            23649496,
+            23649496,
+            28226490,
+            28226490,
+            28226490,
+            58468105,
+            58468105,
+            58468105,
+            75840616,
+            92731385,
+            92731385,
+            92731385
+          ],
+          "side": [
+            572850,
+            21576077,
+            21576077,
+            41386308,
+            41386308,
+            41386308,
+            74078255,
+            74078255,
+            74078255,
+            74920585,
+            74920585,
+            74920585,
+            84330567,
+            84330567,
+            84330567
+          ]
+        },
+        "label": 1.0,
+        "source": "pinned_catalog_constraint_check",
+        "evidence": {
+          "status": "constraints_satisfied",
+          "task_sha256": "4d4321c932b341dae345acb81fa4486cfd0bc8552413f141ce2d1cb24157e87b",
+          "deck_sha256": "985220a9fa657b78d749929be89fc29ddebf0f978f407367e14be78aa1a15103",
+          "counts": [
+            {
+              "id": "public-pearl-main-axis",
+              "actual": 12,
+              "minimum": 12,
+              "maximum": 60
+            },
+            {
+              "id": "public-pearl-extra-axis",
+              "actual": 6,
+              "minimum": 3,
+              "maximum": 15
+            },
+            {
+              "id": "autonomous-axis",
+              "actual": 18,
+              "minimum": 1,
+              "maximum": 75
+            }
+          ],
+          "versions": {
+            "banlist": "2022.7:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+            "card_pool": "native-private-knowledge-v5",
+            "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+            "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+            "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+            "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+          },
+          "effect_execution_verified": false,
+          "competitive_strength_verified": false
+        }
+      }
+    ],
+    "unknown_routes_used_as_negative": false,
+    "competitive_quality_labels": false,
+    "public_effect_receipts": [
+      {
+        "card_id": 2511,
+        "name": "白银之城的狂时钟",
+        "effect_text_sha256": "26e6a3ec3bf85c25d1b5e6e1123c3a7a6c09fa5b144375388b7ee258b38bf4f7",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 572850,
+        "name": "珠泪哀歌族·塞壬人鱼",
+        "effect_text_sha256": "9616e45ec510866e3c391763ce680c00e944e858199f3b0a0c608d842a2abeef",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 1151281,
+        "name": "地中族邪界兽·爱奥荧冰精",
+        "effect_text_sha256": "eedf1d5a4657c345cac80cedc69ba59dae3e89fa401a93fbc355e4da06f48dca",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 1174075,
+        "name": "龙辉巧-扶筐增二μβ'",
+        "effect_text_sha256": "30b66535f58b97071401668d5d67aa5e2bf20f25840b8971a42ca9c0b0f3f59b",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 1329620,
+        "name": "壹世坏清澈的残响",
+        "effect_text_sha256": "d144c6de0bb9c103acd0e1244ddaa8d889efa175ae310bb7e672ff2e1cacaa6d",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 2602411,
+        "name": "破坏剑-魔法破坏之剑",
+        "effect_text_sha256": "119ca3931fa6c8feb9e92acbb70b13beaf2c29ccf679402d276822df38c581c4",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 2729285,
+        "name": "毛绒动物·猫",
+        "effect_text_sha256": "e4672955fa6461750bdd8fd9a682cb20a3a5505adf52d210900eb14cf0d7fc6f",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 4836680,
+        "name": "娱乐伙伴 异色眼祭司",
+        "effect_text_sha256": "1f6f6f559111ff8dd0f4b00a00873abcb2b3554caf33d4cf38a57840cfc93c94",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 5168381,
+        "name": "恶魔之技",
+        "effect_text_sha256": "16f3596132c80c5d768e5dfc5189588d1f0db6b6d99dc9d96b3d3a858f9c5b30",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 5186893,
+        "name": "真红眼不死龙",
+        "effect_text_sha256": "2a1ab1b742f85d81779afa100e96baa63efe5479aa702d8256fb854d70127f7e",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 5818294,
+        "name": "武神器-边津",
+        "effect_text_sha256": "9f9461d1c67ae011a7e78d8172aa3d68b85c477b9d621b5964a7484ba66cd420",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 6556909,
+        "name": "真红之魂",
+        "effect_text_sha256": "cca9d992a8152c7e5042f45e2e82296f86486f1b945edd0cdf2b91835ed3943e",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 6767771,
+        "name": "劈穿壹世坏的弦声",
+        "effect_text_sha256": "0b205386e9070849de12ed3acf6bfd7f36180ffdd47c180b4f2949808f0c5fdc",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 9126351,
+        "name": "鬼青蛙",
+        "effect_text_sha256": "f5f75b477d1ddd6aa34a9e138a66edf4f4232b7cd8523bc4c4d7e55e0d1261a9",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 17415895,
+        "name": "火山利刃",
+        "effect_text_sha256": "96a79469eac486ac80692cfffdffd917676dec435d12bd036f33b74db97c1f45",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 18106132,
+        "name": "人偶怪兽 熊仔",
+        "effect_text_sha256": "007887343b3c6c6e6605575ebc31646feeceefe822033a6247d42dc1d64669fd",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 19310321,
+        "name": "纹章兽 双头鹰",
+        "effect_text_sha256": "378e08f18c9a073ff94cc2b0eaf3e901a7a7757c5786861bbe76c72f81ed385d",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 20424878,
+        "name": "护宝炮妖·小火箭",
+        "effect_text_sha256": "41aea42237a614a7112ff230f24ca9b6e08b58348d031fa6af77696c38edbb94",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 21576077,
+        "name": "食光之龙辉巧",
+        "effect_text_sha256": "25d7f53945ad6263978827a3ea0f6f5b91a3bbf9c2d5871d9bf2d7392217ac76",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 23649496,
+        "name": "No.18 纹章祖 素徽",
+        "effect_text_sha256": "2d7fedfc0553853653de2d4a31f8f17859802672e91277bda811cd5c597f74bb",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 24094653,
+        "name": "融合",
+        "effect_text_sha256": "a67d1c29c2585ea88569838b5687af8bc282876e4790031799842123bb533249",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 28226490,
+        "name": "珠泪哀歌族·卡雷多哈特",
+        "effect_text_sha256": "61a195d97ab299a74db24471244aca4dc36ab17fb4737b4356d2ce75463fea9f",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 29280589,
+        "name": "锋利小鬼·大镰刀",
+        "effect_text_sha256": "d5157c5fd03ab0363843c53eec8e70cddd1e873ce58de84e2a2a1820d33d60dd",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 30100551,
+        "name": "光道圣女 密涅瓦",
+        "effect_text_sha256": "72415c1ce3da214eb06baaebc21e4eab6381751c55557c72ca68056a554fa67f",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 31259606,
+        "name": "绝海之马雷",
+        "effect_text_sha256": "fcf0c014597bc164198141e278c362c74b23cf62d5312eec06382190948e7e41",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 32566831,
+        "name": "红玉之宝札",
+        "effect_text_sha256": "23bc0d46b1e3e0e8ca1f4968e13b8ebcfbb05305d003f856010b5b0773b7cab7",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 33878367,
+        "name": "壹世坏涡旋的反响",
+        "effect_text_sha256": "9366446f92780b4d1bb966a232a0072499b3b2eea34fc1df0e65eb3fa7af0f93",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 37961969,
+        "name": "珠泪哀歌族·小美人鱼",
+        "effect_text_sha256": "fcc5c6e494e30c734ac2489249629eb4359340137b418256b54636017f44c70e",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 38436986,
+        "name": "壹世坏摩擦的爪音",
+        "effect_text_sha256": "c7e55184faf54731349cb4b6426496616a72d8814477a2c1f6c8a42ffa52e09f",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 40597694,
+        "name": "分散融合",
+        "effect_text_sha256": "b52632220651e7dc8fc070cad7c1a58a66a90c410a2803399a30485120b525a7",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 41386308,
+        "name": "数学家",
+        "effect_text_sha256": "38326fb14b818341164efb8faae7c2fe97b383541e7da80dd7fc068cf236b18f",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 47158777,
+        "name": "破坏剑士的守护绊龙",
+        "effect_text_sha256": "3d6eae1af8a22fff49aed826204f7a38f3ef505053ec539652517d2f1064fad6",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 48285768,
+        "name": "护宝炮妖欢乐制造机",
+        "effect_text_sha256": "580e5f00a8bd7f5936e38595fffc1e857cc986bbb5e31698b66981a8c12100db",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 52198054,
+        "name": "烈焰加农炮弹匣",
+        "effect_text_sha256": "3be1cc1e7e2c3c8612f6038b5a3c231895fb907097f63a114b83a20d4c5db9a3",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 58468105,
+        "name": "凶邪魔玩具·梦魇玛丽",
+        "effect_text_sha256": "1c9f80a846620c92b5436d23f05ac55d605eae8f89146dcf478a890b9e028e75",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 60362066,
+        "name": "摇撼壹世坏的鼓动",
+        "effect_text_sha256": "b192aaf18296c93989c26fb0dd2d30cb8c87fa4e54c387cd9028dd41e41a7673",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 71595845,
+        "name": "人偶的幸福",
+        "effect_text_sha256": "148b5656cac41ad2e32a2ea301728a7729a956f489c3d5a451acd8e36124939c",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 73956664,
+        "name": "珠泪哀歌族·雷诺哈特",
+        "effect_text_sha256": "c641f924eb8f6192658fb2f3ace011039a67b8cc939ec20a092e01f29e6a2fd9",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 74078255,
+        "name": "珠泪哀歌族·梅洛人鱼",
+        "effect_text_sha256": "d5227c9f2d731f0702794e3653c575b53de5bd9a91469feb690c27dc2921dd2c",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 74677422,
+        "name": "真红眼黑龙",
+        "effect_text_sha256": "a2db5fdb088185c790af40956fb4672e295d47dd9a0b3bb7017c8b1084d76c2b",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 74920585,
+        "name": "壹世坏奏响的哀唱",
+        "effect_text_sha256": "c7a7242e8826ea0b3386b543a8dbc63f45aa19ba88c42a5ee670963cce181e99",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 75840616,
+        "name": "武神帝-须佐之男",
+        "effect_text_sha256": "385b8296ab24d93dce691a890562ceb02d74b22fc7101153fc3b5aa211217612",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 78193831,
+        "name": "破坏之剑士",
+        "effect_text_sha256": "c17471f62ecebbde74fbf143e06a2b0d71fb38398ac8b1ad60d53f295128cdf0",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 78420796,
+        "name": "恐啡肽狂龙激昂",
+        "effect_text_sha256": "0e1dd7eec088a4360830aba382809edf1b2b37b288e289e695e13fa9e4370474",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 81599449,
+        "name": "化合兽 碳素蟹",
+        "effect_text_sha256": "64f2d4f181bd2746291aadb5497047a9ef50069d2c426fc724d060a3fae22b40",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 84330567,
+        "name": "珠泪哀歌族·鲁莎卡人鱼",
+        "effect_text_sha256": "7d5952e4f7d7e6d171e50a858a4844bbb9436c2f2bfb87a31d0c79cae968f135",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      },
+      {
+        "card_id": 92731385,
+        "name": "珠泪哀歌族·水仙女人鱼",
+        "effect_text_sha256": "b409aeac7973ae0734c2731eb3c159392f76a10ea0714eb3697ebe1814637055",
+        "source_cards_sha256": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152"
+      }
+    ],
+    "supervision_sha256": "d3b6c5e2d984e9cd783815189b31e155ea3686d5f3614d525e2a63f1d67c6d18"
+  },
+  "validation": {
+    "windows": {
+      "tests": 126,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "modules": [
+        "test_construction_inventory",
+        "test_construction_layers",
+        "test_construction_relations",
+        "test_construction_layer_flow",
+        "test_construction_unification",
+        "test_course_admission_policy",
+        "test_forecast_twenty_fifty"
+      ]
+    },
+    "wsl": {
+      "tests": 22,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0
+    },
+    "static": {
+      "parsed_python_files": 312,
+      "test_whitelist_entries": 110,
+      "missing_modules": []
+    },
+    "diff_check": true,
+    "entry": {
+      "training_held": true,
+      "worker_started": false,
+      "source_root": "/mnt/n/YGO-Kito/_publish_20261030",
+      "state_root": "/mnt/n/YGO-Kito/_local_cpu_20261027/reports/optimization-20261031/2207-course-006"
+    }
+  },
+  "retired_files": [
+    "src/ygo_kito/reference_scoring.py",
+    "src/ygo_kito/reference_scoring_adapter.py",
+    "src/ygo_kito/reference_scoring_feedback.py",
+    "src/ygo_kito/reference_hints.py",
+    "src/ygo_kito/reference_hint_templates.py",
+    "src/ygo_kito/candidate_context.py",
+    "src/ygo_kito/rubric_learning.py",
+    "tests/test_reference_scoring.py",
+    "tests/test_reference_integration.py",
+    "tests/test_reference_scope_revision.py",
+    "tests/test_reference_hints.py",
+    "tests/test_blockonly_scoring.py",
+    "tests/test_phase1_deterministic_fixes.py",
+    "tests/test_phase2a_stage_relevance.py",
+    "tests/test_phase2b_restrictions_cost.py",
+    "scripts/validate_candidate_56.py",
+    "scripts/validate_paused_optimization.py",
+    "docs/development/course-admission-20-50.md",
+    "scripts/migrate_coordinator_course.py",
+    "tests/test_integrated_course_migration.py",
+    "tests/legacy_course_5cf3dc1/autonomous_construction.py",
+    "tests/legacy_course_5cf3dc1/build_model.py",
+    "tests/legacy_course_5cf3dc1/build_training.py",
+    "tests/legacy_course_5cf3dc1/coordinator_model.py",
+    "tests/legacy_course_5cf3dc1/provenance.json"
+  ],
+  "private_derived_cleanup": {
+    "count": 214,
+    "bytes": 14463820,
+    "patterns": [
+      "admission-state.json",
+      "*.private-audit.json"
+    ],
+    "whole_directory_delete_rejected": true,
+    "rejection_reason": "original private source data not established as disposable",
+    "original_source_annotations_retained": true
+  },
+  "implementation": {
+    "src/ygo_kito/construction_inventory.py": "db25d6a5da3dd66b15d77c19b3171706f137a72ea26bb179e2994288c3bdc134",
+    "src/ygo_kito/construction_learning.py": "2382e52be7c148b41bc35fc8ea8c518e836608a25619224f2248bcf9e29ab272",
+    "src/ygo_kito/construction_layer_flow.py": "f11b978f05a56dd12589ee708ec80f37a69cbd83e1dd996497dfab3d89f2d8fa",
+    "src/ygo_kito/construction_fill.py": "b7e4a8c73e766c9a35ad4c0fd87ca86707c44dbb18dab7e12a73df7ae2f414c0",
+    "src/ygo_kito/construction_candidates.py": "8efae14c9d811c591f87c61415a1e0e9908f61f1ec2087915fe29befd0f0d273",
+    "src/ygo_kito/autonomous_construction.py": "4b3608961452924c1f3f91215a1dcc6c63598c901a3c563fa326fa2dab5346e5",
+    "src/ygo_kito/course_admission_policy.py": "526245e76007792a068c4113d115830c17d513445198ec0444107d276e22c68a",
+    "src/ygo_kito/scenario_course.py": "89758b7a28e62549055995fe0c2b9b4f06f1f73d7257dacefd7637b0b06646a3",
+    "src/ygo_kito/semantic_training.py": "7fda3086d99328d87b11468aeb68ca3214b2464cc33baf8d2efe4d0554cc837a",
+    "src/ygo_kito/build_pipeline.py": "1ffa05b9835001213f39da9d4c8992425e87584593a24f21ca78f77da9429114",
+    "src/ygo_kito/build_training.py": "10831c6e185399aaeade005caec2eac974996f537dc026a45fecad8773bf8c54",
+    "src/ygo_kito/construction_curriculum.py": "615d94220ef5f87a3821cbc07a1b2830654cfcba56d30ccc5a4e7f825d77b0d1",
+    "src/ygo_kito/model_group.py": "421752c197e672527588974da154f204a18d471c3909c1f27b4d1b05c062c934",
+    "src/ygo_kito/lora_group.py": "81e6c0ae35804864fbb44cfc616a8b94ef83951822e71403bc27e075f3209486",
+    "src/ygo_kito/group_runner.py": "238ec86c7e454e7986488238c106e1891815446af546a51f0cfb45da0db6d85e",
+    "src/ygo_kito/cb_effect_points.py": "3f4246a924af9b058f970d6a13453ac819308ea4378d8b926ef59d31025f9c23",
+    "scripts/local_course_collaboration.py": "7ef697e1ec8cabdcb21a56d6e05da597e446d30f057ee227da107f04e58e1491",
+    "scripts/pack_formal_course_source.py": "a7f8cb0c68f1e895bd76058c4aa87567a566192517178c551c67ad4798aa9877",
+    "src/ygo_kito/resources/rules/native-archetype-names.json": "2d79ee1b513618994b4629f09acd369226d2cdb10e1f24a62b4ce707edc8c0dd"
+  },
+  "final_ydk_sha256": "bcf23bdc8a7c6787037724dfd1653494ba29f12e02a85259f6028f5a95a340e5",
+  "verification_limits": {
+    "native_execution": false,
+    "cb_execution": false,
+    "optimizer_updates": false,
+    "whole_ci": false,
+    "remote_ci": false,
+    "competitive_strength_verified": false,
+    "runtime_condition_access_verified": false
+  },
+  "rejected_trial_outcomes": [
+    {
+      "run": "run-01",
+      "reason": "pool supply incorrectly used bounded DeckParts"
+    },
+    {
+      "run": "run-02",
+      "reason": "graph-scoped inventory missed whole-deck obligations"
+    },
+    {
+      "run": "run-03",
+      "reason": "translated name substrings produced false archetype memberships"
+    },
+    {
+      "run": "run-04",
+      "reason": "old native package omitted strings.conf; missing registry downgraded dependencies to unknown"
+    }
+  ],
+  "local_generated_cleanup": {
+    "temporary_files_deleted": 53,
+    "temporary_bytes_deleted": 372008047,
+    "obsolete_bytecode_deleted": 10,
+    "obsolete_bytecode_bytes": 175264,
+    "original_trial_cache_removed": true,
+    "canonical_evidence": "docs/reports/2026-11-02-construction-unification.json"
+  }
+}

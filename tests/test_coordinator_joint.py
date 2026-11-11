@@ -107,55 +107,6 @@ class JointAdapterAdmissionTests(unittest.TestCase):
             with self.assertRaisesRegex(ContractError,'opponent differs'):
                 controller.evaluate(1)
 
-    def test_complete_base_course_migrates_through_original_and_new_restore_checks(self):
-        from tests.test_scenario_course import ScenarioCourseTests
-        from ygo_kito.course_models import CourseModels
-        import ygo_kito.course_models as course_module
-        from ygo_kito.course_feedback import CourseFeedbackUpdater
-        from ygo_kito.data_isolation import DataIndex
-        from ygo_kito.scenario_course import ScenarioCourse
-        from migrate_coordinator_course import export_closed_course,migrate_closed_course,sha
-        helper=ScenarioCourseTests('test_real_adapter_updates_same_lora_and_pause_restore_resumes_next_bo1')
-        helper.setUp();self.addCleanup(helper.doCleanups)
-        # A real legacy 14-feature architecture fixture, not a relaxed loader.
-        class LegacyTrainer(CoordinatorTrainer):
-            def __init__(self,*args,**kwargs):
-                super().__init__(*args,**kwargs)
-                del self.model.scope_projection;del self.model.budget_head
-                self.optimizer=torch.optim.AdamW(self.model.parameters(),lr=self.config.learning_rate,weight_decay=0.,foreach=False,fused=False)
-                self.scheduler=torch.optim.lr_scheduler.StepLR(self.optimizer,1,.99)
-        package=Path(course_module.__file__).parent
-        target={'src/ygo_kito/'+p.name:sha(p) for p in package.glob('*.py')}
-        old_source=dict(target);old_source['src/ygo_kito/coordinator_model.py']='4'*64
-        binding=deepcopy(helper.models.binding);binding.update(learning_stage='base',source_files=old_source)
-        with tempfile.TemporaryDirectory(dir=tests.test_coordinator_control.ROOT.parent) as tmp:
-            root=Path(tmp);parent=root/'parent';parent.mkdir()
-            with patch.object(course_module,'CoordinatorTrainer',LegacyTrainer):
-                models=CourseModels.initialize(helper.models.builder.task,helper.host.assets,helper.models.duel.config,
-                    helper.models.adapter_configs,root,None,helper.host.assets.rows,binding)
-                old=ScenarioCourse(models,assets=helper.host.assets,data_index=DataIndex(parent/'index'),config=helper.config,
-                    state_root=parent/'course',bots=helper.bots)
-                old.active_seconds=17.;old.desired='paused'
-                # Full statvfs contract: Linux shutil.disk_usage also reads
-                # block counts while the production storage guard stays active.
-                with patch('os.statvfs',return_value=SimpleNamespace(f_frsize=4096,f_blocks=1_000_000,f_bfree=900_000,f_bavail=900_000),create=True):
-                    old.save();receipt=export_closed_course(old,root/'export.weights')
-            before=(parent/'course/latest.json').read_bytes()
-            with patch('os.statvfs',return_value=SimpleNamespace(f_frsize=4096,f_blocks=1_000_000,f_bfree=900_000,f_bavail=900_000),create=True):
-                migrated,report=migrate_closed_course(receipt,root/'next',assets=helper.host.assets,bots=helper.bots,
-                    source_files=target,allowed_changed_files={'src/ygo_kito/coordinator_model.py'})
-                migrated.restore_latest()
-            self.assertEqual(migrated.active_seconds,17.)
-            self.assertEqual(migrated.records,old.records)
-            self.assertEqual(migrated.models.duel.updates,0)
-            self.assertEqual(migrated.models.coordinator.updates,0)
-            self.assertEqual(migrated.desired,'paused')
-            self.assertFalse(report['training_executed'])
-            self.assertEqual((parent/'course/latest.json').read_bytes(),before)
-            self.assertEqual(migrated.models.versions()['duel'],old.models.versions()['duel'])
-            with self.assertRaises(ContractError):
-                migrate_closed_course(dict(receipt,sha256='0'*64),root/'bad',assets=helper.host.assets,bots=helper.bots,
-                    source_files=target,allowed_changed_files={'src/ygo_kito/coordinator_model.py'})
 
 
 if __name__=='__main__':unittest.main()

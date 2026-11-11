@@ -15,13 +15,16 @@ import traceback
 
 def main():
     p=argparse.ArgumentParser();p.add_argument('--base',type=Path,required=True)
-    p.add_argument('--run-id',required=True);p.add_argument('--job',choices=('fusion','comparison','course'),default='fusion')
+    p.add_argument('--run-id',required=True);p.add_argument('--job',choices=('course',),default='course')
     p.add_argument('--resume',action='store_true')
+    p.add_argument('--check',action='store_true',help='Resolve the paused course without launching a worker')
     p.add_argument('--source-root',type=Path);p.add_argument('--resource-base',type=Path);a=p.parse_args()
     if not re.fullmatch(r'[A-Za-z0-9._-]+',a.run_id):raise ValueError('Invalid local run identity')
     base=a.base.resolve()
-    if base!=Path(__file__).resolve().parents[2]:raise ValueError('Worker base must be this local project')
-    if (base/'reports/training.hold.json').exists():raise RuntimeError('Training is held for repair integration; no learning job was started')
+    if base!=Path(__file__).resolve().parents[2] and not (a.source_root and a.resource_base and base==a.resource_base.resolve()):
+        raise ValueError('Worker base must be this local project or its explicit resource base')
+    held=(base/'reports/training.hold.json').exists()
+    if held and not a.check:raise RuntimeError('Training is held for repair integration; no learning job was started')
     explicit_roots=a.source_root is not None or a.resource_base is not None
     source_root=base/'source';resource_base=None;continuation=None
     if a.job=='course':
@@ -32,20 +35,19 @@ def main():
             raise ValueError('Explicit source and resource roots require a resumed course')
         source_root=a.source_root.resolve();resource_base=a.resource_base.resolve()
         if source_root!=Path(__file__).resolve().parents[1]:raise ValueError('Source root must be this worker repository')
-        if not isinstance(continuation,dict) or set(continuation)!={'state_root','source_manifest','source_archive'}:
-            raise ValueError('Explicit roots require the exact migrated course continuation')
-        state_root=Path(continuation['state_root']).resolve()
-        if not state_root.is_relative_to(base) or not state_root.is_dir():
-            raise ValueError('Explicit roots require an existing migrated course inside this worker base')
-        reports=(base/'reports').resolve()
-        if any(not Path(continuation[key]).resolve().is_relative_to(reports) for key in ('source_manifest','source_archive')):
-            raise ValueError('Migrated execution source artifacts must be inside this worker reports')
+        from local_course_source_continuation import validate_continuation
+        validate_continuation(continuation, base)
+    if a.check:
+        print(json.dumps({'source_root':str(source_root),'resource_base':str(resource_base or base),
+            'continuation':continuation,'training_held':held,'worker_started':False},indent=2))
+        return
     directory=base/'reports/local-training'/a.run_id;directory.mkdir(parents=True,exist_ok=True)
     if (directory/'completed.json').exists():raise RuntimeError('This job already completed; do not replay it')
     lease=base/'reports/local-training/active.lock';stop=directory/'stop.request'
     boot=Path('/proc/sys/kernel/random/boot_id').read_text().strip();pid=os.getpid()
     ticks=Path('/proc/self/stat').read_text().split()[21]
-    identity={'run_id':a.run_id,'job':a.job,'pid':pid,'process_start_ticks':ticks,'boot_id':boot,'base':str(base)}
+    identity={'run_id':a.run_id,'job':a.job,'pid':pid,'process_start_ticks':ticks,'boot_id':boot,'base':str(base),
+              'worker_script':str(Path(__file__).resolve()),'execution_source':str(source_root)}
     def alive(old):
         path=Path('/proc')/str(old.get('pid',-1))/'stat'
         return old.get('boot_id')==boot and path.is_file() and path.read_text().split()[21]==old.get('process_start_ticks')
@@ -88,7 +90,7 @@ def main():
     thread=threading.Thread(target=heartbeat,daemon=True);thread.start();status()
     try:
         if (directory/'completed.json').exists():raise RuntimeError('This job is already complete; do not replay it')
-        filename={'fusion':'local_foundation_fusion.py','comparison':'local_foundation_comparison.py','course':'local_foundation_course.py'}[a.job]
+        filename='local_foundation_course.py'
         path=source_root/'scripts'/filename
         # Preserve the exact orchestration bytes for this launch/resume.
         snapshot=directory/'execution-scripts';snapshot.mkdir(exist_ok=True)

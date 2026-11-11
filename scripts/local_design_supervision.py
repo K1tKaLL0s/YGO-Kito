@@ -55,7 +55,7 @@ def make_unit_boundary(base,stop):
                 raise RuntimeError('Observer is attached to a different course')
             if value.get('verdict')=='violation':raise RuntimeError(value.get('reason') or 'design violation')
             bootstrap=(phase=='before' and course.deck is None and plan['action'] in ('build_goal','build_optimizer')
-                and value.get('verdict')=='unknown' and str(value.get('reason','')).startswith('awaiting initial four-step construction evidence;'))
+                and value.get('verdict')=='unknown' and str(value.get('reason','')).startswith('awaiting initial construction evidence;'))
             if not bootstrap:require_clearance(base,course,target,stop)
             return True
         except (OSError,ValueError,KeyError,RuntimeError) as error:

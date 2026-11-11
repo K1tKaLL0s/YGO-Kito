@@ -51,7 +51,8 @@ def record_conditional_cb_signal(consumer,attempt_id,task,deck,inference,*,asset
     conditional=(isinstance(inference,dict) and inference.get('task_sha256')==task.sha256 and
         inference.get('subject_deck_sha256')==digest(deck.to_dict()) and
         inference.get('initial_state_mode')=='hypothetical_exact_hand_v1' and inference.get('opening_probability_evaluated') is False and
-        inference.get('inference_completed') is True)
+        inference.get('inference_completed') is True and inference.get('normal_completion') is True and
+        inference.get('failure_count_eligible') is True and inference.get('status') == 'no_route_found')
     consumer(ConditionalCBSignal(str(attempt_id),task.sha256,digest(deck.to_dict()),success,
         bool(conditional and not success),'verified_conditional_route' if success else
         'completed_conditional_inference_without_verified_route' if conditional else 'not_a_completed_conditional_inference'))
@@ -65,7 +66,7 @@ class CourseForecast:
     def __init__(self, course, target, stop=None, *, host=None, evaluation_runner=None, snapshot_factory=None,comparison_policy=None,feedback_policy=None):
         self.course, self.target, self.stop = course, Path(target), stop
         self.comparison_policy=comparison_policy
-        self.policy = feedback_policy or (host.policy if host is not None else FeedbackPolicy.twenty_fifty())
+        self.policy = feedback_policy or (host.policy if host is not None else FeedbackPolicy.responsive_twenty_fifty())
         # New future policy gets its own controller/database. Existing 100/1000
         # windows and their SQLite evidence are never reinterpreted or migrated.
         suffix = "" if self.policy._legacy_layout() else "-policy-" + digest(self.policy.to_dict())[:16]
@@ -125,8 +126,8 @@ class CourseForecast:
     def _existing_candidate_proof(self, task, deck, assets):
         from ygo_kito.build_semantics import accepted_status
         result = self.course.construction
-        if not isinstance(result,dict) or not result.get('alternation_completed'):
-            raise ContractError('handoff needs the completed four-step candidate')
+        if not isinstance(result,dict) or not result.get('construction_passed'):
+            raise ContractError('handoff needs the completed passed construction candidate')
         assets.check_task(task)
         assets.validate(task, deck)
         best=result.get('best')
@@ -338,7 +339,7 @@ class CourseForecast:
         if gate['status']!='admitted' or current['mandatory_rebuild'] or current['pending_review']:
             allowed.remove('train_duel')
         eligibility={'frozen_observation_due':self.monitoring_due(),
-            'conditional_cb_or_score_optimization_requested':signals.get('optimization_requested') is True,
+            'conditional_cb_or_inventory_optimization_requested':signals.get('optimization_requested') is True,
             'admission_mandatory_rebuild':signals.get('mandatory_rebuild') is True,
             'forecast_pending_review':current['pending_review'],'forecast_mandatory_rebuild':current['mandatory_rebuild']}
         if signals.get('mandatory_rebuild') is True:
@@ -494,10 +495,10 @@ class CourseForecast:
 
     def construction_completed(self, *, review=None):
         self.before()  # A construction call cannot acknowledge/erase an alert.
-        if (isinstance(review,dict) and review.get('kind')=='completed_four_step_construction_review_v2' and
+        if (isinstance(review,dict) and review.get('kind')=='completed_construction_review_v3' and
                 review.get('task_sha256')==self.course._task().sha256 and
-                review.get('roles')==['build_goal','build_optimizer','build_goal','build_optimizer']):
-            self._record_training_feedback_review('completed_four_step_construction',review)
+                review.get('construction_passed') is True and review.get('roles',[None])[0]=='build_goal' and all(r=='build_optimizer' for r in review['roles'][1:])):
+            self._record_training_feedback_review('completed_construction',review)
         if review is not None and not self.status()['mandatory_rebuild']:
             closed=self.host.record_construction_review(self.value['active_candidate'],review)
             if closed['closed']:

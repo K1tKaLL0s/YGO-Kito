@@ -1,0 +1,18 @@
+[
+  {
+    "card_id": 64389297,
+    "name": "迷宫变化",
+    "review_id": 18,
+    "question": "解放支付实体的精确数量",
+    "printed": "卡文要求解放装备中的本卡和被装备的迷宫壁",
+    "local_script": "c64389297.lua 的 spcost 只将 tc 交给 Duel.Release(tc,REASON_COST)",
+    "confirmed": "官方调整确认：费用仅解放装备着本卡的迷宫壁1只；装备后的效果在自己主要阶段于场上任意发动，不取对象。",
+    "unresolved": "",
+    "status": "resolved_by_official_ruling",
+    "release_quantity": 1,
+    "official_source": "https://www.db.yugioh-card.com/yugiohdb/faq_search.action?cid=4658&ope=4&request_locale=ja",
+    "verified_on": "2026-11-11",
+    "effect_event": "own_main_phase",
+    "activation_kind": "effect_activation"
+  }
+]

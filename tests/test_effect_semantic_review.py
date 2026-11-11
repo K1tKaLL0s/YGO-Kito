@@ -9,8 +9,7 @@ import unittest
 
 import torch
 
-from ygo_kito.build_model import (BuildModelConfig, BuildRanker, LEGACY_FEATURE_VERSION,
-                                  migrate_legacy_ranker)
+from ygo_kito.build_model import (BuildModelConfig, BuildRanker)
 from ygo_kito.effect_mechanisms import (analyze_card, MechanismCatalog, SEMANTIC_VERSION,
                                        MECHANISM_WIDTH)
 from ygo_kito.construction_effect_blocks import reviewed_effect_blocks
@@ -38,7 +37,9 @@ class EffectReviewRegressions(unittest.TestCase):
         _,assets,_,_=assets_fixture()
         assets.rows[1]['desc']=ISOLDE
         tags,reviews=reviewed_effect_blocks(assets,[1])
-        self.assertEqual(tags,());self.assertEqual(reviews,())
+        self.assertEqual({t.value for t in tags},{'检索','特召'})
+        self.assertTrue(reviews)
+        self.assertFalse(any(t.value in ('送墓','卡组送墓') for t in tags))
 
     def test_unrecognized_activation_boundary_is_not_a_positive_operation(self):
         desc='①：从卡组把1张卡送去墓地才能发动（条件（复杂））。抽1张。'
@@ -120,71 +121,6 @@ class EffectReviewRegressions(unittest.TestCase):
             self.assertLessEqual(sum(map(len,group['zones'].values())),6)
 
 
-class AdamMigrationContinuation(unittest.TestCase):
-    @staticmethod
-    def legacy_factory(config, vocabulary, annotations):
-        # Portable source-package fixture for the unchanged v5 forward path.
-        # The evidence driver also runs this test against the exact Git v5 class.
-        model=BuildRanker(config,vocabulary,annotations);del model.mechanism
-        return model
-
-    def test_nonempty_moments_expand_restore_and_continue_exactly(self):
-        torch.set_num_threads(2)
-        cfg=BuildModelConfig(width=8,card_width=4,heads=2,layers=1,feedforward=16,max_tokens=16)
-        with torch.random.fork_rng():
-            torch.manual_seed(71821)
-            # The v5 parameter set/forward path has no mechanism projection.
-            legacy=self.legacy_factory(cfg,4,0)
-            generator=torch.Generator().manual_seed(371)
-            batch={'tokens':torch.tensor([[[0,0,0,0],[1,1,0,4],[2,1,0,4]],
-                                          [[0,0,0,0],[3,1,0,4],[4,1,0,4]]]),
-                   'numbers':torch.randn(2,3,10,generator=generator),'state':torch.zeros(2,6),
-                   'mask':torch.ones(2,3,dtype=torch.bool)}
-            def optimizer(model):return torch.optim.AdamW(model.parameters(),lr=.002,weight_decay=0.,foreach=False,fused=False)
-            old_adam=optimizer(legacy)
-            target=torch.tensor([.25,-.6])
-            def step(model,adam,inputs):
-                adam.zero_grad(set_to_none=True)
-                loss=(model(inputs)-target).square().mean();loss.backward();adam.step()
-            for _ in range(2):step(legacy,old_adam,batch)
-            old_model=deepcopy(legacy.state_dict());old_optimizer=deepcopy(old_adam.state_dict())
-            nonzero=sum(bool(state['exp_avg'].count_nonzero()) for state in old_optimizer['state'].values())
-            self.assertGreater(nonzero,0)
-            self.assertTrue(all(int(state['step'])==2 for state in old_optimizer['state'].values()))
-            checkpoint=io.BytesIO();torch.save({'model':old_model,'optimizer':old_optimizer},checkpoint)
-            source_sha=hashlib.sha256(checkpoint.getvalue()).hexdigest()
-            migrated,expanded,receipt=migrate_legacy_ranker(old_model,old_optimizer,
-                source_feature_version=LEGACY_FEATURE_VERSION,source_checkpoint_sha256=source_sha)
-            model=BuildRanker(cfg,4,0);model.load_state_dict(migrated)
-            adam=optimizer(model);adam.load_state_dict(expanded)
-            for name,parameter in model.named_parameters():
-                if name=='mechanism.weight':
-                    self.assertNotIn(parameter,adam.state);continue
-                old_parameter=dict(legacy.named_parameters())[name]
-                for key,value in old_adam.state[old_parameter].items():
-                    self.assertTrue(torch.equal(value,adam.state[parameter][key]),(name,key))
-            self.assertTrue(torch.equal(legacy(batch),model(batch)))
-            self.assertEqual(len(old_optimizer['param_groups'][0]['params']),len(old_model))
-            for key,state in old_optimizer['state'].items():
-                for name,value in state.items():self.assertTrue(torch.equal(value,expanded['state'][key][name]))
-            roundtrip=io.BytesIO();torch.save({'model':model.state_dict(),'optimizer':adam.state_dict()},roundtrip)
-            roundtrip.seek(0);saved=torch.load(roundtrip,weights_only=True,map_location='cpu')
-            restored=BuildRanker(cfg,4,0);restored.load_state_dict(saved['model'])
-            restored_adam=optimizer(restored);restored_adam.load_state_dict(saved['optimizer'])
-            active=dict(batch,mechanisms=torch.randn(2,3,MECHANISM_WIDTH,generator=generator))
-            step(legacy,old_adam,batch)
-            step(model,adam,active);step(restored,restored_adam,active)
-            for name,value in model.state_dict().items():
-                self.assertTrue(torch.equal(value,restored.state_dict()[name]),name)
-                if name!='mechanism.weight':self.assertTrue(torch.equal(value,legacy.state_dict()[name]),name)
-            for a,b in zip(adam.param_groups[0]['params'],restored_adam.param_groups[0]['params']):
-                for key,value in adam.state[a].items():self.assertTrue(torch.equal(value,restored_adam.state[b][key]))
-            projection=model.mechanism.weight
-            self.assertGreater(adam.state[projection]['exp_avg'].count_nonzero().item(),0)
-            self.assertEqual(int(adam.state[projection]['step']),1)
-            self.assertTrue(all(int(state['step'])==3 for p,state in adam.state.items() if p is not projection))
-            self.assertFalse(receipt['whole_checkpoint_restore_performed'])
-            print('ADAM_EVIDENCE nonzero_old_moments=%d old_step=2 continued_old_step=3 new_projection_step=1 roundtrip_exact=true'%nonzero)
 
 
 if __name__=='__main__':unittest.main()

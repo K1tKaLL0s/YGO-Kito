@@ -1,5 +1,67 @@
 # 多因子神经角色分析：独立增量
 
+## 当前 v3 交付入口（2026-11-09）
+
+第二次核查更新：先前“软件完成”结论已按实际源码进一步复核，旧入口残留和实现缺口已修复，包含结构化目标进入条件读出、真实双配置偏好和训练/评估绑定；当前入口、接口变更和删除清单以[核查报告](../reports/2026-11-09-axis-generic-review-cleanup.md)及[使用说明](axis-generic-software-v3.md)为准。带执行拦截的 177 项检查全部通过，实际能力阶段仍未运行。
+
+首轮软件补齐交付了 M1–M7 及 T1–T5 所需的训练控制、分组校准/独立评估、逐能力宿主接线、环境三路适配及入口，当时 94 个不同方法最终通过、158 次物理执行，首次 3 项 error 已修复，见[历史完成报告](../reports/2026-11-09-axis-generic-software-completion.md)。本次进一步核查和修复后的结论以页首新报告为准。未变化的资源/分支等证据按原报告复用；真实准备、正式训练、CB/原生、CI 与实际能力发布仍未运行。
+
+本节说明当前 v3。下方 v1/v2 原文、旧协议、分母、网络、命令和成绩保留为历史记录；它们不覆盖本节和主执行书。旧稿中的“尚未接入构筑”、旧五维输出及旧示例不能描述当前 v3 服务或充当当前运行证据。两份旧开发说明的既有正文保留。
+
+### 输入、事实与学习记录
+
+`contracts.RoleInput` 的 `axis-input-v3` 输入有 unit_analysis、deck_analysis、candidate_insert、state_evaluation 四模式。`DeckSpec` 保留真实 main/extra/side 数量，缺失区域为 unknown，已知空区与缺失区域分开；可见状态只能显式提供或保持 null。`LabelCell/LabelSet` 区分 known、unknown、conflict、not_applicable，未标注成员不补负，包的泛用标签不广播到单卡。
+
+运行时与训练共用 `semantics.build_analysis_graph`。卡片/效果事实、费用、次数、区域、结构关系、逐功能成员与条件进入图；名字、卡号的身份编码、来源引用、监督答案不作为可学习身份特征。卡号仍用于连接实际实体和精确指名关系。自然候选允许重叠和有依据的父子供需关系；候选支持成员不等于已识别成员，评价成员全集不硬限于候选支持集，自然漏召回仍计漏检。
+
+`functional_units.minimum_member_branches/assess_unit` 按所问功能分别解析成员、替代分支和条件；共用 `conditions.solve_requirements` 进行有界整数资源分配，构筑的有限适配也委托该核心。分支不拼接，未知资源/预算不足不伪装为确定失败。完整单元定义、当前接收实例的结构完整性和局面 readiness 各自输出；Side 不直接提供当前 Main/Extra 伴随件。
+
+学习记录分为 observations、targets、supervision、provenance。来源关联先传递合并再划分和派生；支持 unseen_deck、unseen_receiver、unseen_card、cross_period 四种协议。未知标签不进入损失，来源和证据权重分开，零监督/零证据批次跳过前向和更新。训练专用虚拟查询只在显式 `supervision.training_queries` 中使用，默认推理和自然候选评价忽略它。
+
+### 网络、准备与恢复
+
+显式 `NetworkConfig.v3()` 使用 64 维、两轮、双流、路线特征关闭；保留独立的单/双流与路线开关，旧 `NetworkConfig()` 默认仍属于旧特征路径，不能省略 v3 选择。18 个可学习任务覆盖机制、成员、功能角色、贡献、位置/来源、迁移性、接收兼容、有向关系、副本偏好和旧语义任务。carrier/enhancer 分格，core/support 可并存；large/small 没有可靠映射时保持 unknown，不设新张数阈值。
+
+`training/axis_generic/prepare_v3.py` 提供独立新版准备入口和语义缓存，`train_v3.py` 接通逐格训练、开发选模与恢复。原配置、旧标签、runs 和权重保留。M5 的条件范围特征改变缓存身份，后续应在新目录准备匹配数据；旧 core/support 所需观察/标签的覆盖缺口尚未补齐，继续 unknown。本批没有准备数据或调用训练入口。
+
+v3 checkpoint 单独绑定实验、架构、受控特征、任务/标签协议、资料、来源划分、配方、Adam、随机状态和采样/选模游标。resume 要求同实验完整相容；warm_start 只复制明确相容的共享图编码器，重建输出头、优化器、游标和能力计数。旧权重按原源码绑定保留，不关闭检查强行兼容。`config.train.v3.json` 中 formal_training、automatic_lora、core_course_resumed 仍为 false。
+
+### 三个服务与输出
+
+宿主通过 `RoleAnalyzer(fact_provider, scorer=..., capabilities=..., budget=...)` 注入已有事实和可选评分，服务不自动创建或加载模型。请求使用 `AnalysisRequestContext`，保留规则/时期/格式、明确目标、off/observe/assist、公共资源覆盖、可见状态和可选抽样，不接收监督/标签区块。
+
+| 入口 | 返回与实际处理 |
+|---|---|
+| `analyze_deck(deck, context)` | 返回 `DeckAnalysis`，含单元、功能、成员查询、条件/资源、分区浓度、能力、未知及解释依据 |
+| `assess_unit(unit, receiver_deck, context, requested_function)` | 返回 `UnitAssessment`，分别评价完整定义和接收实例；未提供 receiver 不虚构兼容性 |
+| `compare_copy_change(base_deck, add_card, remove_card, functions, context)` | 返回 `CopyComparison`；add/remove 各声明区域与数量，分别重观察前后完整配置、构图、重算库存/依赖/调用/资源冲突及实际分母 |
+
+移除不足或修改未知区域会在 provider 前拒绝。remove=null 是实际增加，add=null 是实际减量；无替代对象或可靠比较证据时整体偏好 unknown。只有显式声明单次均匀初始抽样、区域与抽数时，才复用已有单卡接触率；它不等于联合功能成功率。外部 legality 必须绑定确切配置、目标、规则/上下文、producer/version 和证据，缺失或不匹配为 unknown。
+
+`CandidateScorer.score_graph` 在整头预算通过后以 32 查询分块遍历，不把 32 当候选总上限。单头失败只停该头；候选枚举溢出时相关头不应用。raw_prediction、calibrated_scores、applied_prediction 分开；校准器需宿主显式注入，未拟合时没有默认阈值或 argmax 代替校准。
+
+### 模式、能力与真实消费者
+
+构筑 `build_axis_skeleton/fill_with_existing/construction_cycle` 的可选参数为 `recognition_provider`、`recognition_mode`，默认 off。服务 `AnalysisRequestContext.mode` 默认 observe；两种入口的默认分别保留。
+
+| 模式 | 当前消费行为 |
+|---|---|
+| off | 不触及识别 provider 或模型，沿用原构筑路径 |
+| observe | 在整个构筑切片的排序、分值、学习输入、停止原因、gate 和 CB 授权确定后追加记录；不把观察耗时计入优化/CB 决策预算，不写学习候选或 session 反馈 |
+| assist | 仅传递有实际数据和明确能力依据的事实；版本化宿主 `layer_policy(task, deck, layers, facts)` 可映射到既有功能质量证据，再由原规范化器/evaluator/gate 处理；默认没有自动采用新头的政策 |
+
+无 scorer 时学习能力为 unavailable，有 scorer 但未发布时默认 untrained。训练/弱监督未校准状态只能作 raw 诊断；available 要求显式 validated、calibrated、producer/version 和证据。state_readiness、function_facts、requirements 默认 deterministic_only，默认未 validated，进入 assist 也要有宿主验证依据。environment_value 默认 disabled，只有独立环境支路、相容校准和真实验证工件构造的显式 environment_provider 才能提供输出，单传能力开关不能开启。当前没有发布真实学习能力；校准拟合与宿主绑定源码已补齐，仍由宿主显式选择工件。
+
+识别层不新增 losses/slot_uses、私有分值或构筑定价，不覆盖原有证据，不切换生产 QUALITY_VERSION。CB 提示只给显式声明 `accepts_recognition_hints=True` 的 provider，内容为候选、资源、分支、时序和缺件；提示的 legality/route_success 保持 unknown，实际 CB 执行授权和规则验证权威不变。统筹读取原阶段结果，不改网络、调度或数据库。
+
+### CLI 与当前验证边界
+
+事实 CLI 必须显式提供 `--service analyze_deck|assess_unit|compare_copy_change`，只接受 `axis-service-request-v3`，延迟导入且不构造/加载模型，也不接受 checkpoint/adapter；服务神经评分由宿主注入。旧 `multifactor-candidates-v2` 神经 CLI 及其 checkpoint/adapter 参数已删除，神经批量预测统一使用 `training.axis_generic.workflow_v3 predict`。本次已执行五个现行入口的 help、人工文件 CLI 往返及旧参数拒绝检查；下方 v1/v2 示例只保留历史说明，不能作为当前训练或预测命令。
+
+M7 初次文档交付时没有执行运行验收；之后 Q1–Q5/V10 及本次整个模块的软件检查已完成。A01–A10 与 V01–V30 的工程证据按历史报告和本次完成报告读取，包括纯 CB hints 与环境基础路径不变性。T1–T5 的源码、配置和接口已交付，实际资料准备、正式训练、真实消融/校准/独立能力评估、环境真实反馈训练及发布仍未运行。历史/活动权重、活动指针和暂停状态保持。
+
+## v1/v2 历史实现记录
+
 **当前 v2**：[最小功能单元与 LoRA](multifactor-functional-units-and-lora.md)补充用户确认的严格联动泛用定义、必要配套/成员接口、开发标注契约与可选适配器；该页优先于本文 v1 实现记录。当前协议为 `user-confirmed-functional-unit-v2`，输入与基础 checkpoint 为 v2，未训练公开概率/评分为 null；v1 的原始交付与受测字节保留在提交 `ddaf81e`。
 
 本模块位于 `ygo_kito.multifactor`，只消费版本化数据契约。它不导入未合并的效果或构筑模块，不接入活跃构筑循环，不改变已有规则验证，也不成为既定修复/训练的新增前置条件。本轮交付可训练代码与工程证据；没有正式训练、角色能力验收或生产权重。

@@ -87,7 +87,8 @@ def logic_requirements(codec, tags=(), connector_kinds=()):
 
 def rule_graph_candidates(context, codec, *, required_tags=(), required_connector_kinds=(), limit=8):
     """Retain different resource/topology plans, not permutations of one chain."""
-    integer(limit, "graph candidates", 2, 16)
+    if limit is not None:
+        integer(limit, "graph candidates", 2, 16)
     requirements=logic_requirements(codec,required_tags,required_connector_kinds)
     requested=tuple(LogicTag.from_dict(t) for t in requirements["tags"])
     kinds=tuple(requirements["connector_kinds"])
@@ -130,11 +131,11 @@ def rule_graph_candidates(context, codec, *, required_tags=(), required_connecto
         optional_nodes=serial+[(optional,)]
         n=len(serial)
         proposals.append(make(optional_nodes,[(i,i+1) for i in range(n-1)]+[(0,n),(n,n-1)],[0],[n-1]))
-        if len(proposals)>=limit+2:break
+        if limit is not None and len(proposals)>=limit+2:break
     distinct={}
     for graph in proposals:
         if covers(graph):distinct.setdefault(graph_signature(graph),graph)
-    return list(distinct.values())[:limit]
+    return list(distinct.values()) if limit is None else list(distinct.values())[:limit]
 
 
 def _numbers(value):
@@ -225,7 +226,7 @@ class LogicModelAdapter:
 
     def candidates(self, context):
         return rule_graph_candidates(context,self.codec,required_tags=self.required_tags,
-                                     required_connector_kinds=self.required_connector_kinds)
+                                     required_connector_kinds=self.required_connector_kinds, limit=None)
 
     def _check(self, context, graphs):
         if digest(self.codec.to_dict())!=self.codec_sha256:
@@ -248,9 +249,13 @@ class LogicModelAdapter:
 
     def scores(self, context, graphs):
         self._check(context,graphs)
-        model=self.models[context["role"]]; model.eval()
-        with torch.no_grad():
-            values=model(self.encoder.batch(context,graphs)).tolist()
+        model=self.models[context["role"]]; mode=model.training; model.eval()
+        try:
+            with torch.no_grad():
+                values=[v for start in range(0,len(graphs),16)
+                        for v in model(self.encoder.batch(context,graphs[start:start+16])).tolist()]
+        finally:
+            model.train(mode)
         if any(not math.isfinite(s) for s in values):
             raise ContractError("nonfinite graph model scores")
         return values
@@ -293,7 +298,8 @@ class LogicModelAdapter:
         self._check(context,graphs)
         role=context["role"]; model=self.models[role]; optimizer=self.optimizers[role]
         before=parameter_digest(model); model.train(); optimizer.zero_grad(set_to_none=True)
-        logits=model(self.encoder.batch(context,graphs))
+        logits=torch.cat([model(self.encoder.batch(context,graphs[start:start+16]))
+                          for start in range(0,len(graphs),16)])
         loss=F.cross_entropy(logits.unsqueeze(0),torch.tensor([preferred_index],device=logits.device))
         if not torch.isfinite(loss):raise ContractError("nonfinite graph preference loss")
         loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(),1.,error_if_nonfinite=True);optimizer.step()

@@ -1,0 +1,1830 @@
+{
+  "status": "inventory_detection_fixed_four_handoffs_completed_known_gaps_remain",
+  "period": "2022-07",
+  "release_cutoff": "2022-09-30",
+  "course": "2207-course-006",
+  "checkpoint": "/mnt/n/YGO-Kito/_local_cpu_20261027/reports/optimization-20261031/2207-course-006/course/checkpoint-1.weights",
+  "task": {
+    "annotations": [
+      {
+        "condition": "construct from public legal pool without a reference deck",
+        "layer": "engineering_goal",
+        "source": "user_explicit_historical_theme",
+        "subject": "self",
+        "tag": "theme·tearlaments"
+      }
+    ],
+    "candidate_budget": 16,
+    "environment": {
+      "authority": "custom",
+      "environment_id": "period-runtime-2022-07",
+      "release_cutoff": "2022-09-30",
+      "versions": {
+        "banlist": "2022.7:e30363a3e2091cf13c158ffb747e28ac8babcc0e60af920aa516f42147432769",
+        "card_pool": "native-private-knowledge-v5",
+        "cards": "ff52f585de24a762a4e613ac37654b1a7fb15a58990c14f5eada85f28c3be152",
+        "core": "3209cd866a55e8501a0ed358d3064d9ae0ae6b30",
+        "protocol": "e2a20731d87c42686cf043991365f365d21fe83fc66bcaf6e82c3f5a971052a9",
+        "scripts": "6f5e96fe68506b3bd69cea7f8cce52edd1cec9fa62f46aa20c4b42ff2faa52f0"
+      }
+    },
+    "goal": {
+      "constraints": [
+        {
+          "id": "public-pearl-main-axis",
+          "maximum": 60,
+          "minimum": 12,
+          "predicate": {
+            "field": "setcode",
+            "value": 385
+          },
+          "zones": [
+            "main"
+          ]
+        },
+        {
+          "id": "public-pearl-extra-axis",
+          "maximum": 15,
+          "minimum": 3,
+          "predicate": {
+            "field": "setcode",
+            "value": 385
+          },
+          "zones": [
+            "extra"
+          ]
+        },
+        {
+          "id": "autonomous-axis",
+          "maximum": 75,
+          "minimum": 1,
+          "predicate": {
+            "field": "setcode",
+            "value": 385
+          },
+          "zones": [
+            "main",
+            "extra"
+          ]
+        }
+      ],
+      "kind": "deck_constraints",
+      "preferences": []
+    },
+    "pool": [
+      572850,
+      1151281,
+      1174075,
+      1329620,
+      4836680,
+      5168381,
+      6767771,
+      9126351,
+      23649496,
+      28226490,
+      30100551,
+      31259606,
+      32566831,
+      33878367,
+      37961969,
+      38436986,
+      40597694,
+      41386308,
+      47158777,
+      48285768,
+      52198054,
+      58468105,
+      60362066,
+      71595845,
+      73956664,
+      74078255,
+      74920585,
+      75840616,
+      78420796,
+      81599449,
+      84330567,
+      92731385
+    ],
+    "requirements": [],
+    "schema_version": 4,
+    "sizes": {
+      "extra": 15,
+      "main": 40,
+      "side": 15
+    },
+    "source": "user_provided",
+    "task_id": "auto-862cfa5adb26dfa14fa030a8"
+  },
+  "checks": {
+    "four_handoffs": true,
+    "task_verified": true,
+    "started_empty": true,
+    "continuity": true,
+    "production_unchanged": true,
+    "parameters_unchanged": true,
+    "no_cb": true,
+    "no_native": true,
+    "remaining_deficits_excluded_from_function_investment": true,
+    "final_dependency_inventory_covered": true
+  },
+  "training_resumed": false,
+  "model_cursors": {
+    "build_updates": {
+      "build_goal": 5,
+      "build_optimizer": 0
+    },
+    "build_batch": 5,
+    "duel_updates": 27,
+    "duel_episodes": 27,
+    "coordinator_updates": 37
+  },
+  "construction_seconds": 6.478146758999998,
+  "basic_cb_execution": {
+    "enabled": false,
+    "reason": "disabled_by_host"
+  },
+  "cb_calls": 0,
+  "cb_proposal_calls": 0,
+  "native_calls": 0,
+  "basic_cb": {
+    "kind": "basic_cb_inference_after_construction",
+    "status": "not_run",
+    "routes": [],
+    "inference_completed": false,
+    "unknown_is_not_negative": true,
+    "subject_deck_sha256": "87ed815e6eac48447e9fe69077fcff6bc835da4a04488772986a9e2477783f8e",
+    "task_sha256": "665d745494a19f9f5e6a694fb68a4963567504303f090539afe75bb0795a322c",
+    "inference_scope": "basic_cb_for_constructed_deck_not_whole_graph_acceptance"
+  },
+  "phases": [
+    {
+      "phase": 1,
+      "role": "build_goal",
+      "candidate_count": 15,
+      "selected": 6,
+      "legacy_first": 14,
+      "pair_count": 105,
+      "known_deficits": {},
+      "selected_strategy": "dependency:inventory",
+      "selected_repair": {
+        "step": 1,
+        "checks": 1,
+        "before": {
+          "materials:28226490:shortfall": 1,
+          "materials:28226490:blocked_copies": 3
+        },
+        "after": {}
+      },
+      "selected_changes": {
+        "main": {
+          "added": [
+            572850,
+            572850,
+            4836680,
+            4836680,
+            4836680,
+            5168381,
+            5168381,
+            5168381,
+            6767771,
+            6767771,
+            6767771,
+            32566831,
+            32566831,
+            32566831,
+            33878367,
+            33878367,
+            33878367,
+            38436986,
+            38436986,
+            38436986,
+            41386308,
+            41386308,
+            41386308,
+            52198054,
+            52198054,
+            52198054,
+            60362066,
+            71595845,
+            71595845,
+            71595845,
+            73956664,
+            74920585,
+            74920585,
+            74920585,
+            78420796,
+            78420796,
+            78420796,
+            81599449,
+            81599449,
+            81599449
+          ],
+          "removed": []
+        },
+        "extra": {
+          "added": [
+            28226490,
+            28226490,
+            28226490,
+            47158777,
+            47158777,
+            47158777,
+            48285768,
+            48285768,
+            48285768,
+            84330567,
+            84330567,
+            84330567,
+            92731385,
+            92731385,
+            92731385
+          ],
+          "removed": []
+        },
+        "side": {
+          "added": [
+            572850,
+            1329620,
+            1329620,
+            1329620,
+            9126351,
+            9126351,
+            9126351,
+            30100551,
+            30100551,
+            30100551,
+            73956664,
+            73956664,
+            74078255,
+            74078255,
+            74078255
+          ],
+          "removed": []
+        }
+      },
+      "portfolio_candidates": 15,
+      "comparison_cycles": []
+    },
+    {
+      "phase": 2,
+      "role": "build_optimizer",
+      "candidate_count": 16,
+      "selected": 14,
+      "legacy_first": 15,
+      "pair_count": 120,
+      "known_deficits": {
+        "effect:5168381:1:0:538ae846d331:shortfall": 1,
+        "effect:5168381:1:0:538ae846d331:blocked_copies": 3,
+        "effect:32566831:1:0:538ae846d331:shortfall": 2,
+        "effect:32566831:1:0:538ae846d331:blocked_copies": 3,
+        "effect:47158777:1:0:538ae846d331:shortfall": 1,
+        "effect:47158777:1:0:538ae846d331:blocked_copies": 3,
+        "effect:48285768:1:0:538ae846d331:shortfall": 1,
+        "effect:48285768:1:0:538ae846d331:blocked_copies": 2,
+        "effect:52198054:3:2:538ae846d331:shortfall": 1,
+        "effect:52198054:3:2:538ae846d331:blocked_copies": 3,
+        "effect:71595845:3:2:538ae846d331:shortfall": 1,
+        "effect:71595845:3:2:538ae846d331:blocked_copies": 3
+      },
+      "selected_strategy": "transfer:extra+side",
+      "selected_repair": null,
+      "selected_changes": {
+        "main": {
+          "added": [],
+          "removed": []
+        },
+        "extra": {
+          "added": [
+            30100551
+          ],
+          "removed": [
+            48285768
+          ]
+        },
+        "side": {
+          "added": [
+            48285768
+          ],
+          "removed": [
+            30100551
+          ]
+        }
+      },
+      "portfolio_candidates": 16,
+      "comparison_cycles": []
+    },
+    {
+      "phase": 3,
+      "role": "build_goal",
+      "candidate_count": 16,
+      "selected": 1,
+      "legacy_first": 4,
+      "pair_count": 120,
+      "known_deficits": {
+        "effect:47158777:1:0:538ae846d331:shortfall": 1,
+        "effect:47158777:1:0:538ae846d331:blocked_copies": 3,
+        "effect:48285768:1:0:538ae846d331:shortfall": 1,
+        "effect:48285768:1:0:538ae846d331:blocked_copies": 2,
+        "effect:52198054:3:2:538ae846d331:shortfall": 1,
+        "effect:52198054:3:2:538ae846d331:blocked_copies": 3,
+        "effect:71595845:3:2:538ae846d331:shortfall": 1,
+        "effect:71595845:3:2:538ae846d331:blocked_copies": 3
+      },
+      "selected_strategy": "dependency:inventory",
+      "selected_repair": {
+        "step": 6,
+        "checks": 19,
+        "before": {
+          "effect:32566831:1:0:538ae846d331:shortfall": 2,
+          "effect:32566831:1:0:538ae846d331:blocked_copies": 1,
+          "effect:47158777:1:0:538ae846d331:shortfall": 1,
+          "effect:47158777:1:0:538ae846d331:blocked_copies": 3,
+          "effect:48285768:1:0:538ae846d331:shortfall": 1,
+          "effect:48285768:1:0:538ae846d331:blocked_copies": 2,
+          "effect:52198054:3:2:538ae846d331:shortfall": 1,
+          "effect:52198054:3:2:538ae846d331:blocked_copies": 3,
+          "effect:71595845:3:2:538ae846d331:shortfall": 1,
+          "effect:71595845:3:2:538ae846d331:blocked_copies": 3
+        },
+        "after": {
+          "effect:47158777:1:0:538ae846d331:shortfall": 1,
+          "effect:47158777:1:0:538ae846d331:blocked_copies": 3,
+          "effect:48285768:1:0:538ae846d331:shortfall": 1,
+          "effect:48285768:1:0:538ae846d331:blocked_copies": 2,
+          "effect:52198054:3:2:538ae846d331:shortfall": 1,
+          "effect:52198054:3:2:538ae846d331:blocked_copies": 3,
+          "effect:71595845:3:2:538ae846d331:shortfall": 1,
+          "effect:71595845:3:2:538ae846d331:blocked_copies": 3
+        }
+      },
+      "selected_changes": {
+        "main": {
+          "added": [
+            572850,
+            1151281,
+            1151281,
+            1151281,
+            1329620,
+            1329620
+          ],
+          "removed": [
+            5168381,
+            5168381,
+            5168381,
+            32566831,
+            32566831,
+            32566831
+          ]
+        },
+        "extra": {
+          "added": [],
+          "removed": []
+        },
+        "side": {
+          "added": [
+            5168381,
+            32566831,
+            32566831
+          ],
+          "removed": [
+            572850,
+            1329620,
+            1329620
+          ]
+        }
+      },
+      "portfolio_candidates": 16,
+      "comparison_cycles": []
+    },
+    {
+      "phase": 4,
+      "role": "build_optimizer",
+      "candidate_count": 16,
+      "selected": 1,
+      "legacy_first": 0,
+      "pair_count": 120,
+      "known_deficits": {
+        "effect:47158777:1:0:538ae846d331:shortfall": 1,
+        "effect:47158777:1:0:538ae846d331:blocked_copies": 1,
+        "effect:48285768:1:0:538ae846d331:shortfall": 1,
+        "effect:48285768:1:0:538ae846d331:blocked_copies": 2,
+        "effect:71595845:3:2:538ae846d331:shortfall": 1,
+        "effect:71595845:3:2:538ae846d331:blocked_copies": 2
+      },
+      "selected_strategy": "dependency:inventory",
+      "selected_repair": {
+        "step": 6,
+        "checks": 24,
+        "before": {
+          "effect:47158777:1:0:538ae846d331:shortfall": 1,
+          "effect:47158777:1:0:538ae846d331:blocked_copies": 2,
+          "effect:48285768:1:0:538ae846d331:shortfall": 1,
+          "effect:48285768:1:0:538ae846d331:blocked_copies": 2,
+          "effect:71595845:3:2:538ae846d331:shortfall": 1,
+          "effect:71595845:3:2:538ae846d331:blocked_copies": 2
+        },
+        "after": {
+          "effect:47158777:1:0:538ae846d331:shortfall": 1,
+          "effect:47158777:1:0:538ae846d331:blocked_copies": 1,
+          "effect:48285768:1:0:538ae846d331:shortfall": 1,
+          "effect:48285768:1:0:538ae846d331:blocked_copies": 2,
+          "effect:71595845:3:2:538ae846d331:shortfall": 1,
+          "effect:71595845:3:2:538ae846d331:blocked_copies": 2
+        }
+      },
+      "selected_changes": {
+        "main": {
+          "added": [
+            1329620,
+            9126351,
+            9126351,
+            9126351
+          ],
+          "removed": [
+            52198054,
+            52198054,
+            52198054,
+            71595845
+          ]
+        },
+        "extra": {
+          "added": [
+            30100551,
+            30100551
+          ],
+          "removed": [
+            47158777,
+            47158777
+          ]
+        },
+        "side": {
+          "added": [
+            47158777,
+            47158777,
+            52198054,
+            52198054,
+            52198054,
+            71595845
+          ],
+          "removed": [
+            1329620,
+            9126351,
+            9126351,
+            9126351,
+            30100551,
+            30100551
+          ]
+        }
+      },
+      "portfolio_candidates": 16,
+      "comparison_cycles": []
+    }
+  ],
+  "original_gap_diagnosis": [
+    {
+      "card_id": 32566831,
+      "name": "红玉之宝札",
+      "old": {
+        "effects": [
+          {
+            "status": "missing",
+            "requirements": [
+              {
+                "query": {
+                  "level": 7,
+                  "name_contains": "真红眼",
+                  "type": 1,
+                  "selector": "7星「真红眼」怪兽"
+                },
+                "minimum": 1,
+                "source": "从手卡把1只7星「真红眼」怪兽送去墓地",
+                "origin": "hand",
+                "category": "costs",
+                "available": 0,
+                "matching_card_ids": [],
+                "shortfall": 1
+              },
+              {
+                "query": {
+                  "level": 7,
+                  "name_contains": "真红眼",
+                  "type": 1,
+                  "selector": "7星「真红眼」怪兽"
+                },
+                "minimum": 1,
+                "source": "从卡组把1只7星「真红眼」怪兽送去墓地",
+                "origin": "deck",
+                "category": "operations",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从卡组把1只7星「真红眼」怪兽送去墓地",
+                  "order": 15,
+                  "from_zones": [
+                    "deck"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从卡组把1只7星「真红眼」怪兽送去墓地",
+                  "random": false,
+                  "quantity": 1,
+                  "owner": "self"
+                },
+                "available": 0,
+                "matching_card_ids": [],
+                "shortfall": 1
+              }
+            ],
+            "shortfall": 2,
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:32566831:1:0:538ae846d331",
+            "nodes": [
+              "n0",
+              "n1"
+            ],
+            "unknown_selectors": []
+          }
+        ],
+        "materials": null
+      },
+      "before": {
+        "main": 3,
+        "extra": 0,
+        "side": 0
+      },
+      "after": {
+        "main": 0,
+        "extra": 0,
+        "side": 2
+      },
+      "current": null
+    },
+    {
+      "card_id": 52198054,
+      "name": "烈焰加农炮弹匣",
+      "old": {
+        "effects": [
+          {
+            "status": "missing",
+            "requirements": [
+              {
+                "query": {
+                  "name_contains": "火山",
+                  "selector": "「火山」卡"
+                },
+                "minimum": 1,
+                "source": "从卡组把1张「火山」卡送去墓地",
+                "origin": "deck",
+                "category": "operations",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从卡组把1张「火山」卡送去墓地",
+                  "order": 0,
+                  "from_zones": [
+                    "deck"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从卡组把1张「火山」卡送去墓地",
+                  "random": false,
+                  "quantity": 1,
+                  "owner": "self"
+                },
+                "available": 0,
+                "matching_card_ids": [],
+                "shortfall": 1
+              }
+            ],
+            "shortfall": 1,
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:52198054:3:2:538ae846d331",
+            "nodes": [
+              "n0",
+              "n1"
+            ],
+            "unknown_selectors": [
+              {
+                "category": "costs",
+                "source": "把墓地的这张卡除外"
+              }
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "before": {
+        "main": 3,
+        "extra": 0,
+        "side": 0
+      },
+      "after": {
+        "main": 0,
+        "extra": 0,
+        "side": 3
+      },
+      "current": null
+    },
+    {
+      "card_id": 28226490,
+      "name": "珠泪哀歌族·卡雷多哈特",
+      "old": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [
+              {
+                "query": {
+                  "name_contains": "珠泪哀歌族",
+                  "selector": "「珠泪哀歌族」卡"
+                },
+                "minimum": 1,
+                "source": "从卡组把1张「珠泪哀歌族」卡送去墓地",
+                "origin": "deck",
+                "category": "operations",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从卡组把1张「珠泪哀歌族」卡送去墓地",
+                  "order": 8,
+                  "from_zones": [
+                    "deck"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从卡组把1张「珠泪哀歌族」卡送去墓地",
+                  "random": false,
+                  "quantity": 1,
+                  "owner": "self"
+                },
+                "available": 6,
+                "matching_card_ids": [
+                  572850,
+                  37961969
+                ],
+                "shortfall": 0
+              }
+            ],
+            "shortfall": 0,
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:28226490:2:1:538ae846d331",
+            "nodes": [
+              "n0",
+              "n1"
+            ],
+            "unknown_selectors": []
+          }
+        ],
+        "materials": {
+          "status": "missing",
+          "requirements": [
+            {
+              "query": {
+                "exact_name": "珠泪哀歌族·雷诺哈特",
+                "selector": "「珠泪哀歌族·雷诺哈特」"
+              },
+              "minimum": 1,
+              "source": "「珠泪哀歌族·雷诺哈特」",
+              "origin": "material",
+              "category": "material",
+              "available": 0,
+              "matching_card_ids": [],
+              "shortfall": 1
+            },
+            {
+              "query": {
+                "race": 64,
+                "selector": "水族怪兽×2"
+              },
+              "minimum": 2,
+              "source": "水族怪兽×2",
+              "origin": "material",
+              "category": "material",
+              "available": 15,
+              "matching_card_ids": [
+                572850,
+                1151281,
+                9126351,
+                37961969,
+                81599449
+              ],
+              "shortfall": 0
+            }
+          ],
+          "shortfall": 1,
+          "execution_status": "unknown",
+          "access_to_required_zone_verified": false
+        }
+      },
+      "before": {
+        "main": 0,
+        "extra": 3,
+        "side": 0
+      },
+      "after": {
+        "main": 0,
+        "extra": 3,
+        "side": 0
+      },
+      "current": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [
+              {
+                "query": {
+                  "name_contains": "珠泪哀歌族",
+                  "selector": "「珠泪哀歌族」卡"
+                },
+                "minimum": 1,
+                "source": "从卡组把1张「珠泪哀歌族」卡送去墓地",
+                "origin": "deck",
+                "category": "operations",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从卡组把1张「珠泪哀歌族」卡送去墓地",
+                  "order": 8,
+                  "from_zones": [
+                    "deck"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从卡组把1张「珠泪哀歌族」卡送去墓地",
+                  "random": false,
+                  "quantity": 1,
+                  "owner": "self"
+                },
+                "available": 4,
+                "matching_card_ids": [
+                  572850,
+                  73956664
+                ],
+                "shortfall": 0
+              }
+            ],
+            "shortfall": 0,
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:28226490:2:1:538ae846d331",
+            "nodes": [
+              "n0",
+              "n1"
+            ],
+            "unknown_selectors": []
+          }
+        ],
+        "materials": {
+          "status": "inventory_present",
+          "requirements": [
+            {
+              "query": {
+                "exact_name": "珠泪哀歌族·雷诺哈特",
+                "selector": "「珠泪哀歌族·雷诺哈特」"
+              },
+              "minimum": 1,
+              "source": "「珠泪哀歌族·雷诺哈特」",
+              "origin": "material",
+              "category": "material",
+              "available": 1,
+              "matching_card_ids": [
+                73956664
+              ],
+              "shortfall": 0
+            },
+            {
+              "query": {
+                "race": 64,
+                "selector": "水族怪兽×2"
+              },
+              "minimum": 2,
+              "source": "水族怪兽×2",
+              "origin": "material",
+              "category": "material",
+              "available": 18,
+              "matching_card_ids": [
+                572850,
+                1151281,
+                9126351,
+                81599449,
+                84330567,
+                92731385
+              ],
+              "shortfall": 0
+            }
+          ],
+          "shortfall": 0,
+          "execution_status": "unknown",
+          "access_to_required_zone_verified": false
+        }
+      }
+    }
+  ],
+  "remaining_known_gaps": [
+    {
+      "card_id": 47158777,
+      "name": "破坏剑士的守护绊龙",
+      "main": 0,
+      "extra": 1,
+      "missing_sources": [
+        "从卡组把1张「破坏剑」卡送去墓地"
+      ],
+      "excluded_from_affected_function_investment": true
+    },
+    {
+      "card_id": 48285768,
+      "name": "护宝炮妖欢乐制造机",
+      "main": 0,
+      "extra": 2,
+      "missing_sources": [
+        "从卡组把1只「护宝炮妖」怪兽送去墓地"
+      ],
+      "excluded_from_affected_function_investment": true
+    },
+    {
+      "card_id": 71595845,
+      "name": "人偶的幸福",
+      "main": 2,
+      "extra": 0,
+      "missing_sources": [
+        "从卡组把1张「人偶怪兽」卡送去墓地"
+      ],
+      "excluded_from_affected_function_investment": true
+    }
+  ],
+  "final_inventory_dependencies": {
+    "kind": "static_necessary_inventory_dependencies",
+    "cards": {
+      "572850": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:572850:1:0:538ae846d331",
+            "nodes": [
+              "n0",
+              "n1"
+            ],
+            "unknown_selectors": []
+          },
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:572850:2:1:de62e2c57d53",
+            "nodes": [
+              "n2"
+            ],
+            "unknown_selectors": []
+          }
+        ],
+        "materials": null
+      },
+      "1151281": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [
+              {
+                "query": {
+                  "selector": "卡"
+                },
+                "minimum": 1,
+                "source": "从卡组选1张卡送去墓地",
+                "origin": "deck",
+                "category": "operations",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从卡组选1张卡送去墓地",
+                  "order": 0,
+                  "from_zones": [
+                    "deck"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从卡组选1张卡送去墓地",
+                  "random": false,
+                  "quantity": 1,
+                  "owner": "self"
+                },
+                "available": 40,
+                "matching_card_ids": [
+                  572850,
+                  1151281,
+                  1329620,
+                  4836680,
+                  6767771,
+                  9126351,
+                  33878367,
+                  38436986,
+                  41386308,
+                  60362066,
+                  71595845,
+                  73956664,
+                  74920585,
+                  78420796,
+                  81599449
+                ],
+                "shortfall": 0
+              }
+            ],
+            "shortfall": 0,
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:1151281:3:2:538ae846d331",
+            "nodes": [
+              "n0",
+              "n1"
+            ],
+            "unknown_selectors": []
+          }
+        ],
+        "materials": null
+      },
+      "1329620": {
+        "effects": [],
+        "materials": null
+      },
+      "4836680": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:4836680:1:1:538ae846d331",
+            "nodes": [
+              "n0",
+              "n1"
+            ],
+            "unknown_selectors": [
+              {
+                "category": "costs",
+                "source": "把这张卡除外"
+              },
+              {
+                "category": "targets",
+                "source": "以自己墓地1只「娱乐伙伴」怪兽或者「异色眼」怪兽为对象"
+              },
+              {
+                "category": "operations",
+                "source": "从卡组选1只「娱乐伙伴」灵摆怪兽或者「异色眼」灵摆怪兽表侧表示加入自己的额外卡组或送去墓地"
+              }
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "6767771": {
+        "effects": [],
+        "materials": null
+      },
+      "9126351": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:9126351:2:1:538ae846d331",
+            "nodes": [
+              "n0",
+              "n1"
+            ],
+            "unknown_selectors": [
+              {
+                "category": "operations",
+                "source": "从卡组以及自己场上的表侧表示怪兽之中选1只2星以下的水族·水属性怪兽送去墓地"
+              }
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "28226490": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [
+              {
+                "query": {
+                  "name_contains": "珠泪哀歌族",
+                  "selector": "「珠泪哀歌族」卡"
+                },
+                "minimum": 1,
+                "source": "从卡组把1张「珠泪哀歌族」卡送去墓地",
+                "origin": "deck",
+                "category": "operations",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从卡组把1张「珠泪哀歌族」卡送去墓地",
+                  "order": 8,
+                  "from_zones": [
+                    "deck"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从卡组把1张「珠泪哀歌族」卡送去墓地",
+                  "random": false,
+                  "quantity": 1,
+                  "owner": "self"
+                },
+                "available": 4,
+                "matching_card_ids": [
+                  572850,
+                  73956664
+                ],
+                "shortfall": 0
+              }
+            ],
+            "shortfall": 0,
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:28226490:2:1:538ae846d331",
+            "nodes": [
+              "n0",
+              "n1"
+            ],
+            "unknown_selectors": []
+          }
+        ],
+        "materials": {
+          "status": "inventory_present",
+          "requirements": [
+            {
+              "query": {
+                "exact_name": "珠泪哀歌族·雷诺哈特",
+                "selector": "「珠泪哀歌族·雷诺哈特」"
+              },
+              "minimum": 1,
+              "source": "「珠泪哀歌族·雷诺哈特」",
+              "origin": "material",
+              "category": "material",
+              "available": 1,
+              "matching_card_ids": [
+                73956664
+              ],
+              "shortfall": 0
+            },
+            {
+              "query": {
+                "race": 64,
+                "selector": "水族怪兽×2"
+              },
+              "minimum": 2,
+              "source": "水族怪兽×2",
+              "origin": "material",
+              "category": "material",
+              "available": 18,
+              "matching_card_ids": [
+                572850,
+                1151281,
+                9126351,
+                81599449,
+                84330567,
+                92731385
+              ],
+              "shortfall": 0
+            }
+          ],
+          "shortfall": 0,
+          "execution_status": "unknown",
+          "access_to_required_zone_verified": false
+        }
+      },
+      "30100551": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:30100551:1:0:538ae846d331",
+            "nodes": [
+              "n0",
+              "n1"
+            ],
+            "unknown_selectors": []
+          },
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:30100551:2:1:538ae846d331",
+            "nodes": [
+              "n0",
+              "n1"
+            ],
+            "unknown_selectors": []
+          }
+        ],
+        "materials": null
+      },
+      "33878367": {
+        "effects": [],
+        "materials": null
+      },
+      "38436986": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [
+              {
+                "query": {
+                  "name_contains": "珠泪哀歌族",
+                  "type": 1,
+                  "selector": "「珠泪哀歌族」怪兽"
+                },
+                "minimum": 1,
+                "source": "从卡组把1只「珠泪哀歌族」怪兽送去墓地",
+                "origin": "deck",
+                "category": "operations",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从卡组把1只「珠泪哀歌族」怪兽送去墓地",
+                  "order": 17,
+                  "from_zones": [
+                    "deck"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从卡组把1只「珠泪哀歌族」怪兽送去墓地",
+                  "random": false,
+                  "quantity": 1,
+                  "owner": "self"
+                },
+                "available": 4,
+                "matching_card_ids": [
+                  572850,
+                  73956664
+                ],
+                "shortfall": 0
+              }
+            ],
+            "shortfall": 0,
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:38436986:1:0:538ae846d331",
+            "nodes": [
+              "n0",
+              "n1"
+            ],
+            "unknown_selectors": [
+              {
+                "category": "targets",
+                "source": "以对方场上1只表侧表示怪兽为对象"
+              }
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "41386308": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:41386308:1:0:538ae846d331",
+            "nodes": [
+              "n0",
+              "n1"
+            ],
+            "unknown_selectors": [
+              {
+                "category": "operations",
+                "source": "从卡组把1只4星以下的怪兽送去墓地"
+              }
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "47158777": {
+        "effects": [
+          {
+            "status": "missing",
+            "requirements": [
+              {
+                "query": {
+                  "name_contains": "破坏剑",
+                  "selector": "「破坏剑」卡"
+                },
+                "minimum": 1,
+                "source": "从卡组把1张「破坏剑」卡送去墓地",
+                "origin": "deck",
+                "category": "operations",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从卡组把1张「破坏剑」卡送去墓地",
+                  "order": 0,
+                  "from_zones": [
+                    "deck"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从卡组把1张「破坏剑」卡送去墓地",
+                  "random": false,
+                  "quantity": 1,
+                  "owner": "self"
+                },
+                "available": 0,
+                "matching_card_ids": [],
+                "shortfall": 1
+              }
+            ],
+            "shortfall": 1,
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:47158777:1:0:538ae846d331",
+            "nodes": [
+              "n0",
+              "n1"
+            ],
+            "unknown_selectors": []
+          }
+        ],
+        "materials": null
+      },
+      "48285768": {
+        "effects": [
+          {
+            "status": "missing",
+            "requirements": [
+              {
+                "query": {
+                  "name_contains": "护宝炮妖",
+                  "type": 1,
+                  "selector": "「护宝炮妖」怪兽"
+                },
+                "minimum": 1,
+                "source": "从卡组把1只「护宝炮妖」怪兽送去墓地",
+                "origin": "deck",
+                "category": "operations",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从卡组把1只「护宝炮妖」怪兽送去墓地",
+                  "order": 0,
+                  "from_zones": [
+                    "deck"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从卡组把1只「护宝炮妖」怪兽送去墓地",
+                  "random": false,
+                  "quantity": 1,
+                  "owner": "self"
+                },
+                "available": 0,
+                "matching_card_ids": [],
+                "shortfall": 1
+              }
+            ],
+            "shortfall": 1,
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:48285768:1:0:538ae846d331",
+            "nodes": [
+              "n0",
+              "n1"
+            ],
+            "unknown_selectors": []
+          }
+        ],
+        "materials": null
+      },
+      "60362066": {
+        "effects": [],
+        "materials": null
+      },
+      "71595845": {
+        "effects": [
+          {
+            "status": "missing",
+            "requirements": [
+              {
+                "query": {
+                  "name_contains": "人偶怪兽",
+                  "selector": "「人偶怪兽」卡"
+                },
+                "minimum": 1,
+                "source": "从卡组把1张「人偶怪兽」卡送去墓地",
+                "origin": "deck",
+                "category": "operations",
+                "operation": {
+                  "kind": "send_grave",
+                  "reason": "effect",
+                  "source": "从卡组把1张「人偶怪兽」卡送去墓地",
+                  "order": 16,
+                  "from_zones": [
+                    "deck"
+                  ],
+                  "to_zone": "grave",
+                  "selector": "从卡组把1张「人偶怪兽」卡送去墓地",
+                  "random": false,
+                  "quantity": 1,
+                  "owner": "self"
+                },
+                "available": 0,
+                "matching_card_ids": [],
+                "shortfall": 1
+              }
+            ],
+            "shortfall": 1,
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:71595845:3:2:538ae846d331",
+            "nodes": [
+              "n0",
+              "n1"
+            ],
+            "unknown_selectors": []
+          }
+        ],
+        "materials": null
+      },
+      "73956664": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:73956664:1:0:538ae846d331",
+            "nodes": [
+              "n0",
+              "n1"
+            ],
+            "unknown_selectors": [
+              {
+                "category": "operations",
+                "source": "从卡组把「珠泪哀歌族·雷诺哈特」以外的1只「珠泪哀歌族」怪兽送去墓地"
+              }
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "74920585": {
+        "effects": [],
+        "materials": null
+      },
+      "78420796": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:78420796:1:0:538ae846d331",
+            "nodes": [
+              "n0",
+              "n1"
+            ],
+            "unknown_selectors": [
+              {
+                "category": "operations",
+                "source": "从卡组以及额外卡组各1只送去墓地"
+              }
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "81599449": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:81599449:2:1:538ae846d331",
+            "nodes": [
+              "n0",
+              "n1"
+            ],
+            "unknown_selectors": [
+              {
+                "category": "operations",
+                "source": "从卡组把1只二重怪兽送去墓地"
+              },
+              {
+                "category": "operations",
+                "source": "从卡组把1只二重怪兽加入手卡"
+              }
+            ]
+          }
+        ],
+        "materials": null
+      },
+      "84330567": {
+        "effects": [],
+        "materials": {
+          "status": "inventory_present",
+          "requirements": [
+            {
+              "query": {
+                "exact_name": "珠泪哀歌族·水仙女人鱼",
+                "selector": "「珠泪哀歌族·水仙女人鱼」"
+              },
+              "minimum": 1,
+              "source": "「珠泪哀歌族·水仙女人鱼」",
+              "origin": "material",
+              "category": "material",
+              "available": 3,
+              "matching_card_ids": [
+                92731385
+              ],
+              "shortfall": 0
+            },
+            {
+              "query": {
+                "name_contains": "珠泪哀歌族",
+                "selector": "「珠泪哀歌族」怪兽",
+                "type": 1
+              },
+              "minimum": 1,
+              "source": "「珠泪哀歌族」怪兽",
+              "origin": "material",
+              "category": "material",
+              "available": 9,
+              "matching_card_ids": [
+                572850,
+                73956664,
+                84330567,
+                92731385
+              ],
+              "shortfall": 0
+            }
+          ],
+          "shortfall": 0,
+          "execution_status": "unknown",
+          "access_to_required_zone_verified": false
+        }
+      },
+      "92731385": {
+        "effects": [
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:92731385:1:0:538ae846d331",
+            "nodes": [
+              "n0",
+              "n1"
+            ],
+            "unknown_selectors": [
+              {
+                "category": "operations",
+                "source": "从卡组选1张「珠泪哀歌族」卡加入手卡或送去墓地"
+              }
+            ]
+          },
+          {
+            "status": "inventory_present",
+            "requirements": [],
+            "shortfall": 0,
+            "execution_status": "unknown",
+            "access_to_required_zone_verified": false,
+            "key": "effect:92731385:3:2:538ae846d331",
+            "nodes": [
+              "n0",
+              "n1"
+            ],
+            "unknown_selectors": []
+          }
+        ],
+        "materials": {
+          "status": "inventory_present",
+          "requirements": [
+            {
+              "query": {
+                "name_contains": "珠泪哀歌族",
+                "selector": "「珠泪哀歌族」怪兽",
+                "type": 1
+              },
+              "minimum": 1,
+              "source": "「珠泪哀歌族」怪兽",
+              "origin": "material",
+              "category": "material",
+              "available": 9,
+              "matching_card_ids": [
+                572850,
+                73956664,
+                84330567,
+                92731385
+              ],
+              "shortfall": 0
+            },
+            {
+              "query": {
+                "race": 64,
+                "selector": "水族怪兽"
+              },
+              "minimum": 1,
+              "source": "水族怪兽",
+              "origin": "material",
+              "category": "material",
+              "available": 17,
+              "matching_card_ids": [
+                572850,
+                1151281,
+                9126351,
+                81599449,
+                84330567,
+                92731385
+              ],
+              "shortfall": 0
+            }
+          ],
+          "shortfall": 0,
+          "execution_status": "unknown",
+          "access_to_required_zone_verified": false
+        }
+      }
+    },
+    "known_deficits": {
+      "effect:47158777:1:0:538ae846d331:shortfall": 1,
+      "effect:47158777:1:0:538ae846d331:blocked_copies": 1,
+      "effect:48285768:1:0:538ae846d331:shortfall": 1,
+      "effect:48285768:1:0:538ae846d331:blocked_copies": 2,
+      "effect:71595845:3:2:538ae846d331:shortfall": 1,
+      "effect:71595845:3:2:538ae846d331:blocked_copies": 2
+    },
+    "uncovered_cards": [],
+    "requirement_work": 44,
+    "side_supplies_resources": false,
+    "cb_performed": false
+  },
+  "final_deck": {
+    "main": [
+      572850,
+      572850,
+      572850,
+      1151281,
+      1151281,
+      1151281,
+      1329620,
+      1329620,
+      1329620,
+      4836680,
+      4836680,
+      4836680,
+      6767771,
+      6767771,
+      6767771,
+      9126351,
+      9126351,
+      9126351,
+      33878367,
+      33878367,
+      33878367,
+      38436986,
+      38436986,
+      38436986,
+      41386308,
+      41386308,
+      41386308,
+      60362066,
+      71595845,
+      71595845,
+      73956664,
+      74920585,
+      74920585,
+      74920585,
+      78420796,
+      78420796,
+      78420796,
+      81599449,
+      81599449,
+      81599449
+    ],
+    "extra": [
+      28226490,
+      28226490,
+      28226490,
+      30100551,
+      30100551,
+      30100551,
+      47158777,
+      48285768,
+      48285768,
+      84330567,
+      84330567,
+      84330567,
+      92731385,
+      92731385,
+      92731385
+    ],
+    "side": [
+      5168381,
+      32566831,
+      32566831,
+      47158777,
+      47158777,
+      48285768,
+      52198054,
+      52198054,
+      52198054,
+      71595845,
+      73956664,
+      73956664,
+      74078255,
+      74078255,
+      74078255
+    ]
+  },
+  "final_deck_names": {
+    "main": [
+      {
+        "card_id": 572850,
+        "name": "珠泪哀歌族·塞壬人鱼",
+        "copies": 3
+      },
+      {
+        "card_id": 1151281,
+        "name": "地中族邪界兽·爱奥荧冰精",
+        "copies": 3
+      },
+      {
+        "card_id": 1329620,
+        "name": "壹世坏清澈的残响",
+        "copies": 3
+      },
+      {
+        "card_id": 4836680,
+        "name": "娱乐伙伴 异色眼祭司",
+        "copies": 3
+      },
+      {
+        "card_id": 6767771,
+        "name": "劈穿壹世坏的弦声",
+        "copies": 3
+      },
+      {
+        "card_id": 9126351,
+        "name": "鬼青蛙",
+        "copies": 3
+      },
+      {
+        "card_id": 33878367,
+        "name": "壹世坏涡旋的反响",
+        "copies": 3
+      },
+      {
+        "card_id": 38436986,
+        "name": "壹世坏摩擦的爪音",
+        "copies": 3
+      },
+      {
+        "card_id": 41386308,
+        "name": "数学家",
+        "copies": 3
+      },
+      {
+        "card_id": 60362066,
+        "name": "摇撼壹世坏的鼓动",
+        "copies": 1
+      },
+      {
+        "card_id": 71595845,
+        "name": "人偶的幸福",
+        "copies": 2
+      },
+      {
+        "card_id": 73956664,
+        "name": "珠泪哀歌族·雷诺哈特",
+        "copies": 1
+      },
+      {
+        "card_id": 74920585,
+        "name": "壹世坏奏响的哀唱",
+        "copies": 3
+      },
+      {
+        "card_id": 78420796,
+        "name": "恐啡肽狂龙激昂",
+        "copies": 3
+      },
+      {
+        "card_id": 81599449,
+        "name": "化合兽 碳素蟹",
+        "copies": 3
+      }
+    ],
+    "extra": [
+      {
+        "card_id": 28226490,
+        "name": "珠泪哀歌族·卡雷多哈特",
+        "copies": 3
+      },
+      {
+        "card_id": 30100551,
+        "name": "光道圣女 密涅瓦",
+        "copies": 3
+      },
+      {
+        "card_id": 47158777,
+        "name": "破坏剑士的守护绊龙",
+        "copies": 1
+      },
+      {
+        "card_id": 48285768,
+        "name": "护宝炮妖欢乐制造机",
+        "copies": 2
+      },
+      {
+        "card_id": 84330567,
+        "name": "珠泪哀歌族·鲁莎卡人鱼",
+        "copies": 3
+      },
+      {
+        "card_id": 92731385,
+        "name": "珠泪哀歌族·水仙女人鱼",
+        "copies": 3
+      }
+    ],
+    "side": [
+      {
+        "card_id": 5168381,
+        "name": "恶魔之技",
+        "copies": 1
+      },
+      {
+        "card_id": 32566831,
+        "name": "红玉之宝札",
+        "copies": 2
+      },
+      {
+        "card_id": 47158777,
+        "name": "破坏剑士的守护绊龙",
+        "copies": 2
+      },
+      {
+        "card_id": 48285768,
+        "name": "护宝炮妖欢乐制造机",
+        "copies": 1
+      },
+      {
+        "card_id": 52198054,
+        "name": "烈焰加农炮弹匣",
+        "copies": 3
+      },
+      {
+        "card_id": 71595845,
+        "name": "人偶的幸福",
+        "copies": 1
+      },
+      {
+        "card_id": 73956664,
+        "name": "珠泪哀歌族·雷诺哈特",
+        "copies": 2
+      },
+      {
+        "card_id": 74078255,
+        "name": "珠泪哀歌族·梅洛人鱼",
+        "copies": 3
+      }
+    ]
+  },
+  "validation": {
+    "static_layers": {
+      "tests": 105,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "seconds": 1.576
+    },
+    "targeted_cpu": {
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "seconds": 36.168
+    },
+    "ast_files": 9,
+    "git_diff_check": "passed",
+    "remote_ci": "not_run"
+  },
+  "artifacts": {
+    "raw_run": "N:\\YGO-Kito\\_publish_20261030\\.cache\\inventory-dependency-fix-20261101\\run-03",
+    "driver": "N:\\YGO-Kito\\_publish_20261030\\.cache\\inventory-dependency-fix-20261101\\run_no_cb.py",
+    "static_log": "N:\\YGO-Kito\\_publish_20261030\\.cache\\inventory-dependency-fix-20261101\\cpu-final.log"
+  }
+}

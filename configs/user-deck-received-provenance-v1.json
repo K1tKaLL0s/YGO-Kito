@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
-  "dataset_id": "received-user-decks-20261026-v1",
+  "dataset_id": "received-user-decks-20261101-v2",
   "intake_config": "configs/user-deck-intake-received-v1.json",
   "publication_scope": "User-authorized numeric listings and anonymized source/edition descriptions only.",
   "source_materialization": {
     "original_attachment_bytes_materialized": false,
     "original_attachment_bytes_sha256": null,
-    "representation": "Normalized JSON derived from user-image transcriptions, complete Library logical-text reads and exact authorized revisions; not original attachment bytes.",
+    "representation": "Normalized numeric JSON. Original 2026-10-26 editions derive from image transcriptions and Library logical text; main-02-source-v2 derives directly from the user-supplied local YDK read on 2026-11-01. Raw attachment comments and private source paths are not materialized in repository data.",
     "author_comments_published": false,
     "private_source_identifiers_published": false
   },
@@ -31,10 +31,10 @@
     },
     {
       "slot_id": "main-02",
-      "reference_id": "main-02-source-v1",
-      "reference_path": "configs/user-deck-references/main-02-source-v1.json",
+      "reference_id": "main-02-source-v2",
+      "reference_path": "configs/user-deck-references/main-02-source-v2.json",
       "period_id": "2022-10",
-      "normalized_deck_sha256": "b97fcaddcfae9665ef134356191558f7b6a68eda7e609f0b7f676328f6412bc4",
+      "normalized_deck_sha256": "bf799e4fdbf30cd57761b8876fcb7846eba5cc74b3745f9417119aebf61a0291",
       "usage": "received_main_listing"
     },
     {
@@ -122,14 +122,27 @@
       "reference_id": "main-02-source-v1",
       "path": "configs/user-deck-references/main-02-source-v1.json",
       "period_id": "2022-10",
-      "edition_status": "received_pending_resources_and_runtime",
-      "selected_slot": "main-02",
+      "edition_status": "superseded_reference_only",
+      "selected_slot": null,
       "counts": {
         "main": 40,
         "extra": 15,
         "side": 15
       },
       "normalized_deck_sha256": "b97fcaddcfae9665ef134356191558f7b6a68eda7e609f0b7f676328f6412bc4"
+    },
+    {
+      "reference_id": "main-02-source-v2",
+      "path": "configs/user-deck-references/main-02-source-v2.json",
+      "period_id": "2022-10",
+      "edition_status": "user_authorized_revision_pending_resources_and_runtime",
+      "selected_slot": "main-02",
+      "counts": {
+        "main": 40,
+        "extra": 15,
+        "side": 15
+      },
+      "normalized_deck_sha256": "bf799e4fdbf30cd57761b8876fcb7846eba5cc74b3745f9417119aebf61a0291"
     },
     {
       "reference_id": "main-03-reference-v1",
@@ -411,6 +424,99 @@
         "scope": "Parent review of 2026.10 limits and added-card OCG release; not a full per-card release manifest or engine validation.",
         "independently_repeated_here": false
       }
+    },
+    {
+      "revision_id": "main02-user-correction-20261101-v2",
+      "source_reference": "main-02-source-v1",
+      "selected_reference": "main-02-source-v2",
+      "authorization": "User explicitly replaced the erroneous 2210 reference with the newly supplied YDK; exact numeric replacement, without additional deck construction edits.",
+      "changes": [
+        {
+          "zone": "main",
+          "card_id": 4928565,
+          "old_copies": 0,
+          "new_copies": 3
+        },
+        {
+          "zone": "main",
+          "card_id": 27204311,
+          "old_copies": 1,
+          "new_copies": 0
+        },
+        {
+          "zone": "main",
+          "card_id": 32909498,
+          "old_copies": 0,
+          "new_copies": 3
+        },
+        {
+          "zone": "main",
+          "card_id": 60362066,
+          "old_copies": 1,
+          "new_copies": 0
+        },
+        {
+          "zone": "main",
+          "card_id": 71832012,
+          "old_copies": 0,
+          "new_copies": 1
+        },
+        {
+          "zone": "main",
+          "card_id": 72892473,
+          "old_copies": 1,
+          "new_copies": 0
+        },
+        {
+          "zone": "main",
+          "card_id": 73468603,
+          "old_copies": 0,
+          "new_copies": 1
+        },
+        {
+          "zone": "main",
+          "card_id": 74920585,
+          "old_copies": 2,
+          "new_copies": 1
+        },
+        {
+          "zone": "main",
+          "card_id": 79109599,
+          "old_copies": 1,
+          "new_copies": 0
+        },
+        {
+          "zone": "main",
+          "card_id": 92919429,
+          "old_copies": 3,
+          "new_copies": 0
+        },
+        {
+          "zone": "extra",
+          "card_id": 39552584,
+          "old_copies": 1,
+          "new_copies": 0
+        },
+        {
+          "zone": "extra",
+          "card_id": 48626373,
+          "old_copies": 0,
+          "new_copies": 1
+        },
+        {
+          "zone": "side",
+          "card_id": 27204311,
+          "old_copies": 0,
+          "new_copies": 1
+        },
+        {
+          "zone": "side",
+          "card_id": 35480699,
+          "old_copies": 3,
+          "new_copies": 2
+        }
+      ],
+      "historical_evidence_policy": "Previous static reports and scoring/calibration artifacts remain bound to main-02-source-v1 and do not validate or score this replacement. No training/checkpoint migration is performed."
     }
   ]
 }

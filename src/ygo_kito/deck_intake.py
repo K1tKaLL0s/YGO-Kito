@@ -133,7 +133,16 @@ def read_listing_catalog(workspace, artifact):
     catalog, _ = _artifact(Path(workspace).resolve(), artifact)
     with closing(sqlite3.connect(catalog.as_uri() + "?mode=ro", uri=True)) as db:
         db.row_factory = sqlite3.Row
-        rows = {r["id"]: dict(r) for r in db.execute("SELECT id,alias,ot,type FROM datas")}
+        public = ('id','alias','ot','type','atk','def','level','race','attribute','setcode')
+        columns = {r['name'] for r in db.execute('PRAGMA table_info(datas)')}
+        if not {'id','alias','ot','type'} <= columns:
+            raise ContractError('listing catalog requires id, alias, ot and type')
+        selected = ','.join(c for c in public if c in columns)
+        rows = {r['id']:dict(r) for r in db.execute('SELECT '+selected+' FROM datas')}
+        if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='texts'").fetchone():
+            for row in db.execute('SELECT id,name,desc FROM texts'):
+                if row['id'] in rows:
+                    rows[row['id']].update(name=row['name'],desc=row['desc'])
     for row in rows.values():
         integer(row["id"], "catalog card ID", 1, 2**32 - 1)
         for key in ("alias", "ot", "type"):
@@ -199,6 +208,8 @@ def _environment(workspace, period, env):
         limits = read_selected_banlist(workspace, env["banlist"], env["banlist_section"])
         if not allowed or not allowed <= rows.keys():
             raise ContractError("release manifest is empty or contains cards absent from its catalog")
+        from .card_identity import released_identities
+        allowed = released_identities(rows, allowed)
     except OSError:
         return {"status": "pending", "unmet": ["a declared historical artifact is unavailable"]}, None
     except (ContractError, NativeError, sqlite3.Error, UnicodeError, ValueError) as error:

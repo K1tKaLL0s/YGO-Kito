@@ -25,8 +25,11 @@ from .validation import ContractError, array, canonical_json, fields, integer, m
 
 READ = {"capabilities", "runs.list", "runs.read", "runs.metrics", "checkpoints.read", "opponents.summary"}
 DUEL = {"duel.open", "duel.next", "duel.status", "duel.submit_action", "duel.close", "cards.lookup"}
+CONSTRUCTION = {"construction.plan", "construction.run", "construction.start", "construction.continue",
+                "construction.progress", "construction.cancel"}
 ROLES = {"monitor": READ, "trainer": READ | {"training.prepare", "training.recover", "training.control"},
-         "manager": READ | {"environment.runtime", "environment.register", "deck.import", "deck.read", "opponent.register", "coding.prepare_handoff", "construction.plan", "construction.run"},
+         "manager": READ | CONSTRUCTION | {"environment.runtime", "environment.register", "deck.import", "deck.read",
+                                             "opponent.register", "coding.prepare_handoff"},
          "opponent": {"capabilities"} | DUEL}
 
 
@@ -62,6 +65,8 @@ class AgentBridge:
             from .construction_service import HostConstructionBackend
             if not isinstance(construction_backend, HostConstructionBackend):
                 raise ContractError("typed host construction backend required")
+            if role == 'manager':
+                construction_backend.attach_state_root(state_root)
         self.construction_backend = construction_backend
         self.provenance = {"controller_source": controller_source, "provider": text(provider, "provider"),
                            "model": text(model, "model"), "provider_verified": False}
@@ -111,13 +116,19 @@ class AgentBridge:
                     "construction_backend_configured": self.construction_backend is not None,
                     "provider_connected": False, "model_verified": False, "provider_invocation_implemented": False,
                     "cloud_resource_control_implemented": False}
-        if method in ("construction.plan", "construction.run"):
-            if self.construction_backend is None:
+        if method in CONSTRUCTION:
+            backend = self.construction_backend
+            if backend is None:
                 raise ApiError("CONSTRUCTION_BACKEND_NOT_CONFIGURED", "explicit host construction backend required; no operation executed")
             from .construction_service import ConstructionUnavailable
             try:
-                return (self.construction_backend.plan(params) if method == "construction.plan"
-                        else self.construction_backend.run(params))
+                if method == 'construction.start':
+                    return backend.start(params, request_id)
+                if method == 'construction.continue':
+                    return backend.continue_session(params, request_id)
+                handlers = {'construction.plan': backend.plan, 'construction.run': backend.run,
+                            'construction.progress': backend.progress, 'construction.cancel': backend.cancel}
+                return handlers[method](params)
             except ConstructionUnavailable as error:
                 raise ApiError("CONSTRUCTION_RESOURCES_UNAVAILABLE", str(error)) from error
         if method == "runs.list":
@@ -338,6 +349,8 @@ class AgentBridge:
         return dict(d, amount=d.get("amount"), source="client-reported-unverified")
 
     def close(self):
+        if self.role == 'manager' and self.construction_backend is not None:
+            self.construction_backend.close()
         if self.engine is not None:
             self.terminal = self.engine.outcome
             self.engine.close()

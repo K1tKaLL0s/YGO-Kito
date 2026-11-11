@@ -8,16 +8,20 @@ from copy import deepcopy
 import unittest
 from unittest.mock import Mock, patch
 
-import torch
+from contextlib import nullcontext
+from types import SimpleNamespace
+import sys
 
 from ygo_kito.build_contracts import BuildTask, DeckParts
-from ygo_kito.build_intent import IntentClassification
 from ygo_kito.build_pipeline import edit_candidates
-from ygo_kito.construction_candidates import portfolio, retained_order
-from ygo_kito.construction_fill import FillProposal, NodeBinding, fill_with_existing
-from ygo_kito.construction_logic import ConstructionLogic, ConstructionSession, LogicNode, LogicTag
+from ygo_kito.construction_candidates import portfolio
+from ygo_kito.construction_fill import fill_with_existing
+from ygo_kito.construction_layer_flow import ConstructionLayerAdapter
+from ygo_kito.construction_layers import LayerContext
+from tests.test_construction_theme import theme_fixture
+from tests.test_construction_layer_flow import rows_for, session_for
 from ygo_kito.validation import ContractError
-from tests.test_construction_logic import fixture_assets, text_review
+from tests.test_construction_logic import fixture_assets
 
 
 def saturated_sections(*, budget=16):
@@ -51,19 +55,8 @@ def replacement(base, zone, old, new):
     return DeckParts(*(tuple(sorted(parts[z])) for z in ("main","extra","side")))
 
 
-def fill_session(task):
-    # Static intent fixture: avoid the trained intent-classifier test helper.
-    with patch("ygo_kito.build_intent.classify_build_intent", return_value=IntentClassification("broad", 1.)), \
-            patch("ygo_kito.intent_model.LinearIntentClassifier"):
-        session = ConstructionSession("synthetic broad construction", task)
-    graph = ConstructionLogic("trace-graph", (LogicNode("goal", (LogicTag("effect","send"),)),),
-        (), ("goal",), ("goal",))
-    session.submit_logic(graph, role="user", reason="explicit synthetic graph")
-    return session
 
 
-def bind_one(graph, task, deck):
-    return FillProposal(deck, (NodeBinding("goal", (1,)),), (), graph.sha256, task.sha256)
 
 
 class ConstructionEditTraceTests(unittest.TestCase):
@@ -103,59 +96,80 @@ class ConstructionEditTraceTests(unittest.TestCase):
         self.assertEqual(len(rows),5)
         self.assertTrue({"incumbent","single:main","single:extra","single:side"}<=strategies)
         self.assertTrue(any(s.startswith("axis:") for s in strategies))
-        scores = [10. if r["strategy"]=="single:extra" else float(i)/10 for i,r in enumerate(rows)]
-        order = retained_order(rows,scores,(),task.sha256)
-        self.assertEqual(rows[order[0]]["strategy"],"single:extra")
+        self.assertTrue(all("quality_evaluation" not in row and "score" not in row for row in rows))
         self.assertTrue(all(r["strength_status"]=="unknown" for r in rows))
 
     def test_trace_keeps_every_budgeted_score_and_actual_attempt_and_effect_links(self):
-        task, assets, base = saturated_sections(budget=8)
-        candidates = edit_candidates(task,assets,base,return_portfolio=True)
+        task, assets, graph, binder, decks, relations = theme_fixture()
+        candidates = rows_for(task, decks)
         scores = [float(i) for i in range(len(candidates))]
-        model = Mock(return_value=torch.tensor(scores))
+        model = Mock(return_value=SimpleNamespace(tolist=lambda: scores))
+        model.training = True
+        model.eval.side_effect = lambda: setattr(model, 'training', False)
+        model.train.side_effect = lambda mode: setattr(model, 'training', mode)
         encoder = Mock()
-        encoder.batch.return_value = {"synthetic_bound_batch":True}
-        session = fill_session(task)
+        encoder.batch.return_value = {'synthetic_bound_batch':True}
+        adapter = ConstructionLayerAdapter(binder,
+            context_provider=lambda t,g: LayerContext(t,g,(),relations=relations))
         attempted = []
-        def bind(graph, task, deck):
+        original = type(binder).__call__
+        def bind(owner, logic, current_task, deck, **kwargs):
             attempted.append(deck)
-            if len(attempted)==1:
-                raise ContractError("synthetic first binding has no witness")
-            return bind_one(graph,task,deck)
-        result = fill_with_existing(session,assets,role="build_optimizer",base=base,
-            models={"build_optimizer":model},encoder=encoder,binding_provider=bind,
-            text_reviewer=text_review,defer_engine=True)
-        trace = result["candidate_trace"]
-        self.assertEqual(len(trace["candidates"]),len(candidates))
-        self.assertEqual([r["model_score_uncalibrated"] for r in trace["candidates"]],scores)
-        self.assertTrue(all(r["score_available"] for r in trace["candidates"]))
-        self.assertEqual(trace["calibration_status"],"uncalibrated")
-        self.assertEqual(trace["candidate_order"][0],len(candidates)-1)
-        self.assertEqual(trace["candidates"][len(candidates)-1]["status"],"binding_unmatched")
-        self.assertTrue(any(r["status"]=="not_attempted" for r in trace["candidates"]))
-        selected = trace["candidates"][trace["selected_candidate_index"]]
-        self.assertTrue(selected["selected"])
-        self.assertEqual(selected["attempt_index"],trace["selected_attempt_index"])
-        evidence = selected["public_effect_evidence"]
-        attempt = result["attempts"][evidence["text_reviews_attempt_index"]]
-        self.assertIn(1,evidence["reviewed_card_ids"])
-        self.assertEqual(evidence["bindings"],[{"node_id":"goal","card_ids":[1]}])
-        self.assertEqual(attempt["text_reviews"][0]["evidence"][0]["card_id"],1)
-        self.assertEqual(attempt["text_reviews"][0]["evidence"][0]["quote"],"Synthetic card text")
+            if deck == decks[-1]:
+                raise ContractError('synthetic binding has no witness')
+            return original(owner, logic, current_task, deck, **kwargs)
+        with patch('ygo_kito.build_pipeline.edit_candidates', return_value=candidates), \
+             patch.object(type(binder), '__call__', bind), \
+             patch.dict(sys.modules, {'torch':SimpleNamespace(no_grad=nullcontext)}):
+            result = fill_with_existing(session_for(task, graph), assets, role='build_optimizer', base=decks[0],
+                models={'build_optimizer':model}, encoder=encoder, binding_provider=binder,
+                text_reviewer=binder.reviewer, layer_adapter=adapter, defer_engine=True)
+        trace = result['candidate_trace']
+        self.assertEqual(len(trace['candidates']), len(candidates))
+        self.assertEqual([r['model_score_uncalibrated'] for r in trace['candidates']], scores)
+        self.assertTrue(all(r['score_available'] for r in trace['candidates']))
+        self.assertEqual(attempted[0], decks[-1])
+        self.assertEqual(trace['candidate_order'][0], 0)  # Final S wins over the score stub.
+        self.assertEqual(trace['candidates'][-1]['layer_status'], 'binding_unmatched')
+        selected = trace['candidates'][trace['selected_candidate_index']]
+        self.assertTrue(selected['selected'])
+        self.assertEqual(selected['attempt_index'], trace['selected_attempt_index'])
+        evidence = selected['public_effect_evidence']
+        attempt = result['attempts'][evidence['text_reviews_attempt_index']]
+        reviewed = {e['card_id'] for r in attempt['text_reviews'] for e in r['evidence']}
+        self.assertEqual(set(evidence['reviewed_card_ids']), reviewed)
+        self.assertTrue(evidence['bindings'])
         model.assert_called_once_with(encoder.batch.return_value)
         encoder.batch.assert_called_once()
-        self.assertFalse(result["graph_execution_verified"])
+        self.assertTrue(model.training)
+        self.assertFalse(result['graph_execution_verified'])
 
     def test_absent_model_reports_no_score_instead_of_the_sorting_placeholder(self):
-        task, assets, base = saturated_sections(budget=8)
-        result = fill_with_existing(fill_session(task),assets,role="build_optimizer",base=base,
-            binding_provider=bind_one,text_reviewer=text_review,defer_engine=True)
-        trace = result["candidate_trace"]
-        self.assertEqual(trace["calibration_status"],"no_model_score")
-        self.assertTrue(all(not r["score_available"] and r["model_score_uncalibrated"] is None
-            for r in trace["candidates"]))
-        self.assertTrue(all(r["model_score_uncalibrated"] is None for r in result["portfolio"]))
-        self.assertEqual(trace["strength_status"],"unknown")
+        task, assets, graph, binder, decks, relations = theme_fixture()
+        adapter = ConstructionLayerAdapter(binder,
+            context_provider=lambda t,g: LayerContext(t,g,(),relations=relations))
+        with patch('ygo_kito.build_pipeline.edit_candidates', return_value=rows_for(task, decks)):
+            result = fill_with_existing(session_for(task, graph), assets, role='build_optimizer', base=decks[0],
+                binding_provider=binder, text_reviewer=binder.reviewer, layer_adapter=adapter, defer_engine=True)
+        trace = result['candidate_trace']
+        self.assertEqual(trace['calibration_status'], 'no_model_score')
+        self.assertTrue(all(not r['score_available'] and r['model_score_uncalibrated'] is None for r in trace['candidates']))
+        self.assertTrue(all(r['model_score_uncalibrated'] is None for r in result['portfolio']))
+        self.assertEqual(trace['strength_status'], 'unknown')
+
+    def test_invalid_model_scores_also_restore_the_original_mode(self):
+        task, assets, graph, binder, decks, _ = theme_fixture()
+        model = Mock(return_value=SimpleNamespace(tolist=lambda: [float('nan')] * len(decks)))
+        model.training = True
+        model.eval.side_effect = lambda: setattr(model, 'training', False)
+        model.train.side_effect = lambda mode: setattr(model, 'training', mode)
+        with patch('ygo_kito.build_pipeline.edit_candidates', return_value=rows_for(task, decks)), \
+             patch.dict(sys.modules, {'torch':SimpleNamespace(no_grad=nullcontext)}):
+            with self.assertRaisesRegex(ContractError, 'invalid existing model candidate scores'):
+                fill_with_existing(session_for(task, graph), assets, role='build_optimizer', base=decks[0],
+                    models={'build_optimizer':model}, encoder=Mock(), binding_provider=binder,
+                    text_reviewer=binder.reviewer, defer_engine=True)
+        self.assertTrue(model.training)
 
 
 if __name__ == "__main__":

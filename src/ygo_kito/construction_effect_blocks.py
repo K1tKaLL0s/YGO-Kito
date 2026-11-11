@@ -8,10 +8,27 @@ from .build_contracts import digest
 from .construction_binding import CardTagAssessment
 from .construction_logic import LogicTag
 from .effect_mechanisms import MechanismCatalog, SEMANTIC_VERSION
+from .effect_blocks import BLOCK_VERSION, functional_tags
 
 MILL = LogicTag('effect', '卡组送墓')
 GRAVE_FUSION = LogicTag('effect', '墓地融合')
-REVIEWS = ()  # Historical import compatibility; never a default semantic source.
+
+
+def logic_vocabulary():
+    """Coarse functions exist before any task-specific card retrieval."""
+    from .effect_blocks import LABELS
+    return tuple(sorted({LogicTag('effect', name) for name in LABELS.values()} |
+                        {MILL, GRAVE_FUSION}, key=lambda t: (t.dimension, t.value)))
+
+
+def requested_logic_tags(task, tags=()):
+    """Only a declared route, never observed optional effects, adds a goal."""
+    from .effect_blocks import LABELS
+    route = task.goal.get('route_goal', task.goal if task.goal['kind'] != 'deck_constraints' else None)
+    result = tuple(tags)
+    if route and route['kind'] in LABELS:
+        result += (LogicTag('effect',LABELS[route['kind']]),)
+    return tuple(dict.fromkeys(result))
 
 
 def reviewed_effect_blocks(assets, pool, reviews=None, *, catalog=None):
@@ -19,16 +36,12 @@ def reviewed_effect_blocks(assets, pool, reviews=None, *, catalog=None):
     if reviews is None:
         catalog = catalog or MechanismCatalog(assets, pool)
         for code in sorted(pool):
-            profile = catalog.card(code)
-            for value in profile.tags:
-                effects = (profile.grave_fusion if value == GRAVE_FUSION.value else
-                    tuple(e for e in profile.effects if any(o['kind'] in ('mill','send_grave') and
-                        o.get('from_zones') == ('deck',) for o in e.observed_operations)))
-                quote = effects[0].text[:512]
-                assessments.append(CardTagAssessment(code, LogicTag('effect',value), 'satisfied',
-                    profile.cards_sha256,profile.text_sha256,quote,SEMANTIC_VERSION,
-                    'Recognized effect clauses '+','.join(str(e.index) for e in effects)+
-                    '; conditions, payments and restrictions remain scoped to each effect; core execution unproved.'))
+            entry = catalog.effect_blocks(code)
+            for item in functional_tags(entry):
+                assessments.append(CardTagAssessment(code, LogicTag(**item['tag']), 'satisfied',
+                    entry['cards_sha256'],entry['text_sha256'],item['source'][:512],BLOCK_VERSION,
+                    'Observed function in '+item['effect_key']+
+                    '; scoped costs, choices, selectors and unknown dependencies remain in effect_records.'))
         return tuple(dict.fromkeys(a.tag for a in assessments)), tuple(assessments)
     # Explicit application-supplied assessments remain labelled external reviews.
     for code, tag, quote in reviews:
@@ -42,5 +55,3 @@ def reviewed_effect_blocks(assets, pool, reviews=None, *, catalog=None):
     return tags, tuple(assessments)
 
 
-# Compatibility name for the already recorded first curriculum instance.
-pearl_effect_blocks = reviewed_effect_blocks

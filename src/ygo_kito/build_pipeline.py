@@ -38,8 +38,9 @@ class BuildAssets:
                             "authority": "custom", "release_cutoff": None}
 
     def environment_for(self, kind):
+        from .build_contracts import DISCOVERY_GOALS
         environment = dict(self.environment, versions=dict(self.environment["versions"]))
-        if kind in ("synchro_summon", "xyz_summon", "fusion_summon"):
+        if kind in DISCOVERY_GOALS:
             environment["versions"]["card_pool"] = "native-extra-material-v2"
         elif kind=="deck_constraints":
             environment["versions"]["card_pool"]="native-private-knowledge-v5"
@@ -82,6 +83,34 @@ class BuildAssets:
         except ContractError:
             return False
 
+    def validate_skeleton(self, task, deck):
+        """Check a partial inventory without inventing its unfilled cards."""
+        if not isinstance(deck, DeckParts):
+            raise ContractError("typed skeleton inventory required")
+        self.check_task(task)
+        counts = Counter()
+        for zone in ZONES:
+            if len(getattr(deck, zone)) > task.sizes[zone]:
+                raise ContractError("skeleton exceeds requested section size")
+            for code in getattr(deck, zone):
+                row = self.rows.get(code)
+                if code not in task.pool or not row or not row['ot'] & 1 or row['type'] & 0x4000:
+                    raise ContractError("skeleton card outside original environment")
+                if zone != 'side' and bool(row['type'] & EXTRA_TYPES) != (zone == 'extra'):
+                    raise ContractError("skeleton card in wrong section")
+                counts[row['alias'] or code] += 1
+        if any(n > self.limits.get(code, 3) for code, n in counts.items()):
+            raise ContractError("skeleton exceeds combined copy limits")
+        for req in task.requirements:
+            if not req['minimum'] <= getattr(deck, req['zone']).count(req['card_id']) <= req['maximum']:
+                raise ContractError("skeleton changed fixed card requirements")
+        if task.goal['kind'] == 'deck_constraints':
+            from .build_semantics import count
+            if any(count(deck, r, self.rows) > r['maximum'] for r in task.goal['constraints']):
+                raise ContractError("skeleton exceeds original semantic maximum")
+        return {'task_sha256': task.sha256, 'deck_sha256': digest(deck.to_dict()),
+                'unfilled': {z: task.sizes[z] - len(getattr(deck, z)) for z in ZONES}}
+
     def facts(self, code):
         row = self.rows[code]
         return [row["atk"] / 10000, row["def"] / 10000, (row["level"] & 0xff) / 12,
@@ -98,12 +127,14 @@ def _parts(parts):
     return DeckParts(*(tuple(sorted(parts[zone])) for zone in ZONES))
 
 
-def _goal_candidates(task, assets, base=None):
+def _goal_candidates(task, assets, base=None, *, skeleton=None, candidate_ids=None):
     """Bounded constraint construction followed by model ranking, not learned rule code."""
     assets.check_task(task)
     if task.goal['kind']=='deck_constraints':
         from .build_semantics import solve_candidates
-        return solve_candidates(task,assets,base)['candidates']
+        return solve_candidates(task,assets,base,skeleton=skeleton,candidate_ids=candidate_ids)['candidates']
+    if skeleton is not None:
+        assets.validate_skeleton(task, skeleton)
     if base is not None:
         if not isinstance(base, DeckParts):
             raise ContractError("typed existing deck required")
@@ -116,9 +147,14 @@ def _goal_candidates(task, assets, base=None):
         parts = {zone: [] for zone in ZONES}
         for req in task.requirements:
             parts[req["zone"]].extend([req["card_id"]] * req["minimum"])
+        if skeleton is not None:
+            parts = {z: list((Counter(parts[z]) | Counter(getattr(skeleton, z))).elements()) for z in ZONES}
         all_counts = Counter(assets.rows[c]["alias"] or c for cards in parts.values() for c in cards)
         valid = True
-        pool = list(task.pool[rotation:] + task.pool[:rotation])
+        allowed = task.pool if candidate_ids is None else tuple(candidate_ids)
+        if not set(allowed) <= set(task.pool):
+            raise ContractError('candidate query exceeds original task card pool')
+        pool = list(allowed[rotation:] + allowed[:rotation])
         for zone in ZONES:
             priority = ([] if base is None else list(getattr(base, zone))) + pool
             while len(parts[zone]) < task.sizes[zone]:
@@ -149,11 +185,11 @@ def _goal_candidates(task, assets, base=None):
     return found
 
 
-def goal_candidates(task, assets, base=None, *, feedback=(), return_portfolio=False,mechanism_groups=None,trace=None):
+def goal_candidates(task, assets, base=None, *, feedback=(), return_portfolio=False,mechanism_groups=None,trace=None,graph=None,candidate_ids=None):
     from .construction_candidates import portfolio
-    initial = _goal_candidates(task, assets, base)
+    initial = _goal_candidates(task, assets, base, candidate_ids=candidate_ids)
     portfolio_trace = {}
-    rows = portfolio(task, assets, base=base, initial=initial, feedback=feedback,mechanism_groups=mechanism_groups,trace=portfolio_trace)
+    rows = portfolio(task, assets, base=base, initial=initial, feedback=feedback,mechanism_groups=mechanism_groups,trace=portfolio_trace,graph=graph,candidate_ids=candidate_ids)
     if trace is not None:
         trace.update(generator="existing_goal_solver_and_portfolio", initial_candidates=len(initial),
                      portfolio_candidates=len(rows), candidate_budget=task.candidate_budget,
@@ -161,14 +197,20 @@ def goal_candidates(task, assets, base=None, *, feedback=(), return_portfolio=Fa
     return rows if return_portfolio else [row["deck"] for row in rows]
 
 
-def edit_candidates(task, assets, base, *, require_edit=False, feedback=(), return_portfolio=False,mechanism_groups=None,trace=None):
+def edit_candidates(task, assets, base, *, require_edit=False, feedback=(), return_portfolio=False,mechanism_groups=None,trace=None,graph=None,search_offset=0,candidate_ids=None):
     assets.validate(task, base)
+    pool = task.pool if candidate_ids is None else tuple(candidate_ids)
+    if not set(pool) <= set(task.pool):
+        raise ContractError('edit query exceeds original task card pool')
     from .construction_candidates import portfolio
     found, origins, families, zone_limits = [], {}, {}, {}
 
     def substitutions(zone):
-        for removed in sorted(set(getattr(base, zone))):
-            for added in task.pool:
+        removed_cards = sorted(set(getattr(base, zone)))
+        start = search_offset % max(1, len(removed_cards))
+        pool_start = search_offset % len(pool)
+        for removed in removed_cards[start:] + removed_cards[:start]:
+            for added in pool[pool_start:] + pool[:pool_start]:
                 if added != removed:
                     parts = base.to_dict()
                     parts[zone].remove(removed); parts[zone].append(added)
@@ -216,7 +258,7 @@ def edit_candidates(task, assets, base, *, require_edit=False, feedback=(), retu
                 if count == 32: break
         zone_limits[zone] = {"accepted":count,"limit":32,"enumeration_complete":not streams}
     portfolio_trace = {}
-    rows = portfolio(task, assets, base=base, singles=found, feedback=feedback, require_edit=require_edit,mechanism_groups=mechanism_groups,trace=portfolio_trace)
+    rows = portfolio(task, assets, base=base, singles=found, feedback=feedback, require_edit=require_edit,mechanism_groups=mechanism_groups,trace=portfolio_trace,graph=graph,candidate_ids=candidate_ids)
     for row in rows:
         if row["deck"] in origins:
             row["generation"] = origins[row["deck"]]
@@ -320,78 +362,3 @@ def verify_goal(task, deck, assets, *, seconds=10., attempts=16, decision_budget
                             "trajectory_sha256": digest(audit), "elapsed_seconds": time.monotonic() - started, "unmet": []}
     return {"status": "not_found_within_budget", "card_list_legal": True, "core_attempts": trials,
             "unmet": ["conditional route not verified within declared search budget; not proof of impossibility"]}
-
-
-def alternate_build(task, assets, models, encoder, *, base=None, stages=4, seconds=30., lora_versions=None):
-    import torch
-    from .duel_model import parameter_digest
-    if lora_versions is not None:
-        from .coord_contracts import sha256
-        fields(lora_versions, {"build_goal", "build_optimizer"})
-        for version in lora_versions.values():
-            sha256(version)
-    integer(stages, "alternating stages", 1, 4)
-    if type(seconds) not in (int, float) or not math.isfinite(seconds) or not 0 <= seconds <= 60:
-        raise ContractError("alternation time budget outside CPU range")
-    fixed = task.sha256
-    started = time.monotonic()
-    current, history, verified, failures = base, [], [], []
-    for i in range(stages):
-        role = "build_goal" if i % 2 == 0 else "build_optimizer"
-        if time.monotonic() - started >= seconds:
-            failures.append({"stage": i, "role": role, "status": "budget_exhausted"})
-            break
-        candidates = goal_candidates(task, assets, current) if role == "build_goal" else edit_candidates(task, assets, current, require_edit=True)
-        if not candidates:
-            failures.append({"stage": i, "role": role, "status": "no_candidate_within_budget"})
-            break
-        models[role].eval()
-        with torch.no_grad():
-            scores = models[role](encoder.batch(task, candidates))
-        if not torch.isfinite(scores).all():
-            raise ContractError("non-finite building scores")
-        selected, proof = None, None
-        for index in scores.argsort(descending=True).tolist():
-            remaining = seconds - (time.monotonic() - started)
-            if remaining <= 0:
-                failures.append({"stage": i, "role": role, "status": "budget_exhausted"})
-                break
-            candidate = candidates[index]
-            try:
-                proof = verify_goal(task, candidate, assets, seconds=min(10., remaining))
-            except NativeError as error:
-                failures.append({"stage": i, "role": role, "status": "native_route_unverified", "reason": str(error)})
-                continue
-            from .build_semantics import accepted_status
-            if proof["status"] == accepted_status(task):
-                selected = candidate
-                break
-            failures.append({"stage": i, "role": role, "status": proof["status"], "unmet": proof["unmet"]})
-        if selected is None:
-            break
-        before = current or DeckParts(())
-        changes = deck_changes(before, selected)
-        if apply_changes(before, changes) != selected or task.sha256 != fixed:
-            raise ContractError("alternation failed goal identity/change verification")
-        history.append({"stage": i, "role": role, "task_sha256": fixed, "deck": selected.to_dict(),
-                        "changes": changes, "model_score_uncalibrated": float(scores[index]), "candidate_count": len(candidates),
-                        "model_sha256": parameter_digest(models[role]), "lora_version": (lora_versions or {}).get(role),
-                        "versions": task.environment["versions"], "elapsed_seconds": time.monotonic() - started,
-                        "uncertainty": "uncalibrated engineering prototype; construction quality unknown",
-                        "engineering_proxy": engineering_proxy(selected, assets), "validation": proof})
-        verified.append(selected)
-        current = selected
-    if task.goal['kind']=='deck_constraints':
-        from .build_semantics import preference_value
-        criterion=lambda d:preference_value(task,d,assets)
-    else:criterion=lambda d:engineering_proxy(d,assets)
-    best = max(verified, key=criterion) if verified else None
-    stop_reason = ("stage_budget_reached" if len(history) == stages else
-                   "time_budget_exhausted" if time.monotonic() - started >= seconds else "no_verified_candidate_within_budget")
-    return {"schema_version": 1, "kind": "goal-optimizer-alternation",
-            "status": "verified_candidates" if best else "not_found_within_budget", "task_sha256": fixed,
-            "stages": history, "best_deck": None if best is None else best.to_dict(),
-            "best_criterion": "explicit_semantic_preferences_not_strength" if task.goal['kind']=='deck_constraints' else "engineering_mean_printed_attack_proxy_only", "stop_reason": stop_reason,
-            "failures": failures, "time_budget_seconds": seconds, "stage_budget": stages,
-            "unmet": ["competitive construction quality not evaluated"] + ([] if len(history) == stages else ["requested stages not all verified"]),
-            "competitive_ability_validated": False}

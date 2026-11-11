@@ -50,3 +50,20 @@ def request():
 
 def selection():
     return {"run_id": "test-run", "duel_id": "test-duel", "decision_id": "test-window-1", "action_id": "choice-1"}
+
+
+def synthetic_cb_authorization(task, deck):
+    """Explicit fixture boundary for CB tests, never a real construction pass."""
+    from ygo_kito.build_contracts import digest
+    from ygo_kito.construction_progress import GATE_VERSION
+    return dict(execution_authorized=True,construction_gate=dict(version=GATE_VERSION,status='passed',
+        task_sha256=task.sha256,deck_sha256=digest(deck.to_dict()),candidate_version=1))
+
+
+def synthetic_cb_mainline(steps):
+    """Saved-receipt fixture only; no native route has been executed."""
+    from copy import deepcopy
+    from ygo_kito.basic_cb_scope import VERSION
+    return dict(version=VERSION,steps=deepcopy(steps),known_outputs=[],unknown=[],
+        random_result_branches_expanded=False,future_deck_order_fixed=False,
+        opponent_dynamic_responses=False,cost_effect_distinct=True,opening_probability_evaluated=False)

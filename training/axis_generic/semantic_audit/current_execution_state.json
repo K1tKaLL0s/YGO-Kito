@@ -1,0 +1,2730 @@
+{
+  "schema_version": "current-execution-state-v1",
+  "scope": "同118原输入的声明状态单独存放；只判断原函数在本时点的结构/执行条件，不作为generic_role。",
+  "counts": {
+    "executable_under_declared_conditions": 50,
+    "blocked_at_declared_state": 24,
+    "unknown_at_declared_state": 8,
+    "not_established_for_whole_selection": 20,
+    "structurally_incomplete": 16
+  },
+  "cases": [
+    {
+      "case_id": "gamma_empty_response",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "root_driver_and_zones",
+          "status": "satisfied",
+          "evidence_quote": "cards.cdb:texts[38814750]；声明γ在手、驱动者在卡组、2个怪兽区可用。; declared_scenario:gamma_empty_response"
+        },
+        {
+          "key": "own_field_empty",
+          "status": "satisfied",
+          "evidence_quote": "cards.cdb:texts[38814750]；声明己方空场。; declared_scenario:gamma_empty_response"
+        },
+        {
+          "key": "response_permission",
+          "status": "satisfied",
+          "evidence_quote": "声明对方发动怪兽效果，γ次数可用、无效果无效或特召封锁。; declared_scenario:gamma_empty_response"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "gamma_occupied_field",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "members_available",
+          "status": "satisfied",
+          "evidence_quote": "γ手持、驱动者在卡组。; declared_scenario:gamma_occupied_field"
+        },
+        {
+          "key": "own_field_empty",
+          "status": "unsatisfied",
+          "evidence_quote": "cards.cdb:texts[38814750]要求己方无怪兽；声明已占场且无法移走。; declared_scenario:gamma_occupied_field"
+        },
+        {
+          "key": "opponent_monster_effect",
+          "status": "satisfied",
+          "evidence_quote": "声明对方发动可响应怪兽效果。; declared_scenario:gamma_occupied_field"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "gamma_state_unknown",
+      "execution_status": "unknown_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "root_in_hand",
+          "status": "unknown",
+          "evidence_quote": "未给出γ是否在手。; declared_scenario:gamma_state_unknown"
+        },
+        {
+          "key": "driver_location",
+          "status": "unknown",
+          "evidence_quote": "texts[38814750]驱动者须在手、卡组或墓地；未给位置。; declared_scenario:gamma_state_unknown"
+        },
+        {
+          "key": "empty_field_zones",
+          "status": "unknown",
+          "evidence_quote": "texts[38814750]空场及两体特召空间未给。; declared_scenario:gamma_state_unknown"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "invoked_artemis_cycle",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "normal_and_members",
+          "status": "satisfied",
+          "evidence_quote": "阿莱斯特在手、通常召唤未用，召唤魔术在卡组，额外两件可用。; declared_scenario:invoked_artemis_cycle"
+        },
+        {
+          "key": "legal_light_route",
+          "status": "satisfied",
+          "evidence_quote": "cards.cdb:datas[86120751]4星魔法师，符合texts[34755994]；阿耳特弥斯为光属性。; declared_scenario:invoked_artemis_cycle"
+        },
+        {
+          "key": "zones_and_response_cost",
+          "status": "satisfied",
+          "evidence_quote": "声明无召唤封锁、额外区及墓地正常，梅尔卡巴回应时有对应种类手牌可送墓。; declared_scenario:invoked_artemis_cycle"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "invoked_artemis_ritual_plan",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "normal_and_members",
+          "status": "satisfied",
+          "evidence_quote": "阿莱斯特在手、通常召唤未用，召唤魔术在卡组，额外两件可用。; declared_scenario:invoked_artemis_ritual_plan"
+        },
+        {
+          "key": "legal_light_route",
+          "status": "satisfied",
+          "evidence_quote": "cards.cdb:datas[86120751]4星魔法师，符合texts[34755994]；阿耳特弥斯为光属性。; declared_scenario:invoked_artemis_ritual_plan"
+        },
+        {
+          "key": "zones_and_response_cost",
+          "status": "satisfied",
+          "evidence_quote": "声明无召唤封锁、额外区及墓地正常，梅尔卡巴回应时有对应种类手牌可送墓。; declared_scenario:invoked_artemis_ritual_plan"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "invoked_almiraj_gardna",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "normal_aleister",
+          "status": "satisfied",
+          "evidence_quote": "datas[86120751]攻击1000；声明通常召唤可用。; declared_scenario:invoked_almiraj_gardna"
+        },
+        {
+          "key": "cyberse_light_conversion",
+          "status": "satisfied",
+          "evidence_quote": "datas[60303245]电子界连接；datas[2220237]光属性，场上无另一守卫者。; declared_scenario:invoked_almiraj_gardna"
+        },
+        {
+          "key": "cards_zones_cost",
+          "status": "satisfied",
+          "evidence_quote": "声明成员可用、区域及墓地正常、无封锁、回应有同类手牌。; declared_scenario:invoked_almiraj_gardna"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "destiny_dpe_actual_singleton",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "materials",
+          "status": "satisfied",
+          "evidence_quote": "datas[81866673]6星；texts[60461804,52947044]；声明素材在卡组，根在手，凤凰人额外可用。; declared_scenario:destiny_dpe_actual_singleton"
+        },
+        {
+          "key": "dark_hero_after",
+          "status": "satisfied",
+          "evidence_quote": "texts[52947044]只限制发动后；声明后续只特召暗英雄。; declared_scenario:destiny_dpe_actual_singleton"
+        },
+        {
+          "key": "destroy_and_revive",
+          "status": "satisfied",
+          "evidence_quote": "对方有可破坏卡，凤凰人可选自身作己方破坏卡，墓地正常，无复活封锁。; declared_scenario:destiny_dpe_actual_singleton"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "branded_complete_40",
+      "execution_status": "not_established_for_whole_selection",
+      "original_condition_observations": [],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "branded_complete_60",
+      "execution_status": "not_established_for_whole_selection",
+      "original_condition_observations": [],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "branded_compact_fusion_route",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "fusion_only_whole_turn",
+          "status": "satisfied",
+          "evidence_quote": "texts[44362883]是发动回合限定；声明整回合额外只融合。; declared_scenario:branded_compact_fusion_route"
+        },
+        {
+          "key": "members",
+          "status": "satisfied",
+          "evidence_quote": "根在手，阿不思和光属性白之圣女在卡组，3只额外可用。; declared_scenario:branded_compact_fusion_route; 精确选组含2张阿不思：1张用于融合并除外，另1张留卡组供灰烬龙结束阶段取得。"
+        },
+        {
+          "key": "mirrorjade_and_follow_up",
+          "status": "satisfied",
+          "evidence_quote": "texts[44146295]；无另一冰剑龙、效果可用、对方有可除外怪兽；墓地、除外正常，灰烬龙结束阶段资源可用。; declared_scenario:branded_compact_fusion_route"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "hero_complete_clock_destiny",
+      "execution_status": "not_established_for_whole_selection",
+      "original_condition_observations": [],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "hero_complete_shadow_mask",
+      "execution_status": "not_established_for_whole_selection",
+      "original_condition_observations": [],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "hero_crow_furnace_mask_route",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "normal_and_members",
+          "status": "satisfied",
+          "evidence_quote": "暮鸦在手且通常召唤未用，炉火和假面变化可从卡组取得，暗爪额外可用。; declared_scenario:hero_crow_furnace_mask_route"
+        },
+        {
+          "key": "dark_material_and_discard",
+          "status": "satisfied",
+          "evidence_quote": "datas[10808715]暗属性；texts[58288218]取得变化后可以自身丢弃，无送墓替代。; declared_scenario:hero_crow_furnace_mask_route"
+        },
+        {
+          "key": "hero_extra_whole_turn",
+          "status": "satisfied",
+          "evidence_quote": "texts[58288218]发动回合额外限英雄；声明整回合满足。; declared_scenario:hero_crow_furnace_mask_route"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "tourguide_link_search",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "normal_and_members",
+          "status": "satisfied",
+          "evidence_quote": "导游在手、通常召唤未用，三眼怪在卡组，基路伯额外可用。; declared_scenario:tourguide_link_search"
+        },
+        {
+          "key": "legal_link",
+          "status": "satisfied",
+          "evidence_quote": "两只均3星；texts[10802915]禁止同调而非连接素材。; declared_scenario:tourguide_link_search"
+        },
+        {
+          "key": "search_for_later",
+          "status": "satisfied",
+          "evidence_quote": "卡组有攻击1500以下目标，接受当回合禁用检索卡及同名效果。; declared_scenario:tourguide_link_search"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "tourguide_normal_already_used",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "normal_summon",
+          "status": "unsatisfied",
+          "evidence_quote": "texts[10802915]只在通常召唤时发动；声明次数已用且无追加。; declared_scenario:tourguide_normal_already_used"
+        },
+        {
+          "key": "members",
+          "status": "satisfied",
+          "evidence_quote": "其它两件可用。; declared_scenario:tourguide_normal_already_used"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "dogmatika_late_turn_response",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "members_and_attack",
+          "status": "satisfied",
+          "evidence_quote": "天底在手、旧神额外可用、圣女和骑士在卡组；datas[80532587]攻击2500足以取得圣女。; declared_scenario:dogmatika_late_turn_response"
+        },
+        {
+          "key": "opponent_extra_persists",
+          "status": "satisfied",
+          "evidence_quote": "对方额外出身怪兽持续在场，旧神破坏另一张卡，供圣女/骑士手中特召。; declared_scenario:dogmatika_late_turn_response"
+        },
+        {
+          "key": "own_dogma_and_order",
+          "status": "satisfied",
+          "evidence_quote": "圣女检索骑士且留场；本回合额外召唤已完成，天底/圣女后不再额外召唤。; declared_scenario:dogmatika_late_turn_response"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "dogmatika_extra_order_conflict",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "members",
+          "status": "satisfied",
+          "evidence_quote": "四件可用，对方额外出身怪兽在场。; declared_scenario:dogmatika_extra_order_conflict"
+        },
+        {
+          "key": "accept_extra_lock",
+          "status": "unsatisfied",
+          "evidence_quote": "texts[1984618,60303688]发动后额外封锁；声明仍须在其后额外召唤。; declared_scenario:dogmatika_extra_order_conflict"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "dogmatika_declared_battle_plan",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "members_and_attack",
+          "status": "satisfied",
+          "evidence_quote": "天底在手、旧神额外可用、圣女和骑士在卡组；datas[80532587]攻击2500足以取得圣女。; declared_scenario:dogmatika_declared_battle_plan"
+        },
+        {
+          "key": "opponent_extra_persists",
+          "status": "satisfied",
+          "evidence_quote": "对方额外出身怪兽持续在场，旧神破坏另一张卡，供圣女/骑士手中特召。; declared_scenario:dogmatika_declared_battle_plan"
+        },
+        {
+          "key": "own_dogma_and_order",
+          "status": "satisfied",
+          "evidence_quote": "圣女检索骑士且留场；本回合额外召唤已完成，天底/圣女后不再额外召唤。; declared_scenario:dogmatika_declared_battle_plan"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "maxx_fusion_response",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "hand_grave_once",
+          "status": "satisfied",
+          "evidence_quote": "texts[23434538]；在手、可送墓、次数未用且不会无效。; declared_scenario:maxx_fusion_response"
+        },
+        {
+          "key": "opponent_special_and_draw",
+          "status": "satisfied",
+          "evidence_quote": "效果适用后对方将特召，己方卡组有足够牌可抽。; declared_scenario:maxx_fusion_response"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "maxx_future_summons_unknown",
+      "execution_status": "unknown_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "grave_once",
+          "status": "unknown",
+          "evidence_quote": "texts[23434538]有送墓代价和每回合1次；状态未给。; declared_scenario:maxx_future_summons_unknown"
+        },
+        {
+          "key": "opponent_special",
+          "status": "unknown",
+          "evidence_quote": "效果适用后对方是否特召未给。; declared_scenario:maxx_future_summons_unknown"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "desires_striker_resources",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "deck_cost_draw",
+          "status": "satisfied",
+          "evidence_quote": "texts[35261759]；剩30张，足够支付10并抽2。; declared_scenario:desires_striker_resources"
+        },
+        {
+          "key": "spell_once",
+          "status": "satisfied",
+          "evidence_quote": "在手、次数未用，可正常发动通常魔法。; declared_scenario:desires_striker_resources"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "desires_low_deck",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "deck_cost",
+          "status": "unsatisfied",
+          "evidence_quote": "texts[35261759]要求顶10张；声明只剩9张。; declared_scenario:desires_low_deck"
+        },
+        {
+          "key": "other_permission",
+          "status": "satisfied",
+          "evidence_quote": "其它发动权限、次数正常。; declared_scenario:desires_low_deck"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "endymion_complete_spell_counters",
+      "execution_status": "not_established_for_whole_selection",
+      "original_condition_observations": [],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "endymion_complete_modern_spellcasters",
+      "execution_status": "not_established_for_whole_selection",
+      "original_condition_observations": [],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "endymion_complete_pendulum_context",
+      "execution_status": "not_established_for_whole_selection",
+      "original_condition_observations": [],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "adventurer_ritual_turn",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "rite_whole_turn",
+          "status": "satisfied",
+          "evidence_quote": "texts[3285551]；本回合没有发动非特召场上怪兽效果，之后也不发动。; declared_scenario:adventurer_ritual_turn"
+        },
+        {
+          "key": "cards_discard_zones",
+          "status": "satisfied",
+          "evidence_quote": "仪在手，其余可取用，有额外1手牌可送墓，场区足够且无封锁。; declared_scenario:adventurer_ritual_turn"
+        },
+        {
+          "key": "token_persists",
+          "status": "satisfied",
+          "evidence_quote": "勇者保留至骑手回应，驮龙装备该非效果怪兽，相关次数未用。; declared_scenario:adventurer_ritual_turn"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "adventurer_normal_effect_conflict",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "members",
+          "status": "satisfied",
+          "evidence_quote": "四件齐备可取用。; declared_scenario:adventurer_normal_effect_conflict"
+        },
+        {
+          "key": "rite_whole_turn",
+          "status": "unsatisfied",
+          "evidence_quote": "texts[3285551]整回合限制；已发动非特召场上怪兽效果。; declared_scenario:adventurer_normal_effect_conflict"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "tenyi_vishuda_monk",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "no_effect_initially",
+          "status": "satisfied",
+          "evidence_quote": "texts[23431858]；空场，大同蟠龙在手。; declared_scenario:tenyi_vishuda_monk"
+        },
+        {
+          "key": "monk_target",
+          "status": "satisfied",
+          "evidence_quote": "拳僧额外和区域可用；datas[32519092]无效果怪兽标记，拳僧留场，对方有可回手卡。; declared_scenario:tenyi_vishuda_monk"
+        },
+        {
+          "key": "grave_and_permission",
+          "status": "satisfied",
+          "evidence_quote": "墓地可除外，特召/连接无封锁，次数未用。; declared_scenario:tenyi_vishuda_monk"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "tenyi_effect_monster_present",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "no_effect_initially",
+          "status": "unsatisfied",
+          "evidence_quote": "texts[23431858]；己方有效果怪兽且无法移走。; declared_scenario:tenyi_effect_monster_present"
+        },
+        {
+          "key": "no_alternative",
+          "status": "satisfied",
+          "evidence_quote": "通常召唤已使用，无其它放上场途径；拳僧在额外。; declared_scenario:tenyi_effect_monster_present"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "darkhole_striker_board_clear",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "spell",
+          "status": "satisfied",
+          "evidence_quote": "黑洞在手，可发动通常魔法，无无效或破坏封锁。; declared_scenario:darkhole_striker_board_clear"
+        },
+        {
+          "key": "destroyable_monsters",
+          "status": "satisfied",
+          "evidence_quote": "texts[53129443]；对方有可破坏怪兽，己方空场。; declared_scenario:darkhole_striker_board_clear"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "darkhole_kuriboh_defence",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "spell",
+          "status": "satisfied",
+          "evidence_quote": "黑洞在手，可正常发动通常魔法。; declared_scenario:darkhole_kuriboh_defence"
+        },
+        {
+          "key": "destroyable_monsters",
+          "status": "satisfied",
+          "evidence_quote": "texts[53129443]；对方有可破坏怪兽，己方空场。; declared_scenario:darkhole_kuriboh_defence"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "striker_complete_resource_plan",
+      "execution_status": "not_established_for_whole_selection",
+      "original_condition_observations": [],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "striker_complete_ritual_finish",
+      "execution_status": "not_established_for_whole_selection",
+      "original_condition_observations": [],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "striker_drones_link_recover",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "main_zones_empty",
+          "status": "satisfied",
+          "evidence_quote": "texts[52340444]；主要区空，燎里占额外区，回收后主要区仍空。; declared_scenario:striker_drones_link_recover"
+        },
+        {
+          "key": "members_permission",
+          "status": "satisfied",
+          "evidence_quote": "魔法在手、燎里额外可用、次数未用，无连接封锁；衍生物暗属性符合非炎素材。; declared_scenario:striker_drones_link_recover"
+        },
+        {
+          "key": "repeat_spell",
+          "status": "satisfied",
+          "evidence_quote": "texts[52340444]无同名每回合1次；区域和魔法发动权限可用。; declared_scenario:striker_drones_link_recover"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "striker_drones_occupied_main",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "main_zones_empty",
+          "status": "unsatisfied",
+          "evidence_quote": "texts[52340444]；主要区有无法先移走的怪兽。; declared_scenario:striker_drones_occupied_main"
+        },
+        {
+          "key": "members",
+          "status": "satisfied",
+          "evidence_quote": "大黄蜂在手、燎里在额外。; declared_scenario:striker_drones_occupied_main"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "predaplant_search_superpoly",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "normal_and_first_cost",
+          "status": "satisfied",
+          "evidence_quote": "texts[35272499]；蜂兰蝎在手、通常召唤未用，有另一手卡怪兽可送墓。; declared_scenario:predaplant_search_superpoly"
+        },
+        {
+          "key": "cobra_once",
+          "status": "satisfied",
+          "evidence_quote": "眼镜蛇在卡组，由蜂兰蝎效果特召，决斗次数未使用。; declared_scenario:predaplant_search_superpoly"
+        },
+        {
+          "key": "superpoly_search",
+          "status": "satisfied",
+          "evidence_quote": "texts[61677004]检索融合魔法；超融合为其目标，在卡组且可检索。; declared_scenario:predaplant_search_superpoly"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "predaplant_compact_fusion_attack",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "normal_and_two_costs",
+          "status": "satisfied",
+          "evidence_quote": "texts[35272499,48130397]分别需手卡怪兽送墓、另1手牌丢弃；声明均可支付。; declared_scenario:predaplant_compact_fusion_attack"
+        },
+        {
+          "key": "cobra_search_once",
+          "status": "satisfied",
+          "evidence_quote": "眼镜蛇、超融合在卡组，通常召唤可用，眼镜蛇决斗次数未用。; declared_scenario:predaplant_compact_fusion_attack"
+        },
+        {
+          "key": "legal_dark_fusion",
+          "status": "satisfied",
+          "evidence_quote": "datas[35272499,61677004]暗属性；texts[41209827]场上2只非衍生物暗属性；额外、区域与召唤权限可用。; declared_scenario:predaplant_compact_fusion_attack"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "predaplant_second_discard_missing",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "first_cost_members",
+          "status": "satisfied",
+          "evidence_quote": "通常召唤可用，首个怪兽代价已付，眼镜蛇、超融合可检索，额外目标可用。; declared_scenario:predaplant_second_discard_missing"
+        },
+        {
+          "key": "second_discard",
+          "status": "unsatisfied",
+          "evidence_quote": "texts[48130397]要求另丢1手牌；检索后仅剩超融合。; declared_scenario:predaplant_second_discard_missing"
+        },
+        {
+          "key": "legal_materials",
+          "status": "satisfied",
+          "evidence_quote": "texts[25586143]捕食植物＋暗属性；蜂兰蝎和眼镜蛇满足。; declared_scenario:predaplant_second_discard_missing"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "duster_cartoon_backrow_clear",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "spell",
+          "status": "satisfied",
+          "evidence_quote": "羽毛扫在手，可发动通常魔法，不会无效。; declared_scenario:duster_cartoon_backrow_clear"
+        },
+        {
+          "key": "opponent_backrow",
+          "status": "satisfied",
+          "evidence_quote": "texts[18144506]；对方有可破坏魔法陷阱。; declared_scenario:duster_cartoon_backrow_clear"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "duster_no_backrow_now",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "spell",
+          "status": "satisfied",
+          "evidence_quote": "通常魔法权限正常。; declared_scenario:duster_no_backrow_now"
+        },
+        {
+          "key": "opponent_backrow",
+          "status": "unsatisfied",
+          "evidence_quote": "texts[18144506]只作用对方魔陷；当前数量0。; declared_scenario:duster_no_backrow_now"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "v5_nibiru_single_live",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "hand_main_once",
+          "status": "satisfied",
+          "evidence_quote": "texts[27204311]；尼比鲁在手、主要阶段、次数未用，怪兽效果可正常发动。; declared_scenario:v5_nibiru_single_live"
+        },
+        {
+          "key": "five_opponent_monsters",
+          "status": "satisfied",
+          "evidence_quote": "对方本回合已召唤/特召至少5只怪兽；按只数而非召唤次数。; declared_scenario:v5_nibiru_single_live"
+        },
+        {
+          "key": "tribute_and_zones",
+          "status": "satisfied",
+          "evidence_quote": "己方空场，对方有可被效果解放的表侧怪兽；处理后双方各有区域可特召本体与衍生物，无特召封锁。; declared_scenario:v5_nibiru_single_live"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "v5_nibiru_below_threshold",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "hand_main_once",
+          "status": "satisfied",
+          "evidence_quote": "在手、主要阶段、次数未用，无其它封锁。; declared_scenario:v5_nibiru_below_threshold"
+        },
+        {
+          "key": "five_opponent_monsters",
+          "status": "unsatisfied",
+          "evidence_quote": "texts[27204311]至少5只；明确只有4只。; declared_scenario:v5_nibiru_below_threshold"
+        },
+        {
+          "key": "tribute_zones",
+          "status": "satisfied",
+          "evidence_quote": "有可解放表侧怪兽且双方特召空间可用。; declared_scenario:v5_nibiru_below_threshold"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "v5_etele_ogre_from_deck",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "legal_psychic_tuner",
+          "status": "satisfied",
+          "evidence_quote": "datas[59438930]为3星念动力族调整，无自身特召限定，符合texts[67723438]。; declared_scenario:v5_etele_ogre_from_deck"
+        },
+        {
+          "key": "spell_and_zone",
+          "status": "satisfied",
+          "evidence_quote": "瞬移在手且可正常发动，有可用怪兽区，无特召封锁。; declared_scenario:v5_etele_ogre_from_deck"
+        },
+        {
+          "key": "use_before_end_phase",
+          "status": "satisfied",
+          "evidence_quote": "拟在结束阶段除外前作为素材使用，不发动幽鬼兔的破坏效果。; declared_scenario:v5_etele_ogre_from_deck"
+        },
+        {
+          "key": "target_location",
+          "status": "satisfied",
+          "evidence_quote": "幽鬼兔在卡组，texts[67723438]允许从卡组特召。; declared_scenario:v5_etele_ogre_from_deck"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "v5_etele_ogre_from_hand",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "legal_psychic_tuner",
+          "status": "satisfied",
+          "evidence_quote": "datas[59438930]为3星念动力族调整，无自身特召限定，符合texts[67723438]。; declared_scenario:v5_etele_ogre_from_hand"
+        },
+        {
+          "key": "spell_and_zone",
+          "status": "satisfied",
+          "evidence_quote": "瞬移在手且可正常发动，有可用怪兽区，无特召封锁。; declared_scenario:v5_etele_ogre_from_hand"
+        },
+        {
+          "key": "use_before_end_phase",
+          "status": "satisfied",
+          "evidence_quote": "拟在结束阶段除外前作为素材使用，不发动幽鬼兔的破坏效果。; declared_scenario:v5_etele_ogre_from_hand"
+        },
+        {
+          "key": "target_location",
+          "status": "satisfied",
+          "evidence_quote": "幽鬼兔在手；texts[67723438]明确允许从手卡特召。; declared_scenario:v5_etele_ogre_from_hand"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "v5_quick_launch_tracer_deck",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "legal_rokket",
+          "status": "satisfied",
+          "evidence_quote": "datas/texts[68464358]为4星暗龙族调整，属弹丸且无自身特召限定。; declared_scenario:v5_quick_launch_tracer_deck"
+        },
+        {
+          "key": "root_zone_permission",
+          "status": "satisfied",
+          "evidence_quote": "速攻旋转在手可发动、怪兽区可用，无特召封锁。; declared_scenario:v5_quick_launch_tracer_deck"
+        },
+        {
+          "key": "pure_material_use",
+          "status": "satisfied",
+          "evidence_quote": "不发动曳光龙自身效果；在结束阶段破坏前作素材，不要求它攻击。; declared_scenario:v5_quick_launch_tracer_deck"
+        },
+        {
+          "key": "target_in_deck",
+          "status": "satisfied",
+          "evidence_quote": "texts[31443476]从卡组特召；曳光龙在卡组。; declared_scenario:v5_quick_launch_tracer_deck"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "v5_quick_launch_target_only_in_hand",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "legal_rokket",
+          "status": "satisfied",
+          "evidence_quote": "datas/texts[68464358]为4星暗龙族调整，属弹丸且无自身特召限定。; declared_scenario:v5_quick_launch_target_only_in_hand"
+        },
+        {
+          "key": "root_zone_permission",
+          "status": "satisfied",
+          "evidence_quote": "速攻旋转在手可发动、怪兽区可用，无特召封锁。; declared_scenario:v5_quick_launch_target_only_in_hand"
+        },
+        {
+          "key": "pure_material_use",
+          "status": "satisfied",
+          "evidence_quote": "不发动曳光龙自身效果；在结束阶段破坏前作素材，不要求它攻击。; declared_scenario:v5_quick_launch_target_only_in_hand"
+        },
+        {
+          "key": "target_in_deck",
+          "status": "unsatisfied",
+          "evidence_quote": "texts[31443476]只从卡组；本查询曳光龙只在手，无法回卡组。; declared_scenario:v5_quick_launch_target_only_in_hand"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "v5_unexpected_dai_seed",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "empty_field",
+          "status": "satisfied",
+          "evidence_quote": "texts[911883]要求自己无怪兽；声明空场。; declared_scenario:v5_unexpected_dai_seed"
+        },
+        {
+          "key": "legal_normal_in_deck",
+          "status": "satisfied",
+          "evidence_quote": "datas[27520594]type17、1星通常植物，且在卡组。; declared_scenario:v5_unexpected_dai_seed"
+        },
+        {
+          "key": "root_permission",
+          "status": "satisfied",
+          "evidence_quote": "根在手可发动，怪兽区可用，无特召封锁。; declared_scenario:v5_unexpected_dai_seed"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "v5_gamma_query_missing_driver",
+      "execution_status": "structurally_incomplete",
+      "original_condition_observations": [
+        {
+          "key": "gamma_response",
+          "status": "satisfied",
+          "evidence_quote": "γ手持、空场、对方怪兽发动、区域和权限正常。; declared_scenario:v5_gamma_query_missing_driver"
+        },
+        {
+          "key": "driver_in_query",
+          "status": "unsatisfied",
+          "evidence_quote": "texts[38814750]需要驱动者；selected不含49036338，未选中背景卡不计入查询单元。; declared_scenario:v5_gamma_query_missing_driver"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [
+        {
+          "card_id": 49036338,
+          "name": "PSY骨架驱动者",
+          "required_count": 1,
+          "selected_count": 0
+        }
+      ],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "v5_driver_query_missing_gamma",
+      "execution_status": "structurally_incomplete",
+      "original_condition_observations": [
+        {
+          "key": "gamma_in_query",
+          "status": "unsatisfied",
+          "evidence_quote": "原合同需要γ发动，selected不含38814750。; declared_scenario:v5_driver_query_missing_gamma"
+        },
+        {
+          "key": "no_other_deployment",
+          "status": "satisfied",
+          "evidence_quote": "当前无可解放怪兽、无其它特召办法；只评价此查询单元。; declared_scenario:v5_driver_query_missing_gamma"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [
+        {
+          "card_id": 38814750,
+          "name": "PSY骨架装备·γ",
+          "required_count": 1,
+          "selected_count": 0
+        }
+      ],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "v5_invoked_query_missing_artemis",
+      "execution_status": "structurally_incomplete",
+      "original_condition_observations": [
+        {
+          "key": "remaining_members",
+          "status": "satisfied",
+          "evidence_quote": "剩余主卡位置、通常召唤次数和额外区域可用，未被无效；不借背景卡补齐指定缺口。; declared_scenario:v5_invoked_query_missing_artemis"
+        },
+        {
+          "key": "required_member_in_query",
+          "status": "unsatisfied",
+          "evidence_quote": "原阿耳特弥斯—梅尔卡巴合同必需卡34755994未纳入selected。; declared_scenario:v5_invoked_query_missing_artemis"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [
+        {
+          "card_id": 34755994,
+          "name": "圣魔之少女 阿耳特弥斯",
+          "required_count": 1,
+          "selected_count": 0
+        }
+      ],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "v5_invoked_query_missing_invocation",
+      "execution_status": "structurally_incomplete",
+      "original_condition_observations": [
+        {
+          "key": "remaining_members",
+          "status": "satisfied",
+          "evidence_quote": "剩余主卡位置、通常召唤次数和额外区域可用，未被无效；不借背景卡补齐指定缺口。; declared_scenario:v5_invoked_query_missing_invocation"
+        },
+        {
+          "key": "required_member_in_query",
+          "status": "unsatisfied",
+          "evidence_quote": "原阿耳特弥斯—梅尔卡巴合同必需卡74063034未纳入selected。; declared_scenario:v5_invoked_query_missing_invocation"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [
+        {
+          "card_id": 74063034,
+          "name": "召唤魔术",
+          "required_count": 1,
+          "selected_count": 0
+        }
+      ],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "v5_invoked_query_missing_mechaba",
+      "execution_status": "structurally_incomplete",
+      "original_condition_observations": [
+        {
+          "key": "remaining_members",
+          "status": "satisfied",
+          "evidence_quote": "剩余主卡位置、通常召唤次数和额外区域可用，未被无效；不借背景卡补齐指定缺口。; declared_scenario:v5_invoked_query_missing_mechaba"
+        },
+        {
+          "key": "required_member_in_query",
+          "status": "unsatisfied",
+          "evidence_quote": "原阿耳特弥斯—梅尔卡巴合同必需卡75286621未纳入selected。; declared_scenario:v5_invoked_query_missing_mechaba"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [
+        {
+          "card_id": 75286621,
+          "name": "召唤兽 梅尔卡巴",
+          "required_count": 1,
+          "selected_count": 0
+        }
+      ],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "v5_invoked_query_missing_aleister",
+      "execution_status": "structurally_incomplete",
+      "original_condition_observations": [
+        {
+          "key": "remaining_members",
+          "status": "satisfied",
+          "evidence_quote": "剩余主卡位置、通常召唤次数和额外区域可用，未被无效；不借背景卡补齐指定缺口。; declared_scenario:v5_invoked_query_missing_aleister"
+        },
+        {
+          "key": "required_member_in_query",
+          "status": "unsatisfied",
+          "evidence_quote": "原阿耳特弥斯—梅尔卡巴合同必需卡86120751未纳入selected。; declared_scenario:v5_invoked_query_missing_aleister"
+        },
+        {
+          "key": "no_external_material",
+          "status": "satisfied",
+          "evidence_quote": "当前无查询外可用素材，不能改用其它融合终端。; declared_scenario:v5_invoked_query_missing_aleister"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [
+        {
+          "card_id": 86120751,
+          "name": "召唤师 阿莱斯特",
+          "required_count": 1,
+          "selected_count": 0
+        }
+      ],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "v5_tourguide_query_missing_sangan",
+      "execution_status": "structurally_incomplete",
+      "original_condition_observations": [
+        {
+          "key": "normal_available",
+          "status": "satisfied",
+          "evidence_quote": "导游在手、通常召唤未用。; declared_scenario:v5_tourguide_query_missing_sangan"
+        },
+        {
+          "key": "sangan_in_query",
+          "status": "unsatisfied",
+          "evidence_quote": "原路线需要三眼怪，selected未含26202165；无其它查询内3星恶魔目标。; declared_scenario:v5_tourguide_query_missing_sangan"
+        },
+        {
+          "key": "other_fiend_for_primary_plan",
+          "status": "satisfied",
+          "evidence_quote": "另有非3星恶魔用于主计划连接，不用来补基路伯双3星。; declared_scenario:v5_tourguide_query_missing_sangan"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [
+        {
+          "card_id": 26202165,
+          "name": "三眼怪",
+          "required_count": 1,
+          "selected_count": 0
+        }
+      ],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "v5_tourguide_without_cherubini_material_contract",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "normal_and_target",
+          "status": "satisfied",
+          "evidence_quote": "导游手持、通常召唤可用，三眼在卡组；3星恶魔满足texts[10802915]。; declared_scenario:v5_tourguide_without_cherubini_material_contract"
+        },
+        {
+          "key": "zones_permission",
+          "status": "satisfied",
+          "evidence_quote": "至少2个怪兽区可用，无特召封锁。; declared_scenario:v5_tourguide_without_cherubini_material_contract"
+        },
+        {
+          "key": "link_material_purpose",
+          "status": "satisfied",
+          "evidence_quote": "接受导游叫出怪兽效果无效、不能作同调素材；主计划使用连接素材。; declared_scenario:v5_tourguide_without_cherubini_material_contract"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "v5_branded_full_with_minimum_fusion_contract",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "root_materials_extra",
+          "status": "satisfied",
+          "evidence_quote": "texts[44362883,87746184]；根在手，阿不思/白之圣女在卡组，烙印龙额外可用。; declared_scenario:v5_branded_full_with_minimum_fusion_contract"
+        },
+        {
+          "key": "legal_light",
+          "status": "satisfied",
+          "evidence_quote": "datas[55273560]光属性，满足烙印龙的阿不思＋光素材。; declared_scenario:v5_branded_full_with_minimum_fusion_contract"
+        },
+        {
+          "key": "fusion_turn_zones",
+          "status": "satisfied",
+          "evidence_quote": "整回合额外只融合，区域可用且无封锁。; declared_scenario:v5_branded_full_with_minimum_fusion_contract"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "v5_hero_full_with_minimum_mask_contract",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "normal_and_members",
+          "status": "satisfied",
+          "evidence_quote": "暮鸦在手，通常召唤未用，炉火和变化在卡组、暗爪额外可用。; declared_scenario:v5_hero_full_with_minimum_mask_contract"
+        },
+        {
+          "key": "discard_and_dark",
+          "status": "satisfied",
+          "evidence_quote": "texts[58288218]展示检索后可把仍在手的炉火丢弃；datas[10808715]暗属性匹配暗爪。; declared_scenario:v5_hero_full_with_minimum_mask_contract"
+        },
+        {
+          "key": "hero_whole_turn",
+          "status": "satisfied",
+          "evidence_quote": "texts[58288218]整回合额外限英雄；声明满足且无其它封锁、区域正常。; declared_scenario:v5_hero_full_with_minimum_mask_contract"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-fs-01",
+      "execution_status": "not_established_for_whole_selection",
+      "original_condition_observations": [],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-fs-02",
+      "execution_status": "not_established_for_whole_selection",
+      "original_condition_observations": [],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-fs-03",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "existing_light_fiend_material",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 已控制一只可作连接素材的光属性恶魔族怪兽"
+        },
+        {
+          "key": "engraver_in_deck",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 锻冶师仍在卡组；缓存确有1张"
+        },
+        {
+          "key": "legal_main_phase_summons",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 主要阶段、额外区域可用、无特殊召唤限制、镇魂棺尚未特殊召唤"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-fs-04",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "no_face_up_own_monsters",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 己方没有表侧怪兽"
+        },
+        {
+          "key": "summon_legal_and_effect_unused",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 自己主要阶段可特殊召唤，赞圣①未使用"
+        },
+        {
+          "key": "fiend_only_attack_cost_accepted",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 本回合只以恶魔族攻击，符合声明的破械进攻计划"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-fs-05",
+      "execution_status": "structurally_incomplete",
+      "original_condition_observations": [
+        {
+          "key": "existing_light_fiend_material",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 已有可作镇魂棺素材的光属性恶魔族怪兽"
+        },
+        {
+          "key": "named_engraver_available",
+          "status": "unsatisfied",
+          "evidence_quote": "prepared.sqlite3:decks.rowid=2362; neither main nor extra includes 60764609; no cards added"
+        },
+        {
+          "key": "legal_main_phase_summons",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 主要阶段、区域与召唤次数可用"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [
+        {
+          "card_id": 60764609,
+          "name": "刻印群魔的刻魔锻冶师",
+          "required_count": 1,
+          "selected_count": 0
+        }
+      ],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-fs-06",
+      "execution_status": "structurally_incomplete",
+      "original_condition_observations": [
+        {
+          "key": "named_desirae_in_extra",
+          "status": "unsatisfied",
+          "evidence_quote": "prepared.sqlite3:decks.rowid=12403; extra lacks 82135803"
+        },
+        {
+          "key": "specified_grave_fusion_materials",
+          "status": "unknown",
+          "evidence_quote": "The deck identity has no real-time zones; two additional LIGHT Fiends in the graveyard are not established"
+        },
+        {
+          "key": "light_fiend_for_remaining_requiem_line",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 另有一只可用光恶魔素材，锻冶师仍在卡组且可特殊召唤"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [
+        {
+          "card_id": 82135803,
+          "name": "刻魔 震怒之日",
+          "required_count": 1,
+          "selected_count": 0
+        }
+      ],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-fk-01",
+      "execution_status": "not_established_for_whole_selection",
+      "original_condition_observations": [],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-fk-02",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "kirin_and_ponix_in_hand",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 麒麟与凤凰不死鸟各1张在手"
+        },
+        {
+          "key": "main_phase_and_summon_legal",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 主要阶段，无特殊召唤限制，麒麟①未使用"
+        },
+        {
+          "key": "ponix_reaches_next_standby_in_grave",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 凤凰被效果破坏送墓，保留至下次准备阶段且③本回合未用"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-fk-03",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "other_eligible_fire_for_kirin",
+          "status": "unsatisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 凤凰在卡组，手卡与表侧场上无麒麟以外炎属性怪兽"
+        },
+        {
+          "key": "kirin_in_hand",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 麒麟在手，当前主要阶段可特殊召唤"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-fk-04",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "island_on_field_and_unused",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 孤岛已在场，自己主要阶段，①②本回合均未使用"
+        },
+        {
+          "key": "destructible_monster_available",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 朱罗纪斑龙在手且可被效果破坏"
+        },
+        {
+          "key": "named_kirin_in_deck",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 麒麟仍在卡组，缓存主卡组有3张"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-fk-05",
+      "execution_status": "structurally_incomplete",
+      "original_condition_observations": [
+        {
+          "key": "princess_in_deck",
+          "status": "unsatisfied",
+          "evidence_quote": "prepared.sqlite3:decks.rowid=39337; main lacks 44455560"
+        },
+        {
+          "key": "old_garunix_in_deck",
+          "status": "unsatisfied",
+          "evidence_quote": "prepared.sqlite3:decks.rowid=39337; main lacks 23015896"
+        },
+        {
+          "key": "sacred_garunix_summoned_now",
+          "status": "unknown",
+          "evidence_quote": "Cached identity has no live hand/field or effect-use state"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [
+        {
+          "card_id": 23015896,
+          "name": "炎王神兽 大鹏不死鸟",
+          "required_count": 1,
+          "selected_count": 0
+        },
+        {
+          "card_id": 44455560,
+          "name": "炎王妃 火神不死鸟",
+          "required_count": 1,
+          "selected_count": 0
+        }
+      ],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-fk-06",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "two_level_eight_materials",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 已控制两只可用于超量召唤的8星怪兽"
+        },
+        {
+          "key": "xyz_summon_legal",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 没有相关召唤限制，额外怪兽区域或主要怪兽区域可合法放置"
+        },
+        {
+          "key": "other_destructible_enemy_monsters",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 另有可被效果破坏的对方怪兽，接受其它己方怪兽也会被破坏"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-rn-01",
+      "execution_status": "not_established_for_whole_selection",
+      "original_condition_observations": [],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-rn-02",
+      "execution_status": "not_established_for_whole_selection",
+      "original_condition_observations": [],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-rn-03",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "fountain_face_up_and_draw_unused",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 泉在场地区域，本回合②未使用"
+        },
+        {
+          "key": "destruction_in_hand_and_legal_target",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 自己主要阶段，破坏的神碑在手且未发动；对方有合法可破坏魔法陷阱，卡组至少4张"
+        },
+        {
+          "key": "quickplay_enters_grave_and_is_recyclable",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 速攻正常结算后进墓，不被除外或阻止回卡组；泉可在连锁结束后选择它"
+        },
+        {
+          "key": "battle_skip_accepted",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 接受跳过下次自己的战斗阶段，当前只准备仪式资源"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-rn-04",
+      "execution_status": "structurally_incomplete",
+      "original_condition_observations": [
+        {
+          "key": "fountain_in_real_deck",
+          "status": "unsatisfied",
+          "evidence_quote": "prepared.sqlite3:decks.rowid=46840; main lacks 92107604; Hugin has no Fountain to search"
+        },
+        {
+          "key": "quickplay_can_summon_hugin",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 选中速攻之一在手，额外怪兽区域可用，无特殊召唤限制，本回合同名速攻未发动"
+        },
+        {
+          "key": "discard_available_if_search_were_legal",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 手中另有可丢弃卡，但不因此凭空生成场地检索对象"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [
+        {
+          "card_id": 92107604,
+          "name": "神碑之泉",
+          "required_count": 1,
+          "selected_count": 0
+        }
+      ],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-rn-05",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "special_summoned_legal_enemy_target",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 对方有一只特殊召唤且可取对象、可被破坏的怪兽，卡组至少2张"
+        },
+        {
+          "key": "quickplay_activation_legal",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 自己主要阶段、速攻在手、同名本回合未发动"
+        },
+        {
+          "key": "battle_skip_accepted",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 接受跳过下次己方战斗阶段，进攻延后"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-rn-06",
+      "execution_status": "unknown_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "special_summoned_legal_enemy_target",
+          "status": "unknown",
+          "evidence_quote": "No replay state was read; opponent monster summon provenance, targeting/destruction protection and deck remainder are unknown"
+        },
+        {
+          "key": "quickplay_activation_window",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 自己主要阶段、速攻在手、同名本回合未发动"
+        },
+        {
+          "key": "battle_skip_accepted",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 当前是准备回合，接受跳过下次己方战斗阶段"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-kj-01",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "tributable_enemy_monster",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 对方有可解放怪兽，不受不能解放约束"
+        },
+        {
+          "key": "kaiju_summon_legal",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 海龟在手，对方无表侧坏兽，区域可放置，无相关特殊召唤限制"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-kj-02",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "gameciel_controlled_and_trigger_present",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 己方控制表侧海龟，对方发动其④可响应且非另一海龟的效果"
+        },
+        {
+          "key": "two_kaiju_counters_available",
+          "status": "unsatisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 双方场上坏兽指示物合计0，不能支付2个指示物"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-kj-03",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "slumber_in_hand_and_unused",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 自己主要阶段，安眠在手且本回合同名尚未发动"
+        },
+        {
+          "key": "two_differently_named_kaiju_in_deck",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 海龟与多哥兰各至少1张仍在卡组，两者卡名不同"
+        },
+        {
+          "key": "board_clear_and_summon_legal",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 双方都无表侧坏兽，场上有可被破坏怪兽，处理后双方可各放置1只坏兽，无特殊召唤限制"
+        },
+        {
+          "key": "forced_attack_state_accepted",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 接受安眠所叫怪兽不能改表示形式且能攻击时必须攻击的限制"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-kj-04",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "slumber_in_grave_from_previous_turn",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 安眠上个回合已在墓地，当前自己主要阶段"
+        },
+        {
+          "key": "slumber_banish_cost_legal",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 墓地安眠可被除外，检索效果可以合法发动"
+        },
+        {
+          "key": "named_gameciel_in_deck",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 海龟仍在卡组，缓存主卡组有3张"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-kj-05",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "slumber_old_enough_for_grave_effect",
+          "status": "unsatisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 安眠于本回合刚送墓；卡文禁止在送墓当回合发动②"
+        },
+        {
+          "key": "named_gameciel_in_deck",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 海龟仍在卡组"
+        },
+        {
+          "key": "banish_and_main_phase_otherwise_legal",
+          "status": "satisfied",
+          "evidence_quote": "reviewer_counterfactual_state; not observed replay state: 自己主要阶段，安眠本身可除外，无其它阻止条件"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v5-kj-06",
+      "execution_status": "not_established_for_whole_selection",
+      "original_condition_observations": [],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v6-uc-01",
+      "execution_status": "not_established_for_whole_selection",
+      "original_condition_observations": [],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v6-uc-02",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "sharvara_hand_chant_set_aruha_deck",
+          "status": "satisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 萨巴拉在手，唱导已在自己魔陷区盖放，阿罗汉仍在卡组；唱导可被取对象并被效果破坏。"
+        },
+        {
+          "key": "main_phase_zones_and_effect_uses",
+          "status": "satisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 对方主要阶段；两个自己主要怪兽区可用；萨巴拉①、唱导②本回合均未用；相关效果未被无效，无特殊召唤封锁。"
+        },
+        {
+          "key": "destroyed_chant_reaches_grave_and_fiend_permission",
+          "status": "satisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 唱导会正常被效果破坏送墓，其②能在后续合法时点发动；两次特召均为恶魔族，接受萨巴拉表侧存在时的恶魔族限制。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v6-uc-03",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "sharvara_hand_chant_set_aruha_deck",
+          "status": "satisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 萨巴拉在手，唱导已在自己魔陷区盖放，阿罗汉仍在卡组；唱导可被取对象并被效果破坏。"
+        },
+        {
+          "key": "main_phase_zones_and_effect_uses",
+          "status": "satisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 对方主要阶段；两个自己主要怪兽区可用；萨巴拉①、唱导②本回合均未用；相关效果未被无效，无特殊召唤封锁。"
+        },
+        {
+          "key": "destroyed_chant_reaches_grave_and_fiend_permission",
+          "status": "satisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 唱导会正常被效果破坏送墓，其②能在后续合法时点发动；两次特召均为恶魔族，接受萨巴拉表侧存在时的恶魔族限制。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v6-uc-04",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "sharvara_in_hand_uses_and_zones",
+          "status": "satisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 对方主要阶段；萨巴拉在手且①未用，两个怪兽区可用，无效果无效或特召封锁。"
+        },
+        {
+          "key": "own_fiend_or_face_down_target_for_sharvara",
+          "status": "unsatisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 自己场上没有恶魔族怪兽，也没有任何里侧表示卡；唱导与阿罗汉均在卡组，不能在本次动作前凭空把唱导盖上。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v6-uc-05",
+      "execution_status": "structurally_incomplete",
+      "original_condition_observations": [
+        {
+          "key": "chant_present_in_cached_main",
+          "status": "unsatisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 实际decks(rowid=93664)的main没有53417695唱导，实际选组不补入它。"
+        },
+        {
+          "key": "sharvara_and_replaceable_target_resource",
+          "status": "satisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 萨巴拉在手，自己魔陷区只盖着一张来自此牌表的冥王结界波，该卡可以被取对象并被效果破坏；阿罗汉在卡组。"
+        },
+        {
+          "key": "main_phase_zones_and_no_other_recruit",
+          "status": "satisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 对方主要阶段，两个怪兽区可用，萨巴拉①未用；其它卡只按声明状态处理，没有可用的双王之械、双极等盖卡招募触发；冥王结界波的卡文没有被破坏时招募破械的效果。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [
+        {
+          "card_id": 53417695,
+          "name": "破械唱导",
+          "required_count": 1,
+          "selected_count": 0
+        }
+      ],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v6-uc-06",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "properly_link_summoned_abomination_controlled",
+          "status": "satisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 来迎已合法连接召唤并在自己怪兽区；本次不需要补造连接素材。"
+        },
+        {
+          "key": "end_phase_legal_target_and_unused_third_effect",
+          "status": "satisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 当前自己或对方结束阶段，③本回合未用；对方有合法可取对象且可被效果破坏的卡，效果不被无效。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v6-rk-01",
+      "execution_status": "not_established_for_whole_selection",
+      "original_condition_observations": [],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v6-rk-02",
+      "execution_status": "not_established_for_whole_selection",
+      "original_condition_observations": [],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v6-rk-03",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "konkon_faceup_replacement_unused",
+          "status": "satisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 来来在自己场地区域，②本回合未适用；当前自己主要阶段。"
+        },
+        {
+          "key": "mudan_hand_glamour_deck_and_effect_uses",
+          "status": "satisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 叶牡丹在手，绚烂仍在卡组；叶牡丹①②均未使用，至少一个怪兽区可用，无相关效果无效或特殊召唤封锁。"
+        },
+        {
+          "key": "eligible_opponent_faceup_tribute_and_no_own_plant",
+          "status": "satisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 自己没有可解放植物；对方有一只表侧怪兽，可被来来②的代替处理解放，没有相关免疫或不能解放约束。"
+        },
+        {
+          "key": "own_plant_effect_summons_mudan",
+          "status": "satisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 依来来②为叶牡丹①支付解放成本，叶牡丹由其自身植物族效果特殊召唤，随后可发动②搜索仍在卡组的绚烂。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v6-rk-04",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "konkon_faceup_second_effect_already_applied",
+          "status": "unsatisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 来来在场，但其②本回合已经适用过1次。"
+        },
+        {
+          "key": "own_plant_tribute_resource",
+          "status": "unsatisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 自己场上没有植物族怪兽可为叶牡丹①支付解放成本。"
+        },
+        {
+          "key": "other_named_members_and_uses",
+          "status": "satisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 叶牡丹在手，绚烂在卡组，叶牡丹①②未用；对方有本可被解放的表侧怪兽，区域可用，没有额外新增效果或替代成本。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "blind-v6-rk-05",
+      "execution_status": "unknown_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "konkon_faceup_and_replacement_unused",
+          "status": "satisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 来来在场，②本回合未适用；自己主要阶段。"
+        },
+        {
+          "key": "mudan_and_glamour_known",
+          "status": "satisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 叶牡丹在手，绚烂在卡组；叶牡丹①②未使用，怪兽区可用，无特殊召唤封锁。"
+        },
+        {
+          "key": "own_plant_tribute_resource",
+          "status": "unsatisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 自己场上没有可解放植物。"
+        },
+        {
+          "key": "opponent_faceup_tribute_eligibility",
+          "status": "unknown",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 只知对方场上有怪兽；未给表示形式、能否被来来替代解放、相关免疫或不能解放约束。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。自己无植物不是在替代方案存在时独立必要的失败条件；本次成败取决于未知的对方表侧/解放资格，不能把一项替代资源缺失当整个AND失败。"
+    },
+    {
+      "case_id": "blind-v6-rk-06",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "properly_xyz_summoned_teardrop_two_plant_materials",
+          "status": "satisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 泪滴已合法超量召唤并受自己控制，持有2个植物族素材，支付1个后仍有植物素材。"
+        },
+        {
+          "key": "opponent_main_phase_unused_and_legal_target",
+          "status": "satisfied",
+          "evidence_quote": "independent_reviewer_declared_static_state_not_replay: 对方主要阶段，①本回合未用；对方有一只可被取对象且可被效果解放的怪兽，相关效果不被无效。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-ORC-01",
+      "execution_status": "not_established_for_whole_selection",
+      "original_condition_observations": [],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-ORC-02",
+      "execution_status": "not_established_for_whole_selection",
+      "original_condition_observations": [],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-ORC-03",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "selected_required_members",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。查询单元含骷髅、通天塔、丁吉尔苏各1张，三张皆存在于该真实牌表。"
+        },
+        {
+          "key": "opponent_main_and_babel_active",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。现在是对方主要阶段；通天塔在自己的场地区域表侧有效，骷髅在自己墓地。"
+        },
+        {
+          "key": "dingirsu_in_grave_properly_summoned",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。丁吉尔苏之前已正规超量召唤并进入墓地；墓地可被对象选择及特殊召唤。"
+        },
+        {
+          "key": "once_per_turn_available",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合未使用骷髅效果，也没有特殊召唤过丁吉尔苏。"
+        },
+        {
+          "key": "legal_send_and_summon",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。自己有可用怪兽区，对方有可送墓的场上卡；效果不被无效，除外可执行，暗属性特殊召唤不受禁止。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-ORC-04",
+      "execution_status": "structurally_incomplete",
+      "original_condition_observations": [
+        {
+          "key": "selected_required_members",
+          "status": "unsatisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。通天塔仍属于实际牌表，但被明确排除在本查询单元之外。"
+        },
+        {
+          "key": "opponent_main_and_babel_active",
+          "status": "unsatisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。现在是对方主要阶段，通天塔不在场上；没有其它把骷髅改为快速效果的卡。"
+        },
+        {
+          "key": "dingirsu_in_grave_properly_summoned",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。丁吉尔苏之前已正规超量召唤并进入墓地；墓地可被对象选择及特殊召唤。"
+        },
+        {
+          "key": "once_per_turn_available",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合未使用骷髅效果，也没有特殊召唤过丁吉尔苏。"
+        },
+        {
+          "key": "legal_send_and_summon",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。自己有可用怪兽区，对方有可送墓的场上卡；效果不被无效，除外可执行，暗属性特殊召唤不受禁止。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [
+        {
+          "card_id": 90351981,
+          "name": "自奏圣乐的通天塔",
+          "required_count": 1,
+          "selected_count": 0
+        }
+      ],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-ORC-05",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "selected_required_members",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。查询单元含骷髅、通天塔、丁吉尔苏各1张，三张皆存在于该真实牌表。"
+        },
+        {
+          "key": "opponent_main_and_babel_active",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。现在是对方主要阶段；通天塔在自己的场地区域表侧有效，骷髅在自己墓地。"
+        },
+        {
+          "key": "dingirsu_in_grave_properly_summoned",
+          "status": "unsatisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。丁吉尔苏是直接从额外卡组送去墓地，未曾正规特殊召唤；其余条件与三张链相同。"
+        },
+        {
+          "key": "once_per_turn_available",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合未使用骷髅效果，也没有特殊召唤过丁吉尔苏。"
+        },
+        {
+          "key": "legal_send_and_summon",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。自己有可用怪兽区，对方有可送墓的场上卡；效果不被无效，除外可执行，暗属性特殊召唤不受禁止。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-ORC-06",
+      "execution_status": "unknown_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "selected_required_members",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。查询单元含骷髅、通天塔、丁吉尔苏各1张，三张皆存在于该真实牌表。"
+        },
+        {
+          "key": "opponent_main_and_babel_active",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。现在是对方主要阶段；通天塔在自己的场地区域表侧有效，骷髅在自己墓地。"
+        },
+        {
+          "key": "dingirsu_in_grave_properly_summoned",
+          "status": "unknown",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。只给出丁吉尔苏现在在墓地；牌表缓存不能提供其先前是否正规登场的事实。"
+        },
+        {
+          "key": "once_per_turn_available",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合未使用骷髅效果，也没有特殊召唤过丁吉尔苏。"
+        },
+        {
+          "key": "legal_send_and_summon",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。自己有可用怪兽区，对方有可送墓的场上卡；效果不被无效，除外可执行，暗属性特殊召唤不受禁止。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-SPD-01",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "selected_required_members",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。查询单元含贝陀螺集合体与竹蜻蜓电子人各1张，真实牌表分别有3张和1张。"
+        },
+        {
+          "key": "terrortop_in_hand_taketomborg_in_deck",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。贝陀螺集合体在手，竹蜻蜓电子人仍在卡组。"
+        },
+        {
+          "key": "empty_own_monster_field",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。自己场上没有怪兽；自己主要阶段可以进行这次特殊召唤。"
+        },
+        {
+          "key": "search_and_named_summon_available",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合贝陀螺检索效果未用，未特殊召唤过竹蜻蜓电子人。"
+        },
+        {
+          "key": "legal_uninterrupted_two_body_line",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。有两个可用怪兽区，检索与特殊召唤不受禁止或无效；不发动竹蜻蜓的解放叫调整效果。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-SPD-02",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "selected_required_members",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。查询单元含贝陀螺集合体与竹蜻蜓电子人各1张，真实牌表分别有3张和1张。"
+        },
+        {
+          "key": "terrortop_in_hand_taketomborg_in_deck",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。贝陀螺集合体在手，竹蜻蜓电子人仍在卡组。"
+        },
+        {
+          "key": "empty_own_monster_field",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。自己场上没有怪兽；自己主要阶段可以进行这次特殊召唤。"
+        },
+        {
+          "key": "search_and_named_summon_available",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合贝陀螺检索效果未用，未特殊召唤过竹蜻蜓电子人。"
+        },
+        {
+          "key": "legal_uninterrupted_two_body_line",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。有两个可用怪兽区，检索与特殊召唤不受禁止或无效；不发动竹蜻蜓的解放叫调整效果。"
+        },
+        {
+          "key": "invoker_extra_and_kizan_deck",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。失X-剑士 招来者在额外卡组可用，真六武众-辉斩仍在主卡组，具有地属性、4星、战士族。"
+        },
+        {
+          "key": "no_wind_only_lock",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合没有非风不可特殊召唤等限制；本路线不发动竹蜻蜓②。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-SPD-03",
+      "execution_status": "structurally_incomplete",
+      "original_condition_observations": [
+        {
+          "key": "selected_required_members",
+          "status": "unsatisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。只查询贝陀螺集合体，竹蜻蜓仍可在实际牌表中但不属于被查询单元；不使用其它疾行机人替代。"
+        },
+        {
+          "key": "terrortop_in_hand_taketomborg_in_deck",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。贝陀螺集合体在手，竹蜻蜓电子人仍在卡组。"
+        },
+        {
+          "key": "empty_own_monster_field",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。自己场上没有怪兽；自己主要阶段可以进行这次特殊召唤。"
+        },
+        {
+          "key": "search_and_named_summon_available",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合贝陀螺检索效果未用，未特殊召唤过竹蜻蜓电子人。"
+        },
+        {
+          "key": "legal_uninterrupted_two_body_line",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。有两个可用怪兽区，检索与特殊召唤不受禁止或无效；不发动竹蜻蜓的解放叫调整效果。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [
+        {
+          "card_id": 53932291,
+          "name": "疾行机人 竹蜻蜓电子人",
+          "required_count": 1,
+          "selected_count": 0
+        }
+      ],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-SPD-04",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "selected_required_members",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。查询单元含贝陀螺集合体与竹蜻蜓电子人各1张，真实牌表分别有3张和1张。"
+        },
+        {
+          "key": "terrortop_in_hand_taketomborg_in_deck",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。贝陀螺集合体在手，竹蜻蜓电子人仍在卡组。"
+        },
+        {
+          "key": "empty_own_monster_field",
+          "status": "unsatisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。自己场上已有一只非风属性怪兽；通常召唤已使用，亦无其它叫出贝陀螺的手段。"
+        },
+        {
+          "key": "search_and_named_summon_available",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合贝陀螺检索效果未用，未特殊召唤过竹蜻蜓电子人。"
+        },
+        {
+          "key": "legal_uninterrupted_two_body_line",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。有两个可用怪兽区，检索与特殊召唤不受禁止或无效；不发动竹蜻蜓的解放叫调整效果。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-SPD-05",
+      "execution_status": "unknown_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "selected_required_members",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。查询单元含贝陀螺集合体与竹蜻蜓电子人各1张，真实牌表分别有3张和1张。"
+        },
+        {
+          "key": "terrortop_in_hand_taketomborg_in_deck",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。贝陀螺集合体在手，竹蜻蜓电子人仍在卡组。"
+        },
+        {
+          "key": "empty_own_monster_field",
+          "status": "unknown",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。没有给出自己场上是否有怪兽；通常召唤已使用，不补充其它入口。"
+        },
+        {
+          "key": "search_and_named_summon_available",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合贝陀螺检索效果未用，未特殊召唤过竹蜻蜓电子人。"
+        },
+        {
+          "key": "legal_uninterrupted_two_body_line",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。有两个可用怪兽区，检索与特殊召唤不受禁止或无效；不发动竹蜻蜓的解放叫调整效果。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-SPD-06",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "selected_required_members",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。查询单元含贝陀螺集合体与竹蜻蜓电子人各1张，真实牌表分别有3张和1张。"
+        },
+        {
+          "key": "terrortop_in_hand_taketomborg_in_deck",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。贝陀螺集合体在手，竹蜻蜓电子人仍在卡组。"
+        },
+        {
+          "key": "empty_own_monster_field",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。自己场上没有怪兽；自己主要阶段可以进行这次特殊召唤。"
+        },
+        {
+          "key": "search_and_named_summon_available",
+          "status": "unsatisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合已使用另一张贝陀螺集合体的同名检索效果；竹蜻蜓仍在卡组，通常召唤已用且没有其它取得它的方法。"
+        },
+        {
+          "key": "legal_uninterrupted_two_body_line",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。有两个可用怪兽区，检索与特殊召唤不受禁止或无效；不发动竹蜻蜓的解放叫调整效果。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-BRF-01",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "selected_required_members",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。查询内含明亮融合、斜绿、宝石骑士·石英及另一只光属性素材尼比鲁；全在真实牌表。"
+        },
+        {
+          "key": "spell_hand_materials_deck_extra_ready",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。自己主要阶段，明亮融合在手可发动；石英和尼比鲁仍在主卡组，斜绿在额外卡组可融合召唤。"
+        },
+        {
+          "key": "fusion_legal",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。有可用魔法陷阱区和怪兽区；融合、卡组送墓及特殊召唤不受禁止，效果不被无效，明亮融合本回合未发动。"
+        },
+        {
+          "key": "seraphinite_remains_and_extra_normal_unused",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。融合后明亮融合和斜绿保留在场，斜绿表侧有效；本回合尚未使用斜绿提供的额外通常召唤。"
+        },
+        {
+          "key": "normal_summon_use_available",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合常规的一次通常召唤/盖放机会已经使用；另有一只不属于「宝石」的可通常召唤怪兽在手，具备合法区域和召唤条件，须用斜绿的额外机会。不把这张任意受益怪兽算成固定融合材料。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-BRF-02",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "selected_required_members",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。查询含明亮融合、斜绿、石英、拿非琉及宝石骑士融合；不把尼比鲁纳入这个不同功能单元。"
+        },
+        {
+          "key": "spell_hand_materials_deck_extra_ready",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。明亮融合在手，石英与光属性拿非琉仍在主卡组；斜绿在额外卡组可用，宝石骑士融合仍在卡组供检索。"
+        },
+        {
+          "key": "fusion_legal",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。有可用魔法陷阱区和怪兽区；融合、卡组送墓及特殊召唤不受禁止，效果不被无效，明亮融合本回合未发动。"
+        },
+        {
+          "key": "seraphinite_remains_and_extra_normal_unused",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。融合后明亮融合和斜绿保留在场，斜绿表侧有效；本回合尚未使用斜绿提供的额外通常召唤。"
+        },
+        {
+          "key": "normal_summon_use_available",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合常规的一次通常召唤/盖放机会已经使用；另有一只不属于「宝石」的可通常召唤怪兽在手，具备合法区域和召唤条件，须用斜绿的额外机会。不把这张任意受益怪兽算成固定融合材料。"
+        },
+        {
+          "key": "naph_revival_payment_and_search",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。除留给额外通常召唤的那只非「宝石」怪兽外，另有1张不重合的可送墓手卡；拿非琉①③本回合均未使用，主卡组有宝石骑士融合，送墓与检索都不受禁止。"
+        },
+        {
+          "key": "use_two_materials_with_naph_in_deck",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。明确使用石英承担宝石骑士素材位置、拿非琉承担另一只光属性素材位置；不把同一张拿非琉同时算作两个素材。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-BRF-03",
+      "execution_status": "structurally_incomplete",
+      "original_condition_observations": [
+        {
+          "key": "selected_required_members",
+          "status": "unsatisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。石英被排除；虽然它仍在原真实牌表，本次查询单元没有任何宝石骑士主卡组素材，也不借用其它宝石骑士。"
+        },
+        {
+          "key": "spell_hand_materials_deck_extra_ready",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。自己主要阶段，明亮融合在手可发动；石英和尼比鲁仍在主卡组，斜绿在额外卡组可融合召唤。"
+        },
+        {
+          "key": "fusion_legal",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。有可用魔法陷阱区和怪兽区；融合、卡组送墓及特殊召唤不受禁止，效果不被无效，明亮融合本回合未发动。"
+        },
+        {
+          "key": "seraphinite_remains_and_extra_normal_unused",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。融合后明亮融合和斜绿保留在场，斜绿表侧有效；本回合尚未使用斜绿提供的额外通常召唤。"
+        },
+        {
+          "key": "normal_summon_use_available",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合常规的一次通常召唤/盖放机会已经使用；另有一只不属于「宝石」的可通常召唤怪兽在手，具备合法区域和召唤条件，须用斜绿的额外机会。不把这张任意受益怪兽算成固定融合材料。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [
+        {
+          "card_id": 35622739,
+          "name": "宝石骑士·石英",
+          "required_count": 1,
+          "selected_count": 0
+        }
+      ],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-BRF-04",
+      "execution_status": "structurally_incomplete",
+      "original_condition_observations": [
+        {
+          "key": "selected_required_members",
+          "status": "unsatisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。尼比鲁被排除，且不借用实际牌表其它光属性怪兽；查询内唯一主卡组怪兽石英的attribute=1，即地属性。"
+        },
+        {
+          "key": "spell_hand_materials_deck_extra_ready",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。自己主要阶段，明亮融合在手可发动；石英和尼比鲁仍在主卡组，斜绿在额外卡组可融合召唤。"
+        },
+        {
+          "key": "fusion_legal",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。有可用魔法陷阱区和怪兽区；融合、卡组送墓及特殊召唤不受禁止，效果不被无效，明亮融合本回合未发动。"
+        },
+        {
+          "key": "seraphinite_remains_and_extra_normal_unused",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。融合后明亮融合和斜绿保留在场，斜绿表侧有效；本回合尚未使用斜绿提供的额外通常召唤。"
+        },
+        {
+          "key": "normal_summon_use_available",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合常规的一次通常召唤/盖放机会已经使用；另有一只不属于「宝石」的可通常召唤怪兽在手，具备合法区域和召唤条件，须用斜绿的额外机会。不把这张任意受益怪兽算成固定融合材料。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [
+        {
+          "card_id": 27204311,
+          "name": "原始生命态 尼比鲁",
+          "required_count": 1,
+          "selected_count": 0
+        }
+      ],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-BRF-05",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "selected_required_members",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。查询内含明亮融合、斜绿、宝石骑士·石英及另一只光属性素材尼比鲁；全在真实牌表。"
+        },
+        {
+          "key": "spell_hand_materials_deck_extra_ready",
+          "status": "unsatisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。明亮融合和尼比鲁都在手，石英在卡组；指定尼比鲁是本单元唯一另一只光素材，卡组中已没有它，也不借用其它光怪兽。"
+        },
+        {
+          "key": "fusion_legal",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。有可用魔法陷阱区和怪兽区；融合、卡组送墓及特殊召唤不受禁止，效果不被无效，明亮融合本回合未发动。"
+        },
+        {
+          "key": "seraphinite_remains_and_extra_normal_unused",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。融合后明亮融合和斜绿保留在场，斜绿表侧有效；本回合尚未使用斜绿提供的额外通常召唤。"
+        },
+        {
+          "key": "normal_summon_use_available",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合常规的一次通常召唤/盖放机会已经使用；另有一只不属于「宝石」的可通常召唤怪兽在手，具备合法区域和召唤条件，须用斜绿的额外机会。不把这张任意受益怪兽算成固定融合材料。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-BRF-06",
+      "execution_status": "unknown_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "selected_required_members",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。查询内含明亮融合、斜绿、宝石骑士·石英及另一只光属性素材尼比鲁；全在真实牌表。"
+        },
+        {
+          "key": "spell_hand_materials_deck_extra_ready",
+          "status": "unknown",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。明亮融合在手、斜绿在额外可用；只知道两素材列于实际牌表，未给它们当前是否仍在卡组。"
+        },
+        {
+          "key": "fusion_legal",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。有可用魔法陷阱区和怪兽区；融合、卡组送墓及特殊召唤不受禁止，效果不被无效，明亮融合本回合未发动。"
+        },
+        {
+          "key": "seraphinite_remains_and_extra_normal_unused",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。融合后明亮融合和斜绿保留在场，斜绿表侧有效；本回合尚未使用斜绿提供的额外通常召唤。"
+        },
+        {
+          "key": "normal_summon_use_available",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合常规的一次通常召唤/盖放机会已经使用；另有一只不属于「宝石」的可通常召唤怪兽在手，具备合法区域和召唤条件，须用斜绿的额外机会。不把这张任意受益怪兽算成固定融合材料。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-NIB-01",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "selected_required_members",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。查询单元仅尼比鲁1张；不继承其它卡的效果。"
+        },
+        {
+          "key": "nibiru_in_hand",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。尼比鲁现在在自己手卡。"
+        },
+        {
+          "key": "opponent_summon_threshold",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。当前这个回合内，对方已把至少5只怪兽召唤或特殊召唤；不是把“5次”当成卡文必要条件。"
+        },
+        {
+          "key": "main_phase",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。现在是对方主要阶段，存在可发动这次怪兽快速效果的时点。"
+        },
+        {
+          "key": "effect_unused",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合尚未使用过尼比鲁效果。"
+        },
+        {
+          "key": "legal_release_and_summon",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。场上有可解放的表侧怪兽，自己与对方有可完成尼比鲁和衍生物特殊召唤的合法区域；无特殊召唤限制、无效果无效干扰。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-NIB-02",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "selected_required_members",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。查询单元仅尼比鲁1张；不继承其它卡的效果。"
+        },
+        {
+          "key": "nibiru_in_hand",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。尼比鲁现在在自己手卡。"
+        },
+        {
+          "key": "opponent_summon_threshold",
+          "status": "unsatisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合对方只召唤或特殊召唤了4只怪兽，没有第五只。"
+        },
+        {
+          "key": "main_phase",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。现在是对方主要阶段，存在可发动这次怪兽快速效果的时点。"
+        },
+        {
+          "key": "effect_unused",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合尚未使用过尼比鲁效果。"
+        },
+        {
+          "key": "legal_release_and_summon",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。场上有可解放的表侧怪兽，自己与对方有可完成尼比鲁和衍生物特殊召唤的合法区域；无特殊召唤限制、无效果无效干扰。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-NIB-03",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "selected_required_members",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。查询单元仅尼比鲁1张；不继承其它卡的效果。"
+        },
+        {
+          "key": "nibiru_in_hand",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。尼比鲁现在在自己手卡。"
+        },
+        {
+          "key": "opponent_summon_threshold",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。当前这个回合内，对方已把至少5只怪兽召唤或特殊召唤；不是把“5次”当成卡文必要条件。"
+        },
+        {
+          "key": "main_phase",
+          "status": "unsatisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。现在已进入对方战斗阶段；没有回到主要阶段，不把“本回合曾满足五只”误当成任意阶段可发动。"
+        },
+        {
+          "key": "effect_unused",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合尚未使用过尼比鲁效果。"
+        },
+        {
+          "key": "legal_release_and_summon",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。场上有可解放的表侧怪兽，自己与对方有可完成尼比鲁和衍生物特殊召唤的合法区域；无特殊召唤限制、无效果无效干扰。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-NIB-04",
+      "execution_status": "unknown_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "selected_required_members",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。查询单元仅尼比鲁1张；不继承其它卡的效果。"
+        },
+        {
+          "key": "nibiru_in_hand",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。尼比鲁现在在自己手卡。"
+        },
+        {
+          "key": "opponent_summon_threshold",
+          "status": "unknown",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。只知道对方有表侧怪兽，未给本回合已召唤或特殊召唤多少只；牌表缓存无法回答这个对局事实。"
+        },
+        {
+          "key": "main_phase",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。现在是对方主要阶段，存在可发动这次怪兽快速效果的时点。"
+        },
+        {
+          "key": "effect_unused",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合尚未使用过尼比鲁效果。"
+        },
+        {
+          "key": "legal_release_and_summon",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。场上有可解放的表侧怪兽，自己与对方有可完成尼比鲁和衍生物特殊召唤的合法区域；无特殊召唤限制、无效果无效干扰。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-NIB-05",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "selected_required_members",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。查询单元仅尼比鲁1张；不继承其它卡的效果。"
+        },
+        {
+          "key": "nibiru_in_hand",
+          "status": "unsatisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。唯一被查询的尼比鲁在墓地，不在手卡；不借用回收或其它特殊召唤效果。"
+        },
+        {
+          "key": "opponent_summon_threshold",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。当前这个回合内，对方已把至少5只怪兽召唤或特殊召唤；不是把“5次”当成卡文必要条件。"
+        },
+        {
+          "key": "main_phase",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。现在是对方主要阶段，存在可发动这次怪兽快速效果的时点。"
+        },
+        {
+          "key": "effect_unused",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合尚未使用过尼比鲁效果。"
+        },
+        {
+          "key": "legal_release_and_summon",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。场上有可解放的表侧怪兽，自己与对方有可完成尼比鲁和衍生物特殊召唤的合法区域；无特殊召唤限制、无效果无效干扰。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-NIB-06",
+      "execution_status": "blocked_at_declared_state",
+      "original_condition_observations": [
+        {
+          "key": "selected_required_members",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。查询单元仅尼比鲁1张；不继承其它卡的效果。"
+        },
+        {
+          "key": "nibiru_in_hand",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。尼比鲁现在在自己手卡。"
+        },
+        {
+          "key": "opponent_summon_threshold",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。当前这个回合内，对方已把至少5只怪兽召唤或特殊召唤；不是把“5次”当成卡文必要条件。"
+        },
+        {
+          "key": "main_phase",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。现在是自己主要阶段；声明对方通过其效果在这个自己的回合已召唤或特殊召唤至少5只。尼比鲁卡文允许自己回合主要阶段。"
+        },
+        {
+          "key": "effect_unused",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合尚未使用过尼比鲁效果。"
+        },
+        {
+          "key": "legal_release_and_summon",
+          "status": "unsatisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。自己本回合较早已成功发动嬉游曲恶魔的墓地效果，现在受直到回合结束不是暗属性不能特殊召唤的限制；尼比鲁是光属性。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    },
+    {
+      "case_id": "BF-NIB-07",
+      "execution_status": "executable_under_declared_conditions",
+      "original_condition_observations": [
+        {
+          "key": "selected_required_members",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。查询单元仅尼比鲁1张；不继承其它卡的效果。"
+        },
+        {
+          "key": "nibiru_in_hand",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。尼比鲁现在在自己手卡。"
+        },
+        {
+          "key": "opponent_summon_threshold",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。当前这个回合内，对方已把至少5只怪兽召唤或特殊召唤；不是把“5次”当成卡文必要条件。"
+        },
+        {
+          "key": "main_phase",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。现在是对方主要阶段，存在可发动这次怪兽快速效果的时点。"
+        },
+        {
+          "key": "effect_unused",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本回合尚未使用过尼比鲁效果。"
+        },
+        {
+          "key": "legal_release_and_summon",
+          "status": "satisfied",
+          "evidence_quote": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。场上有可解放的表侧怪兽，自己与对方有可完成尼比鲁和衍生物特殊召唤的合法区域；无特殊召唤限制、无效果无效干扰。"
+        }
+      ],
+      "required_members_absent_from_exact_selection": [],
+      "note": "仅依据原声明/静态卡文，不是实战观察、引擎执行或泛用角色。"
+    }
+  ]
+}

@@ -29,6 +29,17 @@ def fixture():
 
 
 class ObservedBotSourceReviewTests(unittest.TestCase):
+    def test_nested_python_modules_are_supported_without_path_traversal(self):
+        _,_,review,_=fixture()
+        for name,valid in [('multifactor/scoring.py',True),('../scoring.py',False),
+                           ('/scoring.py',False),('a//scoring.py',False),('a\\scoring.py',False)]:
+            value=deepcopy(review);value['to_source_map'][name]='9'*64
+            value['changes'][name]={'before_sha256':None,'after_sha256':'9'*64}
+            value['ordinary_duel_review']['reviewed_changes']=deepcopy(value['changes'])
+            if valid:self.assertEqual(observed.validate_source_review_schema(value),value)
+            else:
+                with self.assertRaises(ContractError):observed.validate_source_review_schema(value)
+
     def test_exact_bridge_and_unchanged_default_guard(self):
         report,actual,review,evidence=fixture();saved=deepcopy(review)
         self.assertIsNone(observed.validate_observed_source_review(report,report['current_source_map'],'a'*64))

@@ -1,0 +1,46 @@
+{
+  "date": "2026-11-02",
+  "scope": "backend_implementation_and_scoped_validation",
+  "windows_distinct_tests_passed": 55,
+  "wsl_distinct_tests_passed": 34,
+  "windows_linux_only_failures": {
+    "tests": 13,
+    "reason": "fcntl unavailable and SQLite cleanup file locks",
+    "selected_cases_passed_on_wsl": 5,
+    "other_cases_rerun": false
+  },
+  "syntax_files": 85,
+  "whitelist_entries": 111,
+  "missing_whitelist_entries": [],
+  "diff_check_passed": true,
+  "cb_execution": false,
+  "native_execution": false,
+  "parameter_updates": 0,
+  "production_checkpoints_modified": false,
+  "remote_ci_executed": false,
+  "quality_policy": "unconfigured",
+  "pending_question": null,
+  "quality_implementation_pending": "Complete evaluation and policy integration using existing user reference decks and score judgments",
+  "reference_quality_basis": {
+    "full_method": "User judges reference construction at least approximately 70; exact algorithmic score need not be 70",
+    "earlier_effect_block_scope": "Reference at least 60 and contemporary candidate unlikely above 40; not thresholds for the later axis-only layer",
+    "legacy_56": "80 percent of the old reference-70 scale; not a threshold for current K/E/density",
+    "source": "docs/plans/2026-11-01-effect-block-axis-layer.md#8"
+  },
+  "paused_scope": "formal training, CB proposals/search/replay, native duels and production parameter updates under existing user pause",
+  "resume_condition": "No pending reference/threshold question; runtime quality requires completed evaluation/policy, and paused execution requires user resumption",
+  "generality_correction": {
+    "production_scope_logic_changed": false,
+    "tests_run": 9,
+    "generality_matrix_cases": 80,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "python_ast_files": 1,
+    "json_and_pending_state_check": "passed",
+    "trailing_whitespace_paths_checked": 10,
+    "diff_check_passed": true,
+    "receipt": "2026-11-02-basic-cb-generality-tests.json"
+  },
+  "no_commit_or_push": true
+}

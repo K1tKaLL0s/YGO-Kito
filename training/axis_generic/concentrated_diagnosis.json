@@ -1,0 +1,893 @@
+{
+  "reference_cases": 118,
+  "new_reference_cases": 0,
+  "role_counts_negative_positive_unknown": [
+    [
+      96,
+      22,
+      0
+    ],
+    [
+      49,
+      69,
+      0
+    ],
+    [
+      93,
+      23,
+      2
+    ],
+    [
+      44,
+      69,
+      5
+    ],
+    [
+      43,
+      48,
+      27
+    ]
+  ],
+  "core_support_joint_signs": {
+    "(0, 1)": 59,
+    "(0, 0)": 31,
+    "(1, 0)": 13,
+    "(1, 1)": 10
+  },
+  "identical_input_reference_conflicts": [
+    {
+      "left": "BF-ORC-01",
+      "right": "BF-ORC-02",
+      "different_roles": [
+        2,
+        3
+      ],
+      "identical_model_inputs": true,
+      "left_goal": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本次取胜计划是靠自奏圣乐的墓地、除外区和连接怪兽反复交换资源，建立通天塔下的对手回合响应，用丁吉尔苏等处理对手场面，再以机械怪兽继续进攻。三幻魔留作后续变化。所查询的是吉尔苏、嬉游曲恶魔、梦幻崩影、谐谑曲骷髅、星杖、通天塔、之阶，以及伽拉忒亚、伽拉忒亚i、恩利尔吉尔苏和丁吉尔苏组成的循环机制。给定自己主要阶段、吉尔苏在手、可用通常召唤、另有一张可送墓手卡，其余主卡仍在卡组，额外卡可用、区域足够、相关效果均未用、墓地效果与除外均可执行且没有无效干扰。吉尔苏送墓嬉游曲恶魔；后者除外并从卡组叫出另一自奏怪兽；伽拉忒亚回收除外机械并盖放之阶，伽拉忒亚i可送手卡取得通天塔；梦幻崩影送墓星杖或骷髅，星杖与骷髅衔接除外/墓地回收，丁吉尔苏和恩利尔吉尔苏分别提供后续送墓或控制变化。这些是分支与跨回合资源联系，不声称同一手牌一次同时做出全部终点。",
+      "right_goal": "独立评阅者声明的反事实功能情境；不是回放真实局面或作者意图。本次取胜计划是让三幻魔怪兽持续站场并战斗；希望在本轮所需的非暗属性特殊召唤全部完成后，再通过自奏圣乐取得一轮墓地响应和后续资源，使三幻魔场面被处理后仍可继续行动。下一回合重新安排召唤顺序；不在暗属性限制已生效后要求特殊召唤非暗怪兽。所查询的是吉尔苏、嬉游曲恶魔、梦幻崩影、谐谑曲骷髅、星杖、通天塔、之阶，以及伽拉忒亚、伽拉忒亚i、恩利尔吉尔苏和丁吉尔苏组成的循环机制。给定自己主要阶段、吉尔苏在手、可用通常召唤、另有一张可送墓手卡，其余主卡仍在卡组，额外卡可用、区域足够、相关效果均未用、墓地效果与除外均可执行且没有无效干扰。吉尔苏送墓嬉游曲恶魔；后者除外并从卡组叫出另一自奏怪兽；伽拉忒亚回收除外机械并盖放之阶，伽拉忒亚i可送手卡取得通天塔；梦幻崩影送墓星杖或骷髅，星杖与骷髅衔接除外/墓地回收，丁吉尔苏和恩利尔吉尔苏分别提供后续送墓或控制变化。这些是分支与跨回合资源联系，不声称同一手牌一次同时做出全部终点。"
+    }
+  ],
+  "existing_same_construct_group_context_pairs": [
+    {
+      "left": "branded_complete_40",
+      "right": "v5_branded_full_with_minimum_fusion_contract",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "predictions": [
+        [
+          0.998672604560852,
+          0.010217809118330479
+        ],
+        [
+          0.9920520782470703,
+          0.05023818090558052
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "hero_complete_clock_destiny",
+      "right": "v5_hero_full_with_minimum_mask_contract",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "predictions": [
+        [
+          0.9997699856758118,
+          0.00100624724291265
+        ],
+        [
+          0.9989123344421387,
+          0.006657550111413002
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "endymion_complete_spell_counters",
+      "right": "endymion_complete_pendulum_context",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "predictions": [
+        [
+          0.9859939813613892,
+          0.010813388042151928
+        ],
+        [
+          0.03507782146334648,
+          0.9384007453918457
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "v5_nibiru_single_live",
+      "right": "v5_nibiru_below_threshold",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "predictions": [
+        [
+          0.007375674322247505,
+          0.554941713809967
+        ],
+        [
+          0.008119188249111176,
+          0.03263445198535919
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "blind-v5-fk-02",
+      "right": "blind-v5-fk-03",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.18,
+          0.94
+        ],
+        [
+          0.18,
+          0.74
+        ]
+      ],
+      "predictions": [
+        [
+          0.0014761839993298054,
+          0.9940714240074158
+        ],
+        [
+          0.0011215460253879428,
+          0.7649442553520203
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "blind-v5-rn-05",
+      "right": "blind-v5-rn-06",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.11,
+          0.93
+        ],
+        [
+          0.11,
+          0.82
+        ]
+      ],
+      "predictions": [
+        [
+          0.00038535043131560087,
+          0.9836238622665405
+        ],
+        [
+          0.0007587199215777218,
+          0.08998912572860718
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "blind-v5-kj-01",
+      "right": "blind-v5-kj-02",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.1,
+          0.98
+        ],
+        [
+          0.05,
+          0.14
+        ]
+      ],
+      "predictions": [
+        [
+          0.001442174892872572,
+          0.8566941618919373
+        ],
+        [
+          0.0048460946418344975,
+          0.041827891021966934
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "blind-v5-kj-04",
+      "right": "blind-v5-kj-05",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.14,
+          0.92
+        ],
+        [
+          0.14,
+          0.58
+        ]
+      ],
+      "predictions": [
+        [
+          0.000885232409927994,
+          0.9948663711547852
+        ],
+        [
+          0.0014363252557814121,
+          0.39047184586524963
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "blind-v6-uc-03",
+      "right": "blind-v6-uc-04",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.1,
+          0.87
+        ],
+        [
+          0.1,
+          0.0
+        ]
+      ],
+      "predictions": [
+        [
+          0.02595144882798195,
+          0.9056332111358643
+        ],
+        [
+          0.00403203908354044,
+          0.0571853443980217
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "blind-v6-rk-01",
+      "right": "blind-v6-rk-02",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.97,
+          0.55
+        ],
+        [
+          0.15,
+          0.94
+        ]
+      ],
+      "predictions": [
+        [
+          0.9969629645347595,
+          0.01668618433177471
+        ],
+        [
+          0.4897897243499756,
+          0.8499695658683777
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "blind-v6-rk-03",
+      "right": "blind-v6-rk-04",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.12,
+          0.92
+        ],
+        [
+          0.12,
+          0.0
+        ]
+      ],
+      "predictions": [
+        [
+          0.0006891089724376798,
+          0.9959198236465454
+        ],
+        [
+          0.0010598242515698075,
+          0.5706725716590881
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "blind-v6-rk-03",
+      "right": "blind-v6-rk-05",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.12,
+          0.92
+        ],
+        [
+          0.12,
+          null
+        ]
+      ],
+      "predictions": [
+        [
+          0.0006891089724376798,
+          0.9959198236465454
+        ],
+        [
+          0.0006693830364383757,
+          0.8658300042152405
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "blind-v6-rk-04",
+      "right": "blind-v6-rk-05",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.12,
+          0.0
+        ],
+        [
+          0.12,
+          null
+        ]
+      ],
+      "predictions": [
+        [
+          0.0010598242515698075,
+          0.5706725716590881
+        ],
+        [
+          0.0006693830364383757,
+          0.8658300042152405
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "BF-ORC-01",
+      "right": "BF-ORC-02",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.96,
+          0.55
+        ],
+        [
+          0.28,
+          0.96
+        ]
+      ],
+      "predictions": [
+        [
+          0.9984015822410583,
+          0.008114381693303585
+        ],
+        [
+          0.9984015822410583,
+          0.008114381693303585
+        ]
+      ],
+      "same_input": true
+    },
+    {
+      "left": "BF-ORC-03",
+      "right": "BF-ORC-05",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.32,
+          0.94
+        ],
+        [
+          0.1,
+          0.22
+        ]
+      ],
+      "predictions": [
+        [
+          0.0005010429304093122,
+          0.9320881366729736
+        ],
+        [
+          0.0020234480034559965,
+          0.09026646614074707
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "BF-ORC-03",
+      "right": "BF-ORC-06",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.32,
+          0.94
+        ],
+        [
+          0.2,
+          0.61
+        ]
+      ],
+      "predictions": [
+        [
+          0.0005010429304093122,
+          0.9320881366729736
+        ],
+        [
+          0.00175069912802428,
+          0.13031399250030518
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "BF-ORC-05",
+      "right": "BF-ORC-06",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.1,
+          0.22
+        ],
+        [
+          0.2,
+          0.61
+        ]
+      ],
+      "predictions": [
+        [
+          0.0020234480034559965,
+          0.09026646614074707
+        ],
+        [
+          0.00175069912802428,
+          0.13031399250030518
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "BF-SPD-01",
+      "right": "BF-SPD-04",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.22,
+          0.96
+        ],
+        [
+          0.1,
+          0.24
+        ]
+      ],
+      "predictions": [
+        [
+          0.0013140084920451045,
+          0.9937991499900818
+        ],
+        [
+          0.0017247316427528858,
+          0.43353524804115295
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "BF-SPD-01",
+      "right": "BF-SPD-05",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.22,
+          0.96
+        ],
+        [
+          0.18,
+          0.62
+        ]
+      ],
+      "predictions": [
+        [
+          0.0013140084920451045,
+          0.9937991499900818
+        ],
+        [
+          0.0014235894195735455,
+          0.7600212693214417
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "BF-SPD-01",
+      "right": "BF-SPD-06",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.22,
+          0.96
+        ],
+        [
+          0.1,
+          0.23
+        ]
+      ],
+      "predictions": [
+        [
+          0.0013140084920451045,
+          0.9937991499900818
+        ],
+        [
+          0.0017238272121176124,
+          0.4338130056858063
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "BF-SPD-04",
+      "right": "BF-SPD-05",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.1,
+          0.24
+        ],
+        [
+          0.18,
+          0.62
+        ]
+      ],
+      "predictions": [
+        [
+          0.0017247316427528858,
+          0.43353524804115295
+        ],
+        [
+          0.0014235894195735455,
+          0.7600212693214417
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "BF-SPD-04",
+      "right": "BF-SPD-06",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.1,
+          0.24
+        ],
+        [
+          0.1,
+          0.23
+        ]
+      ],
+      "predictions": [
+        [
+          0.0017247316427528858,
+          0.43353524804115295
+        ],
+        [
+          0.0017238272121176124,
+          0.4338130056858063
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "BF-SPD-05",
+      "right": "BF-SPD-06",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.18,
+          0.62
+        ],
+        [
+          0.1,
+          0.23
+        ]
+      ],
+      "predictions": [
+        [
+          0.0014235894195735455,
+          0.7600212693214417
+        ],
+        [
+          0.0017238272121176124,
+          0.4338130056858063
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "BF-BRF-01",
+      "right": "BF-BRF-05",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.34,
+          0.93
+        ],
+        [
+          0.15,
+          0.2
+        ]
+      ],
+      "predictions": [
+        [
+          0.003079397138208151,
+          0.16403789818286896
+        ],
+        [
+          0.00425281748175621,
+          0.026335474103689194
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "BF-BRF-01",
+      "right": "BF-BRF-06",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.34,
+          0.93
+        ],
+        [
+          0.26,
+          0.63
+        ]
+      ],
+      "predictions": [
+        [
+          0.003079397138208151,
+          0.16403789818286896
+        ],
+        [
+          0.004305955488234758,
+          0.029438193887472153
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "BF-BRF-05",
+      "right": "BF-BRF-06",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.15,
+          0.2
+        ],
+        [
+          0.26,
+          0.63
+        ]
+      ],
+      "predictions": [
+        [
+          0.00425281748175621,
+          0.026335474103689194
+        ],
+        [
+          0.004305955488234758,
+          0.029438193887472153
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "BF-NIB-01",
+      "right": "BF-NIB-04",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.04,
+          0.91
+        ],
+        [
+          0.03,
+          0.56
+        ]
+      ],
+      "predictions": [
+        [
+          0.00040629919385537505,
+          0.979526162147522
+        ],
+        [
+          0.0009720103116706014,
+          0.16357287764549255
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "BF-NIB-01",
+      "right": "BF-NIB-06",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.04,
+          0.91
+        ],
+        [
+          0.02,
+          0.08
+        ]
+      ],
+      "predictions": [
+        [
+          0.00040629919385537505,
+          0.979526162147522
+        ],
+        [
+          0.001499782782047987,
+          0.09552016854286194
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "BF-NIB-04",
+      "right": "BF-NIB-06",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.03,
+          0.56
+        ],
+        [
+          0.02,
+          0.08
+        ]
+      ],
+      "predictions": [
+        [
+          0.0009720103116706014,
+          0.16357287764549255
+        ],
+        [
+          0.001499782782047987,
+          0.09552016854286194
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "BF-NIB-02",
+      "right": "BF-NIB-05",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.02,
+          0.12
+        ],
+        [
+          0.02,
+          0.1
+        ]
+      ],
+      "predictions": [
+        [
+          0.0014993329532444477,
+          0.09438681602478027
+        ],
+        [
+          0.0014991986099630594,
+          0.09443677216768265
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "BF-NIB-02",
+      "right": "BF-NIB-07",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.02,
+          0.12
+        ],
+        [
+          0.04,
+          0.92
+        ]
+      ],
+      "predictions": [
+        [
+          0.0014993329532444477,
+          0.09438681602478027
+        ],
+        [
+          0.0004246302996762097,
+          0.9785691499710083
+        ]
+      ],
+      "same_input": false
+    },
+    {
+      "left": "BF-NIB-05",
+      "right": "BF-NIB-07",
+      "same_source_and_selected_members": true,
+      "role_targets": [
+        [
+          0.02,
+          0.1
+        ],
+        [
+          0.04,
+          0.92
+        ]
+      ],
+      "predictions": [
+        [
+          0.0014991986099630594,
+          0.09443677216768265
+        ],
+        [
+          0.0004246302996762097,
+          0.9785691499710083
+        ]
+      ],
+      "same_input": false
+    }
+  ],
+  "observed_encoding_limits": [
+    "Primary plan text, actor identity and step structure are discarded after operation tags; no goal node or goal-to-card relation exists.",
+    "Only focal/dependency cards have individual nodes; named primary actors in the background are pooled away.",
+    "v6 contains relation also marks absent required members as contained; scalar availability must undo that ambiguity.",
+    "Unparsed card text is partial evidence, not complete rule or role semantics."
+  ],
+  "optimizer_updates": 0,
+  "lora_enabled": false,
+  "scope": "All existing cases including previously consumed diagnostics; no new independent final claim."
+}

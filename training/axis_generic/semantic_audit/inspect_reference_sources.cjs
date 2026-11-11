@@ -1,0 +1,30 @@
+const fs=require('fs');
+const path=require('path');
+const crypto=require('crypto');
+const {DatabaseSync}=require('node:sqlite');
+const root=String.raw`E:\CodexData\2026-11-01\task\role-training-v7`;
+const out=path.join(root,'semantic_audit');
+function read(name){const bytes=fs.readFileSync(path.join(root,name));return {name,bytes,data:JSON.parse(bytes.toString('utf8').replace(/^\uFEFF/,'')),sha256:crypto.createHash('sha256').update(bytes).digest('hex')};}
+const inputs=['goal_intake.json','reference_audit_intake.json','existing_cases.json'].map(read);
+const existing=inputs[2].data;
+const issues=[];
+function scan(v,p,caseId,file){if(typeof v==='string'){const n=(v.match(/\uFFFD/g)||[]).length;if(n)issues.push({file,case_id:caseId,field_path:p,replacement_character_count:n,text:v});}else if(Array.isArray(v)){v.forEach((x,i)=>scan(x,p+'['+i+']',caseId,file));}else if(v&&typeof v==='object'){Object.entries(v).forEach(([k,x])=>scan(x,p+'.'+k,caseId,file));}}
+const utf8Status=inputs.map(x=>{let valid=true;try{new TextDecoder('utf-8',{fatal:true}).decode(x.bytes);}catch{valid=false;}x.data.forEach(r=>scan(r,'$',r.case_id,x.name));return {file:x.name,valid_utf8_bytes:valid,sha256:x.sha256};});
+const goalMap=new Map(inputs[0].data.map(r=>[r.case_id,r]));
+const objectiveDiffs=existing.filter(r=>goalMap.get(r.case_id)?.objective!==r.objective).map(r=>({case_id:r.case_id,existing_objective:r.objective,goal_intake_objective:goalMap.get(r.case_id)?.objective}));
+const ids=[...new Set(existing.flatMap(r=>[...(r.selected_main||[]),...(r.selected_extra||[]),...(r.unit?.required||[])].map(x=>Number(x[0]))))].sort((a,b)=>a-b);
+const dbPath=String.raw`N:\YGO-Kito\_local_cpu_20261027\assets\native\engine-src\database\locales\zh-CN\cards.cdb`;
+const db=new DatabaseSync(dbPath,{readOnly:true});
+const query=`SELECT texts.id,texts.name,texts.desc,datas.type,datas.level,datas.race,datas.attribute,datas.atk,datas.def FROM texts JOIN datas ON texts.id=datas.id WHERE texts.id IN (${ids.map(()=>'?').join(',')}) ORDER BY texts.id`;
+const cards=db.prepare(query).all(...ids);
+db.close();
+const byId=new Map(cards.map(c=>[Number(c.id),c]));
+const selected=existing.map(r=>({case_id:r.case_id,selected_main:(r.selected_main||[]).map(([id,n])=>({card_id:id,count:n,name:byId.get(id)?.name??null})),selected_extra:(r.selected_extra||[]).map(([id,n])=>({card_id:id,count:n,name:byId.get(id)?.name??null})),objective_differs_from_goal_intake:goalMap.get(r.case_id)?.objective!==r.objective}));
+const evidence={source:dbPath,access_mode:'read-only; exact selected/required card-ID WHERE IN query; no decks or Replay table read',requested_card_ids:ids,missing_card_ids:ids.filter(id=>!byId.has(id)),cards};
+fs.writeFileSync(path.join(out,'card_evidence.json'),JSON.stringify(evidence,null,2)+'\n','utf8');
+fs.writeFileSync(path.join(out,'selected_scope_evidence.json'),JSON.stringify({source:'../existing_cases.json',cases:selected},null,2)+'\n','utf8');
+const encoding={inputs:utf8Status,replacement_character_issues:issues,objective_differences:objectiveDiffs,recovery_note:'已编码为 U+FFFD 的位置不能从该文件唯一还原原字；本检查不猜译、不覆写原输入。若存在未损坏的已授权原副本，应由根任务核实后另存恢复对照；阶段1冻结文件保持原样。'};
+fs.writeFileSync(path.join(out,'encoding_audit.json'),JSON.stringify(encoding,null,2)+'\n','utf8');
+console.log(JSON.stringify({rows:existing.length,selected_cards:ids.length,card_rows:cards.length,missing_card_ids:evidence.missing_card_ids,ufffd_fields:issues.length,ufffd_cases:[...new Set(issues.map(x=>x.case_id))],objective_diff_cases:objectiveDiffs.map(x=>x.case_id)},null,2));
+console.log('CORRUPTED_OBJECTIVES',JSON.stringify(issues.filter(x=>x.field_path==='$.objective').map(x=>({case_id:x.case_id,count:x.replacement_character_count,text:x.text})),null,2));
+console.log('ACTUAL_SCOPES',JSON.stringify(selected.filter(r=>r.case_id.startsWith('blind-v5-')||r.case_id.startsWith('BF-')).map(r=>({id:r.case_id,main:r.selected_main.map(x=>x.name+'×'+x.count),extra:r.selected_extra.map(x=>x.name+'×'+x.count)})),null,2));

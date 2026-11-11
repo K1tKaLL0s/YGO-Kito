@@ -1,0 +1,16 @@
+{
+  "observed_at_utc": "2026-11-11T09:41:05.498097+00:00",
+  "modules": [
+    "tests.test_effect_block_dictionary",
+    "tests.test_construction_text_completion",
+    "tests.test_card_library_repairs"
+  ],
+  "tests_run": 129,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0,
+  "success": true,
+  "torch_loaded": false,
+  "native_engine_started": false,
+  "ci_run": false
+}

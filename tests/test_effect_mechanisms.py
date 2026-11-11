@@ -13,8 +13,7 @@ from ygo_kito.construction_effect_blocks import reviewed_effect_blocks
 from ygo_kito.construction_binding import CatalogBindingAdapter
 from ygo_kito.construction_logic import LogicTag, LogicNode
 from ygo_kito.build_contracts import BuildTask, DeckParts
-from ygo_kito.build_model import (BuildModelConfig, BuildEncoder, BuildRanker,
-    migrate_legacy_ranker, LEGACY_FEATURE_VERSION)
+from ygo_kito.build_model import (BuildModelConfig, BuildEncoder, BuildRanker)
 from ygo_kito.build_pipeline import BuildAssets
 from ygo_kito.build_training import BuildTrainer, BuildTrainingConfig
 from ygo_kito.autonomous_construction import AutonomousConstructionKernel, initialize_course_vocabulary
@@ -118,8 +117,9 @@ class EffectSemanticsTests(unittest.TestCase):
     def test_binding_uses_current_semantics_and_unknown_stays_unknown(self):
         _,assets,_,_=assets_fixture()
         tags,reviews=reviewed_effect_blocks(assets,[101,99999])
-        self.assertEqual({t.value for t in tags},{'卡组送墓','墓地融合'})
-        self.assertTrue(all(a.source==SEMANTIC_VERSION for a in reviews))
+        self.assertEqual({t.value for t in tags},{'送墓','卡组送墓','融合召唤','回卡组','墓地融合'})
+        from ygo_kito.effect_blocks import BLOCK_VERSION
+        self.assertTrue(all(a.source==BLOCK_VERSION for a in reviews))
         binding=CatalogBindingAdapter(assets)
         self.assertEqual(binding._tag_status(assets.rows[101],LogicTag('effect','墓地融合'))[0],'satisfied')
         self.assertEqual(binding._tag_status(assets.rows[1],LogicTag('effect','墓地融合'))[0],'unknown')
@@ -190,77 +190,8 @@ class LearnerMechanismTests(unittest.TestCase):
             source_binding={'kind':'unrecognized-synthetic-source'},allowed_theme_ids=['setcode-2d1'])
         self.assertTrue(all('route_goal' not in c['task']['goal'] for c in kernel.propose_tasks()['candidates']))
 
-    def test_shared_learner_rankers_receive_mechanisms_and_four_phase_binding(self):
-        task,assets,builder,kernel=assets_fixture()
-        selected=kernel.select_task();self.assertEqual(selected['status'],'model_selected_task')
-        before={r:{k:v.clone() for k,v in m.state_dict().items()} for r,m in builder.models.items()}
-        result=kernel.run_selected(selected,verifier=None)
-        self.assertTrue(result['alternation_completed']);self.assertFalse(result['cb_verified'])
-        self.assertEqual([p['role'] for p in result['phases']],['build_goal','build_optimizer','build_goal','build_optimizer'])
-        self.assertTrue(all(p['stage_3']['status']=='concrete_candidate_cb_pending' for p in result['phases']))
-        last=result['phases'][0]['stage_3']['attempts'][-1]
-        self.assertTrue(any(t['value']=='墓地融合' for r in last['text_reviews'] for t in r['reviewed_tags']))
-        deck=DeckParts.from_dict(result['phases'][0]['proposal_deck']);bound=BuildTask.from_dict(selected['task'])
-        batch=builder.encoder.batch(bound,[deck]);self.assertTrue(batch['mechanisms'].any())
-        builder.models['build_goal'](batch).sum().backward()
-        self.assertGreater(builder.models['build_goal'].mechanism.weight.grad.abs().sum().item(),0)
-        for role,model in builder.models.items():
-            self.assertTrue(all(torch.equal(v,model.state_dict()[k]) for k,v in before[role].items()))
-        self.assertEqual(builder.updates,{'build_goal':0,'build_optimizer':0})
 
-    def test_explicit_migration_preserves_old_weights_and_adam_and_never_relabels_restore(self):
-        _,_,builder,_=assets_fixture();model=builder.models['build_goal']
-        old={k:v.clone() for k,v in model.state_dict().items() if k!='mechanism.weight'}
-        optimizer=deepcopy(builder.optimizers['build_goal'].state_dict());optimizer['param_groups'][0]['params'].pop()
-        with self.assertRaises(RuntimeError):model.load_state_dict(old)
-        new,adam,receipt=migrate_legacy_ranker(old,optimizer,source_feature_version=LEGACY_FEATURE_VERSION,source_checkpoint_sha256='a'*64)
-        model.load_state_dict(new)
-        self.assertTrue(all(torch.equal(new[k],v) for k,v in old.items()))
-        self.assertEqual(new['mechanism.weight'].count_nonzero().item(),0)
-        self.assertEqual(adam['state'],optimizer['state']);self.assertEqual(len(adam['param_groups'][0]['params']),len(old)+1)
-        self.assertFalse(receipt['whole_checkpoint_restore_performed'])
-        with self.assertRaises(ContractError):migrate_legacy_ranker(old,source_feature_version='unknown',source_checkpoint_sha256='a'*64)
 
-    def test_actual_course_models_and_learner_reach_semantics_without_core_or_updates(self):
-        from ygo_kito.course_models import CourseModels
-        from ygo_kito.course_game_adapter import CourseTrainingConfig
-        from ygo_kito.duel_model import DuelModelConfig
-        from ygo_kito.lora import AdapterConfig
-        # This test invokes no lifecycle/lock operation. On Windows an import-
-        # only sentinel makes any accidental flock call fail, never simulate it.
-        try:
-            import fcntl
-        except ImportError:
-            import types,sys
-            sentinel=types.ModuleType('fcntl')
-            def forbidden_lock(*args):raise AssertionError('file locking is outside this inference-only test')
-            sentinel.flock=forbidden_lock
-            with patch.dict(sys.modules,{'fcntl':sentinel}):
-                from ygo_kito.scenario_course import ScenarioCourse
-        else:
-            from ygo_kito.scenario_course import ScenarioCourse
-        task,assets,_,_=assets_fixture()
-        roles=('build_goal','build_optimizer','duel','coordinator')
-        configs={r:AdapterConfig('repair-'+r,r,
-            ('head.0',) if r.startswith('build_') else ('policy_head.0',) if r=='duel' else ('route_head',),rank=1) for r in roles}
-        cfg=CourseTrainingConfig(model=DuelModelConfig(width=8,card_width=4,heads=2,feedforward=16),
-                                game_seeds=(200,201),episode_seconds=120)
-        with tempfile.TemporaryDirectory() as root:
-            models=CourseModels.initialize(task,assets,cfg,configs,Path(root),None,assets.rows,
-                {'kind':'anonymous-learner-inference-fixture','learning_stage':'base','construction_theme_ids':['setcode-2d1']})
-            course=ScenarioCourse.__new__(ScenarioCourse)
-            course.models=models;course.selection=None;course.deck=None;course.events=[]
-            kernel=models.kernel;actual=kernel.run_selected;results=[]
-            def without_native(selection,**kwargs):
-                result=actual(selection,verifier=None,**kwargs);results.append(result);return result
-            # Disable only the native-verifier boundary, not graph/fill/model providers.
-            with patch.object(kernel,'run_selected',side_effect=without_native):
-                with self.assertRaisesRegex(ContractError,'no concrete verified CB'):course._construct()
-            self.assertTrue(results);self.assertTrue(all(r['mechanisms']['fusion_effects'] for r in results))
-            self.assertTrue(all(r['alternation_completed'] for r in results))
-            self.assertTrue(all(not r['cb_verified'] for r in results))
-            self.assertIs(kernel.builder,models.builder)
-            self.assertEqual(models.builder.updates,{'build_goal':0,'build_optimizer':0})
 
 
 if __name__=='__main__':unittest.main()

@@ -8,6 +8,7 @@ import sqlite3
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from ygo_kito.agent_bridge import AgentBridge, serve_bridge
 from ygo_kito.agent_monitor import RunMonitor, RunReporter
@@ -191,3 +192,29 @@ class AgentContractTests(unittest.TestCase):
         with self.assertRaises(ContractError):
             reporter.publish(snapshot)
         self.assertEqual(reporter.snapshot("fixture-run")["revision"], 1)
+
+    def test_resource_details_preserve_measured_values_and_unmeasured_device(self):
+        from types import SimpleNamespace
+        from ygo_kito.agent_monitor import nvidia_device_sample
+
+        reporter = RunReporter(self.state)
+        binding = dict(versions={'core':'test'}, model='fixture', precision='fp32', concurrency=1,
+                       budget_seconds=3, task_scale=40)
+        with patch('ygo_kito.agent_monitor._process_counters', return_value=(
+                {'rss_bytes':4096, 'process_read_bytes':0}, 'process test source')):
+            result = reporter.resource_snapshot(binding=binding, stage_seconds={'load':.2, 'device_stage':None})
+        self.assertEqual(result['binding'], binding)
+        self.assertEqual(result['metrics']['process_read_bytes'], 0)
+        self.assertEqual(result['metric_sources']['rss_bytes'], 'process test source')
+        self.assertIsNone(result['metrics']['process_write_bytes'])
+        self.assertIsNone(result['metrics']['gpu_memory_bytes'])
+        self.assertIsNone(result['hardware']['gpu'])
+        self.assertEqual(result['stage_seconds'], {'load':.2, 'device_stage':None})
+
+        fake = SimpleNamespace(stdout='GPU-test, Fixture accelerator, 000.01, 19, 128, 256\n')
+        with patch('ygo_kito.agent_monitor.shutil.which', return_value='nvidia-smi'), \
+             patch('ygo_kito.agent_monitor.subprocess.run', return_value=fake) as command:
+            result = reporter.resource_snapshot(binding=binding, gpu_sampler=lambda: nvidia_device_sample(1))
+        self.assertEqual(command.call_args.args[0][:3], ['nvidia-smi', '-i', '1'])
+        self.assertEqual(result['metrics']['gpu_memory_bytes'], 128 * 2**20)
+        self.assertEqual(result['hardware']['gpu']['driver'], '000.01')

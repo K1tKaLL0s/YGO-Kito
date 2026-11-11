@@ -128,6 +128,21 @@ class CourseVocabularyTests(unittest.TestCase):
 
 
 class AutonomousKernelTests(unittest.TestCase):
+    def test_explicit_disabled_cb_keeps_optimizer_suspended_without_provider(self):
+        from unittest.mock import patch
+        task,assets,builder,coordinator=fixture()
+        kernel=AutonomousConstructionKernel(builder,coordinator,assets=assets,host_available_ids=assets.rows,
+            source_binding={'kind':'synthetic-host', 'basic_cb_stage':'after_construction'},pool_limit=32,candidate_limit=4)
+        selection=kernel.select_task()
+        with patch('ygo_kito.basic_cb_inference.infer_basic_cb',side_effect=AssertionError('CB forbidden')) as cb:
+            result=kernel.run_selected(selection,verifier=None,basic_cb_enabled=False,max_iterations=1)
+        cb.assert_not_called()
+        self.assertFalse(result['construction_passed'])
+        self.assertEqual([p['role'] for p in result['phases']],['build_goal','build_optimizer'])
+        self.assertFalse(result['basic_cb_inference_performed'])
+        self.assertEqual(result['basic_cb']['status'],'not_run')
+        self.assertEqual(result['basic_cb_execution'],{'enabled':False,'reason':'disabled_by_host'})
+
     def test_reviewed_pool_features_do_not_replace_the_assigned_theme(self):
         from unittest.mock import patch
         from ygo_kito.construction_logic import LogicTag
@@ -136,7 +151,7 @@ class AutonomousKernelTests(unittest.TestCase):
             source_binding={"kind":"synthetic-not-engine-availability"},pool_limit=32,candidate_limit=16)
         selection=kernel.select_task()
         extra=LogicTag("effect","unrequested-reviewed-feature")
-        with patch("ygo_kito.autonomous_construction.reviewed_effect_blocks",return_value=((extra,),())):
+        with patch("ygo_kito.autonomous_construction.logic_vocabulary",return_value=(extra,)):
             session,adapter=kernel._session(selection)
         theme=LogicTag.from_dict(selection["theme"]["tag"])
         self.assertIn(extra,adapter.codec.tags)
@@ -151,6 +166,24 @@ class AutonomousKernelTests(unittest.TestCase):
         self.assertTrue(any(extra in {t for n in graph.nodes for t in n.tags} for graph in candidates))
         self.assertEqual(adapter.required_tags,(theme,))
 
+    def test_many_recognized_effects_do_not_become_required_graph_features(self):
+        from unittest.mock import patch
+        from ygo_kito.construction_logic import LogicTag
+        task,assets,builder,coordinator=fixture()
+        requested=LogicTag('effect','explicit-requested-feature')
+        kernel=AutonomousConstructionKernel(builder,coordinator,assets=assets,host_available_ids=assets.rows,
+            source_binding={'kind':'synthetic-host','construction_logic_requirements':{
+                'tags':[{'dimension':requested.dimension,'value':requested.value}],'connector_kinds':[]}},pool_limit=32,candidate_limit=16)
+        selection=kernel.select_task()
+        recognized=tuple(LogicTag('effect','recognized-'+str(i)) for i in range(12))
+        with patch('ygo_kito.autonomous_construction.logic_vocabulary',return_value=recognized), \
+                patch.object(kernel.mechanisms,'summarize',return_value={'grave_effect_triggers':1,'fusion_effects':1}):
+            _,adapter=kernel._session(selection)
+        theme=LogicTag.from_dict(selection['theme']['tag'])
+        self.assertEqual(set(adapter.required_tags),{theme,requested})
+        self.assertTrue(set(recognized)<=set(adapter.codec.tags))
+        self.assertEqual(len(adapter.requirements()['tags']),2)
+
     def test_supported_extra_goals_are_proposals_not_engine_or_graph_proof(self):
         task,assets,builder,coordinator=fixture(initialize=False)
         assets.rows[37]=dict(assets.rows[1],id=37,type=0x800001,name="synthetic-xyz",setcode=0x6e7)
@@ -163,8 +196,8 @@ class AutonomousKernelTests(unittest.TestCase):
         proposals=kernel.propose_tasks()
         self.assertEqual(proposals["status"],"model_ranked_tasks")
         for candidate in proposals["candidates"]:
-            self.assertTrue(candidate["cb_goal_proposed"])
-            self.assertEqual(candidate["task"]["goal"]["route_goal"]["kind"],"xyz_summon")
+            self.assertFalse(candidate["cb_goal_proposed"])
+            self.assertNotIn('route_goal',candidate['task']['goal'])
             self.assertNotIn("cb_verified",candidate)
             assets.check_task(BuildTask.from_dict(candidate["task"]))
 
@@ -191,7 +224,7 @@ class AutonomousKernelTests(unittest.TestCase):
         self.assertEqual(selected["candidate_id"],max(proposals["all_scores"],key=lambda r:r["score"])["candidate_id"])
         self.assertEqual(selected["selected_model_sha256"],parameter_digest(builder.models["build_goal"]))
         self.assertTrue(set(selected["task"]["pool"])<=assets.rows.keys())
-        self.assertLessEqual(len(selected["task"]["pool"]),128)
+        self.assertEqual(selected['task']['pool'],list(kernel.task_ids))
         self.assertEqual(selected["task"]["goal"]["constraints"][0],builder.task.goal["constraints"][0])
 
     def test_tied_missing_stale_or_modified_scores_never_choose_rule_fallback(self):
@@ -225,7 +258,7 @@ class AutonomousKernelTests(unittest.TestCase):
         self.assertFalse(first["cb_verified"]);self.assertFalse(first["graph_execution_verified"])
         self.assertFalse(first["text_classifier_inference"])
         self.assertIn("build_goal",first["graph_model_selections"])
-        self.assertEqual(first["status"],"construction_unresolved")
+        self.assertEqual(first["status"],"construction_suspended")
         second=kernel.run_selected(selection,base=deck,verifier=None,feedback=[{"source":"duel","message":"try another graph while retaining the selected objective"}])
         self.assertNotEqual(session.logic.sha256,old_graph)
         self.assertEqual(session.goal_sha256,old_goal)
