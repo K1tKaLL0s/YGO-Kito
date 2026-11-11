@@ -26,6 +26,7 @@ import torch
 
 from .agent_registry import identifier
 from .build_contracts import BuildTask, DeckParts, digest
+from .course_construction_request import course_construction_request
 from .course_game_adapter import CourseBotRuntime, CourseGameAdapter, REAL_GAME_SOURCE
 from .data_isolation import DataIndex
 from .duel_model import parameter_digest
@@ -346,7 +347,9 @@ def validate_common_deck_evidence(evidence, deck, period):
 
 class ScenarioCourse:
     """Concrete caller, retaining the existing four networks and LoRA modules."""
-    def __init__(self, models, *, assets, data_index, config, state_root, bots, storage_envelope=None,comparison_policy=None):
+    def __init__(self, models, *, assets, data_index, config, state_root, bots, storage_envelope=None,
+                 comparison_policy=None, formal_construction=False):
+        self.formal_construction = formal_construction
         from .course_models import CourseModels
         if not isinstance(models, CourseModels) or not isinstance(data_index, DataIndex):
             raise ContractError("actual course models and data index required")
@@ -463,7 +466,23 @@ class ScenarioCourse:
             "pending_match": None if self.pending is None else self.pending["state"].summary(),
             "formal_training_success_verified": False, "events": deepcopy(self.events[-8:])}
 
+    def prepare_course_construction(self):
+        if not getattr(self, "formal_construction", False) or self.pending is not None or self.frozen_evaluation is not None:
+            return
+        request = course_construction_request(self.config["period_id"])
+        if self.selection is not None and self.selection.get("construction_request") == request:
+            return
+        selection = self.models.kernel.select_task(construction_request=request)
+        if selection.get("status") != "model_selected_task":
+            raise ContractError("no model-selected task for the formal construction request")
+        previous_task = self.selection["candidate_id"] if self.selection is not None else None
+        self.selection = selection
+        self.deck = self.construction = None
+        self.events.append(dict(kind="formal_construction_request_selected", previous_task=previous_task,
+                                task_sha256=selection["candidate_id"], construction_request=request))
+
     def _construct(self, *, feedback=(), learn=False):
+        self.prepare_course_construction()
         kernel = self.models.kernel
         def completed(result):
             cb = result.get("basic_cb") or {}
@@ -507,6 +526,8 @@ class ScenarioCourse:
         if self.pending is not None: return
         stage = self.stage() if purpose == "train" else "common-decks-bo3"
         if stage == "complete": return
+        if purpose == "train":
+            self.prepare_course_construction()
         if self.deck is None: self._construct(learn=purpose == 'train')
         self._require_training_admission(self.deck,purpose)
         choices = sorted(i for i, b in self.bots.items() if b["stage"] == stage and b["purpose"] == purpose)

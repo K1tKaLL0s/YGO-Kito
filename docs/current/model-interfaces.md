@@ -70,7 +70,9 @@
 
 ### 4.5 接口与宿主装配
 
-以下为逻辑接口；实现可沿用现有签名，但必须保持数据流和绑定：
+正式入口保存[任务原文](training-and-acceptance.md#三期课程与数量)，按原文编码环境、指定或自主主题和构筑目标，将结构化任务交给 `build_goal`。目标模型的网络前向使用编码后的特征。原文留在会话供追溯，统筹模型使用调度所需的状态和预算。`build_goal` 交给 `build_optimizer` 的效果积木草案包含效果、连接件和配套需求，具体卡号由后者按卡文选定。
+
+以下为逻辑接口，实现可沿用现有签名并保持数据流和绑定。
 
 ```text
 evaluate_quality(layer_evaluation, *, policy, facts) -> QualityEvaluation

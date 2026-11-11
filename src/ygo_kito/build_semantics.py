@@ -6,7 +6,6 @@ acceptance. Exhausted solving is unknown, never a negative ability label.
 """
 from collections import Counter
 import math
-import random
 import time
 
 from .validation import ContractError,array,fields,integer,member
@@ -104,7 +103,120 @@ def preference_value(task,deck,assets):
     return sum(item['weight']*count(deck,item,assets.rows) for item in task.goal['preferences'])
 
 
-def solve_candidates(task,assets,base=None,*,max_edits=None,seconds=3.,candidate_count=None,skeleton=None,candidate_ids=None):
+def _draft_priorities(assets, graph, catalog, pool, variables, skeleton):
+    """Use printed functions and compatible stock to propose complete lists."""
+    from .construction_inventory import InventoryDependencies, effect_matches, matches as stock_matches
+    from .effect_blocks import functional_tags
+    from .effect_mechanisms import MechanismCatalog
+
+    catalog = catalog or MechanismCatalog(assets, pool)
+    inventory = InventoryDependencies(catalog)
+    node_demands = {node.node_id: tuple(tag for tag in node.tags if tag.dimension in ('effect', 'effect_type'))
+                    for node in graph.nodes}
+    demands = tuple(dict.fromkeys(tags for tags in node_demands.values() if tags))
+    effects = {code: catalog.effect_records(code) for code in pool}
+    draft_hits = {code: tuple(i for i, tags in enumerate(demands)
+                             if any(effect_matches(record, tags) for record in effects[code]))
+                  for code in pool}
+    useful = {'检索', '抽卡', '回收', '特召', '破坏', '除外', '回手', '效果无效', '发动无效', '召唤无效'}
+    interaction = {'破坏', '除外', '回手', '效果无效', '发动无效', '召唤无效'}
+    functions = {code: {row['tag']['value'] for row in functional_tags(catalog.effect_blocks(code))}
+                 for code in pool}
+    groups = {}
+    for i in range(len(demands)):
+        eligible = tuple(j for j, (zone, code) in enumerate(variables) if zone != 'side' and i in draft_hits[code])
+        if eligible:
+            groups[(eligible, 1)] = 32.
+    if skeleton is not None:
+        from types import SimpleNamespace
+        from .build_pipeline import EXTRA_TYPES
+        from .construction_theme import operation_query
+
+        # These are potential resource domains, not a proposed deck. Fusion
+        # eligibility uses the existing distinct-material and restriction check.
+        stock = {z: [] for z in ('main', 'extra')}
+        seen = set()
+        for code in (*skeleton.main, *skeleton.extra, *pool):
+            alias = assets.rows[code]['alias'] or code
+            if alias in seen:
+                continue
+            seen.add(alias)
+            zone = 'extra' if assets.rows[code]['type'] & EXTRA_TYPES else 'main'
+            stock[zone].extend([code] * assets.limits.get(alias, 3))
+        available = SimpleNamespace(**stock)
+        for code in sorted(set(skeleton.main + skeleton.extra)):
+            specs, materials = inventory.specs(code)
+            for spec in specs:
+                record = spec['record']
+                if any(effect_matches(record, tags) for tags in demands):
+                    for req in spec['requirements']:
+                        if req.get('choice'):
+                            continue  # Alternatives must not be treated as joint requirements.
+                        _add_stock_priority(groups, variables, inventory, code, req)
+                    if record.get('fusion_material_selection') and code in (*available.main, *available.extra):
+                        fusion = inventory.fusion_check(available, code, record)
+                        targets = {option['target'] for option in fusion['options']}
+                        eligible = tuple(i for i, (zone, card) in enumerate(variables)
+                                         if zone == 'extra' and card in targets)
+                        if eligible:
+                            groups[(eligible, 1)] = max(12., groups.get((eligible, 1), 0.))
+                for edge in graph.connectors:
+                    if edge.kind != '送墓时发动' or not effect_matches(record, node_demands[edge.source]):
+                        continue
+                    target = node_demands[edge.target]
+                    for operation in record['operations']:
+                        if (operation.get('reason') != 'effect' or operation.get('owner') != 'self'
+                                or operation.get('from_zones') != ['deck'] or operation.get('to_zone') != 'grave'):
+                            continue
+                        query = operation_query(operation, inventory)
+                        if query is None and not operation.get('random'):
+                            continue
+                        eligible = tuple(i for i, (zone, card) in enumerate(variables)
+                            if zone == 'main' and (query is None or stock_matches(assets.rows[card], query))
+                            and any(r['trigger'].get('event') == 'sent_to_grave'
+                                    and r['trigger'].get('reason') in ('effect', 'not_applicable')
+                                    and effect_matches(r, target) for r in effects[card]))
+                        if eligible:
+                            groups[(eligible, 1)] = max(12., groups.get((eligible, 1), 0.))
+            for req in materials:
+                _add_stock_priority(groups, variables, inventory, code, req)
+    priorities = [
+        (len(draft_hits[code]), min(3, len(functions[code] & useful)),
+         min(3, len(functions[code] & interaction)))
+        for _, code in variables
+    ]
+    return priorities, groups
+
+
+def _add_stock_priority(groups, variables, inventory, source, req):
+    from .construction_inventory import matches, query_supported
+
+    if (req.get('owner', 'self') != 'self' or not query_supported(req['query'])
+            or type(req.get('minimum')) is not int or req['minimum'] < 1):
+        return
+    # Unknown face-up state is not a printed match. Printed material identities
+    # and selectors use the same restriction checks as the inventory evaluator.
+    if 'face_up' in req['query']:
+        return
+    material = req['category'] == 'material'
+    allowed = []
+    for i, (zone, code) in enumerate(variables):
+        row = inventory.rows[code]
+        if (zone == 'side' or (req['origin'] in ('hand', 'deck') and zone != 'main')
+                or (req['origin'] == 'extra' and zone != 'extra')
+                or (material and (not row['type'] & 1 or code == source))
+                or (req.get('exclude_source_copy') and code == source)
+                or not matches(row, req['query'])):
+            continue
+        if inventory.candidate_status(code, req, target=source if material else None)[0] is True:
+            allowed.append(i)
+    if allowed:
+        key = tuple(allowed), req['minimum']
+        groups[key] = max(8., groups.get(key, 0.))
+
+
+def solve_candidates(task,assets,base=None,*,max_edits=None,seconds=3.,candidate_count=None,skeleton=None,candidate_ids=None,
+                     draft_graph=None,catalog=None):
     from .build_contracts import DeckParts,ZONES
     from .deck_profile import validate_deck_parts
     from .build_pipeline import EXTRA_TYPES, candidate_limit
@@ -126,19 +238,30 @@ def solve_candidates(task,assets,base=None,*,max_edits=None,seconds=3.,candidate
     try:
         import numpy as np
         from scipy.optimize import Bounds,LinearConstraint,milp
+        from scipy.sparse import coo_matrix
     except ImportError as error:raise ContractError('semantic construction requires the pinned CPU scipy extra') from error
     pool = task.pool if candidate_ids is None else tuple(candidate_ids)
-    if not set(pool) <= set(task.pool) or not set(base.main+base.extra+base.side if base else ()) <= set(pool):
+    starting_cards = {c for deck in (base, skeleton) if deck is not None for z in ZONES for c in getattr(deck, z)}
+    if not set(pool) <= set(task.pool) or not starting_cards <= set(pool):
         raise ContractError('solver query exceeds task pool or omits its input inventory')
     variables=[(z,c) for z in ZONES for c in pool
                if z=='side' or bool(assets.rows[c]['type']&EXTRA_TYPES)==(z=='extra')]
-    size=len(variables);overlap=size if base is not None and max_edits is not None else 0
-    low=np.zeros(size+overlap);high=np.full(size+overlap,3.)
-    coefficients=[];lower=[];upper=[]
-    def constraint(values,lo,hi):
-        row=np.zeros(size+overlap)
-        for i,value in values.items():row[i]=value
-        coefficients.append(row);lower.append(lo);upper.append(hi)
+    size = len(variables)
+    overlap = size if base is not None and max_edits is not None else 0
+    if draft_graph is None:
+        priorities, groups = [(0, 0, 0)] * size, {}
+    else:
+        priorities, groups = _draft_priorities(assets, draft_graph, catalog, pool, variables, skeleton)
+    dimensions = size + overlap + len(groups)
+    low = np.zeros(dimensions)
+    high = np.full(dimensions, 3.)
+    coefficients, lower, upper = [], [], []
+
+    def constraint(values, lo, hi):
+        coefficients.append(values)
+        lower.append(lo)
+        upper.append(hi)
+
     for zone in ZONES:constraint({i:1 for i,(z,c) in enumerate(variables) if z==zone},task.sizes[zone],task.sizes[zone])
     for alias in sorted({assets.rows[c]['alias'] or c for z,c in variables}):
         constraint({i:1 for i,(z,c) in enumerate(variables) if (assets.rows[c]['alias'] or c)==alias},0,assets.limits.get(alias,3))
@@ -158,14 +281,43 @@ def solve_candidates(task,assets,base=None,*,max_edits=None,seconds=3.,candidate
             high[size+i]=getattr(base,z).count(c)
             constraint({size+i:1,i:-1},-np.inf,0)
         constraint({size+i:1 for i in range(size)},sum(task.sizes.values())-max_edits,np.inf)
+    # Reward each distinct supported demand once, up to its printed stock
+    # quantity. A side-deck copy cannot cover a main/extra dependency.
+    group_weights = []
+    for (eligible, amount), reward in groups.items():
+        index = size + overlap + len(group_weights)
+        high[index] = amount
+        constraint({**dict.fromkeys(eligible, 1), index: -1}, 0, np.inf)
+        group_weights.append(reward)
+    row_indices, column_indices, values = [], [], []
+    for row, entries in enumerate(coefficients):
+        row_indices.extend([row] * len(entries))
+        column_indices.extend(entries)
+        values.extend(entries.values())
+    matrix = coo_matrix((values, (row_indices, column_indices)), shape=(len(coefficients), dimensions)).tocsc()
+    restrictions = LinearConstraint(matrix, lower, upper)
+    integrality = np.r_[np.ones(size), np.zeros(dimensions - size)]
+    preferred = [sum(item['weight'] for item in task.goal['preferences']
+                     if zone in item['zones'] and matches(assets.rows[code], item['predicate']))
+                 for zone, code in variables]
+
+    # Each direction spends one solver slot. Ties in printed evidence and
+    # explicit preferences use a stable order, without random card weights.
+    directions = ((2, 2, 1), (1, 1, 3), (3, 1, 2), (1, 3, 1), (2, 1, 2))
     found=[];statuses=[];started=time.monotonic()
     for variant in range(wanted):
         remaining=seconds-(time.monotonic()-started)
         if remaining<=0:break
-        rng=random.Random(variant);objective=np.zeros(size+overlap)
-        objective[:size]=[rng.uniform(-1,1) for _ in variables]
-        result=milp(objective,integrality=np.r_[np.ones(size),np.zeros(overlap)],bounds=Bounds(low,high),
-                    constraints=LinearConstraint(np.array(coefficients),lower,upper),
+        effect_weight, utility_weight, side_weight = directions[variant]
+        objective = np.zeros(dimensions)
+        for i, (zone, _) in enumerate(variables):
+            draft, useful, response = priorities[i]
+            strength = side_weight * response if zone == 'side' else effect_weight * draft + utility_weight * useful
+            order = i if variant % 2 == 0 else size - i
+            objective[i] = -(strength + preferred[i]) + order * (1e-4 / max(1, size))
+        objective[size + overlap:] = -np.array(group_weights)
+        result=milp(objective, integrality=integrality, bounds=Bounds(low,high),
+                    constraints=restrictions,
                     options={'time_limit':remaining,'node_limit':10000,'mip_rel_gap':0.})
         statuses.append(int(result.status))
         if result.x is None:

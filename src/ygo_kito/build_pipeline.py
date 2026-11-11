@@ -197,13 +197,13 @@ def candidate_limit(task):
     return min(ROUND_CANDIDATE_LIMIT, task.candidate_budget)
 
 
-def _goal_candidates(task, assets, base=None, *, skeleton=None, candidate_ids=None):
+def _goal_candidates(task, assets, base=None, *, skeleton=None, candidate_ids=None, draft_graph=None, catalog=None):
     """Bounded constraint construction followed by model ranking, not learned rule code."""
     assets.check_task(task)
     if task.goal['kind']=='deck_constraints':
         from .build_semantics import solve_candidates
         return solve_candidates(task,assets,base,skeleton=skeleton,candidate_ids=candidate_ids,
-                                candidate_count=candidate_limit(task))['candidates']
+                                candidate_count=candidate_limit(task), draft_graph=draft_graph, catalog=catalog)['candidates']
     if skeleton is not None:
         assets.validate_skeleton(task, skeleton)
     if base is not None:
@@ -256,7 +256,8 @@ def _goal_candidates(task, assets, base=None, *, skeleton=None, candidate_ids=No
 
 
 def goal_candidates(task, assets, base=None, *, skeleton=None, feedback=(), return_portfolio=False,
-                    mechanism_groups=None, trace=None, graph=None, candidate_ids=None, rank_ideas=None, recognized_cards=()):
+                    mechanism_groups=None, trace=None, graph=None, candidate_ids=None, rank_ideas=None,
+                    recognized_cards=(), draft_graph=None, catalog=None):
     from .construction_candidates import portfolio
 
     if base is not None and assets.accepts(task, base):
@@ -266,7 +267,8 @@ def goal_candidates(task, assets, base=None, *, skeleton=None, feedback=(), retu
                                recognized_cards=recognized_cards)
     # Without a complete starting list, fill the requested skeleton first.
     # Each solver call owns a slot; edits of these lists belong to later rounds.
-    initial = _goal_candidates(task, assets, base, skeleton=skeleton, candidate_ids=candidate_ids)
+    initial = _goal_candidates(task, assets, base, skeleton=skeleton, candidate_ids=candidate_ids,
+                               draft_graph=draft_graph, catalog=catalog)
     rows = portfolio(task, assets, initial=initial, trace=trace)
     if trace is not None:
         trace.update(generator="goal_solver", complete_list_attempt_limit=candidate_limit(task))

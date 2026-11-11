@@ -2,9 +2,10 @@
 from copy import deepcopy
 import unittest
 
-from ygo_kito.build_contracts import BuildTask
+from ygo_kito.build_contracts import BuildTask, DeckParts
 from ygo_kito.build_semantics import solve_candidates,validate_counts
-from tests.test_construction_binding import catalog
+from ygo_kito.construction_logic import LogicTag
+from tests.test_construction_binding import catalog, one_node
 
 
 class SemanticSolverTests(unittest.TestCase):
@@ -17,6 +18,22 @@ class SemanticSolverTests(unittest.TestCase):
             assets.validate(task,deck)
             self.assertEqual(len(deck.main),40)
             self.assertEqual(validate_counts(task,deck,assets)[0]['actual'],40)
+
+    def test_draft_completion_supplies_a_printed_search_target(self):
+        task, assets = catalog()
+        assets.rows[1]['desc'] = '①：自己主要阶段才能发动。从卡组把1只植物族怪兽加入手卡。'
+        assets.rows[18]['race'] = 1024
+        seed = DeckParts((1,))
+        graph = one_node(LogicTag('effect', '检索'))
+
+        unguided = solve_candidates(task, assets, candidate_count=1, skeleton=seed)
+        self.assertNotIn(18, unguided['candidates'][0].main)
+        result = solve_candidates(task, assets, candidate_count=5, skeleton=seed, draft_graph=graph)
+        self.assertTrue(result['candidates'])
+        self.assertLessEqual(result['solver_calls'], 5)
+        self.assertTrue(all(18 in deck.main for deck in result['candidates']))
+        for deck in result['candidates']:
+            assets.validate(task, deck)
 
     def test_explicit_infeasibility_and_no_search_budget_are_different(self):
         task,assets=catalog()

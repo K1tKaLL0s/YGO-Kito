@@ -25,12 +25,16 @@ def pending_fixture():
 
 
 class ConstructionProgressTests(unittest.TestCase):
-    def test_goal_emits_partial_axis_and_only_optimizer_completes(self):
+    def test_goal_emits_effect_draft_and_only_optimizer_binds_cards(self):
         f = theme_fixture()
         result = static_cycle(self, f, session_for(f[0], f[2]), max_iterations=1)
         self.assertEqual([p['role'] for p in result['phases']], ['build_goal', 'build_optimizer'])
-        self.assertGreater(result['phases'][0]['unfilled']['main'], 0)
-        self.assertEqual(result['phases'][1]['input_deck_sha256'], result['phases'][0]['proposal_deck_sha256'])
+        self.assertEqual(result['phases'][0]['unfilled'], f[0].sizes)
+        self.assertNotIn('proposal_deck_sha256', result['phases'][0])
+        seed = result['handoffs'][0]
+        self.assertEqual(seed['role'], 'build_optimizer')
+        self.assertEqual(seed['input_draft_sha256'], result['effect_draft']['logic_sha256'])
+        self.assertEqual(result['phases'][1]['input_deck_sha256'], seed['output_deck_sha256'])
         self.assertEqual(len(result['construction_candidate']['deck']['main']), 40)
         self.assertTrue(result['construction_passed'])
 
@@ -67,10 +71,16 @@ class ConstructionProgressTests(unittest.TestCase):
 
     def test_candidate_budget_suspends_instead_of_completing(self):
         f = theme_fixture()
-        result = static_cycle(self, f, session_for(f[0], f[2]), max_iterations=1, max_candidates=0)
+        session = session_for(f[0], f[2])
+        result = static_cycle(self, f, session, max_iterations=1, max_candidates=0)
         self.assertEqual([p['role'] for p in result['phases']], ['build_goal'])
         self.assertEqual(result['stop_reason'], 'candidate_slice_exhausted')
-        self.assertEqual(result['continuation']['iteration'], 0)
+        self.assertIsNone(result['continuation'])
+        self.assertEqual(result['effect_draft']['unfilled'], session.task.sizes)
+        self.assertEqual(result['effect_draft']['logic_sha256'], session.logic.sha256)
+        resumed = static_cycle(self, f, session, max_iterations=1)
+        self.assertEqual([p['role'] for p in resumed['phases']], ['build_optimizer'])
+        self.assertEqual(resumed['effect_draft'], result['effect_draft'])
 
     def test_feedback_consumes_candidate_bound_external_instruction(self):
         f = pending_fixture()

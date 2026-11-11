@@ -1369,7 +1369,7 @@ class FunctionalFlowTests(unittest.TestCase):
         with patch('ygo_kito.build_pipeline._goal_candidates', side_effect=AssertionError('no new candidates')), \
              patch('ygo_kito.construction_fill.build_axis_skeleton', side_effect=AssertionError('no new skeleton')):
             final = construction_cycle(session, assets, providers, **options, quality_evidence=review)
-        self.assertEqual(roles, ['build_goal', 'build_optimizer'])
+        self.assertEqual(roles, ['build_goal'])
         self.assertTrue(final['construction_passed'])
         self.assertEqual(final['continuation']['iteration'], 1)
         self.assertEqual(final['continuation']['candidate_cursor'], state['candidate_cursor'])

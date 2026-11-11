@@ -96,7 +96,19 @@ class Catalog:
 def inspect_artifact(path,root,catalog):
     result,sha=stable(path);phases=result.get('phases')
     handoffs=result.get('handoffs',[])
-    if not handoffs or handoffs[0].get('role')!='build_goal':raise Unknown('goal skeleton handoff missing')
+    if not handoffs or handoffs[0].get('role') not in ('build_goal', 'build_optimizer'):
+        raise Unknown('construction handoff missing')
+    first = handoffs[0]
+    draft = result.get('effect_draft') if first['role'] == 'build_optimizer' else None
+    if first['role'] == 'build_optimizer':
+        from ygo_kito.construction_logic import ConstructionLogic
+        try:
+            logic = ConstructionLogic.from_dict(draft['logic'])
+        except (ContractError, KeyError, TypeError) as error:
+            raise Violation('invalid goal effect draft') from error
+        if (draft.get('logic_sha256') != logic.sha256 or first.get('input_draft_sha256') != logic.sha256
+                or draft.get('goal_sha256') != result.get('goal_sha256') or first.get('input_deck_sha256') is not None):
+            raise Violation('optimizer seed differs from the goal effect draft')
     if any(p.get('role')!='build_optimizer' for p in handoffs[1:]):raise Violation('optimizer continuation changed role')
     if any(b.get('input_deck_sha256')!=a.get('output_deck_sha256') for a,b in zip(handoffs,handoffs[1:])):raise Violation('saved handoff ancestry differs')
     gate=result.get('construction_gate') or {}
@@ -106,12 +118,17 @@ def inspect_artifact(path,root,catalog):
     if not isinstance(phases,list):raise Unknown('construction slice trace missing')
     handoff_links = {(h.get('role'), h.get('input_deck_sha256'), h.get('output_deck_sha256'))
                      for h in handoffs}
-    previous = None
-    compact_skeletons = []
+    previous = first['output_deck_sha256'] if draft is not None else None
+    compact_skeletons = [first.get('unfilled')] if draft is not None else []
     compact = False
     for i,p in enumerate(phases):
         if p.get('role') not in ('build_goal','build_optimizer'):raise Violation('unknown construction role')
         fill=p.get('stage_3',{})
+        if draft is not None and p['role'] == 'build_goal':
+            if (fill.get('status') != 'effect_draft_ready' or p.get('effect_draft') != draft
+                    or any(p.get(k) is not None for k in ('input_deck', 'proposal_deck', 'proposal_deck_sha256'))):
+                raise Violation('goal stage must hand off only its effect draft')
+            continue
         if 'proposal_deck_sha256' in p and 'proposal_deck' not in p:
             compact = True
             before, after = p.get('input_deck_sha256'), p['proposal_deck_sha256']
@@ -217,6 +234,8 @@ def inspect_artifact(path,root,catalog):
     if task.get('environment',{}).get('release_cutoff')!=catalog.policy['release_cutoff']:raise Violation('task period differs')
     if result.get('selected_task_sha256')!=digest(task):raise Violation('construction and CB task identity differ')
     if gate.get('task_sha256')!=digest(task):raise Violation('current construction gate belongs to another task')
+    if draft is not None and draft.get('unfilled') != task['sizes']:
+        raise Violation('goal effect draft differs from the original slot counts')
     for unfilled in compact_skeletons:
         if (not isinstance(unfilled, dict) or unfilled.keys() != task['sizes'].keys()
                 or any(type(n) is not int or not 0 <= n <= task['sizes'][zone] for zone,n in unfilled.items())):
@@ -236,8 +255,16 @@ def inspect_artifact(path,root,catalog):
 
 def audit(base,policy,catalog):
     root=confined(base,policy['course_root']);catalog.unchanged()
-    if not (root/'initial-construction.json').exists():raise Unknown('awaiting initial construction evidence; formal clearance withheld')
-    paths=[root/'initial-construction.json',*sorted(root.glob('collaboration-v2-*/construction-result.json'))]
+    initial = root/'initial-formal-construction.json'
+    paths = sorted(root.glob('collaboration-v2-*/construction-result.json'))
+    if initial.exists():
+        current, _ = stable(initial)
+        task_sha = current.get('selected_task_sha256')
+        paths = [path for path in paths if stable(path)[0].get('selected_task_sha256') == task_sha]
+    else:
+        initial = root/'initial-construction.json'
+    if not initial.exists():raise Unknown('awaiting initial construction evidence; formal clearance withheld')
+    paths.insert(0, initial)
     receipts=[]
     for path in paths:receipts.append(inspect_artifact(path,root,catalog))
     for value in policy.get('opponent_decks',[]):

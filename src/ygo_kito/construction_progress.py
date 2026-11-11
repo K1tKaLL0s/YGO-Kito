@@ -10,13 +10,37 @@ GATE_VERSION = FUNCTIONAL_GATE_VERSION
 REFERENCE_STAGE_VERSION = 'construction-reference-stage-v1'
 
 
+def goal_effect_draft(session, *, record=False):
+    """Recover the goal graph actually handed to construction, including after a pause."""
+    if record:
+        logic_sha256 = session.logic.sha256
+    else:
+        marker = next((event for event in reversed(session.history)
+                       if event.get('stage') == 'effect_draft_handoff'), None)
+        if marker is None:
+            return None
+        logic_sha256 = marker['logic_sha256']
+    event = next((row for row in reversed(session.history) if row.get('stage') == 1
+                  and row.get('role') == 'build_goal' and row.get('logic_sha256') == logic_sha256), None)
+    if event is None:
+        return None
+    logic = event['logic']
+    if getattr(session, 'construction_request', None) and not any(
+            tag['dimension'] == 'effect' for node in logic['nodes'] for tag in node['tags']):
+        return None
+    if record:
+        session.history.append(dict(stage='effect_draft_handoff', logic_sha256=logic_sha256))
+    return dict(logic=deepcopy(logic), logic_sha256=logic_sha256,
+                goal_sha256=session.goal_sha256, unfilled=dict(session.task.sizes))
+
+
 def compact_optimizer_phase(phase, *, task=None, _comparisons=None):
     """Keep round results without inventories, reversible edits, or search work."""
     if phase is None:
         return None
     keys = ('phase_number', 'role', 'responsibility', 'optimization_iteration',
             'input_candidate_version', 'output_candidate_version', 'parameter_update_performed',
-            'acceptance', 'stage_1', 'unfilled', 'input_deck_sha256', 'proposal_deck_sha256',
+            'acceptance', 'stage_1', 'effect_draft', 'unfilled', 'input_deck_sha256', 'proposal_deck_sha256',
             'reference_feedback')
     saved = {key: phase[key] for key in keys if key in phase}
     if 'stage_2' in phase:
@@ -441,8 +465,15 @@ def restore_progress(session, value, assets, *, policy=None, _comparisons=None):
     (assets.validate_skeleton if state['candidate'].get('layer_evaluation') is None else assets.validate)(session.task, deck)
     if state['candidate'].get('deck_sha256') != digest(deck.to_dict()):
         raise ContractError('construction continuation candidate binding differs')
-    handoffs=state.get('handoffs',[])
-    if (not handoffs or handoffs[0]['role'] != 'build_goal'
+    handoffs = state.get('handoffs', [])
+    first = handoffs[0] if handoffs else {}
+    if first.get('role') == 'build_optimizer':
+        draft = goal_effect_draft(session)
+        if (draft is None or first.get('input_draft_sha256') != draft['logic_sha256']
+                or first.get('candidate_version') != 1 or first.get('input_deck_sha256') is not None
+                or state['iteration'] == 0 and draft['logic_sha256'] != session.logic.sha256):
+            raise ContractError('construction continuation lost its optimizer input draft')
+    if (first.get('role') not in ('build_goal', 'build_optimizer')
             or any(r['role'] != 'build_optimizer' for r in handoffs[1:])
             or any(b['input_deck_sha256'] != a['output_deck_sha256'] for a,b in zip(handoffs,handoffs[1:]))
             or handoffs[-1]['output_deck_sha256'] != digest(deck.to_dict())

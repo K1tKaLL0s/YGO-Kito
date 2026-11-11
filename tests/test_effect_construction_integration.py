@@ -38,25 +38,25 @@ class EffectConstructionIntegrationTests(unittest.TestCase):
         self.assertTrue(rows)
         self.assertTrue(all(set(r['deck'].main)<=set(smaller.pool) for r in rows))
 
-    def test_run_selected_passes_current_groups_to_actual_portfolio_before_construction_ends(self):
-        _,assets,builder,kernel=assets_fixture()
-        selection=kernel.select_task();task=BuildTask.from_dict(selection['task'])
-        expected=kernel.construction_mechanism_groups(selection);self.assertTrue(expected)
-        base=legal_base(task,assets);calls=[];before=deepcopy(builder.updates)
-        original=portfolio
-        def observe(bound,current_assets,**kwargs):
-            groups=kwargs.get('mechanism_groups')
-            self.assertEqual(list(groups),list(expected))
-            self.assertTrue(all(code in bound.pool for group in groups for cards in group['zones'].values() for code in cards))
-            rows=original(bound,current_assets,**kwargs)
-            calls.append({'task':bound.sha256,'groups':groups,'rows':len(rows)})
-            return rows
-        with patch('ygo_kito.construction_candidates.portfolio',side_effect=observe):
-            result=kernel.run_selected(selection,base=base,verifier=None)
-        self.assertTrue(calls)
+    def test_run_selected_passes_the_effect_draft_to_the_bounded_solver(self):
+        from ygo_kito.build_semantics import solve_candidates
+        _, assets, builder, kernel = assets_fixture()
+        selection = kernel.select_task()
+        task = BuildTask.from_dict(selection['task'])
+        base = legal_base(task, assets)
+        before = deepcopy(builder.updates)
+        with patch('ygo_kito.build_semantics.solve_candidates', wraps=solve_candidates) as solve:
+            result = kernel.run_selected(selection, base=base, verifier=None, run_mode='slice', max_iterations=1)
         self.assertFalse(result['construction_passed'])
-        self.assertEqual(result['phases'][0]['stage_3']['status'],'axis_skeleton_ready')
-        self.assertTrue(all(p['stage_3']['status']=='concrete_candidate_cb_pending' for p in result['phases'][1:]))
-        self.assertEqual(result['construction_mechanism_groups'],expected)
-        self.assertEqual(builder.updates,before)
-        self.assertFalse(result['cb_verified']);self.assertFalse(result['ability_verified'])
+        draft = result['effect_draft']
+        self.assertEqual(result['phases'][0]['stage_3']['status'], 'effect_draft_ready')
+        self.assertEqual(result['handoffs'][0]['role'], 'build_optimizer')
+        self.assertEqual(result['handoffs'][0]['input_draft_sha256'], draft['logic_sha256'])
+        solve.assert_called_once()
+        fill = solve.call_args.kwargs
+        self.assertEqual(fill['draft_graph'].to_dict(), draft['logic'])
+        self.assertIs(fill['catalog'].assets, assets)
+        self.assertLessEqual(fill['candidate_count'], 5)
+        self.assertEqual(builder.updates, before)
+        self.assertFalse(result['cb_verified'])
+        self.assertFalse(result['ability_verified'])

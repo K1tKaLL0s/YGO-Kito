@@ -106,12 +106,42 @@ def rule_graph_candidates(context, codec, *, required_tags=(), required_connecto
         proposals.append(ConstructionLogic.from_dict(raw))
     metadata=(LogicMetadata("rule-candidate-generator-v1","engineering","Program proposal; model ranking is separate."),)
     edge_kinds=kinds or codec.kinds[:1]
-    def make(node_tags, pairs, entries, goals):
+    def make(node_tags, pairs, entries, goals, connections=edge_kinds):
         nodes=tuple(LogicNode("n"+str(i),tuple(t),metadata) for i,t in enumerate(node_tags))
         edges=tuple(LogicConnector("e"+str(i),nodes[a].node_id,nodes[b].node_id,
-                                  edge_kinds[i%len(edge_kinds)]) for i,(a,b) in enumerate(pairs))
+                                  connections[i%len(connections)]) for i,(a,b) in enumerate(pairs))
         return ConstructionLogic(ident,nodes,edges,tuple(nodes[i].node_id for i in entries),
                                  tuple(nodes[i].node_id for i in goals),revision,parent)
+    request = context.get("construction_request")
+    if request is not None:
+        # The task supplies the theme/intent. These are function proposals for
+        # the ranker, with no selected cards or extra user requirements.
+        plans = [
+            (("检索", "特召"), "ss", ()),
+            (("特召", "效果无效"), "ss", ()),
+            (("特召", "破坏"), "ss", ()),
+            (("卡组送墓", "墓地融合"), "送墓时发动", ()),
+            (("卡组送墓", "回收"), "送墓时发动", ()),
+        ]
+        if request["theme"] == "tearlaments":
+            plans = [
+                (("卡组送墓", "墓地融合"), "送墓时发动", support)
+                for support in ((), ("检索",), ("回收",), ("效果无效",))
+            ]
+        available = {t.value: t for t in codec.tags if t.dimension == "effect"}
+        for functions, connection, support in plans:
+            if connection not in codec.kinds or not all(name in available for name in (*functions, *support)):
+                continue
+            node_tags = [(available[name],) for name in (*functions, *support)]
+            node_tags.extend((t,) for t in requested if (t,) not in node_tags)
+            independent = list(range(2, len(node_tags)))
+            proposals.append(make(node_tags, [(0, 1)], [0, *independent], [1, *independent], (connection,)))
+        distinct = {graph_signature(graph): graph for graph in proposals if covers(graph)}
+        if not distinct:
+            raise ContractError("no effect-block draft fits the structured construction task")
+        result = list(distinct.values())
+        return result if limit is None else result[:limit]
+
     serial=[(t,) for t in tags]
     while len(serial)<max(2,len(kinds)+1):serial.append(serial[-1])
     proposals.append(make(serial,[(i,i+1) for i in range(len(serial)-1)],[0],[len(serial)-1]))
@@ -150,6 +180,24 @@ def _numbers(value):
     return [x/norm for x in out]
 
 
+def task_request_features(context):
+    """Keep the existing tensor width, with explicit fields for course requests."""
+    request = context.get("construction_request")
+    if request is None:
+        return _numbers(context["request"])
+    periods = ("2022-07", "2022-10", "2026-10")
+    if (request["period_id"] not in periods or request["theme"] not in ("tearlaments", None)
+            or request["objective"] != "competitive"):
+        raise ContractError("invalid structured construction request")
+    return [
+        *(float(request["period_id"] == period) for period in periods),
+        float(request["theme"] == "tearlaments"),
+        float(request["theme"] is None),
+        float(request["objective"] == "competitive"),
+        0., 0., 0., 0.,
+    ]
+
+
 class LogicFeatureEncoder:
     def __init__(self, codec, max_tokens):
         self.codec, self.max_tokens = codec, max_tokens
@@ -159,7 +207,7 @@ class LogicFeatureEncoder:
         rows = []
         for graph in graphs:
             self.codec.encode(graph)
-            tokens, numbers = [[0,0,0,0]], [_numbers(context["request"])]
+            tokens, numbers = [[0,0,0,0]], [task_request_features(context)]
             nodes = {n.node_id:i for i,n in enumerate(graph.nodes)}
             for node in graph.nodes:
                 for tag in sorted(node.tags, key=lambda t:(t.dimension,t.value)):

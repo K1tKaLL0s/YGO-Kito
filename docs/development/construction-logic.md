@@ -36,7 +36,7 @@
 
 2026-11-09 功能评价迁移第三批：显式 v4 候选链新增独立资源分支、重叠库存整数分配、明确顺序的单次回收、共同用途到 V2 的绑定、来源级强制影响、Side 隔离与完整 R/X 重算，以及逐功能损失/修复条件记录。定向墓地调用和已完整识别的主题接收方开始自动适配，墓地与堆墓双通道保留；本批 16 个不同定点静态用例、7 个 Python 文件语法检查通过。复杂供给子集、多池回收、未映射限制及复杂主题/Side 组合仍为 unknown/deferred；真实政策与参考未迁移，默认旧 v3 保留。当前文件、证据和续接摘要见[第三批资源与 Side 状态](../reports/2026-11-09-construction-functional-resources-side-phase3.md)，已有候选链见[第二批](../reports/2026-11-08-construction-functional-production-wiring-phase2.md)，完整目标见[正式优化方案](../current/construction-scoring.md)。训练和 CB 继续禁止。
 
-2026-11-02 最新职责设计：[目标模型完成第一层轴骨架，优化模型完成第二层、多轮修订及泛用配置](../current/construction-workflow.md)。优化模型接收统筹、决斗和外接 AI 反馈；训练模式未达构筑门槛持续迭代，达标后才进入线性基础 CB，允许固定随机堆墓而不展开命中分支。该分工已接入实际入口，验证见[当前报告](../reports/2026-11-02-construction-role-basic-cb.md)。完整质量指标与阈值尚未配置，未通关时保存并挂起。效果词典与实际 CB 归属见[核验](../reports/2026-11-02-effect-block-dictionary-and-cb-owner-audit.md)；训练和 CB 继续暂停。
+2026-11-02 历史职责设计（现行分工见[构筑流程](../current/construction-workflow.md)）：[目标模型完成第一层轴骨架，优化模型完成第二层、多轮修订及泛用配置](../current/construction-workflow.md)。优化模型接收统筹、决斗和外接 AI 反馈；训练模式未达构筑门槛持续迭代，达标后才进入线性基础 CB，允许固定随机堆墓而不展开命中分支。该分工已接入实际入口，验证见[当前报告](../reports/2026-11-02-construction-role-basic-cb.md)。完整质量指标与阈值尚未配置，未通关时保存并挂起。效果词典与实际 CB 归属见[核验](../reports/2026-11-02-effect-block-dictionary-and-cb-owner-audit.md)；训练和 CB 继续暂停。
 
 2026-11-02 统一修复：费用／对象／素材未知不再算覆盖，全牌表必要配套与图内用途分开核算；池外配套按合法词表有界召回，字段归属使用同一卡库的代码映射。固定任务与自主主题均进入同一职责分离和持续优化入口。旧 `alternate_build`、70/56 参考评分、提示模块、私有准入账本绑定及一次性迁移实现已删除。当前行为见[统一修复报告](../reports/2026-11-02-construction-unification.md)与[构筑准入及学习接口](construction-admission.md)；原[核验报告](../reports/2026-11-02-construction-design-audit.md)记录的是修复前状态。
 
@@ -60,7 +60,7 @@
 
 `ConstructionSession` 绑定原始自然语言目标和完整 `BuildTask` 摘要。`submit_logic` 与 `revise_logic` 记录父版本、修订号、角色、原因和反馈；可以替换整个图。需求、填卡、决斗和各模型反馈用 `record_feedback` 输入。变更用户目标须显式建立新的请求/会话，不能借优化修改旧任务。`to_dict()` 可保存完整目标、图、阶段记录和反馈。
 
-`logic_cycle` 是独立的图提议工具。实际 `construction_cycle` 首次调用目标模型生成来源绑定的轴骨架，再由优化模型补全和持续修订；恢复时只继续优化。`ConstructionSession` 保存 `construction_progress` 与 `optimization_feedback`，记录原任务、候选版本、真实角色输入输出、游标和反馈消费。时间、轮数或候选预算耗尽均为 `construction_suspended`，不生成通关或 CB 成功标记。
+`logic_cycle` 是独立的图提议工具。实际 `construction_cycle` 首次调用目标模型为结构化任务选择无具体卡的效果积木草案，再由优化模型按配套需求和卡文选卡、补全和持续修订。恢复时继续优化。`ConstructionSession` 保存 `construction_progress` 与 `optimization_feedback`，记录原任务、候选版本、真实角色输入输出、游标和反馈消费。时间、轮数或候选预算耗尽均为 `construction_suspended`，不生成通关或 CB 成功标记。
 
 现在提供具体实现：`LogicCodec` 无卡 ID 编码/解码图，`rule_graph_candidates` 按明确请求的基本标签枚举有界粗图，`LogicModelAdapter` 用现有目标/优化 **同一组 BuildRanker 对象和优化器**评分选择。图特征进入已有 numeric/kind/position 投影，卡 ID 槽保持 0，没有把标签索引冒充旧卡嵌入，也没有另造大网络。`train_preference` 真实执行图偏好损失、反向传播和优化；独立图 checkpoint 绑定特征版本、词典、原任务和旧卡词表，可保存模型/Adam状态并连续恢复。原四模型 checkpoint 不被静默迁移。
 

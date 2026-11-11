@@ -482,14 +482,15 @@ class StaticEncoderTests(unittest.TestCase):
             def eval(self):pass
             def train(self,mode):self.training=mode
             def __call__(self,batch):return Scores()
-        stub = SimpleNamespace(_check=lambda:None,builder=SimpleNamespace(task=task,models={'build_goal':Model()}),
+        stub = SimpleNamespace(_check=lambda:None, _check_construction_request=lambda request: request,
+            builder=SimpleNamespace(task=task,models={'build_goal':Model()}),
             source_binding={'construction_goal':task.goal},task_ids=task.pool,theme_minimum=1,
             allowed_theme_ids=[theme['theme_id']],enumerate_themes=lambda:[theme],candidate_limit=2,
-            _binding_sha256='a'*64,_proposal_seals=set(),_task_batch=lambda tasks:tasks)
+            _binding_sha256='a'*64,_proposal_seals=set(),_task_batch=lambda tasks, **kwargs:tasks)
         namespace=dict(deepcopy=deepcopy,BuildTask=BuildTask,DeckParts=DeckParts,digest=digest,
             ContractError=ContractError,Counter=__import__('collections').Counter)
         make_task=source_method('autonomous_construction.py','AutonomousConstructionKernel','_task',namespace)
-        stub._task=lambda *args:make_task(stub,*args)
+        stub._task=lambda *args, **kwargs:make_task(stub,*args,**kwargs)
         stub.assets=assets
         namespace.update(_referenced_ids=lambda value:set(),torch=SimpleNamespace(no_grad=nullcontext),
                          parameter_digest=lambda model:'b'*64,math=__import__('math'))

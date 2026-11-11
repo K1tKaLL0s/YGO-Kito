@@ -56,6 +56,11 @@ class BuildTask:
     source: str = "engineering_fixture"
     schema_version: int = 1
 
+    @property
+    def is_formal_construction(self):
+        return (self.schema_version == 4 and self.source == "user_provided"
+                and self.task_id.startswith("formal-"))
+
     def __post_init__(self):
         integer(self.schema_version, "build schema", 1, 4)
         identifier(self.task_id)
@@ -154,7 +159,7 @@ class BuildTask:
                     raise ContractError("route intent card outside the task pool")
         if any(sum(r["minimum"] for r in self.requirements if r["zone"] == zone) > self.sizes[zone] for zone in ZONES):
             raise ContractError("required minimum counts exceed declared section size")
-        integer(len(self.annotations), "context annotation count", 1, 16)
+        integer(len(self.annotations), "context annotation count", 0 if self.is_formal_construction else 1, 16)
         for annotation in self.annotations:
             fields(annotation, {"tag", "layer", "source", "subject", "condition"})
             member(annotation["layer"], "annotation layer", ("fact", "engineering_goal", "engineering_proxy", "model_inference", "human"))

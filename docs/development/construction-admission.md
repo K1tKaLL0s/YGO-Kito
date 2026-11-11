@@ -4,10 +4,10 @@
 
 ## 只运行构筑与续接
 
-维护入口为`scripts/run_construction.py`，使用当前源码及已有课程资源。该入口使用现有权重进行构筑推理，默认运行于 `cuda:0`，CUDA 不可用时报错。`--basic-cb` 授权静态 Gate 通过后的基础 CB，默认关闭。`device.json` 保存实际模型设备、前向调用及显存证据。默认开发模式自动续算并按片保存 kernel／session。`--slice-seconds` 和 `--iterations` 只控制片内工作；`--seconds` 仅用于 `--mode online`，开发模式拒绝将它设为任务时限。上线到期先排空静态评价，CB 仍按实际授权及预算执行。下例在现有WSL环境内执行，`--theme`核对宿主已经选定的目标，不改写宿主配置：
+维护入口为`scripts/run_construction.py`，使用当前源码及已有课程资源。该入口使用现有权重进行构筑推理，默认运行于 `cuda:0`，CUDA 不可用时报错。`--basic-cb` 授权静态 Gate 通过后的基础 CB，默认关闭。`device.json` 保存实际模型设备、前向调用及显存证据。默认开发模式自动续算并按片保存 kernel／session。`--slice-seconds` 和 `--iterations` 只控制片内工作；`--seconds` 仅用于 `--mode online`，开发模式拒绝将它设为任务时限。上线到期先排空静态评价，CB 仍按实际授权及预算执行。按 `--period` 使用[三期正式任务](../current/training-and-acceptance.md#三期课程与数量)。`--theme` 只核对选定的主题。以下命令在现有 WSL 环境执行：
 
 ```sh
-cd /mnt/n/YGO-Kito/_publish_20261030
+cd /mnt/c/Users/27499/.codex/worktrees/ygo-construction/_publish_20261030
 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 \
 PYTHONPATH="$PWD/src:$PWD/scripts" \
 /home/chaos/.local/share/ygo-kito/cuda312/bin/python -u scripts/run_construction.py \
@@ -20,4 +20,4 @@ PYTHONPATH="$PWD/src:$PWD/scripts" \
   --output .cache/construction-next-slice
 ```
 
-续接时增加`--resume 上一片目录/kernel.json.gz`。可指定该存档所在目录继续，也可指定全新输出目录。旧 kernel.json 存档可继续读取。kernel 保存原任务、待评批次和查询／评价游标。完成后只导出最优牌表，待评牌表在输出索引中只列标识与状态。输出包括任务、结果、会话、可续接kernel、候选牌表和摘要；`listing_complete`只说明张数齐全，是否通过看`construction_passed`及Gate原因。
+续接时增加`--resume 上一片目录/kernel.json.gz`。可指定该存档所在目录继续，也可指定全新输出目录。同一正式任务可读取压缩或未压缩存档。带旧课程 12／3 约束的存档须保留为历史记录，另开输出目录从正式任务开始。kernel 保存任务原文、效果积木草案、待评批次和查询／评价游标。完成后只导出最优牌表，待评牌表在输出索引中只列标识与状态。输出包括任务、结果、会话、可续接kernel、候选牌表和摘要；`listing_complete`只说明张数齐全，是否通过看`construction_passed`及Gate原因。

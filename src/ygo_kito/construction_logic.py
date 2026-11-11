@@ -240,13 +240,21 @@ class ConstructionSession:
     proposals; absence is reported rather than filled with rule-made templates.
     """
 
-    def __init__(self, request, task, *, lexicon=None, classifier=None):
+    def __init__(self, request, task, *, lexicon=None, classifier=None, construction_request=None):
         from .build_contracts import BuildTask
         from .build_intent import classify_build_intent
         short(request, "user request", 4096)
         if not isinstance(task, BuildTask):
             raise ContractError("existing typed BuildTask required")
         self.request = request
+        self.construction_request = None
+        if construction_request is not None:
+            from .course_construction_request import course_construction_request
+            fields(construction_request, {"text", "period_id", "theme", "objective"})
+            expected = course_construction_request(construction_request["period_id"])
+            if expected != construction_request or request != expected["text"]:
+                raise ContractError("structured construction request differs from user wording")
+            self.construction_request = expected
         self._task = task.to_dict()
         self.task_sha256 = task.sha256
         self.goal_sha256 = digest({"request": request, "task": self._task})
@@ -303,18 +311,23 @@ class ConstructionSession:
         return {"status": "logic_revised", "logic_sha256": self.logic.sha256,
                 "goal_sha256": self.goal_sha256, "training_status": "provider_supplied_no_training_claim"}
 
+    def logic_context(self, role):
+        context = {"request": self.request, "goal_sha256": self.goal_sha256,
+                   "task": self.task.to_dict(), "logic": self.logic.to_dict() if self.logic else None,
+                   "feedback": [dict(f) for f in self.feedback], "role": role}
+        if self.construction_request is not None:
+            context["construction_request"] = dict(self.construction_request)
+        from .construction_candidates import attributed_feedback
+        context["attributed_feedback"] = attributed_feedback(self)
+        return context
+
     def propose_logic(self, role, provider):
         self.check_goal()
         member(role, "logic provider role", ("build_goal", "build_optimizer"))
         if provider is None:
             return {"status": "graph_provider_unavailable", "role": role,
                     "training_status": "graph_generation_not_trained_in_this_change"}
-        context = {"request": self.request, "goal_sha256": self.goal_sha256,
-                   "task": self.task.to_dict(), "logic": self.logic.to_dict() if self.logic else None,
-                   "feedback": [dict(f) for f in self.feedback], "role": role}
-        from .construction_candidates import attributed_feedback
-        context["attributed_feedback"]=attributed_feedback(self)
-        proposal = fields(provider(context), {"logic", "reason"})
+        proposal = fields(provider(self.logic_context(role)), {"logic", "reason"})
         self.check_goal()
         self.submit_logic(ConstructionLogic.from_dict(proposal["logic"]), role=role, reason=proposal["reason"])
         return {"status": "logic_revised", "logic_sha256": self.logic.sha256}
@@ -325,7 +338,8 @@ class ConstructionSession:
             "goal_sha256": self.goal_sha256, "classification": self.classification.to_dict(),
             "logic": self.logic.to_dict() if self.logic else None, "history": self.history, "feedback": self.feedback,
             "construction_progress": self.construction_progress, "optimization_feedback": self.optimization_feedback,
-            "logic_requirements_sha256":getattr(self,"logic_requirements_sha256",None)}
+            "logic_requirements_sha256":getattr(self,"logic_requirements_sha256",None),
+            **({"construction_request": dict(self.construction_request)} if self.construction_request is not None else {})}
 
     def to_dict(self):
         from .validation import canonical_json, parse_json

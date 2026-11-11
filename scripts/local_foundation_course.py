@@ -235,28 +235,6 @@ def restore_saved_course_bots(target,runtime):
     return bots
 
 
-def initial_task_rank(proposals,source_binding,prior_task_sha256,*,explicit_roots=False):
-    """Keep legacy identity matching, or select the migrated semantic objective."""
-    candidates=proposals.get('candidates',[])
-    if (explicit_roots and source_binding.get('construction_flow') in ('goal_skeleton_optimizer_until_pass_v4','four_concrete_handoffs_then_basic_cb_inference_v3')
-            and source_binding.get('basic_cb_stage')=='after_construction'):
-        for rank,candidate in enumerate(candidates):
-            task=candidate.get('task',{});goal=deepcopy(task.get('goal',{}))
-            if candidate.get('theme',{}).get('theme_id') not in source_binding.get('construction_theme_ids',[]):continue
-            if task.get('requirements')!=source_binding.get('construction_card_requirements',[]):continue
-            if any(field in goal for field in ('route_goal','required_activations','required_chain_resolutions')):continue
-            goal['constraints']=[item for item in goal.get('constraints',[]) if item.get('id')!='autonomous-axis']
-            if goal!=source_binding.get('construction_goal'):continue
-            return rank,{'kind':'explicit_postconstruction_policy_reselection',
-                'old_selected_task_sha256':prior_task_sha256,'new_selected_task_sha256':candidate['candidate_id'],
-                'candidate_rank':rank,'old_matches_relabelled':False}
-        raise RuntimeError('No ranked candidate matches the migrated post-construction semantic objective')
-    rank=next((i for i,candidate in enumerate(candidates) if candidate['candidate_id']==prior_task_sha256),None)
-    if rank is None:raise RuntimeError('Corrected flow cannot silently change the original selected goal')
-    return rank,None
-
-
-
 def run(base,directory,stop,status,*,resume=False,unit_boundary=None,continuation=None,
         execution_source_root=None,resource_base=None,comparison_policy=None,cb_signal_consumer=None,
         restore_only=False,required_device=None):
@@ -410,7 +388,7 @@ def run(base,directory,stop,status,*,resume=False,unit_boundary=None,continuatio
     if not config_path.exists():write(config_path,config)
     index=DataIndex(target/'index')
     course=ScenarioCourse(models,assets=assets,data_index=index,config=config,state_root=target/'course',bots=bots,
-        comparison_policy=comparison_policy)
+        comparison_policy=comparison_policy, formal_construction=True)
     if (course.root/'latest.json').exists():course.restore_latest()
     else:
         from local_course_corrected_flow import import_corrected_flow
@@ -440,6 +418,8 @@ def run(base,directory,stop,status,*,resume=False,unit_boundary=None,continuatio
     if cb_signal_consumer is None:cb_signal_consumer=getattr(comparison_policy,'consume_cb_signal',None)
     course.bind_admission_policy(comparison_policy)
     status.comparison_policy=comparison_policy;status.cb_signal_consumer=cb_signal_consumer
+    if unit_boundary is not None:
+        course.prepare_course_construction()
     score_completed=getattr(comparison_policy,'record_completed_construction',None)
     if (course.deck is not None and isinstance(course.construction,dict) and
             course.construction.get('construction_passed') is True and callable(score_completed)):
@@ -457,28 +437,16 @@ def run(base,directory,stop,status,*,resume=False,unit_boundary=None,continuatio
         error.safe_boundary_saved=True;error.pause_requested=True
         raise error
     if course.deck is None:
-        if continuation and correction is None:
-            raise RuntimeError('Migrated course has no original selected construction; preserve state and inspect')
+        selection = course.selection
         status('actual_role_construction_before_cb',course=course.status())
-        if course.selection is not None:
-            selection=course.selection
-        else:
-            proposals=models.kernel.propose_tasks()
-            wanted=correction['preserved_selected_task_sha256']
-            rank,reselection=initial_task_rank(proposals,models.kernel.source_binding,wanted,explicit_roots=explicit_roots)
-            selection=models.kernel.select_task(proposals,rank=rank)
-            if reselection is not None:
-                if selection.get('candidate_id')!=reselection['new_selected_task_sha256']:
-                    raise RuntimeError('Kernel selection differs from the migrated semantic candidate')
-                course.events.append(reselection)
-        course.selection=selection
         if unit_boundary('before',course,None,{'action':'build_goal'},0) is not True:
             course.desired='paused';course.save()
             error=RuntimeError('Independent supervision stopped initial construction')
             error.safe_boundary_saved=True;error.pause_requested=True
             raise error
         initial_budget=CycleBudget(course)
-        attempts=len(list(target.glob('construction-route-*.json')))
+        route_prefix = 'construction-route-' + selection['candidate_id'] + '-'
+        attempts=len(list(target.glob(route_prefix+'*.json')))
         def verifier(task,deck,current_assets,**limits):
             nonlocal attempts
             if stop.exists():raise RuntimeError('Safe stop before final candidate CB')
@@ -488,7 +456,7 @@ def run(base,directory,stop,status,*,resume=False,unit_boundary=None,continuatio
             options['seconds']=min(options['seconds'],initial_budget.check('initial_task_or_basic_cb_verifier'))
             proof=verify_goal(task,deck,current_assets,**options)
             initial_budget.check('after_initial_task_or_basic_cb_verifier')
-            write(target/('construction-route-'+str(attempts).zfill(3)+'.json'),{'task':task.to_dict(),'deck':deck.to_dict(),'proof':proof})
+            write(target/(route_prefix+str(attempts).zfill(3)+'.json'),{'task':task.to_dict(),'deck':deck.to_dict(),'proof':proof})
             return proof
         from local_course_collaboration import record_basic_cb_inference,basic_cb_completed,retire_candidate_proofs
         def recorder(t,d,value):
@@ -498,7 +466,7 @@ def run(base,directory,stop,status,*,resume=False,unit_boundary=None,continuatio
             return path
         result=models.kernel.run_selected(selection,verifier=verifier,budget=initial_budget,basic_cb_verifier=verifier,
             basic_cb_recorder=recorder,basic_cb_enabled=True,pause_requested=stop.exists)
-        prior=target/'initial-construction.json'
+        prior=target/'initial-formal-construction.json'
         from ygo_kito.construction_candidates import task_checked
         if (not task_checked(result.get('best')) or result.get('construction_passed') is not True
                 or not basic_cb_completed(result)):
@@ -512,7 +480,7 @@ def run(base,directory,stop,status,*,resume=False,unit_boundary=None,continuatio
         if result['best']['logic_sha256']!=result['latest_logic_sha256']:
             raise RuntimeError('Final candidate and final optimizer graph differ')
         course.construction=result;course.deck=DeckParts.from_dict(result['best']['deck']);course.rules.validate(course.deck)
-        retire_candidate_proofs(target, result['best']['deck'], route_prefix='construction-route-')
+        retire_candidate_proofs(target, result['best']['deck'], route_prefix=route_prefix)
         write(prior,result)
         score_completed=getattr(comparison_policy,'record_completed_construction',None)
         if callable(score_completed):

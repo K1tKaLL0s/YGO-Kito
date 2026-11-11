@@ -19,29 +19,6 @@ class CpuCourseLaunchTests(unittest.TestCase):
         fake_fcntl=types.SimpleNamespace(LOCK_EX=1,LOCK_NB=2,LOCK_UN=4,flock=lambda *_:None)
         with patch.dict(sys.modules,{'fcntl':fake_fcntl}):worker=load('launch_worker','local_training_worker.py')
         course=load('launch_course','local_foundation_course.py')
-        goal={'kind':'deck_constraints','constraints':[{'id':'requested-theme','minimum':12}],'preferences':[]}
-        policy={'construction_flow':'four_concrete_handoffs_then_basic_cb_inference_v3','basic_cb_stage':'after_construction',
-                'construction_theme_ids':['setcode-181'],'construction_card_requirements':[],'construction_goal':goal}
-        def candidate(ident,theme='setcode-181',route=False):
-            task_goal=json.loads(json.dumps(goal));task_goal['constraints'].append({'id':'autonomous-axis','minimum':1})
-            if route:task_goal['route_goal']={'kind':'old-fixed-route'}
-            return {'candidate_id':ident,'theme':{'theme_id':theme},'task':{'requirements':[],'goal':task_goal}}
-        old=candidate('old-task',route=True);outside=candidate('outside-theme',theme='different-theme')
-        undeclared=candidate('undeclared-card');undeclared['task']['requirements']=[{'card_id':123}]
-        first=candidate('first-legal');later=candidate('later-legal')
-        proposals={'candidates':[old,outside,undeclared,first,later]}
-        original_proposals=json.dumps(proposals,sort_keys=True)
-        rank,event=course.initial_task_rank(proposals,policy,'old-task',explicit_roots=True)
-        self.assertEqual(rank,3)
-        self.assertEqual(event['old_selected_task_sha256'],'old-task')
-        self.assertEqual(event['new_selected_task_sha256'],'first-legal')
-        self.assertIs(event['old_matches_relabelled'],False)
-        self.assertEqual(json.dumps(proposals,sort_keys=True),original_proposals)
-        self.assertEqual(course.initial_task_rank(proposals,policy,'old-task'),(0,None))
-        with self.assertRaisesRegex(RuntimeError,'No ranked candidate matches'):
-            course.initial_task_rank({'candidates':[old,outside,undeclared]},policy,'old-task',explicit_roots=True)
-        with self.assertRaisesRegex(RuntimeError,'original selected goal'):
-            course.initial_task_rank({'candidates':[first,later]},policy,'old-task')
         with tempfile.TemporaryDirectory() as temporary:
             base=Path(temporary)/'owner';source=base/'repository';resources=Path(temporary)/'old-resources'
             reports=base/'reports';reports.mkdir(parents=True)
@@ -66,8 +43,8 @@ class CpuCourseLaunchTests(unittest.TestCase):
                 def join(self,**kwargs):pass
             original_read=Path.read_text
             def read_text(path,*args,**kwargs):
-                if str(path)=='/proc/sys/kernel/random/boot_id':return 'fixture-boot'
-                if str(path)=='/proc/self/stat':return ' '.join(['0']*21+['fixture-ticks'])
+                if path.as_posix()=='/proc/sys/kernel/random/boot_id':return 'fixture-boot'
+                if path.as_posix()=='/proc/self/stat':return ' '.join(['0']*21+['fixture-ticks'])
                 return original_read(path,*args,**kwargs)
             fake_hash=lambda _:types.SimpleNamespace(hexdigest=lambda:'fixture-script')
             boundary=lambda *_:True
@@ -76,6 +53,7 @@ class CpuCourseLaunchTests(unittest.TestCase):
                 argv=['worker','--base',str(base),'--run-id',run_id,'--job','course','--resume',*extra]
                 with patch.object(sys,'argv',argv),patch.object(Path,'read_text',read_text),\
                      patch.object(worker.threading,'Thread',Thread),patch.object(worker.signal,'signal'),\
+                     patch.object(worker.signal,'SIGHUP',1,create=True),\
                      patch.object(worker.hashlib,'sha256',fake_hash),\
                      patch.object(worker.importlib.util,'spec_from_file_location',specification),\
                      patch.object(worker.importlib.util,'module_from_spec',lambda _:types.SimpleNamespace()),\

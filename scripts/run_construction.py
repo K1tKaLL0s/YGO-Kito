@@ -129,6 +129,23 @@ def advance_construction(kernel, selection, checkpoint, *, pause_requested, stat
         pause_requested=pause_requested, _checkpoint=commit, **options)
 
 
+def isolate_trial_kernel(models, candidate_budget=None):
+    from ygo_kito.autonomous_construction import AutonomousConstructionKernel
+
+    original = models.kernel
+    source_binding = dict(original.source_binding)
+    if candidate_budget is not None:
+        source_binding["construction_candidate_budget"] = candidate_budget
+    kernel = AutonomousConstructionKernel(models.builder, models.coordinator, assets=original.assets,
+        host_available_ids=original.requested_ids, source_binding=source_binding,
+        theme_minimum=original.theme_minimum, pool_limit=original.pool_limit,
+        candidate_limit=original.candidate_limit, allowed_theme_ids=original.allowed_theme_ids)
+    kernel.updates = dict(original.updates)
+    kernel.graph_updates = dict(original.graph_updates)
+    models.kernel = kernel
+    return kernel
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--checkpoint', type=Path, required=True)
@@ -180,6 +197,7 @@ def main(argv=None):
         status('loading_modules')
         os.environ.setdefault('CUBLAS_WORKSPACE_CONFIG', ':4096:8')
         import torch
+        from ygo_kito.course_construction_request import course_construction_request
         from ygo_kito.course_models import CourseModels
         from ygo_kito.period_runtime import PeriodBuildAssets
         environment = json.loads(args.environment.read_text(encoding='utf-8'))
@@ -193,22 +211,11 @@ def main(argv=None):
         saved = torch.load(args.checkpoint,map_location='cpu',weights_only=True)
         binding = json.loads(args.model_binding.read_text(encoding='utf-8'))
         models = CourseModels.from_state(saved['models'], assets=assets, expected_binding=binding)
-        if args.candidate_budget is not None:
-            from copy import deepcopy
-            from ygo_kito.autonomous_construction import AutonomousConstructionKernel
-            original = models.kernel
-            models.kernel = AutonomousConstructionKernel(models.builder, models.coordinator, assets=assets,
-                host_available_ids=original.requested_ids,
-                source_binding={**original.source_binding, 'construction_candidate_budget': args.candidate_budget},
-                theme_minimum=original.theme_minimum, pool_limit=original.pool_limit,
-                candidate_limit=original.candidate_limit, allowed_theme_ids=original.allowed_theme_ids)
-            models.kernel.updates = dict(original.updates)
-            models.kernel.graph_updates = dict(original.graph_updates)
-            models.kernel.archived_workflow = deepcopy(original.archived_workflow)
+        kernel = isolate_trial_kernel(models, args.candidate_budget)
         device_receipt = prepare_inference_device(models, args.device)
         write_json(args.output/'device.json', device_receipt)
         status('inference_device', **device_receipt)
-        kernel = models.kernel
+        request = course_construction_request(args.period)
         before = dict(models.builder.updates)
         if args.resume:
             committed = checkpoint.read(args.resume)
@@ -218,12 +225,14 @@ def main(argv=None):
             if len(selections) != 1:
                 raise ValueError('resume requires one saved construction task')
             selection = selections[0]
+            if selection.get("construction_request") != request:
+                raise ValueError("resume needs a checkpoint for the current formal request; start a new run for it")
         else:
             if pause:
                 write_json(args.output/'summary.json', dict(status='construction_suspended', stop_reason='user_pause'))
                 status('finished', status='construction_suspended', stop_reason='user_pause')
                 return 130
-            selection = kernel.select_task()
+            selection = kernel.select_task(construction_request=request)
         if selection.get('status') != 'model_selected_task':
             raise ValueError('construction task selection unresolved: '+str(selection.get('status')))
         if args.theme and selection['theme']['theme_id'] != args.theme:

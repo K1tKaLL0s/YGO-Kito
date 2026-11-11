@@ -452,7 +452,7 @@ class CalculationResumeTests(unittest.TestCase):
         self.assertEqual(sum('reference_delta' in row for row in selection['candidate_trace']['candidates']), 4)
         self.assertEqual(len(pairs), 10)
         self.assertCountEqual(evaluated_candidates, candidates)
-        self.assertEqual(roles,['build_goal','build_optimizer'])
+        self.assertEqual(roles, ['build_goal'])
         self.assertTrue(result['construction_passed'])
         self.assertEqual(result['continuation']['iteration'],1)
         self.assertEqual(result['continuation']['candidate_cursor'],first['candidate_cursor'])
@@ -502,7 +502,7 @@ class CalculationResumeTests(unittest.TestCase):
             result=construction_cycle(session,assets,providers,**options,max_candidates=0)
         self.assertNotIn(first,adapter.projected)
         for identity in ids.values():self.assertIn(identity,json.dumps(result))
-        self.assertEqual(roles,['build_goal','build_optimizer'])
+        self.assertEqual(roles, ['build_goal'])
         self.assertTrue(result['construction_passed'])
         self.assertEqual(result['continuation']['candidate_cursor'],saved['candidate_cursor'])
 

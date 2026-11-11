@@ -1,4 +1,5 @@
 """Independent subprocess checks using isolated synthetic records, never native games."""
+from contextlib import closing
 from copy import deepcopy
 from pathlib import Path
 import hashlib,json,sqlite3,subprocess,sys,tempfile,unittest
@@ -16,7 +17,7 @@ class IndependentDesignSupervisorTests(unittest.TestCase):
         self.script=ROOT/'scripts/design_supervisor.py';self.guard=ROOT/'scripts/local_design_supervision.py'
         self.course=self.base/'course';self.course.mkdir()
         ids=list(range(1,25))+list(range(1001,1016));db=self.base/'cards.cdb'
-        with sqlite3.connect(db) as c:
+        with closing(sqlite3.connect(db)) as c, c:
             c.execute('CREATE TABLE datas(id INTEGER PRIMARY KEY,alias INTEGER,ot INTEGER,type INTEGER,setcode INTEGER,race INTEGER,attribute INTEGER,level INTEGER)')
             c.executemany('INSERT INTO datas VALUES(?,?,?,?,?,?,?,?)',[(n,0,1,0x41 if n>=1000 else 17,385 if n in (1,2,3,4,1001,1002,1003) else 0,1,32,4) for n in ids])
         ban=self.base/'banlist.conf';ban.write_text('!2022.7\n',encoding='utf-8')
@@ -91,12 +92,36 @@ class IndependentDesignSupervisorTests(unittest.TestCase):
         candidate['concrete_proposal'] = dict(deck=candidate['deck'])
         write(self.path, self.result)
         catalog = Catalog(self.base, self.policy)
+        self.addCleanup(catalog.db.close)
         self.assertEqual(inspect_artifact(self.path, self.course, catalog)['phase_inventory_check'], 'handoff_identity')
         phase = phases[-1]
         phase['stage_3']['candidate_trace']['candidates'][0]['deck_sha256'] = '0' * 64
         write(self.path, self.result)
         with self.assertRaisesRegex(Violation, 'phase selection differs'):
             inspect_artifact(self.path, self.course, catalog)
+    def test_goal_effect_draft_binds_to_first_optimizer_handoff(self):
+        from scripts.design_supervisor import Catalog, Violation, inspect_artifact
+        from tests.test_construction_logic import example_graph
+
+        logic = example_graph()
+        draft = dict(logic=logic.to_dict(), logic_sha256=logic.sha256, goal_sha256='f' * 64,
+                     unfilled=self.task['sizes'])
+        first = self.result['handoffs'][0]
+        original = self.result['phases'][0]['proposal_deck']
+        first.update(role='build_optimizer', input_draft_sha256=logic.sha256,
+                     unfilled={z: n - len(original[z]) for z, n in self.task['sizes'].items()})
+        self.result.update(effect_draft=draft, goal_sha256=draft['goal_sha256'])
+        self.result['phases'][0] = dict(role='build_goal', effect_draft=draft,
+                                        stage_3=dict(status='effect_draft_ready'))
+        write(self.path, self.result)
+        catalog = Catalog(self.base, self.policy)
+        self.addCleanup(catalog.db.close)
+        self.assertEqual(inspect_artifact(self.path, self.course, catalog)['phase_inventory_check'], 'full_lists')
+        first['input_draft_sha256'] = '0' * 64
+        write(self.path, self.result)
+        with self.assertRaisesRegex(Violation, 'optimizer seed differs'):
+            inspect_artifact(self.path, self.course, catalog)
+
     def test_detects_wrong_real_deck_handoff_despite_passed_flag(self):
         self.result['passed']=True;self.result['cb_verified']=True;self.result['phases'][2]['input_deck']=deepcopy(self.result['phases'][0]['proposal_deck'])
         write(self.path,self.result);self.assertEqual(self.observe(2)['verdict'],'violation');self.assertTrue(self.stopped())

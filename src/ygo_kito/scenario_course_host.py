@@ -426,7 +426,8 @@ class ScenarioCourseHost:
         from .scenario_course import ScenarioCourse
         course = ScenarioCourse(models, assets=assets,
             data_index=DataIndex(state / "data-index", storage_limits=config.get("data_index_storage")),
-            config=config, state_root=state / "course", bots=bots, storage_envelope=self._storage_envelope)
+            config=config, state_root=state / "course", bots=bots, storage_envelope=self._storage_envelope,
+            formal_construction=True)
         if self.spec["resume"]: course.restore_latest()
         if progress is not None:
             progress({"kind": "scenario-course-host-run", "status": "running", "native_executed": None,

@@ -265,22 +265,30 @@ def evaluate_fill(session, assets, proposal, *, scopes=(), text_reviewer=None, v
 def _skeleton_candidates(session, assets, binding, scopes):
     """Generate axis-only quantities; no general-purpose completion here."""
     from collections import Counter
-    from .build_pipeline import EXTRA_TYPES, candidate_limit
+    from .build_pipeline import EXTRA_TYPES
     task, graph = session.task, session.logic
     axes = select_main_axes(task, assets, session.classification, scopes)
     if axes['status'] not in ('selected', 'skipped_broad'):
-        return []
+        return [], None
     pool = task.pool
-    if axes['status'] == 'selected':
+    if len(pool) > 128:
         pool = tuple(sorted({c for a in axes['axes'] for c in a['card_ids']} |
                             {r['card_id'] for r in task.requirements}))
-    elif len(pool) > 128:
+
+    def matching_codes(node, codes):
+        return [c for c in codes if all(binding._tag_status(assets.rows[c], tag)[0] == 'satisfied'
+                                       for tag in node.tags)]
+
+    matches = {node.node_id: matching_codes(node, pool) for node in graph.nodes}
+    missing = [node for node in graph.nodes if not matches[node.node_id]]
+    if missing and len(task.pool) > 128:
         from .construction_retrieval import candidate_ids
-        pool, _ = candidate_ids(task, assets, graph, catalog=binding.semantic_catalog)
-    matches = {node.node_id: [c for c in pool if all(
-        binding._tag_status(assets.rows[c], tag)[0] == 'satisfied' for tag in node.tags)] for node in graph.nodes}
+        recalled, _ = candidate_ids(task, assets, graph, scopes=scopes, catalog=binding.semantic_catalog)
+        remaining = sorted(set(recalled) - set(pool))
+        for node in missing:
+            matches[node.node_id] = matching_codes(node, remaining)
     result = []
-    complete = 0
+    complete = None
     for variant in range(min(task.candidate_budget, 16)):
         parts = {z: Counter() for z in ('main', 'extra', 'side')}
         for req in task.requirements:
@@ -288,10 +296,12 @@ def _skeleton_candidates(session, assets, binding, scopes):
         def add(code, quantity):
             zone = 'extra' if assets.rows[code]['type'] & EXTRA_TYPES else 'main'
             maximum = next((r['maximum'] for r in task.requirements if r['zone'] == zone and r['card_id'] == code), 3)
-            parts[zone][code] = max(parts[zone][code], min(quantity, maximum))
+            alias = assets.rows[code]['alias'] or code
+            limit = min(maximum, assets.limits.get(alias, 3))
+            parts[zone][code] = max(parts[zone][code], min(quantity, limit))
         for codes in matches.values():
             if codes:
-                code = codes[(variant // 3) % len(codes)]
+                code = codes[variant % len(codes)]
                 add(code, 1 if assets.rows[code]['type'] & EXTRA_TYPES else 1 + variant % 3)
         for axis in axes['axes']:
             codes = axis['card_ids']
@@ -302,9 +312,9 @@ def _skeleton_candidates(session, assets, binding, scopes):
                 code = codes[(offset + variant) % len(codes)]
                 add(code, min(3, axis['minimum'] - present))
         if all(sum(parts[z].values()) == task.sizes[z] for z in parts):
-            if complete >= candidate_limit(task):
-                continue
-            complete += 1
+            if complete is None:
+                complete = parts
+            continue
         deck = DeckParts(*(tuple(sorted(parts[z].elements())) for z in ('main', 'extra', 'side')))
         try:
             assets.validate_skeleton(task, deck)
@@ -312,19 +322,21 @@ def _skeleton_candidates(session, assets, binding, scopes):
             continue
         if deck not in result:
             result.append(deck)
-    return result
+    return result, complete
 
 
-def _build_axis_skeleton(session, assets, *, models, encoder, binding_provider, text_reviewer, scopes=(), layer_adapter=None):
+def build_axis_skeleton(session, assets, *, models, encoder, binding_provider, scopes=(), layer_adapter=None):
     binding = layer_adapter.binding if layer_adapter is not None else binding_provider
     from .construction_binding import CatalogBindingAdapter
     if not isinstance(binding, CatalogBindingAdapter):
         raise ContractError('axis skeleton requires source-bound catalog binding')
-    candidates = _skeleton_candidates(session, assets, binding, scopes)
+    candidates, complete = _skeleton_candidates(session, assets, binding, scopes)
     scores = [0.] * len(candidates)
     if models is not None and candidates:
         import torch
-        model = models['build_goal']; mode = model.training; model.eval()
+        model = models['build_optimizer']
+        mode = model.training
+        model.eval()
         try:
             with torch.no_grad():
                 scores = model(encoder.batch(session.task, candidates)).reshape(-1).tolist()
@@ -332,23 +344,17 @@ def _build_axis_skeleton(session, assets, *, models, encoder, binding_provider, 
             model.train(mode)
         if len(scores) != len(candidates) or any(not math.isfinite(v) for v in scores):
             raise ContractError('invalid skeleton model scores')
-    attempts = []
-    for i in sorted(range(len(candidates)), key=lambda i: (-scores[i], i)):
-        try:
-            proposal = binding_provider(session.logic, session.task, candidates[i], partial=True)
-            result = evaluate_fill(session, assets, proposal, scopes=scopes, text_reviewer=text_reviewer,
-                verifier=None, defer_engine=True, partial=True)
-        except ContractError as error:
-            attempts.append({'status': 'skeleton_binding_unmatched', 'reason': str(error)})
-            continue
-        attempts.append(result)
-        if result['status'] == 'axis_skeleton_ready':
-            return dict(result, role='build_goal', selected_attempt_index=len(attempts)-1, attempts=attempts,
-                candidate_count=len(candidates), candidate_decks=[d.to_dict() for d in candidates],
-                model_scores=scores, model_called=models is not None, layer_evaluation=None, portfolio=[],
-                unfilled={z: session.task.sizes[z] - len(getattr(proposal.deck, z)) for z in ('main','extra','side')})
-    return {'status': 'axis_skeleton_unresolved', 'best_deck': None, 'attempts': attempts,
-            'candidate_decks': [d.to_dict() for d in candidates], 'candidate_count': len(candidates), 'model_scores': scores}
+    if candidates:
+        deck = candidates[max(range(len(candidates)), key=scores.__getitem__)]
+    elif complete is not None:
+        deck = DeckParts(*(tuple(sorted(complete[z].elements())) for z in ('main', 'extra', 'side')))
+        if not assets.accepts(session.task, deck):
+            return {'status': 'axis_skeleton_unresolved', 'best_deck': None}
+    else:
+        return {'status': 'axis_skeleton_unresolved', 'best_deck': None}
+    return dict(status='axis_skeleton_ready', role='build_optimizer', best_deck=deck.to_dict(),
+        candidate_count=len(candidates), model_called=models is not None and bool(candidates),
+        unfilled={z: session.task.sizes[z] - len(getattr(deck, z)) for z in ('main', 'extra', 'side')})
 
 
 def _fill_with_existing(session, assets, *, role="build_goal", base=None, models=None, encoder=None,
@@ -356,7 +362,7 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
                        layer_adapter=None, search_offset=0, quality_policy=None, quality_evidence=None,
                        should_stop=None, pending_quality=None, recognition_provider=None, recognition_mode="off",
                        query_cursor=0, retrieval_limit=128, on_evaluation_progress=None, _comparisons=None,
-                       incumbent_recognition=None):
+                       incumbent_recognition=None, initial_draft=False):
     """Reuse existing fill/quantity generation and independent model ranking.
 
     Concrete CatalogBindingAdapter/LogicModelAdapter implementations can supply
@@ -429,11 +435,20 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
         candidates = [{**row, 'deck': DeckParts.from_dict(row['deck'])}
                       for row in pending_quality['candidates']]
         generation_trace = pending_quality['generation']
+    elif initial_draft and assets.accepts(task, base):
+        # A seed can fill every slot in a task with explicitly fixed cards.
+        # Its already constructed list is this round's sole candidate.
+        from .construction_candidates import portfolio
+        candidates = portfolio(task, assets, initial=(base,), trace=generation_trace)
+        generation_trace['generator'] = 'optimizer_complete_seed'
     elif role == 'build_optimizer' and base is not None and not assets.accepts(task, base):
         assets.validate_skeleton(task, base)
+        draft_options = (dict(draft_graph=session.logic,
+            catalog=layer_adapter.catalog if layer_adapter is not None else getattr(binding_provider, 'semantic_catalog', None))
+            if initial_draft else {})
         candidates = goal_candidates(task, assets, skeleton=base, return_portfolio=True,
-                                    trace=generation_trace, **query_options)
-        generation_trace['generator'] = 'optimizer_completion_of_goal_skeleton'
+                                    trace=generation_trace, **query_options, **draft_options)
+        generation_trace['generator'] = 'optimizer_draft_completion' if initial_draft else 'optimizer_completion_of_legacy_skeleton'
     else:
         candidates = (goal_candidates(task, assets, base,feedback=feedback,return_portfolio=True,mechanism_groups=mechanism_groups,trace=generation_trace,graph=session.logic,**query_options) if role == "build_goal"
                       else edit_candidates(task, assets, base, require_edit=False,feedback=feedback,return_portfolio=True,mechanism_groups=mechanism_groups,trace=generation_trace,graph=session.logic,search_offset=search_offset,**query_options))
@@ -767,13 +782,13 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
                        max_candidates=None, pause_requested=None, cb_authorized=False,
                        recognition_provider=None, recognition_mode="off", quality_factory=None, retrieval_limit=128,
                        _validate_saved=True, _comparisons=None):
-    """Goal skeleton once, then optimizer slices until the pre-CB gate passes."""
+    """Draft once, then fill and optimize until the pre-CB gate passes."""
     import time
     from .build_pipeline import candidate_limit
     from .construction_candidates import changes
     from .construction_progress import (compact_completed_progress, compact_optimizer_phase,
         construction_gate, quality_policy, restore_progress, feedback_for_iteration,
-        finish_feedback, record_reference_attempt, invalidate_reference_evaluation, REFERENCE_STAGE_VERSION)
+        finish_feedback, goal_effect_draft, record_reference_attempt, invalidate_reference_evaluation, REFERENCE_STAGE_VERSION)
     from .validation import integer
     integer(max_iterations, 'optimizer iterations per slice', 0, 64)
     if seconds is not None and (type(seconds) not in (int, float) or not math.isfinite(seconds) or seconds < 0):
@@ -821,36 +836,44 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
     def graph_selection(role):
         owner = getattr(providers.get(role), '__self__', None)
         return deepcopy(getattr(owner, 'last_selection', {}).get(role))
+    draft = goal_effect_draft(session) if state is None or state['handoffs'][0]['role'] == 'build_optimizer' else None
     if state is None and stopped() is None:
-        phase = dict(phase_number=1, role='build_goal', input_deck=None,
-            parameter_update_performed=False, responsibility='axis_skeleton')
-        phases.append(phase)
-        phase['stage_1'] = session.propose_logic('build_goal', providers.get('build_goal'))
-        phase['graph_model_selection'] = graph_selection('build_goal')
-        phase['stage_2'] = (select_main_axes(session.task,assets,session.classification,scopes)
-            if phase['stage_1']['status']=='logic_revised' else dict(status='not_run',axes=[]))
-        if phase['stage_1']['status'] == 'logic_revised':
-            result = build_axis_skeleton(session, assets, models=models, encoder=encoder,
-                binding_provider=binding_provider, text_reviewer=text_reviewer, scopes=scopes, layer_adapter=layer_adapter,
-                recognition_provider=recognition_provider, recognition_mode=recognition_mode)
-            phase['stage_3'] = result
-            if result['status'] == 'axis_skeleton_ready':
-                deck = DeckParts.from_dict(result['best_deck'])
-                row = dict(deck=deck.to_dict(), deck_sha256=digest(deck.to_dict()),
-                    concrete_proposal=result['concrete_proposal'], layer_evaluation=None)
-                phase.update(proposal_deck=deck.to_dict(), proposal_changes=changes(DeckParts((),(),()), deck),
-                    unfilled=result['unfilled'], acceptance='axis_skeleton_handoff')
-                state = dict(schema_version=3, task_sha256=session.task.sha256, status='optimizing',
-                    logic_sha256=session.logic.sha256, candidate=row, skeleton=deepcopy(row),
-                    candidate_version=1, iteration=0, candidate_cursor=0, query_cursor=0, stagnation=0,
-                    quality_policy=policy, gate=None, retained_candidates=[], last_optimizer_phase=None)
-                state.update(pending_quality=None, pending_phase=None, pending_reference=None,
-                    reference_evaluation=None, reference_binding=None)
-                state['handoffs'] = [dict(role='build_goal', candidate_version=1,
-                    input_deck_sha256=None, output_deck_sha256=row['deck_sha256'])]
-                save()
-        if state is None:
-            reason = 'axis_skeleton_unresolved'
+        if draft is None or draft['logic_sha256'] != session.logic.sha256:
+            phase = dict(phase_number=1, role='build_goal', input_deck=None,
+                parameter_update_performed=False, responsibility='effect_draft')
+            phases.append(phase)
+            phase['stage_1'] = session.propose_logic('build_goal', providers.get('build_goal'))
+            phase['graph_model_selection'] = graph_selection('build_goal')
+            draft = goal_effect_draft(session, record=True) if phase['stage_1']['status'] == 'logic_revised' else None
+            if draft is not None:
+                phase.update(effect_draft=draft, unfilled=draft['unfilled'], acceptance='effect_draft_handoff')
+                phase['stage_2'] = dict(status='needs_clarification'
+                    if session.classification.kind not in ('broad', 'narrow') else 'deferred_to_optimizer')
+                phase['stage_3'] = dict(status='effect_draft_ready', candidate_count=0)
+            else:
+                reason = 'effect_draft_unresolved'
+        if draft is not None and stopped() is None and max_iterations:
+            if max_candidates < round_limit:
+                reason = 'candidate_slice_exhausted'
+            else:
+                result = build_axis_skeleton(session, assets, models=models, encoder=encoder,
+                    binding_provider=binding_provider, scopes=scopes, layer_adapter=layer_adapter)
+                if result['status'] == 'axis_skeleton_ready':
+                    deck = DeckParts.from_dict(result['best_deck'])
+                    row = dict(deck=deck.to_dict(), deck_sha256=digest(deck.to_dict()),
+                        concrete_proposal=result.get('concrete_proposal'), layer_evaluation=None)
+                    state = dict(schema_version=3, task_sha256=session.task.sha256, status='optimizing',
+                        logic_sha256=session.logic.sha256, candidate=row,
+                        candidate_version=1, iteration=0, candidate_cursor=0, query_cursor=0, stagnation=0,
+                        quality_policy=policy, gate=None, retained_candidates=[], last_optimizer_phase=None,
+                        pending_quality=None, pending_phase=None, pending_reference=None,
+                        reference_evaluation=None, reference_binding=None)
+                    state['handoffs'] = [dict(role='build_optimizer', candidate_version=1,
+                        input_deck_sha256=None, output_deck_sha256=row['deck_sha256'],
+                        input_draft_sha256=draft['logic_sha256'], unfilled=result['unfilled'])]
+                    save()
+                else:
+                    reason = 'optimizer_seed_unresolved'
     if state is not None and (derive_policy or quality_factory is not None):
         if quality_factory is None:
             from .construction_progress import host_construction_quality
@@ -910,6 +933,7 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
         current = DeckParts.from_dict(state['candidate']['deck'])
         state['status'] = 'optimizing'
         iteration = state['iteration'] + 1
+        initial_draft = iteration == 1 and state['handoffs'][0]['role'] == 'build_optimizer'
         if resuming:
             phase = dict(state['pending_phase'])
             packages = []
@@ -923,12 +947,17 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
                 input_deck=current.to_dict(), input_candidate_version=state['candidate_version'],
                 feedback_before=deepcopy(session.feedback), optimization_feedback=deepcopy(receipts),
                 parameter_update_performed=False, responsibility='relations_quantities_and_generic_slots')
-            phase['stage_1'] = session.propose_logic('build_optimizer', providers.get('build_optimizer'))
-            phase['graph_model_selection'] = graph_selection('build_optimizer')
-            phase['stage_2'] = (select_main_axes(session.task,assets,session.classification,scopes)
-                if phase['stage_1']['status']=='logic_revised' else dict(status='not_run',axes=[]))
+            if initial_draft:
+                phase['stage_1'] = dict(status='effect_draft_received', logic_sha256=session.logic.sha256,
+                    input_draft_sha256=state['handoffs'][0]['input_draft_sha256'])
+            else:
+                phase['stage_1'] = session.propose_logic('build_optimizer', providers.get('build_optimizer'))
+                phase['graph_model_selection'] = graph_selection('build_optimizer')
+            phase['stage_2'] = (select_main_axes(session.task, assets, session.classification, scopes)
+                if phase['stage_1']['status'] in ('logic_revised', 'effect_draft_received')
+                else dict(status='not_run', axes=[]))
         phases.append(phase)
-        if phase['stage_1']['status'] != 'logic_revised':
+        if phase['stage_1']['status'] not in ('logic_revised', 'effect_draft_received'):
             finish_feedback(receipts, None)
             reason = 'optimizer_logic_unresolved'
             break
@@ -957,7 +986,7 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
                 query_cursor=state.get('query_cursor',0), retrieval_limit=retrieval_limit,
                 on_evaluation_progress=save_evaluation_progress,
                 incumbent_recognition=state['candidate'].get('recognition'), recognition_provider=recognition_provider, recognition_mode=recognition_mode,
-                _comparisons=_comparisons)
+                _comparisons=_comparisons, initial_draft=initial_draft)
             phase['stage_3'] = result
             generated = len(result.get('candidate_trace', {}).get('candidates', ()))
             if not resuming and not generation_recorded:
@@ -1139,7 +1168,7 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
         construction_candidate=candidate, construction_passed=admitted, static_gate_passed=passed,
         construction_gate=deepcopy(state['gate']) if state else None,
         continuation=state, basic_cb=cb, retained_candidates=[],
-        handoffs=deepcopy(state['handoffs']) if state else [],
+        handoffs=deepcopy(state['handoffs']) if state else [], effect_draft=draft,
         task_verified=bool(passed and candidate['task_verified']), cb_verified=bool(passed and candidate['cb_verified']),
         latest_logic_sha256=session.logic.sha256 if session.logic else None, goal_sha256=session.goal_sha256,
         task_goal_sha256=digest(session.task.goal), graph_execution_verified=False,
@@ -1149,13 +1178,6 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
             'unresolved':state['gate']['reasons'] if state and state['gate'] else [reason],
             'next_action':'continue_optimizer_with_advanced_candidate_cursor'},
         optimization_training='no_parameter_update_in_construction_cycle', training_status='no_training_performed_by_this_cycle')
-
-
-def build_axis_skeleton(session, assets, *, recognition_provider=None, recognition_mode="off", **options):
-    from .construction_recognition import record_recognition_result, recognition_mode as check_mode
-    check_mode(recognition_mode)
-    result = _build_axis_skeleton(session, assets, **options)
-    return record_recognition_result(result, session.task, assets, recognition_provider, recognition_mode)
 
 
 def fill_with_existing(session, assets, *, recognition_provider=None, recognition_mode="off", **options):

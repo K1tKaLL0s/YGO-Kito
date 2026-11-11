@@ -22,7 +22,8 @@ from .construction_binding import CatalogBindingAdapter, PublicFactTag
 from .construction_controller import ConstructionController
 from .construction_fill import existing_goal_verifier
 from .construction_logic import ConstructionSession, LogicTag, ThemeScope
-from .construction_model import LogicCodec, LogicFeatureEncoder, LogicModelAdapter
+from .construction_model import LogicCodec, LogicFeatureEncoder, LogicModelAdapter, task_request_features
+from .course_construction_request import TEARLAMENTS_THEME_ID, course_construction_request
 from .construction_effect_blocks import logic_vocabulary, requested_logic_tags
 from .device import model_device
 from .duel_model import parameter_digest
@@ -79,9 +80,10 @@ class CourseBuildEncoder(BuildEncoder):
     def _encoding_view(self, task):
         self.assert_binding()
         from .card_identity import canonical_card_id
+        formal = isinstance(task, BuildTask) and task.is_formal_construction and not task.annotations
         if (not isinstance(task, BuildTask) or any(c not in self.available_ids and
                 canonical_card_id(self.assets.rows, c) not in self.available_ids for c in task.pool)
-                or digest(list(task.annotations)) != self.annotations_sha256
+                or (not formal and digest(list(task.annotations)) != self.annotations_sha256)
                 or digest(task.environment) != self.environment_sha256):
             raise ContractError("course task pool, environment or annotations differ")
         self.assets.check_task(task)
@@ -282,14 +284,18 @@ class AutonomousConstructionKernel:
         return result
 
 
-    def _task(self, theme, pool, route):
+    def _task(self, theme, pool, route, *, construction_request=None):
         base = self.builder.task.to_dict()
-        goal = deepcopy(self.source_binding.get('construction_goal', base['goal']))
+        if construction_request is None:
+            goal = deepcopy(self.source_binding.get('construction_goal', base['goal']))
+        else:
+            goal = {"kind": "deck_constraints", "constraints": [], "preferences": []}
+            base.update(source="user_provided", requirements=[], annotations=[])
         if len(goal["constraints"]) >= 12:
             raise ContractError("autonomous axis needs an available semantic constraint slot")
         goal["constraints"].append({"id":"autonomous-axis", "zones":["main","extra"],
             "predicate":{"field":theme["field"],"value":theme["value"]},
-            "minimum":self.theme_minimum,"maximum":75})
+            "minimum":self.theme_minimum if construction_request is None else 1,"maximum":75})
         requirements = {(r["zone"],r["card_id"]):deepcopy(r) for r in base["requirements"]}
         if route is not None:
             goal["route_goal"] = deepcopy(route)
@@ -308,15 +314,21 @@ class AutonomousConstructionKernel:
             for (zone,code), minimum in wanted.items():
                 row = requirements.setdefault((zone,code),{"zone":zone,"card_id":code,"minimum":0,"maximum":3})
                 row["minimum"] = max(row["minimum"],minimum)
-        base.update(schema_version=4, task_id="auto-"+digest({"theme":theme["theme_id"],"pool":pool,"goal":goal})[:24],
+        task_identity = {"theme":theme["theme_id"],"pool":pool,"goal":goal}
+        if construction_request is not None:
+            task_identity["construction_request"] = construction_request
+        prefix = "auto-" if construction_request is None else "formal-"
+        base.update(schema_version=4, task_id=prefix+digest(task_identity)[:24],
                     goal=goal,pool=sorted(pool),requirements=list(requirements.values()))
         if 'construction_candidate_budget' in self.source_binding:
             base['candidate_budget'] = self.source_binding['construction_candidate_budget']
+        if construction_request is not None:
+            base['candidate_budget'] = min(5, base['candidate_budget'])
         return BuildTask.from_dict(base)
 
 
 
-    def _task_batch(self, tasks, decks=None):
+    def _task_batch(self, tasks, decks=None, *, construction_request=None):
         encoded = [self.builder.encoder.encode(task, DeckParts((),(),()) if decks is None else deck)
                    for task,deck in zip(tasks, [None]*len(tasks) if decks is None else decks)]
         length = max(len(r[0]) for r in encoded)
@@ -327,28 +339,48 @@ class AutonomousConstructionKernel:
         for i,(tokens,numbers,_) in enumerate(encoded):
             result["tokens"][i,:len(tokens)] = torch.tensor(tokens)
             result["numbers"][i,:len(tokens)] = torch.tensor(numbers)
+            if construction_request is not None:
+                result["numbers"][i,0] = torch.tensor(task_request_features(
+                    {"request": construction_request["text"], "construction_request": construction_request}))
             result["mask"][i,:len(tokens)] = True
             deck=DeckParts((),(),()) if decks is None else decks[i]
             result['mechanisms'][i,:len(tokens)]=torch.tensor(self.builder.encoder.mechanism_features(tasks[i],deck,tokens))
         return result
 
-    def propose_tasks(self):
+    def _check_construction_request(self, request):
+        period = getattr(self.assets, "period_id", None)
+        if request is not None and (period is None or request != course_construction_request(period)):
+            raise ContractError("formal construction request differs from the loaded period")
+        return request
+
+    def propose_tasks(self, *, construction_request=None):
         self._check()
-        mandatory = {r['card_id'] for r in self.builder.task.requirements} | _referenced_ids(self.source_binding.get('construction_goal', self.builder.task.goal))
+        self._check_construction_request(construction_request)
+        mandatory = set()
+        route = None
+        allowed_theme_ids = self.allowed_theme_ids
+        if construction_request is None:
+            goal = self.source_binding.get('construction_goal', self.builder.task.goal)
+            mandatory = {r['card_id'] for r in self.builder.task.requirements} | _referenced_ids(goal)
+            route = goal.get('route_goal')
+        else:
+            allowed_theme_ids = (TEARLAMENTS_THEME_ID,) if construction_request["theme"] else None
         themes, candidates, omitted = self.enumerate_themes(), [], []
-        if self.allowed_theme_ids is not None:
-            themes = [t for t in themes if t["theme_id"] in self.allowed_theme_ids]
+        if allowed_theme_ids is not None:
+            themes = [t for t in themes if t["theme_id"] in allowed_theme_ids]
         if not mandatory <= set(self.task_ids):
             return {"status":"fixed_goal_card_unavailable","candidates":[],"omitted":[],"goal_preserved":True}
         for theme in themes:
             try:
-                route = self.source_binding.get('construction_goal', self.builder.task.goal).get('route_goal')
-                task = self._task(theme, self.task_ids, route)
+                task = self._task(theme, self.task_ids, route, construction_request=construction_request)
                 self.assets.check_task(task)
                 candidates.append({"candidate_id":task.sha256,"task":task.to_dict(),"theme":deepcopy(theme),
                     "dependency_recall":{'status':'not_started_before_logic','events':[]},
-                    "goal_proposal_origin":'host_explicit_route' if route else 'public_theme_assignment',
-                    "proposal_source":"environment_task_before_card_retrieval", "cb_goal_proposed":False})
+                    "goal_proposal_origin": ("user_requested_theme" if construction_request and construction_request["theme"]
+                        else "model_autonomous_theme" if construction_request
+                        else "host_explicit_route" if route else "public_theme_assignment"),
+                    "proposal_source":"environment_task_before_card_retrieval", "cb_goal_proposed":False,
+                    **({"construction_request": deepcopy(construction_request)} if construction_request is not None else {})})
             except ContractError as error:
                 omitted.append({"theme_id":theme["theme_id"],"reason":str(error)})
         if not candidates:
@@ -359,7 +391,7 @@ class AutonomousConstructionKernel:
             with torch.no_grad():
                 for start in range(0,len(candidates),32):
                     tasks=[BuildTask.from_dict(c["task"]) for c in candidates[start:start+32]]
-                    scores.extend(model(self._task_batch(tasks)).detach().cpu().tolist())
+                    scores.extend(model(self._task_batch(tasks, construction_request=construction_request)).detach().cpu().tolist())
         finally: model.train(was_training)
         if any(not math.isfinite(v) for v in scores):raise ContractError("nonfinite actual goal-model task scores")
         for candidate,score in zip(candidates,scores):candidate["model_score_uncalibrated"]=score
@@ -378,21 +410,28 @@ class AutonomousConstructionKernel:
                 digest(raw)!=proposals.get("proposal_sha256") or proposals.get("binding_sha256")!=self._binding_sha256):
             raise ContractError("task proposals/scores changed or were not generated by this kernel")
 
-    def select_task(self, proposals=None, *, rank=0):
+    def select_task(self, proposals=None, *, rank=0, construction_request=None):
         self._check()
         integer(rank,"actual model-ranked task position",0)
-        proposals=self.propose_tasks() if proposals is None else proposals
+        if proposals is None:
+            proposals = (self.propose_tasks() if construction_request is None else
+                         self.propose_tasks(construction_request=construction_request))
         if proposals.get("status")!="model_ranked_tasks":return deepcopy(proposals)
         self._check_proposals(proposals)
         if proposals.get("binding_sha256")!=self._binding_sha256 or proposals.get("model_sha256")!=parameter_digest(self.builder.models["build_goal"]):
             raise ContractError("task selection scores belong to stale source/model state")
         candidates=proposals["candidates"]
         if candidates:integer(rank,"actual model-ranked task position",0,len(candidates)-1)
-        if not candidates or (len({v["score"] for v in proposals["all_scores"]})<2 and not (len(candidates)==1 and self.allowed_theme_ids is not None)):
+        request = candidates[rank].get("construction_request") if candidates else None
+        if construction_request is not None and request != construction_request:
+            raise ContractError("ranked tasks belong to another formal request")
+        fixed_theme = (request["theme"] is not None if request is not None else self.allowed_theme_ids is not None)
+        single_fixed = len(candidates) == 1 and fixed_theme
+        if not candidates or (len({v["score"] for v in proposals["all_scores"]})<2 and not single_fixed):
             return {"status":"model_selection_unresolved","reason":"no discriminating model scores; no rule-theme fallback"}
         selected=deepcopy(candidates[rank]);task=BuildTask.from_dict(selected["task"])
         self.assets.check_task(task)
-        selected.update(status="model_selected_task", selection_method=("user_fixed_theme_single_task_model_scored" if len(candidates)==1 and self.allowed_theme_ids is not None else "model_ranked_task_choice"),binding_sha256=self._binding_sha256,
+        selected.update(status="model_selected_task", selection_method=("user_fixed_theme_single_task_model_scored" if single_fixed else "model_ranked_task_choice"),binding_sha256=self._binding_sha256,
                         selected_model_sha256=proposals["model_sha256"],goal_sha256=digest(task.goal))
         self.selections[selected["candidate_id"]]=deepcopy(selected)
         return selected
@@ -429,9 +468,13 @@ class AutonomousConstructionKernel:
         task=BuildTask.from_dict(selection["task"])
         theme=selection["theme"]
         actual=next((t for t in self.enumerate_themes() if t["theme_id"]==theme.get("theme_id")),None)
+        request = self._check_construction_request(selection.get("construction_request"))
+        invalid_formal_theme = request is not None and request["theme"] is not None and theme["theme_id"] != TEARLAMENTS_THEME_ID
+        route = task.goal.get("route_goal")
         if (task.pool != self.task_ids or actual!=theme or ident!=task.sha256 or selection["binding_sha256"]!=self._binding_sha256 or
                 selection["goal_sha256"]!=digest(task.goal) or selection.get("status")!="model_selected_task" or
-                task.to_dict()!=self._task(theme,task.pool,task.goal.get("route_goal")).to_dict()):
+                invalid_formal_theme or (request is not None and route is not None) or
+                task.to_dict()!=self._task(theme,task.pool,route,construction_request=request).to_dict()):
             raise ContractError("restored task/theme changed the original course goal")
         self.builder.encoder.encode(task,DeckParts((),(),()))
 
@@ -440,13 +483,16 @@ class AutonomousConstructionKernel:
         if ident not in self.sessions:
             from .build_intent import IntentClassification
             theme=selection["theme"];term=theme["tag"]["value"]
-            session=ConstructionSession("Autonomous model-selected explicit scope "+term,task)
-            # This is an already-selected internal task, never a user-text
-            # classifier prediction or a fabricated trained confidence score.
-            session.classification=IntentClassification("narrow",1.0,(term,),reasons=("explicit internal task assignment; not text classification",))
+            request = selection.get("construction_request")
+            session = ConstructionSession(request["text"] if request else "Autonomous model-selected explicit scope "+term,
+                                          task, construction_request=request)
+            reason = "model-selected theme within the unrestricted request" if request and not request["theme"] else (
+                "theme explicitly requested by the user" if request else "explicit internal task assignment; not text classification")
+            session.classification=IntentClassification("narrow",1.0,(term,),reasons=(reason,))
             effect_tags = logic_vocabulary()
             theme_tag=LogicTag.from_dict(theme["tag"])
-            requested=self.source_binding.get("construction_logic_requirements",{"tags":[],"connector_kinds":[]})
+            requested = {"tags": [], "connector_kinds": []} if request else self.source_binding.get(
+                "construction_logic_requirements", {"tags": [], "connector_kinds": []})
             if not isinstance(requested,dict) or set(requested)!={"tags","connector_kinds"}:
                 raise ContractError("explicit construction logic requirements need tags and connector_kinds")
             required_tags=requested_logic_tags(task,(theme_tag,*(LogicTag.from_dict(t) for t in requested["tags"])))
@@ -465,18 +511,25 @@ class AutonomousConstructionKernel:
 
     def quality_for_task(self, task):
         from .construction_progress import host_construction_quality, quality_policy, specified_course_reference
-        supplied = self.source_binding.get('construction_quality_policy')
-        if supplied is not None:
-            return quality_policy(supplied), deepcopy(self.source_binding.get('construction_quality_reference'))
-        selected = next((s for s in self.selections.values() if s['task']==task.to_dict()), None)
+        selected = self.selections.get(task.sha256)
+        request = selected.get("construction_request") if selected else None
         theme_id = selected['theme']['theme_id'] if selected else None
-        period = self.source_binding.get('period_id') or (self.source_binding.get('period_context') or {}).get('period_id')
+        source_period = self.source_binding.get('period_id') or (self.source_binding.get('period_context') or {}).get('period_id')
+        period = request["period_id"] if request else source_period
+        supplied = self.source_binding.get('construction_quality_policy')
+        supplied_reference = self.source_binding.get('construction_quality_reference')
+        unrelated_reference = (request is not None and period == "2026-10"
+            and isinstance(supplied_reference, dict)
+            and supplied_reference.get("environment") not in (None, task.environment))
+        if supplied is not None and not unrelated_reference:
+            return quality_policy(supplied), deepcopy(supplied_reference)
         reference_id = self.source_binding.get('construction_quality_reference_id')
-        # The historical course requests already name their fixed theme. Their
-        # specified listings are independent of the automatic weighting rules.
-        if reference_id is None and theme_id in self.source_binding.get('construction_theme_ids', ()):
-            reference_id = specified_course_reference(period, theme_id)
-        requested = self.source_binding.get('construction_logic_requirements', {})
+        if request and period == "2026-10":
+            historical_ids = {specified_course_reference(historical, TEARLAMENTS_THEME_ID)
+                              for historical in ("2022-07", "2022-10")}
+            if reference_id in historical_ids or unrelated_reference:
+                reference_id = None
+        requested = {} if request else self.source_binding.get('construction_logic_requirements', {})
         return host_construction_quality(task, period_id=period, theme_id=theme_id,
             catalog=self.mechanisms, theme=selected['theme'] if selected else None,
             goal_tags=requested.get('tags', ()), reference_id=reference_id)
@@ -499,7 +552,9 @@ class AutonomousConstructionKernel:
         binding=CatalogBindingAdapter(self.assets,fact_tags=(PublicFactTag(tag,theme["field"],theme["value"],theme["source"]),))
         binding.semantic_catalog = self.mechanisms
         controller=ConstructionController(adapter,binding,self.coordinator)
-        scope=ThemeScope(theme["tag"]["value"],theme["field"],theme["value"],theme["source"],self.theme_minimum)
+        request = selection.get("construction_request")
+        scope=ThemeScope(theme["tag"]["value"],theme["field"],theme["value"],theme["source"],
+                         1 if request is not None else self.theme_minimum)
         basic_provider=None
         if basic_cb_enabled and self.source_binding.get('basic_cb_stage')=='after_construction':
             from .basic_cb_inference import infer_basic_cb
@@ -528,7 +583,8 @@ class AutonomousConstructionKernel:
                               basic_cb_provider=basic_provider,
                               cb_authorized=basic_cb_enabled, _comparisons=comparisons, **iteration_options)
         result.update(selected_task_sha256=session.task.sha256,selected_theme_id=theme["theme_id"],
-            internal_task_assignment=True,text_classifier_inference=False,goal_preserved=True,
+            internal_task_assignment=request is None,text_classifier_inference=False,goal_preserved=True,
+            **({"construction_request": deepcopy(request)} if request is not None else {}),
              mechanisms=self.mechanisms.summarize(theme['card_ids']),
              mechanism_inference='bounded_card_text_recognition_not_trained_model_claim',
             ability_verified=False,
@@ -536,7 +592,8 @@ class AutonomousConstructionKernel:
                            'scope':'coarse_vocabulary_before_card_binding',
                            'tags':[{'dimension':t.dimension,'value':t.value} for t in effect_tags],
                            'assessment_count':0,'connectors_separate':True,
-                            'user_requested':deepcopy(self.source_binding.get('construction_logic_requirements',{'tags':[],'connector_kinds':[]})),
+                            'user_requested':{'tags': [], 'connector_kinds': []} if request else deepcopy(
+                                self.source_binding.get('construction_logic_requirements',{'tags':[],'connector_kinds':[]})),
                             'requirements_include_inferred_mechanism_proposals':False,
                             'requested':adapter.requirements(),'reviews_define_requirements':False})
         result["basic_cb_inference_performed"]=bool((result.get("basic_cb") or {}).get("inference_completed"))
@@ -560,7 +617,8 @@ class AutonomousConstructionKernel:
         candidates=proposals["candidates"];ids=[c["candidate_id"] for c in candidates]
         if preferred_id not in ids or len(ids)<2:raise ContractError("preference requires an existing choice and alternatives")
         model=self.builder.models["build_goal"]
-        logits=model(self._task_batch([BuildTask.from_dict(c["task"]) for c in candidates]))
+        logits=model(self._task_batch([BuildTask.from_dict(c["task"]) for c in candidates],
+                                      construction_request=candidates[0].get("construction_request")))
         loss=F.cross_entropy(logits.unsqueeze(0),torch.tensor([ids.index(preferred_id)],device=logits.device))
         return {"loss":loss,"receipt":{"source":source,"purpose":purpose,"role":"build_goal",
             "binding_sha256":self._binding_sha256,"preferred_id":preferred_id,"ability_verified":False,
@@ -573,8 +631,7 @@ class AutonomousConstructionKernel:
             raise ContractError("explicit graph training preference required")
         from .construction_model import rule_graph_candidates
         session,adapter=self._session(selection)
-        context={"request":session.request,"goal_sha256":session.goal_sha256,"task":session.task.to_dict(),
-            "logic":session.logic.to_dict() if session.logic else None,"feedback":deepcopy(session.feedback),"role":role}
+        context = session.logic_context(role)
         if role=="build_optimizer" and session.logic is None:
             raise ContractError("graph optimization requires an existing target graph")
         graphs=adapter.candidates(context)
@@ -658,7 +715,8 @@ class AutonomousConstructionKernel:
             for ident,saved in state["sessions"].items():
                 session,adapter=self._session(self.selections[ident]);raw=saved["state"]
                 if (raw["request"]!=session.request or raw["task"]!=session.task.to_dict() or
-                        raw["goal_sha256"]!=session.goal_sha256 or raw["classification"]!=session.classification.to_dict()):
+                        raw["goal_sha256"]!=session.goal_sha256 or raw["classification"]!=session.classification.to_dict() or
+                        raw.get("construction_request") != session.construction_request):
                     raise ContractError("restored session goal or explicit internal scope differs")
                 for event in raw["history"]:
                     if event.get("stage")==1:
