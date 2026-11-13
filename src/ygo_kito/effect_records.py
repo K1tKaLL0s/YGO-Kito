@@ -1177,9 +1177,13 @@ def merge_lua_count_limits(records, source, script_code, *, same_printing=True):
         if len(counts) != 1 or None in counts:
             lua["count_status"] = "unsupported_or_inconsistent_counter"
             continue
+        printed = record["count_limits"]
+        if (len(printed) != 1 or printed[0]["status"] != "known" or printed[0].get("period") != "turn"
+                or printed[0].get("scope") not in _LUA_NAMED_SCOPES or printed[0].get("count_event") != "use"):
+            lua["count_status"] = "printed_limit_unresolved"
+            continue
         maximum, code = counts.pop()
         candidates[record["effect_key"]] = (maximum, code)
-        lua["count_status"] = "observed"
 
     # A partial binding of a shared counter would allow one effect to evade
     # its printed limit. Require the same mapping in both directions.
@@ -1188,9 +1192,9 @@ def merge_lua_count_limits(records, source, script_code, *, same_printing=True):
         records_by_code[code].add(key)
     occurrences = Counter()
     for registration in script["registrations"]:
-        count = source.turn_count(registration)
-        if count is not None:
-            occurrences[count[1]] += 1
+        args = registration.get("count_limit", {}).get("values", ())
+        if len(args) >= 2 and args[1] is not None:
+            occurrences[args[1]] += 1
     windows_by_code = Counter()
     for record in aligned:
         candidate = candidates.get(record["effect_key"])
@@ -1202,11 +1206,7 @@ def merge_lua_count_limits(records, source, script_code, *, same_printing=True):
             continue
         lua = record["lua_source"]
         maximum, code = candidates[key]
-        printed = record["count_limits"]
-        if len(printed) != 1 or printed[0]["status"] != "known" or printed[0].get("period") != "turn":
-            lua["count_status"] = "printed_limit_unresolved"
-            continue
-        limit = printed[0]
+        limit, = record["count_limits"]
         same_code = records_by_code[code]
         matching_scope = _printed_counter_members(records, record, limit)
         if (limit["maximum"] != maximum or same_code != matching_scope or occurrences[code] != windows_by_code[code]
@@ -1225,8 +1225,6 @@ def merge_lua_count_limits(records, source, script_code, *, same_printing=True):
 
 def _printed_counter_members(records, record, limit):
     scope = limit.get("scope")
-    if scope not in _LUA_NAMED_SCOPES or limit.get("count_event") != "use":
-        return set()
     if scope == "same_name_this_effect":
         return {record["effect_key"]}
     subject = limit.get("subject", {})

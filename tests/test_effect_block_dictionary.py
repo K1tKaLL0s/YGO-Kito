@@ -649,6 +649,23 @@ class LuaEffectBlockTests(unittest.TestCase):
         self.assertEqual([p.pool_id for _, (p,) in _record_facts(LUA_CARD_ID, records, static=True)],
                          [f"catalog-limit:{LUA_CARD_ID}:{i}" for i in (1, 2)])
 
+    def test_shared_counter_needs_every_member_to_use_the_same_binding(self):
+        assets = self.assets(script=SCRIPT.replace("n-1,id+o", "n-1,id"), prelude=SHARED)
+        row = assets.rows[LUA_CARD_ID]
+        row["desc"] = row["desc"].replace("②：", "②：1回合1次，")
+        first, second = MechanismCatalog(assets).effect_records(LUA_CARD_ID)
+        self.assertEqual(len(second["count_limits"]), 2)
+        self.assertEqual(first["lua_source"]["count_status"], "printed_counter_conflict")
+        self.assertEqual(second["lua_source"]["count_status"], "printed_limit_unresolved")
+        self.assertTrue(all("lua_counter" not in limit for r in (first, second) for limit in r["count_limits"]))
+
+        no_reset = "e:SetProperty(EFFECT_FLAG_NO_TURN_RESET)\n    e:SetCountLimit(n-1,id)"
+        assets = self.assets(script=SCRIPT.replace("e:SetCountLimit(n-1,id+o)", no_reset), prelude=INDEPENDENT)
+        first, second = MechanismCatalog(assets).effect_records(LUA_CARD_ID)
+        self.assertEqual(first["lua_source"]["count_status"], "printed_counter_conflict")
+        self.assertEqual(second["lua_source"]["count_status"], "unsupported_or_inconsistent_counter")
+        self.assertTrue(all("lua_counter" not in limit for r in (first, second) for limit in r["count_limits"]))
+
     def test_dynamic_and_malformed_scripts_keep_location_and_do_not_bind(self):
         conditional = SCRIPT.replace("e:SetCountLimit(n,id)", "if chk then e:SetCountLimit(n,id) end")
         for script, status in ((conditional, "partial"), ("function s.initial_effect(]\n", "syntax_error")):
