@@ -7,10 +7,12 @@ selectors and conditions remain visible in the same records.
 """
 from copy import deepcopy
 import re
+from collections import Counter, defaultdict
 
 from .rule_references import effect_reference_requests
 
 EFFECT_RECORD_VERSION = "public-effect-records-v2"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v3"
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (
     "fusion_target", "synchro_target", "xyz_target", "tuner",
@@ -1122,6 +1124,121 @@ def effect_records(profile, *, semantic_version, row=None):
                 continue  # Shared counts/restrictions already belong to their numbered effects.
             result.append(record)
     return tuple(_public_data(record) for record in result)
+
+
+_LUA_NAMED_SCOPES = {"same_name_this_effect", "same_name_shared_effects", "same_name_all_effects"}
+_LUA_SUMMON_EVENTS = {"normal_summon", "special_summon"}
+
+
+def merge_lua_count_limits(records, source, script_code, *, same_printing=True):
+    """Attach Lua registrations to printed effects and bind compatible turn counters."""
+    if not records:
+        return
+    if not same_printing:
+        for record in records:
+            record["record_version"] = LUA_EFFECT_RECORD_VERSION
+            record["lua_source"] = dict(status="distinct_alias_text", script_card_id=script_code,
+                                        alignment="unresolved")
+        return
+    script = source.summarize_effects(script_code)
+    groups = defaultdict(list)
+    for registration in script["registrations"]:
+        groups[registration.get("description_index")].append(registration)
+    indices = Counter(record["effect_index"] for record in records)
+    source_info = {k: v for k, v in script.items() if k != "registrations"}
+    for record in records:
+        record["record_version"] = LUA_EFFECT_RECORD_VERSION
+        index = record["effect_index"]
+        windows = groups.get(index - 1, ())
+        printed_event = record["trigger"].get("event")
+        events = {window["event"] for window in windows}
+        matches = events == (_LUA_SUMMON_EVENTS if printed_event == "normal_or_special_summon" else {printed_event})
+        if index <= 0 or indices[index] != 1 or not printed_event or not windows or not matches:
+            record["lua_source"] = dict(source_info, alignment="unresolved")
+            if windows:
+                record["lua_source"]["candidate_spans"] = [window["registration_span"] for window in windows]
+            continue
+        record["lua_source"] = dict(source_info, alignment="matched", registrations=list(windows))
+
+    aligned = [record for record in records if record["lua_source"]["alignment"] == "matched"]
+    candidates = {}
+    for record in aligned:
+        lua = record["lua_source"]
+        windows = lua["registrations"]
+        if not any("count_limit" in window for window in windows):
+            continue
+        if (script["status"] != "parsed" or len({window["family"] for window in windows}) != 1
+                or any(any(window.get(callback) != windows[0].get(callback)
+                           for callback in ("condition", "cost", "target", "operation", "value"))
+                       for window in windows[1:])):
+            lua["count_status"] = "unresolved_registration"
+            continue
+        counts = {source.turn_count(window) for window in windows}
+        if len(counts) != 1 or None in counts:
+            lua["count_status"] = "unsupported_or_inconsistent_counter"
+            continue
+        maximum, code = counts.pop()
+        candidates[record["effect_key"]] = (maximum, code)
+        lua["count_status"] = "observed"
+
+    # A partial binding of a shared counter would allow one effect to evade
+    # its printed limit. Require the same mapping in both directions.
+    records_by_code = defaultdict(set)
+    for key, (_, code) in candidates.items():
+        records_by_code[code].add(key)
+    occurrences = Counter()
+    for registration in script["registrations"]:
+        count = source.turn_count(registration)
+        if count is not None:
+            occurrences[count[1]] += 1
+    windows_by_code = Counter()
+    for record in aligned:
+        candidate = candidates.get(record["effect_key"])
+        if candidate is not None:
+            windows_by_code[candidate[1]] += len(record["lua_source"]["registrations"])
+    for record in aligned:
+        key = record["effect_key"]
+        if key not in candidates:
+            continue
+        lua = record["lua_source"]
+        maximum, code = candidates[key]
+        printed = record["count_limits"]
+        if len(printed) != 1 or printed[0]["status"] != "known" or printed[0].get("period") != "turn":
+            lua["count_status"] = "printed_limit_unresolved"
+            continue
+        limit = printed[0]
+        same_code = records_by_code[code]
+        matching_scope = _printed_counter_members(records, record, limit)
+        if (limit["maximum"] != maximum or same_code != matching_scope or occurrences[code] != windows_by_code[code]
+                or any(candidates[member] != (maximum, code) for member in same_code)):
+            lua["count_status"] = "printed_counter_conflict"
+            continue
+        counter = dict(script_card_id=script_code, code=code)
+        branch_views = [branch["block_view"] for branch in record.get("branch_records", {}).values()]
+        for view in (record["block_view"], *branch_views):
+            for item in view["count_limits"]:
+                if item == limit:
+                    item["lua_counter"] = dict(counter)
+        limit["lua_counter"] = counter
+        lua["count_status"] = "bound"
+
+
+def _printed_counter_members(records, record, limit):
+    scope = limit.get("scope")
+    if scope not in _LUA_NAMED_SCOPES or limit.get("count_event") != "use":
+        return set()
+    if scope == "same_name_this_effect":
+        return {record["effect_key"]}
+    subject = limit.get("subject", {})
+    section = subject.get("section")
+    indices = subject.get("effect_indices", ())
+    return {item["effect_key"] for item in records
+            if (section is None or item["scope"] == section)
+            and (scope != "same_name_shared_effects" or item["effect_index"] in indices)
+            and any(other.get("status") == "known" and other.get("scope") == scope
+                    and other.get("count_event") == "use" and other.get("source") == limit["source"]
+                    and other.get("period") == "turn" and other.get("maximum") == limit["maximum"]
+                    for other in item["count_limits"])}
 
 
 def mechanism_summary(catalog, codes):

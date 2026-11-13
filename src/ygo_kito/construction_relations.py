@@ -995,6 +995,12 @@ def _record_facts(code, records, *, zone="main", same_name=None, inventory=None,
                         unknown.append(f"{category}:{i}:quantity_unknown")
         for i, limit in enumerate(record["count_limits"]):
             scope = limit.get("scope", "unknown")
+            if static and (counter := limit.get("lua_counter")):
+                pid = f"catalog-lua-limit:{counter['script_card_id']}:{counter['code']}"
+                pool_source = f"c{counter['script_card_id']}.lua SetCountLimit code {counter['code']}"
+                pools.append(ResourcePool(pid, pool_source, capacity=limit["maximum"]))
+                claims.append(Claim(pid))
+                continue
             # Each-option limits are not a single shared one-use pool. Keep
             # their scoped record until this adapter can allocate per option.
             if limit.get("status") == "known" and scope.startswith("same_name"):

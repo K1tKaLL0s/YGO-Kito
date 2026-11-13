@@ -310,6 +310,11 @@ class MechanismCatalog:
     def cards_sha256(self):
         return getattr(self.assets, "receipt", {}).get("resources", {}).get("cards", "")
 
+    @property
+    def lua_binding(self):
+        source = getattr(self.assets, "effect_lua_source", None)
+        return source.binding if source is not None else None
+
     def clear_card_cache(self):
         """Release card observations when streaming a catalog one card at a time."""
         self._profiles.clear()
@@ -332,13 +337,23 @@ class MechanismCatalog:
 
         profile = self.card(code)
         row = self.assets.rows[code]
-        version = SEMANTIC_VERSION
+        source = getattr(self.assets, "effect_lua_source", None)
+        version = (SEMANTIC_VERSION, source.binding if source is not None else None)
         cached = self._records.pop(code, None)
         if cached is None or cached[0] is not profile or cached[1] != (version, row):
             # Card database rows contain scalar fields. Snapshot the row so
             # in-place edits invalidate the saved result.
             row = dict(row)
-            records = effect_records(profile, semantic_version=version, row=row)
+            records = effect_records(profile, semantic_version=SEMANTIC_VERSION, row=row)
+            if source is not None:
+                from .card_identity import canonical_card_id
+                from .effect_records import merge_lua_count_limits
+
+                script_code = row.get("alias") or code
+                same_printing = script_code == code or (
+                    script_code in self.assets.rows
+                    and canonical_card_id(self.assets.rows, code) == canonical_card_id(self.assets.rows, script_code))
+                merge_lua_count_limits(records, source, script_code, same_printing=same_printing)
             cached = (profile, (version, row), records)
         self._records[code] = cached
         if len(self._records) > _EFFECT_RECORD_CACHE_SIZE:

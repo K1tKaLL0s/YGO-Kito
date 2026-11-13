@@ -1016,10 +1016,14 @@ def _bind_mandatory_impacts(facts, context, condition, *, summon_choice=None):
 
 def functional_asset_version(catalog):
     from .effect_mechanisms import SEMANTIC_VERSION
-    from .effect_records import EFFECT_RECORD_VERSION
-    from .effect_blocks import BLOCK_VERSION, BLOCK_REVISION
-    return digest(dict(cards=catalog.cards_sha256, semantic=SEMANTIC_VERSION,
-        records=EFFECT_RECORD_VERSION, blocks=BLOCK_VERSION, revision=BLOCK_REVISION))
+    from .effect_records import EFFECT_RECORD_VERSION, LUA_EFFECT_RECORD_VERSION
+    from .effect_blocks import BLOCK_VERSION, BLOCK_REVISION, LUA_BLOCK_REVISION
+    binding = dict(cards=catalog.cards_sha256, semantic=SEMANTIC_VERSION,
+                   records=EFFECT_RECORD_VERSION, blocks=BLOCK_VERSION, revision=BLOCK_REVISION)
+    lua = catalog.lua_binding
+    if lua is not None:
+        binding.update(lua=lua, records=LUA_EFFECT_RECORD_VERSION, revision=LUA_BLOCK_REVISION)
+    return digest(binding)
 
 
 def reference_asset_binding(catalog, deck):
@@ -1199,6 +1203,10 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
         work_state.clear();work_state.update(work)
     dependencies = InventoryDependencies(catalog, requirement_limit=budget.facts)
     dependencies._specifications={int(c):tuple(value) for c,value in work['specifications'].items()}
+    if reuse is not None and reuse.get('asset_version') != facts['asset_version']:
+        for cache in ('specifications', 'projections', 'family_prices'):
+            reuse[cache].clear()
+        reuse['asset_version'] = facts['asset_version']
     shared_specs = reuse['specifications'] if reuse is not None else None
     records, specs, remaining = {}, {}, budget.facts
     count=0

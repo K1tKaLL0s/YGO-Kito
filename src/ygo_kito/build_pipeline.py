@@ -6,6 +6,7 @@ Card-list legality, conditional route success and quality are separate results.
 
 from collections import Counter
 from dataclasses import asdict
+from functools import cached_property
 from pathlib import Path
 import sqlite3
 import time
@@ -28,6 +29,7 @@ class BuildAssets:
     def __init__(self, root):
         self.root = Path(root).resolve()
         self.receipt = verify_resources(self.root)
+        self._lua_assets_verified = True
         src = self.root / "engine-src"
         with sqlite3.connect((src / "database/locales/zh-CN/cards.cdb").as_uri() + "?mode=ro", uri=True) as db:
             db.row_factory = sqlite3.Row
@@ -38,6 +40,20 @@ class BuildAssets:
                             h["client_protocol"], "native-effect-duel-v1", "2026.10:" + h["banlist"])
         self.environment = {"environment_id": "custom-native-current", "versions": asdict(versions),
                             "authority": "custom", "release_cutoff": None}
+
+    @property
+    def effect_lua_source(self):
+        if not getattr(self, "_lua_assets_verified", False):
+            return None
+        source = self._locked_lua_source
+        source.assert_binding(self.root, self.receipt)
+        return source
+
+    @cached_property
+    def _locked_lua_source(self):
+        from .effect_lua import LuaEffectSource
+
+        return LuaEffectSource(self.root, self.receipt)
 
     def environment_for(self, kind):
         from .build_contracts import DISCOVERY_GOALS

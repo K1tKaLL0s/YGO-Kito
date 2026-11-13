@@ -19,7 +19,7 @@ from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 from ygo_kito.build_contracts import digest
-from ygo_kito.effect_blocks import BLOCK_REVISION, LABELS
+from ygo_kito.effect_blocks import BLOCK_REVISION, LABELS, LUA_BLOCK_REVISION
 from ygo_kito.effect_mechanisms import MechanismCatalog
 
 
@@ -219,6 +219,12 @@ def main():
             (args.output / 'candidates.jsonl').open('w', encoding='utf-8', newline='\n') as candidates, \
             gzip.open(args.output / 'live-blocks.jsonl.gz', 'wt', encoding='utf-8', compresslevel=1) as snapshots:
         stored_manifest = json.loads(saved.execute("select value from metadata where key='manifest'").fetchone()[0])
+        if 'lua' in stored_manifest:
+            from ygo_kito.effect_lua import LuaEffectSource
+
+            catalog.assets.effect_lua_source = LuaEffectSource(args.assets, receipt)
+            if catalog.lua_binding != stored_manifest['lua']['binding']:
+                raise ValueError('dictionary Lua source differs from the locked audit resources')
         stored_integrity = saved.execute('pragma quick_check').fetchone()[0]
         stored_ids = {r[0] for r in saved.execute('select card_id from cards')}
         indexed_tags, indexed_connectors = {}, {}
@@ -299,7 +305,8 @@ def main():
         audit_version=1, observed_at_utc=datetime.now(timezone.utc).isoformat(),
         source_cdb=str(cdb.resolve()), mirror_cdb=str(args.mirror.resolve()), saved_dictionary=str(args.dictionary.resolve()),
         database_commit=receipt['source_commits']['database'], cards_sha256=source_sha,
-        live_revision=BLOCK_REVISION, saved_revision=stored_manifest['dictionary_revision'],
+        live_revision=LUA_BLOCK_REVISION if catalog.lua_binding is not None else BLOCK_REVISION,
+        saved_revision=stored_manifest['dictionary_revision'],
         source_integrity=source_integrity, saved_integrity=stored_integrity, source_table_counts=table_counts,
         source_orphans=orphans, source_raw_field_errors=raw_field_errors,
         saved_index_orphan_card_ids=sorted((indexed_tags.keys() | indexed_connectors.keys())-stored_ids),

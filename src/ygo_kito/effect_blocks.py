@@ -17,6 +17,7 @@ from .effect_block_rules import FUNCTIONS, structural_records
 
 BLOCK_VERSION = "public-effect-blocks-v1"
 BLOCK_REVISION = 'local-library-review-20261112-b22'
+LUA_BLOCK_REVISION = 'local-library-review-20261114-b23'
 LABELS = {
     "send_grave": "送墓", "search": "检索", "recover": "回收", "add_hand": "加入手牌",
     "draw": "抽卡", "special_summon": "特召", "fusion_summon": "融合召唤",
@@ -672,7 +673,8 @@ def card_blocks(catalog, code, *, set_names=None):
         restrictions.append(dict(kind='cannot_special_summon_this_card',scope='this_card',duration='intrinsic',source='这张卡不能特殊召唤'))
     if re.search(r'效果发动的回合[，,]自己不能攻击宣言',prelude):
         restrictions.append(dict(kind='cannot_declare_attack',scope='player',duration='whole_turn',condition='effect_activation',source=prelude.strip()))
-    return dict(dictionary_version=BLOCK_VERSION,dictionary_revision=BLOCK_REVISION,card_id=code,name=row.get('name',''),
+    revision = LUA_BLOCK_REVISION if catalog.lua_binding is not None else BLOCK_REVISION
+    return dict(dictionary_version=BLOCK_VERSION,dictionary_revision=revision,card_id=code,name=row.get('name',''),
                 cards_sha256=profile.cards_sha256,text_sha256=profile.text_sha256,
                 identity_tags=identity_tags(row,set_names), effects=effects, compatibility_tags=aliases,
                 summon_materials=materials,summon_material_source=material_source,
@@ -696,6 +698,8 @@ def build_dictionary(catalog, path, *, source=None):
     from .card_identity import canonical_card_id
     codes=sorted(c for c,r in catalog.assets.rows.items()
                  if canonical_card_id(catalog.assets.rows,c)==c and not r.get('type',0)&0x4000 and r.get('name','').strip())
+    lua = catalog.lua_binding
+    lua_scripts, lua_alignments, lua_counters = Counter(), Counter(), Counter()
     counts=Counter();functions=Counter();payments=Counter();procedures=Counter();restriction_counts=Counter();description_counts=Counter();unresolved=[]
     fd,tmp=tempfile.mkstemp(prefix=path.stem+'-',suffix='.building.sqlite3',dir=path.parent)
     import os
@@ -712,6 +716,11 @@ def build_dictionary(catalog, path, *, source=None):
             ''')
             for code in codes:
                 entry=catalog.effect_blocks(code)
+                lua_rows = [record['lua_source'] for record in entry['source_records'] if 'lua_source' in record]
+                if lua_rows:
+                    lua_scripts[lua_rows[0]['status']] += 1
+                    lua_alignments.update(row['alignment'] for row in lua_rows)
+                    lua_counters.update(row['count_status'] for row in lua_rows if 'count_status' in row)
                 db.execute('insert into cards values(?,?,?)',(code,entry['name'],json.dumps(entry,ensure_ascii=False,separators=(',',':'))))
                 tags=[(code,t['dimension'],t['value'],'','') for t in entry['identity_tags']]
                 has_function=False
@@ -733,13 +742,17 @@ def build_dictionary(catalog, path, *, source=None):
                 db.executemany('insert into tags values(?,?,?,?,?)',tags)
                 counts['identity_tags']+=len(entry['identity_tags'])
                 counts['cards_with_functions' if has_function else 'cards_without_functions']+=1
-            manifest=dict(dictionary_version=BLOCK_VERSION,dictionary_revision=BLOCK_REVISION,source=source or {},cards_sha256=catalog.cards_sha256,
+            revision = LUA_BLOCK_REVISION if lua is not None else BLOCK_REVISION
+            manifest=dict(dictionary_version=BLOCK_VERSION,dictionary_revision=revision,source=source or {},cards_sha256=catalog.cards_sha256,
                           pool_scope='independent printed identities; non-token; named; no period/banlist filter',total_source_rows=len(catalog.assets.rows),
                           canonical_cards=len(codes),counts=dict(counts),function_blocks=dict(sorted(functions.items())),
                           cost_blocks=dict(sorted(payments.items())),unresolved_effects=unresolved,
                           procedure_blocks=dict(sorted(procedures.items())),
                           restriction_blocks=dict(sorted(restriction_counts.items())),description_blocks=dict(sorted(description_counts.items())),
                           training_started=False,cb_started=False)
+            if lua is not None:
+                manifest['lua'] = dict(binding=lua, card_script_status=dict(lua_scripts),
+                                       effect_alignment=dict(lua_alignments), effect_counters=dict(lua_counters))
             db.execute('insert into metadata values(?,?)',('manifest',json.dumps(manifest,ensure_ascii=False)))
         os.replace(tmp,path)
         return manifest

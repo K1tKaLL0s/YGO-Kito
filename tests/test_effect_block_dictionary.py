@@ -1,20 +1,28 @@
 """Approved granularity and false-positive regressions; no training, CB or native."""
+from contextlib import closing
 from copy import deepcopy
 import json
 from pathlib import Path
+import sqlite3
 import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from ygo_kito.build_contracts import digest
+from ygo_kito.build_contracts import DeckParts, digest
+from ygo_kito.build_pipeline import BuildAssets
 from ygo_kito.construction_binding import CatalogBindingAdapter
 from ygo_kito.construction_effect_blocks import reviewed_effect_blocks
 from ygo_kito.construction_inventory import InventoryDependencies, effect_matches
 from ygo_kito.construction_logic import LogicTag
+from ygo_kito.construction_layer_flow import functional_asset_version, normalize_function_uses, reference_asset_binding
+from ygo_kito.construction_relations import _record_facts
 from ygo_kito.effect_blocks import BLOCK_VERSION, EffectBlockDictionary, build_dictionary, functional_tags
+from ygo_kito.effect_lua import LuaEffectSource
 from ygo_kito.effect_mechanisms import MechanismCatalog, MECHANISM_WIDTH, SEMANTIC_VERSION
 from ygo_kito.effect_records import effect_records
+from ygo_kito.native_assets import LOCK_PATH, digest as file_digest, resource_hashes
+from ygo_kito.validation import ContractError
 
 
 def synthetic(text, **changes):
@@ -484,6 +492,226 @@ class UnresolvedDictionaryRepairTests(unittest.TestCase):
                                                (82085295,'monster:3:2')).fetchone()[0],0)
                 self.assertIn(49064413,db.find('summon_description','仪式召唤说明'))
                 self.assertNotIn(49064413,db.find('effect','仪式召唤'))
+
+
+CONSTANTS = """\
+EFFECT_TYPE_SINGLE=1
+EFFECT_TYPE_TRIGGER_O=0x80
+EFFECT_TYPE_TRIGGER_F=0x200
+EFFECT_TYPE_IGNITION=0x10
+EFFECT_FLAG_NO_TURN_RESET=0x400000
+EFFECT_FLAG_CARD_TARGET=0x10
+EVENT_SUMMON_SUCCESS=1100
+EVENT_SPSUMMON_SUCCESS=1102
+EVENT_TO_GRAVE=1014
+LOCATION_GRAVE=0x10
+"""
+
+UTILITY = """\
+function GetID()
+    local offset=self_code<100000000 and 1 or 100
+    return self_table,self_code,offset
+end
+function Auxiliary.Stringid(code,id)
+    return code*16+id
+end
+"""
+
+SCRIPT = """\
+local s,id,o=GetID()
+local n=1
+function s.initial_effect(c)
+    -- e:SetCountLimit(99,id)
+    local note="e:SetCountLimit(99,id)"
+    local e=Effect.CreateEffect(c)
+    e:SetDescription(aux.Stringid(id,0))
+    e:SetType(EFFECT_TYPE_SINGLE|EFFECT_TYPE_TRIGGER_O)
+    e:SetCode(EVENT_SUMMON_SUCCESS)
+    e:SetCountLimit(n,id)
+    e:SetTarget(s.check)
+    e:SetOperation(s.draw)
+    c:RegisterEffect(e)
+    local e2=e:Clone()
+    e2:SetCode(EVENT_SPSUMMON_SUCCESS)
+    c:RegisterEffect(e2)
+    local n=2
+    local e=Effect.CreateEffect(c)
+    e:SetDescription(aux.Stringid(id,1))
+    e:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O)
+    e:SetCode(EVENT_TO_GRAVE)
+    e:SetCountLimit(n-1,id+o)
+    e:SetOperation(s.draw)
+    c:RegisterEffect(e)
+end
+function s.check(e,tp,eg,ep,ev,re,r,rp,chk)
+    if chk==0 then return true end
+end
+function s.draw(e,tp)
+    Duel.Draw(tp,1,REASON_EFFECT)
+end
+"""
+
+INDEPENDENT = "这个卡名的①②的效果1回合各能使用1次。"
+SHARED = "这个卡名的①②的效果1回合只能有1次使用其中任意1个。"
+DESCRIPTION = "\n①：这张卡召唤·特殊召唤成功的场合才能发动。自己从卡组抽1张。\n" \
+              "②：这张卡被效果送去墓地的场合才能发动。自己从卡组抽1张。"
+LUA_CARD_ID = 10010002
+
+
+class LuaEffectBlockTests(unittest.TestCase):
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        registry = patch("ygo_kito.construction_inventory.archetype_names", return_value=({}, {}))
+        registry.start()
+        self.addCleanup(registry.stop)
+        self.root = Path(temp.name)
+        self.directory = self.root / "engine-src/scripts"
+        self.directory.mkdir(parents=True)
+        self.script = self.directory / f"c{LUA_CARD_ID}.lua"
+        self.script.write_bytes(SCRIPT.encode())
+        (self.directory / "constant.lua").write_bytes(CONSTANTS.encode())
+        self.utility = self.directory / "utility.lua"
+        self.utility.write_bytes(UTILITY.encode())
+
+        files = (
+            "engine-build/libocgcore.so", "engine-src/client/lflist.conf",
+            "engine-src/core/ocgapi.h", "engine-src/core/common.h", "engine-src/core/card_data.h",
+            "engine-src/client/gframe/config.h", "engine-src/client/gframe/duelclient.cpp",
+        )
+        for filename in files:
+            path = self.root / filename
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"!2026.10\n" if path.name == "lflist.conf" else b"")
+        self.cdb = self.root / "engine-src/database/locales/zh-CN/cards.cdb"
+        self.cdb.parent.mkdir(parents=True)
+        with closing(sqlite3.connect(self.cdb)) as db, db:
+            db.executescript("""
+                create table datas (id integer, alias integer, ot integer, type integer, setcode integer);
+                create table texts (id integer, name text, desc text);
+            """)
+            db.execute("insert into datas values (?,0,1,33,0)", (LUA_CARD_ID,))
+            db.execute("insert into texts values (?, ?, ?)", (LUA_CARD_ID, "fixture", INDEPENDENT + DESCRIPTION))
+
+    def assets(self, *, script=None, prelude=None):
+        if script is not None:
+            self.script.write_bytes(script.encode())
+        if prelude is not None:
+            with closing(sqlite3.connect(self.cdb)) as db, db:
+                db.execute("update texts set desc=?", (prelude + DESCRIPTION,))
+        receipt = dict(source_lock_sha256=file_digest(LOCK_PATH), resources=resource_hashes(self.root),
+                       source_commits=dict(core="fixture-core", scripts="fixture-lua"))
+        (self.root / "engine-build/receipt.json").write_text(json.dumps(receipt), encoding="utf-8")
+        return BuildAssets(self.root)
+
+    def test_build_assets_bind_clone_and_count_to_existing_inventory_records(self):
+        assets = self.assets()
+        catalog = MechanismCatalog(assets)
+        first, second = catalog.effect_records(LUA_CARD_ID)
+        summon, special = first["lua_source"]["registrations"]
+        self.assertEqual([summon["event"], special["event"]], ["normal_summon", "special_summon"])
+        self.assertEqual(summon["family"], special["family"])
+        self.assertEqual(special["clone_from"], summon["creation_span"][0])
+        self.assertEqual(summon["target"]["definition"]["function"], "s.check")
+        self.assertEqual(first["targets"], [])
+        self.assertEqual(first["costs"], [])
+        self.assertEqual([op["kind"] for op in first["operations"]], ["draw"])
+        self.assertEqual([r["lua_source"]["count_status"] for r in (first, second)], ["bound", "bound"])
+        self.assertEqual(first["count_limits"][0]["lua_counter"], {"code": LUA_CARD_ID, "script_card_id": LUA_CARD_ID})
+        self.assertEqual(second["count_limits"][0]["lua_counter"]["code"], LUA_CARD_ID + 1)
+        self.assertEqual(first["count_limits"], first["block_view"]["count_limits"])
+        summon["count_limit"]["values"][0] = 99
+        self.assertEqual(catalog.effect_records(LUA_CARD_ID)[0]["lua_source"]["registrations"][0]["count_limit"]["values"][0], 1)
+
+        inventory = InventoryDependencies(catalog)
+        specs, _ = inventory.specs(LUA_CARD_ID)
+        observed = tuple(_record_facts(LUA_CARD_ID, (s["record"] for s in specs),
+                                      dependencies=inventory, functional=True))
+        self.assertEqual([p.pool_id for _, (p,) in observed],
+                         [f"catalog-lua-limit:{LUA_CARD_ID}:{n}" for n in (LUA_CARD_ID, LUA_CARD_ID + 1)])
+        self.assertTrue(all(f.claims[0].pool_id == p.pool_id and p.capacity == 1 for f, (p,) in observed))
+
+    def test_explicitly_shared_printed_effects_use_one_pool(self):
+        assets = self.assets(script=SCRIPT.replace("n-1,id+o", "n-1,id"), prelude=SHARED)
+        catalog = MechanismCatalog(assets)
+        records = catalog.effect_records(LUA_CARD_ID)
+        self.assertEqual([r["lua_source"]["count_status"] for r in records], ["bound", "bound"])
+        facts = list(_record_facts(LUA_CARD_ID, records, static=True))
+        self.assertEqual(facts[0][1], facts[1][1])
+        self.assertEqual(facts[0][0].claims, facts[1][0].claims)
+        self.assertEqual(facts[0][1][0].capacity, 1)
+
+    def test_conflicting_scripts_keep_the_printed_limits(self):
+        assets = self.assets(script=SCRIPT.replace("n-1,id+o", "n-1,id"))
+        records = MechanismCatalog(assets).effect_records(LUA_CARD_ID)
+        self.assertEqual([r["lua_source"]["count_status"] for r in records], ["printed_counter_conflict"] * 2)
+        self.assertTrue(all("lua_counter" not in r["count_limits"][0] for r in records))
+        self.assertEqual([p.pool_id for _, (p,) in _record_facts(LUA_CARD_ID, records, static=True)],
+                         [f"catalog-limit:{LUA_CARD_ID}:{i}" for i in (1, 2)])
+
+    def test_dynamic_and_malformed_scripts_keep_location_and_do_not_bind(self):
+        conditional = SCRIPT.replace("e:SetCountLimit(n,id)", "if chk then e:SetCountLimit(n,id) end")
+        for script, status in ((conditional, "partial"), ("function s.initial_effect(]\n", "syntax_error")):
+            with self.subTest(status=status):
+                catalog = MechanismCatalog(self.assets(script=script))
+                record = catalog.effect_records(LUA_CARD_ID)[0]
+                source = record["lua_source"]
+                self.assertEqual(source["status"], status)
+                self.assertTrue(all("byte_span" in row for row in source["unknown"]))
+                self.assertTrue(source["unknown"])
+                self.assertNotIn("lua_counter", record["count_limits"][0])
+
+    def test_snapshot_and_reference_identity_follow_the_receipt(self):
+        assets = self.assets()
+        catalog = MechanismCatalog(assets)
+        deck = DeckParts((LUA_CARD_ID,))
+        version, reference = functional_asset_version(catalog), reference_asset_binding(catalog, deck)
+        prior = catalog.effect_records(LUA_CARD_ID)
+        self.utility.write_bytes(UTILITY.replace("1 or 100", "2 or 100").encode())
+        self.assertEqual(prior, catalog.effect_records(LUA_CARD_ID))
+        self.assertEqual(version, functional_asset_version(catalog))
+        with self.assertRaisesRegex(ContractError, "scripts differ from the asset receipt"):
+            LuaEffectSource(self.root, assets.receipt)
+        changed = self.assets()
+        catalog.assets = changed
+        self.assertNotEqual(version, functional_asset_version(catalog))
+        self.assertNotEqual(reference, reference_asset_binding(catalog, deck))
+        record = catalog.effect_records(LUA_CARD_ID)[1]
+        self.assertEqual(record["count_limits"][0]["lua_counter"]["code"], LUA_CARD_ID + 2)
+        self.assertNotEqual(prior[1]["lua_source"]["scripts_sha256"], record["lua_source"]["scripts_sha256"])
+
+        assets.receipt["resources"]["scripts"] = changed.receipt["resources"]["scripts"]
+        with self.assertRaisesRegex(ContractError, "reload BuildAssets"):
+            assets.effect_lua_source
+
+    def test_normalization_does_not_reuse_specs_from_another_lua_snapshot(self):
+        from tests.test_construction_functional_flow import fixture
+
+        task, _, _, _, _, policy = fixture()
+        deck = DeckParts((LUA_CARD_ID,))
+        assets = self.assets()
+        catalog = MechanismCatalog(assets)
+        reuse = dict(specifications={}, projections={}, family_prices={})
+        previous = normalize_function_uses(task, deck, catalog, policy=policy, reuse=reuse)
+        self.assertEqual(reuse["specifications"][LUA_CARD_ID][1][0][1]["record"]
+                         ["count_limits"][0]["lua_counter"]["code"], LUA_CARD_ID + 1)
+        catalog.assets = self.assets(script=SCRIPT.replace("n-1,id+o", "n-1,id+2"))
+        current = normalize_function_uses(task, deck, catalog, policy=policy, reuse=reuse)
+        self.assertNotEqual(current["asset_version"], previous["asset_version"])
+        specs, _ = reuse["specifications"][LUA_CARD_ID][1]
+        self.assertEqual(specs[1]["record"]["count_limits"][0]["lua_counter"]["code"], LUA_CARD_ID + 2)
+        self.assertEqual(current, normalize_function_uses(task, deck, catalog, policy=policy))
+
+    def test_export_uses_the_same_counts_and_source_identity(self):
+        assets = self.assets()
+        catalog = MechanismCatalog(assets)
+        path = self.root / "dictionary.sqlite3"
+        manifest = build_dictionary(catalog, path)
+        self.assertEqual(manifest["lua"]["effect_counters"], {"bound": 2})
+        self.assertEqual(manifest["lua"]["binding"], catalog.lua_binding)
+        with closing(sqlite3.connect(path)) as db:
+            entry = json.loads(db.execute("select payload from cards where card_id=?", (LUA_CARD_ID,)).fetchone()[0])
+        self.assertEqual(entry, catalog.effect_blocks(LUA_CARD_ID))
 
 
 if __name__=='__main__':unittest.main()
