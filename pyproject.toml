@@ -7,7 +7,7 @@ name = "ygo-kito"
 version = "0.1.0"
 description = "YGO-Kito construction, model training and pinned native-engine engineering tools"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = ["tree-sitter==0.25.2", "tree-sitter-lua==0.4.1"]
 
 [project.optional-dependencies]
 semantic = ["scipy==1.16.3"]

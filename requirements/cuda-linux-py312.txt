@@ -27,5 +27,7 @@ scipy==1.16.3 --hash=sha256:72d1717fd3b5e6ec747327ce9bda32d5463f472c9dce9f54499e
 setuptools==84.2.1 --hash=sha256:ca140b45d5325a9478f880e351484f62fef15f336462e449ca0c03c873d589c2
 sympy==1.14.0 --hash=sha256:e091cc3e99d2141a0ba2847328f5479b05d94a6635cb96148ccb3f34671bd8f5
 torch @ https://download-r2.pytorch.org/whl/cu128/torch-2.9.1%2Bcu128-cp312-cp312-manylinux_2_28_x86_64.whl --hash=sha256:7cb4018f4ce68b61fd3ef87dc1c4ca520731c7b5b200e360ad47b612d7844063
+tree-sitter==0.25.2 --hash=sha256:b43a9e4c89d4d0839de27cd4d6902d33396de700e9ff4c5ab7631f277a85ead9
+tree-sitter-lua==0.4.1 --hash=sha256:85bf3a3ba900c7244e467ab130efebf35d14cc537d7f6471d79965a1e54dc1e1
 triton==3.5.1 --hash=sha256:d2c6b915a03888ab931a9fd3e55ba36785e1fe70cbea0b40c6ef93b20fc85232
 typing_extensions==4.16.0 --hash=sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8
