@@ -13,7 +13,8 @@ from ygo_kito.construction_effect_blocks import reviewed_effect_blocks
 from ygo_kito.construction_inventory import InventoryDependencies, effect_matches
 from ygo_kito.construction_logic import LogicTag
 from ygo_kito.effect_blocks import BLOCK_VERSION, EffectBlockDictionary, build_dictionary, functional_tags
-from ygo_kito.effect_mechanisms import MechanismCatalog, MECHANISM_WIDTH
+from ygo_kito.effect_mechanisms import MechanismCatalog, MECHANISM_WIDTH, SEMANTIC_VERSION
+from ygo_kito.effect_records import effect_records
 
 
 def synthetic(text, **changes):
@@ -286,6 +287,69 @@ class EffectBlockDictionaryTests(unittest.TestCase):
         self.assertEqual(functional_tags(entry),())
         self.assertEqual(entry['effects'][0]['status'],'unresolved')
         self.assertTrue(entry['effects'][0]['unknown'])
+
+    def test_dictionary_and_static_inventory_reuse_detached_records(self):
+        from ygo_kito.build_contracts import DeckParts
+
+        code = 62034800
+        deck = DeckParts((code,))
+        uncached = MechanismCatalog(self.assets)
+
+        def generate(code):
+            return effect_records(uncached.card(code), semantic_version=SEMANTIC_VERSION, row=self.assets.rows[code])
+
+        with patch.object(uncached, 'effect_records', side_effect=generate) as cold:
+            expected_entry = uncached.effect_blocks(code)
+            expected_inventory = InventoryDependencies(uncached).evaluate(deck)
+            self.assertGreater(cold.call_count, 1)
+        expected_records = generate(code)
+
+        with patch('ygo_kito.effect_records.effect_records', wraps=effect_records) as build:
+            entry = self.entry(code)
+            self.assertEqual(entry, expected_entry)
+            records = self.catalog.effect_records(code)
+            self.assertEqual(records, expected_records)
+            records[0]['trigger']['event'] = 'modified'
+            records[0]['block_view']['blocks'].clear()
+            entry['effects'][0]['blocks'].clear()
+            entry['source_records'][0]['operations'].clear()
+            self.assertEqual(InventoryDependencies(self.catalog).evaluate(deck), expected_inventory)
+            self.assertEqual(self.catalog.effect_records(code), expected_records)
+            self.assertEqual(self.entry(code), expected_entry)
+            build.assert_called_once()
+
+    def test_records_follow_row_changes_and_card_database_generation(self):
+        catalog = synthetic('「配套怪兽」＋战士族怪兽\n①：自己从卡组抽1张。', type=0x61)
+        row = catalog.assets.rows[1]
+        with patch('ygo_kito.effect_records.effect_records', wraps=effect_records) as build:
+            self.assertTrue(catalog.effect_records(1)[0]['printed_materials'])
+            row['type'] = 0x21
+            self.assertEqual(catalog.card(1).materials, ())
+            self.assertEqual(catalog.effect_records(1)[0]['printed_materials'], [])
+            self.assertEqual(build.call_count, 2)
+
+            catalog.assets.rows[1] = dict(row, name='改名卡')
+            catalog.effect_records(1)
+            self.assertEqual(build.call_count, 3)
+
+            catalog.assets.receipt = {'resources': {'cards': 'b' * 64}}
+            current = catalog.effect_records(1)
+            self.assertEqual(current[0]['cards_sha256'], 'b' * 64)
+            self.assertEqual(catalog.card(1).cards_sha256, 'b' * 64)
+            self.assertEqual(build.call_count, 4)
+            self.assertEqual(current, MechanismCatalog(catalog.assets).effect_records(1))
+
+    def test_record_cache_evicts_old_entries_and_can_be_cleared(self):
+        first, second, third = tuple(self.assets.rows)[:3]
+        with (patch('ygo_kito.effect_mechanisms._EFFECT_RECORD_CACHE_SIZE', 2),
+              patch('ygo_kito.effect_records.effect_records', wraps=effect_records) as build):
+            for code in (first, second, first, third, first, second):
+                self.catalog.effect_records(code)
+            self.assertEqual([call.args[0].card_id for call in build.call_args_list],
+                             [first, second, third, second])
+            self.catalog.clear_card_cache()
+            self.catalog.effect_records(second)
+            self.assertEqual(build.call_count, 5)
 
 
 class UnresolvedDictionaryRepairTests(unittest.TestCase):

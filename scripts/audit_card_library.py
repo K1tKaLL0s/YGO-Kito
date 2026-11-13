@@ -292,8 +292,7 @@ def main():
                 item['exception'] = repr(error)
                 errors.append(dict(card_id=code, name=row['name'], error=repr(error)))
             emit(ledger, item)
-            catalog._profiles.clear()
-            catalog._texts.clear()
+            catalog.clear_card_cache()
             if counts['live_cards_checked'] % 2000 == 0:
                 print(json.dumps(dict(checked=counts['live_cards_checked'], elapsed_seconds=round(time.perf_counter()-started, 1))), flush=True)
     summary = dict(

@@ -4,6 +4,8 @@ Recognition is by effect clauses, never by card ID or archetype. Unsupported
 clauses stay visible. Positive observations may guide recall; neither a missing
 observation nor a successful recall establishes an unrestricted/legal combo.
 """
+from collections import OrderedDict
+from copy import deepcopy
 from dataclasses import asdict, dataclass
 import re
 
@@ -13,6 +15,7 @@ from .effect_count_limits import parse_count_limits
 SEMANTIC_VERSION = "public-effect-clauses-v2"
 MECHANISM_WIDTH = 18
 RECALL_VERSION = "public-material-recall-v1"
+_EFFECT_RECORD_CACHE_SIZE = 256
 EXTRA_TYPES = 0x40 | 0x2000 | 0x800000 | 0x4000000
 RACES = {"战士族": 1, "魔法师族": 2, "天使族": 4, "恶魔族": 8,
          "不死族": 16, "机械族": 32, "水族": 64, "炎族": 128,
@@ -298,24 +301,49 @@ def fit_materials(rows, requirements):
 class MechanismCatalog:
     def __init__(self, assets, available_ids=None):
         self.assets = assets
-        self.cards_sha256 = getattr(assets,'receipt',{}).get("resources",{}).get("cards", "")
         self.ids = tuple(assets.rows if available_ids is None else available_ids)
         self._profiles = {}
-        self._texts = {}
+        self._profile_inputs = {}
+        self._records = OrderedDict()
+
+    @property
+    def cards_sha256(self):
+        return getattr(self.assets, "receipt", {}).get("resources", {}).get("cards", "")
+
+    def clear_card_cache(self):
+        """Release card observations when streaming a catalog one card at a time."""
+        self._profiles.clear()
+        self._profile_inputs.clear()
+        self._records.clear()
 
     def card(self, code):
         row = self.assets.rows[code]
+        cards_sha256 = self.cards_sha256
+        inputs = (row["id"], row.get("desc") or "", row.get("type", 0), cards_sha256)
         cached = self._profiles.get(code)
-        text=row.get('desc') or ''
-        if cached is None or self._texts.get(code) != text:
-            cached = self._profiles[code] = analyze_card(row, self.cards_sha256)
-            self._texts[code]=text
+        if cached is None or self._profile_inputs.get(code) != inputs:
+            cached = self._profiles[code] = analyze_card(row, cards_sha256)
+            self._profile_inputs[code] = inputs
         return cached
 
     def effect_records(self, code):
         """Detached, versioned per-effect observations for public planning."""
         from .effect_records import effect_records
-        return effect_records(self.card(code), semantic_version=SEMANTIC_VERSION, row=self.assets.rows[code])
+
+        profile = self.card(code)
+        row = self.assets.rows[code]
+        version = SEMANTIC_VERSION
+        cached = self._records.pop(code, None)
+        if cached is None or cached[0] is not profile or cached[1] != (version, row):
+            # Card database rows contain scalar fields. Snapshot the row so
+            # in-place edits invalidate the saved result.
+            row = dict(row)
+            records = effect_records(profile, semantic_version=version, row=row)
+            cached = (profile, (version, row), records)
+        self._records[code] = cached
+        if len(self._records) > _EFFECT_RECORD_CACHE_SIZE:
+            self._records.popitem(last=False)
+        return deepcopy(cached[2])
 
     def effect_blocks(self, code):
         """Shared coarse dictionary view; no route generation or model update."""
