@@ -17,6 +17,12 @@ from .effect_mechanisms import EXTRA_TYPES, RACES, MechanismCatalog
 from .validation import ContractError
 
 
+_SPECIAL_SUMMON_ACTIONS = frozenset({
+    'special_summon', 'fusion_summon', 'synchro_summon', 'xyz_summon',
+    'link_summon', 'ritual_summon', 'pendulum_summon',
+})
+
+
 def selector(text):
     """Recognize a complete simple card selector; never discard qualifiers."""
     original = text
@@ -541,12 +547,29 @@ class InventoryDependencies:
         from .construction_relations import _INTRINSIC_RESTRICTIONS, _restriction_contract
         # The card dictionary already observes special-summon prohibitions.
         # Its short source must be checked against the entire printed clause.
-        text = self.rows[code].get('desc', '').split('【怪兽效果】')[-1]
+        text = re.split(r'【怪兽(?:效果|描述)】', self.rows[code].get('desc', ''))[-1]
         prelude = re.split(r'[①②③④⑤⑥⑦⑧⑨⑩]\s*[：:]', text, maxsplit=1)[0]
         clauses = [s.strip() for s in re.split(r'[。\n]', prelude) if s.strip()]
         entry = self.catalog.effect_blocks(code)
+        exclusive_methods = {
+            block['source']: set(block.get('qualifiers', {}).get('from_zones', ()))
+            for view in entry['effects'] if view['scope'] == 'monster'
+            for block in (*view['description_blocks'], *view['procedure_blocks'])
+            if block['kind'] in ('summon_condition', 'special_summon')
+            and (re.search(r'才能(?:从(?:手卡|墓地|额外卡组))?特殊召唤$', block['source'])
+                 or re.fullmatch(r'(?:这张卡)?(?:只能|必须)[^。]+特殊召唤', block['source']))
+        }
         observed_rules = list(entry.get('card_restrictions', ()))
         for clause in clauses:
+            grave_lock = '这张卡不能从墓地特殊召唤'
+            if (clause == grave_lock or clause.startswith((grave_lock + '，', grave_lock + ','))) and not any(
+                    r['kind'] == 'cannot_special_summon_this_card' and r['source'] == grave_lock
+                    for r in observed_rules):
+                observed_rules.append(dict(kind='cannot_special_summon_this_card', scope='this_card',
+                    duration='intrinsic', condition='this_card_in_zone', from_zones=['grave'], source=grave_lock))
+            if clause in exclusive_methods:
+                observed_rules.append(dict(kind='special_summon_condition', scope='this_card', duration='intrinsic',
+                    condition='summon_method', source=clause, unknown=['summon_method_eligibility']))
             for word,kind in (('通常','normal'),('特殊','special')):
                 if re.fullmatch(r'(?:这张卡)?不能'+word+r'召唤(?:（盖放）|\(盖放\))?',clause):
                     observed_rules.append(dict(kind='cannot_'+kind+'_summon_this_card',scope='this_card',
@@ -576,7 +599,14 @@ class InventoryDependencies:
                 rule['unknown'] = ['complete_intrinsic_clause']
             known_grave_lock = (complete_legacy_effect and observed['kind'] == 'cannot_special_summon_this_card'
                                 and observed.get('from_zones') == ['grave'])
-            if not known_grave_lock and any(s not in understood and s not in full for s in clauses):
+            independent_methods = set()
+            if observed['kind'] == 'cannot_normal_summon_this_card':
+                independent_methods = exclusive_methods.keys()
+            elif observed.get('from_zones'):
+                independent_methods = {source for source, zones in exclusive_methods.items()
+                                       if zones and zones.isdisjoint(observed['from_zones'])}
+            if not known_grave_lock and any(
+                    s not in understood and s not in full and s not in independent_methods for s in clauses):
                 # A second sentence can qualify the first prohibition. Do not
                 # certify that first sentence while dropping its context.
                 rule.update(unknown=[*rule.get('unknown', ()), 'complete_intrinsic_context'], context_source=prelude)
@@ -598,8 +628,8 @@ class InventoryDependencies:
                  set() if material and target is not None else
                  {k for k in ('cannot_be_'+s+'_material' for s in ('fusion','synchro','xyz','link','ritual'))} if material else
                  {'cannot_normal_summon_this_card'} if action in ('normal_summon', 'tribute_summon', 'normal_set') else
-                 {'cannot_special_summon_this_card'} if action in ('special_summon', 'fusion_summon', 'synchro_summon',
-                     'xyz_summon', 'link_summon', 'ritual_summon', 'pendulum_summon') else set())
+                 {'cannot_special_summon_this_card', 'special_summon_condition'}
+                 if action in _SPECIAL_SUMMON_ACTIONS else set())
         if not kinds:
             return True, []
         origins = operation.get('from_zones', ()) if operation else (
@@ -636,6 +666,10 @@ class InventoryDependencies:
                     # monster-zone state. Keep that state unresolved here.
                 else:
                     allowed = False
+            if allowed is False and action in _SPECIAL_SUMMON_ACTIONS and operation.get('ignore_summon_conditions') is True:
+                # The operation can bypass some summon checks. Its text alone
+                # does not establish that this recipient's restriction is bypassable.
+                allowed = None
             checks.append(dict(card_id=code, target_card_id=target, action=(summon_type or 'unknown')+'_material' if material else action,
                 from_zones=list(origins), controller=operation.get('controller'), allowed=allowed,
                 restriction=deepcopy(restriction), contract=rule))

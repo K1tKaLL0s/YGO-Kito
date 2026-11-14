@@ -647,6 +647,7 @@ _PLAYER_RESTRICTIONS = frozenset({"cannot_normal_summon", "extra_fusion_only", "
     "cannot_send_grave", "cannot_banish", "cannot_return", "cannot_release", "cannot_activate",
     'grave_destination_replace', *_RESTRICTION_ALIASES})
 _INTRINSIC_RESTRICTIONS = frozenset({"cannot_normal_summon_this_card", "cannot_special_summon_this_card",
+    "special_summon_condition",
     *("cannot_be_"+kind+"_material" for kind in ("fusion", "synchro", "xyz", "link", "ritual"))})
 
 
@@ -667,6 +668,9 @@ def _restriction_contract(restriction):
         kind = "cannot_normal_summon" if "通常召唤" in source else kind
     else:
         kind = _RESTRICTION_ALIASES.get(kind, kind)
+    if kind == "special_summon_condition":
+        # Eligibility depends on how the current summon is being performed.
+        return None
     if kind in _INTRINSIC_RESTRICTIONS:
         rule = dict(restriction)
         if rule.get("duration") == "summon_turn":

@@ -598,6 +598,22 @@ class FunctionalFlowTests(unittest.TestCase):
         checks = uncertain['use_details'][caller.use_id]['inventory_checks']['objects']['requirements'][0]['restriction_checks']
         self.assertTrue(all('但可以用指定效果召唤' in c['restriction']['source'] for c in checks))
 
+        assets.rows[3]['desc'] = '「指定之门」的效果才能特殊召唤。' + trigger
+        constrained = normalize_function_uses(task, deck, binder.semantic_catalog, policy=p, context=ctx)
+        result = evaluate_functional_quality(layers, policy=p, facts=constrained)
+        self.assertEqual(next(r for r in result['hard_requirements'] if r['requirement_id'] == 'summon-recipient')['status'],
+                         'unknown')
+        checks = constrained['use_details'][caller.use_id]['inventory_checks']['objects']['unknown_restrictions']
+        self.assertEqual([c['restriction']['kind'] for c in checks], ['special_summon_condition'])
+
+        assets.rows[3]['desc'] = '这张卡不能从墓地特殊召唤。' + trigger
+        grave_blocked = normalize_function_uses(task, deck, binder.semantic_catalog, policy=p, context=ctx)
+        result = evaluate_functional_quality(layers, policy=p, facts=grave_blocked)
+        self.assertEqual(next(r for r in result['hard_requirements'] if r['requirement_id'] == 'summon-recipient')['status'],
+                         'failed')
+        checks = grave_blocked['use_details'][caller.use_id]['inventory_checks']['objects']['requirements'][0]['restriction_checks']
+        self.assertEqual([c['contract']['from_zones'] for c in checks], [['grave']])
+
     def test_conditional_fusion_material_reaches_evaluation_without_global_exclusion(self):
         from ygo_kito.construction_relations import InputGroup, Need, RelationContext, RelationFact, Resource, UseRequirement
         task, assets, _, binder, decks, p = fixture()

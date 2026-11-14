@@ -150,6 +150,13 @@ class InventoryDependencyTests(unittest.TestCase):
         self.assertEqual([op['kind'] for record in records for op in record['operations']], ['draw'])
         descriptions = [d for record in records for d in record['block_view']['description_blocks']]
         self.assertTrue(any(d['kind'] == 'summon_condition' for d in descriptions))
+        result = dependencies.summon_trigger_check(2, {'trigger': {'event': 'special_summon'}})
+        self.assertEqual((result['status'], result['shortfall']), ('unknown', 0))
+        rule = result['restriction_checks'][0]['restriction']
+        self.assertEqual((rule['kind'], rule['source']),
+                         ('special_summon_condition', '「指定之门」的效果才能特殊召唤'))
+        self.assertEqual(dependencies.evaluate(value[4][1], codes=(2,))['cards']['2']['effects'][0]['status'],
+                         'inventory_present')
 
     def test_intrinsic_summon_prohibitions_check_the_recipient_and_keep_other_uses(self):
         value, dependencies, _ = fixture()
@@ -177,6 +184,7 @@ class InventoryDependencyTests(unittest.TestCase):
             self.assertEqual(dependencies.summon_trigger_check(2, {'trigger':{'event':event}})['status'], status)
         assets.rows[2]['desc'] = '这张卡不能特殊召唤，但可以用指定效果召唤。①：自己主要阶段才能发动。抽1张。'
         dependencies = InventoryDependencies(dependencies.catalog)
+        original_records = dependencies.catalog.effect_records(2)
         req['operation']['kind'] = 'special_summon'
         unknown = dependencies._check(deck, [req])
         self.assertEqual((unknown['status'], unknown['shortfall']), ('unknown', 0))
@@ -184,7 +192,8 @@ class InventoryDependencyTests(unittest.TestCase):
         self.assertIn('但可以用指定效果召唤', rule['source'])
         self.assertEqual(rule['observed_source'], '这张卡不能特殊召唤')
         # Adaptation is detached: the raw effect records remain unchanged.
-        self.assertFalse(dependencies.catalog.effect_records(2)[0]['card_restrictions'])
+        dependencies.specs(2)
+        self.assertEqual(dependencies.catalog.effect_records(2), original_records)
         self.assertEqual(dependencies._check(value[4][0], [req])['status'], 'missing')
         assets.rows[2]['desc'] = '这张卡不能特殊召唤。指定效果召唤的场合不受这个限制。①：自己主要阶段才能发动。抽1张。'
         dependencies = InventoryDependencies(dependencies.catalog)
@@ -194,6 +203,50 @@ class InventoryDependencyTests(unittest.TestCase):
         assets.rows[2]['desc'] = '这张卡不能通常召唤。①：自己主要阶段才能发动。抽1张。'
         dependencies = InventoryDependencies(dependencies.catalog)
         self.assertEqual(dependencies.summon_trigger_check(2, {'trigger':{'event':'normal_or_special_summon'}})['status'], 'inventory_present')
+
+    def test_grave_summon_prohibition_preserves_origins_and_exceptions(self):
+        value, original, _ = fixture()
+        assets, deck = value[1], value[4][1]
+        draw = '①：自己主要阶段才能发动。抽1张。'
+        prohibition = '这张卡不能从墓地特殊召唤'
+        assets.rows[2]['desc'] = prohibition + '。' + draw
+        dependencies = InventoryDependencies(original.catalog)
+        req = dict(query=selector('「绯色素材」'), minimum=1, source='complete recipient',
+                   origin='grave', category='operations')
+        for origins, origin, status, allowed in (
+            (['grave'], 'grave', 'missing', False),
+            (['hand'], 'hand', 'inventory_present', True),
+            (['hand', 'grave'], 'choice', 'unknown', None),
+        ):
+            with self.subTest(origins=origins):
+                operation = dict(kind='special_summon', from_zones=origins, to_zone='field', owner='self')
+                result = dependencies._check(deck, [dict(req, origin=origin, operation=operation)])
+                self.assertEqual(result['status'], status)
+                check, = result['requirements'][0]['restriction_checks']
+                self.assertIs(check['allowed'], allowed)
+                self.assertEqual(check['contract']['from_zones'], ['grave'])
+        operation = dict(kind='special_summon', from_zones=['grave'], ignore_summon_conditions=True)
+        self.assertIsNone(dependencies.candidate_status(2, dict(category='operations', operation=operation))[0])
+        assets.rows[2]['desc'] = prohibition + '，但可以用指定效果召唤。' + draw
+        permitted, checks = InventoryDependencies(original.catalog).candidate_status(
+            2, dict(category='operations', operation=dict(kind='special_summon', from_zones=['grave'])))
+        self.assertIsNone(permitted)
+        self.assertIn('但可以用指定效果召唤', checks[0]['restriction']['source'])
+
+    def test_required_special_summon_procedure_leaves_generic_entry_unconfirmed(self):
+        value, dependencies, _ = fixture()
+        procedure = '把自己墓地3张「绯色」卡除外的场合才能特殊召唤'
+        value[1].rows[2]['desc'] = '这张卡不能通常召唤。' + procedure + '。①：自己主要阶段才能发动。抽1张。'
+        normal = dependencies.summon_trigger_check(2, {'trigger': {'event': 'normal_summon'}})
+        either = dependencies.summon_trigger_check(2, {'trigger': {'event': 'normal_or_special_summon'}})
+        self.assertEqual((normal['status'], either['status']), ('missing', 'unknown'))
+        req = dict(query=selector('「绯色素材」'), minimum=1, source='ordinary effect summons from hand',
+                   origin='hand', category='operations', operation=dict(kind='special_summon', from_zones=['hand']))
+        result = dependencies._check(value[4][1], [req])
+        self.assertEqual((result['status'], result['shortfall']), ('unknown', 0))
+        check, = result['unknown_restrictions']
+        self.assertEqual(check['restriction']['source'], procedure)
+        self.assertEqual(check['restriction']['kind'], 'special_summon_condition')
 
     def test_material_prohibition_preserves_summon_kind_zone_and_uncertain_alternatives(self):
         value, original, _ = fixture()
