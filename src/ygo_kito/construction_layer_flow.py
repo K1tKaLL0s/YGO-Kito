@@ -26,7 +26,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v36"
+NORMALIZATION_VERSION = "construction-function-normalization-v37"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -165,6 +165,12 @@ def _configuration_relations(available, records, dependencies, aliases, operatio
                             code, 'extra' if code in available.extra else 'main', inputs=inputs,
                             conditions=('static applicability: '+event,),
                             unknown=('summon_configuration_uncovered',) if checks['status'] == 'unknown' else ()))
+                    elif resource.kind == 'effect_applicability' and 'state:occurred_this_turn' in resource.attributes:
+                        # The candidate includes the card. Whether the event
+                        # happened to it this turn is an independent condition.
+                        observation = 'catalog-text:' + need.need_id.removeprefix('catalog:') + ':turn_event_unobserved'
+                        added.append(RelationFact(key, key, resource, 'printed turn condition: '+scoped['source_text'],
+                            code, 'extra' if code in available.extra else 'main', unknown=(observation,)))
                     elif resource.kind == 'effect_applicability' and _record_applicability(scoped):
                         added.append(RelationFact(key,key,resource,'printed continuous applicability: '+scoped['source_text'],
                             code,'extra' if code in available.extra else 'main',conditions=('static continuous applicability',)))

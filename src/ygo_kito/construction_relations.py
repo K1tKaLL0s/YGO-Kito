@@ -1056,6 +1056,14 @@ def _record_facts(code, records, *, zone="main", same_name=None, inventory=None,
             extra_unknown = list(shared_unknown)
             operation_conditions=list(conditions)
             operation_inputs=list(inputs)
+            for state in op.get('state_conditions', ()):
+                if state['kind'] != 'occurred_this_turn':
+                    continue
+                alternatives = tuple(Need(ref + ':applicability:' + event,
+                    Resource('effect_applicability', zone=state['zone'], event=event,
+                        attributes=(f'card:{code}', 'state:occurred_this_turn')), mode='presence')
+                    for event in state['events'])
+                operation_inputs.append(InputGroup('any', alternatives))
             for connector in record.get('block_view',{}).get('connectors',()):
                 if connector.get('target')==op.get('block_id') and connector.get('condition_source'):
                     operation_conditions.append('operation_condition:'+connector['condition_source'])

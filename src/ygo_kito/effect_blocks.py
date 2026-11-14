@@ -16,8 +16,8 @@ import tempfile
 from .effect_block_rules import FUNCTIONS, structural_records
 
 BLOCK_VERSION = "public-effect-blocks-v1"
-BLOCK_REVISION = 'local-library-review-20261115-b32-printed'
-LUA_BLOCK_REVISION = 'local-library-review-20261115-b32'
+BLOCK_REVISION = 'local-library-review-20261115-b33-printed'
+LUA_BLOCK_REVISION = 'local-library-review-20261115-b33'
 LABELS = {
     "send_grave": "送墓", "search": "检索", "recover": "回收", "add_hand": "加入手牌",
     "draw": "抽卡", "special_summon": "特召", "fusion_summon": "融合召唤",
@@ -284,6 +284,15 @@ _ACTIONS = (
 )
 _COMPILED_ACTIONS = tuple((k, re.compile(p)) for k,p in (*_ACTIONS,*((k,p) for k,_,p in FUNCTIONS)))
 
+_PROTECTION_EVENTS = {'特殊召唤': 'special_summon', '反转': 'flip', '反转召唤': 'flip_summon'}
+_PROTECTION_EVENT = '|'.join(_PROTECTION_EVENTS)
+_PROTECTION_EFFECT = r'(?:对方的)?(?:卡的)?效果'
+_SUMMON_TURN_PROTECTION = re.compile(
+    rf'(?P<condition>这张卡在(?P<events>(?:{_PROTECTION_EVENT})(?:[·、](?:{_PROTECTION_EVENT}))*)的回合)'
+    r'[，,]?\s*不(?:会)?被'
+    rf'(?:(?P<battle>战斗)(?:(?:[·、]|以及|或)(?P<combined>{_PROTECTION_EFFECT}))?'
+    rf'|(?P<effect>{_PROTECTION_EFFECT}))破坏')
+
 
 def _connectors(head, body, mode, scope, row):
     values = []
@@ -361,6 +370,34 @@ def block_view(record, row):
     from .effect_text import activation_headers
     for start,end,_ in activation_headers(text):
         scan=scan[:start]+' '*(end-start)+scan[end:]
+    if mode == 'unmarked' and scope == 'monster' and not flavor:
+        for sentence in re.finditer(r'[^。；;\r\n●]+', scan):
+            raw = sentence[0].strip()
+            protection = _SUMMON_TURN_PROTECTION.fullmatch(raw)
+            if not protection:
+                continue
+            start = sentence.start() + len(sentence[0]) - len(sentence[0].lstrip())
+            end = start + len(raw)
+            events = list(dict.fromkeys(_PROTECTION_EVENTS[event]
+                for event in re.split('[·、]', protection['events'])))
+            state = dict(kind='occurred_this_turn', events=events, subject='this_card', zone='field',
+                source=protection['condition'], timing='while_applicable')
+            kinds = []
+            if protection['battle']:
+                kinds.append(('battle_protection', None))
+            effect = protection['combined'] or protection['effect']
+            if effect:
+                kinds.append(('effect_protection', effect))
+            for kind, cause in kinds:
+                qualifiers = dict(subject='this_card', state_conditions=[state])
+                if cause and cause.startswith('对方的'):
+                    qualifiers['protected_from'] = 'opponent_effects'
+                blocks.append(dict(block_id=f'{key}:effect:{len(blocks)}',
+                    tag={'dimension': 'effect', 'value': LABELS[kind]}, kind=kind,
+                    phase='continuous', source=raw, source_span=[start, end], qualifiers=qualifiers,
+                    group=key, branch=text[:start].count('●'), order=start+protection.end('condition')))
+            # A summon in this state test describes when the protections apply.
+            scan = scan[:start] + ' ' * len(raw) + scan[end:]
     # Split on punctuation, retaining offsets into the unmodified source text.
     for match in re.finditer(r"[^。；;，,\r\n●]+", scan):
         raw = match[0].strip()
@@ -503,6 +540,10 @@ def block_view(record, row):
     if continuous:
         for c in connectors:c['starts_chain']=False
     for block in blocks:
+        for state in block['qualifiers'].get('state_conditions', ()):
+            connectors.append(dict(connector_id=f'{key}:connector:{len(connectors)}', kind='条件适用',
+                effect_key=key, source='condition', target=block['block_id'],
+                condition_source=state['source'], starts_chain=False))
         prior=text[:block['source_span'][0]].rstrip('，, ')
         condition=re.split(r'[。；;，,\r\n]',prior)[-1]
         if re.search(r'(?:场合|时|时候)$',condition) and not condition.startswith('直到'):

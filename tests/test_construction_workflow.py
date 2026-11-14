@@ -183,31 +183,61 @@ class WorkflowTests(unittest.TestCase):
     def test_protection_effects_do_not_become_global_player_restriction_gaps(self):
         from tests.test_construction_functional_flow import fixture
         from ygo_kito.construction_layer_flow import normalize_function_uses
-        from ygo_kito.construction_quality import evaluate_functional_quality
-        from ygo_kito.construction_relations import RelationContext,RelationFact,Resource
-        clauses=(('battle_protection','这张卡不会被战斗破坏。',False),
-            ('effect_protection','这张卡不会被效果破坏。',False),
-            ('effect_protection','这张卡在特殊召唤·反转的回合不会被战斗·效果破坏。',True))
-        for kind,clause,conditional in clauses:
-            with self.subTest(kind=kind):
-                task,assets,graph,binder,decks,policy=fixture()
-                assets.rows[2]['desc']='这个卡名的①效果1回合只能使用1次。①：自己主要阶段才能发动。抽1张。②：'+clause
-                phase=RelationFact('phase','phase',Resource('activation',event='own_main_phase',
-                    reason='not_applicable',attributes=('card:2',)),'explicit draw activation support')
-                context=SimpleNamespace(relations=RelationContext((),(phase,)))
-                facts=normalize_function_uses(task,decks[1],binder.semantic_catalog,policy=policy,context=context)
-                checks=[c for d in facts['use_details'].values() for c in d['restriction_checks']
-                    if c['restriction']['kind']==kind]
-                self.assertTrue(checks)
-                self.assertTrue(any(c['status']=='function_effect' for c in checks))
-                q=evaluate_functional_quality(dict(axis=dict(task=task.to_dict(),inventory=decks[1].to_dict(),
-                    logic=graph.to_dict())),policy=policy,facts=facts)
-                self.assertNotIn('impacts',q['deferred'])
-                if conditional:
-                    from ygo_kito.construction_quality import support_state
-                    protected=[u for u in facts['uses'] if facts['use_details'][u.use_id]['operation'].get('kind')==kind]
-                    self.assertTrue(any(support_state(u.self_condition,facts['variables']) is None for u in protected))
-                    self.assertFalse(q['complete'])
+        from ygo_kito.construction_quality import evaluate_functional_quality, support_state
+        from ygo_kito.construction_relations import RelationContext, RelationFact, Resource
+
+        battle, effect = 'battle_protection', 'effect_protection'
+        timed = '这张卡在特殊召唤·反转的回合不会被战斗·效果破坏。'
+        cases = (
+            ('这张卡不会被战斗破坏。', {battle}, None, True),
+            ('这张卡不会被效果破坏。', {effect}, None, True),
+            ('自己主要阶段才能发动。这个回合这张卡不会被效果破坏。', {effect}, None, True),
+            (timed, {battle, effect}, None, None),
+            (timed, {battle, effect}, ('special_summon', 2, 'field'), True),
+            (timed, {battle, effect}, ('flip', 2, 'field'), True),
+            (timed, {battle, effect}, ('special_summon', 3, 'field'), None),
+            (timed, {battle, effect}, ('special_summon', 2, 'grave'), None),
+            (timed, {battle, effect}, ('normal_summon', 2, 'field'), None),
+        )
+        for clause, kinds, observation, expected in cases:
+            with self.subTest(clause=clause, observation=observation):
+                task, assets, graph, binder, decks, policy = fixture()
+                assets.rows[2]['desc'] = (
+                    '这个卡名的①效果1回合只能使用1次。①：自己主要阶段才能发动。抽1张。②：' + clause)
+                host = [RelationFact('phase', 'phase', Resource('activation', event='own_main_phase',
+                    reason='not_applicable', attributes=('card:2',)), 'explicit draw activation support')]
+                if observation:
+                    event, code, zone = observation
+                    host.append(RelationFact('observed', 'observed', Resource('effect_applicability',
+                        zone=zone, event=event, attributes=(f'card:{code}', 'state:occurred_this_turn')),
+                        'explicit event for this turn'))
+                context = SimpleNamespace(relations=RelationContext((), tuple(host)))
+                facts = normalize_function_uses(task, decks[1], binder.semantic_catalog, policy=policy, context=context)
+                uses = {}
+                for use in facts['uses']:
+                    detail = facts['use_details'][use.use_id]
+                    if detail['card_id'] == 2 and detail['operation']:
+                        uses[detail['operation']['kind']] = use
+                self.assertEqual(set(uses), {'draw', *kinds})
+                self.assertIs(support_state(uses['draw'].self_condition, facts['variables']), True)
+                for kind in kinds:
+                    self.assertIs(support_state(uses[kind].self_condition, facts['variables']), expected)
+                    checks = facts['use_details'][uses[kind].use_id]['restriction_checks']
+                    self.assertTrue(any(c['status'] == 'function_effect' for c in checks))
+                if clause == timed:
+                    self.assertEqual(uses[battle].self_condition, uses[effect].self_condition)
+                    for kind in kinds:
+                        operation = facts['use_details'][uses[kind].use_id]['operation']
+                        self.assertEqual(operation['subject'], 'this_card')
+                        self.assertEqual(operation['state_conditions'][0]['events'], ['special_summon', 'flip'])
+                axis = dict(task=task.to_dict(), inventory=decks[1].to_dict(), logic=graph.to_dict())
+                quality = evaluate_functional_quality(dict(axis=axis), policy=policy, facts=facts)
+                self.assertEqual(facts['impacts'], [])
+                self.assertNotIn('impacts', quality['deferred'])
+                self.assertEqual(quality['complete'], expected is True)
+                self.assertEqual(quality['score']['lower'], 1 + len(kinds) if expected else 1)
+                self.assertEqual(quality['score']['upper'], 1 + len(kinds))
+                self.assertEqual(quality['score']['value'], 1 + len(kinds) if expected else None)
 
     def test_completed_round_saves_evaluation_receipts_and_winner(self):
         from ygo_kito.construction_progress import restore_progress
