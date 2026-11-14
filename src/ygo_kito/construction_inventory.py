@@ -341,11 +341,12 @@ def _printed_setcode(query, code):
         _printed_setcode(child, code) for child in query.get('any', ()))
 
 
-def _activation_target(record, operation):
+def _activation_target(record, operation, *, availability_timing=None):
     reference = operation.get('target_ref')
     if type(reference) is int and 0 <= reference < len(record['targets']):
         target = record['targets'][reference]
-        if target.get('timing') == 'activation':
+        if (target.get('timing') == 'activation'
+                and (availability_timing is None or target.get('availability_timing') == availability_timing)):
             return target
     return None
 
@@ -859,6 +860,38 @@ class InventoryDependencies:
         proof = self._check(deck, requirements, distinct=True)
         return dict(status=proof['status'], reason='simultaneous_processing_entities', checks=[proof])
 
+    def _handler_grave_processing(self, resident, extra, record, selected=None):
+        if not any(target.get('availability_timing') == 'before_activation_payment' for target in record['targets']):
+            return None
+        handler, summon = record['operations']
+        if selected is not None and selected.get('block_id') == summon['block_id']:
+            summon = selected
+        target = _activation_target(record, summon, availability_timing='before_activation_payment')
+        cost, = record['costs']
+        payment = self.item_requirement(cost, 'costs')
+        source = dict(self.item_requirement(handler, 'operations'), operation=handler)
+        chosen = self.item_requirement(summon, 'operations')
+        grave = self.item_requirement(target, 'targets')
+        # The handler is still on the field during both activation callbacks.
+        existing = self._check_counts(resident, extra, [source, payment, dict(chosen, operation=summon)],
+                                      distinct=True)
+        original = {key: value for key, value in grave['query'].items() if key != 'selector'}
+        proposed = {key: value for key, value in chosen['query'].items() if key != 'selector'}
+        if existing['status'] == 'inventory_present' or proposed == original:
+            return existing
+
+        # With a narrowed choice, the paid card may be the actual target.
+        # Another copy must already satisfy the pre-payment Graveyard check.
+        paid = dict(payment, category='operations', operation=summon,
+                    query=dict(payment['query'], any=[chosen['query']]))
+        prechecked = dict(grave, category='operations', operation=summon)
+        after_payment = self._check_counts(resident, extra, [source, paid, prechecked], distinct=True)
+        if after_payment['status'] == 'inventory_present' or (
+                existing['status'] == 'missing' and
+                (after_payment['status'] == 'unknown' or after_payment['shortfall'] < existing['shortfall'])):
+            return after_payment
+        return existing
+
     def summon_choice_check(self, deck, record, operation, allowed, *, physical_inventory):
         '''Check one printed summon with the legal object range already applied.'''
         requirement = self.item_requirement(operation, 'operations')
@@ -893,6 +926,11 @@ class InventoryDependencies:
         key = digest([dict(main=deck.main,extra=deck.extra),physical_inventory.to_dict(),
                       record,(selected or {}).get('block_id')])
         if key in self._processing:
+            return self._processing[key]
+        if any(target.get('availability_timing') == 'before_activation_payment' for target in record['targets']):
+            proof = self._handler_grave_processing(Counter(deck.main + deck.extra), Counter(deck.extra), record, selected)
+            self._processing[key] = dict(status=proof['status'], reason='complete_processing_preselected_grave_target',
+                                         checks=[proof])
             return self._processing[key]
         simultaneous = self.simultaneous_processing(deck, record, selected)
         if simultaneous is not None:
@@ -1160,18 +1198,21 @@ class InventoryDependencies:
                     requirements = [req for req in effect['requirements'] if not tags or 'operation' not in req or
                         effect_matches(dict(effect['record'], operations=[req['operation']]),tags)]
                     dependencies = {ref for req in requirements for ref in req.get('operation', {}).get('depends_on', ())}
-                    hand_sends = [req for req in effect['requirements'] if (op := req.get('operation'))
-                        and op['block_id'] in dependencies and op.get('processing_role') == 'auxiliary'
-                        and op['kind'] == 'send_grave' and op.get('from_zones') == ['hand']]
-                    requirements.extend(req for req in hand_sends if req not in requirements)
-                    bound_targets = {target['source'] for req in requirements
-                        if (target := _activation_target(effect['record'], req.get('operation', {}))) is not None}
-                    if hand_sends and bound_targets:
-                        # The bound summon allocates the activation target once.
-                        # The source and the selected hand card use their own entities.
-                        requirements.insert(0, _processing_activation_source(effect['record']))
-                    value = self._check_counts(resident, extra, requirements, distinct=bool(hand_sends),
-                                               bound_targets=bound_targets)
+                    proof = self._handler_grave_processing(resident, extra, effect['record'])
+                    if proof is not None:
+                        value = proof
+                    else:
+                        hand_sends = [req for req in effect['requirements'] if (op := req.get('operation'))
+                            and op['block_id'] in dependencies and op.get('processing_role') == 'auxiliary'
+                            and op['kind'] == 'send_grave' and op.get('from_zones') == ['hand']]
+                        requirements.extend(req for req in hand_sends if req not in requirements)
+                        bound_targets = {target['source'] for req in requirements
+                            if (target := _activation_target(effect['record'], req.get('operation', {}))) is not None}
+                        if hand_sends and bound_targets:
+                            # The summon allocates its activation target once.
+                            requirements.insert(0, _processing_activation_source(effect['record']))
+                        value = self._check_counts(resident, extra, requirements, distinct=bool(hand_sends),
+                                                   bound_targets=bound_targets)
                     key = effect['key'] + ':' + scope
                     unresolved=[r for r in effect['unknown'] if not tags or 'operation' not in r or
                         effect_matches(dict(effect['record'],operations=[r['operation']]),tags)]

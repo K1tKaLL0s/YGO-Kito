@@ -10,7 +10,7 @@ from pathlib import Path
 from .validation import ContractError
 
 
-LUA_EFFECT_VERSION = "mycard-effect-registration-v4"
+LUA_EFFECT_VERSION = "mycard-effect-registration-v5"
 _TABLE, _CARD = object(), object()
 _CALLBACKS = {
     "SetCondition": "condition", "SetCost": "cost", "SetTarget": "target",
@@ -453,6 +453,57 @@ def _member_call(node, method, constants, *arguments):
     return None
 
 
+def _processing_statements(statements, constants, player, effect=None):
+    """Remove client hints and operation announcements with simple arguments."""
+    for statement in statements:
+        name, args = _call(statement)
+        if (name == "Duel.Hint" and len(args) == 3 and _name(args[1]) == player
+                and all(_integer_value(args[i], constants) is not None for i in (0, 2))):
+            continue
+        if (name == "Duel.SetOperationInfo" and len(args) == 6
+                and all(_integer_value(args[i], constants) is not None for i in (0, 1, 3, 5))
+                and (args[2].type in ("nil", "identifier")
+                     or effect is not None and _literal_call(args[2], constants, f"{effect}:GetHandler"))
+                and (_integer_value(args[4], constants) is not None or _name(args[4]) == player)):
+            continue
+        yield statement
+
+
+def _processing_steps(statements, constants, player, effect, depth=0):
+    """Read the successful path through tail branches and early-return guards."""
+    if depth == 8:
+        return []
+
+    def guard(node, truth, depth=0):
+        node = _unwrapped(node)
+        if node is None or depth == 8:
+            return [(node, truth)]
+        if node.type == "unary_expression" and _text(node.child_by_field_name("operator")) == "not":
+            return guard(node.child_by_field_name("operand"), not truth, depth + 1)
+        left, right = _binary(node, "and" if truth else "or")
+        if left is not None:
+            return guard(left, truth, depth + 1) + guard(right, truth, depth + 1)
+        return [(node, truth)]
+
+    steps = []
+    statements = list(_processing_statements(statements, constants, player, effect))
+    for position, statement in enumerate(statements):
+        condition = _early_return(statement)
+        if condition is not None:
+            steps.extend(guard(condition, False))
+        elif statement.type != "if_statement":
+            steps.append((statement, None))
+        elif position == len(statements) - 1 and (branch := _check_body(statement)):
+            steps.extend(guard(statement.child_by_field_name("condition"), True))
+            body = _processing_steps(branch, constants, player, effect, depth + 1)
+            if not body:
+                return []
+            steps.extend(body)
+        else:
+            return []
+    return steps
+
+
 def _hand_send_before_summon(statements, variant, constants, effect, player):
     """Recognize the movement and the guard that tests its actual destination."""
     hand = constants["LOCATION_HAND"]
@@ -462,24 +513,24 @@ def _hand_send_before_summon(statements, variant, constants, effect, player):
     def call(node, name, *args):
         return _literal_call(node, constants, name, *args)
 
-    if variant == "discard_hand" and len(statements) == 4:
-        hint, send, moved, arrived = statements
+    statements = list(_processing_statements(statements, constants, player))
+    if variant == "discard_hand" and len(statements) == 3:
+        send, moved, arrived = statements
         card, result = _local_value(moved)
         if not card or card in (effect, player, "Duel", "Card"):
             return None
         movement, shortfall = _binary(_early_return(send), "<")
         first = _member_call(result, "GetFirst", constants)
         location = _unwrapped(_early_return(arrived))
-        if (call(hint, "Duel.Hint", constants["HINT_SELECTMSG"], player, constants["HINTMSG_TOGRAVE"])
-                and call(movement, "Duel.DiscardHand", player, "Card.IsAbleToGrave", 1, 1, reason)
+        if (call(movement, "Duel.DiscardHand", player, "Card.IsAbleToGrave", 1, 1, reason)
                 and _integer_value(shortfall, constants) == 1
                 and call(first, "Duel.GetOperatedGroup")
                 and location is not None and location.type == "unary_expression"
                 and _text(location.child_by_field_name("operator")) == "not"
                 and call(location.child_by_field_name("operand"), f"{card}:IsLocation", grave)):
             return dict(selection_span=_span(movement), movement_span=_span(movement), arrival_span=_span(arrived))
-    if variant == "select_and_send" and len(statements) == 5:
-        available, hint, selected, nonempty, send = statements
+    if variant == "select_and_send" and len(statements) == 4:
+        available, selected, nonempty, send = statements
         group, selection = _local_value(selected)
         if not group or group in (effect, player, "Duel", "Card"):
             return None
@@ -492,7 +543,6 @@ def _hand_send_before_summon(statements, variant, constants, effect, player):
                  if replaced is not None and replaced.type == "unary_expression"
                  and _text(replaced.child_by_field_name("operator")) == "not" else None)
         if (call(count, "Duel.GetFieldGroupCount", player, hand, 0) and _integer_value(threshold, constants) == 0
-                and call(hint, "Duel.Hint", constants["HINT_SELECTMSG"], player, constants["HINTMSG_TOGRAVE"])
                 and call(selection, "Duel.SelectMatchingCard", player, "Card.IsAbleToGrave", player, hand, 0, 1, 1, None)
                 and call(size, f"{group}:GetCount") and _integer_value(empty, constants) == 0
                 and call(movement, "Duel.SendtoGrave", group, reason) and _integer_value(zero, constants) == 0
@@ -501,63 +551,128 @@ def _hand_send_before_summon(statements, variant, constants, effect, player):
     return None
 
 
-def _grave_summon_target(body, functions, constants, tables):
-    params = tuple(map(_text, body.child_by_field_name("parameters").children_by_field_name("name")))
-    if len(params) != 10 or len(set(params)) != len(params) or set(params) & (tables | {"Card", "Duel"}):
+def _hand_send_cost(body, constants, tables):
+    if body is None:
         return None
-    effect, player = params[:2]
-    chk, chkc = params[-2:]
+    params = tuple(map(_text, body.child_by_field_name("parameters").children_by_field_name("name")))
+    if len(params) != 9 or len(set(params)) != 9 or set(params) & (tables | {"Card", "Duel"}):
+        return None
+    player, chk = params[1], params[-1]
     local = {key: value for key, value in constants.items() if key not in params}
-    grave, hand, field = (constants[key] for key in ("LOCATION_GRAVE", "LOCATION_HAND", "LOCATION_MZONE"))
+    statements = list(_processing_statements(_children(body.child_by_field_name("body")), local, player))
+    if len(statements) not in (2, 3) or not {"LOCATION_HAND", "REASON_COST"} <= local.keys():
+        return None
+    guard, *payment = statements
+    movement = payment[-1]
+    left, right = _binary(guard.child_by_field_name("condition"), "==")
+    available = _return_expression(_check_body(guard))
+    eligible = "Card.IsAbleToGraveAsCost"
+    hand, cost = local["LOCATION_HAND"], local["REASON_COST"]
+    if (_name(left) != chk or _integer_value(right, local) != 0
+            or not _literal_call(available, local, "Duel.IsExistingMatchingCard", eligible, player, hand, 0, 1, None)):
+        return None
+    if len(payment) == 1:
+        if not _literal_call(movement, local, "Duel.DiscardHand", player, eligible, 1, 1, cost):
+            return None
+    else:
+        group, selection = _local_value(payment[0])
+        if (not group or group in params or group in local or group in {"Card", "Duel"}
+                or not _literal_call(selection, local, "Duel.SelectMatchingCard", player, eligible, player,
+                                     hand, 0, 1, 1, None)
+                or not _literal_call(movement, local, "Duel.SendtoGrave", group, cost)):
+            return None
+    return dict(phase="activation_payment", owner="self", from_zones=["hand"], to_zone="grave",
+                quantity=1, reason="cost", requires_arrival=True,
+                availability_span=_span(available), movement_span=_span(movement))
+
+
+def _handler_grave_availability(checks, constants, effect, player):
+    """Read the free-zone check and the same handler's ability to be sent."""
+    def is_handler(node):
+        return _literal_call(node, constants, f"{effect}:GetHandler")
+
+    zone_check = [node for node in checks
+                  if not is_handler(_member_call(node, "IsAbleToGrave", constants))]
+    if len(zone_check) != 1:
+        return False
+    count, threshold = _binary(zone_check[0], ">")
+    name, args = _call(_unwrapped(count))
+    if (name == "Duel.GetMZoneCount" and len(args) == 2 and _name(args[0]) == player
+            and is_handler(args[1]) and _integer_value(threshold, constants) == 0):
+        return True
+    threshold = _unwrapped(threshold)
+    return (_literal_call(count, constants, "Duel.GetLocationCount", player, constants["LOCATION_MZONE"])
+            and threshold is not None and threshold.type == "unary_expression"
+            and _text(threshold.child_by_field_name("operator")) == "-"
+            and _integer_value(threshold.child_by_field_name("operand"), constants) == 1)
+
+
+def _grave_summon_target(body, functions, constants, tables, *, handler_send=False):
+    params = tuple(map(_text, body.child_by_field_name("parameters").children_by_field_name("name")))
+    if len(params) not in (9, 10) or len(set(params)) != len(params) or set(params) & (tables | {"Card", "Duel"}):
+        return None
+    effect, player, chk = params[0], params[1], params[8]
+    local = {key: value for key, value in constants.items() if key not in params}
+    zones = ("LOCATION_GRAVE", "LOCATION_HAND", "LOCATION_MZONE")
+    if not all(key in local for key in zones):
+        return None
+    grave, hand, field = (local[key] for key in zones)
 
     def call(node, name, *args):
         return _literal_call(node, local, name, *args)
 
-    statements = _children(body.child_by_field_name("body"))
-    if len(statements) not in (5, 6):
+    statements = list(_processing_statements(_children(body.child_by_field_name("body")), local, player, effect))
+    if len(statements) not in (2, 3):
         return None
-    redirect, check, hint, chosen, *info = statements
+    *redirect, check, chosen = statements
     group, selection = _local_value(chosen)
     _, args = _call(selection)
     filter_name = _name(args[1]) if len(args) == 10 else ""
     if (filter_name.partition(".")[0] not in tables or not group
-            or group in {effect, player, "Duel", "Card"}
-            or not call(hint, "Duel.Hint", constants["HINT_SELECTMSG"], player, constants["HINTMSG_SPSUMMON"])
+            or group in params or group in local or group in {"Duel", "Card"}
             or not call(selection, "Duel.SelectTarget", player, filter_name, player, grave, 0, 1, 1, None, effect, player)):
         return None
-    change = _conjuncts(_return_expression(_check_body(redirect)))
-    if (_name(redirect.child_by_field_name("condition")) != chkc or len(change) != 3
-            or not call(change[0], f"{chkc}:IsLocation", grave)
-            or not call(change[1], f"{chkc}:IsControler", player)
-            or not call(change[2], filter_name, chkc, effect, player)):
-        return None
+    if redirect:
+        if len(params) != 10:
+            return None
+        chkc = params[-1]
+        redirect, = redirect
+        change = _conjuncts(_return_expression(_check_body(redirect)))
+        if (_name(redirect.child_by_field_name("condition")) != chkc or len(change) != 3
+                or not any(call(term, f"{chkc}:IsLocation", grave) for term in change)
+                or not any(call(term, f"{chkc}:IsControler", player) for term in change)
+                or not any(call(term, filter_name, chkc, effect, player) for term in change)):
+            return None
     left, right = _binary(check.child_by_field_name("condition"), "==")
     checks = _conjuncts(_return_expression(_check_body(check)))
     if _name(left) != chk or _integer_value(right, local) != 0 or len(checks) != 3:
         return None
-    slots = any(call(a, "Duel.GetLocationCount", player, field) and _integer_value(b, local) == 0
-                for a, b in (_binary(term, ">") for term in checks))
     existing = [term for term in checks if call(term, "Duel.IsExistingTarget",
                 filter_name, player, grave, 0, 1, None, effect, player)]
-    if not slots or len(existing) != 1:
+    if len(existing) != 1:
         return None
-    hand_mode = None
-    for term in checks:
+    other = [term for term in checks if term != existing[0]]
+    if handler_send:
+        if not _handler_grave_availability(other, local, effect, player):
+            return None
+        variant = "handler"
+    else:
+        slots = [term for term in other
+                 if call(_binary(term, ">")[0], "Duel.GetLocationCount", player, field)
+                 and _integer_value(_binary(term, ">")[1], local) == 0]
+        if len(slots) != 1:
+            return None
+        term = next(term for term in other if term != slots[0])
         a, b = _binary(term, ">")
-        if call(a, "Duel.GetFieldGroupCount", player, hand, 0) and _integer_value(b, local) == 0:
-            hand_mode = "select_and_send"
-            break
         name, args = _call(term)
-        if (name == "Duel.IsExistingMatchingCard" and len(args) == 6
+        if call(a, "Duel.GetFieldGroupCount", player, hand, 0) and _integer_value(b, local) == 0:
+            variant = "select_and_send"
+        elif (name == "Duel.IsExistingMatchingCard" and len(args) == 6
                 and call(args[5], f"{effect}:GetHandler") and _name(args[0]) == "Card.IsAbleToGrave"
                 and _name(args[1]) == player and [_integer_value(arg, local) for arg in args[2:5]] == [hand, 0, 1]):
-            hand_mode = "discard_hand"
-            break
-    if not hand_mode or not call(info[-1], "Duel.SetOperationInfo", 0, constants["CATEGORY_SPECIAL_SUMMON"], group, 1, 0, 0):
-        return None
-    if len(info) == 2 and (hand_mode != "select_and_send" or not call(
-            info[0], "Duel.SetOperationInfo", 0, constants["CATEGORY_TOGRAVE"], None, 1, player, hand)):
-        return None
+            variant = "discard_hand"
+        else:
+            return None
 
     definition = functions.get(filter_name)
     if definition is None:
@@ -576,18 +691,112 @@ def _grave_summon_target(body, functions, constants, tables):
     query = dict(type=1)
     for predicate in (term for term in terms if term != eligibility[0]):
         term = _selection_query(predicate, card, filter_constants)
+        if term is None and handler_send:
+            name, args = _call(_unwrapped(predicate))
+            if name == f"{card}:IsLevel" and 1 <= len(args) <= 4:
+                levels = [_integer_value(arg, filter_constants) for arg in args]
+                if all(level is not None and 1 <= level <= 255 for level in levels):
+                    ordered = sorted(set(levels))
+                    if ordered == list(range(ordered[0], ordered[-1] + 1)):
+                        term = {"level_between": [ordered[0], ordered[-1]]}
         if not term or term.keys() & query.keys():
             return None
         query.update(term)
-    return hand_mode, dict(selector_query=query, quantity=1, owner="self", zone="grave",
-                           timing="activation", selection_span=_span(selection),
-                           availability_span=_span(existing[0]), filter_span=_span(expr))
+    return variant, dict(selector_query=query, quantity=1, owner="self", zone="grave",
+                         timing="activation", selection_span=_span(selection),
+                         availability_span=_span(existing[0]), filter_span=_span(expr))
+
+
+def _first_target_summon(steps, constants, effect, player):
+    if len(steps) != 3:
+        return None
+    (evaluated, bound), (related, expected), (movement, done) = steps
+    card, first = _local_value(evaluated)
+    if (bound is not None or expected is not True or done is not None or not card
+            or card in constants or card in {"Duel", "Card", effect, player}
+            or not _literal_call(first, constants, "Duel.GetFirstTarget")
+            or not _literal_call(related, constants, f"{card}:IsRelateToEffect", effect)
+            or not _literal_call(movement, constants, "Duel.SpecialSummon", card, 0, player, player, False, False,
+                                 constants["POS_FACEUP"])):
+        return None
+    # Use the surrounding guard's span, as in other callback evidence.
+    relation = related
+    while relation.parent is not None and relation.type != "if_statement":
+        relation = relation.parent
+    return dict(target_span=_span(evaluated), relation_span=_span(relation), movement_span=_span(movement))
+
+
+def _handler_send_before_summon(steps, constants, effect, player):
+    handler = None
+    if steps and steps[0][1] is None:
+        variable, value = _local_value(steps[0][0])
+        if (variable and variable not in constants and variable not in (effect, player, "Duel", "Card")
+                and _literal_call(value, constants, f"{effect}:GetHandler")):
+            handler = variable
+            steps = steps[1:]
+
+    def is_handler(node):
+        if handler is not None:
+            return _name(node) == handler
+        return _literal_call(node, constants, f"{effect}:GetHandler")
+
+    def checks_handler(node, method, argument):
+        if handler is not None:
+            return _literal_call(node, constants, f"{handler}:{method}", argument)
+        node = _unwrapped(node)
+        if node is None or node.type != "function_call":
+            return False
+        name = node.child_by_field_name("name")
+        args = _children(node.child_by_field_name("arguments"))
+        return (name is not None and name.type == "method_index_expression" and _text(name.child_by_field_name("method")) == method
+                and is_handler(name.child_by_field_name("table")) and len(args) == 1
+                and (_name(args[0]) == argument if isinstance(argument, str)
+                     else _integer_value(args[0], constants) == argument))
+
+    # Reading the chosen card is safe on either side of the movement. Checking
+    # its association must still follow the required movement and actual arrival.
+    first = next((i for i, (node, truth) in enumerate(steps) if truth is None
+                  and _literal_call(_local_value(node)[1], constants, "Duel.GetFirstTarget")), None)
+    if first is None or first >= len(steps) - 2:
+        return None
+    target, _ = _local_value(steps[first][0])
+    if target == handler:
+        return None
+    summon = _first_target_summon([steps[first], *steps[-2:]], constants, effect, player)
+    guards = [step for i, step in enumerate(steps[:-2]) if i != first]
+    if summon is None or len(guards) not in (3, 4):
+        return None
+    (related, required), *send, (arrived, arrived_expected) = guards
+    if (required is not True or not checks_handler(related, "IsRelateToEffect", effect)
+            or arrived_expected is not True
+            or not checks_handler(arrived, "IsLocation", constants["LOCATION_GRAVE"])):
+        return None
+
+    comparison, truth = send[-1]
+    operation, zero = _binary(comparison, "~=" if truth else "==")
+    if operation is None and truth is True:
+        operation, zero = _binary(comparison, ">")
+    if truth is None or _integer_value(zero, constants) != 0:
+        return None
+    movement = operation
+    if len(send) == 2:
+        assignment, assigned = send[0]
+        count, movement = _local_value(assignment)
+        if (assigned is not None or not count or _name(operation) != count
+                or count in constants or count in {handler, effect, player, "Duel", "Card"}):
+            return None
+    name, args = _call(_unwrapped(movement))
+    if (name != "Duel.SendtoGrave" or len(args) != 2 or not is_handler(args[0])
+            or _integer_value(args[1], constants) != constants["REASON_EFFECT"]):
+        return None
+    return dict(subject="this_card", phase="resolution", owner="self", from_zones=["field"],
+                to_zone="grave", quantity=1, reason="effect", requires_arrival=True,
+                relation_span=_span(related), movement_span=_span(movement), arrival_span=_span(arrived)), summon
 
 
 def _preselected_grave_summon(registration, functions, constants, tables, shadowed):
-    required = ("LOCATION_HAND", "LOCATION_GRAVE", "LOCATION_MZONE", "REASON_EFFECT", "EFFECT_FLAG_CARD_TARGET",
-                "HINT_SELECTMSG", "HINTMSG_TOGRAVE", "HINTMSG_SPSUMMON", "CATEGORY_SPECIAL_SUMMON",
-                "CATEGORY_TOGRAVE", "POS_FACEUP", "EFFECT_TYPE_ACTIVATE", "EVENT_FREE_CHAIN")
+    required = ("LOCATION_HAND", "LOCATION_GRAVE", "LOCATION_MZONE", "REASON_EFFECT",
+                "EFFECT_FLAG_CARD_TARGET", "POS_FACEUP", "EFFECT_TYPE_ACTIVATE", "EVENT_FREE_CHAIN")
     if shadowed or any(type(constants.get(name)) is not int for name in required):
         return None
     event = registration["event"]
@@ -597,13 +806,16 @@ def _preselected_grave_summon(registration, functions, constants, tables, shadow
     elif event != "own_main_phase" or registration.get("range") != constants["LOCATION_MZONE"]:
         return None
     if (registration.get("property") != constants["EFFECT_FLAG_CARD_TARGET"]
-            or any(role in registration for role in ("condition", "cost", "value"))):
+            or any(role in registration for role in ("condition", "value"))):
+        return None
+    handler_send = "cost" in registration
+    if handler_send and (event != "own_main_phase" or type(constants.get("REASON_COST")) is not int):
         return None
     _, target, _ = _callback(registration, "target", functions, tables)
     _, operation, _ = _callback(registration, "operation", functions, tables)
     if target is None or operation is None:
         return None
-    observed = _grave_summon_target(target, functions, constants, tables)
+    observed = _grave_summon_target(target, functions, constants, tables, handler_send=handler_send)
     if observed is None:
         return None
     variant, selection = observed
@@ -612,27 +824,25 @@ def _preselected_grave_summon(registration, functions, constants, tables, shadow
         return None
     effect, player = params[:2]
     local = {key: value for key, value in constants.items() if key not in params}
-    statements = _children(operation.child_by_field_name("body"))
-    if len(statements) < 2:
-        return None
-    prefix, evaluated, summon = statements[:-2], statements[-2], statements[-1]
-    card, first = _local_value(evaluated)
-    branch = _check_body(summon)
-    if (not card or card in (effect, player, "Duel", "Card") or len(branch) != 1
-            or not _literal_call(first, local, "Duel.GetFirstTarget")
-            or not _literal_call(summon.child_by_field_name("condition"), local, f"{card}:IsRelateToEffect", effect)
-            or not _literal_call(branch[0], local, "Duel.SpecialSummon", card, 0, player, player, False, False,
-                                 constants["POS_FACEUP"])):
-        return None
+    statements = list(_processing_statements(_children(operation.child_by_field_name("body")), local, player))
     if not all(key in local for key in required):
         return None
-    movement = _hand_send_before_summon(prefix, variant, local, effect, player)
-    if movement is None:
+    if handler_send:
+        _, cost, _ = _callback(registration, "cost", functions, tables)
+        payment = _hand_send_cost(cost, constants, tables)
+        processing = _handler_send_before_summon(_processing_steps(statements, local, player, effect), local, effect, player)
+        if payment is None or processing is None:
+            return None
+        movement, summon = processing
+        selection["availability_timing"] = "before_activation_payment"
+        return dict(event=event, target=selection, hand_cost=payment, handler_send=movement, summon=summon)
+    movement = _hand_send_before_summon(statements[:-2], variant, local, effect, player)
+    summon = _first_target_summon(_processing_steps(statements[-2:], local, player, effect), local, effect, player)
+    if movement is None or summon is None:
         return None
     return dict(event=event, target=selection, hand_send=dict(movement, phase="resolution",
         owner="self", from_zones=["hand"], to_zone="grave", quantity=1, reason="effect",
-        requires_arrival=True), summon=dict(target_span=_span(evaluated), relation_span=_span(summon),
-                                           movement_span=_span(branch[0])))
+        requires_arrival=True), summon=summon)
 
 
 def _intrinsic_grave_summon_lock(registration, constants):
@@ -740,7 +950,7 @@ class LuaEffectSource:
                     byte_span=_span(node), function=name) if node else None
 
     def summarize_effects(self, code, *, deck_send_indices=(), self_send_cost_indices=(),
-                          preselected_grave_summon_indices=()):
+                          preselected_grave_summons=False):
         """Report registrations and requested callback facts for printed effects."""
         filename = f"c{code}.lua"
         result = dict(status="missing_script", file=filename, registrations=[], unknown=[],
@@ -817,7 +1027,7 @@ class LuaEffectSource:
             self._registrations(initial, initial_bindings, functions, result, unresolved)
         if result["unknown"]:
             result["status"] = "partial"
-        elif deck_send_indices or self_send_cost_indices or preselected_grave_summon_indices:
+        elif deck_send_indices or self_send_cost_indices or preselected_grave_summons:
             # Only unshadowed core constants and the card's own namespace are
             # available to this callback subset. Script locals stay unresolved.
             tables = {name for name, value in constants.items()
@@ -828,7 +1038,7 @@ class LuaEffectSource:
                 {name.partition(".")[0] for name in functions} & {"Duel", "Card"})
             callbacks = {name: node for name, node in functions.items() if name not in overwritten_functions}
             observations = {}
-            if preselected_grave_summon_indices:
+            if preselected_grave_summons:
                 for registration in result["registrations"]:
                     if _intrinsic_grave_summon_lock(registration, static_constants):
                         registration["intrinsic_grave_summon_lock"] = True
@@ -837,7 +1047,7 @@ class LuaEffectSource:
                 if index in self_send_cost_indices:
                     registration["self_send_cost"] = _self_send_cost(
                         registration, callbacks, static_constants, tables, shadowed)
-                if index in preselected_grave_summon_indices:
+                if preselected_grave_summons:
                     observed = _preselected_grave_summon(
                         registration, callbacks, static_constants, tables, shadowed)
                     if observed:

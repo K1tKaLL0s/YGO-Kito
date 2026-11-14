@@ -12,7 +12,7 @@ from collections import Counter, defaultdict
 from .rule_references import effect_reference_requests
 
 EFFECT_RECORD_VERSION = "public-effect-records-v4"
-LUA_EFFECT_RECORD_VERSION = "public-effect-records-v8"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v9"
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (
     "fusion_target", "synchro_target", "xyz_target", "tuner",
@@ -1168,10 +1168,6 @@ _PRINTED_SELF_SEND = re.compile(
 
 
 _PRINTED_HAND_SEND = r'(?:选(?:择)?|将|把)(?:自己(?:的)?)?1张手卡送去墓地'
-_PRESELECTED_GRAVE_SUMMON = re.compile(
-    r'(?P<head>以自己(?:的)?墓地(?:的)?1[只张](?P<selector>[^。，；]+?)为对象)(?:才能|可以)?发动。'
-    rf'(?P<send>{_PRINTED_HAND_SEND})[，,](?P<summon>作为对象的怪兽特殊召唤)[。.]?'
-)
 _LEGACY_PRESELECTED_GRAVE_SUMMON = re.compile(
     r'(?P<head>选择自己(?:的)?墓地(?:的)?1[张只]怪兽卡?)。'
     rf'(?P<send>{_PRINTED_HAND_SEND})[，,](?P<summon>选择的那张怪兽卡?特殊召唤)。'
@@ -1180,31 +1176,135 @@ _LEGACY_PRESELECTED_GRAVE_SUMMON = re.compile(
 )
 
 
-def _preselected_grave_printing(record):
-    if (len(record["operations"]) != 2 or record["costs"] or record.get("branch_records")
-            or record["block_view"]["alternatives"]):
+_PRINTED_HANDLER_SEND = r'(?:把|将)?(?:(?:自己(?:的)?)?场上(?:的)?)?这张卡送去墓地'
+
+
+def _grave_summon_operations(record):
+    return (len(record["operations"]) == 2 and not record.get("branch_records")
+            and not record["block_view"]["alternatives"]
+            and all(op["kind"] == kind and op["quantity"] == 1 and op["phase"] == "resolution"
+                    and not op.get("optional") and not op.get("choice")
+                    for op, kind in zip(record["operations"], ("send_grave", "special_summon"))))
+
+
+def _grave_summon_printing(record):
+    from .effect_blocks import activation_parts
+
+    if not _grave_summon_operations(record):
         return None
-    pattern = _PRESELECTED_GRAVE_SUMMON if record["effect_index"] > 0 else _LEGACY_PRESELECTED_GRAVE_SUMMON
-    printed = pattern.fullmatch(record["source_text"].strip())
-    if printed is None:
+    send, summon = record["operations"]
+    if record["effect_index"] == 0 and not record["costs"]:
+        legacy = _LEGACY_PRESELECTED_GRAVE_SUMMON.fullmatch(record["source_text"].strip())
+        if legacy and (send["source"], summon["source"]) == (legacy["send"], legacy["summon"]):
+            return "legacy_hand_send", {"type": 1}, legacy
+    if record["unknown"] or len(record["targets"]) != 1 or summon.get("target_ref") != 0:
         return None
-    for op, kind, span in zip(record["operations"], ("send_grave", "special_summon"), ("send", "summon")):
-        if (op["kind"] != kind or op["source"] != printed[span] or op["quantity"] != 1
-                or op["phase"] != "resolution" or op.get("optional") or op.get("choice")):
+
+    head, body, _, mode = activation_parts(record["source_text"])
+    target, = record["targets"]
+    if mode != "activated" or target["source"] not in head or (
+            target["zones"], target["owner"], target["quantity"]) != (["grave"], "self", 1):
+        return None
+    # The existing operation blocks identify the two actions. Allow the printed
+    # connector and punctuation to vary, while retaining unaccounted conditions.
+    before, found, rest = body.partition(send["source"])
+    between, resolved, after = rest.partition(summon["source"])
+    connector = r'[\s。．.，,；;]*(?:(?:那之后|然后|之后)[\s。．.，,；;]*)?'
+    if (not found or not resolved or before.strip()
+            or not re.fullmatch(connector, between) or after.strip(' \t\n\r。．.；;')):
+        return None
+    query = _grave_summon_printed_query(target["selector"])
+    if query is None:
+        return None
+    head = head.replace(target["source"], "", 1)
+    if (not record["costs"] and record["scope"] == "spell_trap"
+            and record["trigger"].get("event") == "card_activation" and not head.strip(' \t，,；;')
+            and re.fullmatch(_PRINTED_HAND_SEND, send["source"])):
+        return "hand_send", query, None
+    if (len(record["costs"]) != 1 or record["scope"] != "monster"
+            or record["trigger"].get("event") != "own_main_phase" or record["trigger"].get("zone") != "field"
+            or not re.fullmatch(_PRINTED_HANDLER_SEND, send["source"])):
+        return None
+    cost, = record["costs"]
+    if (cost["source"] not in head or head.replace(cost["source"], "", 1).strip(' \t，,；;')
+            or (cost.get("kind"), cost.get("reason"), cost.get("resource"), cost.get("from_zones"),
+                cost.get("to_zone"), cost.get("quantity")) != ("send_grave", "cost", "cards", ["hand"], "grave", 1)
+            or cost.get("owner") not in ("self", "unknown") or cost.get("selector_query") or cost.get("random")
+            or not re.fullmatch(_PRINTED_HAND_SEND, cost["source"])):
+        return None
+    return "handler_send", query, None
+
+
+def _grave_summon_printed_query(text):
+    from .construction_inventory import selector
+
+    levels = re.fullmatch(r'(?P<levels>[0-9]+(?:·[0-9]+){1,3})星(?:的)?(?P<rest>.+)', text)
+    query = selector(levels["rest"] if levels else text)
+    if query is None:
+        return None
+    query.pop("selector")
+    if "race" in query:
+        query["race_any"] = query.pop("race")
+    if levels:
+        ordered = sorted(set(map(int, levels["levels"].split("·"))))
+        if (not 1 <= ordered[0] <= ordered[-1] <= 255 or "level" in query or "level_between" in query
+                or ordered != list(range(ordered[0], ordered[-1] + 1))):
             return None
-    return printed
+        query["level_between"] = [ordered[0], ordered[-1]]
+    elif "level" in query:
+        level = query.pop("level")
+        query["level_between"] = [level, level]
+    return query
+
+
+def _bind_preselected_grave_operations(record, send_fields, summon_fields):
+    send, summon = record["operations"]
+    blocks = {block["block_id"]: block for block in record["block_view"]["blocks"]}
+    changes = {item.get("block_id"): item for item in record["resource_changes"]}
+    for op, fields in ((send, send_fields), (summon, summon_fields)):
+        block_id = op["block_id"]
+        op.update(deepcopy(fields), observed_operation=deepcopy(changes[block_id]))
+        blocks[block_id]["qualifiers"].update(deepcopy(fields))
+        changes[block_id].update(deepcopy(op))
+
+
+def _merge_lua_handler_grave_summon(record, window):
+    cost, = record["costs"]
+    view = record["block_view"]
+    blocks = {block["block_id"] for block in view["blocks"]}
+    send, summon = record["operations"]
+    observed = window["preselected_grave_summon"]
+    chosen = observed["target"]
+    if (not all(op["block_id"] in blocks for op in (send, summon)) or summon.get("target_ref") != 0
+            or send.get("from_zones") not in ([], ["field"])):
+        return False
+    cost_blocks = [block for block in view["cost_blocks"] if block["source"] == cost["source"]
+                   and block["phase"] == "activation_payment" and block["kind"] == cost["kind"]]
+    cost_changes = [item for item in record["resource_changes"] if item == dict(cost, phase="activation_payment")]
+    if len(cost_blocks) != 1 or len(cost_changes) != 1:
+        return False
+
+    target, = record["targets"]
+    target.update(timing=chosen["timing"], availability_timing=chosen["availability_timing"],
+                  selector_query=deepcopy(chosen["selector_query"]))
+    paid = dict(owner="self", owner_status="recognized", selector_query={"selector": "卡"}, random=False,
+                phase="activation_payment", requires_arrival=True)
+    cost.update(deepcopy(paid), observed_payment=deepcopy(cost))
+    cost_blocks[0]["qualifiers"].update(deepcopy(paid))
+    cost_changes[0].update(deepcopy(paid))
+    _bind_preselected_grave_operations(record, dict(from_zones=["field"], subject="this_card",
+        source_card_id=record["card_id"], processing_role="auxiliary", requires_arrival=True),
+        dict(selector_query=chosen["selector_query"], selector_source=summon["source"],
+             depends_on=[send["block_id"]], random=False))
+    return True
 
 
 def _merge_lua_preselected_grave_summon(record, printed, window, script):
-    from .construction_inventory import selector
     from .effect_count_limits import _record
 
     observed = window["preselected_grave_summon"]
     legacy = record["effect_index"] == 0
-    selector_text = "怪兽" if legacy else printed["selector"]
-    query = selector(selector_text)
-    if query is None or {k: v for k, v in query.items() if k != "selector"} != observed["target"]["selector_query"]:
-        return False
+    selector_text = "怪兽" if legacy else record["targets"][0]["selector"]
     send, summon = record["operations"]
     view = record["block_view"]
     blocks = {block["block_id"]: block for block in view["blocks"]}
@@ -1261,22 +1361,15 @@ def _merge_lua_preselected_grave_summon(record, printed, window, script):
                 or observed["event"] != "card_activation" or "count_limit" in window
                 or len(record["targets"]) != 1 or record["unknown"] or summon.get("target_ref") != 0):
             return False
-        target, = record["targets"]
-        if (target.get("source"), target.get("zones"), target.get("owner"), target.get("quantity")) != (
-                printed["head"], ["grave"], "self", 1):
-            return False
         # The spell is on the field at activation, including when activated from the hand.
         record["trigger"]["zone"] = "field"
 
     record["targets"][0]["timing"] = "activation"
-    old_changes = {item["block_id"]: item for item in record["resource_changes"]}
     send_fields = dict(from_zones=["hand"], to_zone="grave", owner="self", quantity=1, random=False,
                        selector_query={"selector": "卡"}, selector_source=send["source"])
     summon_fields = dict(from_zones=["grave"], to_zone="field", owner="self", quantity=1, random=False,
                          selector=selector_text, target_ref=0, depends_on=[send["block_id"]])
-    for op, fields in ((send, send_fields), (summon, summon_fields)):
-        op.update(deepcopy(fields), observed_operation=deepcopy(old_changes[op["block_id"]]))
-        blocks[op["block_id"]]["qualifiers"].update(deepcopy(fields))
+    _bind_preselected_grave_operations(record, send_fields, summon_fields)
     send["processing_role"] = "auxiliary"
     record["resource_changes"] = deepcopy(record["operations"])
     return True
@@ -1297,32 +1390,41 @@ def merge_lua_effect_sources(records, source, script_code, *, same_printing=True
                           for op in record["operations"])}
     self_send_costs = {record["effect_index"] - 1 for record in records if record["effect_index"] > 0
                        and any(_PRINTED_SELF_SEND.fullmatch(cost.get("source", "")) for cost in record["costs"])}
-    grave_summons = {record["effect_key"]: printed for record in records
-                     if (printed := _preselected_grave_printing(record)) is not None}
-    grave_summon_indices = {max(0, record["effect_index"] - 1) for record in records
-                            if record["effect_key"] in grave_summons}
-    script = source.summarize_effects(script_code, deck_send_indices=deck_sends,
-                                      self_send_cost_indices=self_send_costs,
-                                      preselected_grave_summon_indices=grave_summon_indices)
+    grave_summons = {record["effect_key"]: fact for record in records
+                     if (fact := _grave_summon_printing(record)) is not None}
+    script_options = dict(deck_send_indices=deck_sends, self_send_cost_indices=self_send_costs)
+    if grave_summons:
+        script_options["preselected_grave_summons"] = True
+    script = source.summarize_effects(script_code, **script_options)
     groups = defaultdict(list)
     for registration in script["registrations"]:
         groups[registration.get("description_index")].append(registration)
     indices = Counter(record["effect_index"] for record in records)
+    grave_windows = [window for window in script["registrations"] if "preselected_grave_summon" in window]
     source_info = {k: v for k, v in script.items() if k != "registrations"}
     for record in records:
         record["record_version"] = LUA_EFFECT_RECORD_VERSION
         index = record["effect_index"]
         windows = groups.get(index - 1, ())
-        if record["effect_key"] in grave_summons and indices[index] == 1:
-            candidates = groups.get(max(0, index - 1), ())
-            if (len(candidates) == 1 and "preselected_grave_summon" in candidates[0]
-                    and _merge_lua_preselected_grave_summon(
-                        record, grave_summons[record["effect_key"]], candidates[0], script)):
+        scope = grave_summons.get(record["effect_key"])
+        if scope is not None and indices[index] == 1:
+            kind, query, legacy = scope
+            event = "card_activation" if kind == "hand_send" else "own_main_phase"
+            movement = "handler_send" if kind == "handler_send" else "hand_send"
+            candidates = [window for window in grave_windows
+                          if movement in (fact := window["preselected_grave_summon"])
+                          and fact["event"] == event and fact["target"]["selector_query"] == query]
+            same_printed = [other for other in grave_summons.values() if other[:2] == scope[:2]]
+            if len(candidates) == len(same_printed) == 1:
                 window = candidates[0]
-                registration = dict(window, event=window["preselected_grave_summon"]["event"])
-                record["lua_source"] = dict(source_info, alignment="matched", registrations=[registration],
-                                            preselected_grave_summon_status="bound")
-                continue
+                bound = (_merge_lua_handler_grave_summon(record, window) if kind == "handler_send" else
+                         _merge_lua_preselected_grave_summon(record, legacy, window, script))
+                if bound:
+                    # Stringid slots omit printed effects without descriptions.
+                    registration = dict(window, event=event)
+                    record["lua_source"] = dict(source_info, alignment="matched", registrations=[registration],
+                                                preselected_grave_summon_status="bound")
+                    continue
         printed_event = record["trigger"].get("event")
         events = {window["event"] for window in windows}
         matches = events == (_LUA_SUMMON_EVENTS if printed_event == "normal_or_special_summon" else {printed_event})

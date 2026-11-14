@@ -371,7 +371,7 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
 
 def _targeted_calls(deck, available, records, dependencies, operation_facts):
     """Record direct named access for density pricing, without activation dependencies."""
-    from .construction_inventory import matches
+    from .construction_inventory import _activation_target, matches
     from .construction_theme import operation_query
 
     recipients = defaultdict(set)
@@ -423,6 +423,10 @@ def _targeted_calls(deck, available, records, dependencies, operation_facts):
                         proof = dependencies.simultaneous_processing(available, operation_record(record, operation),
                             operation, card_id=target)
                         if proof is not None and proof['status'] != 'inventory_present':
+                            continue
+                    if _activation_target(record, operation, availability_timing='before_activation_payment'):
+                        if dependencies.summon_choice_check(available, record, operation, (target,),
+                                                            physical_inventory=deck) is not True:
                             continue
                     calls.append(dict(source=uid.removeprefix('functional:'), target=target, event=event, reason=reason))
     return calls
@@ -1080,9 +1084,9 @@ def _relation_support(row, key, scope, condition, evidence):
     return convert(expression)
 
 
-def _special_summon_supported(code, available, records, dependencies, relation, operation_facts):
+def _special_summon_supported(code, available, records, dependencies, relation, operation_facts, *, physical_inventory):
     """Read configured entry proofs from the existing relation result."""
-    from .construction_inventory import matches
+    from .construction_inventory import _activation_target, matches
     possible = False
     special = {'special_summon','fusion_summon','synchro_summon','xyz_summon','link_summon','ritual_summon'}
     for supplier, entries in records.items():
@@ -1104,6 +1108,14 @@ def _special_summon_supported(code, available, records, dependencies, relation, 
                             continue
                         if proof['status'] == 'unknown':
                             status = 'unknown'
+                if (status in ('supported', 'unknown')
+                        and _activation_target(record, operation, availability_timing='before_activation_payment')):
+                    legal = dependencies.summon_choice_check(available, operation_record(record, operation), operation,
+                                                             (code,), physical_inventory=physical_inventory)
+                    if legal is False:
+                        continue
+                    if legal is None:
+                        status = 'unknown'
                 if status == 'supported':
                     return True
                 possible |= status == 'unknown'
@@ -1394,7 +1406,7 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                         current_relation, operation_facts = projections[scope]
                         if (scope,code) not in special_entries:
                             special_entries[scope,code]=_special_summon_supported(code,view,records,
-                                dependencies,current_relation,operation_facts)
+                                dependencies,current_relation,operation_facts,physical_inventory=deck)
                         state = current_relation["uses"].get(operation_facts.get((code, ri, oi)), {})
                         support = _relation_support(state, key, scope, condition, refs)
                         # The relation already binds unresolved inventory selectors to their source.
