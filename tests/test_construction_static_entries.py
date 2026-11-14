@@ -107,6 +107,102 @@ class StaticEntryTests(unittest.TestCase):
         self.assertTrue(any(r['status']=='failed' and r['requirement_id'].startswith('restriction_order:')
             for r in conflict['hard_requirements']))
 
+    def test_resolution_hand_send_uses_distinct_main_copies_for_deck_summon(self):
+        from unittest.mock import patch
+
+        from ygo_kito.construction_inventory import InventoryDependencies
+        from ygo_kito.construction_logic import LogicTag
+        from tests.test_construction_binding import one_node
+
+        self.assets.rows[1].update(type=33, level=8, name='匿名主题发动者',
+            desc='①：把这张卡从手卡送去墓地才能发动。选自己1张手卡送去墓地，'
+                 '从卡组把1只8星以外的「匿名主题」怪兽特殊召唤。')
+        self.assets.rows[2]['name'] = '匿名主题接收者'
+        self.assets.rows[4].update(type=0x800021, name='匿名主题超量',
+                                  desc='4星怪兽×2\n①：自己主要阶段才能发动。抽1张。')
+        catalog = CatalogBindingAdapter(self.assets).semantic_catalog
+        record, = catalog.effect_records(1)
+        send, summon = record['operations']
+        self.assertEqual(summon['depends_on'], [send['block_id']])
+        self.assertEqual(record['targets'], [])
+        payment, = record['costs']
+        self.assertEqual((payment['reason'], payment['from_zones']), ('cost', ['hand']))
+        self.assertEqual((send['reason'], send['from_zones'], send['to_zone'], send['selector_query']),
+                         ('effect', ['hand'], 'grave', {'selector': '卡'}))
+        self.assertEqual(send['processing_role'], 'auxiliary')
+        summary = catalog.mechanism_summary((1,))
+        with patch('ygo_kito.effect_records._bind_hand_send_deck_summon'):
+            prior_catalog = CatalogBindingAdapter(self.assets).semantic_catalog
+            self.assertEqual(summary, prior_catalog.mechanism_summary((1,)))
+        dependencies = InventoryDependencies(catalog)
+        specs, _ = dependencies.specs(1)
+        self.assertEqual([r['origin'] for r in specs[0]['requirements']], ['hand', 'hand', 'deck'])
+        graph = one_node(LogicTag('effect_type', 'special_summon'))
+        node, = graph.nodes
+
+        for deck, expected in (
+            (DeckParts((1,)), False),
+            (DeckParts((1, 1, 1)), False),
+            (DeckParts((1, 2)), False),
+            (DeckParts((1, 2), (4,)), False),
+            (DeckParts((1, 2), (), (3,)), False),
+            (DeckParts((1, 3), (), (2,)), False),
+            (DeckParts((1, 1, 2)), True),
+            (DeckParts((1, 2, 2)), True),
+            (DeckParts((1, 2, 3)), True),
+        ):
+            with self.subTest(deck=deck):
+                diagnostics = dependencies.evaluate(deck, graph, codes=(1,))
+                stock, scoped = diagnostics['cards']['1']['effects']
+                expected_stock = 'inventory_present' if expected else 'missing'
+                self.assertEqual(stock['status'], expected_stock)
+                self.assertEqual(stock['shortfall'], scoped['shortfall'])
+                self.assertEqual(scoped['nodes'], [node.node_id])
+                self.assertEqual(scoped['status'], expected_stock)
+                self.assertEqual(dependencies.function_missing(diagnostics, 1, node.node_id), not expected)
+                facts, quality = self.evaluate(deck)
+                resident = [u for u in facts['uses'] if u.scope_id == 'resident' and u.contributes
+                            and facts['use_details'][u.use_id]['card_id'] == 1]
+                use, = resident
+                detail = facts['use_details'][use.use_id]
+                self.assertEqual(detail['operation']['kind'], 'special_summon')
+                self.assertEqual(detail['processing_prerequisites'], [send])
+                self.assertEqual(detail['inventory_checks']['processing']['status'], expected_stock)
+                self.assertEqual(support_state(use.self_condition, facts['variables']), expected)
+                self.assertTrue(quality['complete'], quality['unknowns'])
+
+        self.assets.rows[1]['desc'] = self.assets.rows[1]['desc'].replace(
+            '特殊召唤。', '特殊召唤（这只怪兽不能攻击）。')
+        record, = CatalogBindingAdapter(self.assets).semantic_catalog.effect_records(1)
+        self.assertFalse(any(op.get('processing_role') == 'auxiliary' for op in record['operations']))
+
+    def test_replacing_resolution_hand_send_affects_deck_summon_in_required_order(self):
+        from ygo_kito.construction_relations import JointConstraint
+
+        self.assets.rows[1].update(type=33, desc='①：自己·对方回合，自己墓地没有卡存在的场合，'
+            '把这张卡从手卡送去墓地才能发动。'
+            '直到下个回合的结束时，被送去墓地的卡不去墓地而除外。')
+        self.assets.rows[2].update(type=4, desc='①：自己主要阶段，把墓地的这张卡除外才能发动。'
+            '选自己1张手卡送去墓地，从卡组把1只「匿名主题」怪兽特殊召唤。')
+        self.assets.rows[3]['name'] = '匿名主题接收者'
+        deck = DeckParts((1, 2, 3, 4))
+        facts, _ = self.evaluate(deck)
+        self.assertEqual(self.state(facts, 2), [True])
+        ids = {d['card_id']: uid for uid, d in facts['use_details'].items() if d['card_id'] in (1, 2)}
+        summon = facts['use_details'][ids[2]]
+        self.assertEqual([cost['kind'] for cost in summon['costs']], ['banish'])
+        uses = tuple(UseRequirement(str(code), InputGroup('all', (Need(str(code), Resource(
+            'functional_operation', attributes=(facts['use_details'][ids[code]]['relation_fact_id'],)),
+            mode='presence'),)), 'required joint processing', functional_use_ids=(ids[code],)) for code in (1, 2))
+        for before, failed in ((('1', '2'), True), (('2', '1'), False)):
+            with self.subTest(before=before):
+                context = SimpleNamespace(relations=RelationContext(uses, constraints=(
+                    JointConstraint('required_order', before, 'before', 'original required order'),)))
+                _, quality = self.evaluate(deck, context=context)
+                self.assertTrue(quality['complete'], quality['unknowns'])
+                self.assertEqual(any(r['status'] == 'failed' and r['requirement_id'].startswith('restriction_order:')
+                                     for r in quality['hard_requirements']), failed)
+
     def test_aramesir_whole_turn_lock_distinguishes_normal_field_and_special_entry(self):
         self.assets.rows[1].update(type=2,desc='这个卡名的卡在1回合只能发动1张，'
             '这张卡发动的回合，自己不能把特殊召唤的怪兽以外的场上的怪兽的效果发动。'

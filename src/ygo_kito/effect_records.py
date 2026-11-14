@@ -11,8 +11,8 @@ from collections import Counter, defaultdict
 
 from .rule_references import effect_reference_requests
 
-EFFECT_RECORD_VERSION = "public-effect-records-v3"
-LUA_EFFECT_RECORD_VERSION = "public-effect-records-v6"
+EFFECT_RECORD_VERSION = "public-effect-records-v4"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v7"
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (
     "fusion_target", "synchro_target", "xyz_target", "tuner",
@@ -264,6 +264,39 @@ def _bind_revealed_summon(record):
                       quantity=1, owner='self', random=False, different_name_from_reveal=reference)
         summon.update(selector_query=deepcopy(reveal['selector_query']), from_zones=['hand'], to_zone='field',
                       quantity=1, owner='self', random=False, subject_ref=reference, selection_method='revealed_card')
+
+
+def _bind_hand_send_deck_summon(record, body, blocks):
+    """Bind the complete fixed hand-to-GY, then Deck-summon clause."""
+    operations, costs = record['operations'], record['costs']
+    if (len(operations) != 2 or record['targets'] or record['block_view']['alternatives']
+            or len(costs) != 1 or costs[0].get('quantity') != 1
+            or costs[0].get('to_zone') not in ('grave', 'banished') or costs[0].get('quantity_options')):
+        # The activation consumes one card, which cannot supply a later
+        # hand or Deck selection. Other payment contracts stay separate.
+        return
+    send, summon = operations
+    if (send['kind'] != 'send_grave' or send.get('to_zone') != 'grave'
+            or summon['kind'] != 'special_summon' or summon.get('from_zones') != ['deck']
+            or summon.get('to_zone') != 'field' or summon.get('owner') != 'self'
+            or summon.get('random') is not False
+            or not summon.get('selector_query')
+            or any(op['phase'] != 'resolution' or op.get('optional') or op.get('choice') for op in operations)):
+        return
+    selection = re.fullmatch(r'选自己(?:的)?([1-9][0-9]*)张手卡送去墓地', send['source'])
+    if not selection or not re.fullmatch(
+            re.escape(send['source']) + r'[，,]\s*' + re.escape(summon['source']) + r'[。．.]?', body.strip()):
+        return
+    quantity = int(selection[1])
+    if send.get('quantity') not in (None, quantity):
+        return
+    # The second movement is contingent on this card reaching the GY. The
+    # hand movement is part of the summon processing, with its own entity.
+    movement = dict(from_zones=['hand'], owner='self', selector_query={'selector': '卡'},
+                    quantity=quantity, random=False)
+    send.update(movement, processing_role='auxiliary', observed_operation=deepcopy(send))
+    blocks[send['block_id']]['qualifiers'].update(deepcopy(movement))
+    summon['depends_on'] = [send['block_id']]
 
 
 def _xyz_overlay_procedure(record, row):
@@ -633,6 +666,7 @@ def _refine_record(record,row,head,body,mode):
             send.update(simultaneous_group=group, depends_on=[summon['block_id']])
     _bind_revealed_summon(record)
     _excavation_processing(record)
+    _bind_hand_send_deck_summon(record, body, blocks)
     for op in record['operations']:
         if op['kind']=='grave_destination_replace':
             rule = re.search(r'直到下个回合的结束时[，,]被送去墓地的卡不去墓地而除外',body)
@@ -1364,11 +1398,12 @@ def mechanism_summary(catalog, codes):
     for code in codes:
         row = catalog.assets.rows[code]
         records = catalog.effect_records(code)
-        # This vector is used by existing checkpoints. The linked handler
-        # refines static scoring while the printed payment keeps its feature values.
+        # Existing checkpoints use the original movement observations for
+        # these features. Static refinements retain them beside the new fields.
         costs = [item.get("observed_payment", item) for record in records for item in record["costs"]]
         operations = [item for record in records for item in record["operations"] if item.get("reason") == "effect"]
-        changes = [item for record in records for item in record["resource_changes"]]
+        changes = [item.get("observed_operation", item)
+                   for record in records for item in record["resource_changes"]]
         limits = [item for record in records for item in record["count_limits"]]
         kinds = [item["kind"] for item in operations]
         values = [float(bool(row.get("type", 0) & flag)) for flag in (0x40, 0x2000, 0x800000, 0x1000)]

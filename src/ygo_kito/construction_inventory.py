@@ -670,12 +670,14 @@ class InventoryDependencies:
                     if rule not in record['card_restrictions']:
                         record['card_restrictions'].append(deepcopy(rule))
             requirements, unknown = [], []
+            required_processing = {block for op in record['operations'] for block in op.get('depends_on', ())}
             for category in ('costs','targets','operations'):
                 for item in record[category]:
                     if category=='operations' and item.get('outcome_requirement'):
                         requirements.append(dict(item['outcome_requirement'],category='outcome',operation=item,
                             source=item['source']))
-                    if category=='operations' and item.get('processing_role')=='auxiliary':
+                    if (category == 'operations' and item.get('processing_role') == 'auxiliary'
+                            and item['block_id'] not in required_processing):
                         continue
                     if category=='operations' and item.get('phase') in ('delayed','replacement'):
                         continue  # Its sourced result identity/timing is retained on the operation.
@@ -1134,7 +1136,14 @@ class InventoryDependencies:
                 for scope, (tags, nodes) in groups.items():
                     requirements = [req for req in effect['requirements'] if not tags or 'operation' not in req or
                         effect_matches(dict(effect['record'], operations=[req['operation']]),tags)]
-                    value = self._check_counts(resident, extra, requirements)
+                    dependencies = {ref for req in requirements for ref in req.get('operation', {}).get('depends_on', ())}
+                    hand_sends = [req for req in effect['requirements'] if (op := req.get('operation'))
+                        and op['block_id'] in dependencies and op.get('processing_role') == 'auxiliary'
+                        and op['kind'] == 'send_grave' and op.get('from_zones') == ['hand']]
+                    # The ordered hand send and Deck summon have disjoint
+                    # movement destinations from the origin of any later step.
+                    requirements.extend(req for req in hand_sends if req not in requirements)
+                    value = self._check_counts(resident, extra, requirements, distinct=bool(hand_sends))
                     key = effect['key'] + ':' + scope
                     unresolved=[r for r in effect['unknown'] if not tags or 'operation' not in r or
                         effect_matches(dict(effect['record'],operations=[r['operation']]),tags)]

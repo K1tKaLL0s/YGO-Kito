@@ -1054,10 +1054,11 @@ def _record_facts(code, records, *, zone="main", same_name=None, inventory=None,
                     if not any(state['source']==connector['condition_source'] for state in op.get('state_conditions',())):
                         extra_unknown.append('operation_condition_unresolved')
             if op.get('depends_on'):
-                observed = {v.get('block_id'): v for _, v in _record_outputs(record)}
+                observed = {v.get('block_id'): v for v in record['operations']}
                 refs = record.get('operation_refs') or {v.get('block_id'): ref+':op:'+str(j)
                     for j, v in _record_outputs(record)}
-                if functional and any(previous in observed and observed[previous].get('choice') == op.get('choice')
+                if functional and any(previous in refs and previous in observed
+                                      and observed[previous].get('choice') == op.get('choice')
                                       for previous in op['depends_on']):
                     # The prerequisite already reserves this same activation,
                     # costs and target. Picking them again can change the target.
@@ -1069,7 +1070,10 @@ def _record_facts(code, records, *, zone="main", same_name=None, inventory=None,
                     if previous in refs and functional:
                         operation_inputs.append(Need(ref+':preceding:'+str(i)+':'+previous,
                             Resource('functional_operation',attributes=(refs[previous],)),mode='presence'))
-                    elif previous not in refs:
+                    elif previous not in refs and not (
+                            static and observed.get(previous, {}).get('processing_role') == 'auxiliary'):
+                        # Known auxiliary steps belong to the complete static
+                        # inventory check, without their own function ports.
                         extra_unknown.append('operation_sequence_unresolved:'+previous)
             if len(origin) > 1:
                 if not (record.get('fusion_material_selection') and op['kind']=='return_fusion_materials') and (

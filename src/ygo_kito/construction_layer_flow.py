@@ -762,7 +762,7 @@ def _restriction_match(rule, detail, card_properties=None, *, summon_choice=None
         "cannot_release": {"release"}, "cannot_set": {"set", "set_card", "normal_set", "monster_set"},
     }
     raw = detail.get("operation") or {}
-    entries = [detail["semantics"], *detail.get("costs", ())]
+    entries = [detail["semantics"], *detail.get("costs", ()), *detail.get("processing_prerequisites", ())]
     matches = []
     for operation in entries:
         action = operation["kind"]
@@ -1368,6 +1368,9 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                         if ("operation" not in r or r["operation"] == operation)
                         and r.get('choice') in (None, (operation or {}).get('choice'))]
                     scoped_record = operation_record(record, operation)
+                    prerequisites = [op for op in scoped_record["operations"]
+                        if op["block_id"] in observed.get("depends_on", ())
+                        and op.get("processing_role") == "auxiliary"]
                     costs = [r for r in requirement_rows if r["category"] == "costs"]
                     other = [r for r in requirement_rows if r["category"] != "costs"]
                     source_ids = tuple(s for s, item in sources.items() if item["zone"] == zone and item["card_id"] == code)
@@ -1440,6 +1443,8 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                             inventory_checks=dict(costs=checked, objects=objects, materials=material,
                                 complete_payment=complete_payment, summon_trigger=summon_trigger, fusion=fusion,
                                 processing=processing), relation=state)
+                        if prerequisites:
+                            facts["use_details"][key]["processing_prerequisites"] = deepcopy(prerequisites)
                         from .construction_theme import function_goal, primary_goal
                         facts['use_details'][key].update(operation_key=(code, ri, oi),
                             goal_id=digest(function_goal(record, operation)) if operation is not None else None)
