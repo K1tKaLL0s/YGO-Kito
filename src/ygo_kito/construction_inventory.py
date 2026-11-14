@@ -40,7 +40,7 @@ def selector(text):
     name=None
     while text:
         before=text
-        level = re.match(r"(\d+)星(?P<bound>以上|以下)?(?:的)?", text)
+        level = re.match(r"(\d+)星(?P<bound>以上|以下|以外)?(?:的)?", text)
         rank = re.match(r'(\d+)阶(?:的)?', text)
         link = re.match(r'连接(\d+)(?:的)?', text)
         attribute=re.match(r'(地|水|炎|风|光|暗|神)属性(?:的)?',text)
@@ -50,9 +50,14 @@ def selector(text):
         race=next((r for r in RACES if text.startswith(r)),None)
         if position and 'face_up' not in query:
             query['face_up']=position[1]=='表侧';text=text[position.end():]
-        elif level and not ('level' in query or 'level_between' in query):
+        elif level and not {'level', 'level_between', 'exclude_level'} & query.keys():
             value=int(level[1]);bound=level['bound']
-            query['level_between' if bound else 'level']=([value,13] if bound=='以上' else [1,value]) if bound else value
+            if bound == '以外':
+                if not 1 <= value <= 255:
+                    return None
+                query['exclude_level'] = value
+            else:
+                query['level_between' if bound else 'level']=([value,13] if bound=='以上' else [1,value]) if bound else value
             text=text[level.end():]
         elif rank and 'rank' not in query:
             query['rank']=int(rank[1]);text=text[rank.end():]
@@ -89,7 +94,7 @@ def query_supported(query):
     if set(query) <= {'selector','face_up'} and query.get('selector') != '卡':
         return False
     strings = {'selector', 'exact_name', 'name_contains', 'exclude_name', 'mentions_name'}
-    numbers = {'level', 'rank', 'link_rating', 'setcode', 'type', 'race', 'type_all', 'race_any', 'attribute_any',
+    numbers = {'level', 'exclude_level', 'rank', 'link_rating', 'setcode', 'type', 'race', 'type_all', 'race_any', 'attribute_any',
                'atk_min','atk_max','def_min','def_max'}
     if set(query) - strings - numbers - {'predicate', 'level_between', 'face_up', 'any'}:
         return False
@@ -98,6 +103,8 @@ def query_supported(query):
         return False
     if any(not isinstance(query[k], str) for k in strings & query.keys()) or any(
             type(query[k]) is not int for k in numbers & query.keys()):
+        return False
+    if 'exclude_level' in query and not 1 <= query['exclude_level'] <= 255:
         return False
     if 'face_up' in query and type(query['face_up']) is not bool:
         return False
@@ -132,10 +139,17 @@ def matches(row, query):
         # effect mentioning or searching another archetype does not do so.
         aliases=re.findall(r'规则上也?当作「([^」]+)」',row.get('desc',''))
         if not any(query['name_contains'] in name for name in aliases):return False
+    card_type = row.get('type', 0)
+    has_rank_or_link = card_type & (0x800000 | 0x4000000)
     if 'level' in query and row.get('level', 0) & 255 != query['level']:return False
-    if ('level' in query or 'level_between' in query) and row.get('type',0)&(0x800000|0x4000000):return False
+    if ('level' in query or 'level_between' in query) and has_rank_or_link:return False
+    # The CDB reuses the level column for Xyz rank and Link rating.
+    if 'exclude_level' in query and card_type & 1 and not has_rank_or_link:
+        level = max(1, row.get('level', 0) & 255)
+        if level == query['exclude_level']:
+            return False
     for field, kind in (('rank', 0x800000), ('link_rating', 0x4000000)):
-        if field in query and (not row.get('type', 0) & kind or row.get('level', 0) & 255 != query[field]):
+        if field in query and (not card_type & kind or row.get('level', 0) & 255 != query[field]):
             return False
     for stat in ('atk','def'):
         value=row.get(stat)

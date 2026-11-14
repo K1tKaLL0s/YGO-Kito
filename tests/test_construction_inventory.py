@@ -7,7 +7,8 @@ from ygo_kito.build_contracts import BuildTask, DeckParts
 from ygo_kito.build_pipeline import DeckEdits
 from ygo_kito.construction_binding import CatalogBindingAdapter
 from ygo_kito.construction_candidates import portfolio
-from ygo_kito.construction_inventory import InventoryDependencies, repair_ideas, selector
+from ygo_kito.construction_inventory import (InventoryDependencies, matches, query_supported,
+                                             repair_ideas, requirement, selector)
 from ygo_kito.construction_logic import LogicTag
 from ygo_kito.effect_mechanisms import MechanismCatalog
 from tests.test_construction_layer_flow import flow_fixture
@@ -236,6 +237,35 @@ class InventoryDependencyTests(unittest.TestCase):
         self.assertEqual(selector('7星以上的「绯色」怪兽')['level_between'],[7,13])
         self.assertIsNone(selector('7星以上且满足未知标志的「绯色」怪兽'))
         self.assertIsNone(selector('「绯色」怪兽以外的怪兽'))
+
+    def test_level_exclusion_keeps_the_other_selector_conditions(self):
+        query = selector('8星以外的「绯色」怪兽')
+        self.assertTrue(query_supported(query))
+        monster = dict(name='绯色素材', type=0x21, level=3)
+        for changes, expected in (
+            ({}, True),
+            ({'level': (7 << 24) | (2 << 16) | 8}, False),
+            ({'level': 8, 'type': 0x2021}, False),
+            ({'level': 8, 'type': 0x800021}, True),
+            ({'level': 8, 'type': 0x4000021}, True),
+            ({'name': '另一主题的怪兽'}, False),
+            ({'type': 2}, False),
+        ):
+            with self.subTest(changes=changes):
+                self.assertEqual(matches(dict(monster, **changes), query), expected)
+        self.assertFalse(matches(dict(monster, level=0), selector('1星以外的怪兽')))
+        self.assertTrue(matches(dict(monster, level=None), selector('「绯色」怪兽')))
+        req = requirement('从自己的卡组选2只5星以外的龙族·暗属性怪兽加入手卡', 'operations')
+        self.assertEqual((req['minimum'], req['owner'], req['origins'], req['action']),
+                         (2, 'self', ['deck'], '加入手卡'))
+        dragon = dict(type=0x21, level=4, race=0x2000, attribute=0x20)
+        self.assertTrue(matches(dragon, req['query']))
+        for changes in ({'level': 5}, {'attribute': 0x10}, {'race': 1}):
+            self.assertFalse(matches(dict(dragon, **changes), req['query']))
+        for qualifier in ('0星以外', '256星以外', '8星以外且满足未知标志', '8星以外的4星'):
+            self.assertIsNone(selector(qualifier + '的怪兽'))
+        for malformed in (0, -1, 256, True, '8'):
+            self.assertFalse(query_supported({'exclude_level': malformed}))
 
     def test_named_cost_is_missing_despite_other_unknown_effect_fields_and_side(self):
         value, catalog, _ = fixture();deck,supported=value[4]

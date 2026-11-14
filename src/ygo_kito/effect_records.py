@@ -11,8 +11,8 @@ from collections import Counter, defaultdict
 
 from .rule_references import effect_reference_requests
 
-EFFECT_RECORD_VERSION = "public-effect-records-v2"
-LUA_EFFECT_RECORD_VERSION = "public-effect-records-v5"
+EFFECT_RECORD_VERSION = "public-effect-records-v3"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v6"
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (
     "fusion_target", "synchro_target", "xyz_target", "tuner",

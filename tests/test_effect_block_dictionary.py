@@ -864,6 +864,41 @@ class LuaEffectBlockTests(unittest.TestCase):
                 self.assertEqual(use["relation"]["status"], route)
                 self.assertEqual(use["semantics"]["reason"], "effect")
 
+    def test_level_exclusion_search_respects_the_activation_payment_and_deck_zone(self):
+        from tests.test_construction_functional_flow import fixture
+
+        task, _, _, _, _, policy = fixture()
+        text = SELF_SEND_TEXT + "从卡组把1只8星以外的怪兽加入手卡。"
+        assets = self.assets(script=SELF_SEND_SCRIPT, description=text)
+        source = assets.rows[LUA_CARD_ID]
+        source["level"] = 3
+        excluded, xyz = LUA_CARD_ID + 7, LUA_CARD_ID + 8
+        assets.rows[excluded] = dict(source, id=excluded, name="八星怪兽", level=8, desc="")
+        assets.rows[xyz] = dict(source, id=xyz, name="八阶怪兽", level=8, type=0x800021, desc="")
+        catalog = MechanismCatalog(assets)
+        dependencies = InventoryDependencies(catalog)
+        record, = catalog.effect_records(LUA_CARD_ID)
+        operation, = record["operations"]
+        self.assertEqual(record["lua_source"]["self_send_cost_status"], "bound")
+        self.assertEqual((operation["kind"], operation["from_zones"], operation["to_zone"],
+                          operation["quantity"], operation["reason"], operation["random"]),
+                         ("search_or_recover", ["deck"], "hand", 1, "effect", False))
+        self.assertEqual(operation["selector_query"]["exclude_level"], 8)
+
+        for deck, stock, route in (
+            (DeckParts((LUA_CARD_ID, excluded)), "missing", "missing"),
+            (DeckParts((LUA_CARD_ID,), (xyz,)), "missing", "missing"),
+            (DeckParts((LUA_CARD_ID,), (), (LUA_CARD_ID,)), "missing", "missing"),
+            (DeckParts((LUA_CARD_ID, LUA_CARD_ID)), "inventory_present", "supported"),
+        ):
+            with self.subTest(deck=deck):
+                self.assertEqual(dependencies.processing_check(deck, record, operation)["status"], stock)
+                facts = normalize_function_uses(task, deck, catalog, policy=policy)
+                active = {use.use_id for use in facts["uses"] if use.scope_id == "resident" and use.contributes}
+                use, = [detail for key, detail in facts["use_details"].items() if key in active]
+                self.assertEqual(use["relation"]["status"], route)
+                self.assertEqual(use["inventory_checks"]["costs"]["status"], "inventory_present")
+
     def test_self_send_cost_preserves_the_printed_record_when_lua_differs(self):
         desc = SELF_SEND_TEXT + "自己从卡组抽1张。"
         variations = (
