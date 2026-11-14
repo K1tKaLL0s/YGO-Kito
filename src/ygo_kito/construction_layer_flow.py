@@ -371,7 +371,7 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
 
 def _targeted_calls(deck, available, records, dependencies, operation_facts):
     """Record direct named access for density pricing, without activation dependencies."""
-    from .construction_inventory import _activation_target, matches
+    from .construction_inventory import _activation_target, _has_self_grave_payment, matches
     from .construction_theme import operation_query
 
     recipients = defaultdict(set)
@@ -424,7 +424,9 @@ def _targeted_calls(deck, available, records, dependencies, operation_facts):
                             operation, card_id=target)
                         if proof is not None and proof['status'] != 'inventory_present':
                             continue
-                    if _activation_target(record, operation, availability_timing='before_activation_payment'):
+                    activation_target = _activation_target(record, operation)
+                    if activation_target and (activation_target.get('availability_timing') == 'before_activation_payment'
+                                              or _has_self_grave_payment(record)):
                         if dependencies.summon_choice_check(available, record, operation, (target,),
                                                             physical_inventory=deck) is not True:
                             continue
@@ -1086,7 +1088,7 @@ def _relation_support(row, key, scope, condition, evidence):
 
 def _special_summon_supported(code, available, records, dependencies, relation, operation_facts, *, physical_inventory):
     """Read configured entry proofs from the existing relation result."""
-    from .construction_inventory import _activation_target, matches
+    from .construction_inventory import _activation_target, _has_self_grave_payment, matches
     possible = False
     special = {'special_summon','fusion_summon','synchro_summon','xyz_summon','link_summon','ritual_summon'}
     for supplier, entries in records.items():
@@ -1108,8 +1110,10 @@ def _special_summon_supported(code, available, records, dependencies, relation, 
                             continue
                         if proof['status'] == 'unknown':
                             status = 'unknown'
-                if (status in ('supported', 'unknown')
-                        and _activation_target(record, operation, availability_timing='before_activation_payment')):
+                activation_target = _activation_target(record, operation)
+                if (status in ('supported', 'unknown') and activation_target
+                        and (activation_target.get('availability_timing') == 'before_activation_payment'
+                             or _has_self_grave_payment(record))):
                     legal = dependencies.summon_choice_check(available, operation_record(record, operation), operation,
                                                              (code,), physical_inventory=physical_inventory)
                     if legal is False:

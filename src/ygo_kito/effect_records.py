@@ -12,7 +12,7 @@ from collections import Counter, defaultdict
 from .rule_references import effect_reference_requests
 
 EFFECT_RECORD_VERSION = "public-effect-records-v4"
-LUA_EFFECT_RECORD_VERSION = "public-effect-records-v10"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v11"
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (
     "fusion_target", "synchro_target", "xyz_target", "tuner",
@@ -1178,9 +1178,119 @@ def effect_records(profile, *, semantic_version, row=None):
 
 _LUA_NAMED_SCOPES = {"same_name_this_effect", "same_name_shared_effects", "same_name_all_effects"}
 _LUA_SUMMON_EVENTS = {"normal_summon", "special_summon"}
-_PRINTED_SELF_SEND = re.compile(
-    r"(?:把|将)(?:自己(?:的)?)?(?:手卡(?:[·、]|或者|或)场上|场上(?:[·、]|或者|或)手卡)的这张卡送去墓地"
+_PAYMENT_ZONE = r"手卡|场上|怪兽区域|魔法与陷阱区域|魔法陷阱卡区域|魔法·陷阱区域|场地区域|灵摆区域"
+_PAYMENT_ZONES = rf"(?:{_PAYMENT_ZONE})(?:(?:[·、／/]|或者|或)(?:{_PAYMENT_ZONE}))*"
+_PAYMENT_ORIGIN = rf"(?:自己(?:的)?)?(?:{_PAYMENT_ZONES})"
+_SELF_PAYMENT = re.compile(
+    rf"(?:把|将)(?:(?:{_PAYMENT_ORIGIN})(?:表侧表示(?:存在)?|里侧表示)?的?|"
+    rf"装备的|(?:当作|作为)装备卡使用的|给[^。；，,]+?装备的)?这张卡"
+    rf"(?:从(?:{_PAYMENT_ORIGIN}))?(?:送去|送入|送进)墓地"
+    rf"|从(?:{_PAYMENT_ORIGIN})(?:把|将)这张卡(?:送去|送入|送进)墓地"
 )
+_SELF_AND_COMPANIONS = re.compile(
+    rf"从(?:{_PAYMENT_ORIGIN})(?:把|将)这张卡(?:和|及|与)(?P<n>\d+)(?P<unit>[只张])(?P<selector>[^。，；]+?)送去墓地"
+    rf"|(?:把|将)(?:包含|包括)这张卡的(?:{_PAYMENT_ORIGIN})(?:的)?"
+    rf"(?P<total>\d+)[只张](?P<including>[^。，；]*?)送去墓地"
+)
+
+
+def _printed_self_payment(record):
+    """Find one explicit payment and its companion selector, if any."""
+    from .construction_inventory import selector
+    from .effect_blocks import activation_parts
+    if record.get("branch_records"):
+        return None
+    head, _, _, mode = activation_parts(record["source_text"])
+    if mode != "activated":
+        return None
+    choices = []
+    for cost in record["costs"]:
+        payment = cost.get("source", "")
+        if (cost["kind"] != "send_grave" or cost.get("reason") != "cost" or cost.get("to_zone") != "grave"
+                or cost.get("resource") != "cards" or cost.get("owner") not in ("unknown", "self")
+                or cost.get("quantity_options") or cost.get("quantity_variants")
+                or cost.get("random") or cost.get("discard") or not payment or payment not in head):
+            continue
+        if _SELF_PAYMENT.fullmatch(payment) and cost.get("quantity") in (1, None):
+            choices.append((cost, None))
+        elif match := _SELF_AND_COMPANIONS.fullmatch(payment):
+            count = int(match["n"]) if match["n"] else int(match["total"]) - 1
+            text = match["selector"] if match["n"] else match["including"]
+            query = selector(text) if text else {"selector": "卡"}
+            if query is not None and match["unit"] == "只":
+                query.setdefault("type", 1)
+            if count > 0 and query and cost.get("quantity") in (None, count + 1):
+                choices.append((cost, (count, query)))
+    return choices[0] if len(choices) == 1 else None
+
+
+def _same_payment_query(printed, observed):
+    def normalized(query):
+        query = {key: value for key, value in query.items() if key != "selector"}
+        if "race" in query:
+            query["race_any"] = query.pop("race")
+        return query
+    expected, actual = normalized(printed), normalized(observed)
+    # Race/Level tests and the monster-only attribute masks imply the
+    # printed monster class even when the script omits an IsType check.
+    if expected.get("type") == 1 and actual.keys() & {"attribute_any", "race_any", "level_between"}:
+        actual.setdefault("type", 1)
+    return expected == actual
+
+
+def _payment_matches(record, printed, window):
+    observed = window.get("self_send_cost", {})
+    if observed.get("status") != "resolved" or observed["targets"] != bool(record["targets"]):
+        return False
+    cost, group = printed
+    origins = cost.get("from_zones") or ()
+    payment_text = cost["source"]
+    # The two specialized field masks project to the existing public field
+    # zone. Keep the exact mask on the source fact.
+    for symbol, text in (("FZONE", "场地区域"), ("PZONE", "灵摆区域"),
+                         ("MZONE", "怪兽区域"), ("SZONE", "魔法与陷阱区域"),
+                         ("SZONE", "魔法陷阱卡区域"), ("SZONE", "魔法·陷阱区域")):
+        if text in payment_text and symbol not in observed["locations"]:
+            return False
+    if "装备" in payment_text and "SZONE" not in observed["locations"]:
+        return False
+
+    def same_origins(script_zones):
+        return set(origins) == set(script_zones) if origins else script_zones == ["field"] and "装备" in payment_text
+
+    others = [item for item in record["costs"] if item is not cost]
+    companions = observed["companions"]
+    if group:
+        if others or len(companions) != 1 or companions[0]["kind"] != "send_grave":
+            return False
+        companion = companions[0]
+        return (same_origins(sorted(set(observed["from_zones"] + companion["from_zones"])))
+                and companion["quantity"] == group[0] and _same_payment_query(group[1], companion["selector_query"]))
+    if not same_origins(observed["from_zones"]) or len(others) != len(companions):
+        return False
+    printed_other = sorted(("discard" if item.get("discard") else item["kind"], item.get("quantity") or 0)
+                           for item in others)
+    observed_other = sorted((item["kind"], item["quantity"]) for item in companions)
+    return printed_other == observed_other
+
+
+def _payment_window(record, window):
+    """Check the observed activation class without assigning an unknown trigger."""
+    observed = window.get("self_send_cost", {})
+    event = record["trigger"].get("event")
+    kind = observed.get("window")
+    if event in ("normal_or_special_summon", "normal_summon", "special_summon", "sent_to_grave"):
+        return window["event"] == event or event == "normal_or_special_summon" and window["event"] in _LUA_SUMMON_EVENTS
+    if kind == "ignition":
+        return event in ("own_main_phase", "conditional_activation", "unknown", None) or (
+            record["scope"] == "spell_trap" and event == "card_activation")
+    if kind == "quick":
+        return event not in ("sent_to_grave", "normal_summon", "special_summon", "normal_or_special_summon")
+    if kind == "trigger":
+        return event not in ("own_main_phase", "card_activation")
+    if kind == "spell_trap_activation":
+        return record["scope"] == "spell_trap" and event == "card_activation"
+    return False
 
 
 _PRINTED_HAND_SEND = r'(?:选(?:择)?|将|把)(?:自己(?:的)?)?1张手卡送去墓地'
@@ -1404,11 +1514,11 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
     deck_sends = {record["effect_index"] - 1 for record in records if record["effect_index"] > 0
                   and any(op["kind"] in ("send_grave", "mill") and op.get("from_zones") == ["deck"]
                           for op in record["operations"])}
-    self_send_costs = {record["effect_index"] - 1 for record in records if record["effect_index"] > 0
-                       and any(_PRINTED_SELF_SEND.fullmatch(cost.get("source", "")) for cost in record["costs"])}
+    self_payments = {record["effect_key"]: payment for record in records
+                     if (payment := _printed_self_payment(record)) is not None}
     grave_summons = {record["effect_key"]: fact for record in records
                      if (fact := _grave_summon_printing(record)) is not None}
-    script_options = dict(deck_send_indices=deck_sends, self_send_cost_indices=self_send_costs)
+    script_options = dict(deck_send_indices=deck_sends, self_send_costs=bool(self_payments))
     if grave_summons:
         script_options["preselected_grave_summons"] = True
     script = source.summarize_effects(script_code, **script_options)
@@ -1452,8 +1562,8 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
         record["lua_source"] = dict(source_info, alignment="matched", registrations=list(windows))
         if index - 1 in deck_sends:
             _merge_lua_deck_send(record, source, rows)
-        if index - 1 in self_send_costs:
-            _merge_lua_self_send_cost(record)
+    if self_payments:
+        _merge_lua_self_send_costs(records, self_payments, script)
 
     aligned = [record for record in records if record["lua_source"]["alignment"] == "matched"]
     candidates = {}
@@ -1572,48 +1682,115 @@ def _merge_lua_deck_send(record, source, rows):
     lua["deck_send_status"] = "selector_bound"
 
 
-def _merge_lua_self_send_cost(record):
-    from .effect_blocks import activation_parts
+def _merge_lua_self_send_costs(records, printed, script):
+    windows = script["registrations"]
+    pairs = {}
+    for record in records:
+        key = record["effect_key"]
+        if key not in printed:
+            continue
+        index = record["effect_index"]
+        lua = record["lua_source"]
+        matched = lua.get("registrations", ()) if lua["alignment"] == "matched" else ()
+        at_slot = [w for w in windows if index > 0 and w.get("description_index") == index - 1]
+        if matched:
+            possible = [w for w in matched if _payment_matches(record, printed[key], w)]
+            # A Clone group covers the same printed cost in every activation window.
+            pairs[key] = possible if len(possible) == len(matched) else []
+        else:
+            preferred = [w for w in at_slot if _payment_matches(record, printed[key], w) and _payment_window(record, w)]
+            if preferred:
+                pairs[key] = preferred
+            elif record["trigger"].get("event") not in ("unknown", None):
+                pairs[key] = [w for w in windows if _payment_matches(record, printed[key], w)
+                              and _payment_window(record, w)]
+            else:
+                pairs[key] = []
+    for record in records:
+        key = record["effect_key"]
+        if key not in pairs:
+            continue
+        lua = record["lua_source"]
+        options = pairs[key]
+        if (not options or len({w["family"] for w in options}) != 1
+                or any(w["self_send_cost"] != options[0]["self_send_cost"] for w in options[1:])):
+            lua["self_send_cost_status"] = "unresolved_callback"
+            continue
+        family = options[0]["family"]
+        if any(other != key and any(w["family"] == family for w in candidates)
+               for other, candidates in pairs.items()):
+            lua["self_send_cost_status"] = "ambiguous_cost_registration"
+            continue
+        lua["self_send_cost_status"] = (
+            "bound" if _apply_self_send_cost(record, printed[key], options[0]["self_send_cost"])
+            else "unresolved_printed_projection")
+        if not all(w in lua.get("registrations", ()) for w in options):
+            # Quote the cost callback's registration without expanding generic
+            # effect/count alignment or assigning the printed condition.
+            lua["self_send_cost_registrations"] = options
 
-    lua = record["lua_source"]
-    windows = lua["registrations"]
-    observed = windows[0].get("self_send_cost", {})
-    if (observed.get("status") != "resolved" or len({window["family"] for window in windows}) != 1
-            or any(window.get("self_send_cost") != observed for window in windows[1:])):
-        lua["self_send_cost_status"] = "unresolved_callback"
-        return
-    head, _, _, mode = activation_parts(record["source_text"])
-    if (mode != "activated" or record["trigger"].get("event") != "own_main_phase"
-            or len(record["costs"]) != 1 or record["targets"] or record.get("branch_records")
-            or not _PRINTED_SELF_SEND.fullmatch(head.strip())):
-        lua["self_send_cost_status"] = "unresolved_printed_scope"
-        return
-    cost, = record["costs"]
-    if (cost["source"] != head.strip() or cost["kind"] != "send_grave" or cost.get("reason") != "cost"
-            or cost.get("to_zone") != "grave" or set(cost.get("from_zones", ())) != set(observed["from_zones"])
-            or cost.get("owner") not in ("unknown", "self") or cost.get("resource") != "cards"
-            or cost.get("quantity") != 1 or cost.get("quantity_options") or cost.get("quantity_variants")
-            or cost.get("random") or cost.get("discard")):
-        lua["self_send_cost_status"] = "printed_payment_conflict"
-        return
-    if cost.get("selector_query"):
-        lua["self_send_cost_status"] = "printed_selector_retained"
-        return
-    block = next((block for block in record["block_view"]["cost_blocks"]
-                  if block["phase"] == "activation_payment" and block["kind"] == cost["kind"]
-                  and block["source"] == cost["source"]), None)
-    original_change = dict(cost, phase="activation_payment")
-    changes = [change for change in record["resource_changes"] if change == original_change]
-    if block is None or len(changes) != 1:
-        lua["self_send_cost_status"] = "unresolved_printed_projection"
-        return
+
+def _apply_self_send_cost(record, printed, observed):
+    cost, group = printed
+    view = record["block_view"]
+    blocks = [b for b in view["cost_blocks"] if b["phase"] == "activation_payment"
+              and b["kind"] == cost["kind"] and b["source"] == cost["source"]]
+    changes = [i for i, change in enumerate(record["resource_changes"])
+               if change == dict(cost, phase="activation_payment")]
+    if len(blocks) != 1 or len(changes) != 1:
+        return False
     code = record["card_id"]
-    bound = dict(subject="this_card", source_card_id=code, owner="self", owner_status="recognized",
-                 quantity_status="explicit", selector_query={"predicate": {"field": "card_ids", "value": [code]}})
-    cost.update(deepcopy(bound), observed_payment=deepcopy(cost))
-    block["qualifiers"].update(deepcopy(bound))
-    changes[0].update(deepcopy(bound))
-    lua["self_send_cost_status"] = "bound"
+    query = {"predicate": {"field": "card_ids", "value": [code]}}
+    if cost.get("selector_query") not in (None, query):
+        return False
+    projection = dict(subject="this_card", source_card_id=code, owner="self", owner_status="recognized",
+                      quantity=1, quantity_status="explicit", selector_query=query, requires_arrival=True,
+                      from_zones=list(observed["from_zones"]))
+
+    related = next((c for c in observed["companions"] if c["kind"] == "discard"), None)
+    discards = [item for item in record["costs"] if item.get("discard")] if related else []
+    discard_projections = []
+    for item in discards:
+        item_blocks = [b for b in view["cost_blocks"] if b["source"] == item["source"]
+                       and b["phase"] == "activation_payment" and b["kind"] == "send_grave"]
+        item_changes = [c for c in record["resource_changes"] if c == dict(item, phase="activation_payment")]
+        if len(item_blocks) != 1 or len(item_changes) != 1 or item.get("from_zones") != ["hand"]:
+            return False
+        discard_projections.append((item, item_blocks[0], item_changes[0]))
+
+    if group or cost.get("quantity") != 1 or cost.get("from_zones") != projection["from_zones"]:
+        record.setdefault("model_summary_observation", {}).update(
+            {key: deepcopy(record[key]) for key in ("costs", "resource_changes")})
+    cost.update(deepcopy(projection), observed_payment=deepcopy(cost))
+    blocks[0]["qualifiers"].update(deepcopy(projection))
+    record["resource_changes"][changes[0]].update(deepcopy(projection))
+    if group:
+        companion, = observed["companions"]
+        qty, query = group
+        if not set(query) - {"selector", "face_up"}:
+            query = dict(query, selector="卡")
+        item = dict(kind="send_grave", reason="cost", to_zone="grave", resource="cards",
+                    owner="self", owner_status="recognized", from_zones=deepcopy(companion["from_zones"]),
+                    quantity=qty, quantity_status="explicit", source=cost["source"],
+                    selector_query=deepcopy(query), requires_arrival=True,
+                    effect_index=cost["effect_index"], cost_index=len(record["costs"]))
+        record["costs"].append(item)
+        view["cost_blocks"].append(dict(blocks[0], block_id=f"{record['effect_key']}:cost:{item['cost_index']}",
+            qualifiers={k: deepcopy(v) for k, v in item.items() if k not in ("kind", "source", "cost_index", "effect_index")}))
+        record["resource_changes"].insert(changes[0] + 1, dict(deepcopy(item), phase="activation_payment"))
+    for item, block, change in discard_projections:
+        flags = dict(selector_query={"selector": "卡"} if not item.get("selector_query") else item["selector_query"],
+                     source_card_id=code, exclude_source_copy=True)
+        item.update(deepcopy(flags))
+        block["qualifiers"].update(deepcopy(flags))
+        change.update(deepcopy(flags))
+    for target in record["targets"]:
+        target.update(timing="activation", selection_timing="after_activation_payment")
+    target_check = observed.get("target_check")
+    if (target_check and target_check["may_select_payment"] and len(record["targets"]) == 1
+            and target_check["quantity"] == record["targets"][0].get("quantity")):
+        record["targets"][0]["payment_may_supply_target"] = True
+    return True
 
 
 def _printed_counter_members(records, record, limit):
@@ -1646,11 +1823,11 @@ def mechanism_summary(catalog, codes):
         records = catalog.effect_records(code)
         # Existing checkpoints use the original movement observations for
         # these features. Static refinements retain them beside the new fields.
-        costs = [item.get("observed_payment", item) for record in records for item in record["costs"]]
+        observations = [record | record.get("model_summary_observation", {}) for record in records]
+        costs = [item.get("observed_payment", item) for observation in observations for item in observation["costs"]]
         operations = [item for record in records for item in record["operations"] if item.get("reason") == "effect"]
         changes = [item.get("observed_operation", item)
-                   for record in records for item in record["resource_changes"]]
-        observations = [record.get("model_summary_observation", record) for record in records]
+                   for observation in observations for item in observation["resource_changes"]]
         limits = [item for record in observations for item in record["count_limits"]]
         kinds = [item["kind"] for item in operations]
         values = [float(bool(row.get("type", 0) & flag)) for flag in (0x40, 0x2000, 0x800000, 0x1000)]

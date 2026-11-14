@@ -351,6 +351,12 @@ def _activation_target(record, operation, *, availability_timing=None):
     return None
 
 
+def _has_self_grave_payment(record):
+    return any(cost.get("subject") == "this_card" and cost.get("requires_arrival")
+               and cost["kind"] == "send_grave" and cost.get("to_zone") == "grave"
+               for cost in record["costs"])
+
+
 def _processing_activation_source(record):
     query = {'predicate': {'field': 'card_ids', 'value': [record['card_id']]}}
     source = 'activation source: ' + record['source_text']
@@ -523,7 +529,8 @@ class InventoryDependencies:
                 or any(z not in ('hand','deck','grave','field','extra','banished','xyz_material') for z in origins)):
             return None
         return dict(query=query, minimum=quantity, source=item.get('source',''), origin=origins[0] if len(origins)==1 else 'choice',origins=list(origins),
-                    owner=item.get('owner','unknown'), category=category)
+                    owner=item.get('owner','unknown'), category=category,
+                    **{k:item[k] for k in ('source_card_id','exclude_source_copy') if k in item})
 
     @lru_cache(maxsize=256)
     def intrinsic_restrictions(self, code):
@@ -1004,7 +1011,19 @@ class InventoryDependencies:
                     if category == 'operations':
                         req['operation'] = item
                     parts.append((req, item))
-        if parts and _field_source_needs_reservation(record, (req for req, _ in parts)):
+        self_paid = _has_self_grave_payment(record)
+        if self_paid:
+            bound_targets = [target for req, item in parts if req['category'] == 'operations'
+                             and (target := _activation_target(record, item)) is not None]
+            # Stats, negation and other non-moving effects can still have a
+            # formal target. Allocate it once, separately from the paid copy.
+            for target in record['targets']:
+                if target in bound_targets or target.get('selection_timing') != 'after_activation_payment':
+                    continue
+                requirement = self.item_requirement(target, 'targets')
+                if requirement and requirement['owner'] == 'self':
+                    parts.append((requirement, target))
+        if parts and not self_paid and _field_source_needs_reservation(record, (req for req, _ in parts)):
             # The activating entity is already on the field. Reserving it in
             # the same allocator prevents paying/receiving that very copy in
             # hand or grave. Explicit field movements keep their existing
@@ -1041,7 +1060,8 @@ class InventoryDependencies:
                              ResourcePool(name, req['source'], capacity=0))
                 move = dict(item, owner='self', controller='self', from_zones=list(origins),
                     selector_query=req['query'], random=False)
-                transfer = None if req['category']=='source' else _operation_transfer(move, req['source'], members, self, 'self', record)
+                transfer = (None if req['category'] in ('source', 'targets') else
+                            _operation_transfer(move, req['source'], members, self, 'self', record))
                 fid = name+':move'
                 facts.append(RelationFact(fid, fid, Resource('processing_movement', attributes=(name,)),
                     req['source'], quantity=req['minimum'], transfer=transfer))
@@ -1053,7 +1073,7 @@ class InventoryDependencies:
                 recoveries = tuple(PoolRecovery(fid, a.need_id, b.need_id, 'before')
                     for j, (_, _, after) in enumerate(transfers[i+1:], i+1)
                     # A target picked at activation must exist before any resolution movement.
-                    if _activation_target(record, parts[j][1]) is None
+                    if parts[j][0]['category'] != 'targets' and _activation_target(record, parts[j][1]) is None
                     for a in before for b in after
                     if transfer.inventory is None or set(transfer.inventory) & set(pools[j].inventory)
                     if _zone_support(transfer.destination, b.resource.zone) is True)
@@ -1067,8 +1087,35 @@ class InventoryDependencies:
                 inventory_counts=counts, existential=True).to_dict()['joint_required']
             result = dict(status={'supported':'inventory_present','missing':'missing','unknown':'unknown'}[relation['status']],
                 reason='complete_processing_entities', checks=checks, relation=relation)
+        if self_paid and selected and result['status'] != 'inventory_present':
+            target = _activation_target(record, selected)
+            if target and target.get('payment_may_supply_target'):
+                result = self._after_grave_payment_target(deck, parts, target, selected, result)
         self._processing[key] = result
         return result
+
+    def _after_grave_payment_target(self, deck, parts, target, selected, existing):
+        """A newly paid card may be selected if another legal object existed."""
+        before = self.item_requirement(target, 'targets')
+        chosen = self.item_requirement(selected, 'operations')
+        if (not before or not chosen or before['owner'] != 'self' or chosen['owner'] != 'self'
+                or before['origin'] != 'grave' or chosen['origin'] != 'grave'
+                or before['minimum'] != 1 or chosen['minimum'] != 1):
+            return existing
+        for paid, movement in parts:
+            if (paid['category'] != 'costs' or movement.get('to_zone') != 'grave'
+                    or not movement.get('requires_arrival') or paid['minimum'] != 1):
+                continue
+            if 'any' in paid['query']:
+                continue
+            same_card = dict(paid, category='operations', operation=selected,
+                             query=dict(paid['query'], any=[chosen['query']]))
+            precheck = dict(before, category='operations', operation=selected)
+            others = [req for req, item in parts if req is not paid and item != selected]
+            proof = self._check(deck, [same_card, precheck, *others], distinct=True)
+            if proof['status'] == 'inventory_present' or (proof['status'] == 'unknown' and existing['status'] == 'missing'):
+                return dict(status=proof['status'], reason='complete_processing_entities', checks=[proof])
+        return existing
 
     def _check(self, deck, specs, *, joint=False, target=None, distinct=False):
         return self._check_counts(Counter(deck.main + deck.extra), Counter(deck.extra), specs,
@@ -1108,7 +1155,8 @@ class InventoryDependencies:
                 best = checked
         return best
 
-    def _check_counts(self, resident, extra, specs, *, joint=False, target=None, distinct=False, bound_targets=()):
+    def _check_counts(self, resident, extra, specs, *, joint=False, target=None, distinct=False, bound_targets=(),
+                      shared_categories=()):
         # Printed materials are distinct physical monsters; one card cannot
         # satisfy both an exact-name slot and an overlapping race slot.
         copies = [(code, i) for code, n in resident.items() for i in range(n)]
@@ -1145,7 +1193,8 @@ class InventoryDependencies:
                 shortfall=max(0,req['minimum']-len(available)), external_supply_unknown=external))
             if external:
                 result[-1]['matching_card_ids'] = []
-            if (joint or distinct) and not (req['category'] == 'targets' and req['source'] in bound_targets):
+            if ((joint or distinct) and req['category'] not in shared_categories
+                    and not (req['category'] == 'targets' and req['source'] in bound_targets)):
                 slots.extend([available]*req['minimum'])
                 confirmed_slots.extend([confirmed]*req['minimum'])
         def shortage_for(groups):
@@ -1213,11 +1262,13 @@ class InventoryDependencies:
                         bound_targets = {target['source'] for req in requirements
                             if (target := _activation_target(effect['record'], req.get('operation', {}))) is not None}
                         record = effect['record']
-                        if hand_sends and (bound_targets or _field_source_needs_reservation(record, requirements)):
+                        self_paid = _has_self_grave_payment(record)
+                        if hand_sends and not self_paid and (bound_targets or _field_source_needs_reservation(record, requirements)):
                             # The activating entity and the two moved cards occupy different zones.
                             requirements.insert(0, _processing_activation_source(record))
-                        value = self._check_counts(resident, extra, requirements, distinct=bool(hand_sends),
-                                                   bound_targets=bound_targets)
+                        value = self._check_counts(resident, extra, requirements,
+                            distinct=bool(hand_sends) or self_paid, bound_targets=bound_targets,
+                            shared_categories=('conditions', 'outcome') if self_paid else ())
                     key = effect['key'] + ':' + scope
                     unresolved=[r for r in effect['unknown'] if not tags or 'operation' not in r or
                         effect_matches(dict(effect['record'],operations=[r['operation']]),tags)]

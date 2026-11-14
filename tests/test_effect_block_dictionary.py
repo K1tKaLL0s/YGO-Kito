@@ -499,6 +499,7 @@ EFFECT_TYPE_SINGLE=1
 EFFECT_TYPE_TRIGGER_O=0x80
 EFFECT_TYPE_TRIGGER_F=0x200
 EFFECT_TYPE_IGNITION=0x10
+EFFECT_TYPE_QUICK_O=0x100
 EFFECT_TYPE_ACTIVATE=0x20
 EFFECT_FLAG_CANNOT_DISABLE=0x400
 EFFECT_FLAG_UNCOPYABLE=0x800
@@ -519,8 +520,11 @@ CATEGORY_DRAW=0x10000
 LOCATION_DECK=0x1
 LOCATION_HAND=0x2
 LOCATION_MZONE=0x4
+LOCATION_SZONE=0x8
+LOCATION_FZONE=0x100
 REASON_EFFECT=0x40
 REASON_COST=0x80
+REASON_DISCARD=0x4000
 HINT_SELECTMSG=3
 HINTMSG_TOGRAVE=504
 EVENT_SUMMON_SUCCESS=1100
@@ -1302,6 +1306,136 @@ end
                 use, = [detail for key, detail in facts["use_details"].items() if key in active]
                 self.assertEqual(use["relation"]["status"], route)
                 self.assertEqual(use["inventory_checks"]["costs"]["status"], "inventory_present")
+
+    def test_self_send_cost_uses_each_registered_zone_and_ignores_presentation(self):
+        for clause, mask, origins, locations in (
+            ("将这张卡从手卡送去墓地", "LOCATION_HAND", ["hand"], ["HAND"]),
+            ("把场上的这张卡送去墓地", "LOCATION_MZONE", ["field"], ["MZONE"]),
+            ("把场地区域的这张卡送去墓地", "LOCATION_FZONE", ["field"], ["FZONE"]),
+            ("把自己场上·手卡的这张卡送去墓地", "LOCATION_MZONE|LOCATION_HAND",
+             ["hand", "field"], ["HAND", "MZONE"]),
+        ):
+            with self.subTest(mask=mask):
+                script = SELF_SEND_SCRIPT.replace("LOCATION_HAND+LOCATION_MZONE", mask)
+                script = script.replace("if chk==0", "if 0==chk").replace(
+                    "    Duel.SendtoGrave(c,REASON_COST)",
+                    "    Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_TOGRAVE)\n    Duel.SendtoGrave(e:GetHandler(),REASON_COST)")
+                text = f"①：{clause}；自己从卡组抽1张。"
+                catalog = MechanismCatalog(self.assets(script=script, description=text))
+                record, = catalog.effect_records(LUA_CARD_ID)
+                lua = record["lua_source"]
+                self.assertEqual(lua["self_send_cost_status"], "bound")
+                window, = lua.get("self_send_cost_registrations", lua.get("registrations", ()))
+                self.assertEqual(window["self_send_cost"]["locations"], locations)
+                cost, = record["costs"]
+                self.assertEqual((cost["from_zones"], cost["requires_arrival"]), (origins, True))
+
+    def test_self_send_cost_and_fixed_companion_use_distinct_copies(self):
+        body = """\
+    local c=e:GetHandler()
+    if chk==0 then return Duel.IsExistingMatchingCard(Card.IsAbleToGraveAsCost,tp,LOCATION_HAND,0,1,c)
+        and c:IsAbleToGraveAsCost() end
+    Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_TOGRAVE)
+    local g=Duel.SelectMatchingCard(tp,Card.IsAbleToGraveAsCost,tp,LOCATION_HAND,0,1,1,c)
+    g:AddCard(c)
+    Duel.SendtoGrave(g,REASON_COST)
+"""
+        text = "①：从手卡把这张卡和1张卡送去墓地才能发动。自己从卡组抽1张。"
+        original = SELF_SEND_SCRIPT.index("    local c=e:GetHandler()")
+        for payment in (body, body.replace(",1,1,c)\n    g:AddCard(c)", ",1,1,c)+c")):
+            script = SELF_SEND_SCRIPT[:original].replace("LOCATION_HAND+LOCATION_MZONE", "LOCATION_HAND") + payment + "end\n"
+            assets = self.assets(script=script, description=text)
+            catalog = MechanismCatalog(assets)
+            inventory = InventoryDependencies(catalog)
+            record, = catalog.effect_records(LUA_CARD_ID)
+            self.assertEqual(record["lua_source"]["self_send_cost_status"], "bound")
+            self.assertEqual(len(record["costs"]), 2)
+            self.assertEqual(len(record["block_view"]["cost_blocks"]), 2)
+            self.assertEqual(len([c for c in record["resource_changes"] if c["reason"] == "cost"]), 2)
+            operation, = record["operations"]
+            for deck, expected in (
+                (DeckParts((LUA_CARD_ID,)), "missing"),
+                (DeckParts((LUA_CARD_ID,), (), (LUA_CARD_ID,)), "missing"),
+                (DeckParts((LUA_CARD_ID, LUA_CARD_ID)), "inventory_present"),
+            ):
+                with self.subTest(deck=deck):
+                    check = inventory.evaluate(deck, codes=(LUA_CARD_ID,))["cards"][str(LUA_CARD_ID)]["effects"][0]
+                    self.assertEqual(check["status"], expected)
+                    self.assertEqual(inventory.processing_check(deck, record, operation)["status"], expected)
+            with patch.object(BuildAssets, "effect_lua_source", None):
+                self.assertEqual(catalog.mechanism_summary((LUA_CARD_ID,)),
+                                 MechanismCatalog(assets).mechanism_summary((LUA_CARD_ID,)))
+            bad_script = script.replace(",1,c)", ",1,nil)").replace(",1,1,c)", ",1,1,nil)")
+            bad = MechanismCatalog(self.assets(script=bad_script, description=text)).effect_records(LUA_CARD_ID)[0]
+            self.assertNotEqual(bad["lua_source"]["self_send_cost_status"], "bound")
+
+    def test_self_send_cost_preserves_a_different_payment_and_the_target(self):
+        script = SELF_SEND_SCRIPT.replace(
+            "    e:SetCost(s.pay)",
+            "    e:SetCost(s.pay)\n    e:SetProperty(EFFECT_FLAG_CARD_TARGET)\n    e:SetTarget(s.target)"
+        ).replace(
+            "if chk==0 then return c:IsAbleToGraveAsCost() end",
+            "if chk==0 then return Duel.CheckLPCost(tp,500) and c:IsAbleToGraveAsCost() end\n"
+            "    Duel.PayLPCost(tp,500)"
+        ) + """\
+function s.target(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
+    if chk==0 then return Duel.IsExistingTarget(Card.IsFaceup,tp,LOCATION_MZONE,0,1,e:GetHandler()) end
+    Duel.SelectTarget(tp,Card.IsFaceup,tp,LOCATION_MZONE,0,1,1,nil)
+end
+"""
+        text = ("①：把手卡·场上的这张卡送去墓地，支付500基本分，以自己场上1只怪兽为对象才能发动。"
+                "那只怪兽的攻击力上升500。")
+        assets = self.assets(script=script, description=text)
+        catalog = MechanismCatalog(assets)
+        record, = catalog.effect_records(LUA_CARD_ID)
+        self.assertEqual(record["lua_source"]["self_send_cost_status"], "bound")
+        self.assertEqual({(cost["kind"], cost["quantity"]) for cost in record["costs"]}, {("send_grave", 1), ("pay_lp", 500)})
+        target, = record["targets"]
+        self.assertEqual((target["timing"], target["selection_timing"]), ("activation", "after_activation_payment"))
+        inventory = InventoryDependencies(catalog)
+        operations = record["operations"]
+        for deck, expected in (
+            (DeckParts((LUA_CARD_ID,)), "missing"),
+            (DeckParts((LUA_CARD_ID,), (), (LUA_CARD_ID,)), "missing"),
+            (DeckParts((LUA_CARD_ID, LUA_CARD_ID)), "inventory_present"),
+        ):
+            with self.subTest(deck=deck):
+                for selected in operations or (None,):
+                    self.assertEqual(inventory.processing_check(deck, record, selected)["status"], expected)
+
+    def test_grave_target_requires_availability_before_self_send(self):
+        script = SELF_SEND_SCRIPT.replace(
+            "    e:SetCost(s.pay)",
+            "    e:SetCost(s.pay)\n    e:SetProperty(EFFECT_FLAG_CARD_TARGET)\n    e:SetTarget(s.target)"
+        ) + """\
+function s.target(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
+    if chk==0 then return Duel.IsExistingTarget(s.filter,tp,LOCATION_GRAVE,0,1,nil,e,tp) end
+    Duel.SelectTarget(tp,s.filter,tp,LOCATION_GRAVE,0,1,1,nil,e,tp)
+end
+function s.filter(c,e,tp)
+    return c:IsCanBeSpecialSummoned(e,0,tp,false,false)
+end
+"""
+        text = ("①：把手卡·场上的这张卡送去墓地，以自己墓地1只怪兽为对象才能发动。"
+                "那只怪兽特殊召唤。")
+        assets = self.assets(script=script, description=text)
+        existing = LUA_CARD_ID + 1
+        assets.rows[existing] = dict(assets.rows[LUA_CARD_ID], id=existing, name="墓地对象", desc="")
+        catalog = MechanismCatalog(assets)
+        inventory = InventoryDependencies(catalog)
+        record, = catalog.effect_records(LUA_CARD_ID)
+        self.assertEqual(record["lua_source"]["self_send_cost_status"], "bound")
+        target, = record["targets"]
+        self.assertTrue(target["payment_may_supply_target"])
+        summon, = record["operations"]
+        for deck, expected in (
+            (DeckParts((LUA_CARD_ID,)), False),
+            (DeckParts((LUA_CARD_ID,), (), (existing,)), False),
+            (DeckParts((LUA_CARD_ID, existing)), True),
+        ):
+            with self.subTest(deck=deck):
+                choice = inventory.summon_choice_check(deck, record, summon, (LUA_CARD_ID,), physical_inventory=deck)
+                self.assertIs(choice, expected)
 
     def test_self_send_cost_preserves_the_printed_record_when_lua_differs(self):
         desc = SELF_SEND_TEXT + "自己从卡组抽1张。"

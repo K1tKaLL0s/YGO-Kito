@@ -11,7 +11,7 @@ import re
 from .validation import ContractError
 
 
-LUA_EFFECT_VERSION = "mycard-effect-registration-v6"
+LUA_EFFECT_VERSION = "mycard-effect-registration-v7"
 _TABLE, _CARD = object(), object()
 _CALLBACKS = {
     "SetCondition": "condition", "SetCost": "cost", "SetTarget": "target",
@@ -410,8 +410,153 @@ def _deck_send(registration, functions, constants, tables, shadowed, local_ids):
                 filter=dict(function=filter_name, byte_span=filter_span, runtime_check="Card.IsAbleToGrave"))
 
 
+_COST_LOCATIONS = {"HAND": "hand", "MZONE": "field", "SZONE": "field",
+                   "FZONE": "field", "PZONE": "field"}
+
+
+def _cost_locations(mask, constants):
+    if type(mask) is not int or mask <= 0:
+        return []
+    locations = []
+    for name in _COST_LOCATIONS:
+        bit = constants.get("LOCATION_" + name)
+        if type(bit) is int and mask & bit:
+            locations.append(name)
+            mask &= ~bit
+    return locations if mask == 0 else []
+
+
+def _self_send_group(steps, checks, handler, player, functions, constants, reserved, tables):
+    """Read a fixed companion selection explicitly excluding the handler."""
+    if len(steps) not in (2, 3):
+        return None
+    group, selection = _local_value(steps[0])
+    companions, attached = _binary(selection, "+")
+    if not group or group in reserved or group in constants:
+        return None
+    if len(steps) == 2:
+        if not handler(attached):
+            return None
+        selection = companions
+    else:
+        name, args = _call(steps[1])
+        if name != f"{group}:AddCard" or len(args) != 1 or not handler(args[0]):
+            return None
+    name, args = _call(_unwrapped(selection))
+    if (name != "Duel.SelectMatchingCard" or len(args) < 8
+            or _name(args[0]) != player or _name(args[2]) != player or not handler(args[7])):
+        return None
+    mask, opponent, minimum, maximum = (_integer_value(arg, constants) for arg in args[3:7])
+    locations = _cost_locations(mask, constants)
+    zones = list(dict.fromkeys(_COST_LOCATIONS[name] for name in locations))
+    if not zones or opponent != 0 or minimum is None or minimum <= 0 or minimum != maximum:
+        return None
+    ref = _name(args[1])
+    if len(checks) != 1 or any(not (handler(arg) or _name(arg) == player) for arg in args[8:]):
+        return None
+    check, checked = _call(_unwrapped(checks[0]))
+    if (check != "Duel.IsExistingMatchingCard" or len(checked) != len(args) - 2
+            or _name(checked[0]) != ref or _name(checked[1]) != player
+            or [_integer_value(arg, constants) for arg in checked[2:5]] != [mask, 0, minimum]
+            or not handler(checked[5])
+            or any(not (handler(a) and handler(b) or _name(a) == _name(b) == player)
+                   for a, b in zip(checked[6:], args[8:]))
+            or not _literal_call(steps[-1], constants, "Duel.SendtoGrave", group, constants["REASON_COST"])):
+        return None
+
+    free_zone = None
+    if ref == "Card.IsAbleToGraveAsCost":
+        if len(args) != 8:
+            return None
+        query, filter_span = {"selector": "卡"}, None
+    else:
+        definition = functions.get(ref) if ref.partition(".")[0] in tables else None
+        if definition is None:
+            return None
+        params = list(map(_text, definition.child_by_field_name("parameters").children_by_field_name("name")))
+        if (len(params) != len(args) - 7 or not params or len(set(params)) != len(params)
+                or set(params) & {"Duel", "Card", "Group"}):
+            return None
+        card = params[0]
+        filters = _conjuncts(_return_expression(_children(definition.child_by_field_name("body"))))
+        if not any(_literal_call(term, constants, f"{card}:IsAbleToGraveAsCost") for term in filters):
+            return None
+        query = {}
+        local = {key: value for key, value in constants.items() if key not in params}
+        for term in filters:
+            if _literal_call(term, local, f"{card}:IsAbleToGraveAsCost"):
+                continue
+            if _literal_call(term, local, f"{card}:IsFaceup"):
+                query["face_up"] = True
+                continue
+            lhs, rhs = _binary(term, ">")
+            call, supplied = _call(_unwrapped(lhs))
+            if (len(params) == 3 and handler(args[8]) and _name(args[9]) == player
+                    and call == "Duel.GetMZoneCount" and len(supplied) == 2
+                    and _name(supplied[0]) == params[2] and _integer_value(rhs, local) == 0
+                    and _literal_call(supplied[1], local, "Group.FromCards", card, params[1])):
+                free_zone = _span(term)
+                continue
+            filter_query = _selection_query(term, card, local)
+            if filter_query is None or query.keys() & filter_query.keys():
+                return None
+            query.update(filter_query)
+        if not query:
+            query["selector"] = "卡"
+        filter_span = _span(definition)
+    return dict(kind="send_grave", quantity=minimum, from_zones=zones, range=mask,
+                selector_query=query, filter_span=filter_span, check_span=_span(checks[0]),
+                selection_span=_span(selection), requires_arrival=True, free_zone_check_span=free_zone)
+
+
+def _payment_target_check(registration, functions, constants, tables):
+    _, body, _ = _callback(registration, "target", functions, tables)
+    if body is None:
+        return None
+    params = list(map(_text, body.child_by_field_name("parameters").children_by_field_name("name")))
+    if len(params) not in (9, 10) or len(set(params)) != len(params) or "Duel" in params:
+        return None
+    effect, player, chk = params[0], params[1], params[8]
+    local = {key: value for key, value in constants.items() if key not in params}
+    checks, selections = [], []
+    statements = _children(body.child_by_field_name("body"))
+    for statement in _processing_statements(statements, local, player, effect):
+        _, names, _ = _assignment(statement)
+        if any(_name(name).split(".", 1)[0] in {"Duel", effect, player, chk, *local} for name in names):
+            return None
+        left, right = _binary(statement.child_by_field_name("condition"), "==")
+        if _name(left) == chk and _integer_value(right, local) == 0:
+            checks.extend(_conjuncts(_return_expression(_check_body(statement))))
+        alias, value = _local_value(statement)
+        call, args = _call(_unwrapped(value) if alias else statement)
+        if call == "Duel.SelectTarget":
+            selections.append((value if alias else statement, args))
+    if len(selections) != 1:
+        return None
+    selection, args = selections[0]
+    if len(args) < 8 or _name(args[0]) != player or _name(args[2]) != player:
+        return None
+    count = _integer_value(args[5], local)
+    if count is None or count <= 0 or count != _integer_value(args[6], local):
+        return None
+    for test in checks:
+        call, available = _call(test)
+        if (call == "Duel.IsExistingTarget" and len(available) == len(args) - 2
+                and _text(available[0]) == _text(args[1]) and _name(available[1]) == player
+                and all(_integer_value(x, local) is not None and _integer_value(x, local) == _integer_value(y, local)
+                        for x, y in zip(available[2:5], args[3:6]))
+                and [_text(x) for x in available[6:]] == [_text(x) for x in args[8:]]):
+            masks = [_integer_value(arg, local) for arg in args[3:5]]
+            grave = local.get("LOCATION_GRAVE")
+            self_grave = type(grave) is int and masks == [grave, 0]
+            nil_exceptions = available[5].type == args[7].type == "nil"
+            return dict(quantity=count, availability_span=_span(test), selection_span=_span(selection),
+                        may_select_payment=self_grave and nil_exceptions)
+    return None
+
+
 def _self_send_cost(registration, functions, constants, tables, shadowed):
-    """Read a direct handler-to-Graveyard payment and its feasibility check."""
+    """Follow the handler through precheck and payment in its SetCost callback."""
     name, body, binding = _callback(registration, "cost", functions, tables)
 
     def unresolved(reason, node=None):
@@ -420,53 +565,113 @@ def _self_send_cost(registration, functions, constants, tables, shadowed):
 
     if body is None:
         return unresolved("unresolved_cost_callback")
-    hand, monster = constants.get("LOCATION_HAND"), constants.get("LOCATION_MZONE")
-    if (type(hand) is not int or type(monster) is not int
-            or registration.get("range") != (hand | monster)):
+    mask = registration.get("range")
+    locations = _cost_locations(mask, constants)
+    if "range" not in registration and registration["event"] in ("normal_summon", "special_summon"):
+        locations = ["MZONE"]
+    zones = list(dict.fromkeys(_COST_LOCATIONS[name] for name in locations))
+    if not zones:
         return unresolved("unsupported_cost_activation_range", body)
     params = list(map(_text, body.child_by_field_name("parameters").children_by_field_name("name")))
-    if len(params) != 9 or len(set(params)) != 9 or "Duel" in (set(params) | shadowed):
+    if len(params) not in (9, 10) or len(set(params)) != len(params) or (
+            {"Card", "Duel", "Group"} & (set(params) | shadowed)):
         return unresolved("unsupported_cost_parameters", body)
-    effect, chk = params[0], params[8]
-    by_cost = constants.get("REASON_COST")
-    local_constants = {key: value for key, value in constants.items() if key not in params}
-    statements = _children(body.child_by_field_name("body"))
-    alias = None
-    handler_call = (f"{effect}:GetHandler", [])
-    if statements and statements[0].type == "variable_declaration":
-        assignment, *statements = statements
-        local, names, values = _assignment(assignment)
-        if not (local and len(names) == len(values) == 1 and names[0].type == "identifier"
-                and _call(_unwrapped(values[0])) == handler_call):
-            return unresolved("unsupported_cost_handler_binding", assignment)
-        alias = _name(names[0])
-        if alias in params or alias == "Duel":
-            return unresolved("unsupported_cost_handler_binding", assignment)
-        local_constants.pop(alias, None)
-    if len(statements) != 2:
+    effect, player, chk = params[0], params[1], params[8]
+    local = {key: value for key, value in constants.items() if key not in params}
+    by_cost = local.get("REASON_COST")
+    if type(by_cost) is not int:
+        return unresolved("unsupported_cost_reason", body)
+
+    statements = list(_processing_statements(_children(body.child_by_field_name("body")), local, player, effect))
+    aliases = set()
+
+    def handler(node):
+        return (_name(_unwrapped(node)) in aliases
+                or _literal_call(node, local, f"{effect}:GetHandler"))
+
+    while statements and statements[0].type == "variable_declaration":
+        alias, value = _local_value(statements[0])
+        if (not alias or alias in set(params) | aliases | tables | {"Duel", "Card", "Group"}
+                or not handler(value)):
+            return unresolved("unsupported_cost_handler_binding", statements[0])
+        local.pop(alias, None)
+        aliases.add(alias)
+        statements.pop(0)
+    if len(statements) < 2:
         return unresolved("unsupported_cost_flow", body)
-    guard, movement = statements
-
-    def is_handler(node):
-        node = _unwrapped(node)
-        return _name(node) == alias if alias is not None else _call(node) == handler_call
-
+    guard, *steps = statements
     left, right = _binary(guard.child_by_field_name("condition"), "==")
-    check = _unwrapped(_return_expression(_check_body(guard)))
-    method = check.child_by_field_name("name") if check is not None and check.type == "function_call" else None
-    if not (_name(left) == chk and _integer_value(right, local_constants) == 0
-            and method is not None and method.type == "method_index_expression"
-            and _text(method.child_by_field_name("method")) == "IsAbleToGraveAsCost"
-            and not _call(check)[1] and is_handler(method.child_by_field_name("table"))):
+    if _name(right) == chk:
+        left, right = right, left
+    if _name(left) != chk or _integer_value(right, local) != 0:
         return unresolved("unsupported_cost_feasibility_check", guard)
-    call, args = _call(movement)
-    if not (call == "Duel.SendtoGrave" and len(args) == 2 and is_handler(args[0])
-            and type(by_cost) is int and _integer_value(args[1], local_constants) == by_cost):
-        return unresolved("handler_not_sent_as_cost", movement)
-    return dict(status="resolved", function=name, byte_span=_span(body),
-                subject="this_card", owner="self", quantity=1, from_zones=["hand", "field"],
-                phase="activation_payment", to_zone="grave", reason="cost",
-                activation_check=dict(byte_span=_span(check), runtime_check="Card.IsAbleToGraveAsCost"),
+    checks = _conjuncts(_return_expression(_check_body(guard)))
+    able = [test for test in checks if handler(_member_call(test, "IsAbleToGraveAsCost", local))]
+    if not able:
+        return unresolved("unsupported_cost_feasibility_check", guard)
+
+    companions = []
+    tests = [test for test in checks if test not in able]
+    movements = []
+    extras = []
+    for step in steps:
+        call, args = _call(step)
+        if call == "Duel.SendtoGrave" and len(args) == 2 and handler(args[0]):
+            reason = _integer_value(args[1], local)
+            if reason == by_cost:
+                movements.append(step)
+                continue
+        extras.append(step)
+    if len(movements) == 1:
+        movement, = movements
+        for step in extras:
+            call, args = _call(step)
+            if call == "Duel.PayLPCost" and len(args) == 2:
+                amount = _integer_value(args[1], local)
+                test = next((term for term in tests if _literal_call(term, local, "Duel.CheckLPCost", player, amount)), None)
+                if (amount is not None and amount > 0 and _name(args[0]) == player and test is not None):
+                    companions.append(dict(kind="pay_lp", quantity=amount, payment_span=_span(step)))
+                    tests.remove(test)
+                    continue
+            if call == "Duel.DiscardHand" and len(args) == 5 and step.start_byte > movement.start_byte:
+                amount = _integer_value(args[2], local)
+                hand, discard = local.get("LOCATION_HAND"), local.get("REASON_DISCARD")
+                test = next((term for term in tests if (pair := _call(term))[0] == "Duel.IsExistingMatchingCard"
+                             and len(pair[1]) == 6 and handler(pair[1][-1])
+                             and _name(pair[1][0]) == "Card.IsDiscardable" and _name(pair[1][1]) == player
+                             and [_integer_value(arg, local) for arg in pair[1][2:5]] == [hand, 0, amount]), None)
+                if (amount is not None and amount > 0 and type(discard) is int and type(hand) is int
+                        and test is not None and _literal_call(step, local, "Duel.DiscardHand", player,
+                                "Card.IsDiscardable", amount, amount, by_cost | discard)):
+                    companions.append(dict(kind="discard", quantity=amount, from_zones=["hand"], payment_span=_span(step)))
+                    tests.remove(test)
+                    continue
+            label, values = _call(step)
+            if label == f"{effect}:SetLabelObject" and len(values) == 1 and (
+                    handler(_member_call(values[0], "GetEquipTarget", local))):
+                continue  # Preserve the reference to the equipped monster in the callback evidence.
+            return unresolved("unsupported_cost_flow", step)
+        for test in tests:
+            if (handler(_member_call(test, "IsDiscardable", local))
+                    or type(status := local.get("STATUS_EFFECT_ENABLED")) is int
+                    and handler(_member_call(test, "IsStatus", local, status))):
+                continue
+            return unresolved("unsupported_cost_feasibility_check", guard)
+    elif not movements:
+        reserved = set(params) | aliases | tables | {"Duel", "Card", "Group"}
+        companion = _self_send_group(steps, tests, handler, player, functions, local, reserved, tables)
+        if companion is None:
+            return unresolved("handler_not_sent_as_cost", steps[-1])
+        companions.append(companion)
+        movement = steps[-1]
+    else:
+        return unresolved("unsupported_cost_flow", body)
+
+    return dict(status="resolved", function=name, byte_span=_span(body), subject="this_card", owner="self",
+                quantity=1, range=mask, locations=locations, from_zones=zones,
+                phase="activation_payment", to_zone="grave",
+                reason="cost", requires_arrival=True, companions=companions,
+                activation_check=dict(byte_span=_span(able[0]), runtime_check="Card.IsAbleToGraveAsCost"),
                 transfer=dict(byte_span=_span(movement)))
 
 
@@ -1083,7 +1288,7 @@ class LuaEffectSource:
         return dict(file="utility.lua", sha256=self._scripts["utility.lua"][1],
                     byte_span=_span(node), function=name) if node else None
 
-    def summarize_effects(self, code, *, deck_send_indices=(), self_send_cost_indices=(),
+    def summarize_effects(self, code, *, deck_send_indices=(), self_send_costs=False,
                           preselected_grave_summons=False):
         """Report registrations and requested callback facts for printed effects."""
         filename = f"c{code}.lua"
@@ -1164,38 +1369,55 @@ class LuaEffectSource:
             self._registrations(initial, initial_bindings, functions, result, unresolved)
         if result["unknown"]:
             result["status"] = "partial"
-        if deck_send_indices or self_send_cost_indices or preselected_grave_summons:
+        if deck_send_indices or self_send_costs or preselected_grave_summons:
             # Callback domains use unshadowed core constants and the card's namespace.
             # Deck filters can also read an unchanged local GetID result.
             tables = {name for name, value in constants.items()
                       if value is _TABLE and assignments[name] == (0 if name == f"c{code}" else 1)
                       and name not in functions}
             static_constants = {k: v for k, v in self._constants.items() if not assignments[k] and k not in functions}
-            shadowed = {name for name in ("Duel", "Card") if assignments[name]} | (
-                {name.partition(".")[0] for name in functions} & {"Duel", "Card"})
+            core_tables = {"Duel", "Card"}
+            function_namespaces = {name.partition(".")[0] for name in functions}
+            shadowed = {name for name in core_tables if assignments[name]} | (function_namespaces & core_tables)
+            cost_shadowed = shadowed | ({"Group"} if assignments["Group"] or "Group" in function_namespaces else set())
             callbacks = {name: node for name, node in functions.items() if name not in overwritten_functions}
             observations = {}
             local_ids = _unmodified_locals(root, local_ids)
-            # These initial-effect helpers can also add procedures or name lists.
-            # Keep that partial evidence, but inspect a completely registered Deck-send
-            # callback when every unsupported statement is one of these side effects.
-            scope_known = deck_send_indices and self._deck_send_scope_known(
+            # These initial-effect helpers may add independent registrations.
+            # Preserve their script diagnostics while using explicit callbacks.
+            deck_scope = deck_send_indices and self._registered_callback_scope_known(
                 result["unknown"], initial, initial_bindings)
+            payment_scope = self_send_costs and self._registered_callback_scope_known(
+                result["unknown"], initial, initial_bindings, grave_check=True)
             if preselected_grave_summons and result["status"] == "parsed":
                 for registration in result["registrations"]:
                     if _intrinsic_grave_summon_lock(registration, static_constants):
                         registration["intrinsic_grave_summon_lock"] = True
             for registration in result["registrations"]:
                 index = registration.get("description_index")
-                if index in self_send_cost_indices and result["status"] == "parsed":
-                    registration["self_send_cost"] = _self_send_cost(
-                        registration, callbacks, static_constants, tables, shadowed)
+                if payment_scope:
+                    observed = _self_send_cost(registration, callbacks, static_constants, tables, cost_shadowed)
+                    if observed["status"] == "resolved":
+                        flags = registration.get("property", 0)
+                        target_flag = static_constants.get("EFFECT_FLAG_CARD_TARGET")
+                        observed["targets"] = (bool(flags & target_flag)
+                                               if type(flags) is int and type(target_flag) is int else None)
+                        observed["window"] = next((window for window, symbols in (
+                            ("ignition", ("EFFECT_TYPE_IGNITION",)),
+                            ("quick", ("EFFECT_TYPE_QUICK_O", "EFFECT_TYPE_QUICK_F")),
+                            ("spell_trap_activation", ("EFFECT_TYPE_ACTIVATE",)),
+                        ) if registration.get("type") in {static_constants[key] for key in symbols
+                                                          if type(static_constants.get(key)) is int}), "trigger")
+                        if observed["targets"]:
+                            observed["target_check"] = _payment_target_check(
+                                registration, callbacks, static_constants, tables)
+                    registration["self_send_cost"] = observed
                 if preselected_grave_summons and result["status"] == "parsed":
                     observed = _preselected_grave_summon(
                         registration, callbacks, static_constants, tables, shadowed)
                     if observed:
                         registration["preselected_grave_summon"] = observed
-                if index not in deck_send_indices or not scope_known:
+                if index not in deck_send_indices or not deck_scope:
                     continue
                 operation, target = (registration.get(role, {}) for role in ("operation", "target"))
                 key = (registration["family"], registration.get("property", 0),
@@ -1208,18 +1430,28 @@ class LuaEffectSource:
                 registration["deck_send"] = observations[key]
         return result
 
-    def _deck_send_scope_known(self, gaps, initial, bindings):
+    def _registered_callback_scope_known(self, gaps, initial, bindings, *, grave_check=False):
         if not gaps:
             return True
         params = initial.child_by_field_name("parameters").children_by_field_name("name")
         if len(params) != 1:
             return False
         card = _text(params[0])
-        statements = {tuple(_span(node)): node for node in _children(initial.child_by_field_name("body"))}
+        statements = {}
+        for node in _children(initial.child_by_field_name("body")):
+            statements[tuple(_span(node))] = node
+            local, names, values = _assignment(node)
+            if local and len(names) == len(values) == 1:
+                statements[tuple(_span(values[0]))] = values[0]
         for gap in gaps:
+            name, args = _call(statements.get(tuple(gap["byte_span"])))
+            if (grave_check and gap["reason"] == "unresolved_initial_effect_assignment"
+                    and name == "aux.AddThisCardInGraveAlreadyCheck" and len(args) == 1
+                    and "aux" not in bindings and _name(args[0]) == card
+                    and "Auxiliary.AddThisCardInGraveAlreadyCheck" in self._utility):
+                continue
             if gap["reason"] != "unsupported_initial_effect_statement":
                 return False
-            name, args = _call(statements.get(tuple(gap["byte_span"])))
             if name == f"{card}:EnableReviveLimit" and not args:
                 continue
             if (name == "aux.AddCodeList" and "Auxiliary.AddCodeList" in self._utility
