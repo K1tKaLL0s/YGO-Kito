@@ -2,6 +2,7 @@
 from copy import deepcopy
 from dataclasses import asdict, replace
 import json
+from math import log2
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -1481,16 +1482,37 @@ class FunctionalFlowTests(unittest.TestCase):
 
     def test_identity_ignores_graph_names_and_keeps_real_operations(self):
         task, assets, graph, binder, decks, p = fixture()
-        assets.rows[2]["desc"] = "①：自己从卡组上面把3张卡送去墓地。自己从卡组抽1张。"
-        facts = normalize_function_uses(task, decks[2], binder.semantic_catalog, policy=p)
-        self.assertEqual(len({u.score_family_id for u in facts["uses"]}), 2)
-        self.assertEqual({s for u in facts["uses"] for s in u.source_ids}, {"main:2:1", "main:2:2"})
+        deck = decks[2]
         renamed = replace(graph, logic_id="another-display-name")
         adapter = ConstructionLayerAdapter(binder)
-        row = rows_for(task, [decks[2]])
-        a = adapter.evaluate(task, graph, row, {0: binder(graph, task, decks[2])}, [0], policy=p)[1][0]
-        b = adapter.evaluate(task, renamed, row, {0: binder(renamed, task, decks[2])}, [0], policy=p)[1][0]
-        self.assertEqual(a["quality_evaluation"]["facts_sha256"], b["quality_evaluation"]["facts_sha256"])
+        row = rows_for(task, [deck])
+        for kind, second in (("draw", "自己从卡组抽1张。"), ("search", "从卡组把1张「fixture-4」加入手卡。")):
+            with self.subTest(kind=kind):
+                assets.rows[2]["desc"] = "①：自己主要阶段才能发动。从自己卡组上面把3张卡送去墓地。那之后，" + second
+                facts = normalize_function_uses(task, deck, binder.semantic_catalog, policy=p)
+                uses = facts["uses"]
+                self.assertEqual([facts["use_details"][use.use_id]["semantics"]["kind"] for use in uses],
+                                 ["send_grave", kind])
+                self.assertEqual(len({use.score_family_id for use in uses}), 2)
+                self.assertTrue(all(use.source_ids == ("main:2:1", "main:2:2") for use in uses))
+                original, display_renamed = [
+                    adapter.evaluate(task, logic, row, {0: binder(logic, task, deck)}, [0],
+                                     policy=p)[1][0]["quality_evaluation"]
+                    for logic in (graph, renamed)
+                ]
+                self.assertEqual(original["facts_sha256"], display_renamed["facts_sha256"])
+                self.assertAlmostEqual(original["score"]["value"], 2 * log2(2.9))
+
+    def test_synonymous_draw_uses_share_each_physical_source(self):
+        task, assets, graph, binder, decks, p = fixture()
+        assets.rows[2]["desc"] = "①：自己主要阶段才能发动。自己从卡组抽1张。②：自己主要阶段才能发动。自己抽2张卡。"
+        deck = decks[2]
+        facts = normalize_function_uses(task, deck, binder.semantic_catalog, policy=p)
+        first, second = facts["uses"]
+        self.assertEqual(first.score_family_id, second.score_family_id)
+        adapter = ConstructionLayerAdapter(binder)
+        result = adapter.evaluate(task, graph, rows_for(task, [deck]), {0: binder(graph, task, deck)}, [0], policy=p)[1][0]
+        self.assertAlmostEqual(result["quality_evaluation"]["score"]["value"], log2(2.9))
 
     def test_complete_cost_fails_without_partial_credit_or_optional_hard_requirement(self):
         task, assets, _, binder, decks, p = fixture()

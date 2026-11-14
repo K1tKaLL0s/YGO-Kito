@@ -153,6 +153,10 @@ def legacy_payment_boundary(text):
         preceding=[p[0] for p in parts[:-1] if not re.search(r'(?:场合|时|之际|阶段|回合)$',p[0])]
         if any(re.search(r'确认|检视|抽|破坏|特殊召唤|加入手卡',p) and not payment_records(p) for p in preceding):continue
         tail = text[match.end():]
+        # A resolution connector joins two operations even if the first
+        # verb could also describe an activation payment.
+        if not paid and '作为代价' not in last and re.match(r'\s*(?:那之后|之后|然后)', tail):
+            return None
         if re.match(r'(?:[「『][^」』]+[」』]的)?(?:这个效果|此效果|除外的时候|那个时候|此时)|[（(]',tail):continue
         if re.search(r'下次[^。]{0,20}阶段之前除外$',last):continue
         if not re.search(r'抽|破坏|无效|加入|召唤|攻击|控制权|确认|上升|下降|变成|回到|放回|返回|效果(?:适用|相同|变成)|伤害|回复|送去墓地|装备|盖放|除外|解放|洗切|排列',tail):

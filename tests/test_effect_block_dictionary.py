@@ -67,6 +67,20 @@ class EffectBlockDictionaryTests(unittest.TestCase):
         self.assertIn('卡组送墓',self.labels(21623008))
         self.assertNotIn('卡组送墓',self.labels(94886282))
 
+    def test_resolution_connector_preserves_deck_mill_before_draw(self):
+        first = '①：自己从卡组上面把3张卡送去墓地'
+        for continuation in ('。那之后，', '，然后'):
+            with self.subTest(continuation=continuation):
+                catalog = synthetic(first + continuation + '自己从卡组抽1张。', type=2)
+                record, = catalog.effect_records(1)
+                self.assertEqual(record['costs'], [])
+                self.assertEqual(record['trigger']['event'], 'card_activation')
+                mill, draw = record['operations']
+                self.assertEqual((mill['kind'], mill['quantity']), ('mill', 3))
+                self.assertEqual((draw['kind'], draw['quantity']), ('draw', 1))
+                self.assertEqual(draw['depends_on'], [mill['block_id']])
+                self.assertTrue(all(op['reason'] == 'effect' for op in (mill, draw)))
+
     def test_shuffle_reborn_grave_payment_and_delayed_banish_have_distinct_roles(self):
         code, other = 14816688, 28004531
         catalog = synthetic('这个卡名的②的效果1回合只能使用1次。\n'
