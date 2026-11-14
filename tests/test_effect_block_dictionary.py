@@ -501,6 +501,15 @@ EFFECT_TYPE_TRIGGER_F=0x200
 EFFECT_TYPE_IGNITION=0x10
 EFFECT_FLAG_NO_TURN_RESET=0x400000
 EFFECT_FLAG_CARD_TARGET=0x10
+TYPE_SPELL=0x2
+TYPE_TRAP=0x4
+CATEGORY_TOGRAVE=0x20
+CATEGORY_DRAW=0x10000
+LOCATION_DECK=0x1
+REASON_EFFECT=0x40
+REASON_COST=0x80
+HINT_SELECTMSG=3
+HINTMSG_TOGRAVE=504
 EVENT_SUMMON_SUCCESS=1100
 EVENT_SPSUMMON_SUCCESS=1102
 EVENT_TO_GRAVE=1014
@@ -556,6 +565,42 @@ SHARED = "这个卡名的①②的效果1回合只能有1次使用其中任意1�
 DESCRIPTION = "\n①：这张卡召唤·特殊召唤成功的场合才能发动。自己从卡组抽1张。\n" \
               "②：这张卡被效果送去墓地的场合才能发动。自己从卡组抽1张。"
 LUA_CARD_ID = 10010002
+DECK_SEND_TEXT = "从卡组把1张「幻影骑士团」卡或「幻影」魔法·陷阱卡送去墓地。"
+DECK_SEND_SCRIPT = """\
+local s,id=GetID()
+function s.initial_effect(c)
+    local e=Effect.CreateEffect(c)
+    e:SetDescription(aux.Stringid(id,0))
+    e:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O)
+    e:SetCode(EVENT_SUMMON_SUCCESS)
+    e:SetCountLimit(1,id)
+    e:SetCategory(CATEGORY_DRAW)
+    e:SetTarget(s.check)
+    e:SetOperation(s.send)
+    c:RegisterEffect(e)
+    local e2=e:Clone()
+    e2:SetCode(EVENT_SPSUMMON_SUCCESS)
+    c:RegisterEffect(e2)
+end
+function s.filter(c)
+    return (c:IsSetCard(0x10db) or (c:IsSetCard(0xdb) and c:IsType(TYPE_SPELL+TYPE_TRAP))) and c:IsAbleToGrave()
+end
+function s.check(e,tp,eg,ep,ev,re,r,rp,chk)
+    if chk==0 then return Duel.IsExistingMatchingCard(s.filter,tp,LOCATION_DECK,0,1,nil) end
+    Duel.SetOperationInfo(0,CATEGORY_TOGRAVE,nil,1,tp,LOCATION_DECK)
+end
+function s.send(e,tp,eg,ep,ev,re,r,rp)
+    Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_TOGRAVE)
+    local g=Duel.SelectMatchingCard(tp,s.filter,tp,LOCATION_DECK,0,1,1,nil)
+    if #g>0 then
+        Duel.SendtoGrave(g,REASON_EFFECT)
+    end
+end
+"""
+DECK_SEND_DESCRIPTION = (
+    "这个卡名的①的效果1回合只能使用1次。\n"
+    "①：这张卡召唤·特殊召唤成功的场合才能发动。" + DECK_SEND_TEXT
+)
 
 
 class LuaEffectBlockTests(unittest.TestCase):
@@ -593,12 +638,14 @@ class LuaEffectBlockTests(unittest.TestCase):
             db.execute("insert into datas values (?,0,1,33,0)", (LUA_CARD_ID,))
             db.execute("insert into texts values (?, ?, ?)", (LUA_CARD_ID, "fixture", INDEPENDENT + DESCRIPTION))
 
-    def assets(self, *, script=None, prelude=None):
+    def assets(self, *, script=None, prelude=None, description=None):
         if script is not None:
             self.script.write_bytes(script.encode())
         if prelude is not None:
+            description = prelude + DESCRIPTION
+        if description is not None:
             with closing(sqlite3.connect(self.cdb)) as db, db:
-                db.execute("update texts set desc=?", (prelude + DESCRIPTION,))
+                db.execute("update texts set desc=?", (description,))
         receipt = dict(source_lock_sha256=file_digest(LOCK_PATH), resources=resource_hashes(self.root),
                        source_commits=dict(core="fixture-core", scripts="fixture-lua"))
         (self.root / "engine-build/receipt.json").write_text(json.dumps(receipt), encoding="utf-8")
@@ -630,6 +677,97 @@ class LuaEffectBlockTests(unittest.TestCase):
         self.assertEqual([p.pool_id for _, (p,) in observed],
                          [f"catalog-lua-limit:{LUA_CARD_ID}:{n}" for n in (LUA_CARD_ID, LUA_CARD_ID + 1)])
         self.assertTrue(all(f.claims[0].pool_id == p.pool_id and p.capacity == 1 for f, (p,) in observed))
+
+    def test_deck_selection_refines_one_operation_and_reaches_inventory(self):
+        assets = self.assets(script=DECK_SEND_SCRIPT, description=DECK_SEND_DESCRIPTION)
+        row = assets.rows[LUA_CARD_ID]
+        for code, kind, setcode in ((11, 33, 0x10db), (12, 4, 0xdb), (13, 33, 0xdb), (14, 33, 0)):
+            assets.rows[code] = dict(row, id=code, type=kind, setcode=setcode,
+                                     name=f"fixture {code}", desc="")
+        catalog = MechanismCatalog(assets)
+        record, = catalog.effect_records(LUA_CARD_ID)
+        operation, = record["operations"]
+        block, = record["block_view"]["blocks"]
+        first, clone = record["lua_source"]["registrations"]
+        observed = first["deck_send"]
+        self.assertEqual(observed, clone["deck_send"])
+        self.assertEqual(record["lua_source"]["deck_send_status"], "selector_bound")
+        self.assertEqual(record["targets"], [])
+        self.assertEqual(record["costs"], [])
+        self.assertEqual(record["lua_source"]["count_status"], "bound")
+        self.assertFalse(observed["selection"]["targets"])
+        self.assertEqual(observed["activation_check"]["minimum"], 1)
+        self.assertEqual(observed["filter"]["runtime_check"], "Card.IsAbleToGrave")
+        self.assertEqual(operation["selector_query"], block["qualifiers"]["selector_query"])
+        self.assertEqual(operation["selector_query"], record["resource_changes"][0]["selector_query"])
+        raw = self.script.read_bytes()
+        a, b = observed["transfer"]["byte_span"]
+        self.assertEqual(raw[a:b], b"Duel.SendtoGrave(g,REASON_EFFECT)")
+
+        inventory = InventoryDependencies(catalog)
+        specs, _ = inventory.specs(LUA_CARD_ID)
+        requirement, = specs[0]["requirements"]
+        self.assertEqual((requirement["owner"], requirement["origin"], requirement["minimum"]), ("self", "deck", 1))
+        for code, status in ((11, "inventory_present"), (12, "inventory_present"), (13, "missing"), (14, "missing")):
+            with self.subTest(code=code):
+                deck = DeckParts((LUA_CARD_ID, code))
+                result = inventory.evaluate(deck, codes=(LUA_CARD_ID,))
+                effect, = result["cards"][str(LUA_CARD_ID)]["effects"]
+                self.assertEqual(effect["status"], status)
+        side_only = DeckParts((LUA_CARD_ID, 14), (), (12,))
+        effect, = inventory.evaluate(side_only, codes=(LUA_CARD_ID,))["cards"][str(LUA_CARD_ID)]["effects"]
+        self.assertEqual(effect["status"], "missing")
+
+        path = self.root / "deck-send.sqlite3"
+        manifest = build_dictionary(catalog, path)
+        self.assertEqual(manifest["lua"]["effect_deck_sends"], {"selector_bound": 1})
+        with EffectBlockDictionary(path) as dictionary:
+            self.assertEqual(dictionary.card(LUA_CARD_ID), catalog.effect_blocks(LUA_CARD_ID))
+        operation["selector_query"].clear()
+        self.assertTrue(catalog.effect_records(LUA_CARD_ID)[0]["operations"][0]["selector_query"])
+
+    def test_deck_selection_keeps_an_existing_printed_selector(self):
+        desc = DECK_SEND_DESCRIPTION.replace(DECK_SEND_TEXT, "从卡组把1只怪兽送去墓地。")
+        record, = MechanismCatalog(self.assets(script=DECK_SEND_SCRIPT, description=desc)).effect_records(LUA_CARD_ID)
+        operation, = record["operations"]
+        self.assertEqual(record["lua_source"]["deck_send_status"], "printed_selector_retained")
+        self.assertEqual(operation["selector_query"], {"type": 1, "selector": "怪兽"})
+
+    def test_fixed_lua_quantity_does_not_override_a_printed_range(self):
+        desc = DECK_SEND_DESCRIPTION.replace("把1张", "把最多1张")
+        record, = MechanismCatalog(self.assets(script=DECK_SEND_SCRIPT, description=desc)).effect_records(LUA_CARD_ID)
+        self.assertEqual(record["lua_source"]["deck_send_status"], "unresolved_printed_scope")
+        self.assertNotIn("selector_query", record["operations"][0])
+
+    def test_deck_selection_rejects_unsupported_flow_without_projecting_a_group(self):
+        variations = (
+            ("Duel.SendtoGrave(g,REASON_EFFECT)", "Duel.SendtoGrave(eg,REASON_EFFECT)",
+             "not_the_selected_group_sent_by_effect"),
+            ("Duel.SendtoGrave(g,REASON_EFFECT)", "Duel.SendtoGrave(g,REASON_COST)",
+             "not_the_selected_group_sent_by_effect"),
+            ("#g>0 then", "#g>0 and e:GetLabel()>0 then", "unsupported_send_branch"),
+            ("0,1,1,nil)", "0,1,1,nil,e)", "unsupported_selection_arguments"),
+            ("tp,s.filter,tp,LOCATION_DECK,0", "tp,s.filter,tp,0,LOCATION_DECK",
+             "unsupported_selection_arguments"),
+            ("0,1,1,nil)", "0,1,2,nil)", "variable_or_unresolved_selection_count"),
+            ("0,1,nil) end", "0,2,nil) end", "unsupported_or_different_activation_check"),
+            ("chk==0", "chk==false", "unsupported_or_different_activation_check"),
+            ("c:IsAbleToGrave()", "c:IsAbleToGrave() and s.dynamic(c)", "unsupported_filter_predicate"),
+            ("e:SetTarget(s.check)", "e:SetProperty(EFFECT_FLAG_CARD_TARGET)\n    e:SetTarget(s.check)",
+             "card_targeting_or_unresolved_property"),
+        )
+        for old, new, reason in variations:
+            with self.subTest(reason=reason):
+                script = DECK_SEND_SCRIPT.replace(old, new)
+                record, = MechanismCatalog(self.assets(script=script, description=DECK_SEND_DESCRIPTION)).effect_records(LUA_CARD_ID)
+                self.assertEqual(record["lua_source"]["deck_send_status"], "unresolved_callback")
+                observed = record["lua_source"]["registrations"][0]["deck_send"]
+                self.assertEqual(observed["reason"], reason)
+                start, end = observed["byte_span"]
+                self.assertLess(start, end)
+                self.assertLessEqual(end, len(script.encode()))
+                self.assertNotIn("selector_query", record["operations"][0])
+                self.assertFalse(record["targets"] or record["costs"])
 
     def test_explicitly_shared_printed_effects_use_one_pool(self):
         assets = self.assets(script=SCRIPT.replace("n-1,id+o", "n-1,id"), prelude=SHARED)

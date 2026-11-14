@@ -347,13 +347,13 @@ class MechanismCatalog:
             records = effect_records(profile, semantic_version=SEMANTIC_VERSION, row=row)
             if source is not None:
                 from .card_identity import canonical_card_id
-                from .effect_records import merge_lua_count_limits
+                from .effect_records import merge_lua_effect_sources
 
                 script_code = row.get("alias") or code
                 same_printing = script_code == code or (
                     script_code in self.assets.rows
                     and canonical_card_id(self.assets.rows, code) == canonical_card_id(self.assets.rows, script_code))
-                merge_lua_count_limits(records, source, script_code, same_printing=same_printing)
+                merge_lua_effect_sources(records, source, script_code, same_printing=same_printing)
             cached = (profile, (version, row), records)
         self._records[code] = cached
         if len(self._records) > _EFFECT_RECORD_CACHE_SIZE:

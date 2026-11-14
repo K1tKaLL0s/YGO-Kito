@@ -12,7 +12,7 @@ from collections import Counter, defaultdict
 from .rule_references import effect_reference_requests
 
 EFFECT_RECORD_VERSION = "public-effect-records-v2"
-LUA_EFFECT_RECORD_VERSION = "public-effect-records-v3"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v4"
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (
     "fusion_target", "synchro_target", "xyz_target", "tuner",
@@ -1130,8 +1130,8 @@ _LUA_NAMED_SCOPES = {"same_name_this_effect", "same_name_shared_effects", "same_
 _LUA_SUMMON_EVENTS = {"normal_summon", "special_summon"}
 
 
-def merge_lua_count_limits(records, source, script_code, *, same_printing=True):
-    """Attach Lua registrations to printed effects and bind compatible turn counters."""
+def merge_lua_effect_sources(records, source, script_code, *, same_printing=True):
+    """Attach Lua evidence to the matching printed effect and refine supported facts."""
     if not records:
         return
     if not same_printing:
@@ -1140,7 +1140,10 @@ def merge_lua_count_limits(records, source, script_code, *, same_printing=True):
             record["lua_source"] = dict(status="distinct_alias_text", script_card_id=script_code,
                                         alignment="unresolved")
         return
-    script = source.summarize_effects(script_code)
+    deck_sends = {record["effect_index"] - 1 for record in records if record["effect_index"] > 0
+                  and any(op["kind"] in ("send_grave", "mill") and op.get("from_zones") == ["deck"]
+                          for op in record["operations"])}
+    script = source.summarize_effects(script_code, deck_send_indices=deck_sends)
     groups = defaultdict(list)
     for registration in script["registrations"]:
         groups[registration.get("description_index")].append(registration)
@@ -1159,6 +1162,8 @@ def merge_lua_count_limits(records, source, script_code, *, same_printing=True):
                 record["lua_source"]["candidate_spans"] = [window["registration_span"] for window in windows]
             continue
         record["lua_source"] = dict(source_info, alignment="matched", registrations=list(windows))
+        if index - 1 in deck_sends:
+            _merge_lua_deck_send(record)
 
     aligned = [record for record in records if record["lua_source"]["alignment"] == "matched"]
     candidates = {}
@@ -1221,6 +1226,62 @@ def merge_lua_count_limits(records, source, script_code, *, same_printing=True):
                     item["lua_counter"] = dict(counter)
         limit["lua_counter"] = counter
         lua["count_status"] = "bound"
+
+
+def _has_rule_code_filter(query):
+    return "predicate" in query or any(_has_rule_code_filter(child) for child in query.get("any", ()))
+
+
+def _merge_lua_deck_send(record):
+    from .construction_inventory import query_supported, requirement, selector
+    from .effect_blocks import _unquote, activation_parts
+
+    lua = record["lua_source"]
+    windows = lua["registrations"]
+    observed = windows[0].get("deck_send", {})
+    if (observed.get("status") != "resolved" or len({window["family"] for window in windows}) != 1
+            or any(window.get("deck_send") != observed for window in windows[1:])):
+        lua["deck_send_status"] = "unresolved_callback"
+        return
+
+    operations = record["operations"]
+    if len(operations) != 1 or record.get("branch_records") or record["targets"]:
+        lua["deck_send_status"] = "unresolved_printed_scope"
+        return
+    operation, = operations
+    if (operation["kind"] != "send_grave" or operation.get("from_zones") != ["deck"]
+            or operation.get("to_zone") != "grave" or operation.get("owner") != "self"
+            or operation.get("reason") != "effect" or operation.get("phase") != "resolution"
+            or operation.get("random") is not False or operation.get("quantity") != observed["quantity"]
+            or "target_ref" in operation or operation.get("optional") or operation.get("amount_rule")):
+        lua["deck_send_status"] = "printed_movement_conflict"
+        return
+    block = next((block for block in record["block_view"]["blocks"]
+                  if block["block_id"] == operation["block_id"] and block["kind"] == "send_grave"), None)
+    body = activation_parts(record["source_text"])[1].strip().rstrip("。．.；;")
+    if (block is None or block["source"].strip() != body
+            or re.search(r"最多|至多|最少|全部|任意数量|\d+[只张](?:以上|以下)", _unquote(body))
+            or any(mark in record["unknown"] for mark in ("resolution", "unparsed_resolution_or_restriction"))):
+        lua["deck_send_status"] = "unresolved_printed_scope"
+        return
+    if (operation.get("selector_query") or selector(operation.get("selector", ""))
+            or requirement(block["source"], "operations")):
+        lua["deck_send_status"] = "printed_selector_retained"
+        return
+    query = observed["selector_query"]
+    # A generic filter cannot fill a missing printed domain. IsCode filters
+    # rule names, while the existing card_ids predicate matches row IDs.
+    if query == {"selector": "卡"} or _has_rule_code_filter(query) or not query_supported(query):
+        lua["deck_send_status"] = "unresolved_inventory_selector"
+        return
+
+    operation.update(selector_query=deepcopy(query), selector_source=operation["source"])
+    block["qualifiers"].update(selector_query=deepcopy(query), owner="self",
+                               quantity=operation["quantity"])
+    for change in record["resource_changes"]:
+        if change.get("block_id") == operation["block_id"] and change.get("reason") == "effect":
+            change.update(selector_query=deepcopy(query), selector_source=operation["source"])
+    lua["deck_send_status"] = "selector_bound"
 
 
 def _printed_counter_members(records, record, limit):

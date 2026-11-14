@@ -1,4 +1,4 @@
-"""Read static effect registrations from the locked mycard Lua sources."""
+"""Read effect registrations and supported callbacks from locked mycard Lua sources."""
 
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -10,7 +10,7 @@ from pathlib import Path
 from .validation import ContractError
 
 
-LUA_EFFECT_VERSION = "mycard-effect-registration-v1"
+LUA_EFFECT_VERSION = "mycard-effect-registration-v2"
 _TABLE, _CARD = object(), object()
 _CALLBACKS = {
     "SetCondition": "condition", "SetCost": "cost", "SetTarget": "target",
@@ -125,6 +125,227 @@ def _value(node, bindings, depth=0):
     return None
 
 
+def _unwrapped(node):
+    while node is not None and node.type == "parenthesized_expression":
+        node, = _children(node)
+    return node
+
+
+def _return_expression(statements):
+    if len(statements) == 1 and statements[0].type == "return_statement":
+        values = _children(statements[0])
+        if len(values) == 1:
+            expressions = _children(values[0])
+            if len(expressions) == 1:
+                return expressions[0]
+    return None
+
+
+def _binary(node, operator):
+    node = _unwrapped(node)
+    if (node is not None and node.type == "binary_expression"
+            and _text(node.child_by_field_name("operator")) == operator):
+        return node.child_by_field_name("left"), node.child_by_field_name("right")
+    return None, None
+
+
+def _conjuncts(node, depth=0):
+    left, right = _binary(node, "and")
+    if left is None:
+        return [_unwrapped(node)]
+    if depth == 8:
+        return []
+    a, b = _conjuncts(left, depth + 1), _conjuncts(right, depth + 1)
+    return a + b if a and b else []
+
+
+def _integer_value(node, bindings):
+    value = _value(node, bindings)
+    return value if type(value) is int else None
+
+
+def _selection_query(node, card, constants, depth=0):
+    if node is None or depth > 8:
+        return None
+    node = _unwrapped(node)
+    for operator in ("and", "or"):
+        left, right = _binary(node, operator)
+        if left is None:
+            continue
+        a, b = (_selection_query(item, card, constants, depth + 1) for item in (left, right))
+        if not a or not b:
+            return None
+        if operator == "or":
+            return {"any": [a, b]}
+        return dict(a, **b) if not a.keys() & b.keys() else None
+    if node.type == "unary_expression" and _text(node.child_by_field_name("operator")) == "not":
+        name, args = _call(_unwrapped(node.child_by_field_name("operand")))
+        if name == f"{card}:IsCode":
+            ids = [_value(arg, constants) for arg in args]
+            if 1 <= len(ids) <= 4 and all(type(code) is int and 0 < code < 2**32 for code in ids):
+                return {"predicate": {"not": {"field": "card_ids", "value": sorted(set(ids))}}}
+        return None
+    name, args = _call(node)
+    receiver, _, method = name.partition(":")
+    if receiver != card:
+        return None
+    values = [_value(arg, constants) for arg in args]
+    if not values or not all(type(value) is int and 0 < value < 2**32 for value in values):
+        return None
+    if method == "IsSetCard" and len(values) <= 4 and all(v <= 0xffff and v & 0xfff for v in values):
+        options = [{"setcode": value} for value in dict.fromkeys(values)]
+        return options[0] if len(options) == 1 else {"any": options}
+    if len(values) == 1:
+        value, = values
+        fields = {"IsType": "type", "IsRace": "race_any", "IsAttribute": "attribute_any"}
+        if method in fields:
+            return {fields[method]: value}
+        if method == "IsLevelBelow" and value <= 255:
+            return {"level_between": [1, value]}
+    return None
+
+
+def _check_body(statement):
+    return (_children(statement.child_by_field_name("consequence"))
+            if statement.type == "if_statement" and not statement.child_by_field_name("alternative") else [])
+
+
+def _nonempty_group(node, group, constants):
+    left, right = _binary(node, ">")
+    if left is None or _integer_value(right, constants) != 0:
+        return False
+    left = _unwrapped(left)
+    if left.type == "unary_expression" and _text(left.child_by_field_name("operator")) == "#":
+        return _name(left.child_by_field_name("operand")) == group
+    return _call(left) == (f"{group}:GetCount", [])
+
+
+def _deck_send(registration, functions, constants, tables, shadowed):
+    """Recognize the one direct, fixed-count Deck-to-GY selection at resolution."""
+    def callback(role):
+        reference = registration.get(role, {})
+        name = reference.get("reference", "")
+        namespace, dot, _ = name.partition(".")
+        definition = reference.get("definition")
+        node = functions.get(name) if definition and dot and namespace in tables else None
+        return name, node, reference.get("byte_span", registration["registration_span"])
+
+    operation, body, binding = callback("operation")
+    target, check, check_binding = callback("target")
+
+    def unresolved(reason, function, node, span):
+        return dict(status="unresolved", reason=reason, function=function,
+                    byte_span=_span(node) if node is not None else span)
+
+    if body is None:
+        return unresolved("unresolved_operation_callback", operation, body, binding)
+    flag, property_flags = constants.get("EFFECT_FLAG_CARD_TARGET"), registration.get("property", 0)
+    if type(flag) is not int or type(property_flags) is not int or property_flags & flag:
+        return unresolved("card_targeting_or_unresolved_property", operation, body, binding)
+    params = list(map(_text, body.child_by_field_name("parameters").children_by_field_name("name")))
+    if len(params) < 2 or len(params) != len(set(params)) or {"Duel", "Card"} & (set(params) | shadowed):
+        return unresolved("unsupported_operation_parameters", operation, body, binding)
+    player = params[1]
+    local_constants = {key: value for key, value in constants.items() if key not in params}
+    deck, by_effect = constants.get("LOCATION_DECK"), constants.get("REASON_EFFECT")
+    hint_kind, hint_message = constants.get("HINT_SELECTMSG"), constants.get("HINTMSG_TOGRAVE")
+    statements = _children(body.child_by_field_name("body"))
+    if statements:
+        hint, args = _call(statements[0])
+        if (hint == "Duel.Hint" and len(args) == 3 and _name(args[1]) == player
+                and hint_kind is not None and hint_message is not None
+                and _integer_value(args[0], local_constants) == hint_kind
+                and _integer_value(args[2], local_constants) == hint_message):
+            statements = statements[1:]
+    if len(statements) != 2:
+        node = next((s for s in statements if s.type == "if_statement"), body)
+        return unresolved("unsupported_operation_flow", operation, node, binding)
+
+    selection, send = statements
+    local, names, values = _assignment(selection)
+    call, args = _call(values[0] if len(values) == 1 else None)
+    if not local or len(names) != 1 or names[0].type != "identifier" or call != "Duel.SelectMatchingCard":
+        return unresolved("unsupported_resolution_selection", operation, selection, binding)
+    group = _name(names[0])
+    filter_name = _name(args[1]) if len(args) == 8 else ""
+    namespace = filter_name.partition(".")[0]
+    if not (len(args) == 8 and _name(args[0]) == _name(args[2]) == player
+            and filter_name and namespace not in params
+            and type(deck) is int and _integer_value(args[3], local_constants) == deck
+            and _integer_value(args[4], local_constants) == 0 and args[7].type == "nil"
+            and group not in (player, "Duel", "Card")):
+        return unresolved("unsupported_selection_arguments", operation, values[0], binding)
+    quantity, maximum = [_value(arg, local_constants) for arg in args[5:7]]
+    if type(quantity) is not int or type(maximum) is not int or not 1 <= quantity == maximum <= 255:
+        return unresolved("variable_or_unresolved_selection_count", operation, values[0], binding)
+    local_constants.pop(group, None)
+    if send.type == "if_statement":
+        branch = _check_body(send)
+        if not _nonempty_group(send.child_by_field_name("condition"), group, local_constants) or len(branch) != 1:
+            return unresolved("unsupported_send_branch", operation, send, binding)
+        send, = branch
+    call, movement = _call(send)
+    if (call != "Duel.SendtoGrave" or len(movement) != 2 or _name(movement[0]) != group
+            or type(by_effect) is not int or _integer_value(movement[1], local_constants) != by_effect):
+        return unresolved("not_the_selected_group_sent_by_effect", operation, send, binding)
+
+    if check is None:
+        return unresolved("unresolved_activation_check_callback", target, check, check_binding)
+    params = list(map(_text, check.child_by_field_name("parameters").children_by_field_name("name")))
+    check_constants = {key: value for key, value in constants.items() if key not in params}
+    statements = _children(check.child_by_field_name("body"))
+    guard = statements[0] if statements else check
+    left, right = _binary(guard.child_by_field_name("condition"), "==")
+    exists = _return_expression(_check_body(guard))
+    call, args = _call(exists)
+    if not (len(params) == 9 and not {"Duel", namespace} & set(params) and len(set(params)) == len(params)
+            and _name(left) == params[8] and _integer_value(right, check_constants) == 0
+            and call == "Duel.IsExistingMatchingCard" and len(args) == 6 and _name(args[0]) == filter_name
+            and _name(args[1]) == params[1] and _integer_value(args[2], check_constants) == deck
+            and _integer_value(args[3], check_constants) == 0 and _integer_value(args[4], check_constants) == quantity
+            and args[5].type == "nil"):
+        return unresolved("unsupported_or_different_activation_check", target, guard, check_binding)
+    if statements[1:]:
+        metadata = statements[1]
+        call, args = _call(metadata)
+        if (len(statements) != 2 or call != "Duel.SetOperationInfo" or len(args) != 6
+                or args[2].type != "nil" or _name(args[4]) != params[1]
+                or any(type(_value(args[i], check_constants)) is not int for i in (0, 1, 3, 5))):
+            return unresolved("additional_activation_processing", target, metadata, check_binding)
+
+    if filter_name == "Card.IsAbleToGrave":
+        query, filter_span = {"selector": "卡"}, _span(values[0])
+    else:
+        definition = functions.get(filter_name) if filter_name.partition(".")[0] in tables else None
+        if definition is None:
+            return unresolved("unresolved_selection_filter", filter_name, values[0], binding)
+        params = definition.child_by_field_name("parameters").children_by_field_name("name")
+        expr = _return_expression(_children(definition.child_by_field_name("body")))
+        if len(params) != 1 or expr is None:
+            return unresolved("unsupported_filter_body", filter_name, definition, binding)
+        card = _text(params[0])
+        filter_constants = {key: value for key, value in constants.items() if key != card}
+        query, able = {}, False
+        for term in _conjuncts(expr):
+            if _call(term) == (f"{card}:IsAbleToGrave", []):
+                able = True
+                continue
+            predicate = _selection_query(term, card, filter_constants)
+            if not predicate or query.keys() & predicate.keys():
+                return unresolved("unsupported_filter_predicate", filter_name, term, binding)
+            query.update(predicate)
+        if not able:
+            return unresolved("missing_send_eligibility_check", filter_name, expr, binding)
+        query = query or {"selector": "卡"}
+        filter_span = _span(expr)
+    return dict(status="resolved", selector_query=query, quantity=quantity,
+                selection=dict(function=operation, byte_span=_span(values[0]), phase="resolution",
+                               owner="self", from_zones=["deck"], targets=False),
+                activation_check=dict(function=target, byte_span=_span(exists), minimum=quantity),
+                transfer=dict(function=operation, byte_span=_span(send), to_zone="grave", reason="effect"),
+                filter=dict(function=filter_name, byte_span=filter_span, runtime_check="Card.IsAbleToGrave"))
+
+
 def _helper_return(function, bindings):
     """Read the simple assignment/return form used by GetID and Stringid."""
     if function is None:
@@ -216,7 +437,8 @@ class LuaEffectSource:
         return dict(file="utility.lua", sha256=self._scripts["utility.lua"][1],
                     byte_span=_span(node), function=name) if node else None
 
-    def summarize_effects(self, code):
+    def summarize_effects(self, code, *, deck_send_indices=()):
+        """Report registrations and requested, printed Deck-to-GY callbacks."""
         filename = f"c{code}.lua"
         result = dict(status="missing_script", file=filename, registrations=[], unknown=[],
                       script_card_id=code, extractor=LUA_EFFECT_VERSION, helpers=[])
@@ -241,6 +463,8 @@ class LuaEffectSource:
 
         constants = dict(self._constants, **{f"c{code}": _TABLE})
         initial, initial_bindings, functions = None, {}, _functions(root)
+        assignments = defaultdict(int)
+        overwritten_functions = set()
         for node in _children(root):
             if node.type == "function_declaration":
                 name = _name(node.child_by_field_name("name"))
@@ -265,6 +489,7 @@ class LuaEffectSource:
                         unresolved("unsupported_top_level_assignment", node)
                     values = [_value(value, constants) for value in values]
                 for i, name in enumerate(map(_text, names)):
+                    assignments[name] += 1
                     if (not local and initial is not None
                             and (name in initial_bindings or name in ("Effect", "aux"))):
                         unresolved("assignment_after_initial_effect_declaration", node)
@@ -273,6 +498,7 @@ class LuaEffectSource:
                 for name in map(_name, names):
                     if name.endswith(".initial_effect"):
                         unresolved("dynamic_initial_effect_declaration", node)
+                    overwritten_functions.add(name)
                     functions.pop(name, None)
             else:
                 unresolved("unsupported_top_level_statement", node)
@@ -288,6 +514,28 @@ class LuaEffectSource:
             self._registrations(initial, initial_bindings, functions, result, unresolved)
         if result["unknown"]:
             result["status"] = "partial"
+        elif deck_send_indices:
+            # Only unshadowed core constants and the card's own namespace are
+            # available to this callback subset. Script locals stay unresolved.
+            tables = {name for name, value in constants.items()
+                      if value is _TABLE and assignments[name] == (0 if name == f"c{code}" else 1)
+                      and name not in functions}
+            static_constants = {k: v for k, v in self._constants.items() if not assignments[k] and k not in functions}
+            shadowed = {name for name in ("Duel", "Card") if assignments[name]} | (
+                {name.partition(".")[0] for name in functions} & {"Duel", "Card"})
+            callbacks = {name: node for name, node in functions.items() if name not in overwritten_functions}
+            observations = {}
+            for registration in result["registrations"]:
+                if registration.get("description_index") not in deck_send_indices:
+                    continue
+                operation, target = (registration.get(role, {}) for role in ("operation", "target"))
+                key = (registration["family"], registration.get("property", 0),
+                       operation.get("reference"), target.get("reference"),
+                       tuple(operation.get("byte_span", registration["registration_span"])),
+                       tuple(target.get("byte_span", registration["registration_span"])))
+                if key not in observations:
+                    observations[key] = _deck_send(registration, callbacks, static_constants, tables, shadowed)
+                registration["deck_send"] = observations[key]
         return result
 
     def _registrations(self, initial, bindings, functions, result, unresolved):
@@ -374,7 +622,9 @@ class LuaEffectSource:
             if helper and helper not in result["helpers"]:
                 result["helpers"].append(helper)
             definition = functions.get(name)
-            if helper is None and definition is not None:
+            namespace = name.partition(".")[0]
+            if (helper is None and definition is not None
+                    and (namespace not in bindings or bindings[namespace] is _TABLE)):
                 helper = dict(file=result["file"], sha256=result["sha256"],
                               byte_span=_span(definition), function=name)
             settings[_CALLBACKS[method]] = dict(reference=name, byte_span=_span(node),

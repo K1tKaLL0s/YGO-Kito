@@ -17,7 +17,7 @@ from .effect_block_rules import FUNCTIONS, structural_records
 
 BLOCK_VERSION = "public-effect-blocks-v1"
 BLOCK_REVISION = 'local-library-review-20261112-b22'
-LUA_BLOCK_REVISION = 'local-library-review-20261114-b23'
+LUA_BLOCK_REVISION = 'local-library-review-20261114-b24'
 LABELS = {
     "send_grave": "送墓", "search": "检索", "recover": "回收", "add_hand": "加入手牌",
     "draw": "抽卡", "special_summon": "特召", "fusion_summon": "融合召唤",
@@ -699,7 +699,7 @@ def build_dictionary(catalog, path, *, source=None):
     codes=sorted(c for c,r in catalog.assets.rows.items()
                  if canonical_card_id(catalog.assets.rows,c)==c and not r.get('type',0)&0x4000 and r.get('name','').strip())
     lua = catalog.lua_binding
-    lua_scripts, lua_alignments, lua_counters = Counter(), Counter(), Counter()
+    lua_scripts, lua_alignments, lua_counters, lua_deck_sends = (Counter() for _ in range(4))
     counts=Counter();functions=Counter();payments=Counter();procedures=Counter();restriction_counts=Counter();description_counts=Counter();unresolved=[]
     fd,tmp=tempfile.mkstemp(prefix=path.stem+'-',suffix='.building.sqlite3',dir=path.parent)
     import os
@@ -721,6 +721,7 @@ def build_dictionary(catalog, path, *, source=None):
                     lua_scripts[lua_rows[0]['status']] += 1
                     lua_alignments.update(row['alignment'] for row in lua_rows)
                     lua_counters.update(row['count_status'] for row in lua_rows if 'count_status' in row)
+                    lua_deck_sends.update(row['deck_send_status'] for row in lua_rows if 'deck_send_status' in row)
                 db.execute('insert into cards values(?,?,?)',(code,entry['name'],json.dumps(entry,ensure_ascii=False,separators=(',',':'))))
                 tags=[(code,t['dimension'],t['value'],'','') for t in entry['identity_tags']]
                 has_function=False
@@ -752,7 +753,8 @@ def build_dictionary(catalog, path, *, source=None):
                           training_started=False,cb_started=False)
             if lua is not None:
                 manifest['lua'] = dict(binding=lua, card_script_status=dict(lua_scripts),
-                                       effect_alignment=dict(lua_alignments), effect_counters=dict(lua_counters))
+                                       effect_alignment=dict(lua_alignments), effect_counters=dict(lua_counters),
+                                       effect_deck_sends=dict(lua_deck_sends))
             db.execute('insert into metadata values(?,?)',('manifest',json.dumps(manifest,ensure_ascii=False)))
         os.replace(tmp,path)
         return manifest
