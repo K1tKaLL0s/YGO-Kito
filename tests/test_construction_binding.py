@@ -25,14 +25,16 @@ def catalog():
         "id": "main-monsters", "zones": ["main"],
         "predicate": {"field": "type_all", "value": 17}, "minimum": 40, "maximum": 40}], "preferences": []}
     raw["environment"]["versions"]["card_pool"] = "native-private-knowledge-v5"
-    task = BuildTask.from_dict(raw)
-    assets.environment = task.environment
-    assets.receipt = {"resources": {"cards": digest("synthetic-pinned-catalog")}}
     for row in assets.rows.values():
         row["desc"] = "Printed public description."
     assets.rows[1]["desc"] = "Send one card to the Graveyard."
     assets.rows[2]["desc"] = "Recover a card from the Graveyard."
     assets.rows[3]["setcode"] = 0x2123
+    cards_sha256 = digest(assets.rows)
+    raw["environment"]["versions"]["cards"] = cards_sha256
+    task = BuildTask.from_dict(raw)
+    assets.environment = task.environment
+    assets.receipt["resources"]["cards"] = cards_sha256
     return task, assets
 
 

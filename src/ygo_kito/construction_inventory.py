@@ -225,6 +225,15 @@ def archetype_names(database_commit, cards_sha256):
         raise ContractError('locked archetype registry is missing or invalid') from error
 
 
+def asset_archetype_names(assets):
+    receipt = assets.receipt
+    commits = receipt.get('source_commits') or {}
+    # The engine version alone does not identify the card database.
+    if 'database' in commits or 'source_lock_sha256' in receipt:
+        return archetype_names(commits.get('database'), receipt.get('resources', {}).get('cards'))
+    return getattr(assets, 'set_names', {}), None
+
+
 _MOVE_ZONES = r'(?:额外卡组|融合卡组|手卡|卡组|墓地|场上|除外状态)(?:[·、／/](?:手卡|卡组|墓地|场上|除外状态))*'
 _MOVE_ACTION = r'送去墓地|加入手卡|特殊召唤|通常召唤|上级召唤|除外|解放|返回卡组|回到卡组|返回额外卡组|回到额外卡组|返回手卡|回到手卡|给对方观看'
 _MOVE = re.compile(r"(?:从|把|将)(?P<owner>自己|对方|双方)?(?:的)?(?P<zone>"+_MOVE_ZONES+r")(?:的)?(?:把|将|选)?"
@@ -375,13 +384,8 @@ class InventoryDependencies:
         self.requirement_limit = requirement_limit
         self._specifications = {}
         self._processing = {}
-        self.set_names=getattr(catalog.assets,'set_names',{})
-        self.registry_source=None
-        commits=catalog.assets.receipt.get('source_commits')
-        self.strict_names=bool(self.set_names or commits)
-        if commits:
-            self.set_names,self.registry_source=archetype_names(
-                commits.get('database'),catalog.assets.receipt['resources']['cards'])
+        self.set_names, self.registry_source = asset_archetype_names(catalog.assets)
+        self.strict_names = bool(self.set_names or self.registry_source)
 
     def holder_matches(self, code, node, fact_tags=None):
         from .build_semantics import matches as public_matches

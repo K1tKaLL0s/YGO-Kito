@@ -126,5 +126,29 @@ class ConstructionUnificationTests(unittest.TestCase):
         self.assertFalse(matches(dict(name='女武神',type=1,setcode=0x122),query))
         with self.assertRaises(ContractError):archetype_names('wrong','wrong')
 
+    def test_card_registry_binding_distinguishes_core_only_from_locked_catalog(self):
+        from ygo_kito.construction_inventory import InventoryDependencies
+        value, _, _ = fixture()
+        assets = value[1]
+        assets.receipt = {"source_commits": {"core": "fixture-core"},
+                          "resources": {"cards": digest(assets.rows)}, "engineering_fixture": True}
+        catalog = MechanismCatalog(assets)
+        dependencies = InventoryDependencies(catalog)
+        self.assertIsNone(dependencies.registry_source)
+        self.assertEqual(dependencies.set_names, {})
+        blocks = catalog.effect_blocks(1)
+        self.assertEqual(blocks["cards_sha256"], assets.receipt["resources"]["cards"])
+        self.assertFalse(any(t["dimension"] == "field" for t in blocks["identity_tags"]))
+
+        synthetic = assets.receipt
+        for lock_fields in ({"source_lock_sha256": "invalid-lock"},
+                            {"source_commits": {"database": "217ae165c1886af2fc36b823fc08f9fc3ec13185"}}):
+            with self.subTest(lock_fields=lock_fields):
+                assets.receipt = {**synthetic, **lock_fields}
+                with self.assertRaisesRegex(ContractError, "locked archetype registry"):
+                    InventoryDependencies(MechanismCatalog(assets))
+                with self.assertRaisesRegex(ContractError, "locked archetype registry"):
+                    MechanismCatalog(assets).effect_blocks(1)
+
 
 if __name__=='__main__':unittest.main()

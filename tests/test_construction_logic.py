@@ -6,11 +6,12 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from ygo_kito.build_contracts import BuildTask, DeckParts, digest
 from ygo_kito.build_intent import IntentClassification, classify_build_intent
 from ygo_kito.build_pipeline import BuildAssets, goal_candidates
+from ygo_kito.construction_binding import CardTagAssessment, CatalogBindingAdapter
 from ygo_kito.construction_logic import (
     ConstructionLogic, ConstructionSession, LogicConnector, LogicMetadata,
     LogicNode, LogicTag, ThemeScope, revise_logic, select_main_axes, stage_route,
@@ -49,17 +50,20 @@ def fixture_assets():
     raw["goal"]["starting_conditions"]["requires_opening_hand"] = [1]
     raw["requirements"] = [{"zone": "main", "card_id": 1, "minimum": 1, "maximum": 3}]
     raw["sizes"]["side"] = 0
-    task = BuildTask.from_dict(raw)
-    # Exercise existing BuildAssets.check_task/validate/facts without resource
-    # loading, native libraries, fake native responses or training updates.
+    # Exercise existing BuildAssets.check_task/validate/facts without loading
+    # locked resources or running the engine.
     assets = BuildAssets.__new__(BuildAssets)
-    assets.environment = task.environment
     assets.limits = {}
     assets.rows = {c: {"id": c, "alias": 0, "ot": 1, "type": 17,
                        "race": 0x4000 if c <= 4 else 1, "setcode": 0x123 if c <= 4 else 0,
                        "level": 4, "attribute": 1, "atk": c * 100, "def": 0,
                        "name": f"fixture-{c}", "desc": "Synthetic card text: send and recover. No real effect."}
-                   for c in task.pool}
+                   for c in raw["pool"]}
+    cards_sha256 = digest(assets.rows)
+    raw["environment"]["versions"]["cards"] = cards_sha256
+    task = BuildTask.from_dict(raw)
+    assets.environment = task.environment
+    assets.receipt = {"resources": {"cards": cards_sha256}, "engineering_fixture": True}
     return task, assets
 
 
@@ -71,6 +75,15 @@ def example_graph():
              LogicConnector("trigger", "grave", "finish", "送墓时发动"),
              LogicConnector("alternative", "other", "finish", "ss"))
     return ConstructionLogic("fixture-logic", nodes, edges, ("start",), ("finish",))
+
+
+def assessed_binding(assets, graph):
+    row = assets.rows[1]
+    tags = dict.fromkeys(tag for node in graph.nodes for tag in node.tags)
+    return CatalogBindingAdapter(assets, assessments=tuple(
+        CardTagAssessment(row["id"], tag, "satisfied", assets.receipt["resources"]["cards"],
+            digest(row["desc"]), row["desc"], "synthetic-unit-review", "Fixture tag assessment.")
+        for tag in tags))
 
 
 def text_review(node, cards):
@@ -409,30 +422,82 @@ class ConcreteFillTests(unittest.TestCase):
         self.assertFalse(out["graph_execution_verified"])
 
     def test_coordinator_runs_target_then_optimizer_with_feedback_and_stage_history(self):
-        calls = []
-        def provider(context):
-            calls.append(context)
-            graph = example_graph() if context["logic"] is None else revise_logic(ConstructionLogic.from_dict(context["logic"]))
-            return {"logic": graph.to_dict(), "reason": "synthetic role proposal"}
-        session = fixture_session("堆墓", self.task)
-        providers = {role: provider for role in ("build_goal", "build_optimizer")}
-        out = construction_cycle(session, self.assets, providers, binding_provider=binding,
-                                 text_reviewer=text_review, verifier=goal_proof)
-        self.assertEqual(out["status"], "task_checked_candidate")
-        self.assertEqual([c["role"] for c in calls], ["build_goal", "build_optimizer"] * 2)
-        self.assertTrue(all(c["feedback"] for c in calls[1:]))
-        self.assertEqual([h["stage"] for h in session.history if isinstance(h["stage"],int)], [1, 2, 3] * 4)
-        self.assertEqual(session.history[-1]["stage"],"basic_cb")
-        self.assertEqual(out["phases"][0]["stage_2"]["status"], "skipped_broad")
-        matching = [p for p in out["phases"] if p.get("proposal_deck") == out["best"]["deck"] and
-                    p.get("acceptance") == "working_candidate_handoff_only"]
-        self.assertTrue(matching)
-        self.assertEqual(out["best"]["logic_sha256"], matching[-1]["stage_1"]["logic_sha256"])
-        self.assertFalse(out["incumbent_verified_for_task"])
-        detached = session.to_dict()
-        detached["task"]["goal"]["card_id"] = 999
-        self.assertEqual(session.task.sha256, self.task.sha256)
+        raw = self.task.to_dict()
+        raw["schema_version"] = 4
+        raw["goal"] = {"kind": "deck_constraints", "constraints": [{
+            "id": "normal-monster-count", "zones": ["main"],
+            "predicate": {"field": "type_all", "value": 17}, "minimum": 40, "maximum": 40}], "preferences": []}
+        raw["environment"]["versions"]["card_pool"] = "native-private-knowledge-v5"
+        task = BuildTask.from_dict(raw)
+        session = fixture_session("堆墓", task)
+        graph = example_graph()
+        binder = assessed_binding(self.assets, graph)
+        goal = Mock(return_value={"logic": graph.to_dict(), "reason": "synthetic effect draft"})
+        revision = revise_logic(graph)
+        optimizer = Mock(return_value={"logic": revision.to_dict(), "reason": "synthetic optimization"})
+        providers = {"build_goal": goal, "build_optimizer": optimizer}
 
+        def basic_cb(task, deck, assets, *, construction_gate):
+            self.assertEqual(construction_gate["status"], "passed")
+            self.assertEqual(construction_gate["deck_sha256"], digest(deck.to_dict()))
+            success = construction_gate["candidate_version"] > 2
+            return {"status": "routes_inferred" if success else "no_route_found",
+                    "routes": [{"fixture": "synthetic-cb-result"}] if success else [],
+                    "normal_completion": True, "inference_completed": True,
+                    "failure_count_eligible": not success,
+                    "task_sha256": task.sha256, "subject_deck_sha256": digest(deck.to_dict())}
+
+        verifier = Mock(side_effect=AssertionError("static task must not invoke the legacy route verifier"))
+        cb_provider = Mock(side_effect=basic_cb)
+        out = construction_cycle(session, self.assets, providers, binding_provider=binder,
+            text_reviewer=binder.reviewer, verifier=verifier, basic_cb_provider=cb_provider,
+            cb_authorized=True, run_mode="slice", max_iterations=2)
+
+        self.assertEqual(out["status"], "construction_passed")
+        self.assertTrue(out["task_verified"])
+        self.assertTrue(out["cb_verified"])
+        self.assertFalse(out["graph_execution_verified"])
+        goal.assert_called_once()
+        optimizer.assert_called_once()
+        context = optimizer.call_args.args[0]
+        self.assertEqual(context["role"], "build_optimizer")
+        self.assertEqual(context["logic"], graph.to_dict())
+        feedback, = out["optimization_feedback"]
+        self.assertEqual(feedback["consumed_iteration"], 2)
+        self.assertEqual(feedback["status"], "reviewed_unverified")
+        self.assertIn(feedback["input"]["issue"], [f["message"] for f in context["feedback"]])
+
+        draft, completion, retry = out["phases"]
+        self.assertEqual([p["role"] for p in out["phases"]], ["build_goal", "build_optimizer", "build_optimizer"])
+        self.assertEqual(draft["effect_draft"]["logic_sha256"], graph.sha256)
+        self.assertEqual(completion["stage_1"]["input_draft_sha256"], graph.sha256)
+        self.assertEqual(completion["stage_2"]["status"], "skipped_broad")
+        self.assertEqual(retry["stage_1"]["logic_sha256"], revision.sha256)
+        self.assertEqual(session.logic.parent_sha256, graph.sha256)
+        self.assertEqual([h["stage"] for h in session.history if h["stage"] in (
+            "effect_draft_handoff", "construction_iteration", "basic_cb_return_to_optimizer")],
+            ["effect_draft_handoff", "construction_iteration", "basic_cb_return_to_optimizer", "construction_iteration"])
+
+        best = out["best"]
+        gate = out["construction_gate"]
+        cb = out["basic_cb"]
+        quality = best["quality_evaluation"]
+        self.assertEqual(best["logic_sha256"], revision.sha256)
+        self.assertEqual(quality["logic_sha256"], revision.sha256)
+        self.assertEqual(quality["evaluation_id"], gate["quality_binding"]["evaluation_id"])
+        self.assertEqual(quality["task_sha256"], task.sha256)
+        self.assertEqual(cb["task_sha256"], task.sha256)
+        self.assertEqual(gate["candidate_version"], cb["candidate_version"])
+        self.assertEqual(gate["deck_sha256"], quality["deck_sha256"])
+        self.assertEqual(gate["deck_sha256"], cb["subject_deck_sha256"])
+        self.assertEqual(gate["deck_sha256"], digest(best["deck"]))
+        self.assertEqual(feedback["input"]["candidate_sha256"], completion["proposal_deck_sha256"])
+        self.assertEqual(cb_provider.call_count, 3)
+        verifier.assert_not_called()
+
+        detached = session.to_dict()
+        detached["task"]["goal"]["constraints"][0]["minimum"] = 1
+        self.assertEqual(session.task.sha256, task.sha256)
 
     def test_existing_candidate_generator_and_independent_ranker_forward_remain_compatible(self):
         import torch
@@ -444,10 +509,13 @@ class ConcreteFillTests(unittest.TestCase):
                   for role in ("build_goal", "build_optimizer")}
         self.assertTrue({id(p) for p in models["build_goal"].parameters()}.isdisjoint(
             {id(p) for p in models["build_optimizer"].parameters()}))
-        for role in models:
-            with self.subTest(role=role):
-                out = fill_with_existing(self.session, self.assets, role=role, base=self.deck if role == "build_optimizer" else None,
-                    models=models, encoder=encoder, binding_provider=binding, text_reviewer=text_review, verifier=goal_proof)
+        binder = assessed_binding(self.assets, self.session.logic)
+        for role, model in models.items():
+            with self.subTest(role=role), patch.object(model, "forward", wraps=model.forward) as forward:
+                out = fill_with_existing(self.session, self.assets, role=role,
+                    base=self.deck if role == "build_optimizer" else None, models=models,
+                    encoder=encoder, binding_provider=binder, text_reviewer=binder.reviewer, verifier=goal_proof)
+                forward.assert_called()
                 self.assertEqual(out["status"], "task_goal_verified_logic_unproven")
                 self.assertEqual(out["ranking"], "existing_role_model_uncalibrated")
                 self.assertFalse(out["graph_execution_verified"])

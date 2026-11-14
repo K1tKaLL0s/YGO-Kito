@@ -245,12 +245,20 @@ class ScenarioCourseTests(unittest.TestCase):
         task, catalog, _, _ = fixture(41, initialize=False)
         h.assets.rows = deepcopy(catalog.rows)
         for row in h.assets.rows.values(): row['setcode'] = 0x181
-        h.assets.rows[42] = dict(h.assets.rows[1], id=42, type=0x800001,
-                                name='synthetic-xyz-contract-only')
+        # Source-bound theme cooperation for the static gate.
+        h.assets.rows[1].update(type=33, desc='这个卡名的①效果1回合只能使用1次。'
+            '①：自己主要阶段才能发动。从自己卡组上面把2张卡送去墓地。')
+        h.assets.rows[2].update(type=33, desc='这个卡名的①效果1回合只能使用1次。'
+            '①：这张卡被效果送去墓地的场合才能发动。抽1张。')
+        h.assets.rows[42] = dict(h.assets.rows[3], id=42, type=0x800001,
+                                name='synthetic-xyz-contract-only', desc='4星怪兽×2')
         # Exercise model generation and the normal discovery/replay contract.
         # This is an explicitly fake offered-action engine, never native CB proof.
         h.assets.receipt = deepcopy(h.assets.receipt)
-        h.assets.receipt['resources']['cards'] = digest(h.assets.rows)
+        h.assets.receipt['engineering_fixture'] = True
+        cards_sha256 = digest(h.assets.rows)
+        h.assets.receipt['resources']['cards'] = cards_sha256
+        h.assets.environment['versions']['cards'] = cards_sha256
         q = json.loads((h.root/h.qualification['path']).read_text())
         q['resources'] = deepcopy(h.assets.receipt)
         h.qualification = h.helper.write_json('scenario-qualification-fixture.json', q)
@@ -288,7 +296,11 @@ class ScenarioCourseTests(unittest.TestCase):
             def submit(self, selection):
                 validate_selection(self.request, selection)
                 self.done = True
-                self.events = [{'kind': 62, 'player': 0, 'public_summoning_card': 42}, {'kind': 63}]
+                self.events = [
+                    {'kind': 62, 'player': 0, 'public_summoning_card': 42},
+                    {'kind': 50, 'player': 0, 'public_card': 42, 'from_zone': 64, 'to_zone': 4},
+                    {'kind': 63},
+                ]
         h.assets.engine_factory = SyntheticGoalEngine
         h.assets.period_id = '2022-07'
         h.assets.period_context = {'kind': 'synthetic-period-not-historical', 'period_id': '2022-07'}

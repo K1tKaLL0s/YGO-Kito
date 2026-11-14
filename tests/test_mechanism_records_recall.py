@@ -6,7 +6,6 @@ import unittest
 
 import torch
 
-from ygo_kito.autonomous_construction import AutonomousConstructionKernel
 from ygo_kito.build_contracts import BuildTask, DeckParts, digest
 from ygo_kito.build_model import BuildEncoder, BuildModelConfig, BuildRanker
 from ygo_kito.coordinator_model import (CoordinatorModelConfig, CoordinatorTrainer,
@@ -103,7 +102,7 @@ class EffectRecordContracts(unittest.TestCase):
 class MaterialRecallContracts(unittest.TestCase):
     def setUp(self):
         self.cat = catalog([row(1, type=33 | 0x1000, level=3), row(2, level=4), row(3, level=4),
-            row(6, '①：自己主要阶段才能发动。融合召唤1只怪兽。'),
+            row(6, '①：自己主要阶段才能发动。融合召唤1只怪兽。', type=2),
             row(7, '调整＋调整以外的怪兽1只以上', type=1 | 0x2000, level=7),
             row(8, '4星怪兽×2', type=1 | 0x800000, level=4), row(9, type=2, level=4),
             row(10, '未知召唤方法', type=1 | 0x4000000, level=1)])
@@ -127,19 +126,21 @@ class MaterialRecallContracts(unittest.TestCase):
         self.assertEqual(self.cat.attribute_material_pairs(8, [2], available_counts=Counter({2: 1})), ())
         self.assertEqual(self.cat.attribute_material_pairs(8, [2], available_counts=Counter({2: 2})), ((2, 2),))
 
-    def test_fusion_observation_does_not_hide_other_goal_or_group_families(self):
+    def test_fusion_observation_does_not_hide_other_mechanism_groups(self):
         pool = (1, 2, 3, 6, 7, 8)
         core = (6, 7, 8)
         self.assertGreater(self.cat.summarize(core)['fusion_effects'], 0)
-        kernel = object.__new__(AutonomousConstructionKernel)
-        kernel.source_binding = {}; kernel.mechanisms = self.cat; kernel.assets = self.cat.assets
-        kernel.builder = SimpleNamespace(task=SimpleNamespace(goal={}, sizes={'extra': 2}))
-        goals = kernel._route_goals(pool, {'card_ids': core})
-        self.assertEqual({g['kind'] for g in goals}, {'synchro_summon', 'xyz_summon'})
         groups = self.cat.construction_mechanism_groups(pool, core)
+        self.assertEqual(len(groups), 2)
+        for group in groups:
+            family = group['group_id'].split('-')[0]
+            zones = group['zones']
+            target = {'synchro': 7, 'xyz': 8}[family]
+            self.assertEqual(zones['extra'], [target])
+            self.assertEqual(zones['side'], [])
+            self.assertIn(tuple(zones['main']), self.cat.attribute_material_pairs(target, pool))
         self.assertEqual({g['group_id'].split('-')[0] for g in groups}, {'synchro', 'xyz'})
-        kernel.source_binding = {'basic_cb_stage': 'after_construction'}
-        self.assertEqual(kernel._route_goals(pool, {'card_ids': core}), [None])
+        self.assertEqual(self.cat.construction_mechanism_groups((1, *core), core), ())
 
 
 class CoordinatorMechanismContracts(unittest.TestCase):

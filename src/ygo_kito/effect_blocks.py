@@ -643,11 +643,8 @@ def identity_tags(row, set_names):
 def card_blocks(catalog, code, *, set_names=None):
     row = catalog.assets.rows[code]
     if set_names is None:
-        set_names = getattr(catalog.assets,"set_names",{})
-        commits = catalog.assets.receipt.get("source_commits",{})
-        if commits:
-            from .construction_inventory import archetype_names
-            set_names,_ = archetype_names(commits.get("database"),catalog.cards_sha256)
+        from .construction_inventory import asset_archetype_names
+        set_names, _ = asset_archetype_names(catalog.assets)
     records = catalog.effect_records(code)
     effects = [deepcopy(r["block_view"]) for r in records]
     # Preserve the two established construction identities as qualified aliases.
