@@ -526,6 +526,7 @@ HINTMSG_TOGRAVE=504
 EVENT_SUMMON_SUCCESS=1100
 EVENT_SPSUMMON_SUCCESS=1102
 EVENT_TO_GRAVE=1014
+HINT_OPSELECTED=6
 LOCATION_GRAVE=0x10
 """
 
@@ -1080,6 +1081,75 @@ end
             self.assertEqual(dictionary.card(LUA_CARD_ID), catalog.effect_blocks(LUA_CARD_ID))
         operation["selector_query"].clear()
         self.assertTrue(catalog.effect_records(LUA_CARD_ID)[0]["operations"][0]["selector_query"])
+
+    def test_deck_selection_uses_the_same_group_across_callback_styles(self):
+        marker = "    Duel.SetOperationInfo(0,CATEGORY_TOGRAVE,nil,1,tp,LOCATION_DECK)"
+        target_hint = ("    Duel.Hint(HINT_OPSELECTED,1-tp,e:GetDescription())\n" + marker)
+        original = "    if #g>0 then\n        Duel.SendtoGrave(g,REASON_EFFECT)\n    end"
+        variations = {
+            "advisory calls and unused handler": DECK_SEND_SCRIPT.replace(marker, target_hint).replace(
+                "function s.check(e,tp,eg,ep,ev,re,r,rp,chk)\n",
+                "function s.check(e,tp,eg,ep,ev,re,r,rp,chk)\n    local c=e:GetHandler()\n"),
+            "return on empty group": DECK_SEND_SCRIPT.replace(
+                original, "    if g:GetCount()==0 then return end\n    Duel.SendtoGrave(g,REASON_EFFECT)"),
+            "first and only member": DECK_SEND_SCRIPT.replace(original,
+                "    local selected=g:GetFirst()\n    if selected then Duel.SendtoGrave(selected,REASON_EFFECT) end"),
+            "chained first and only member": DECK_SEND_SCRIPT.replace(original, "    if g then Duel.SendtoGrave(g,REASON_EFFECT) end")
+                .replace("1,1,nil)\n    if g then", "1,1,nil):GetFirst()\n    if g then"),
+        }
+        for label, script in variations.items():
+            with self.subTest(style=label):
+                assets = self.assets(script=script, description=DECK_SEND_DESCRIPTION)
+                (record,) = MechanismCatalog(assets).effect_records(LUA_CARD_ID)
+                self.assertEqual(record["lua_source"]["deck_send_status"], "selector_bound")
+                self.assertEqual(record["operations"][0]["selector_query"], {"any": [
+                    {"setcode": 0x10db}, {"setcode": 0xdb, "type": 6}]})
+
+    def test_deck_selection_matches_rule_names_to_aliases_and_second_names(self):
+        from ygo_kito.construction_inventory import matches
+
+        header = self.root / "engine-src/core/card_data.h"
+        header.write_text(
+            "constexpr uint32_t OTHER = 501;\n"
+            "const std::unordered_map<uint32_t, uint32_t> second_code = {\n"
+            f"    {{OTHER, {LUA_CARD_ID}u}},\n"
+            "};\n",
+            encoding="utf-8",
+        )
+        script = DECK_SEND_SCRIPT.replace("    return (c:IsSetCard", "    return not c:IsCode(id) and (c:IsSetCard")
+        assets = self.assets(script=script, description=DECK_SEND_DESCRIPTION)
+        assets.rows[LUA_CARD_ID]["setcode"] = 0x10db
+        assets.rows.update({
+            500: dict(id=500, alias=LUA_CARD_ID, setcode=0x10db, type=1),
+            501: dict(id=501, alias=0, setcode=0x10db, type=1),
+            502: dict(id=502, alias=501, setcode=0x10db, type=1),
+            503: dict(id=503, alias=0, setcode=0x10db, type=1),
+        })
+        catalog = MechanismCatalog(assets)
+        record, = catalog.effect_records(LUA_CARD_ID)
+        self.assertEqual(record["lua_source"]["deck_send_status"], "selector_bound")
+        operation, = record["operations"]
+        query = operation["selector_query"]
+        self.assertEqual([code for code, row in assets.rows.items() if matches(row, query)], [503])
+
+        # A callback with a mutable captured identity cannot supply this predicate.
+        script = script.replace("function s.send(", "function s.change() id=503 end\nfunction s.send(")
+        changed = self.assets(script=script)
+        changed_record, = MechanismCatalog(changed).effect_records(LUA_CARD_ID)
+        self.assertEqual(changed_record["lua_source"]["deck_send_status"], "unresolved_callback")
+
+    def test_deck_selection_keeps_partial_evidence_from_other_scopes(self):
+        for statement, status in (("c:EnableReviveLimit()", "selector_bound"),
+                                  ("c:CopyEffect(id)", "unresolved_callback")):
+            with self.subTest(statement=statement):
+                script = DECK_SEND_SCRIPT.replace("    local e=Effect.CreateEffect(c)",
+                    f"    {statement}\n    local e=Effect.CreateEffect(c)")
+                assets = self.assets(script=script, description=DECK_SEND_DESCRIPTION)
+                record, = MechanismCatalog(assets).effect_records(LUA_CARD_ID)
+                lua = record["lua_source"]
+                self.assertEqual(lua["status"], "partial")
+                self.assertEqual(lua["deck_send_status"], status)
+                self.assertEqual(lua["count_status"], "unresolved_registration")
 
     def test_deck_selection_keeps_an_existing_printed_selector(self):
         desc = DECK_SEND_DESCRIPTION.replace(DECK_SEND_TEXT, "从卡组把1只怪兽送去墓地。")

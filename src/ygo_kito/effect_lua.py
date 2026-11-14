@@ -6,11 +6,12 @@ from functools import cache
 from hashlib import sha256
 from operator import add, and_, lt, mul, or_, sub
 from pathlib import Path
+import re
 
 from .validation import ContractError
 
 
-LUA_EFFECT_VERSION = "mycard-effect-registration-v5"
+LUA_EFFECT_VERSION = "mycard-effect-registration-v6"
 _TABLE, _CARD = object(), object()
 _CALLBACKS = {
     "SetCondition": "condition", "SetCost": "cost", "SetTarget": "target",
@@ -180,10 +181,12 @@ def _selection_query(node, card, constants, depth=0):
         return dict(a, **b) if not a.keys() & b.keys() else None
     if node.type == "unary_expression" and _text(node.child_by_field_name("operator")) == "not":
         name, args = _call(_unwrapped(node.child_by_field_name("operand")))
-        if name == f"{card}:IsCode":
-            ids = [_value(arg, constants) for arg in args]
-            if 1 <= len(ids) <= 4 and all(type(code) is int and 0 < code < 2**32 for code in ids):
-                return {"predicate": {"not": {"field": "card_ids", "value": sorted(set(ids))}}}
+        ids = [_integer_value(arg, constants) for arg in args]
+        if name == f"{card}:IsCode" and 1 <= len(ids) <= 4 and all(
+                code is not None and 0 < code < 2**32 for code in ids):
+            return {"exclude_rule_codes": sorted(set(ids))}
+        if name == f"{card}:IsLevel" and len(ids) == 1 and ids[0] is not None and 1 <= ids[0] <= 255:
+            return {"exclude_level": ids[0]}
         return None
     name, args = _call(node)
     receiver, _, method = name.partition(":")
@@ -228,7 +231,44 @@ def _callback(registration, role, functions, tables):
     return name, node, reference.get("byte_span", registration["registration_span"])
 
 
-def _deck_send(registration, functions, constants, tables, shadowed):
+def _skip_unused_handler(statements, effect, reserved):
+    """Ignore a handler read only when its local name never reaches processing."""
+    if not statements:
+        return statements
+    name, value = _local_value(statements[0])
+    if (not name or _call(value) != (f"{effect}:GetHandler", []) or name in (effect, "Card", "Duel")
+            or name in reserved):
+        return statements
+    pending = list(statements[1:])
+    while pending:
+        node = pending.pop()
+        if node.type == "identifier" and _text(node) == name:
+            return statements
+        pending.extend(_children(node))
+    return statements[1:]
+
+
+def _chosen_object_available(test, truth, group, subject, constants):
+    if test is None:
+        return False
+    if _name(test) == subject and subject != group:
+        return truth is True
+    if _nonempty_group(test, group, constants):
+        return truth is True
+    for operator, when in (("==", False), ("<=", False), ("<", False), ("~=", True), (">=", True)):
+        left, right = _binary(test, operator)
+        if left is None or truth is not when:
+            continue
+        left = _unwrapped(left)
+        size = (_call(left) == (f"{group}:GetCount", []) or left.type == "unary_expression"
+                and _text(left.child_by_field_name("operator")) == "#"
+                and _name(left.child_by_field_name("operand")) == group)
+        if size and _integer_value(right, constants) == (1 if operator in ("<", ">=") else 0):
+            return True
+    return False
+
+
+def _deck_send(registration, functions, constants, tables, shadowed, local_ids):
     """Recognize the one direct, fixed-count Deck-to-GY selection at resolution."""
     operation, body, binding = _callback(registration, "operation", functions, tables)
     target, check, check_binding = _callback(registration, "target", functions, tables)
@@ -248,44 +288,63 @@ def _deck_send(registration, functions, constants, tables, shadowed):
     player = params[1]
     local_constants = {key: value for key, value in constants.items() if key not in params}
     deck, by_effect = constants.get("LOCATION_DECK"), constants.get("REASON_EFFECT")
-    hint_kind, hint_message = constants.get("HINT_SELECTMSG"), constants.get("HINTMSG_TOGRAVE")
-    statements = _children(body.child_by_field_name("body"))
-    if statements:
-        hint, args = _call(statements[0])
-        if (hint == "Duel.Hint" and len(args) == 3 and _name(args[1]) == player
-                and hint_kind is not None and hint_message is not None
-                and _integer_value(args[0], local_constants) == hint_kind
-                and _integer_value(args[2], local_constants) == hint_message):
-            statements = statements[1:]
-    if len(statements) != 2:
-        node = next((s for s in statements if s.type == "if_statement"), body)
-        return unresolved("unsupported_operation_flow", operation, node, binding)
-
-    selection, send = statements
-    local, names, values = _assignment(selection)
-    call, args = _call(values[0] if len(values) == 1 else None)
-    if not local or len(names) != 1 or names[0].type != "identifier" or call != "Duel.SelectMatchingCard":
-        return unresolved("unsupported_resolution_selection", operation, selection, binding)
-    group = _name(names[0])
-    filter_name = _name(args[1]) if len(args) == 8 else ""
+    effect = params[0]
+    statements = list(_processing_statements(_children(body.child_by_field_name("body")),
+                                             local_constants, player, effect))
+    statements = _skip_unused_handler(statements, effect, set(params) | set(local_constants) | tables)
+    if not statements:
+        return unresolved("unsupported_operation_flow", operation, body, binding)
+    selected, *remaining = statements
+    group, selection = _local_value(selected)
+    call, args = _call(selection)
+    first = False
+    if call != "Duel.SelectMatchingCard":
+        receiver = _member_call(selection, "GetFirst", local_constants)
+        call, args = _call(receiver)
+        if call == "Duel.SelectMatchingCard":
+            selection, first = receiver, True
+    if call != "Duel.SelectMatchingCard" or not group:
+        return unresolved("unsupported_resolution_selection", operation, selected, binding)
+    filter_arg = args[1] if len(args) == 8 else None
+    filter_name = _name(filter_arg)
     namespace = filter_name.partition(".")[0]
+    reserved = set(params) | set(local_constants) | tables | {"Duel", "Card"}
     if not (len(args) == 8 and _name(args[0]) == _name(args[2]) == player
             and filter_name and namespace not in params
             and type(deck) is int and _integer_value(args[3], local_constants) == deck
             and _integer_value(args[4], local_constants) == 0 and args[7].type == "nil"
-            and group not in (player, "Duel", "Card")):
-        return unresolved("unsupported_selection_arguments", operation, values[0], binding)
+            and group not in reserved):
+        return unresolved("unsupported_selection_arguments", operation, selection, binding)
     quantity, maximum = [_value(arg, local_constants) for arg in args[5:7]]
-    if type(quantity) is not int or type(maximum) is not int or not 1 <= quantity == maximum <= 255:
-        return unresolved("variable_or_unresolved_selection_count", operation, values[0], binding)
-    local_constants.pop(group, None)
-    if send.type == "if_statement":
-        branch = _check_body(send)
-        if not _nonempty_group(send.child_by_field_name("condition"), group, local_constants) or len(branch) != 1:
-            return unresolved("unsupported_send_branch", operation, send, binding)
-        send, = branch
+    if (type(quantity) is not int or type(maximum) is not int or not 1 <= quantity == maximum <= 255
+            or first and quantity != 1):
+        return unresolved("variable_or_unresolved_selection_count", operation, selection, binding)
+
+    # The shared guard reader distinguishes real early returns from client hints.
+    # This operation can transfer the whole selected group, or its only member.
+    steps = _processing_steps(remaining, local_constants, player, effect)
+    if not steps:
+        reason = "unsupported_send_branch" if remaining and remaining[0].type == "if_statement" else "unsupported_operation_flow"
+        return unresolved(reason, operation, remaining[0] if remaining else body, binding)
+    subject = group
+    if len(steps) >= 2 and steps[0][1] is None:
+        alias, value = _local_value(steps[0][0])
+        if (alias and alias not in reserved and alias != group and not first and quantity == 1
+                and _literal_call(value, local_constants, f"{group}:GetFirst")):
+            subject = alias
+            steps = steps[1:]
+    *guards, (send, direct) = steps
+    if (direct is not None or len(guards) > 1
+            or any(not (first and _name(test) == group and truth is True
+                        or _chosen_object_available(test, truth, group, subject, local_constants))
+                   for test, truth in guards)):
+        return unresolved("unsupported_send_branch", operation, steps[0][0], binding)
     call, movement = _call(send)
-    if (call != "Duel.SendtoGrave" or len(movement) != 2 or _name(movement[0]) != group
+    same_object = len(movement) == 2 and (
+        _name(movement[0]) == subject if subject != group or first
+        else _name(movement[0]) == group or quantity == 1 and _literal_call(
+            movement[0], local_constants, f"{group}:GetFirst"))
+    if (call != "Duel.SendtoGrave" or not same_object
             or type(by_effect) is not int or _integer_value(movement[1], local_constants) != by_effect):
         return unresolved("not_the_selected_group_sent_by_effect", operation, send, binding)
 
@@ -293,13 +352,16 @@ def _deck_send(registration, functions, constants, tables, shadowed):
         return unresolved("unresolved_activation_check_callback", target, check, check_binding)
     params = list(map(_text, check.child_by_field_name("parameters").children_by_field_name("name")))
     check_constants = {key: value for key, value in constants.items() if key not in params}
-    statements = _children(check.child_by_field_name("body"))
+    if len(params) not in (9, 10) or {"Duel", "Card", namespace} & set(params) or len(set(params)) != len(params):
+        return unresolved("unsupported_or_different_activation_check", target, check, check_binding)
+    statements = list(_processing_statements(_children(check.child_by_field_name("body")),
+                                             check_constants, params[1], params[0]))
+    statements = _skip_unused_handler(statements, params[0], set(params) | set(check_constants) | tables)
     guard = statements[0] if statements else check
     left, right = _binary(guard.child_by_field_name("condition"), "==")
     exists = _return_expression(_check_body(guard))
     call, args = _call(exists)
-    if not (len(params) == 9 and not {"Duel", namespace} & set(params) and len(set(params)) == len(params)
-            and _name(left) == params[8] and _integer_value(right, check_constants) == 0
+    if not (_name(left) == params[8] and _integer_value(right, check_constants) == 0
             and call == "Duel.IsExistingMatchingCard" and len(args) == 6 and _name(args[0]) == filter_name
             and _name(args[1]) == params[1] and _integer_value(args[2], check_constants) == deck
             and _integer_value(args[3], check_constants) == 0 and _integer_value(args[4], check_constants) == quantity
@@ -314,17 +376,19 @@ def _deck_send(registration, functions, constants, tables, shadowed):
             return unresolved("additional_activation_processing", target, metadata, check_binding)
 
     if filter_name == "Card.IsAbleToGrave":
-        query, filter_span = {"selector": "卡"}, _span(values[0])
+        query, filter_span = {"selector": "卡"}, _span(filter_arg)
     else:
         definition = functions.get(filter_name) if filter_name.partition(".")[0] in tables else None
         if definition is None:
-            return unresolved("unresolved_selection_filter", filter_name, values[0], binding)
+            return unresolved("unresolved_selection_filter", filter_name, filter_arg, binding)
         params = definition.child_by_field_name("parameters").children_by_field_name("name")
         expr = _return_expression(_children(definition.child_by_field_name("body")))
         if len(params) != 1 or expr is None:
             return unresolved("unsupported_filter_body", filter_name, definition, binding)
         card = _text(params[0])
         filter_constants = {key: value for key, value in constants.items() if key != card}
+        filter_constants.update({key: value for key, (value, start) in local_ids.items()
+                                 if key != card and start < definition.start_byte})
         query, able = {}, False
         for term in _conjuncts(expr):
             if _call(term) == (f"{card}:IsAbleToGrave", []):
@@ -339,7 +403,7 @@ def _deck_send(registration, functions, constants, tables, shadowed):
         query = query or {"selector": "卡"}
         filter_span = _span(expr)
     return dict(status="resolved", selector_query=query, quantity=quantity,
-                selection=dict(function=operation, byte_span=_span(values[0]), phase="resolution",
+                selection=dict(function=operation, byte_span=_span(selection), phase="resolution",
                                owner="self", from_zones=["deck"], targets=False),
                 activation_check=dict(function=target, byte_span=_span(exists), minimum=quantity),
                 transfer=dict(function=operation, byte_span=_span(send), to_zone="grave", reason="effect"),
@@ -457,9 +521,14 @@ def _processing_statements(statements, constants, player, effect=None):
     """Remove client hints and operation announcements with simple arguments."""
     for statement in statements:
         name, args = _call(statement)
-        if (name == "Duel.Hint" and len(args) == 3 and _name(args[1]) == player
-                and all(_integer_value(args[i], constants) is not None for i in (0, 2))):
-            continue
+        if name == "Duel.Hint" and len(args) == 3:
+            other, seat = _binary(args[1], "-")
+            addressed = (_name(args[1]) == player or _integer_value(args[1], constants) in (0, 1)
+                         or _integer_value(other, constants) == 1 and _name(seat) == player)
+            description = (_integer_value(args[2], constants) is not None
+                           or effect is not None and _literal_call(args[2], constants, f"{effect}:GetDescription"))
+            if addressed and description and _integer_value(args[0], constants) is not None:
+                continue
         if (name == "Duel.SetOperationInfo" and len(args) == 6
                 and all(_integer_value(args[i], constants) is not None for i in (0, 1, 3, 5))
                 and (args[2].type in ("nil", "identifier")
@@ -874,6 +943,25 @@ def _helper_return(function, bindings):
     return []
 
 
+def _unmodified_locals(root, candidates):
+    """Retain immutable top-level identifiers when callbacks have no writes to them."""
+    remaining = dict(candidates)
+    nodes = _children(root)
+    while nodes and remaining:
+        node = nodes.pop()
+        if (node.type == "variable_declaration" or node.type == "assignment_statement"
+                and node.parent.type != "variable_declaration"):
+            _, names, _ = _assignment(node)
+            for name in names:
+                key = _name(name)
+                if key in remaining and node.start_byte != remaining[key][1]:
+                    del remaining[key]
+        if node.type == "function_declaration":
+            remaining.pop(_name(node.child_by_field_name("name")), None)
+        nodes.extend(_children(node))
+    return remaining
+
+
 def _functions(root):
     return {_name(node.child_by_field_name("name")): node for node in _children(root)
             if node.type == "function_declaration"}
@@ -886,6 +974,25 @@ class _Effect:
     clone_from: int | None = None
     settings: dict = field(default_factory=dict)
     registration: list | None = None
+
+
+def _second_rule_codes(header):
+    # The locked core adds these rule names to the CDB alias, with rule_code=0.
+    table = re.search(r"\bsecond_code\s*=\s*\{([^;]*)\}\s*;", header)
+    if table is None:
+        return None
+    constants = {name: int(value) for name, value in re.findall(
+        r"\bconstexpr\s+uint32_t\s+(\w+)\s*=\s*(\d+)[uU]?\s*;", header)}
+    entries = r"\{\s*(\w+)\s*,\s*(\d+)[uU]?\s*\}"
+    if not re.fullmatch(rf"\s*(?:{entries}\s*,\s*)*", table[1]):
+        return None
+    result = {}
+    for name, code in re.findall(entries, table[1]):
+        original = int(name) if name.isdecimal() else constants.get(name)
+        if original is None or original in result:
+            return None
+        result[original] = int(code)
+    return result
 
 
 class LuaEffectSource:
@@ -907,10 +1014,14 @@ class LuaEffectSource:
         if hashes.hexdigest() != resources["scripts"]:
             raise ContractError("Lua scripts differ from the asset receipt")
         self._receipt_binding = self._receipt_identity(root, receipt)
+        card_data = (Path(root) / "engine-src/core/card_data.h").read_bytes()
+        if sha256(card_data).hexdigest() != resources["card_data_abi"]:
+            raise ContractError("Core card data differs from the asset receipt")
+        self._second_codes = _second_rule_codes(card_data.decode("utf-8"))
         commits = receipt["source_commits"]
         self._binding = dict(extractor=LUA_EFFECT_VERSION, scripts_sha256=resources["scripts"],
                              script_commit=commits["scripts"], core_commit=commits["core"],
-                             source_lock_sha256=receipt["source_lock_sha256"])
+                             source_lock_sha256=receipt["source_lock_sha256"], card_data_sha256=resources["card_data_abi"])
 
         self._constants = {}
         try:
@@ -932,12 +1043,35 @@ class LuaEffectSource:
     @staticmethod
     def _receipt_identity(root, receipt):
         commits = receipt["source_commits"]
-        return (Path(root), receipt["resources"]["scripts"], commits["scripts"], commits["core"],
-                receipt["source_lock_sha256"])
+        resources = receipt["resources"]
+        return (Path(root), resources["scripts"], resources["card_data_abi"],
+                commits["scripts"], commits["core"], receipt["source_lock_sha256"])
 
     def assert_binding(self, root, receipt):
         if self._receipt_binding != self._receipt_identity(root, receipt):
             raise ContractError("Lua resources changed; reload BuildAssets for the new receipt")
+
+    def inventory_query(self, observed, rows):
+        """Project static rule names using locked core data and existing ID predicates."""
+        query = dict(observed)
+        if "any" in query:
+            options = [self.inventory_query(option, rows) for option in query["any"]]
+            if any(option is None for option in options):
+                return None
+            query["any"] = options
+        excluded = set(query.pop("exclude_rule_codes", ()))
+        if excluded:
+            if self._second_codes is None or "predicate" in query:
+                return None
+            original = ((code, row.get("alias") or code) for code, row in rows.items())
+            ids = sorted(code for code, canonical in original
+                         if canonical in excluded or self._second_codes.get(canonical) in excluded)
+            if ids:
+                query["predicate"] = {"not": {"field": "card_ids", "value": ids}}
+            else:
+                # With no locked rows to exclude, this part is true for all cards.
+                query.setdefault("selector", "卡")
+        return query
 
     @property
     def card_script_ids(self):
@@ -977,6 +1111,7 @@ class LuaEffectSource:
         constants = dict(self._constants, **{f"c{code}": _TABLE})
         initial, initial_bindings, functions = None, {}, _functions(root)
         assignments = defaultdict(int)
+        local_ids = {}
         overwritten_functions = set()
         for node in _children(root):
             if node.type == "function_declaration":
@@ -997,6 +1132,8 @@ class LuaEffectSource:
                         result["helpers"].append(helper)
                     if not values or values[0] is not _TABLE:
                         unresolved("unsupported_get_id", node)
+                    elif deck_send_indices and len(names) >= 2 and values[1:2] == [code]:
+                        local_ids[_name(names[1])] = (code, node.start_byte)
                 else:
                     if any(_call(value)[0] for value in values):
                         unresolved("unsupported_top_level_assignment", node)
@@ -1027,9 +1164,9 @@ class LuaEffectSource:
             self._registrations(initial, initial_bindings, functions, result, unresolved)
         if result["unknown"]:
             result["status"] = "partial"
-        elif deck_send_indices or self_send_cost_indices or preselected_grave_summons:
-            # Only unshadowed core constants and the card's own namespace are
-            # available to this callback subset. Script locals stay unresolved.
+        if deck_send_indices or self_send_cost_indices or preselected_grave_summons:
+            # Callback domains use unshadowed core constants and the card's namespace.
+            # Deck filters can also read an unchanged local GetID result.
             tables = {name for name, value in constants.items()
                       if value is _TABLE and assignments[name] == (0 if name == f"c{code}" else 1)
                       and name not in functions}
@@ -1038,21 +1175,27 @@ class LuaEffectSource:
                 {name.partition(".")[0] for name in functions} & {"Duel", "Card"})
             callbacks = {name: node for name, node in functions.items() if name not in overwritten_functions}
             observations = {}
-            if preselected_grave_summons:
+            local_ids = _unmodified_locals(root, local_ids)
+            # These initial-effect helpers can also add procedures or name lists.
+            # Keep that partial evidence, but inspect a completely registered Deck-send
+            # callback when every unsupported statement is one of these side effects.
+            scope_known = deck_send_indices and self._deck_send_scope_known(
+                result["unknown"], initial, initial_bindings)
+            if preselected_grave_summons and result["status"] == "parsed":
                 for registration in result["registrations"]:
                     if _intrinsic_grave_summon_lock(registration, static_constants):
                         registration["intrinsic_grave_summon_lock"] = True
             for registration in result["registrations"]:
                 index = registration.get("description_index")
-                if index in self_send_cost_indices:
+                if index in self_send_cost_indices and result["status"] == "parsed":
                     registration["self_send_cost"] = _self_send_cost(
                         registration, callbacks, static_constants, tables, shadowed)
-                if preselected_grave_summons:
+                if preselected_grave_summons and result["status"] == "parsed":
                     observed = _preselected_grave_summon(
                         registration, callbacks, static_constants, tables, shadowed)
                     if observed:
                         registration["preselected_grave_summon"] = observed
-                if index not in deck_send_indices:
+                if index not in deck_send_indices or not scope_known:
                     continue
                 operation, target = (registration.get(role, {}) for role in ("operation", "target"))
                 key = (registration["family"], registration.get("property", 0),
@@ -1060,9 +1203,32 @@ class LuaEffectSource:
                        tuple(operation.get("byte_span", registration["registration_span"])),
                        tuple(target.get("byte_span", registration["registration_span"])))
                 if key not in observations:
-                    observations[key] = _deck_send(registration, callbacks, static_constants, tables, shadowed)
+                    observations[key] = _deck_send(registration, callbacks, static_constants, tables, shadowed,
+                                                   local_ids)
                 registration["deck_send"] = observations[key]
         return result
+
+    def _deck_send_scope_known(self, gaps, initial, bindings):
+        if not gaps:
+            return True
+        params = initial.child_by_field_name("parameters").children_by_field_name("name")
+        if len(params) != 1:
+            return False
+        card = _text(params[0])
+        statements = {tuple(_span(node)): node for node in _children(initial.child_by_field_name("body"))}
+        for gap in gaps:
+            if gap["reason"] != "unsupported_initial_effect_statement":
+                return False
+            name, args = _call(statements.get(tuple(gap["byte_span"])))
+            if name == f"{card}:EnableReviveLimit" and not args:
+                continue
+            if (name == "aux.AddCodeList" and "Auxiliary.AddCodeList" in self._utility
+                    and "aux" not in bindings and len(args) >= 2
+                    and _name(args[0]) == card
+                    and all(_integer_value(arg, bindings) is not None for arg in args[1:])):
+                continue
+            return False
+        return True
 
     def _registrations(self, initial, bindings, functions, result, unresolved):
         effects = []

@@ -176,6 +176,30 @@ class StaticEntryTests(unittest.TestCase):
         record, = CatalogBindingAdapter(self.assets).semantic_catalog.effect_records(1)
         self.assertFalse(any(op.get('processing_role') == 'auxiliary' for op in record['operations']))
 
+    def test_ordered_hand_send_deck_summon_uses_common_movement_and_reserves_the_source(self):
+        from ygo_kito.construction_inventory import InventoryDependencies
+
+        self.assets.rows[1].update(type=33, level=8, name='匿名主题发动者')
+        self.assets.rows[2]['name'] = '匿名主题接收者'
+        for head in ('自己主要阶段才能发动。', '支付500基本分才能发动。'):
+            with self.subTest(head=head):
+                self.assets.rows[1]['desc'] = (
+                    '①：' + head + '从手卡把1张卡送去墓地。那之后，从卡组把1只'
+                    '8星以外的「匿名主题」怪兽特殊召唤。')
+                catalog = CatalogBindingAdapter(self.assets).semantic_catalog
+                record, = catalog.effect_records(1)
+                send, summon = record['operations']
+                self.assertEqual(send.get('processing_role'), 'auxiliary')
+                self.assertEqual(summon.get('depends_on'), [send['block_id']])
+                inventory = InventoryDependencies(catalog)
+                for hand, side, status in (((1, 2), (), 'missing'),
+                                           ((1, 2), (1,), 'missing'),
+                                           ((1, 1, 2), (), 'inventory_present')):
+                    deck = DeckParts(hand, (), side)
+                    detail, = inventory.evaluate(deck, codes=(1,))['cards']['1']['effects']
+                    self.assertEqual(detail['status'], status)
+                    self.assertEqual(inventory.processing_check(deck, record, summon)['status'], status)
+
     def test_replacing_resolution_hand_send_affects_deck_summon_in_required_order(self):
         from ygo_kito.construction_relations import JointConstraint
 

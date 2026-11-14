@@ -357,6 +357,11 @@ def _processing_activation_source(record):
     return dict(query=query, minimum=1, origin='field', owner='self', category='source', source=source)
 
 
+def _field_source_needs_reservation(record, requirements):
+    return record.get('trigger', {}).get('zone') == 'field' and all(
+        'field' not in req.get('origins', (req['origin'],)) for req in requirements)
+
+
 class InventoryDependencies:
     def __init__(self, catalog, *, requirement_limit=1024):
         self.catalog = catalog
@@ -999,8 +1004,7 @@ class InventoryDependencies:
                     if category == 'operations':
                         req['operation'] = item
                     parts.append((req, item))
-        if (parts and record.get('trigger',{}).get('zone')=='field'
-                and all('field' not in req.get('origins',(req['origin'],)) for req,_ in parts)):
+        if parts and _field_source_needs_reservation(record, (req for req, _ in parts)):
             # The activating entity is already on the field. Reserving it in
             # the same allocator prevents paying/receiving that very copy in
             # hand or grave. Explicit field movements keep their existing
@@ -1208,9 +1212,10 @@ class InventoryDependencies:
                         requirements.extend(req for req in hand_sends if req not in requirements)
                         bound_targets = {target['source'] for req in requirements
                             if (target := _activation_target(effect['record'], req.get('operation', {}))) is not None}
-                        if hand_sends and bound_targets:
-                            # The summon allocates its activation target once.
-                            requirements.insert(0, _processing_activation_source(effect['record']))
+                        record = effect['record']
+                        if hand_sends and (bound_targets or _field_source_needs_reservation(record, requirements)):
+                            # The activating entity and the two moved cards occupy different zones.
+                            requirements.insert(0, _processing_activation_source(record))
                         value = self._check_counts(resident, extra, requirements, distinct=bool(hand_sends),
                                                    bound_targets=bound_targets)
                     key = effect['key'] + ':' + scope

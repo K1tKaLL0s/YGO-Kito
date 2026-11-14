@@ -12,7 +12,7 @@ from collections import Counter, defaultdict
 from .rule_references import effect_reference_requests
 
 EFFECT_RECORD_VERSION = "public-effect-records-v4"
-LUA_EFFECT_RECORD_VERSION = "public-effect-records-v9"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v10"
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (
     "fusion_target", "synchro_target", "xyz_target", "tuner",
@@ -267,13 +267,17 @@ def _bind_revealed_summon(record):
 
 
 def _bind_hand_send_deck_summon(record, body, blocks):
-    """Bind the complete fixed hand-to-GY, then Deck-summon clause."""
-    operations, costs = record['operations'], record['costs']
+    """Bind a fixed hand-to-Graveyard selection followed by its Deck summon."""
+    from .construction_inventory import query_supported, requirement
+
+    operations = record['operations']
+    card_payments = [cost for cost in record['costs'] if cost.get('resource') != 'lp']
     if (len(operations) != 2 or record['targets'] or record['block_view']['alternatives']
-            or len(costs) != 1 or costs[0].get('quantity') != 1
-            or costs[0].get('to_zone') not in ('grave', 'banished') or costs[0].get('quantity_options')):
-        # The activation consumes one card, which cannot supply a later
-        # hand or Deck selection. Other payment contracts stay separate.
+            or not card_payments and record['trigger'].get('zone') != 'field'
+            or any(cost.get('to_zone') not in ('grave', 'banished')
+                   or type(cost.get('quantity')) is not int or cost['quantity'] < 1
+                   or cost.get('quantity_options') or cost.get('quantity_variants')
+                   for cost in card_payments)):
         return
     send, summon = operations
     if (send['kind'] != 'send_grave' or send.get('to_zone') != 'grave'
@@ -283,19 +287,31 @@ def _bind_hand_send_deck_summon(record, body, blocks):
             or not summon.get('selector_query')
             or any(op['phase'] != 'resolution' or op.get('optional') or op.get('choice') for op in operations)):
         return
-    selection = re.fullmatch(r'选自己(?:的)?([1-9][0-9]*)张手卡送去墓地', send['source'])
-    if not selection or not re.fullmatch(
-            re.escape(send['source']) + r'[，,]\s*' + re.escape(summon['source']) + r'[。．.]?', body.strip()):
+    if (send.get('from_zones', []) not in ([], ['hand']) or send.get('owner') not in (None, 'self')
+            or send.get('random') or send.get('target_ref') is not None or send.get('amount_rule')):
         return
-    quantity = int(selection[1])
-    if send.get('quantity') not in (None, quantity):
+    send_block, summon_block = (blocks[op['block_id']] for op in operations)
+    start, end = send_block['source_span']
+    next_start, next_end = summon_block['source_span']
+    text = record['source_text']
+    connector = text[end:next_start].strip()
+    ordered = summon.get('depends_on') == [send['block_id']] or connector in ('，', ',')
+    if (not ordered or not start < end <= next_start < next_end
+            or start < len(text) - len(body) or text[len(text) - len(body):start].strip()
+            or text[next_end:].strip(' 。．.；;\t\r\n')):
         return
-    # The second movement is contingent on this card reaching the GY. The
-    # hand movement is part of the summon processing, with its own entity.
-    movement = dict(from_zones=['hand'], owner='self', selector_query={'selector': '卡'},
-                    quantity=quantity, random=False)
+    # Normalize only the movement's own clause to the inventory grammar.
+    source = re.sub(r'^(?:选(?:择)?|把|将)(?:自己(?:的)?)?(\d+)张手卡送去墓地$',
+                    r'从手卡把\g<1>张卡送去墓地', send_block['source'])
+    selected = requirement(source, 'operations')
+    if (not selected or selected['origins'] != ['hand'] or selected['owner'] != 'self'
+            or selected['action'] != '送去墓地' or not query_supported(selected['query'])
+            or send.get('quantity') not in (None, selected['minimum'])):
+        return
+    movement = dict(from_zones=['hand'], owner='self', selector_query=selected['query'],
+                    quantity=selected['minimum'], random=False)
     send.update(movement, processing_role='auxiliary', observed_operation=deepcopy(send))
-    blocks[send['block_id']]['qualifiers'].update(deepcopy(movement))
+    send_block['qualifiers'].update(deepcopy(movement))
     summon['depends_on'] = [send['block_id']]
 
 
@@ -666,7 +682,6 @@ def _refine_record(record,row,head,body,mode):
             send.update(simultaneous_group=group, depends_on=[summon['block_id']])
     _bind_revealed_summon(record)
     _excavation_processing(record)
-    _bind_hand_send_deck_summon(record, body, blocks)
     for op in record['operations']:
         if op['kind']=='grave_destination_replace':
             rule = re.search(r'直到下个回合的结束时[，,]被送去墓地的卡不去墓地而除外',body)
@@ -684,6 +699,7 @@ def _refine_record(record,row,head,body,mode):
             record['trigger']['zone']='hand'
         elif event in ('own_main_phase','normal_summon','special_summon','normal_or_special_summon'):
             record['trigger']['zone']='field'
+    _bind_hand_send_deck_summon(record, body, blocks)
     if event == 'attack_declaration_involving_opponent_monster':
         affected = next((op for op in record['operations'] if op['kind'] == 'stats'
                          and op['source'] == '那只对方怪兽攻击力变成0'), None)
@@ -1375,7 +1391,7 @@ def _merge_lua_preselected_grave_summon(record, printed, window, script):
     return True
 
 
-def merge_lua_effect_sources(records, source, script_code, *, same_printing=True):
+def merge_lua_effect_sources(records, source, script_code, *, rows, same_printing=True):
     """Attach Lua evidence to the matching printed effect and refine supported facts."""
     if not records:
         return
@@ -1435,7 +1451,7 @@ def merge_lua_effect_sources(records, source, script_code, *, same_printing=True
             continue
         record["lua_source"] = dict(source_info, alignment="matched", registrations=list(windows))
         if index - 1 in deck_sends:
-            _merge_lua_deck_send(record)
+            _merge_lua_deck_send(record, source, rows)
         if index - 1 in self_send_costs:
             _merge_lua_self_send_cost(record)
 
@@ -1505,11 +1521,7 @@ def merge_lua_effect_sources(records, source, script_code, *, same_printing=True
         lua["count_status"] = "bound"
 
 
-def _has_rule_code_filter(query):
-    return "predicate" in query or any(_has_rule_code_filter(child) for child in query.get("any", ()))
-
-
-def _merge_lua_deck_send(record):
+def _merge_lua_deck_send(record, source, rows):
     from .construction_inventory import query_supported, requirement, selector
     from .effect_blocks import _unquote, activation_parts
 
@@ -1522,7 +1534,8 @@ def _merge_lua_deck_send(record):
         return
 
     operations = record["operations"]
-    if len(operations) != 1 or record.get("branch_records") or record["targets"]:
+    if (len(operations) != 1 or record.get("branch_records") or record["targets"]
+            or record["block_view"]["alternatives"]):
         lua["deck_send_status"] = "unresolved_printed_scope"
         return
     operation, = operations
@@ -1536,7 +1549,7 @@ def _merge_lua_deck_send(record):
     block = next((block for block in record["block_view"]["blocks"]
                   if block["block_id"] == operation["block_id"] and block["kind"] == "send_grave"), None)
     body = activation_parts(record["source_text"])[1].strip().rstrip("。．.；;")
-    if (block is None or block["source"].strip() != body
+    if (block is None
             or re.search(r"最多|至多|最少|全部|任意数量|\d+[只张](?:以上|以下)", _unquote(body))
             or any(mark in record["unknown"] for mark in ("resolution", "unparsed_resolution_or_restriction"))):
         lua["deck_send_status"] = "unresolved_printed_scope"
@@ -1545,10 +1558,8 @@ def _merge_lua_deck_send(record):
             or requirement(block["source"], "operations")):
         lua["deck_send_status"] = "printed_selector_retained"
         return
-    query = observed["selector_query"]
-    # A generic filter cannot fill a missing printed domain. IsCode filters
-    # rule names, while the existing card_ids predicate matches row IDs.
-    if query == {"selector": "卡"} or _has_rule_code_filter(query) or not query_supported(query):
+    query = source.inventory_query(observed["selector_query"], rows)
+    if query == {"selector": "卡"} or not query_supported(query):
         lua["deck_send_status"] = "unresolved_inventory_selector"
         return
 

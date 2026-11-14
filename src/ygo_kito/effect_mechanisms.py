@@ -353,7 +353,8 @@ class MechanismCatalog:
                 same_printing = script_code == code or (
                     script_code in self.assets.rows
                     and canonical_card_id(self.assets.rows, code) == canonical_card_id(self.assets.rows, script_code))
-                merge_lua_effect_sources(records, source, script_code, same_printing=same_printing)
+                merge_lua_effect_sources(records, source, script_code, rows=self.assets.rows,
+                                         same_printing=same_printing)
             cached = (profile, (version, row), records)
         self._records[code] = cached
         if len(self._records) > _EFFECT_RECORD_CACHE_SIZE:
