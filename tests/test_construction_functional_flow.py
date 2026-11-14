@@ -1416,20 +1416,24 @@ class FunctionalFlowTests(unittest.TestCase):
             construction_gate(task, decks[2], assets, result[2]['layer_evaluation'], policy=p,
                 quality=result[2]['quality_evaluation'], reference_quality=result[1]['quality_evaluation'])
 
-    def test_fill_evaluates_four_before_retaining_three(self):
-        task, assets, graph, binder, decks, p = fixture()
-        session = session_for(task, graph)
-        with patch('ygo_kito.build_pipeline.edit_candidates', return_value=rows_for(task, decks)):
-            result = fill_with_existing(session, assets, role='build_optimizer', base=decks[0],
-                binding_provider=binder, text_reviewer=binder.reviewer, verifier=None, defer_engine=True,
-                quality_policy=p, quality_evidence=reviewed(binder.semantic_catalog, p))
+    def test_fill_evaluates_four_and_retains_only_the_winner(self):
+        _, _, decks, result = functional_fill()
         self.assertEqual(result['best_deck'], decks[3].to_dict())
-        self.assertEqual(len(result['portfolio']), 3)
-        self.assertEqual(len(result['learning_candidates']), 4)
-        self.assertTrue(all(r['quality_evaluation']['deck_sha256'] == digest(r['deck']) for r in result['portfolio']))
-        evaluations={r['quality_evaluation']['evaluation_id'] for r in result['learning_candidates']}
-        self.assertTrue(all(r['quality_evaluation_id'] in evaluations for r in result['candidate_trace']['candidates']))
-        self.assertTrue(all('quality_evaluation' not in r for r in result['candidate_trace']['candidates']))
+        winner, = result['portfolio']
+        self.assertEqual(winner['deck'], result['best_deck'])
+        self.assertEqual(winner['quality_evaluation'], result['quality_evaluation'])
+        contexts = result['learning_candidates']
+        self.assertCountEqual([row['deck'] for row in contexts], [deck.to_dict() for deck in decks])
+        evaluations = {}
+        for row in contexts:
+            key = digest(row['deck'])
+            self.assertEqual(row['quality_evaluation']['deck_sha256'], key)
+            evaluations[key] = row['quality_evaluation']['evaluation_id']
+        self.assertEqual(len(set(evaluations.values())), len(decks))
+        trace = result['candidate_trace']['candidates']
+        self.assertCountEqual([(digest(row['recognition_inventory']), row['quality_evaluation_id']) for row in trace],
+            evaluations.items())
+        self.assertTrue(all('quality_evaluation' not in row for row in trace))
         json.dumps(result)
 
     def test_fill_pending_json_resumes_without_generation_or_truncation(self):

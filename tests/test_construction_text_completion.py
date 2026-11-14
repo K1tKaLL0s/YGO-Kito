@@ -477,13 +477,34 @@ class SummonRestrictionCompletionTests(unittest.TestCase):
         return _restriction_contract(dict(kind='cannot_summon',source=text,scope='player',
             duration='while_applicable',tag={'dimension':'restriction','value':'召唤限制'}))
 
-    def affected(self,rule,cards,*,actor='self'):
+    def affected(self, rule, cards, *, actor='self', payment=None):
+        from types import SimpleNamespace
+
+        from ygo_kito.build_contracts import DeckParts
+        from ygo_kito.construction_inventory import InventoryDependencies
         from ygo_kito.construction_layer_flow import _restriction_match
-        raw=dict(kind='special_summon',from_zones=['hand'],to_zone='field',reason='effect',
-            owner=actor,controller=actor,phase='resolution',source='选1只怪兽特殊召唤',
-            selector_query={'predicate':{'field':'card_ids','value':[c['id'] for c in cards]}})
-        detail=dict(card_id=99,operation=raw,semantics=raw,costs=[])
-        return _restriction_match(rule,detail,{str(c['id']):c for c in cards},dict(main=[c['id'] for c in cards],extra=[]))
+        from ygo_kito.effect_mechanisms import EXTRA_TYPES, MechanismCatalog
+
+        deck = DeckParts(
+            main=tuple(c['id'] for c in cards if not c['type'] & EXTRA_TYPES),
+            extra=tuple(c['id'] for c in cards if c['type'] & EXTRA_TYPES),
+        )
+        origins = [zone for zone, stock in (('hand', deck.main), ('extra', deck.extra)) if stock]
+        summoned = list(dict.fromkeys(deck.main + deck.extra))
+        operation = dict(kind='special_summon', from_zones=origins, to_zone='field', reason='effect',
+            owner=actor, controller=actor, phase='resolution', block_id='summon', quantity=1, random=False,
+            source='选1只怪兽特殊召唤', selector_query={'predicate':{'field':'card_ids','value':summoned}})
+        detail = dict(card_id=99, operation=operation, semantics=operation, summoned_card_ids=summoned,
+            costs=[payment] if payment is not None else [])
+        rows = {card['id']: card for card in cards}
+        choose = None
+        if payment is not None:
+            dependencies = InventoryDependencies(MechanismCatalog(SimpleNamespace(rows=rows, receipt={})))
+            record = dict(source_text='paid summon fixture', costs=[payment], targets=[], operations=[operation],
+                restrictions=[], card_restrictions=[])
+            choose = lambda allowed: dependencies.summon_choice_check(
+                deck, record, operation, allowed, physical_inventory=deck)
+        return _restriction_match(rule, detail, {str(code): card for code, card in rows.items()}, summon_choice=choose)
 
     def test_complete_sources_produce_timing_player_and_allowed_predicate(self):
         whole=self.contract(self.LEVEL);after=self.contract(self.RACE)
@@ -508,6 +529,16 @@ class SummonRestrictionCompletionTests(unittest.TestCase):
         self.assertIs(self.affected(rule,[other]),True)
         self.assertIs(self.affected(rule,[other],actor='opponent'),False)
         self.assertIsNone(self.affected(rule,[bird,other]))
+
+    def test_mixed_recipients_require_an_allowed_copy_after_payment(self):
+        rule = self.contract(self.RACE)
+        bird = dict(row('', code=1), race=512)
+        other = row('', code=2)
+        payment = dict(kind='send_grave', from_zones=['hand'], to_zone='grave', quantity=1,
+            owner='self', random=False, reason='cost', phase='activation_payment',
+            source='printed Bird payment', selector_query={'predicate':{'field':'card_ids','value':[1]}})
+        self.assertIs(self.affected(rule, [bird, other], payment=payment), True)
+        self.assertIs(self.affected(rule, [bird, bird, other], payment=payment), False)
 
     def test_unrecognized_exception_is_not_dropped(self):
         self.assertIsNone(self.contract(self.LEVEL.replace('3以上','3以上且本回合没有召唤')))

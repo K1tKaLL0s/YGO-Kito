@@ -939,7 +939,10 @@ class InventoryDependencies:
                       record,(selected or {}).get('block_id')])
         if key in self._processing:
             return self._processing[key]
-        if any(target.get('availability_timing') == 'before_activation_payment' for target in record['targets']):
+        targets = record.get('targets', ())
+        if 'targets' not in record and any(op.get('target_ref') is not None for op in record['operations']):
+            raise KeyError('targets')
+        if any(target.get('availability_timing') == 'before_activation_payment' for target in targets):
             proof = self._handler_grave_processing(Counter(deck.main + deck.extra), Counter(deck.extra), record, selected)
             self._processing[key] = dict(status=proof['status'], reason='complete_processing_preselected_grave_target',
                                          checks=[proof])
@@ -1017,7 +1020,7 @@ class InventoryDependencies:
                              and (target := _activation_target(record, item)) is not None]
             # Stats, negation and other non-moving effects can still have a
             # formal target. Allocate it once, separately from the paid copy.
-            for target in record['targets']:
+            for target in targets:
                 if target in bound_targets or target.get('selection_timing') != 'after_activation_payment':
                     continue
                 requirement = self.item_requirement(target, 'targets')

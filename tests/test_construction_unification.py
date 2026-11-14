@@ -30,7 +30,7 @@ class ConstructionUnificationTests(unittest.TestCase):
         functions=rows[1]['layer_evaluation']['axis']['overview']['functions']
         self.assertFalse(functions['node:goal:main']['supported_copies'])
         self.assertFalse(result['layer_selection']['preferred_pairs'])
-        self.assertEqual(candidate_pairs(value[0],result['portfolio']),[])
+        self.assertEqual(candidate_pairs(value[0],result['learning_candidates']),[])
 
     def test_recall_finds_external_support_before_task_identity_is_sealed(self):
         value,_,_=fixture();task,assets=value[:2]
@@ -46,7 +46,10 @@ class ConstructionUnificationTests(unittest.TestCase):
 
     def test_quality_labels_bind_actual_inventory_and_reject_changed_evidence(self):
         task,_,_,result=functional_fill()
-        pair=candidate_pairs(task,result['portfolio'])[0];validate_pair(task,pair)
+        pairs = candidate_pairs(task, result['learning_candidates'])
+        self.assertTrue(pairs)
+        pair = pairs[0]
+        validate_pair(task, pair)
         self.assertNotEqual(pair['better'],pair['worse'])
         bad=deepcopy(pair);bad['better']=bad['worse']
         with self.assertRaises(ContractError):validate_pair(task,bad)
@@ -103,10 +106,11 @@ class ConstructionUnificationTests(unittest.TestCase):
         self.assertEqual(pairs[0]['evidence']['construction_phase'],9)
         self.assertEqual(pairs[0]['evidence']['optimization_iteration'],8)
 
-    def test_valid_comparison_survives_top_three_retention(self):
+    def test_cycle_uses_comparisons_beyond_the_retained_winner(self):
         task,_,decks,stage=functional_fill()
         self.assertEqual(len(stage['learning_candidates']),len(decks))
-        stage['portfolio']=[]
+        winner, = stage['portfolio']
+        self.assertEqual(winner['deck'], stage['best_deck'])
         pairs=cycle_pairs(task,dict(phases=[dict(stage_3=stage)]))
         self.assertEqual(len(pairs),6);validate_pair(task,pairs[0])
 
