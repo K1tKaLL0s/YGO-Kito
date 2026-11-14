@@ -499,6 +499,16 @@ EFFECT_TYPE_SINGLE=1
 EFFECT_TYPE_TRIGGER_O=0x80
 EFFECT_TYPE_TRIGGER_F=0x200
 EFFECT_TYPE_IGNITION=0x10
+EFFECT_TYPE_ACTIVATE=0x20
+EFFECT_FLAG_CANNOT_DISABLE=0x400
+EFFECT_FLAG_UNCOPYABLE=0x800
+EFFECT_FLAG_SINGLE_RANGE=0x20000
+EFFECT_SPSUMMON_CONDITION=30
+CATEGORY_SPECIAL_SUMMON=0x200
+ATTRIBUTE_FIRE=4
+POS_FACEUP=5
+HINTMSG_SPSUMMON=509
+EVENT_FREE_CHAIN=1002
 EFFECT_FLAG_NO_TURN_RESET=0x400000
 EFFECT_FLAG_CARD_TARGET=0x10
 TYPE_SPELL=0x2
@@ -624,6 +634,73 @@ end
 """
 
 
+GRAVE_SUMMON_TEXT = ("①：以自己墓地1只炎属性怪兽为对象才能发动。"
+                     "选自己1张手卡送去墓地，作为对象的怪兽特殊召唤。")
+LEGACY_GRAVE_SUMMON_TEXT = ("选择自己墓地的1张怪兽卡。将1张手卡送去墓地，选择的那张怪兽卡特殊召唤。"
+                            "这个效果1个回合只能使用1次。这张卡不能从墓地特殊召唤。")
+GRAVE_SUMMON_SCRIPT = """\
+local s,id=GetID()
+function s.initial_effect(c)
+    local e=Effect.CreateEffect(c)
+    e:SetDescription(aux.Stringid(id,0))
+    e:SetType(EFFECT_TYPE_ACTIVATE)
+    e:SetCode(EVENT_FREE_CHAIN)
+    e:SetProperty(EFFECT_FLAG_CARD_TARGET)
+    e:SetTarget(s.target)
+    e:SetOperation(s.operation)
+    c:RegisterEffect(e)
+end
+function s.filter(c,e,tp)
+    return c:IsAttribute(ATTRIBUTE_FIRE) and c:IsCanBeSpecialSummoned(e,0,tp,false,false)
+end
+function s.target(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
+    if chkc then return chkc:IsLocation(LOCATION_GRAVE) and chkc:IsControler(tp) and s.filter(chkc,e,tp) end
+    if chk==0 then return Duel.IsExistingMatchingCard(Card.IsAbleToGrave,tp,LOCATION_HAND,0,1,e:GetHandler())
+        and Duel.GetLocationCount(tp,LOCATION_MZONE)>0
+        and Duel.IsExistingTarget(s.filter,tp,LOCATION_GRAVE,0,1,nil,e,tp) end
+    Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_SPSUMMON)
+    local g=Duel.SelectTarget(tp,s.filter,tp,LOCATION_GRAVE,0,1,1,nil,e,tp)
+    Duel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,g,1,0,0)
+end
+function s.operation(e,tp,eg,ep,ev,re,r,rp)
+    Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_TOGRAVE)
+    if Duel.DiscardHand(tp,Card.IsAbleToGrave,1,1,REASON_EFFECT)<1 then return end
+    local gc=Duel.GetOperatedGroup():GetFirst()
+    if not gc:IsLocation(LOCATION_GRAVE) then return end
+    local tc=Duel.GetFirstTarget()
+    if tc:IsRelateToEffect(e) then Duel.SpecialSummon(tc,0,tp,tp,false,false,POS_FACEUP) end
+end
+"""
+LEGACY_GRAVE_SUMMON_SCRIPT = GRAVE_SUMMON_SCRIPT.replace(
+    "    e:SetType(EFFECT_TYPE_ACTIVATE)\n    e:SetCode(EVENT_FREE_CHAIN)",
+    "    e:SetType(EFFECT_TYPE_IGNITION)\n    e:SetRange(LOCATION_MZONE)\n    e:SetCountLimit(1)",
+).replace(
+    "    local e=Effect.CreateEffect(c)", """\
+    local p=Effect.CreateEffect(c)
+    p:SetProperty(EFFECT_FLAG_CANNOT_DISABLE+EFFECT_FLAG_UNCOPYABLE+EFFECT_FLAG_SINGLE_RANGE)
+    p:SetType(EFFECT_TYPE_SINGLE)
+    p:SetRange(LOCATION_GRAVE)
+    p:SetCode(EFFECT_SPSUMMON_CONDITION)
+    c:RegisterEffect(p)
+    local e=Effect.CreateEffect(c)""",
+).replace(
+    "c:IsAttribute(ATTRIBUTE_FIRE) and ", "",
+).replace(
+    "Duel.IsExistingMatchingCard(Card.IsAbleToGrave,tp,LOCATION_HAND,0,1,e:GetHandler())",
+    "Duel.GetFieldGroupCount(tp,LOCATION_HAND,0)>0",
+).replace(
+    """    Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_TOGRAVE)
+    if Duel.DiscardHand(tp,Card.IsAbleToGrave,1,1,REASON_EFFECT)<1 then return end
+    local gc=Duel.GetOperatedGroup():GetFirst()
+    if not gc:IsLocation(LOCATION_GRAVE) then return end""",
+    """    if Duel.GetFieldGroupCount(tp,LOCATION_HAND,0)<=0 then return end
+    Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_TOGRAVE)
+    local sg=Duel.SelectMatchingCard(tp,Card.IsAbleToGrave,tp,LOCATION_HAND,0,1,1,nil)
+    if sg:GetCount()==0 then return end
+    if Duel.SendtoGrave(sg,REASON_EFFECT)==0 or not sg:GetFirst():IsLocation(LOCATION_GRAVE) then return end""",
+)
+
+
 class LuaEffectBlockTests(unittest.TestCase):
     def setUp(self):
         temp = tempfile.TemporaryDirectory()
@@ -671,6 +748,90 @@ class LuaEffectBlockTests(unittest.TestCase):
                        source_commits=dict(core="fixture-core", scripts="fixture-lua"))
         (self.root / "engine-build/receipt.json").write_text(json.dumps(receipt), encoding="utf-8")
         return BuildAssets(self.root)
+
+    def test_locked_resolution_send_allocates_the_original_target_and_a_separate_hand_card(self):
+        from tests.test_construction_functional_flow import fixture
+        from ygo_kito.build_contracts import BuildTask
+        from ygo_kito.construction_layer_flow import ConstructionLayerAdapter
+
+        for card_type, printing, script in ((2, GRAVE_SUMMON_TEXT, GRAVE_SUMMON_SCRIPT),
+                                           (33, LEGACY_GRAVE_SUMMON_TEXT, LEGACY_GRAVE_SUMMON_SCRIPT)):
+            with self.subTest(card_type=card_type):
+                assets = self.assets(script=script, description=printing)
+                assets.rows[LUA_CARD_ID]["type"] = card_type
+                assets.rows[11] = dict(id=11, alias=0, type=17, name="火属性对象", desc="",
+                                       setcode=0, race=1, attribute=4, level=4)
+                assets.rows[12] = dict(id=12, alias=0, type=2, name="手卡资源", desc="", setcode=0)
+                binder = CatalogBindingAdapter(assets)
+                catalog = binder.semantic_catalog
+                record, = catalog.effect_records(LUA_CARD_ID)
+                target, = record["targets"]
+                send, summon = record["operations"]
+                observed, = record["lua_source"]["registrations"]
+                evidence = observed["preselected_grave_summon"]
+                self.assertEqual(record["lua_source"]["alignment"], "matched")
+                self.assertEqual((target["timing"], target["zones"], summon["target_ref"]), ("activation", ["grave"], 0))
+                self.assertEqual((send["from_zones"], send["reason"], send["processing_role"]), (["hand"], "effect", "auxiliary"))
+                self.assertEqual(summon["depends_on"], [send["block_id"]])
+                self.assertTrue(evidence["hand_send"]["requires_arrival"])
+                self.assertLess(evidence["hand_send"]["movement_span"][0], evidence["summon"]["target_span"][0])
+                self.assertEqual(record["costs"], [])
+                if card_type == 33:
+                    limit, = record["count_limits"]
+                    self.assertEqual((limit["scope"], limit["maximum"]), ("this_card_effect", 1))
+                    allowed, restriction = InventoryDependencies(catalog).candidate_status(LUA_CARD_ID,
+                        dict(category="operations", operation=summon))
+                    self.assertFalse(allowed)
+                    self.assertEqual(restriction[0]["contract"]["from_zones"], ["grave"])
+
+                deps = InventoryDependencies(catalog)
+                adapter = ConstructionLayerAdapter(binder)
+                template, _, _, _, _, policy = fixture()
+                task = BuildTask.from_dict(dict(template.to_dict(), pool=sorted(assets.rows), requirements=[],
+                    environment=assets.environment_for("deck_constraints"), sizes=dict(main=40, extra=0, side=15)))
+                for main, side, supported in (
+                    ((LUA_CARD_ID, 11), (), False),
+                    ((LUA_CARD_ID, 11, 11), (), True),
+                    ((LUA_CARD_ID, 11, 12), (), True),
+                    ((LUA_CARD_ID, 12), (11,), False),
+                    ((LUA_CARD_ID, 11), (12,), False),
+                    ((LUA_CARD_ID, LUA_CARD_ID, 11), (), True),
+                    ((LUA_CARD_ID, LUA_CARD_ID, LUA_CARD_ID), (), False),
+                ):
+                    with self.subTest(main=main, side=side):
+                        deck = DeckParts(tuple(sorted(main)), (), side)
+                        layer = dict(axis=dict(inventory=deck.to_dict(), task=task.to_dict(), logic=None))
+                        direct, = deps.evaluate(deck, codes=(LUA_CARD_ID,))["cards"][str(LUA_CARD_ID)]["effects"]
+                        evaluated, pending, stop = adapter.evaluate_inventory(task, deck, layer, None, policy=policy)
+                        self.assertIsNone(pending)
+                        self.assertIsNone(stop)
+                        details, = [detail for key, detail in evaluated["use_details"].items()
+                            if detail["card_id"] == LUA_CARD_ID and not key.endswith((":going_first", ":going_second"))]
+                        self.assertEqual(details["operation"]["kind"], "special_summon")
+                        self.assertEqual(details["processing_prerequisites"], [send])
+                        self.assertEqual(details["relation"]["status"], "supported" if supported else "missing")
+                        self.assertEqual(direct["status"], "inventory_present" if supported else "missing")
+                        self.assertEqual(details["inventory_checks"]["processing"]["status"], direct["status"])
+
+    def test_preselected_target_requires_complete_script_and_matching_printing(self):
+        def record(script, printing=GRAVE_SUMMON_TEXT):
+            assets = self.assets(script=script, description=printing)
+            assets.rows[LUA_CARD_ID]["type"] = 2
+            return MechanismCatalog(assets).effect_records(LUA_CARD_ID)[0]
+
+        for script, printing in (
+            (GRAVE_SUMMON_SCRIPT.replace("    if not gc:IsLocation(LOCATION_GRAVE) then return end\n", ""), GRAVE_SUMMON_TEXT),
+            (GRAVE_SUMMON_SCRIPT.replace("local tc=Duel.GetFirstTarget()", "local tc=gc"), GRAVE_SUMMON_TEXT),
+            (GRAVE_SUMMON_SCRIPT.replace("IsRelateToEffect(e)", "IsRelateToEffect(re)"), GRAVE_SUMMON_TEXT),
+            (GRAVE_SUMMON_SCRIPT.replace("Card.IsAbleToGrave,1,1,REASON_EFFECT", "Card.IsAbleToGrave,1,2,REASON_EFFECT"), GRAVE_SUMMON_TEXT),
+            (GRAVE_SUMMON_SCRIPT.replace("c:IsAttribute(ATTRIBUTE_FIRE) and ", ""), GRAVE_SUMMON_TEXT),
+            (GRAVE_SUMMON_SCRIPT, GRAVE_SUMMON_TEXT.replace("，作为对象", "，也可以把作为对象")),
+        ):
+            with self.subTest(script=script, printing=printing):
+                observed = record(script, printing)
+                self.assertNotIn("preselected_grave_summon_status", observed["lua_source"])
+                self.assertFalse(any(op.get("processing_role") == "auxiliary" for op in observed["operations"]))
+
 
     def test_build_assets_bind_clone_and_count_to_existing_inventory_records(self):
         assets = self.assets()

@@ -341,6 +341,21 @@ def _printed_setcode(query, code):
         _printed_setcode(child, code) for child in query.get('any', ()))
 
 
+def _activation_target(record, operation):
+    reference = operation.get('target_ref')
+    if type(reference) is int and 0 <= reference < len(record['targets']):
+        target = record['targets'][reference]
+        if target.get('timing') == 'activation':
+            return target
+    return None
+
+
+def _processing_activation_source(record):
+    query = {'predicate': {'field': 'card_ids', 'value': [record['card_id']]}}
+    source = 'activation source: ' + record['source_text']
+    return dict(query=query, minimum=1, origin='field', owner='self', category='source', source=source)
+
+
 class InventoryDependencies:
     def __init__(self, catalog, *, requirement_limit=1024):
         self.catalog = catalog
@@ -528,6 +543,10 @@ class InventoryDependencies:
             for limit in record['count_limits'] if limit.get('status') == 'known')
         if entry.get('summon_materials') and entry.get('summon_material_source'):
             understood.add(entry['summon_material_source'].strip())
+        complete_legacy_effect = any(
+            record['source_text'].strip() == text.strip() and record['effect_index'] == 0
+            and record.get('lua_source', {}).get('preselected_grave_summon_status') == 'bound'
+            for record in entry['source_records'])
         rules = []
         for observed in observed_rules:
             if observed['kind'] not in _INTRINSIC_RESTRICTIONS:
@@ -538,7 +557,9 @@ class InventoryDependencies:
                 rule.update(observed_source=rule['source'], source=full[0])
             elif len(full) != 1:
                 rule['unknown'] = ['complete_intrinsic_clause']
-            if any(s not in understood and s not in full for s in clauses):
+            known_grave_lock = (complete_legacy_effect and observed['kind'] == 'cannot_special_summon_this_card'
+                                and observed.get('from_zones') == ['grave'])
+            if not known_grave_lock and any(s not in understood and s not in full for s in clauses):
                 # A second sentence can qualify the first prohibition. Do not
                 # certify that first sentence while dropping its context.
                 rule.update(unknown=[*rule.get('unknown', ()), 'complete_intrinsic_context'], context_source=prelude)
@@ -946,11 +967,10 @@ class InventoryDependencies:
             # the same allocator prevents paying/receiving that very copy in
             # hand or grave. Explicit field movements keep their existing
             # transfer/recovery checks instead of this stationary reservation.
-            query={'predicate':{'field':'card_ids','value':[record['card_id']]}}
-            source='activation source: '+record['source_text']
-            item=dict(kind='activation_source',source=source,from_zones=['field'],to_zone=None,
-                quantity=1,owner='self',random=False,selector_query=query,reason='effect')
-            parts.insert(0,(dict(query=query,minimum=1,origin='field',owner='self',category='source',source=source),item))
+            req = _processing_activation_source(record)
+            item = dict(kind='activation_source', source=req['source'], from_zones=['field'], to_zone=None,
+                        quantity=1, owner='self', random=False, selector_query=req['query'], reason='effect')
+            parts.insert(0, (req, item))
         if len(parts) < 2:
             self._processing[key] = None
             return None
@@ -989,8 +1009,11 @@ class InventoryDependencies:
                 if transfer is None:
                     continue
                 recoveries = tuple(PoolRecovery(fid, a.need_id, b.need_id, 'before')
-                    for j,(_, _, after) in enumerate(transfers[i+1:],i+1) for a in before for b in after
-                    if transfer.inventory is None or set(transfer.inventory)&set(pools[j].inventory)
+                    for j, (_, _, after) in enumerate(transfers[i+1:], i+1)
+                    # A target picked at activation must exist before any resolution movement.
+                    if _activation_target(record, parts[j][1]) is None
+                    for a in before for b in after
+                    if transfer.inventory is None or set(transfer.inventory) & set(pools[j].inventory)
                     if _zone_support(transfer.destination, b.resource.zone) is True)
                 if recoveries:
                     pools[i] = replace(pools[i], recoveries=recoveries)
@@ -1043,7 +1066,7 @@ class InventoryDependencies:
                 best = checked
         return best
 
-    def _check_counts(self, resident, extra, specs, *, joint=False, target=None, distinct=False):
+    def _check_counts(self, resident, extra, specs, *, joint=False, target=None, distinct=False, bound_targets=()):
         # Printed materials are distinct physical monsters; one card cannot
         # satisfy both an exact-name slot and an overlapping race slot.
         copies = [(code, i) for code, n in resident.items() for i in range(n)]
@@ -1080,7 +1103,7 @@ class InventoryDependencies:
                 shortfall=max(0,req['minimum']-len(available)), external_supply_unknown=external))
             if external:
                 result[-1]['matching_card_ids'] = []
-            if joint or distinct:
+            if (joint or distinct) and not (req['category'] == 'targets' and req['source'] in bound_targets):
                 slots.extend([available]*req['minimum'])
                 confirmed_slots.extend([confirmed]*req['minimum'])
         def shortage_for(groups):
@@ -1140,10 +1163,15 @@ class InventoryDependencies:
                     hand_sends = [req for req in effect['requirements'] if (op := req.get('operation'))
                         and op['block_id'] in dependencies and op.get('processing_role') == 'auxiliary'
                         and op['kind'] == 'send_grave' and op.get('from_zones') == ['hand']]
-                    # The ordered hand send and Deck summon have disjoint
-                    # movement destinations from the origin of any later step.
                     requirements.extend(req for req in hand_sends if req not in requirements)
-                    value = self._check_counts(resident, extra, requirements, distinct=bool(hand_sends))
+                    bound_targets = {target['source'] for req in requirements
+                        if (target := _activation_target(effect['record'], req.get('operation', {}))) is not None}
+                    if hand_sends and bound_targets:
+                        # The bound summon allocates the activation target once.
+                        # The source and the selected hand card use their own entities.
+                        requirements.insert(0, _processing_activation_source(effect['record']))
+                    value = self._check_counts(resident, extra, requirements, distinct=bool(hand_sends),
+                                               bound_targets=bound_targets)
                     key = effect['key'] + ':' + scope
                     unresolved=[r for r in effect['unknown'] if not tags or 'operation' not in r or
                         effect_matches(dict(effect['record'],operations=[r['operation']]),tags)]

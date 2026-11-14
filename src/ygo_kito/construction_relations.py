@@ -693,14 +693,18 @@ def _restriction_contract(restriction):
         if material and not match:
             conditional = re.fullmatch(r"这张卡在(?P<zone>手卡|墓地|场上|怪兽区域)存在(?:的场合)?[，,]" + body,
                                        rule.get("source", "").strip())
-        if not match and not conditional:
+        grave_only = (kind == "cannot_special_summon_this_card"
+                      and rule.get("source", "").strip() == "这张卡不能从墓地特殊召唤")
+        if not match and not conditional and not grave_only:
             return None
         if conditional and rule["duration"] != "while_applicable":
             return None
-        zone = {"手卡": "hand", "墓地": "grave", "场上": "field", "怪兽区域": "field"}.get(
+        zone = "grave" if grave_only else {"手卡": "hand", "墓地": "grave", "场上": "field", "怪兽区域": "field"}.get(
             conditional["zone"] if conditional else None)
+        if grave_only and rule["duration"] != "intrinsic":
+            return None
         condition = "this_card_in_monster_zone" if conditional and conditional["zone"] == "怪兽区域" else (
-            "this_card_in_zone" if conditional else "this_card")
+            "this_card_in_zone" if zone else "this_card")
         if (rule.get("condition", "this_card") not in ("this_card", condition)
                 or rule.get("from_zones", [zone] if zone else []) != ([zone] if zone else [])):
             return None

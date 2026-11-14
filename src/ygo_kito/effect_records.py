@@ -12,7 +12,7 @@ from collections import Counter, defaultdict
 from .rule_references import effect_reference_requests
 
 EFFECT_RECORD_VERSION = "public-effect-records-v4"
-LUA_EFFECT_RECORD_VERSION = "public-effect-records-v7"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v8"
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (
     "fusion_target", "synchro_target", "xyz_target", "tuner",
@@ -1167,6 +1167,121 @@ _PRINTED_SELF_SEND = re.compile(
 )
 
 
+_PRINTED_HAND_SEND = r'(?:选(?:择)?|将|把)(?:自己(?:的)?)?1张手卡送去墓地'
+_PRESELECTED_GRAVE_SUMMON = re.compile(
+    r'(?P<head>以自己(?:的)?墓地(?:的)?1[只张](?P<selector>[^。，；]+?)为对象)(?:才能|可以)?发动。'
+    rf'(?P<send>{_PRINTED_HAND_SEND})[，,](?P<summon>作为对象的怪兽特殊召唤)[。.]?'
+)
+_LEGACY_PRESELECTED_GRAVE_SUMMON = re.compile(
+    r'(?P<head>选择自己(?:的)?墓地(?:的)?1[张只]怪兽卡?)。'
+    rf'(?P<send>{_PRINTED_HAND_SEND})[，,](?P<summon>选择的那张怪兽卡?特殊召唤)。'
+    r'(?P<count>这个效果1(?:个)?回合只能使用1次)。'
+    r'(?:(?P<restriction>这张卡不能从墓地特殊召唤)。?)?'
+)
+
+
+def _preselected_grave_printing(record):
+    if (len(record["operations"]) != 2 or record["costs"] or record.get("branch_records")
+            or record["block_view"]["alternatives"]):
+        return None
+    pattern = _PRESELECTED_GRAVE_SUMMON if record["effect_index"] > 0 else _LEGACY_PRESELECTED_GRAVE_SUMMON
+    printed = pattern.fullmatch(record["source_text"].strip())
+    if printed is None:
+        return None
+    for op, kind, span in zip(record["operations"], ("send_grave", "special_summon"), ("send", "summon")):
+        if (op["kind"] != kind or op["source"] != printed[span] or op["quantity"] != 1
+                or op["phase"] != "resolution" or op.get("optional") or op.get("choice")):
+            return None
+    return printed
+
+
+def _merge_lua_preselected_grave_summon(record, printed, window, script):
+    from .construction_inventory import selector
+    from .effect_count_limits import _record
+
+    observed = window["preselected_grave_summon"]
+    legacy = record["effect_index"] == 0
+    selector_text = "怪兽" if legacy else printed["selector"]
+    query = selector(selector_text)
+    if query is None or {k: v for k, v in query.items() if k != "selector"} != observed["target"]["selector_query"]:
+        return False
+    send, summon = record["operations"]
+    view = record["block_view"]
+    blocks = {block["block_id"]: block for block in view["blocks"]}
+    if not all(op["block_id"] in blocks for op in (send, summon)):
+        return False
+    watched = {"unnumbered_effect_boundaries", "activation_boundary", "activation_condition",
+               "additional_activation_conditions", "unparsed_resolution_or_restriction"}
+    if legacy:
+        if (record["scope"] != "monster" or record["trigger"].get("event") != "unknown"
+                or observed["event"] != "own_main_phase" or record["targets"] or record["count_limits"]
+                or window.get("count_limit", {}).get("values") != [1] or set(record["unknown"]) - watched):
+            return False
+        prohibition = printed["restriction"]
+        local_rules = [r for r in script["registrations"] if r.get("intrinsic_grave_summon_lock")]
+        if len(local_rules) != int(prohibition is not None) or len(view["connectors"]) != 1:
+            return False
+        permitted = {window["registration_span"][0], *(r["registration_span"][0] for r in local_rules)}
+        if any(reg["registration_span"][0] not in permitted for reg in script["registrations"]):
+            return False
+        if any(r["source"] != prohibition or r["scope"] != "this_card"
+               for r in (*record["restrictions"], *record["card_restrictions"])):
+            return False
+        if prohibition and not any(r["source"] == prohibition and r["kind"] == "cannot_special_summon"
+                                   for r in view["restrictions"]):
+            return False
+        fixed = dict(status="recognized", additional_conditions="none_in_recognized_activation_clause",
+                     source=printed["head"])
+        # The fixed model input continues to read its original printed observations.
+        record["model_summary_observation"] = {key: deepcopy(record[key]) for key in (
+            "targets", "restrictions", "unknown", "conditions", "count_limits")}
+        record["trigger"].update(event="own_main_phase", zone="field", reason="not_applicable",
+                                 source=fixed["source"], additional_conditions=fixed["additional_conditions"])
+        record["conditions"].update(fixed)
+        record["knowledge"].update(activation_boundary="recognized", targets="observed",
+                                   costs="none_in_recognized_activation_clause")
+        record["unknown"] = [v for v in record["unknown"] if v not in watched]
+        view.update(grouping_status="single_legacy_effect", unknown=list(record["unknown"]), target_refs=[0])
+        view["connectors"][0].update(kind="起动", condition_source=fixed["source"])
+        limit = _record(printed["count"], 1, "this_card_effect", "use", effects=(0,))
+        record["count_limits"].append(limit)
+        view["count_limits"].append(deepcopy(limit))
+        if prohibition:
+            original = next(r for r in view["restrictions"] if r["source"] == prohibition
+                            and r["kind"] == "cannot_special_summon")
+            rule = dict(original, kind="cannot_special_summon_this_card", duration="intrinsic",
+                        condition="this_card_in_zone", from_zones=["grave"])
+            record["restrictions"] = []
+            record["card_restrictions"] = [rule]
+            view["restrictions"] = [deepcopy(rule)]
+        record["targets"] = [dict(kind="target", selector=selector_text, zones=["grave"],
+                                  quantity=1, owner="self", source=printed["head"])]
+    else:
+        if (record["scope"] != "spell_trap" or record["trigger"].get("event") != "card_activation"
+                or observed["event"] != "card_activation" or "count_limit" in window
+                or len(record["targets"]) != 1 or record["unknown"] or summon.get("target_ref") != 0):
+            return False
+        target, = record["targets"]
+        if (target.get("source"), target.get("zones"), target.get("owner"), target.get("quantity")) != (
+                printed["head"], ["grave"], "self", 1):
+            return False
+        # The spell is on the field at activation, including when activated from the hand.
+        record["trigger"]["zone"] = "field"
+
+    record["targets"][0]["timing"] = "activation"
+    old_changes = {item["block_id"]: item for item in record["resource_changes"]}
+    send_fields = dict(from_zones=["hand"], to_zone="grave", owner="self", quantity=1, random=False,
+                       selector_query={"selector": "卡"}, selector_source=send["source"])
+    summon_fields = dict(from_zones=["grave"], to_zone="field", owner="self", quantity=1, random=False,
+                         selector=selector_text, target_ref=0, depends_on=[send["block_id"]])
+    for op, fields in ((send, send_fields), (summon, summon_fields)):
+        op.update(deepcopy(fields), observed_operation=deepcopy(old_changes[op["block_id"]]))
+        blocks[op["block_id"]]["qualifiers"].update(deepcopy(fields))
+    send["processing_role"] = "auxiliary"
+    record["resource_changes"] = deepcopy(record["operations"])
+    return True
+
+
 def merge_lua_effect_sources(records, source, script_code, *, same_printing=True):
     """Attach Lua evidence to the matching printed effect and refine supported facts."""
     if not records:
@@ -1182,8 +1297,13 @@ def merge_lua_effect_sources(records, source, script_code, *, same_printing=True
                           for op in record["operations"])}
     self_send_costs = {record["effect_index"] - 1 for record in records if record["effect_index"] > 0
                        and any(_PRINTED_SELF_SEND.fullmatch(cost.get("source", "")) for cost in record["costs"])}
+    grave_summons = {record["effect_key"]: printed for record in records
+                     if (printed := _preselected_grave_printing(record)) is not None}
+    grave_summon_indices = {max(0, record["effect_index"] - 1) for record in records
+                            if record["effect_key"] in grave_summons}
     script = source.summarize_effects(script_code, deck_send_indices=deck_sends,
-                                      self_send_cost_indices=self_send_costs)
+                                      self_send_cost_indices=self_send_costs,
+                                      preselected_grave_summon_indices=grave_summon_indices)
     groups = defaultdict(list)
     for registration in script["registrations"]:
         groups[registration.get("description_index")].append(registration)
@@ -1193,6 +1313,16 @@ def merge_lua_effect_sources(records, source, script_code, *, same_printing=True
         record["record_version"] = LUA_EFFECT_RECORD_VERSION
         index = record["effect_index"]
         windows = groups.get(index - 1, ())
+        if record["effect_key"] in grave_summons and indices[index] == 1:
+            candidates = groups.get(max(0, index - 1), ())
+            if (len(candidates) == 1 and "preselected_grave_summon" in candidates[0]
+                    and _merge_lua_preselected_grave_summon(
+                        record, grave_summons[record["effect_key"]], candidates[0], script)):
+                window = candidates[0]
+                registration = dict(window, event=window["preselected_grave_summon"]["event"])
+                record["lua_source"] = dict(source_info, alignment="matched", registrations=[registration],
+                                            preselected_grave_summon_status="bound")
+                continue
         printed_event = record["trigger"].get("event")
         events = {window["event"] for window in windows}
         matches = events == (_LUA_SUMMON_EVENTS if printed_event == "normal_or_special_summon" else {printed_event})
@@ -1212,6 +1342,9 @@ def merge_lua_effect_sources(records, source, script_code, *, same_printing=True
     for record in aligned:
         lua = record["lua_source"]
         windows = lua["registrations"]
+        if lua.get("preselected_grave_summon_status") == "bound" and record["effect_index"] == 0:
+            lua["count_status"] = "printed_local_limit_confirmed"
+            continue
         if not any("count_limit" in window for window in windows):
             continue
         if (script["status"] != "parsed" or len({window["family"] for window in windows}) != 1
@@ -1404,15 +1537,16 @@ def mechanism_summary(catalog, codes):
         operations = [item for record in records for item in record["operations"] if item.get("reason") == "effect"]
         changes = [item.get("observed_operation", item)
                    for record in records for item in record["resource_changes"]]
-        limits = [item for record in records for item in record["count_limits"]]
+        observations = [record.get("model_summary_observation", record) for record in records]
+        limits = [item for record in observations for item in record["count_limits"]]
         kinds = [item["kind"] for item in operations]
         values = [float(bool(row.get("type", 0) & flag)) for flag in (0x40, 0x2000, 0x800000, 0x1000)]
         values += [len(records)/8, len(costs)/8,
                    sum(item["quantity"] for item in costs if item.get("quantity") is not None and item.get("resource") == "cards")/16,
                    sum(item.get("quantity") is None for item in costs)/8,
-                   sum(len(r["targets"]) for r in records)/8,
-                   (len(catalog.card(code).restrictions)+sum(len(r["restrictions"]) for r in records))/8,
-                   sum(bool(r["unknown"]) for r in records)/8,
+                   sum(len(r["targets"]) for r in observations)/8,
+                   (len(catalog.card(code).restrictions)+sum(len(r["restrictions"]) for r in observations))/8,
+                   sum(bool(r["unknown"]) for r in observations)/8,
                    sum(r["trigger"].get("event") == "sent_to_grave" for r in records)/8,
                    sum(r["trigger"].get("event") in ("normal_or_special_summon", "special_summon") for r in records)/8,
                    kinds.count("fusion_summon")/8, kinds.count("special_summon")/8,
@@ -1425,7 +1559,7 @@ def mechanism_summary(catalog, codes):
                    sum(item["maximum"] for item in limits if item.get("maximum") is not None)/16,
                    sum(item.get("scope", "").startswith("player_") or item.get("subject", {}).get("kind") == "same_name_shared_effects" for item in limits)/8,
                    sum(item.get("status") == "unknown" for item in limits)/8,
-                   sum(r["conditions"]["status"] == "recognized" for r in records)/8]
+                   sum(r["conditions"]["status"] == "recognized" for r in observations)/8]
         values += [sum(item.get("owner") == owner for item in costs)/8 for owner in ("self", "opponent", "unknown")]
         values += [sum(item.get("quantity") is None for item in changes)/8]
         for index, value in enumerate(values):
