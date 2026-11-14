@@ -12,7 +12,7 @@ from collections import Counter, defaultdict
 from .rule_references import effect_reference_requests
 
 EFFECT_RECORD_VERSION = "public-effect-records-v2"
-LUA_EFFECT_RECORD_VERSION = "public-effect-records-v4"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v5"
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (
     "fusion_target", "synchro_target", "xyz_target", "tuner",
@@ -1128,6 +1128,9 @@ def effect_records(profile, *, semantic_version, row=None):
 
 _LUA_NAMED_SCOPES = {"same_name_this_effect", "same_name_shared_effects", "same_name_all_effects"}
 _LUA_SUMMON_EVENTS = {"normal_summon", "special_summon"}
+_PRINTED_SELF_SEND = re.compile(
+    r"(?:把|将)(?:自己(?:的)?)?(?:手卡(?:[·、]|或者|或)场上|场上(?:[·、]|或者|或)手卡)的这张卡送去墓地"
+)
 
 
 def merge_lua_effect_sources(records, source, script_code, *, same_printing=True):
@@ -1143,7 +1146,10 @@ def merge_lua_effect_sources(records, source, script_code, *, same_printing=True
     deck_sends = {record["effect_index"] - 1 for record in records if record["effect_index"] > 0
                   and any(op["kind"] in ("send_grave", "mill") and op.get("from_zones") == ["deck"]
                           for op in record["operations"])}
-    script = source.summarize_effects(script_code, deck_send_indices=deck_sends)
+    self_send_costs = {record["effect_index"] - 1 for record in records if record["effect_index"] > 0
+                       and any(_PRINTED_SELF_SEND.fullmatch(cost.get("source", "")) for cost in record["costs"])}
+    script = source.summarize_effects(script_code, deck_send_indices=deck_sends,
+                                      self_send_cost_indices=self_send_costs)
     groups = defaultdict(list)
     for registration in script["registrations"]:
         groups[registration.get("description_index")].append(registration)
@@ -1164,6 +1170,8 @@ def merge_lua_effect_sources(records, source, script_code, *, same_printing=True
         record["lua_source"] = dict(source_info, alignment="matched", registrations=list(windows))
         if index - 1 in deck_sends:
             _merge_lua_deck_send(record)
+        if index - 1 in self_send_costs:
+            _merge_lua_self_send_cost(record)
 
     aligned = [record for record in records if record["lua_source"]["alignment"] == "matched"]
     candidates = {}
@@ -1284,6 +1292,50 @@ def _merge_lua_deck_send(record):
     lua["deck_send_status"] = "selector_bound"
 
 
+def _merge_lua_self_send_cost(record):
+    from .effect_blocks import activation_parts
+
+    lua = record["lua_source"]
+    windows = lua["registrations"]
+    observed = windows[0].get("self_send_cost", {})
+    if (observed.get("status") != "resolved" or len({window["family"] for window in windows}) != 1
+            or any(window.get("self_send_cost") != observed for window in windows[1:])):
+        lua["self_send_cost_status"] = "unresolved_callback"
+        return
+    head, _, _, mode = activation_parts(record["source_text"])
+    if (mode != "activated" or record["trigger"].get("event") != "own_main_phase"
+            or len(record["costs"]) != 1 or record["targets"] or record.get("branch_records")
+            or not _PRINTED_SELF_SEND.fullmatch(head.strip())):
+        lua["self_send_cost_status"] = "unresolved_printed_scope"
+        return
+    cost, = record["costs"]
+    if (cost["source"] != head.strip() or cost["kind"] != "send_grave" or cost.get("reason") != "cost"
+            or cost.get("to_zone") != "grave" or set(cost.get("from_zones", ())) != set(observed["from_zones"])
+            or cost.get("owner") not in ("unknown", "self") or cost.get("resource") != "cards"
+            or cost.get("quantity") != 1 or cost.get("quantity_options") or cost.get("quantity_variants")
+            or cost.get("random") or cost.get("discard")):
+        lua["self_send_cost_status"] = "printed_payment_conflict"
+        return
+    if cost.get("selector_query"):
+        lua["self_send_cost_status"] = "printed_selector_retained"
+        return
+    block = next((block for block in record["block_view"]["cost_blocks"]
+                  if block["phase"] == "activation_payment" and block["kind"] == cost["kind"]
+                  and block["source"] == cost["source"]), None)
+    original_change = dict(cost, phase="activation_payment")
+    changes = [change for change in record["resource_changes"] if change == original_change]
+    if block is None or len(changes) != 1:
+        lua["self_send_cost_status"] = "unresolved_printed_projection"
+        return
+    code = record["card_id"]
+    bound = dict(subject="this_card", source_card_id=code, owner="self", owner_status="recognized",
+                 quantity_status="explicit", selector_query={"predicate": {"field": "card_ids", "value": [code]}})
+    cost.update(deepcopy(bound), observed_payment=deepcopy(cost))
+    block["qualifiers"].update(deepcopy(bound))
+    changes[0].update(deepcopy(bound))
+    lua["self_send_cost_status"] = "bound"
+
+
 def _printed_counter_members(records, record, limit):
     scope = limit.get("scope")
     if scope == "same_name_this_effect":
@@ -1312,7 +1364,9 @@ def mechanism_summary(catalog, codes):
     for code in codes:
         row = catalog.assets.rows[code]
         records = catalog.effect_records(code)
-        costs = [item for record in records for item in record["costs"]]
+        # This vector is used by existing checkpoints. The linked handler
+        # refines static scoring while the printed payment keeps its feature values.
+        costs = [item.get("observed_payment", item) for record in records for item in record["costs"]]
         operations = [item for record in records for item in record["operations"] if item.get("reason") == "effect"]
         changes = [item for record in records for item in record["resource_changes"]]
         limits = [item for record in records for item in record["count_limits"]]

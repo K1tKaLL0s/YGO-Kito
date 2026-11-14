@@ -506,6 +506,8 @@ TYPE_TRAP=0x4
 CATEGORY_TOGRAVE=0x20
 CATEGORY_DRAW=0x10000
 LOCATION_DECK=0x1
+LOCATION_HAND=0x2
+LOCATION_MZONE=0x4
 REASON_EFFECT=0x40
 REASON_COST=0x80
 HINT_SELECTMSG=3
@@ -601,6 +603,25 @@ DECK_SEND_DESCRIPTION = (
     "这个卡名的①的效果1回合只能使用1次。\n"
     "①：这张卡召唤·特殊召唤成功的场合才能发动。" + DECK_SEND_TEXT
 )
+
+
+SELF_SEND_TEXT = "①：把手卡·场上的这张卡送去墓地才能发动。"
+SELF_SEND_SCRIPT = """\
+local s,id=GetID()
+function s.initial_effect(c)
+    local e=Effect.CreateEffect(c)
+    e:SetDescription(aux.Stringid(id,0))
+    e:SetType(EFFECT_TYPE_IGNITION)
+    e:SetRange(LOCATION_HAND+LOCATION_MZONE)
+    e:SetCost(s.pay)
+    c:RegisterEffect(e)
+end
+function s.pay(e,tp,eg,ep,ev,re,r,rp,chk)
+    local c=e:GetHandler()
+    if chk==0 then return c:IsAbleToGraveAsCost() end
+    Duel.SendtoGrave(c,REASON_COST)
+end
+"""
 
 
 class LuaEffectBlockTests(unittest.TestCase):
@@ -768,6 +789,114 @@ class LuaEffectBlockTests(unittest.TestCase):
                 self.assertLessEqual(end, len(script.encode()))
                 self.assertNotIn("selector_query", record["operations"][0])
                 self.assertFalse(record["targets"] or record["costs"])
+
+    def test_self_send_cost_uses_one_handler_and_keeps_the_printed_summary(self):
+        desc = SELF_SEND_TEXT + "自己从卡组抽1张。"
+        direct = SELF_SEND_SCRIPT.replace("    local c=e:GetHandler()\n", "").replace(
+            "c:IsAbleToGraveAsCost()", "e:GetHandler():IsAbleToGraveAsCost()").replace(
+            "Duel.SendtoGrave(c,", "Duel.SendtoGrave(e:GetHandler(),")
+        for script in (SELF_SEND_SCRIPT, direct):
+            with self.subTest(direct=script == direct):
+                assets = self.assets(script=script, description=desc)
+                catalog = MechanismCatalog(assets)
+                record, = catalog.effect_records(LUA_CARD_ID)
+                lua = record["lua_source"]
+                [registration] = lua["registrations"]
+                self.assertEqual(lua["self_send_cost_status"], "bound")
+                observed = registration["self_send_cost"]
+                self.assertEqual(observed["activation_check"]["runtime_check"], "Card.IsAbleToGraveAsCost")
+                start, end = observed["transfer"]["byte_span"]
+                self.assertTrue(self.script.read_bytes()[start:end].endswith(b",REASON_COST)"))
+                self.assertEqual([op["kind"] for op in record["operations"]], ["draw"])
+                self.assertFalse(record["legality_verified"])
+                cost, = record["costs"]
+                self.assertEqual((cost["subject"], cost["source_card_id"], cost["quantity"], cost["owner"]),
+                                 ("this_card", LUA_CARD_ID, 1, "self"))
+                self.assertEqual(cost["selector_query"], {"predicate": {"field": "card_ids", "value": [LUA_CARD_ID]}})
+                block, = record["block_view"]["cost_blocks"]
+                movement = next(change for change in record["resource_changes"] if change["reason"] == "cost")
+                for payment in (cost, block["qualifiers"], movement):
+                    self.assertEqual((payment["from_zones"], payment["to_zone"], payment["reason"]),
+                                     (["hand", "field"], "grave", "cost"))
+                    self.assertEqual(payment["selector_query"], cost["selector_query"])
+                self.assertEqual(block["phase"], "activation_payment")
+
+                inventory = InventoryDependencies(catalog)
+                specs, _ = inventory.specs(LUA_CARD_ID)
+                req, = specs[0]["requirements"]
+                self.assertEqual((req["origin"], req["origins"], req["minimum"], req["category"]),
+                                 ("choice", ["hand", "field"], 1, "costs"))
+                for deck, expected in ((DeckParts((LUA_CARD_ID,)), "inventory_present"),
+                                       (DeckParts((), (), (LUA_CARD_ID,)), "missing")):
+                    [effect] = inventory.evaluate(deck, codes=(LUA_CARD_ID,))["cards"][str(LUA_CARD_ID)]["effects"]
+                    self.assertEqual(effect["status"], expected)
+                summary = catalog.mechanism_summary((LUA_CARD_ID,))
+                with patch.object(BuildAssets, "effect_lua_source", None):
+                    self.assertEqual(summary, MechanismCatalog(assets).mechanism_summary((LUA_CARD_ID,)))
+
+        path = self.root / "self-send.sqlite3"
+        manifest = build_dictionary(catalog, path)
+        self.assertEqual(manifest["lua"]["effect_self_send_costs"], {"bound": 1})
+        with EffectBlockDictionary(path) as dictionary:
+            self.assertEqual(dictionary.card(LUA_CARD_ID), catalog.effect_blocks(LUA_CARD_ID))
+            self.assertEqual(dictionary.find("cost", "送墓"), (LUA_CARD_ID,))
+            self.assertEqual(dictionary.find("effect", "送墓"), ())
+
+    def test_self_send_cost_cannot_share_its_copy_with_a_deck_selection(self):
+        from tests.test_construction_functional_flow import fixture
+
+        task, _, _, _, _, policy = fixture()
+        assets = self.assets(script=SELF_SEND_SCRIPT, description=SELF_SEND_TEXT + "从卡组把1只怪兽送去墓地。")
+        catalog = MechanismCatalog(assets)
+        dependencies = InventoryDependencies(catalog)
+        record, = catalog.effect_records(LUA_CARD_ID)
+        operation, = record["operations"]
+        for deck, direct, route in (
+            (DeckParts((LUA_CARD_ID,)), "missing", "missing"),
+            (DeckParts((LUA_CARD_ID,), (), (LUA_CARD_ID,)), "missing", "missing"),
+            (DeckParts((LUA_CARD_ID, LUA_CARD_ID)), "inventory_present", "supported"),
+        ):
+            with self.subTest(deck=deck):
+                self.assertEqual(dependencies.processing_check(deck, record, operation)["status"], direct)
+                facts = normalize_function_uses(task, deck, catalog, policy=policy)
+                resident = {u.use_id for u in facts["uses"] if u.scope_id == "resident" and u.contributes}
+                [use] = [d for uid, d in facts["use_details"].items() if uid in resident]
+                self.assertEqual(use["relation"]["status"], route)
+                self.assertEqual(use["semantics"]["reason"], "effect")
+
+    def test_self_send_cost_preserves_the_printed_record_when_lua_differs(self):
+        desc = SELF_SEND_TEXT + "自己从卡组抽1张。"
+        variations = (
+            ("SendtoGrave(c,REASON_COST)", "SendtoGrave(eg,REASON_COST)", "handler_not_sent_as_cost"),
+            ("SendtoGrave(c,REASON_COST)", "SendtoGrave(c,REASON_EFFECT)", "handler_not_sent_as_cost"),
+            ("    Duel.SendtoGrave(c,REASON_COST)\n", "", "unsupported_cost_flow"),
+            ("LOCATION_HAND+LOCATION_MZONE", "LOCATION_HAND+LOCATION_GRAVE", "unsupported_cost_activation_range"),
+            ("c:IsAbleToGraveAsCost()", "e:GetLabel()==1 and c:IsAbleToGraveAsCost()",
+             "unsupported_cost_feasibility_check"),
+            ("e:SetCost(s.pay)", "e:SetOperation(s.pay)", "unresolved_cost_callback"),
+        )
+        for old, new, reason in variations:
+            with self.subTest(reason=reason):
+                assets = self.assets(script=SELF_SEND_SCRIPT.replace(old, new), description=desc)
+                with patch.object(BuildAssets, "effect_lua_source", None):
+                    printed, = MechanismCatalog(assets).effect_records(LUA_CARD_ID)
+                record, = MechanismCatalog(assets).effect_records(LUA_CARD_ID)
+                lua = record["lua_source"]
+                self.assertEqual(lua["self_send_cost_status"], "unresolved_callback")
+                [registration] = lua["registrations"]
+                self.assertEqual(registration["self_send_cost"]["reason"], reason)
+                for field in ("costs", "operations", "unknown", "block_view", "resource_changes"):
+                    self.assertEqual(record[field], printed[field])
+
+    def test_self_send_cost_never_rewrites_a_printed_hand_only_payment(self):
+        desc = "①：把这张卡从手卡送去墓地才能发动。自己从卡组抽1张。"
+        assets = self.assets(script=SELF_SEND_SCRIPT, description=desc)
+        with patch.object(BuildAssets, "effect_lua_source", None):
+            printed, = MechanismCatalog(assets).effect_records(LUA_CARD_ID)
+        record, = MechanismCatalog(assets).effect_records(LUA_CARD_ID)
+        self.assertEqual(record["costs"], printed["costs"])
+        self.assertEqual(record["costs"][0]["from_zones"], ["hand"])
+        self.assertEqual(record["costs"][0]["selector_query"], {"predicate": {"field": "card_ids", "value": [LUA_CARD_ID]}})
 
     def test_explicitly_shared_printed_effects_use_one_pool(self):
         assets = self.assets(script=SCRIPT.replace("n-1,id+o", "n-1,id"), prelude=SHARED)

@@ -10,7 +10,7 @@ from pathlib import Path
 from .validation import ContractError
 
 
-LUA_EFFECT_VERSION = "mycard-effect-registration-v2"
+LUA_EFFECT_VERSION = "mycard-effect-registration-v3"
 _TABLE, _CARD = object(), object()
 _CALLBACKS = {
     "SetCondition": "condition", "SetCost": "cost", "SetTarget": "target",
@@ -220,18 +220,18 @@ def _nonempty_group(node, group, constants):
     return _call(left) == (f"{group}:GetCount", [])
 
 
+def _callback(registration, role, functions, tables):
+    reference = registration.get(role, {})
+    name = reference.get("reference", "")
+    namespace, dot, _ = name.partition(".")
+    node = functions.get(name) if reference.get("definition") and dot and namespace in tables else None
+    return name, node, reference.get("byte_span", registration["registration_span"])
+
+
 def _deck_send(registration, functions, constants, tables, shadowed):
     """Recognize the one direct, fixed-count Deck-to-GY selection at resolution."""
-    def callback(role):
-        reference = registration.get(role, {})
-        name = reference.get("reference", "")
-        namespace, dot, _ = name.partition(".")
-        definition = reference.get("definition")
-        node = functions.get(name) if definition and dot and namespace in tables else None
-        return name, node, reference.get("byte_span", registration["registration_span"])
-
-    operation, body, binding = callback("operation")
-    target, check, check_binding = callback("target")
+    operation, body, binding = _callback(registration, "operation", functions, tables)
+    target, check, check_binding = _callback(registration, "target", functions, tables)
 
     def unresolved(reason, function, node, span):
         return dict(status="unresolved", reason=reason, function=function,
@@ -346,6 +346,66 @@ def _deck_send(registration, functions, constants, tables, shadowed):
                 filter=dict(function=filter_name, byte_span=filter_span, runtime_check="Card.IsAbleToGrave"))
 
 
+def _self_send_cost(registration, functions, constants, tables, shadowed):
+    """Read a direct handler-to-Graveyard payment and its feasibility check."""
+    name, body, binding = _callback(registration, "cost", functions, tables)
+
+    def unresolved(reason, node=None):
+        return dict(status="unresolved", reason=reason, function=name,
+                    byte_span=_span(node) if node is not None else binding)
+
+    if body is None:
+        return unresolved("unresolved_cost_callback")
+    hand, monster = constants.get("LOCATION_HAND"), constants.get("LOCATION_MZONE")
+    if (type(hand) is not int or type(monster) is not int
+            or registration.get("range") != (hand | monster)):
+        return unresolved("unsupported_cost_activation_range", body)
+    params = list(map(_text, body.child_by_field_name("parameters").children_by_field_name("name")))
+    if len(params) != 9 or len(set(params)) != 9 or "Duel" in (set(params) | shadowed):
+        return unresolved("unsupported_cost_parameters", body)
+    effect, chk = params[0], params[8]
+    by_cost = constants.get("REASON_COST")
+    local_constants = {key: value for key, value in constants.items() if key not in params}
+    statements = _children(body.child_by_field_name("body"))
+    alias = None
+    handler_call = (f"{effect}:GetHandler", [])
+    if statements and statements[0].type == "variable_declaration":
+        assignment, *statements = statements
+        local, names, values = _assignment(assignment)
+        if not (local and len(names) == len(values) == 1 and names[0].type == "identifier"
+                and _call(_unwrapped(values[0])) == handler_call):
+            return unresolved("unsupported_cost_handler_binding", assignment)
+        alias = _name(names[0])
+        if alias in params or alias == "Duel":
+            return unresolved("unsupported_cost_handler_binding", assignment)
+        local_constants.pop(alias, None)
+    if len(statements) != 2:
+        return unresolved("unsupported_cost_flow", body)
+    guard, movement = statements
+
+    def is_handler(node):
+        node = _unwrapped(node)
+        return _name(node) == alias if alias is not None else _call(node) == handler_call
+
+    left, right = _binary(guard.child_by_field_name("condition"), "==")
+    check = _unwrapped(_return_expression(_check_body(guard)))
+    method = check.child_by_field_name("name") if check is not None and check.type == "function_call" else None
+    if not (_name(left) == chk and _integer_value(right, local_constants) == 0
+            and method is not None and method.type == "method_index_expression"
+            and _text(method.child_by_field_name("method")) == "IsAbleToGraveAsCost"
+            and not _call(check)[1] and is_handler(method.child_by_field_name("table"))):
+        return unresolved("unsupported_cost_feasibility_check", guard)
+    call, args = _call(movement)
+    if not (call == "Duel.SendtoGrave" and len(args) == 2 and is_handler(args[0])
+            and type(by_cost) is int and _integer_value(args[1], local_constants) == by_cost):
+        return unresolved("handler_not_sent_as_cost", movement)
+    return dict(status="resolved", function=name, byte_span=_span(body),
+                subject="this_card", owner="self", quantity=1, from_zones=["hand", "field"],
+                phase="activation_payment", to_zone="grave", reason="cost",
+                activation_check=dict(byte_span=_span(check), runtime_check="Card.IsAbleToGraveAsCost"),
+                transfer=dict(byte_span=_span(movement)))
+
+
 def _helper_return(function, bindings):
     """Read the simple assignment/return form used by GetID and Stringid."""
     if function is None:
@@ -437,8 +497,8 @@ class LuaEffectSource:
         return dict(file="utility.lua", sha256=self._scripts["utility.lua"][1],
                     byte_span=_span(node), function=name) if node else None
 
-    def summarize_effects(self, code, *, deck_send_indices=()):
-        """Report registrations and requested, printed Deck-to-GY callbacks."""
+    def summarize_effects(self, code, *, deck_send_indices=(), self_send_cost_indices=()):
+        """Report registrations and requested callback facts for printed effects."""
         filename = f"c{code}.lua"
         result = dict(status="missing_script", file=filename, registrations=[], unknown=[],
                       script_card_id=code, extractor=LUA_EFFECT_VERSION, helpers=[])
@@ -514,7 +574,7 @@ class LuaEffectSource:
             self._registrations(initial, initial_bindings, functions, result, unresolved)
         if result["unknown"]:
             result["status"] = "partial"
-        elif deck_send_indices:
+        elif deck_send_indices or self_send_cost_indices:
             # Only unshadowed core constants and the card's own namespace are
             # available to this callback subset. Script locals stay unresolved.
             tables = {name for name, value in constants.items()
@@ -526,7 +586,11 @@ class LuaEffectSource:
             callbacks = {name: node for name, node in functions.items() if name not in overwritten_functions}
             observations = {}
             for registration in result["registrations"]:
-                if registration.get("description_index") not in deck_send_indices:
+                index = registration.get("description_index")
+                if index in self_send_cost_indices:
+                    registration["self_send_cost"] = _self_send_cost(
+                        registration, callbacks, static_constants, tables, shadowed)
+                if index not in deck_send_indices:
                     continue
                 operation, target = (registration.get(role, {}) for role in ("operation", "target"))
                 key = (registration["family"], registration.get("property", 0),
