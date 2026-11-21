@@ -207,6 +207,75 @@ class FunctionalQualityTests(unittest.TestCase):
         self.assertAlmostEqual(bounds['upper'], .2)
         self.assertEqual(bounds['bound_kind'], 'joint')
 
+    def test_component_comparison_keeps_local_choices_and_same_source_alternatives(self):
+        p = policy()
+        p['pass'] = p.pop('pass_')
+
+        def evaluated(uses, main):
+            separate = [f'constraint:{i}:candidate:{main[1]}' for i in range(17)]
+            variables = dict.fromkeys(['rule', 'choice:candidate:other', *separate])
+            layer, facts = fixture(uses, main=main, variables=variables)
+            facts['constraints'] = [{'any': [key, {'not': key}]} for key in separate]
+            return evaluate_functional_quality(layer, policy=p, facts=facts)
+
+        reference = evaluated([use(condition='rule')], [1] + [99] * 39)
+        local = 'choice:candidate:other'
+        candidate = evaluated([
+            use('draw', condition={'all': ['rule', local]}),
+            use('substitute', condition={'all': ['rule', {'not': local}]}),
+            use('extra-use', sources=('main:2:1',), family='addition'),
+        ], [1, 2] + [99] * 38)
+        self.assertFalse(reference['complete'] or candidate['complete'])
+        self.assertFalse(reference['completion_results'] or candidate['completion_results'])
+        self.assertEqual((reference['score']['lower'], reference['score']['upper']), (0., 1.))
+        self.assertEqual((candidate['score']['lower'], candidate['score']['upper']), (1., 2.))
+        paired = functional_delta(reference, candidate, ratio=.8)
+        self.assertEqual(paired['shared_facts'], ['rule'])
+        self.assertEqual(paired['bound_kind'], 'joint')
+        self.assertAlmostEqual(paired['lower'], 1.)
+        self.assertAlmostEqual(paired['upper'], 1.2)
+
+        short = evaluated([use(condition={'all': ['rule', local]})], [1, 3] + [99] * 38)
+        self.assertAlmostEqual(functional_delta(reference, short, ratio=.8)['lower'], -.8)
+
+    def test_component_bounds_keep_side_net_loss_for_the_same_assignment(self):
+        p = policy()
+        p['pass'] = p.pop('pass_')
+        resident = use(sources=('main:1:1', 'main:1:2', 'main:1:3'), condition='common-rule')
+        tool = use('side-tool', sources=('side:2:1',), family='alternative', scope_id='going_first')
+        impact = UseImpact('side-lock', 'side-tool', ('u',), ('base',), ('lock',), ('rules',),
+                           scope_id='going_first')
+        layer, facts = fixture([resident, tool], main=[1] * 3 + [99] * 37, side=[2], impacts=(impact,),
+                               variables={'common-rule': None})
+        brute = evaluate_functional_quality(layer, policy=p, facts=facts)
+        for index in range(17):
+            key = f'other:{index}'
+            facts['variables'][key] = None
+            facts['constraints'].append({'any': [key, {'not': key}]})
+        bounded = evaluate_functional_quality(layer, policy=p, facts=facts)
+        self.assertEqual(bounded['score'], brute['score'])
+        self.assertEqual(bounded['side_directions'], brute['side_directions'])
+        self.assertLess(bounded['side_directions']['going_first']['delta'][0], 0.)
+        self.assertEqual(bounded['side_directions']['going_second']['delta'], [0., 0.])
+
+    def test_component_calculation_resumes_without_rebuilding_finished_rows(self):
+        import json
+
+        p = policy()
+        p['pass'] = p.pop('pass_')
+        keys = [f'guard:{i}' for i in range(17)]
+        layer, facts = fixture([use(condition=keys[0])], variables=dict.fromkeys(keys))
+        facts['constraints'] = [{'any': [key, {'not': key}]} for key in keys[1:]]
+        cold = evaluate_functional_quality(layer, policy=p, facts=facts)
+        calls = iter([None] * 5)
+        pending = evaluate_functional_quality(layer, policy=p, facts=facts, resumable=True,
+            should_stop=lambda: next(calls, 'slice'))
+        work = json.loads(json.dumps(pending['calculation_pending']))
+        self.assertEqual(len(work['score_component_work']), 1)
+        self.assertNotIn('evaluation_id', pending)
+        resumed = evaluate_functional_quality(layer, policy=p, facts=facts, resumable=True, continuation=work)
+        self.assertEqual(resumed, cold)
+
     def test_duplicate_proofs_and_independent_functions(self):
         self.assertEqual(score([use(), use("second")])["score"]["value"], 1.)
         self.assertEqual(score([use(condition=False), use("alternative")])["score"]["value"], 1.)

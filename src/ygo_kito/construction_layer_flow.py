@@ -26,7 +26,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v38"
+NORMALIZATION_VERSION = "construction-function-normalization-v39"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -1091,10 +1091,15 @@ def _relation_support(row, key, scope, condition, evidence):
     def convert(expression):
         operator, children = expression
         if operator == "atom":
-            # Parser facts have the same meaning in every direction; access,
-            # inventory and ordering facts remain local to that projection.
-            identity = children if children.startswith(("fact:catalog:", "fact:catalog-text:")) else scope+":"+children
-            return condition("relation:"+identity, None, children, evidence)
+            if children.startswith('fact:catalog-text:') and not children.endswith(':turn_event_unobserved'):
+                # The printed clause has one interpretation for this asset
+                # version. Its unresolved application to the current resource
+                # projection cannot be inferred from the other inventory.
+                rule = condition('relation:' + children, None, children, evidence)
+                application = condition(f'relation:applicability:{scope}:{children}', None,
+                                        'catalog_clause_applicability', evidence)
+                return _all_support([rule, application])
+            return condition(f'relation:{scope}:{children}', None, children, evidence)
         if operator in ("all", "any"):
             return _support_group(operator,[convert(v) for v in children])
         reason='relation_expression_budget' if operator=='unresolved' else 'effect_support_and_access'
@@ -1263,8 +1268,8 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
     dependencies._specifications=specs
 
     def condition(key, value, reason, evidence):
-        # The same unresolved printed clause is shared across equal asset
-        # versions. Inventory support remains local to each deck.
+        # Comparisons verify the task and asset versions before joining this
+        # namespace. Applicability, stock and history use deck-bound keys.
         if not key.startswith('relation:fact:catalog-text:'):
             key += ":candidate:" + facts["deck_sha256"]
         previous = facts["variables"].setdefault(key, value)

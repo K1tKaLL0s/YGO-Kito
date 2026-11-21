@@ -414,16 +414,21 @@ class StaticEntryTests(unittest.TestCase):
         self.assertTrue(prohibited['complete'], prohibited['unknowns'])
         self.assertLess(prohibited['stages']['S']['lower'], prohibited['stages']['V2']['lower'])
 
-    def test_same_unparsed_activation_is_shared_by_processing_and_inventory(self):
+    def test_unparsed_rule_is_shared_and_its_application_binds_each_inventory(self):
         self.assets.rows[1].update(type=33, desc='①：自己主要阶段，自己拥有未知计数的场合才能发动。'
             '抽1张。从自己卡组上面把1张卡送去墓地。')
         first, quality = self.evaluate()
         second, other = self.evaluate(self.decks[2])
         self.assertEqual(self.state(first, 1), [None, None])
         self.assertEqual(self.state(second, 1), [None, None])
-        self.assertEqual(len(quality['unknowns']), 1)
-        self.assertEqual(quality['unknowns'], other['unknowns'])
-        self.assertIn('activation_condition_unparsed', quality['unknowns'][0])
+        self.assertEqual(len(quality['unknowns']), 2)
+        common = set(quality['unknowns']) & set(other['unknowns'])
+        self.assertEqual(len(common), 1)
+        self.assertIn('activation_condition_unparsed', next(iter(common)))
+        for evaluation in (quality, other):
+            local, = set(evaluation['unknowns']) - common
+            self.assertIn(evaluation['deck_sha256'], local)
+            self.assertEqual(evaluation['fact_details'][local]['reason_code'], 'catalog_clause_applicability')
 
     def test_optional_mutual_locks_fail_only_when_both_uses_are_required(self):
         self.assets.rows[1].update(type=2, desc='①：抽1张。这个效果发动后，自己不能特殊召唤。')

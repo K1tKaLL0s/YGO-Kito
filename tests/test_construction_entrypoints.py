@@ -40,6 +40,26 @@ def reference_gate(f, p, reference, *, passed=False, version=1):
 
 
 class ReferenceAttemptTests(unittest.TestCase):
+    def test_proven_ratio_and_static_completeness_are_independent_gate_checks(self):
+        from ygo_kito.construction_quality import evaluate_functional_quality
+
+        f, p, _, reference = reference_fixture()
+        _, _, reference_quality = evaluate(f, reference, policy=p)
+        for deck, expected in ((reference, 'passed'), (f[4][0], 'failed')):
+            with self.subTest(expected=expected):
+                _, facts, _ = evaluate(f, deck, policy=p)
+                keys = [f'other:{i}:candidate:{facts["deck_sha256"]}' for i in range(17)]
+                facts['variables'].update(dict.fromkeys(keys))
+                facts['constraints'] = [{'any': [key, {'not': key}]} for key in keys]
+                layers = dict(axis=dict(task=f[0].to_dict(), inventory=deck.to_dict(), logic=f[2].to_dict()))
+                quality = evaluate_functional_quality(layers, policy=p, facts=facts)
+                gate = construction_gate(f[0], deck, f[1], layers, policy=p,
+                    quality=quality, reference_quality=reference_quality)
+                line, = gate['metrics']
+                self.assertEqual(line['status'], expected)
+                self.assertEqual(gate['status'], 'pending')
+                self.assertIn('quality_evaluation_incomplete', gate['reasons'])
+
     def test_completed_attempts_are_idempotent_and_hints_advance_without_reference_cards(self):
         f, p, _, reference = reference_fixture()
         gate = reference_gate(f, p, reference)

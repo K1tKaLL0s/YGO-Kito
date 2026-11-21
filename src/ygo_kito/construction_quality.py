@@ -386,33 +386,47 @@ def _price_family(bins, capacity, main_size, rules):
     return channels, value
 
 
-def _functional_inputs(uses, sources, config, completion, stage, scenario, impacts, *, family_prices=None):
+def _side_overrides(uses, scenario):
+    return {(use.effect_id, use.score_family_id, source) for use in uses
+            if use.scope_id == scenario and scenario != 'resident' for source in use.source_ids}
+
+
+def _functional_inputs(uses, sources, config, completion, stage, scenario, impacts, *, family_prices=None,
+                       optimistic=None, overrides=None):
     """Merge surviving proofs before discounting each physical source once."""
     from math import fsum
     active, modes = {}, {}
     rules = {r["rule_id"]: r["increment"] for r in config["theme_rules"]}
     automatic = {r['rule_id'] for r in config['theme_rules'] if 'task_goal' in r['predicate']}
-    overrides = {(u.effect_id, u.score_family_id, source) for u in uses if u.scope_id == scenario
-                 and scenario != "resident" for source in u.source_ids}
-    for use in uses:
-        if use.scope_id not in ("resident", scenario):
-            continue
+    if overrides is None:
+        overrides = _side_overrides(uses, scenario)
+
+    def supports(expression, allow_unknown=optimistic):
+        if allow_unknown is None:
+            return support_value(expression, completion)
+        value = _support_state(expression, completion)
+        return value is True or (value is None and allow_unknown)
+
+    def eligible_sources(use):
+        return tuple(source for source in use.source_ids
+            if not (scenario == 'resident' and sources[source]['zone'] == 'side')
+            and not (use.scope_id == 'resident' and (use.effect_id, use.score_family_id, source) in overrides))
+
+    scoped = [use for use in uses if use.scope_id in ('resident', scenario)]
+    allowed = {use.use_id: eligible_sources(use) for use in scoped}
+    for use in scoped:
         if not use.contributes:
             continue
-        if stage >= 1 and not support_value(use.self_condition, completion):
+        if stage >= 1 and not supports(use.self_condition):
             continue
-        if stage >= 2 and not support_value(use.joint_condition, completion):
+        if stage >= 2 and not supports(use.joint_condition):
             continue
         for channel in ("base", *use.theme_eligible):
-            if channel != "base" and stage >= 1 and not support_value(dict(use.theme_conditions)[channel], completion):
+            if channel != "base" and stage >= 1 and not supports(dict(use.theme_conditions)[channel]):
                 continue
-            if channel != 'base' and stage >= 2 and not support_value(dict(use.theme_joint_conditions).get(channel, True), completion):
+            if channel != 'base' and stage >= 2 and not supports(dict(use.theme_joint_conditions).get(channel, True)):
                 continue
-            for source in use.source_ids:
-                if use.scope_id == "resident" and (use.effect_id, use.score_family_id, source) in overrides:
-                    continue
-                if scenario == "resident" and sources[source]["zone"] == "side":
-                    continue
+            for source in allowed[use.use_id]:
                 key = use.score_family_id, channel, source
                 mode_key = use.score_family_id, source
                 if mode_key in modes and modes[mode_key] != use.valuation_mode:
@@ -420,22 +434,20 @@ def _functional_inputs(uses, sources, config, completion, stage, scenario, impac
                 modes[mode_key] = use.valuation_mode
                 active.setdefault(key, set()).add(use.use_id)
     admitted = set().union(*active.values()) if active else set()
-    required = [u for u in uses if u.required and u.scope_id in ("resident", scenario)
-        and (stage < 1 or support_value(u.self_condition, completion))
-        and (stage < 2 or support_value(u.joint_condition, completion))
-        and any(not (scenario == "resident" and sources[s]["zone"] == "side")
-                and not (u.scope_id == "resident" and (u.effect_id, u.score_family_id, s) in overrides)
-                for s in u.source_ids)]
+    required = [u for u in scoped if u.required and allowed[u.use_id]
+        and (stage < 1 or supports(u.self_condition)) and (stage < 2 or supports(u.joint_condition))]
     admitted.update(u.use_id for u in required)
-    adoptions = {u.use_id: {s for s in u.source_ids
-        if not (u.scope_id == "resident" and (u.effect_id, u.score_family_id, s) in overrides)}
-        for u in required if not u.contributes}
+    adoptions = {u.use_id: set(allowed[u.use_id]) for u in required if not u.contributes}
     if stage == 3:
-        for impact in impacts:
-            if (impact.scope_id not in ("resident", scenario)
-                    or impact.source_use_id not in admitted
-                    or not support_value(impact.condition, completion)):
-                continue
+        # A lower bound withdraws every possibly harmed proof. An upper
+        # bound withdraws only proofs whose harm is already certain.
+        harm_sources = admitted if optimistic is None else {u.use_id for u in scoped
+            if (u.contributes or u.required) and allowed[u.use_id]
+            and supports(u.self_condition, not optimistic) and supports(u.joint_condition, not optimistic)}
+        applicable_impacts = [i for i in impacts if i.scope_id in ('resident', scenario)
+            and i.source_use_id in harm_sources
+            and supports(i.condition, None if optimistic is None else not optimistic)]
+        for impact in applicable_impacts:
             affected = set(impact.affected_use_ids)
             if "base" in impact.channels:
                 for uid, retained in adoptions.items():
@@ -454,13 +466,11 @@ def _functional_inputs(uses, sources, config, completion, stage, scenario, impac
                 witnesses = config.get('_theme_witnesses', {}).get(uid, ())
                 retained = False
                 for witness in witnesses:
-                    if not support_value(witness['joint_condition'], completion):
+                    if not supports(witness['joint_condition']):
                         continue
                     remaining = set(witness['receiver_source_ids'])
-                    for impact in impacts:
-                        if (impact.scope_id in ('resident', scenario) and impact.source_use_id in admitted
-                                and 'base' in impact.channels and witness['receiver_use_id'] in impact.affected_use_ids
-                                and support_value(impact.condition, completion)):
+                    for impact in applicable_impacts:
+                        if 'base' in impact.channels and witness['receiver_use_id'] in impact.affected_use_ids:
                             remaining.difference_update(impact.affected_source_ids or remaining)
                     if remaining:
                         retained = True
@@ -921,6 +931,15 @@ def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, 
             work['details'] = stages
 
     pending = work['next_completion'] < case_count or work['active_outcome'] is not None
+    component_score, component_side, components = None, None, None
+    if not exact_search and not upper_unknown and not pending:
+        from .construction_score_bounds import component_ranges, evaluate_components
+        components = work.setdefault('score_component_work', [])
+        if evaluate_components(uses, impacts, sources, runtime, directions, known, unknown, facts['constraints'],
+                               components, should_stop=should_stop, family_prices=family_prices):
+            component_score, component_side = component_ranges(components, directions)
+        else:
+            pending = timed_out = True
     exhaustive = exact_search and not pending
     count = len(work['completion_scores'])
     if not count and exhaustive:
@@ -930,19 +949,25 @@ def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, 
         weight * _functional_inputs(uses, sources, runtime, known, 0, d, ())["value"] for d, weight in directions.items())
     stage_ranges = [dict(lower=bounds[0] if exact_bounds else 0.,
         upper=None if upper_unknown else bounds[1] if exhaustive else potential) for bounds in work['stages']]
+    if component_score is not None:
+        stage_ranges[3] = component_score
+    exact_score = exact_bounds or (component_score is not None and all(c['exact'] for c in components))
     score = dict(stage_ranges[3], unit="functional_log2", value=None,
-                 bound_kind="exact" if exact_bounds else "conservative")
-    if exact_bounds and score["lower"] == score["upper"]:
+                 bound_kind="exact" if exact_score else "conservative")
+    if exact_score and score["lower"] == score["upper"]:
         score["value"] = score["lower"]
     complete = exact_bounds and not unknown
     hard = [dict(requirement_id=u.use_id, origin=u.requirement_origin) for u in uses
             if u.required and u.scope_id == 'resident'] + [
         dict(requirement_id=r['requirement_id'], origin=r['origin']) for r in requirements]
+    known_requirements = {r['requirement_id']: _support_state(r['condition'], known) for r in requirements}
     for row in hard:
         bounds = work['hard'].get(row['requirement_id'])
         row['status'] = 'unknown'
         if exhaustive and bounds and bounds[0] == bounds[1]:
             row['status'] = 'satisfied' if bounds[0] else 'failed'
+        elif known_requirements.get(row['requirement_id']) is not None:
+            row['status'] = 'satisfied' if known_requirements[row['requirement_id']] else 'failed'
     losses = [dict(stage=name, lower=bounds[0] if exact_bounds else 0.,
         upper=bounds[1] if exact_bounds else None, accounted_by='effective_inputs')
         for name, bounds in zip(('self', 'joint', 'mandatory_impact'), work['losses'])]
@@ -968,12 +993,17 @@ def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, 
         side_contexts=deepcopy(facts.get("side_contexts", {})),
         theme_profile=deepcopy(config.get('theme_profile')),
         theme_witnesses=deepcopy(witnesses), unknown_scope=deepcopy(facts.get('unknown_scope', [])),
-        side_directions={d: dict(weight=w, **{key: work['side'][d][key] if exact_bounds else None
+        side_directions={d: dict(weight=w, **{key: component_side[d][key] if component_side is not None else
+            work['side'][d][key] if exact_bounds else None
             for key in ('resident', 'combined', 'delta')}) for d, w in directions.items()},
         coverage_details=deepcopy(facts.get("coverage_details", {})),
         use_details=deepcopy(facts.get("use_details", {})), fact_details=deepcopy(facts.get("fact_details", {})),
         unpriced_effects=deepcopy(facts.get("unpriced_effects", [])),
         completion_results=completion_results, details=work['details'] if complete else None)
+    if component_score is not None:
+        from .construction_score_bounds import _public
+        body['score_components'] = [{k: v for k, v in component.items() if k != 'side'} for component in components]
+        body['comparison_known_facts'] = {key: known[key] for key in sorted(referenced & known.keys()) if _public(key)}
     body["total"] = dict(value=score["value"], min=score["lower"], max=score["upper"],
         complete=complete, scope_complete=body["scope_complete"], status="known" if complete else "unknown",
         deferred=deferred, unknown_items=unknown, partial_items=unknown_coverage, unit="functional_log2")
@@ -997,6 +1027,8 @@ class _ComparisonInput:
     eligible: bool
     facts: tuple
     completions: tuple
+    components: tuple
+    known_facts: dict
 
 
 def validate_evaluation(row):
@@ -1038,7 +1070,8 @@ class EvaluationComparisons:
             eligible = row['complete'] and all(r['status'] == 'satisfied' for r in row['hard_requirements'])
             self.inputs[identity] = (row, _ComparisonInput(row['evaluation_id'], row['deck_sha256'],
                 row['task_sha256'], scope, score['lower'], score['upper'], score['value'],
-                score['bound_kind'] == 'exact', eligible, facts, completions))
+                score['bound_kind'] == 'exact', eligible, facts, completions,
+                tuple(row.get('score_components', ())), row.get('comparison_known_facts', {})))
         return self.inputs[identity][1]
 
     def release_candidates(self, *keep):
@@ -1082,7 +1115,13 @@ def _delta(before, after, ratio):
     low = after.lower - ratio * before.upper if before.upper is not None else None
     high = after.upper - ratio * before.lower if after.upper is not None else None
     joint = False
-    if before.completions and after.completions and before.exact and after.exact:
+    shared_facts = []
+    if before.components or after.components:
+        from .construction_score_bounds import compare_components
+        result = compare_components(before, after, ratio, (low, high))
+        if result is not None:
+            low, high, joint, shared_facts = result
+    elif before.completions and after.completions and before.exact and after.exact:
         shared = sorted(set(before.facts) & set(after.facts))
         if shared:
             def groups(value):
@@ -1100,8 +1139,12 @@ def _delta(before, after, ratio):
             low = min(right[k][0] - ratio * left[k][1] for k in keys)
             high = max(right[k][1] - ratio * left[k][0] for k in keys)
             joint = True
-    return dict(lower=low, upper=high, bound_kind="joint" if joint else "conservative",
-                ratio=ratio, before_evaluation_id=before.evaluation_id, after_evaluation_id=after.evaluation_id)
+            shared_facts = shared
+    result = dict(lower=low, upper=high, bound_kind="joint" if joint else "conservative",
+                  ratio=ratio, before_evaluation_id=before.evaluation_id, after_evaluation_id=after.evaluation_id)
+    if shared_facts:
+        result['shared_facts'] = shared_facts
+    return result
 
 
 def _comparison_record(before, after, bounds):
