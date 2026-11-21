@@ -11,7 +11,7 @@ import re
 from .validation import ContractError
 
 
-LUA_EFFECT_VERSION = "mycard-effect-registration-v20"
+LUA_EFFECT_VERSION = "mycard-effect-registration-v21"
 _TABLE, _CARD = object(), object()
 _CALLBACKS = {
     "SetCondition": "condition", "SetCost": "cost", "SetTarget": "target",
@@ -584,6 +584,99 @@ def _deck_send(registration, functions, constants, tables, shadowed, local_ids):
                 activation_check=dict(function=target, byte_span=_span(exists), minimum=quantity),
                 transfer=dict(function=operation, byte_span=_span(send), to_zone="grave", reason="effect"),
                 filter=dict(function=filter_name, byte_span=filter_span, runtime_check="Card.IsAbleToGrave"))
+
+
+def _optional_category_search(registration, functions, constants, tables, local_ids, utility):
+    """Read a voluntary, one-card Deck selection followed only by reveal."""
+    if registration.get("type") != constants.get("EFFECT_TYPE_ACTIVATE") or "operation" not in registration:
+        return None
+    _, callback, _ = _callback(registration, "operation", functions, tables)
+    if callback is None:
+        return None
+    params = tuple(map(_text, callback.child_by_field_name("parameters").children_by_field_name("name")))
+    steps = _children(callback.child_by_field_name("body"))
+    if len(params) != 8 or len(set(params)) != 8 or {"Duel", "aux"} & set(params) or len(steps) != 1:
+        return None
+    effect, player = params[:2]
+    local = {key: value for key, value in constants.items() if key not in params}
+    local.update({key: value for key, (value, start) in local_ids.items()
+                  if key not in params and start < callback.start_byte})
+    deck, reason = local.get("LOCATION_DECK"), local.get("REASON_EFFECT")
+    guard, = steps
+    present, choose = _binary(guard.child_by_field_name("condition"), "and")
+    test, args = _call(present)
+    ability = _name(args[0]) if args else None
+    if (test != "Duel.IsExistingMatchingCard" or not ability or ability.partition(".")[0] not in tables
+            or type(deck) is not int or type(reason) is not int
+            or not _literal_arguments(args, local, (ability, player, deck, 0, 1, None))):
+        return None
+    name, args = _call(choose)
+    if name != "Duel.SelectYesNo" or len(args) != 2 or _name(args[0]) != player:
+        return None
+    description, description_args = _call(args[1])
+    if (description != "aux.Stringid" or len(description_args) != 2
+            or any(_integer_value(arg, local) is None for arg in description_args)):
+        return None
+    steps = list(_processing_statements(_check_body(guard), local, player, effect))
+    if len(steps) != 2:
+        return None
+    selection, send_guard = steps
+    group, selected = _local_value(selection)
+    if (not group or group in set(params) | tables | {"Duel", "aux"}
+            or not _literal_call(selected, local, "Duel.SelectMatchingCard", player, ability, player, deck, 0, 1, 1, None)
+            or not _chosen_object_available(send_guard.child_by_field_name("condition"), True, group, group, local)):
+        return None
+    body = _check_body(send_guard)
+    if len(body) != 2 or not _literal_call(body[0], local, "Duel.SendtoHand", group, None, reason):
+        return None
+    reveal, args = _call(body[1])
+    if reveal != "Duel.ConfirmCards" or len(args) != 2 or _name(args[1]) != group:
+        return None
+    number, seat = _binary(args[0], "-")
+    if _integer_value(number, local) != 1 or _name(seat) != player:
+        return None
+
+    selector = functions.get(ability)
+    if selector is None:
+        return None
+    actors = selector.child_by_field_name("parameters").children_by_field_name("name")
+    if len(actors) != 1 or _text(actors[0]) == "aux":
+        return None
+    actor = _text(actors[0])
+    predicate = _return_expression(_children(selector.child_by_field_name("body")))
+    category_test, able = _binary(predicate, "and")
+    test, args = _call(category_test)
+    if test != f"{actor}:IsEffectProperty" or len(args) != 1 or not _literal_call(able, {}, f"{actor}:IsAbleToHand"):
+        return None
+    helper, category_args = _call(args[0])
+    category = _integer_value(category_args[0], local) if len(category_args) == 1 else None
+    if helper != "aux.EffectCategoryFilter" or category is None or not _category_search_helpers(utility):
+        return None
+    return dict(category=category, dice_category=category == local.get("CATEGORY_DICE"),
+                operation_span=_span(callback), selection_span=_span(selected), transfer_span=_span(body[0]))
+
+
+def _category_search_helpers(utility):
+    stringid = utility.get("Auxiliary.Stringid")
+    category = utility.get("Auxiliary.EffectCategoryFilter")
+    if stringid is None or category is None:
+        return False
+    identity = stringid.child_by_field_name("parameters").children_by_field_name("name")
+    arguments = category.child_by_field_name("parameters").children_by_field_name("name")
+    if len(identity) != 2 or len(arguments) != 1:
+        return False
+    value = _return_expression(_children(stringid.child_by_field_name("body")))
+    product, index = _binary(value, "+")
+    code, multiplier = _binary(product, "*")
+    closure = _return_expression(_children(category.child_by_field_name("body")))
+    if closure is None or closure.type != "function_definition":
+        return False
+    effects = closure.child_by_field_name("parameters").children_by_field_name("name")
+    predicate = _return_expression(_children(closure.child_by_field_name("body")))
+    return (_name(code) == _text(identity[0]) and _integer_value(multiplier, {}) == 16
+            and _name(index) == _text(identity[1]) and len(effects) == 1
+            and _text(effects[0]) != _text(arguments[0])
+            and _literal_call(predicate, {}, f"{_text(effects[0])}:IsHasCategory", _text(arguments[0])))
 
 
 _COST_LOCATIONS = {"HAND": "hand", "MZONE": "field", "SZONE": "field",
@@ -2389,7 +2482,7 @@ class LuaEffectSource:
                         result["helpers"].append(helper)
                     if not values or values[0] is not _TABLE:
                         unresolved("unsupported_get_id", node)
-                    elif deck_send_indices and len(names) >= 2 and values[1:2] == [code]:
+                    elif (deck_send_indices or activation_windows) and len(names) >= 2 and values[1:2] == [code]:
                         local_ids[_name(names[1])] = (code, node.start_byte)
                 else:
                     if any(_call(value)[0] for value in values):
@@ -2481,6 +2574,14 @@ class LuaEffectSource:
                     registration["lp_payment"] = payment
                 if activation_scope and (payment := _field_release_payment(registration, callbacks, static_constants, tables)):
                     registration["field_release_payment"] = payment
+                if activation_scope and not (assignments["aux"] or assignments["Auxiliary"] or
+                        {"aux", "Auxiliary"} & function_namespaces):
+                    search = _optional_category_search(registration, callbacks, static_constants, tables, local_ids, self._utility)
+                    if search:
+                        registration["optional_deck_search"] = search
+                        for name in ("Auxiliary.Stringid", "Auxiliary.EffectCategoryFilter"):
+                            if (helper := self._helper(name)) not in result["helpers"]:
+                                result["helpers"].append(helper)
                 if summon_response_scope and (negation := _direct_summon_negation(
                         registration, callbacks, static_constants, tables)):
                     registration["direct_summon_negation"] = negation

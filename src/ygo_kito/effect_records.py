@@ -12,7 +12,7 @@ from collections import Counter, defaultdict
 from .rule_references import effect_reference_requests
 
 EFFECT_RECORD_VERSION = "public-effect-records-v6"
-LUA_EFFECT_RECORD_VERSION = "public-effect-records-v25"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v26"
 _OPPONENT_SUMMON_RESPONSE = 'opponent_special_summon_effect_activation'
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (
@@ -2143,6 +2143,36 @@ def _bind_lua_field_release(record, registrations):
         changes.append(dict(deepcopy(cost), phase="activation_payment"))
 
 
+def _bind_lua_optional_category_search(record, registrations):
+    if len(registrations) != 1 or record.get("branch_records"):
+        return
+    proof = registrations[0].get("optional_deck_search")
+    if not proof:
+        return
+    operations = record["operations"]
+    searches = [op for op in operations if op["kind"] in ("search", "search_or_recover", "add_hand")
+                and op.get("from_zones") == ["deck"] and op.get("to_zone") == "hand"
+                and op.get("quantity") == 1 and op.get("owner") == "self" and op.get("optional")]
+    if len(searches) != 1:
+        return
+    search, = searches
+    other = [op for op in operations if op is not search]
+    if other:
+        if not proof["dice_category"] or len(other) != 1 or other[0]["kind"] != "dice" or other[0]["source"] != search["source"]:
+            return
+        extra, = other
+        key = extra["block_id"]
+        view = record["block_view"]
+        if key in search.get("depends_on", ()) or any(c["source"] == key for c in view["connectors"]):
+            return
+        record.setdefault("model_summary_observation", {}).setdefault("operations", deepcopy(operations))
+        operations.remove(extra)
+        record["resource_changes"] = [change for change in record["resource_changes"] if change.get("block_id") != key]
+        view["blocks"] = [block for block in view["blocks"] if block["block_id"] != key]
+        view["connectors"] = [c for c in view["connectors"] if c["target"] != key]
+    record["lua_source"]["optional_deck_search"] = deepcopy(proof)
+
+
 def merge_lua_effect_sources(records, source, script_code, *, rows, same_printing=True):
     """Attach Lua evidence to the matching printed effect and refine supported facts."""
     if not records:
@@ -2187,8 +2217,9 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
         script_options["battle_group_revival"] = True
     if any((target := _printed_lua_target(record)) is not None and target["zones"] == ["field"] for record in records):
         script_options["field_targets"] = True
-    if any(record["conditions"]["status"] == "unknown" and record["operations"]
-           or any(item["kind"] == "release" for item in (*record["costs"], *record["operations"])) for record in records):
+    if any(record["conditions"]["status"] == "unknown" and record["operations"] or any(
+            item["kind"] in ("release", "search_or_recover", "search", "add_hand")
+            for item in (*record["costs"], *record["operations"])) for record in records):
         script_options["activation_windows"] = True
     script = source.summarize_effects(script_code, **script_options)
     _bind_lua_attack_obligation(records, script, source)
@@ -2283,6 +2314,7 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
         record["lua_source"] = dict(source_info, alignment="matched", registrations=list(windows))
         _bind_lua_target(record, windows, source, rows)
         _bind_lua_field_release(record, windows)
+        _bind_lua_optional_category_search(record, windows)
         if restriction_bound:
             record["lua_source"]["summon_lock_alignment"] = "matched"
         if record.get("type_matched_deck_send"):

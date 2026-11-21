@@ -343,10 +343,14 @@ def _native_confirms_resolution(record, operation, native):
     source = record.get("lua_source", {})
     registrations = source.get("registrations", ())
     if (source.get("alignment") != "matched" or len(registrations) != 1 or record.get("branch_records")
-            or record["operations"] != [operation] or not native["chain"].get("response_to")):
+            or record["operations"] != [operation]):
+        return False
+    observed, = native["observed_moves"]
+    if source.get("optional_deck_search"):
+        return observed["origin"] == "deck" and observed["destination"] == "hand" and observed["reason"] == "effect"
+    if not native["chain"].get("response_to"):
         return False
     proof = registrations[0].get("direct_chain_negation")
-    observed, = native["observed_moves"]
     return bool(proof and operation["kind"] == observed["kind"] == "negate" and proof["mode"] == observed.get("negation"))
 
 
