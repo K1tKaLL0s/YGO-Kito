@@ -25,10 +25,12 @@ class CourseCudaMigrationTests(unittest.TestCase):
             def read(path):
                 return task.to_dict() if 'build-engineering' in str(path) else {}
             with self.subTest(command=command), patch('ygo_kito.' + module, return_value={'ok': True}) as run, \
+                    patch('ygo_kito.native_assets.require_resource_receipt') as preflight, \
                     patch('ygo_kito.cli.read_json', side_effect=read), \
                     patch('ygo_kito.' + ('build_training' if build else 'cpu_training') + '.config_from_dict', return_value=None), \
                     contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(main([command, '--run-id', 'migration-routing-check']), 0)
+                preflight.assert_called_once_with(Path('.cache'))
                 self.assertEqual(run.call_args.kwargs['device'], expected)
 
     def test_invalid_target_seed_and_unavailable_cuda_preserve_source(self):
