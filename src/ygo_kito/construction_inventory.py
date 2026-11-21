@@ -1042,9 +1042,7 @@ class InventoryDependencies:
 
     def witnessed_processing(self, deck, record, operation, *, inventory):
         """Allocate the opening and chosen Deck card of one completed legal use."""
-        if (not operation or not self.native_witnesses or operation.get("from_zones") != ["deck"]
-                or operation.get("random") or operation.get("reason") != "effect"
-                or operation.get("owner") != "self"):
+        if not operation or not self.native_witnesses or operation.get("reason") != "effect":
             return None
         witnesses = self.native_witnesses.get((record["card_id"], record["effect_key"], operation["block_id"]), ())
         if (not witnesses or Counter(deck.main) != Counter(inventory.main)
@@ -1058,8 +1056,18 @@ class InventoryDependencies:
                     or record.get("costs") or evidence["payments"]):
                 continue
             query = evidence["query"]
-            moves = [move for move in evidence["moves"] if move["destination"] == operation.get("to_zone")
-                     and (req is None or matches(self.rows[move["card"]], req["query"]))]
+            identity = evidence["identity"]
+            field_use = "blocks" in identity
+            if field_use:
+                moves = [evidence["field_moves"][identity["blocks"].index(operation["block_id"])]]
+                deck_moves = evidence["prepared_moves"]
+            else:
+                if (operation.get("from_zones") != ["deck"] or operation.get("random")
+                        or operation.get("owner") != "self"):
+                    continue
+                moves = [move for move in evidence["moves"] if move["destination"] == operation.get("to_zone")]
+                deck_moves = moves
+            moves = [move for move in moves if req is None or matches(self.rows[move["card"]], req["query"])]
             if len(moves) != operation.get("quantity") or not moves:
                 continue
             requirements = [dict(query={"predicate": {"field": "card_ids", "value": [code]}},
@@ -1068,17 +1076,20 @@ class InventoryDependencies:
             requirements.extend(dict(query={"predicate": {"field": "card_ids", "value": [code]}},
                 minimum=count, origin="deck", owner="self", source=operation["source"], category="operations",
                 operation=operation)
-                for code, count in Counter(move["card"] for move in moves).items())
+                for code, count in Counter(move["card"] for move in deck_moves).items())
             allocation = self._check(deck, requirements, distinct=True)
             if allocation["status"] == "inventory_present":
                 proven.append(dict(allocation=allocation, receipt=evidence["receipt"], moves=moves,
-                                   summons=query["summons"]))
+                                   summons=query["summons"], field_use=field_use,
+                                   targets=[m["card"] for m in evidence["field_moves"] if m["kind"] == "destroy"]))
         if not proven:
             return None
         first = proven[0]
-        return dict(first["allocation"], reason="native_resolved_deck_selection", receipt=first["receipt"],
+        return dict(first["allocation"], reason=("native_resolved_field_processing" if first["field_use"] else
+                    "native_resolved_deck_selection"), receipt=first["receipt"],
                     observed_moves=first["moves"], prepared_summons=first["summons"],
                     alternatives=[row["receipt"] for row in proven],
+                    observed_target_ids=sorted({code for row in proven for code in row["targets"]}),
                     observed_card_ids=sorted({move["card"] for row in proven for move in row["moves"]}))
 
     def processing_check(self, deck, record, selected=None, *, physical_inventory=None):

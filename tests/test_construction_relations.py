@@ -1067,6 +1067,21 @@ class EditComparisonTests(unittest.TestCase):
 
 
 class BudgetAndGeneralityTests(unittest.TestCase):
+    def test_saved_operation_proof_keeps_its_capacity_after_resume(self):
+        operation = Resource("functional_operation", attributes=("a",))
+        ctx = RelationContext((use("b"),), (
+            fact("a", output=operation, conditions=("prepared",)),
+            fact("b", inputs=all_of(Need("prior", operation, mode="presence"))),
+            fact("c"),
+        ))
+        full = evaluate(ctx)
+        sliced = replace(ctx, budget=RelationBudget(updates=2))
+        pending = evaluate(sliced, resumable=True).data["continuation"]
+        self.assertIn("operation-proof:a", pending["states"]["b"]["usage"])
+        self.assertEqual(pending["queue"], ["c"])
+        resumed = evaluate(sliced, continuation=json.loads(json.dumps(pending)), resumable=True)
+        self.assertEqual(semantic(resumed), semantic(full))
+
     def test_matching_budget_before_checks_and_truncation_is_not_missing(self):
         ctx = RelationContext((use("a"), use("b")), (fact("a"), fact("b")),
                               budget=RelationBudget(matches=1))

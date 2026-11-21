@@ -966,6 +966,10 @@ def _record_facts(code, records, *, zone="main", same_name=None, inventory=None,
                 'activation_boundary', 'activation_condition', 'additional_activation_conditions',
                 'cost_or_condition', 'count_negation_policy')
                 and (v != 'resolution' or not record['operations'])]
+        if functional:
+            # The printed grouping is diagnostic. Actual trigger, payment,
+            # resolution, count and restriction gaps have their own facts.
+            unknown = [v for v in unknown if v != 'unnumbered_effect_boundaries']
         repeated = index_counts[record["effect_index"]] > 1
         if repeated:
             # Pendulum and monster sections can both number an effect ①.
@@ -973,7 +977,7 @@ def _record_facts(code, records, *, zone="main", same_name=None, inventory=None,
             # or claiming that the parser has resolved the section's scope.
             ref += f":record:{position}"
             source += f":record:{position}"
-            if not record.get('scope') or scoped_counts[record.get('scope'),record['effect_index']]>1:
+            if not functional and (not record.get('scope') or scoped_counts[record.get('scope'),record['effect_index']]>1):
                 unknown.append("repeated_effect_number_scope_unresolved")
         if record.get('branch_records'):
             from .effect_records import operation_record
@@ -1400,6 +1404,11 @@ def _capacity(index, counts):
             result[key] *= sum(counts[k] for k in pool.count_inventory)
     for f in index.facts.values():
         if f.output_pool is None:
+            if f.output.kind == "functional_operation":
+                # A saved prerequisite may already refer to this Boolean proof
+                # before the resumed traversal visits its supplier.
+                present = f.card_id is None or counts[(f.zone, f.card_id)] > 0
+                result.setdefault("operation-proof:" + f.fact_id, int(present))
             amount = f.quantity
             if amount is not None and f.inventory_scaled:
                 amount *= counts[(f.zone, f.card_id)]

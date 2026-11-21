@@ -8,7 +8,9 @@ from ygo_kito.construction_native import (
     NativeRuleChecks,
     _bind_movement,
     _choice_tokens,
+    _field_moves,
     _resolved_deck_moves,
+    planned_queries,
 )
 
 
@@ -59,8 +61,8 @@ class ConstructionNativeTests(unittest.TestCase):
                         alternatives=[dict(path=[["select", query["card"]]])])
 
         with patch.object(checks, "_ask", side_effect=ask):
-            result = checks.evaluate(task, deck, {}, role="candidate", queries=queries)
-        self.assertEqual((result["eligible_uses"], result["known_windows"], result["decisions"]), (2, 4, 100))
+            result = checks.evaluate(task, deck, role="candidate", queries=queries)
+        self.assertEqual((result["eligible_cards"], result["known_windows"], result["decisions"]), (2, 4, 100))
         self.assertEqual(result["completed_windows"], 2)
         self.assertEqual([row["reason"] for row in result["pending"]], ["native_decision_budget"] * 2)
 
@@ -71,7 +73,7 @@ class ConstructionNativeTests(unittest.TestCase):
             task = SimpleNamespace(sha256="task")
             deck = SimpleNamespace(to_dict=lambda: dict(main=[1, 2]))
             changed_deck = SimpleNamespace(to_dict=lambda: dict(main=[1, 3]))
-            query = dict(card=1, path=[])
+            query = dict(card=1, seat=0, path=[])
             fake_result = dict(status="not_offered", offered=False, decisions=5)
             with patch("ygo_kito.construction_native.run_window", return_value=fake_result) as run:
                 cold = NativeRuleChecks(assets)._ask(task, deck, query, "candidate", 100, None)
@@ -82,3 +84,24 @@ class ConstructionNativeTests(unittest.TestCase):
                 self.assertNotEqual(next_run._ask(task, deck, query, "candidate", 90, None), cold)
                 self.assertEqual(run.call_count, 3)
                 self.assertEqual(next_run.counts["cache_hits"], 1)
+
+    def test_stock_still_gets_legal_windows_without_any_effect_records(self):
+        deck = SimpleNamespace(main=(1, 1, 2))
+        assets = SimpleNamespace(effect_lua_source=None, rows={
+            1: dict(type=1, level=4),
+            2: dict(type=2),
+        })
+        plans, excluded = planned_queries(deck, assets)
+        self.assertFalse(excluded)
+        self.assertEqual({(q["card"], q["setup"]) for q in plans},
+                         {(1, "normal_summon"), (1, "hand"), (2, "spell")})
+        self.assertTrue(all("effects" not in q for q in plans))
+
+    def test_grave_arrival_requires_the_native_special_summon_completion(self):
+        activation = dict(link=1, player=0)
+        move = dict(kind=50, player=0, from_zone=16, to_zone=4, public_card=2, reason=0x800)
+        summon = dict(kind=62, player=0, public_summoning_card=2)
+        selected = {("graveyard", 2)}
+        self.assertFalse(_field_moves(activation, [move, summon], selected, 0))
+        settled = _field_moves(activation, [move, summon, {"kind": 63}], selected, 0)
+        self.assertEqual([(m["kind"], m["card"]) for m in settled], [("special_summon", 2)])
