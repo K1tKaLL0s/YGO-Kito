@@ -26,7 +26,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v45"
+NORMALIZATION_VERSION = "construction-function-normalization-v46"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -204,8 +204,12 @@ def _configuration_relations(available, records, dependencies, aliases, operatio
                             if normal is True:
                                 allowance=Need(key+':normal',Resource('normal_summon_allowance',attributes=('controller:self',)))
                                 inputs=InputGroup('any',(allowance,inputs)) if inputs else InputGroup('all',(allowance,))
+                        hand_handler = (scoped['trigger'].get('zone') == 'hand' and any(
+                            cost.get('exclude_source_copy') and cost.get('source_card_id') == code
+                            and cost.get('from_zones') == ['hand'] for cost in scoped['costs']))
                         added.append(RelationFact(key, key, resource, 'printed static applicability: '+scoped['source_text'],
                             code, 'extra' if code in available.extra else 'main', inputs=inputs,
+                            claims=(Claim(physical(code)[1]),) if hand_handler else (),
                             conditions=('static applicability: '+event,),
                             unknown=('summon_configuration_uncovered',) if checks['status'] == 'unknown' else ()))
                     elif resource.kind == 'effect_applicability' and 'state:occurred_this_turn' in resource.attributes:

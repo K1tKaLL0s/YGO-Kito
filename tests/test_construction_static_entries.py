@@ -623,6 +623,26 @@ class StaticEntryTests(unittest.TestCase):
         self.assertTrue(random_quality['complete'])
         self.assertTrue(all(u.valuation_mode=='main_density' for u in random_facts['uses']))
 
+    def test_selected_hand_discard_reserves_a_different_physical_card(self):
+        self.assets.rows[1].update(type=33, race=4, attribute=1, desc=
+            '①：从手卡丢弃1只其他的天使族·地属性怪兽才能发动。这张卡从手卡特殊召唤。')
+        self.assets.rows[2].update(race=4, attribute=1)
+        self.assets.rows[3].update(race=4, attribute=2)
+        self.assets.rows[4].update(race=2, attribute=1)
+        for main, supported in (((1,), False), ((1, 3, 4), False), ((1, 2), True), ((1, 1), True)):
+            with self.subTest(main=main):
+                facts, _ = self.evaluate(DeckParts(main))
+                self.assertEqual(self.state(facts, 1), [supported])
+                detail, = [value for value in facts['use_details'].values() if value['card_id'] == 1]
+                requirement, = detail['inventory_checks']['costs']['requirements']
+                self.assertEqual(requirement['origin'], 'hand')
+                self.assertEqual(requirement['source_card_id'], 1)
+                self.assertTrue(requirement['exclude_source_copy'])
+                if supported:
+                    self.assertEqual(requirement['confirmed_available'], 1)
+                    usage = detail['relation']['usage']
+                    self.assertTrue(any(token.startswith('activation:') for token in usage['configuration:physical:1']))
+
     def test_choice_target_and_cost_do_not_leak_to_another_option(self):
         self.assets.rows[1].update(type=2, desc='从以下效果选择1个发动。'
             '\n●以自己墓地1只「不存在」怪兽为对象才能发动。那只怪兽加入手卡。'

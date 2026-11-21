@@ -275,6 +275,10 @@ def requirement(source, category):
         source = re.sub(r'(?:当作|作为)(?:融合|同调|超量|连接|仪式)召唤(?:处理)?', '', source)
         source = re.sub(r'^除效果怪兽外的(\d+只)(?=.+从(?:自己)?(?:的)?额外卡组特殊召唤$)',
                         r'把\1除效果怪兽外的', source)
+    selected_discard = (re.fullmatch(r'从(?:自己的?)?手卡(?:丢弃|舍弃)(\d+[只张][^。；，]+)', source)
+                        if category == 'costs' else None)
+    if selected_discard:
+        source = '从手卡把' + selected_discard[1] + '送去墓地'
     match = _MOVE.fullmatch(source) or _MOVE_POSTFIX.fullmatch(source)
     if not match:
         discard = re.fullmatch(r"(?:丢弃|舍弃)(\d+)张手卡", source)
@@ -303,7 +307,8 @@ def requirement(source, category):
     return dict(query=query, minimum=quantities[0], source=original_source,
                 origin=origins[0] if len(origins)==1 else 'choice', origins=origins,
                 owner={'自己':'self','对方':'opponent','双方':'both',None:'self'}[match['owner']],
-                category=category, action=match['action'], actions=match['action'].split('或'),
+                category=category, action='丢弃' if selected_discard else match['action'],
+                actions=['丢弃'] if selected_discard else match['action'].split('或'),
                 **({'origin_states': {'field': 'face_up'}} if either or faceup_send else {}),
                 **({'exclude_source_copy':True} if other else {}))
 
@@ -777,6 +782,9 @@ class InventoryDependencies:
                             **({'operation':item} if category=='operations' else {})))
                     else:
                         req['source'] = item.get('source','')
+                        if category == 'costs' and req.get('exclude_source_copy'):
+                            item.update(exclude_source_copy=True, source_card_id=code)
+                            req['source_card_id'] = code
                         if item.get('choice'):req['choice']=item['choice']
                         if category == 'operations':req['operation'] = item
                         requirements.append(req)
