@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 from dataclasses import dataclass, field
-from functools import cache
+from functools import cache, cached_property
 from hashlib import sha256
 from operator import add, and_, lt, mul, or_, sub
 from pathlib import Path
@@ -11,7 +11,7 @@ import re
 from .validation import ContractError
 
 
-LUA_EFFECT_VERSION = "mycard-effect-registration-v10"
+LUA_EFFECT_VERSION = "mycard-effect-registration-v11"
 _TABLE, _CARD = object(), object()
 _CALLBACKS = {
     "SetCondition": "condition", "SetCost": "cost", "SetTarget": "target",
@@ -677,7 +677,11 @@ def _self_send_cost(registration, functions, constants, tables, shadowed):
 
 def _literal_call(node, constants, name, *arguments):
     call, args = _call(_unwrapped(node))
-    if call != name or len(args) != len(arguments):
+    return call == name and _literal_arguments(args, constants, arguments)
+
+
+def _literal_arguments(args, constants, arguments):
+    if len(args) != len(arguments):
         return False
     for arg, expected in zip(args, arguments):
         if expected is None:
@@ -715,11 +719,92 @@ def _member_call(node, method, constants, *arguments):
     name = node.child_by_field_name("name")
     args = _children(node.child_by_field_name("arguments"))
     if (name is not None and name.type == "method_index_expression"
-            and _text(name.child_by_field_name("method")) == method and len(args) == len(arguments)
-            and all(type(_value(arg, constants)) is int and _value(arg, constants) == value
-                    for arg, value in zip(args, arguments))):
+            and _text(name.child_by_field_name("method")) == method
+            and _literal_arguments(args, constants, arguments)):
         return name.child_by_field_name("table")
     return None
+
+
+def _self_summon_zone_check(callback, constants, tables):
+    """Match the activation check for a free zone and a legal handler summon."""
+    params = tuple(map(_text, callback.child_by_field_name("parameters").children_by_field_name("name")))
+    if (len(params) != 9 or len(set(params)) != len(params)
+            or set(params) & (tables | {"Duel", "Card"})):
+        return False
+    effect, player, *_, chk = params
+    local = {name: value for name, value in constants.items() if name not in params}
+    if not all(key in local for key in ("LOCATION_MZONE", "CATEGORY_SPECIAL_SUMMON")):
+        return False
+    steps = _children(callback.child_by_field_name("body"))
+    card = ""
+    if len(steps) == 3:
+        card, value = _local_value(steps[0])
+        if not card or card in params or card in tables | {"Duel", "Card"} or not _literal_call(
+                value, local, f"{effect}:GetHandler"):
+            return False
+        steps = steps[1:]
+    if len(steps) != 2:
+        return False
+    check, operation_info = steps
+    flag, zero = _binary(check.child_by_field_name("condition"), "==")
+    terms = _conjuncts(_return_expression(_check_body(check)))
+    if _name(flag) != chk or _integer_value(zero, local) != 0 or len(terms) != 2:
+        return False
+    def handler(node):
+        return (_name(node) == card and bool(card)) or _literal_call(node, local, f"{effect}:GetHandler")
+    zone = [term for term in terms if _literal_call(_binary(term, ">")[0], local,
+            "Duel.GetLocationCount", player, local["LOCATION_MZONE"])
+            and _integer_value(_binary(term, ">")[1], local) == 0]
+    if len(zone) != 1 or not handler(_member_call(next(term for term in terms if term != zone[0]),
+            "IsCanBeSpecialSummoned", local, effect, 0, player, False, False)):
+        return False
+    name, args = _call(operation_info)
+    return (name == "Duel.SetOperationInfo" and len(args) == 6 and handler(args[2])
+            and _literal_arguments(args[:2], local, (0, local["CATEGORY_SPECIAL_SUMMON"]))
+            and _literal_arguments(args[3:], local, (1, 0, 0)))
+
+
+def _latest_fusion_revival(registration, functions, constants, tables):
+    single, optional = (constants.get(key) for key in ("EFFECT_TYPE_SINGLE", "EFFECT_TYPE_TRIGGER_O"))
+    symbols = ("EVENT_TO_GRAVE", "REASON_EFFECT", "LOCATION_MZONE", "SUMMON_TYPE_FUSION",
+               "POS_FACEUP", "EFFECT_FLAG_DELAY")
+    if (type(single) is not int or type(optional) is not int or not all(key in constants for key in symbols)
+            or registration.get("type") != (single | optional) or registration.get("range") is not None
+            or registration.get("event_code") != constants["EVENT_TO_GRAVE"]
+            or registration.get("property") != constants["EFFECT_FLAG_DELAY"]
+            or registration.get("cost") or registration.get("value")):
+        return None
+    condition, target, operation = (_callback(registration, role, functions, tables)[1]
+                                     for role in ("condition", "target", "operation"))
+    if None in (condition, target, operation) or not _self_summon_zone_check(target, constants, tables):
+        return None
+    for callback in (condition, operation):
+        params = tuple(map(_text, callback.child_by_field_name("parameters").children_by_field_name("name")))
+        steps = _children(callback.child_by_field_name("body"))
+        if (len(params) not in (8, 9) or len(set(params)) != len(params) or len(steps) != 2
+                or set(params) & (tables | {"Duel", "Card", *symbols})):
+            return None
+        effect, player = params[:2]
+        card, value = _local_value(steps[0])
+        if (not card or card in set(params) | tables | {"Duel", "Card", *symbols}
+                or not _literal_call(value, constants, f"{effect}:GetHandler")):
+            return None
+        if callback == condition:
+            terms = _conjuncts(_return_expression(steps[1:]))
+            predicates = (("IsReason", "REASON_EFFECT"), ("IsPreviousLocation", "LOCATION_MZONE"),
+                          ("IsSummonType", "SUMMON_TYPE_FUSION"))
+            if len(terms) != len(predicates) or not all(any(_literal_call(term, constants,
+                    f"{card}:{method}", constants[symbol]) for term in terms) for method, symbol in predicates):
+                return None
+        else:
+            guard = steps[1]
+            branch = _check_body(guard)
+            if (not _literal_call(guard.child_by_field_name("condition"), constants, f"{card}:IsRelateToEffect", effect)
+                    or len(branch) != 1 or not _literal_call(branch[0], constants, "Duel.SpecialSummon",
+                        card, 0, player, player, False, False, constants["POS_FACEUP"])):
+                return None
+    return dict(origin="field", reason="effect", latest_entry="fusion_summon",
+                condition_span=_span(condition), target_span=_span(target), operation_span=_span(operation))
 
 
 def _summon_chain_response(registration, functions, constants, tables):
@@ -1449,6 +1534,17 @@ class LuaEffectSource:
     def binding(self):
         return dict(self._binding)
 
+    @cached_property
+    def _fusion_procedure(self):
+        item = self._scripts.get("procedure.lua")
+        if item is None:
+            return None
+        root = _parse(item[0])
+        name = "Auxiliary.AddFusionProcCodeFun"
+        definition = _functions(root).get(name) if not root.has_error else None
+        return dict(file="procedure.lua", sha256=item[1], function=name,
+                    byte_span=_span(definition)) if definition is not None else None
+
     @staticmethod
     def _receipt_identity(root, receipt):
         commits = receipt["source_commits"]
@@ -1494,7 +1590,7 @@ class LuaEffectSource:
 
     def summarize_effects(self, code, *, deck_send_indices=(), self_send_costs=False,
                           preselected_grave_summons=False, summon_locks=False, summon_chain_response=False,
-                          summon_grave_clone=False):
+                          summon_grave_clone=False, latest_fusion_revival=False):
         """Report registrations and requested callback facts for printed effects."""
         filename = f"c{code}.lua"
         result = dict(status="missing_script", file=filename, registrations=[], unknown=[],
@@ -1575,7 +1671,7 @@ class LuaEffectSource:
         if result["unknown"]:
             result["status"] = "partial"
         if (deck_send_indices or self_send_costs or preselected_grave_summons or summon_locks
-                or summon_chain_response or summon_grave_clone):
+                or summon_chain_response or summon_grave_clone or latest_fusion_revival):
             # Callback domains use unshadowed core constants and the card's namespace.
             # Deck filters can also read an unchanged local GetID result.
             tables = {name for name, value in constants.items()
@@ -1598,6 +1694,9 @@ class LuaEffectSource:
                 result["unknown"], initial, initial_bindings)
             payment_scope = self_send_costs and self._registered_callback_scope_known(
                 result["unknown"], initial, initial_bindings, grave_check=True)
+            revival_scope = latest_fusion_revival and not shadowed and not assignments["Effect"] and (
+                self._registered_callback_scope_known(result["unknown"], initial, initial_bindings,
+                                                      fusion_procedure=True))
             if preselected_grave_summons and result["status"] == "parsed":
                 for registration in result["registrations"]:
                     if _intrinsic_grave_summon_lock(registration, static_constants):
@@ -1611,6 +1710,12 @@ class LuaEffectSource:
                     grave_trigger = _own_effect_sent_race(registration, callbacks, static_constants, tables)
                     if grave_trigger is not None:
                         registration["own_effect_sent_race"] = grave_trigger
+                if revival_scope:
+                    observed = _latest_fusion_revival(registration, callbacks, static_constants, tables)
+                    if observed:
+                        registration["latest_fusion_revival"] = observed
+                        if self._fusion_procedure and self._fusion_procedure not in result["helpers"]:
+                            result["helpers"].append(self._fusion_procedure.copy())
                 if payment_scope:
                     observed = _self_send_cost(registration, callbacks, static_constants, tables, cost_shadowed)
                     if observed["status"] == "resolved":
@@ -1663,7 +1768,7 @@ class LuaEffectSource:
                 if observed is not None:
                     registration["resolution_summon_lock"] = observed
 
-    def _registered_callback_scope_known(self, gaps, initial, bindings, *, grave_check=False):
+    def _registered_callback_scope_known(self, gaps, initial, bindings, *, grave_check=False, fusion_procedure=False):
         if not gaps:
             return True
         params = initial.child_by_field_name("parameters").children_by_field_name("name")
@@ -1687,6 +1792,16 @@ class LuaEffectSource:
                 return False
             if name == f"{card}:EnableReviveLimit" and not args:
                 continue
+            if (fusion_procedure and name == "aux.AddFusionProcCodeFun"
+                    and self._fusion_procedure and not {"aux", "Card"} & bindings.keys()
+                    and len(args) == 6 and _name(args[0]) == card):
+                filter_name, filter_args = _call(args[2])
+                if (filter_name == "aux.FilterBoolFunction" and len(filter_args) == 2
+                        and _name(filter_args[0]) == "Card.IsFusionSetCard"
+                        and _integer_value(filter_args[1], bindings) is not None
+                        and all(_integer_value(arg, bindings) is not None for arg in (args[1], args[3]))
+                        and all(type(_value(arg, bindings)) is bool for arg in args[4:])):
+                    continue
             if (name == "aux.AddCodeList" and "Auxiliary.AddCodeList" in self._utility
                     and "aux" not in bindings and len(args) >= 2
                     and _name(args[0]) == card

@@ -18,7 +18,7 @@ from .construction_layers import (
 )
 from .construction_relations import (
     Claim, InputGroup, Need, RelationBudget, RelationContext, RelationFact, Resource,
-    ResourcePool, UseRequirement, relation_index,
+    ResourcePool, ResourceTransfer, UseRequirement, relation_index,
     _needs, _record_facts, _record_outputs, _record_applicability, _leave_field_rule,
     _restriction_contract, _PLAYER_RESTRICTIONS, _INTRINSIC_RESTRICTIONS,
 )
@@ -26,7 +26,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v44"
+NORMALIZATION_VERSION = "construction-function-normalization-v45"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -68,8 +68,38 @@ def _mapped_restriction(record, restriction):
         and any(_leave_field_rule(record, op) for op in record["operations"]))
 
 
+def _fusion_revival_route(code, available, records, dependencies, operation_facts, facts, fusion_proofs, key):
+    """Join a completed fusion and the immediate field exit of its selected card."""
+    slot = ("extra", code)
+    if code not in available.extra:
+        return None
+    entries = [Need(f"{key}:fusion:{i}", facts[operation_facts[source]].output, mode="presence")
+               for i, (source, proof) in enumerate(fusion_proofs.items())
+               if any(option["target"] == code for option in proof["options"])]
+    if not entries:
+        return None
+    exits = []
+    for (source, ri, oi), uid in operation_facts.items():
+        fact = facts[uid]
+        move = fact.transfer
+        if (move is None or move.destination != "grave" or move.reason != "effect" or move.owner != "self"
+                or move.controller != "self" or move.selection != "targeted" or slot not in (move.inventory or ())
+                or fact.quantity != 1):
+            continue
+        record = records[source][ri]
+        operation = record["operations"][oi]
+        if (operation["kind"] != "send_grave" or "field" not in operation["from_zones"]
+                or operation.get("simultaneous_group") or operation_record(record, operation)["operations"][-1] != operation):
+            continue
+        eligible, _ = dependencies.candidate_status(code, dict(category="operations",
+            operation=dict(operation, from_zones=["field"])))
+        if eligible is True:
+            exits.append(Need(f"{key}:exit:{len(exits)}", fact.output, mode="presence"))
+    return InputGroup("all", (InputGroup("any", tuple(entries)), InputGroup("any", tuple(exits)))) if exits else None
+
+
 def _configuration_relations(available, records, dependencies, aliases, operation_facts, facts, pools, context,
-                             *, compact_stock=False):
+                             *, compact_stock=False, fusion_proofs=None):
     """Static applicability and complete stock, without a current duel state.
 
     An activation port describes a printed use, not an event witnessed in a
@@ -82,6 +112,7 @@ def _configuration_relations(available, records, dependencies, aliases, operatio
     host = context.relations.facts if context is not None else ()
     added, unbound, processed = [], set(), set()
     present = set(available.main + available.extra)
+    facts_by_use = {"functional:" + fact.fact_id: fact for fact in facts}
 
     def supplied(resource):
         return any(resource.accepts(f.output) for f in host)
@@ -131,6 +162,18 @@ def _configuration_relations(available, records, dependencies, aliases, operatio
                     key = 'configuration:purpose:'+need.need_id
                     if resource.kind == 'activation':
                         event = resource.event
+                        if scoped["trigger"].get("latest_entry") == "fusion_summon":
+                            route = _fusion_revival_route(code, available, records, dependencies, operation_facts,
+                                                         facts_by_use, fusion_proofs or {}, key)
+                            source = scoped["trigger"]["source"]
+                            section, pid = physical(code)
+                            moved = ResourceTransfer(source, "field", "grave", "self", "self",
+                                "targeted", ((section, code),), "effect") if route else None
+                            added.append(RelationFact(key, key, resource, source, code, section, inputs=route,
+                                output_pool=pid if route else None, transfer=moved,
+                                conditions=("same card: fusion summon, then effect send from monster zone",),
+                                unknown=() if route else ("latest_fusion_send_route_unobserved",)))
+                            continue
                         if event in (None, 'unknown'):
                             continue
                         # Intrinsic summon restrictions and printed materials
@@ -314,7 +357,7 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
             operation_facts[code, ri, oi] = uid
     compact_stock = context is None and len(available.main) <= len(deck.main) and len(available.extra) <= len(deck.extra)
     configured, unbound = _configuration_relations(available, records, dependencies, aliases,
-        operation_facts, rel_facts, rel_pools, context, compact_stock=compact_stock)
+        operation_facts, rel_facts, rel_pools, context, compact_stock=compact_stock, fusion_proofs=fusion_proofs)
     rel_facts = [_bind_unparsed_requirements(f, unbound) for f in rel_facts]
     rel_facts.extend(configured)
     if context is not None:

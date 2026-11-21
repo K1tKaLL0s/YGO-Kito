@@ -995,8 +995,12 @@ def _record_facts(code, records, *, zone="main", same_name=None, inventory=None,
             if not static:
                 unknown.append("activation_condition_unknown")
         else:
+            attributes = (f"card:{code}",)
+            if latest_entry := trigger.get("latest_entry"):
+                attributes += (f"latest_entry:{latest_entry}",)
             inputs.append(Need(ref + ":trigger", Resource("activation", zone=trigger.get("zone"),
-                reason=trigger.get("reason"), event=trigger["event"], attributes=(f"card:{code}",)), mode="presence"))
+                origin=trigger.get("previous_zone"), reason=trigger.get("reason"), event=trigger["event"],
+                attributes=attributes), mode="presence"))
         if not field_applicability and record["conditions"]["status"] != "recognized":
             unknown.append("activation_condition_unparsed" if static else "additional_activation_conditions")
         for category in ("costs", "targets"):

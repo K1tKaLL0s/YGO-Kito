@@ -952,6 +952,62 @@ end
                 self.assertEqual(record["conditions"]["status"], "recognized")
                 self.assertEqual([op["kind"] for _, op in _record_outputs(record)], ["return_deck"])
 
+    def test_fusion_revival_checks_the_handler_latest_entry_and_grave_event(self):
+        from ygo_kito.construction_relations import _needs, _record_facts
+
+        (self.directory / "constant.lua").write_text(CONSTANTS +
+            "\nSUMMON_TYPE_FUSION=0x43000000\nSUMMON_TYPE_SPECIAL=0x40000000\nEFFECT_FLAG_DELAY=0x10000\n",
+            encoding="utf-8")
+        printing = ('这个卡名的①的效果1回合只能使用1次。'
+                    '①：融合召唤的这张卡被效果送去墓地的场合才能发动。这张卡特殊召唤。')
+        script = f"""
+local s,id=GetID()
+function s.initial_effect(c)
+    c:EnableReviveLimit()
+    local e=Effect.CreateEffect(c)
+    e:SetDescription(aux.Stringid(id,0))
+    e:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O)
+    e:SetProperty(EFFECT_FLAG_DELAY)
+    e:SetCode(EVENT_TO_GRAVE)
+    e:SetCountLimit(1,id+1)
+    e:SetCondition(s.sent)
+    e:SetTarget(s.check)
+    e:SetOperation(s.revive)
+    c:RegisterEffect(e)
+end
+function s.sent(e,tp,eg,ep,ev,re,r,rp)
+    local handler=e:GetHandler()
+    return handler:IsPreviousLocation(LOCATION_MZONE) and handler:IsSummonType(SUMMON_TYPE_FUSION)
+        and handler:IsReason(REASON_EFFECT)
+end
+function s.check(e,tp,eg,ep,ev,re,r,rp,chk)
+    local card=e:GetHandler()
+    if chk==0 then return card:IsCanBeSpecialSummoned(e,0,tp,false,false)
+        and Duel.GetLocationCount(tp,LOCATION_MZONE)>0 end
+    Duel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,card,1,0,0)
+end
+function s.revive(e,tp,eg,ep,ev,re,r,rp)
+    local card=e:GetHandler()
+    if card:IsRelateToEffect(e) then
+        Duel.SpecialSummon(card,0,tp,tp,false,false,POS_FACEUP)
+    end
+end
+"""
+        for old, new in (("", ""), ("IsPreviousLocation(LOCATION_MZONE)", "IsPreviousLocation(LOCATION_EXTRA)"),
+                         ("IsSummonType(SUMMON_TYPE_FUSION)", "IsSummonType(SUMMON_TYPE_SPECIAL)"),
+                         ("IsReason(REASON_EFFECT)", "IsReason(REASON_COST)"),
+                         ("GetLocationCount(tp,LOCATION_MZONE)>0", "GetLocationCount(tp,LOCATION_MZONE)>=0"),
+                         ("SpecialSummon(card,0", "SpecialSummon(card,SUMMON_TYPE_FUSION")):
+            with self.subTest(change=old):
+                catalog = MechanismCatalog(self.assets(script=script.replace(old, new), description=printing))
+                record, = catalog.effect_records(LUA_CARD_ID)
+                (fact, _), = _record_facts(LUA_CARD_ID, (record,), functional=True)
+                trigger, = (need.resource for need in _needs(fact.inputs) if need.resource.kind == "activation")
+                self.assertEqual(trigger.origin, None if old else "field")
+                self.assertEqual(trigger.attributes, ((f"card:{LUA_CARD_ID}",) if old else
+                    (f"card:{LUA_CARD_ID}", "latest_entry:fusion_summon")))
+                self.assertEqual(bool(fact.unknown), bool(old))
+
     def test_own_attack_obligation_only_binds_the_single_card_registration(self):
         from tests.test_construction_functional_flow import fixture
         from ygo_kito.construction_quality import evaluate_functional_quality

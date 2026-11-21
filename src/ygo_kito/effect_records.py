@@ -12,7 +12,7 @@ from collections import Counter, defaultdict
 from .rule_references import effect_reference_requests
 
 EFFECT_RECORD_VERSION = "public-effect-records-v6"
-LUA_EFFECT_RECORD_VERSION = "public-effect-records-v16"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v17"
 _OPPONENT_SUMMON_RESPONSE = 'opponent_special_summon_effect_activation'
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (
@@ -1672,6 +1672,36 @@ def _bind_lua_summon_grave_clone(record, windows, race, source):
     return [summon, dict(grave, event="own_race_sent_to_grave_by_effect")]
 
 
+def _printed_fusion_revival(record):
+    ops = record["operations"]
+    return (record["scope"] == "monster" and record["effect_index"] > 0
+            and record["trigger"]["event"] == "sent_to_grave" and record["trigger"]["reason"] == "effect"
+            and record["conditions"]["source"] == "融合召唤的这张卡被效果送去墓地的场合"
+            and not record["targets"] and not record["costs"] and len(ops) == 1
+            and ops[0]["kind"] == "special_summon" and ops[0]["owner"] == "self"
+            and ops[0]["from_zones"] == ["grave"] and ops[0]["to_zone"] == "field"
+            and ops[0].get("quantity") == 1 and ops[0]["source"] in ("这张卡特殊召唤", "这张卡从墓地特殊召唤"))
+
+
+def _bind_lua_fusion_revival(record, window, source):
+    limits = record["count_limits"]
+    count = source.turn_count(window)
+    if (count is None or len(limits) != 1 or limits[0]["status"] != "known"
+            or limits[0]["scope"] != "same_name_this_effect" or limits[0]["maximum"] != count[0]
+            or limits[0]["period"] != "turn" or limits[0]["count_event"] != "use"):
+        return False
+    observed = window["latest_fusion_revival"]
+    record.setdefault("model_summary_observation", {}).update(
+        conditions=deepcopy(record["conditions"]), unknown=list(record["unknown"]))
+    condition = "none_in_recognized_activation_clause"
+    record["trigger"].update(zone="grave", previous_zone=observed["origin"],
+        latest_entry=observed["latest_entry"], additional_conditions=condition)
+    record["conditions"].update(status="recognized", additional_conditions=condition)
+    record["unknown"] = [gap for gap in record["unknown"] if gap != "additional_activation_conditions"]
+    record["block_view"]["unknown"] = list(record["unknown"])
+    return True
+
+
 def merge_lua_effect_sources(records, source, script_code, *, rows, same_printing=True):
     """Attach Lua evidence to the matching printed effect and refine supported facts."""
     if not records:
@@ -1702,6 +1732,9 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
                    if (race := _printed_summon_grave_clone(r, rows[r["card_id"]])) is not None}
     if clone_races:
         script_options["summon_grave_clone"] = True
+    revival_records = [record for record in records if _printed_fusion_revival(record)]
+    if revival_records:
+        script_options["latest_fusion_revival"] = True
     script = source.summarize_effects(script_code, **script_options)
     _bind_lua_attack_obligation(records, script, source)
     groups = defaultdict(list)
@@ -1710,6 +1743,7 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
     indices = Counter(record["effect_index"] for record in records)
     grave_windows = [window for window in script["registrations"] if "preselected_grave_summon" in window]
     response_windows = [window for window in script["registrations"] if window.get("summon_chain_response")]
+    revival_windows = [window for window in script["registrations"] if window.get("latest_fusion_revival")]
     source_info = {k: v for k, v in script.items() if k != "registrations"}
     for record in records:
         record["record_version"] = LUA_EFFECT_RECORD_VERSION
@@ -1722,6 +1756,11 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
             record['trigger'].update(zone='field', requires_negatable_chain=True,
                                      excludes_battle_destroyed_handler=True)
             record['lua_source'] = dict(source_info, alignment='matched', registrations=[registration])
+            continue
+        if (len(revival_records) == len(revival_windows) == 1 and record is revival_records[0]
+                and indices[index] == 1 and _bind_lua_fusion_revival(record, revival_windows[0], source)):
+            record["lua_source"] = dict(source_info, alignment="matched", registrations=revival_windows,
+                                        count_status="printed_limit_confirmed")
             continue
         scope = grave_summons.get(record["effect_key"])
         if scope is not None and indices[index] == 1:
@@ -1773,7 +1812,7 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
     candidates = {}
     for record in aligned:
         lua = record["lua_source"]
-        if lua.get("shared_activation_use"):
+        if lua.get("shared_activation_use") or lua.get("count_status") == "printed_limit_confirmed":
             continue
         windows = lua["registrations"]
         if lua.get("preselected_grave_summon_status") == "bound" and record["effect_index"] == 0:
