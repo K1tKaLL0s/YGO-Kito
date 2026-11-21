@@ -14,6 +14,7 @@ from ygo_kito.construction_native import (
     _choice_tokens,
     _field_moves,
     _resolved_deck_moves,
+    _summon_response_moves,
     planned_queries,
 )
 from ygo_kito.construction_native_evidence import chain_links, stock_prefix
@@ -228,7 +229,7 @@ class ConstructionNativeTests(unittest.TestCase):
     def test_chain_activations_are_planned_from_settable_originals(self):
         registered = dict(type=16, event_code=1027, event=None, family=0, registration_span=[17, 29],
                           operation={"reference": "source"})
-        lua = SimpleNamespace(summarize_effects=lambda code: {"script_card_id": code, "registrations":
+        lua = SimpleNamespace(summarize_effects=lambda code, **_options: {"script_card_id": code, "registrations":
             [registered] if code == 2 else [dict(registered, event_code=1002)]})
         assets = SimpleNamespace(effect_lua_source=lua, rows={10: dict(type=4, alias=2), 3: dict(type=4)})
         plans, excluded = planned_queries(SimpleNamespace(main=(10, 3), extra=(), side=()), assets)
@@ -255,7 +256,7 @@ class ConstructionNativeTests(unittest.TestCase):
         self.assertEqual(rule_name_id(rows, 3), 1)
 
         lookup = []
-        def summarize(code):
+        def summarize(code, **_options):
             lookup.append(code)
             return dict(registrations=[])
         assets = SimpleNamespace(effect_lua_source=SimpleNamespace(summarize_effects=summarize), rows=rows)
@@ -275,6 +276,20 @@ class ConstructionNativeTests(unittest.TestCase):
         self.assertIsNone(stock_prefix(events, [], link, query, [], []))
         self.assertIsNone(stock_prefix(events, [(1, step[1], dict(choice, cards=[3]))], link, query, [], []))
         self.assertIsNone(stock_prefix(events, [step], dict(link, turn=1), query, [], []))
+
+    def test_summon_response_requires_the_pending_core_event_and_its_negation_callback(self):
+        pending = dict(kind=62, public_summoning_card=2, player=1, zone=4, slot=0)
+        activation = dict(kind=70, public_card=3, player=0, description=0)
+        destroyed = dict(kind=50, public_card=2, player=1, from_zone=4, to_zone=16, reason=0x41)
+        events = [pending, activation, dict(kind=72), destroyed, dict(kind=73)]
+        link = dict(activation=activation, response_to=None, opened=1, solving=2, solved=4)
+        registration = dict(description=0, direct_summon_negation=dict(attempts_destroy=True))
+        query = dict(response_to=dict(summon_message=62), registrations=[registration])
+        self.assertEqual([move["kind"] for move in _summon_response_moves(link, events, query)],
+                         ["negate_summon", "destroy"])
+        self.assertFalse(_summon_response_moves(link, [*events, dict(kind=63)], query))
+        self.assertFalse(_summon_response_moves(link, events, dict(query, registrations=[{"description": 0}])))
+        self.assertFalse(_summon_response_moves(link, events, dict(query, response_to={"summon_message": 60})))
 
     def test_grave_arrival_requires_the_native_special_summon_completion(self):
         activation = dict(link=1, player=0)

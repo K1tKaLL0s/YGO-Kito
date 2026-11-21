@@ -5,6 +5,21 @@ from collections import Counter, defaultdict
 from .build_contracts import digest
 
 
+SUMMON_RESPONSE_EVENTS = {1103: 60, 1104: 64, 1105: 62}
+
+
+def pending_summons(events):
+    """Recover starts still pending at a native summon-response window."""
+    pending = []
+    for event in reversed(events):
+        kind = event["kind"]
+        if kind in (40, 61, 63, 65, 70, 71, 72, 73, 74):
+            break
+        if kind in SUMMON_RESPONSE_EVENTS.values():
+            pending.append(event)
+    return list(reversed(pending))
+
+
 def admission_effects(quality):
     """Index the S3 obligations that can be traced to a printed effect."""
     facts_by_source = defaultdict(set)
@@ -75,6 +90,8 @@ def witnessed_rule(receipt):
                      selection=receipt["path"])
     if receipt["stock_prefix"].get("set_preparation"):
         condition["set_preparation"] = receipt["stock_prefix"]["set_preparation"]
+    if receipt["field_moves"] and (attempt := receipt["field_moves"][0].get("summon_attempt")):
+        condition["summon_attempt"] = attempt
     proposition = dict(resources=receipt.get("rule_resources"), card=receipt["query"]["card"], effect=identity["effect_key"],
         registration=identity["source"], blocks=identity.get("blocks") or [identity["block"]],
         description=activation["description"])

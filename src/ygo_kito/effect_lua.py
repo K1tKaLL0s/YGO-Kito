@@ -11,7 +11,7 @@ import re
 from .validation import ContractError
 
 
-LUA_EFFECT_VERSION = "mycard-effect-registration-v18"
+LUA_EFFECT_VERSION = "mycard-effect-registration-v19"
 _TABLE, _CARD = object(), object()
 _CALLBACKS = {
     "SetCondition": "condition", "SetCost": "cost", "SetTarget": "target",
@@ -334,6 +334,27 @@ def _direct_chain_negation(registration, functions, constants, tables):
         if _literal_call(statements[0], {}, call, params[4]):
             return dict(mode=kind, byte_span=_span(statements[0]))
     return None
+
+
+def _direct_summon_negation(registration, functions, constants, tables):
+    events = {constants.get(key) for key in ("EVENT_SUMMON", "EVENT_FLIP_SUMMON", "EVENT_SPSUMMON")}
+    if registration.get("event_code") is None or registration["event_code"] not in events:
+        return None
+    _, body, _ = _callback(registration, "operation", functions, tables)
+    if body is None:
+        return None
+    params = tuple(map(_text, body.child_by_field_name("parameters").children_by_field_name("name")))
+    if len(params) != 8 or len(set(params)) != 8 or "Duel" in params:
+        return None
+    local = {key: value for key, value in constants.items() if key not in params}
+    steps = _children(body.child_by_field_name("body"))
+    if len(steps) not in (1, 2) or not _literal_call(steps[0], local, "Duel.NegateSummon", params[2]):
+        return None
+    destruction = local.get("REASON_EFFECT")
+    if len(steps) == 2 and (type(destruction) is not int
+            or not _literal_call(steps[1], local, "Duel.Destroy", params[2], destruction)):
+        return None
+    return dict(byte_spans=[_span(step) for step in steps], attempts_destroy=len(steps) == 2)
 
 
 def _skip_unused_handler(statements, effect, reserved):
@@ -2250,7 +2271,7 @@ class LuaEffectSource:
                           preselected_grave_summons=False, summon_locks=False, summon_chain_response=False,
                           summon_grave_clone=False, latest_fusion_revival=False, hand_deck_grave_trigger=False,
                           battle_group_revival=False, field_targets=False, activation_windows=False,
-                          lp_payments=False):
+                          lp_payments=False, summon_responses=False):
         """Report registrations and requested callback facts for printed effects."""
         filename = f"c{code}.lua"
         result = dict(status="missing_script", file=filename, registrations=[], unknown=[],
@@ -2332,7 +2353,8 @@ class LuaEffectSource:
             result["status"] = "partial"
         if (deck_send_indices or self_send_costs or preselected_grave_summons or summon_locks
                 or summon_chain_response or summon_grave_clone or latest_fusion_revival or hand_deck_grave_trigger
-                or summon_methods or battle_group_revival or field_targets or activation_windows or lp_payments):
+                or summon_methods or battle_group_revival or field_targets or activation_windows
+                or lp_payments or summon_responses):
             # Callback domains use unshadowed core constants and the card's namespace.
             # Deck filters can also read an unchanged local GetID result.
             tables = {name for name, value in constants.items()
@@ -2357,6 +2379,7 @@ class LuaEffectSource:
             lp_scope = (lp_payments and result["status"] == "parsed" and not shadowed and not assignments["Effect"]
                         and not assignments["math"] and "math" not in function_namespaces
                         and "math.floor" not in overwritten_functions)
+            summon_response_scope = summon_responses and result["status"] == "parsed" and not shadowed and not assignments["Effect"]
             deck_scope = deck_send_indices and (activation_scope or self._registered_callback_scope_known(
                 result["unknown"], initial, initial_bindings))
             payment_scope = self_send_costs and self._registered_callback_scope_known(
@@ -2386,6 +2409,9 @@ class LuaEffectSource:
                 index = registration.get("description_index")
                 if lp_scope and (payment := _relative_lp_payment(registration, callbacks, static_constants, tables)):
                     registration["lp_payment"] = payment
+                if summon_response_scope and (negation := _direct_summon_negation(
+                        registration, callbacks, static_constants, tables)):
+                    registration["direct_summon_negation"] = negation
                 if activation_scope and (window := _activation_window(registration, static_constants)):
                     registration["activation_window"] = window
                     if "target" in registration and (check := _unconditional_target_check(
