@@ -2262,6 +2262,20 @@ class LuaEffectSource:
         return tuple(int(name[1:-4]) for name in self._scripts
                      if name.startswith("c") and name[1:-4].isascii() and name[1:-4].isdigit())
 
+    def missing_required_card_script(self, rows, code):
+        """Identify an absent script required by the locked core for a deck card."""
+        from .card_identity import native_card_identity
+
+        card_type = rows[code]["type"]
+        if card_type & 0x10 and not card_type & 0x1000000:  # Normal, without Pendulum.
+            return None
+        printed, _ = native_card_identity(rows, code)
+        filename = f"c{printed}.lua"
+        if filename not in self._scripts:
+            return dict(card_id=code, script_card_id=printed, file=filename,
+                        scripts_sha256=self._binding["scripts_sha256"])
+        return None
+
     def _helper(self, name):
         node = self._utility.get(name)
         return dict(file="utility.lua", sha256=self._scripts["utility.lua"][1],

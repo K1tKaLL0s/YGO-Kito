@@ -27,7 +27,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v57"
+NORMALIZATION_VERSION = "construction-function-normalization-v58"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -1438,10 +1438,14 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
     specs={int(c):tuple(value) for c,value in work['specifications'].items()}
     records={code:tuple(e['record'] for e in value[0]) for code,value in specs.items()}
     dependencies._specifications=specs
+    missing_scripts = {}
     if native_rules is not None:
         from .construction_native import bind_observations
-        facts["native_rule_evidence"] = bind_observations(work["native_rule_evidence"], records, catalog.assets.rows,
-            lua=catalog.assets.effect_lua_source)
+        lua = catalog.assets.effect_lua_source
+        if lua is not None:
+            missing_scripts = {code: script for code in codes
+                               if (script := lua.missing_required_card_script(catalog.assets.rows, code)) is not None}
+        facts["native_rule_evidence"] = bind_observations(work["native_rule_evidence"], records, catalog.assets.rows, lua=lua)
         for evidence in facts["native_rule_evidence"]["receipts"]:
             identity = evidence["identity"]
             if evidence["rule_status"] == "bound":
@@ -1548,6 +1552,7 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                 facts["coverage_details"][card_key] = dict(status="deferred", reason="normalization_read_budget")
                 continue
             effect_specs, materials = specs[code]
+            missing_source = missing_scripts.get(code) if zone != "side" or "side" in config["required_scope"] else None
             effect_details = []
             printed_groups = Counter((record.get("scope"), record["effect_index"]) for record in records[code])
             for ri, record in enumerate(records[code]):
@@ -1562,6 +1567,8 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                                  if u in ("no_recognized_function", "unrecognized_operation", "effect_boundary_unknown")]
                 if not covered and not semantic_gaps:
                     semantic_gaps = list(record.get("unknown") or ("no_recognized_function",))
+                if missing_source:
+                    semantic_gaps.append("missing_rule_source")
                 effect_details.append(dict(effect_id=eid, effect_ref=ref, status="evaluated" if covered and not semantic_gaps else "unknown",
                     record=deepcopy(record), gaps=semantic_gaps))
                 if printed_groups[record.get("scope"), record["effect_index"]] > 1:
@@ -1626,6 +1633,10 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                         transfer = condition(key+":cost_material_transfer", None if complete_payment and complete_payment["status"] == "unknown" else True,
                                              "cost_material_transfer_order", refs)
                         self_condition = _all_support([own, support, transfer])
+                        if missing_source:
+                            source_ref = "lua:" + missing_source["file"] + ":" + missing_source["scripts_sha256"]
+                            self_condition = _all_support([self_condition, condition(key + ":rule_source", None,
+                                "missing_rule_source", (*refs, source_ref))])
                         if processing and processing['status'] == 'unknown':
                             self_condition = _all_support([self_condition,
                                 condition(key+':processing', None, processing['reason'], refs)])
@@ -1681,8 +1692,11 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                         if config.get('theme_profile'):
                             facts['use_details'][key]['explicit_task_goal'] = primary_goal(
                                 config['theme_profile'],code,record,operation,dependencies)
-            coverage[card_key] = "evaluated" if all(e["status"] == "evaluated" for e in effect_details) else "unknown"
+            coverage[card_key] = "evaluated" if not missing_source and all(
+                e["status"] == "evaluated" for e in effect_details) else "unknown"
             facts["coverage_details"][card_key] = dict(status=coverage[card_key], effects=effect_details)
+            if missing_source:
+                facts["coverage_details"][card_key]["rule_source"] = dict(status="missing_rule_source", **missing_source)
     if "side" not in config["required_scope"]:
         facts["scope_status"]["side"] = "not_applicable"
     elif deck.side and any(coverage.get(f"side:{code}") != "evaluated" for code in deck.side):

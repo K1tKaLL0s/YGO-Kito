@@ -19,6 +19,7 @@ from ygo_kito.construction_native import (
     planned_queries,
 )
 from ygo_kito.construction_native_evidence import chain_links, stock_prefix
+from ygo_kito.effect_lua import LuaEffectSource
 
 
 class ConstructionNativeTests(unittest.TestCase):
@@ -109,6 +110,38 @@ class ConstructionNativeTests(unittest.TestCase):
                 self.assertNotEqual(next_run._ask(task, deck, query, "candidate", 90, None), cold)
                 self.assertEqual(run.call_count, 3)
                 self.assertEqual(next_run.counts["cache_hits"], 1)
+
+    def test_missing_required_script_blocks_only_the_active_inventory_and_is_cached(self):
+        with TemporaryDirectory() as workspace:
+            lua = LuaEffectSource.__new__(LuaEffectSource)
+            lua._scripts = {}
+            lua._binding = {"scripts_sha256": "old"}
+            assets = SimpleNamespace(workspace=Path(workspace), receipt={"scripts": "old"}, period_context={},
+                adapter_revision=5, effect_lua_source=lua, rows={1: {"type": 0x11}, 2: {"type": 0x1000011}})
+            task = SimpleNamespace(sha256="task")
+            deck = DeckParts(main=(1,), side=(2,))
+            checked = NativeRuleChecks(assets)
+            query = dict(card=2, setup="hand", seat=0, path=[], summons=[], seed=7, opening=[],
+                         side_swaps=[dict(zone="main", incoming=2, outgoing=1)])
+            with patch("ygo_kito.construction_native.engine_for_goal", side_effect=OSError("engine")) as engine:
+                expected = checked.evaluate(task, deck, role="reference", queries=[query])
+                self.assertEqual(expected["status"], "missing_rule_source")
+                receipt, = expected["receipts"]
+                self.assertEqual(receipt["missing_scripts"], [dict(card_id=2, script_card_id=2,
+                    file="c2.lua", scripts_sha256="old")])
+                self.assertEqual(receipt["decisions"], 0)
+                self.assertFalse(engine.called)
+                cached = NativeRuleChecks(assets)
+                self.assertEqual(cached._ask(task, deck, query, "reference", 100, None), receipt)
+                self.assertEqual(cached.counts["cache_hits"], 1)
+                resident = dict(query, card=1, side_swaps=[], opening=[1])
+                self.assertEqual(cached._ask(task, deck, resident, "reference", 100, None)["status"], "engine_error")
+                engine.assert_called_once()
+                lua._scripts["c2.lua"] = (b"", "present")
+                lua._binding = {"scripts_sha256": "new"}
+                assets.receipt = {"scripts": "new"}
+                self.assertEqual(cached._ask(task, deck, query, "reference", 100, None)["status"], "engine_error")
+                self.assertEqual(engine.call_count, 2)
 
     def test_old_replay_rechecking_a_changed_script_keeps_both_receipts(self):
         with TemporaryDirectory() as workspace:

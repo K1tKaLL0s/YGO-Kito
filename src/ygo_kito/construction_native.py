@@ -25,7 +25,7 @@ from .validation import ContractError
 
 
 NATIVE_RULE_VERSION = "construction-native-rules-v5"
-NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v6"
+NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v7"
 _QUERY_WORK_VERSION = "construction-native-query-work-v1"
 _DECISION_BUDGET = 100
 _DECK_DESTINATIONS = {2: "hand", 16: "grave"}
@@ -450,6 +450,13 @@ def _summon_response_moves(link, events, query):
 
 def run_window(assets, deck, query, *, selection_key, decision_budget, should_stop=None, counters=None):
     """Replay a deterministic legal prefix and collect each distinct offered alternative."""
+    active_deck = _side_inventory(deck, query.get("side_swaps"))
+    lua = getattr(assets, "effect_lua_source", None)
+    if lua is not None:
+        missing = [script for code in sorted(set(active_deck.main + active_deck.extra))
+                   if (script := lua.missing_required_card_script(assets.rows, code)) is not None]
+        if missing:
+            return dict(status="missing_rule_source", missing_scripts=missing, decisions=0)
     setup = deque(query["summons"])
     trace, selections, path, alternatives = [], set(), [], []
     selected = set()
@@ -467,7 +474,6 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
     waiting_to_set = query.get("prepare_set", False)
     source_summoned = False
     public = {code: {"type": row["type"], "attack": row.get("atk", 0)} for code, row in assets.rows.items()}
-    active_deck = _side_inventory(deck, query.get("side_swaps"))
     with engine_for_goal(assets, active_deck, query["seed"], selection_key=selection_key,
                          cb_opening_hand=tuple(query["opening"])) as engine:
         if counters is not None:
@@ -878,13 +884,16 @@ class NativeRuleChecks:
                    for q in queue]
         exhausted = [row["receipt"] for row in receipts if row["status"] == "decision_budget"]
         engine_errors = [row["receipt"] for row in receipts if row["status"] == "engine_error"]
+        missing_sources = [row["receipt"] for row in receipts if row["status"] == "missing_rule_source"]
         if status == "complete":
-            status = "decision_budget" if exhausted else "engine_error" if engine_errors else status
+            status = ("decision_budget" if exhausted else "engine_error" if engine_errors else
+                      "missing_rule_source" if missing_sources else status)
         initial = work["initial"]
         result = dict(status=status, eligible_cards=len({q["card"] for q in initial}), initial_windows=len(initial),
                       known_windows=len(seen), completed_windows=len(receipts), decisions=charged,
                       decision_budget=_DECISION_BUDGET, excluded=work["excluded"], pending=pending,
-                      exhausted_receipts=exhausted, engine_error_receipts=engine_errors, receipts=receipts, frontier=frontier,
+                      exhausted_receipts=exhausted, engine_error_receipts=engine_errors,
+                      missing_source_receipts=missing_sources, receipts=receipts, frontier=frontier,
                       replayed_receipts=work["history"], admission_evaluation=admission.get("evaluation"))
         if status == "paused":
             work.update(queue=list(queue), seen=sorted(seen), decisions=charged)
@@ -988,5 +997,6 @@ class NativeRuleChecks:
                     chain=link, path=result.get("path", []), payments=payments,
                     unmet_precondition=result.get("unmet_precondition"), alternatives=result.get("alternatives", []),
                     identity=result.get("identity", {}), error=result.get("error"),
+                    **({"missing_scripts": result["missing_scripts"]} if "missing_scripts" in result else {}),
                     rule_resources=digest((binding.get("resources"), binding.get("period"), binding.get("adapter"))),
                     deck_sha256=digest(binding["deck"]))
