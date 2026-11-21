@@ -42,6 +42,8 @@ class ScenarioConstructionCompletionTests(unittest.TestCase):
                 'routes': [{'fixture': 'synthetic-route-only'}] if cb_verified else []}}
         selection = {'status': 'model_selected_task', 'candidate_id': 'first-model-choice'}
         kernel = Mock()
+        kernel.selections = {selection['candidate_id']: selection}
+        kernel.archived_workflow = None
         kernel.propose_tasks.return_value = {'candidates': [selection, {'candidate_id': 'alternative'}]}
         kernel.select_task.return_value = selection
         kernel.run_selected.side_effect = lambda *args, **kwargs: deepcopy(result)
@@ -51,18 +53,22 @@ class ScenarioConstructionCompletionTests(unittest.TestCase):
         course.selection, course.deck, course.events = None, None, []
         return course, kernel, result, selection, deck
 
-    def test_unknown_inference_keeps_first_model_goal_and_is_not_a_failed_construction(self):
-        c, kernel, _, selection, deck = self.course('bounded_inference_unknown')
-        c._construct()
-        self.assertEqual(c.selection, selection); self.assertEqual(c.deck, deck)
+    def test_unknown_inference_preserves_the_goal_without_admitting_a_training_match(self):
+        c, kernel, _, selection, _ = self.course('bounded_inference_unknown')
+        with self.assertRaisesRegex(ContractError, 'Construction suspended'):
+            c._construct()
+        self.assertEqual(c.selection, selection)
+        self.assertIsNone(c.deck)
+        self.assertEqual(c.desired, 'paused')
         self.assertTrue(c.construction['task_verified']); self.assertFalse(c.construction['cb_verified'])
         self.assertEqual(c.construction['basic_cb']['routes'], [])
         self.assertEqual(kernel.run_selected.call_count,1)
         self.assertEqual(kernel.run_selected.call_args.args,(selection,))
         self.assertEqual(c.events, [])
-        c._construct(feedback=({'source': 'duel', 'message': 'synthetic feedback'},))
+        with self.assertRaisesRegex(ContractError, 'Construction suspended'):
+            c._construct(feedback=({'source': 'duel', 'message': 'synthetic feedback'},))
         kernel.select_task.assert_called_once()
-        self.assertEqual(kernel.run_selected.call_args.kwargs['base'], deck)
+        self.assertIsNone(kernel.run_selected.call_args.kwargs['base'])
         self.assertEqual(c.selection, selection)
 
     def test_not_run_cannot_be_admitted_by_a_route_success_flag(self):

@@ -16,8 +16,8 @@ import tempfile
 from .effect_block_rules import FUNCTIONS, structural_records
 
 BLOCK_VERSION = "public-effect-blocks-v1"
-BLOCK_REVISION = 'local-library-review-20261121-b37-printed'
-LUA_BLOCK_REVISION = 'local-library-review-20261121-b44'
+BLOCK_REVISION = 'local-library-review-20261122-b38-printed'
+LUA_BLOCK_REVISION = 'local-library-review-20261122-b45'
 LABELS = {
     "send_grave": "送墓", "search": "检索", "recover": "回收", "add_hand": "加入手牌",
     "draw": "抽卡", "special_summon": "特召", "fusion_summon": "融合召唤",
@@ -451,6 +451,8 @@ def block_view(record, row):
                 if kind=='name_change' and '卡名' not in raw and re.search(r'属性|种族',raw):continue
                 if kind=='destruction_replace' and '破坏' not in head+text[max(0,start-100):start]:continue
                 if kind=='reorder_deck' and re.search(r'回到|返回|放回',raw) and not re.search(r'翻开|确认',head+text[:start]):continue
+                if kind == 'response_lock' and prefix.endswith('自己'):
+                    continue  # A limit on one's own activations does not prevent an opponent response.
                 if clause.startswith('每次') and kind in ('special_summon','fusion_summon','synchro_summon','xyz_summon','link_summon','destroy','banish','release','activate_card'):continue
                 if kind not in ("battle_protection","effect_protection","unaffected","response_lock","activation_permission"):
                     if re.search(r"不能|无法|不会|不受|不是|不再|不当作", prefix) and not re.search(r'^(?:不是|不为)[^。]*的场合',prefix):continue

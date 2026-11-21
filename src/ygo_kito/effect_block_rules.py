@@ -145,7 +145,7 @@ RESTRICTIONS = (
     ('negation_protection','无效化保护',r'不会被[^。]{0,60}的效果无效化'),
     ('summon_condition','召唤条件',r'场合才能连接召唤'),
     ('fusion_material_original_only','融合素材限制',r'必须用上面所写的卡融合召唤'),
-    ('cannot_special_summon','特殊召唤限制',r'(?:自己|对方|双方|这张卡)[^。]{0,80}不能[^。]{0,60}特殊召唤'),
+    ('cannot_special_summon','特殊召唤限制',r'(?:自己|对方|双方|这张卡)[^。]{0,80}不能[^。]{0,60}特殊召唤(?!的)'),
     ('cannot_normal_summon','通常召唤限制',r'不能[^。]{0,50}通常召唤|不能[^。]{0,45}召唤[·、]反转召唤'),
     ('cannot_be_synchro_material','同调素材限制',r'不能作为同调素材|作为同调素材[^。]{0,30}以外不能'),
     ('fusion_material_original_only','融合素材限制',r'融合素材[^。]{0,40}(?:原本|卡名)[^。]{0,30}(?:才能|必须)|只能用上记[^。]{0,35}融合召唤'),
@@ -167,7 +167,7 @@ RESTRICTIONS = (
     ('attack_condition', '攻击条件', r'场合才能攻击'),
     ('attack_target_limit', '攻击对象限制', r'(?:不能|不会|只能|必须)[^。]{0,35}(?:攻击对象|选择[^。]{0,20}攻击)|只能攻击'),
     ('must_attack', '攻击强制', r'(?:必须|必需)[^。]{0,25}(?:攻击|战斗)|可以攻击的场合必须攻击'),
-    ('cannot_summon', '召唤限制', r'不能[^。]{0,50}(?:特殊召唤|灵摆召唤|连接召唤|融合召唤|同调召唤|超量召唤|仪式召唤|通常召唤|上级召唤|反转召唤)|不能召唤'),
+    ('cannot_summon', '召唤限制', r'不能[^。]{0,50}(?:特殊召唤|灵摆召唤|连接召唤|融合召唤|同调召唤|超量召唤|仪式召唤|通常召唤|上级召唤|反转召唤)(?!的)|不能召唤(?!的)'),
     ('cannot_send_grave', '送墓限制', r'不能[^。]{0,45}送去墓地'),
     ('cannot_activate', '发动限制', r'不能[^。]{0,60}发动|(?:魔法|陷阱|效果)[^。]{0,30}不能发动'),
     ('cannot_set', '盖放限制', r'不能[^。]{0,25}盖放'),
@@ -252,9 +252,14 @@ def structural_records(text, row, scope, *, resolved_quantities=()):
             scan=selection_clause if kind=='selection_limit' else masked
             if kind=='cannot_summon':
                 scan=re.sub(r'不能(?:为[^。]{0,45}上级召唤(?:以外)?而解放|作为[^。]{0,40}祭品召唤的祭品)',lambda m:' '*len(m[0]),scan)
-            clauses=re.split(r'[，,]',scan) if kind in ('cannot_activate','cannot_special_summon','cannot_summon') else [scan]
-            if any(re.search(pattern,clause) for clause in clauses):
-                item=dict(kind=kind,tag={'dimension':'restriction','value':label},source=raw,
+            count = kind == 'activation_count_limit'
+            clauses = re.finditer(r'[^，,]+', scan) if count or kind in (
+                'cannot_activate', 'cannot_special_summon', 'cannot_summon') else re.finditer(r'.+', scan)
+            for clause in clauses:
+                if not re.search(pattern, clause[0]):
+                    continue
+                source = raw[clause.start():clause.end()].strip() if count else raw
+                item=dict(kind=kind,tag={'dimension':'restriction','value':label},source=source,
                           scope='player' if re.search(r'自己|对方|双方',masked) else 'this_card',
                           duration='while_applicable')
                 if kind == 'selection_limit':

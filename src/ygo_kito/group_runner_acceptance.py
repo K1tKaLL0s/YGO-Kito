@@ -20,14 +20,14 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def run_group_acceptance(root, state_root, run_id, recipe):
-    import torch
-    from .cpu_training import cpu_name
     identifier(run_id)
+    from .native_assets import verify_resources
+    verify_resources(Path(root).resolve())
     recipe = validate_recipe(recipe)
     if recipe["max_updates"] != 2 or recipe["wall_seconds"] > 180 or recipe["stages_per_worker"] < 13:
         raise ContractError("group acceptance only runs two short CPU cycles within 180 active seconds per run")
-    from .native_assets import verify_resources
-    verify_resources(Path(root).resolve())  # Preserve the real missing-resource error before tool wrapping.
+    import torch
+    from .cpu_training import cpu_name
     directory = Path(state_root).resolve() / "experiments" / run_id
     if directory.exists():
         raise ContractError("group acceptance identity exists; preserve previous artifacts")

@@ -178,21 +178,27 @@ class MultifactorStructureTests(unittest.TestCase):
             restored = RoleTrainer.load(path, expected_label_protocol_sha256="0" * 64)
             self.assertEqual(restored.label_protocol_sha256, "0" * 64)
 
-    def test_standalone_cli_roundtrips_candidates_without_training_or_active_imports(self):
+    def test_standalone_cli_analyzes_facts_without_training(self):
+        from ygo_kito.multifactor import AnalysisRequestContext, DeckSpec
         from ygo_kito.multifactor.scoring import Candidate
+
         candidate = Candidate("synthetic-json", self.example, "package", "synthetic gap recall")
         self.assertEqual(Candidate.from_dict(candidate.to_dict()), candidate)
+        context = AnalysisRequestContext(context_ref="cli-draw", declared_goal="draw")
+        payload = dict(schema_version="axis-service-request-v3", context=context.to_dict(), facts={},
+                       deck=DeckSpec(((1, 1),), (), ()).to_dict())
         with task_temporary_directory() as directory:
             input_path, output_path = Path(directory) / "input.json", Path(directory) / "output.json"
-            input_path.write_text(json.dumps(dict(schema_version="multifactor-candidates-v2", candidates=[candidate.to_dict()])), encoding="utf-8")
-            subprocess.run((sys.executable, "-m", "ygo_kito.multifactor", "--input", str(input_path),
-                            "--output", str(output_path), "--without-explanations"), env=dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1]/"src")),
-                           capture_output=True, text=True, check=True, timeout=60)
+            input_path.write_text(json.dumps(payload), encoding="utf-8")
+            result = subprocess.run((sys.executable, "-m", "ygo_kito.multifactor", "--service", "analyze_deck",
+                                     "--input", str(input_path), "--output", str(output_path)),
+                env=dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1] / "src")),
+                capture_output=True, text=True, timeout=60)
+            self.assertEqual(result.returncode, 0, result.stderr)
             output = json.loads(output_path.read_text(encoding="utf-8"))
             self.assertFalse(output["training_started"])
-            self.assertIsNone(output["results"][0]["advisory_score"])
-            self.assertEqual(set(output["results"][0]["role_probabilities"]),
-                             {"large_axis", "small_axis", "strategic_core", "support_role", "generic_utility"})
+            self.assertEqual(output["legality"]["status"], "unknown")
+            self.assertEqual(output["raw_prediction"], [])
 
     def test_lightweight_contract_import_does_not_load_torch_or_active_modules(self):
         code = "import sys,json; import ygo_kito.multifactor; print(json.dumps(sorted(n for n in sys.modules if n=='torch' or n.startswith(('ygo_kito.build_', 'ygo_kito.construction_', 'ygo_kito.effect_', 'ygo_kito.autonomous_construction', 'ygo_kito.native')))))"

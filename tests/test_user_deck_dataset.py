@@ -14,6 +14,7 @@ ZONES = ("main", "extra", "side")
 EXPECTED_DECK_SHA256 = {
     "main-01-source-v1": "2520a0b227ec0b909c580fdb50da9d83a98fecf6bfeb0f0e28d1319951affc66",
     "main-02-source-v1": "b97fcaddcfae9665ef134356191558f7b6a68eda7e609f0b7f676328f6412bc4",
+    "main-02-source-v2": "bf799e4fdbf30cd57761b8876fcb7846eba5cc74b3745f9417119aebf61a0291",
     "main-03-reference-v1": "340dc6cc39e1e59605e4b8502a878f6f977a9df6fbd5a9f9303d6dac4de325d5",
     "main-03-reference-v2": "83a2d51e28ec0a4f1c669d4137465ec5f252486553024042d8803cce78c89374",
     "opponent-01-runick-source-v1": "f04c604d47417c8ab4e32a9e9a3a410ea6f1518aaadd1c9b7b6485be32f1afb2",

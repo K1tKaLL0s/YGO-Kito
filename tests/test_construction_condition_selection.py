@@ -4,13 +4,13 @@ from dataclasses import replace
 
 from ygo_kito.construction_binding import CatalogBindingAdapter
 from ygo_kito.construction_inventory import selector, matches, requirement
-from tests.test_construction_static_entries import StaticEntryTests
+from tests import test_construction_static_entries
 
 
 class ConditionSelectionTests(unittest.TestCase):
-    setUp = StaticEntryTests.setUp
-    evaluate = StaticEntryTests.evaluate
-    state = StaticEntryTests.state
+    setUp = test_construction_static_entries.StaticEntryTests.setUp
+    evaluate = test_construction_static_entries.StaticEntryTests.evaluate
+    state = test_construction_static_entries.StaticEntryTests.state
 
     def test_presence_and_activation_event_require_the_printed_support(self):
         self.assets.rows[1].update(type=4, desc='①：自己场上有「匿名2」怪兽或者「匿名3」存在，'

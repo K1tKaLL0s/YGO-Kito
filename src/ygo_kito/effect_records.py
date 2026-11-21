@@ -549,7 +549,7 @@ def _refine_record(record,row,head,body,mode):
                                 (record['block_view'], 'restrictions')):
         restrictions[field] = [rule for rule in restrictions[field]
             if rule['kind'] != 'activation_count_limit'
-            or not all(part.strip() in reviewed for part in re.split(r'[，,]', rule['source']))]
+            or not all(part in reviewed for part in _count_clauses(rule['source']))]
     has_count=bool(re.search(count_words,record['source_text']) or any(
         re.search(count_words,clause) and clause not in reviewed for clause in _count_clauses(prelude)))
     if not has_count or record['count_limits'] and all(c['status']=='known' for c in record['count_limits']):

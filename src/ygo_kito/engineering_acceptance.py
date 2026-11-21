@@ -220,9 +220,6 @@ def paired_hidden_information_check(root, trainer):
 
 
 def run_engineering_acceptance(root, state_root, run_id):
-    from .local_training import verified_trainer
-    from .model_group import group_binding
-    from .build_pipeline import BuildAssets
     from .agent_registry import identifier
     identifier(run_id)
     if len(run_id) > 24:
@@ -231,10 +228,15 @@ def run_engineering_acceptance(root, state_root, run_id):
     run = state_root / "runs" / run_id
     if run.exists():
         raise ContractError("acceptance run exists; choose a new ID")
+    if not Path(root).is_dir():
+        raise ContractError("CPU acceptance requires a prepared native resource directory")
     plan = read_json(ROOT / "configs/training-plan-v1.json")
     preflight = cpu_preflight(root, plan)
     if not preflight["ok"]:
         raise ContractError("CPU acceptance preflight failed; no success or worker invented")
+    from .local_training import verified_trainer
+    from .model_group import group_binding
+    from .build_pipeline import BuildAssets
     from .lora_group import run_lora_group_smoke
     reporter = RunReporter(state_root)
     snapshot = {"schema_version": 1, "run_id": run_id, "state": "running", "revision": 0,
