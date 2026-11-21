@@ -11,7 +11,7 @@ import re
 from .validation import ContractError
 
 
-LUA_EFFECT_VERSION = "mycard-effect-registration-v19"
+LUA_EFFECT_VERSION = "mycard-effect-registration-v20"
 _TABLE, _CARD = object(), object()
 _CALLBACKS = {
     "SetCondition": "condition", "SetCost": "cost", "SetTarget": "target",
@@ -334,6 +334,56 @@ def _direct_chain_negation(registration, functions, constants, tables):
         if _literal_call(statements[0], {}, call, params[4]):
             return dict(mode=kind, byte_span=_span(statements[0]))
     return None
+
+
+def _chain_activation_negation_with_destruction(registration, functions, constants, tables):
+    _, callback, _ = _callback(registration, "operation", functions, tables)
+    if callback is None:
+        return False
+    params = tuple(map(_text, callback.child_by_field_name("parameters").children_by_field_name("name")))
+    statements = _children(callback.child_by_field_name("body"))
+    if len(params) != 8 or len(set(params)) != 8 or "Duel" in params or len(statements) != 1:
+        return False
+    local = {key: value for key, value in constants.items() if key not in params}
+    guard, = statements
+    negate, related = _binary(guard.child_by_field_name("condition"), "and")
+    entity = _member_call(related, "IsRelateToEffect", local, params[5])
+    body = _check_body(guard)
+    reason = local.get("REASON_EFFECT")
+    return (type(reason) is int and _literal_call(negate, local, "Duel.NegateActivation", params[4])
+            and _literal_call(entity, local, f"{params[5]}:GetHandler") and len(body) == 1
+            and _literal_call(body[0], local, "Duel.Destroy", params[2], reason))
+
+
+def _field_release_payment(registration, functions, constants, tables):
+    """Read the checked release of the registered field handler as the only cost."""
+    if (registration.get("event_code") != constants.get("EVENT_CHAINING")
+            or registration.get("range") != constants.get("LOCATION_MZONE") or "range" not in registration):
+        return None
+    _, callback, _ = _callback(registration, "cost", functions, tables)
+    if callback is None:
+        return None
+    params = tuple(map(_text, callback.child_by_field_name("parameters").children_by_field_name("name")))
+    statements = _children(callback.child_by_field_name("body"))
+    if len(params) != 9 or len(set(params)) != 9 or "Duel" in params or len(statements) != 2:
+        return None
+    guard, payment = statements
+    local = {key: value for key, value in constants.items() if key not in params}
+    left, right = _binary(guard.child_by_field_name("condition"), "==")
+    if _name(right) == params[8]:
+        left, right = right, left
+    check = _return_expression(_check_body(guard))
+    able = _member_call(check, "IsReleasable", local)
+    call, args = _call(payment)
+    handler = f"{params[0]}:GetHandler"
+    reason = local.get("REASON_COST")
+    if (_name(left) != params[8] or _integer_value(right, local) != 0 or not _literal_call(able, local, handler)
+            or call != "Duel.Release" or len(args) != 2 or not _literal_call(args[0], local, handler)
+            or type(reason) is not int or _integer_value(args[1], local) != reason):
+        return None
+    return dict(callback=registration["cost"]["definition"], check_span=_span(guard), payment_span=_span(payment),
+        chain_activation_negation_with_destruction=_chain_activation_negation_with_destruction(
+            registration, functions, local, tables))
 
 
 def _direct_summon_negation(registration, functions, constants, tables):
@@ -2423,6 +2473,8 @@ class LuaEffectSource:
                 index = registration.get("description_index")
                 if lp_scope and (payment := _relative_lp_payment(registration, callbacks, static_constants, tables)):
                     registration["lp_payment"] = payment
+                if activation_scope and (payment := _field_release_payment(registration, callbacks, static_constants, tables)):
+                    registration["field_release_payment"] = payment
                 if summon_response_scope and (negation := _direct_summon_negation(
                         registration, callbacks, static_constants, tables)):
                     registration["direct_summon_negation"] = negation

@@ -12,7 +12,7 @@ from collections import Counter, defaultdict
 from .rule_references import effect_reference_requests
 
 EFFECT_RECORD_VERSION = "public-effect-records-v6"
-LUA_EFFECT_RECORD_VERSION = "public-effect-records-v24"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v25"
 _OPPONENT_SUMMON_RESPONSE = 'opponent_special_summon_effect_activation'
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (
@@ -2083,6 +2083,66 @@ def _merge_lua_lp_payments(records, script):
             record["costs"] = [deepcopy(cost) for scope in scopes for cost in scope["costs"]]
 
 
+def _bind_lua_field_release(record, registrations):
+    if len(registrations) != 1 or record.get("branch_records"):
+        return
+    payment = registrations[0].get("field_release_payment")
+    if not payment:
+        return
+    view = record["block_view"]
+    costs = record["costs"]
+    if costs:
+        if (len(costs) != 1 or costs[0]["kind"] != "release" or costs[0].get("from_zones") != ["field"]
+                or costs[0].get("quantity") not in (None, 1)):
+            return
+        cost, = costs
+        blocks = [b for b in view["cost_blocks"] if b["phase"] == "activation_payment"
+                  and b["kind"] == "release" and b["source"] == cost["source"]]
+        if len(blocks) != 1:
+            return
+        block, = blocks
+    else:
+        if not payment["chain_activation_negation_with_destruction"]:
+            return
+        operations = record["operations"]
+        release = [op for op in operations if op["kind"] == "release" and op["phase"] == "resolution"
+                   and op.get("quantity") in (None, 1) and op.get("owner") in (None, "self", "unknown")]
+        if len(release) != 1:
+            return
+        operation, = release
+        source, key = operation["source"], operation["block_id"]
+        related = {op["kind"] for op in operations if op["phase"] == "resolution" and op["source"] == source}
+        if related != {"release", "negate", "destroy"} or any(key in op.get("depends_on", ()) for op in operations):
+            return
+        blocks = [b for b in view["blocks"] if b["block_id"] == key]
+        if len(blocks) != 1 or any(c["source"] == key for c in view["connectors"]):
+            return
+        former, = blocks
+        observation = record.setdefault("model_summary_observation", {})
+        observation.setdefault("operations", deepcopy(operations))
+        operations.remove(operation)
+        view["blocks"].remove(former)
+        view["connectors"] = [c for c in view["connectors"] if c["target"] != key]
+        cost = dict(kind="release", reason="cost", source=source, cost_index=0, effect_index=record["effect_index"])
+        costs.append(cost)
+        block = dict(former, block_id=record["effect_key"] + ":cost:0", phase="activation_payment",
+                     tag=dict(former["tag"], dimension="cost"), qualifiers={})
+        view["cost_blocks"].append(block)
+        record["resource_changes"] = [change for change in record["resource_changes"] if change.get("block_id") != key]
+    original = dict(cost, phase="activation_payment")
+    code = record["card_id"]
+    projection = dict(subject="this_card", source_card_id=code, owner="self", owner_status="recognized",
+        quantity=1, quantity_status="explicit", from_zones=["field"], to_zone="grave", resource="cards",
+        selector_query={"predicate": {"field": "card_ids", "value": [code]}}, lua_field_release=deepcopy(payment))
+    cost.update(deepcopy(projection))
+    block["qualifiers"].update(deepcopy(projection))
+    changes = record["resource_changes"]
+    if original in changes:
+        changes[changes.index(original)].update(deepcopy(projection))
+    else:
+        changes.append(dict(deepcopy(cost), phase="activation_payment"))
+
+
 def merge_lua_effect_sources(records, source, script_code, *, rows, same_printing=True):
     """Attach Lua evidence to the matching printed effect and refine supported facts."""
     if not records:
@@ -2127,7 +2187,8 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
         script_options["battle_group_revival"] = True
     if any((target := _printed_lua_target(record)) is not None and target["zones"] == ["field"] for record in records):
         script_options["field_targets"] = True
-    if any(record["conditions"]["status"] == "unknown" and record["operations"] for record in records):
+    if any(record["conditions"]["status"] == "unknown" and record["operations"]
+           or any(item["kind"] == "release" for item in (*record["costs"], *record["operations"])) for record in records):
         script_options["activation_windows"] = True
     script = source.summarize_effects(script_code, **script_options)
     _bind_lua_attack_obligation(records, script, source)
@@ -2221,6 +2282,7 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
             windows = [registered]
         record["lua_source"] = dict(source_info, alignment="matched", registrations=list(windows))
         _bind_lua_target(record, windows, source, rows)
+        _bind_lua_field_release(record, windows)
         if restriction_bound:
             record["lua_source"]["summon_lock_alignment"] = "matched"
         if record.get("type_matched_deck_send"):

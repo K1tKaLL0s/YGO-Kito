@@ -279,11 +279,14 @@ class ConstructionNativeTests(unittest.TestCase):
             [dict(source, range=2 | 4), dict(source, range=4, family=1, registration_span=[34, 39])]})
         assets = SimpleNamespace(effect_lua_source=lua, rows={1: dict(type=33, level=3)})
         plans, _ = planned_queries(DeckParts(main=(1,)), assets)
-        response, = [q for q in plans if q["setup"] == "response"]
+        response, = [q for q in plans if q["setup"] == "response" and not q.get("response_zone")]
         self.assertEqual(response["opening"], [1])
         self.assertEqual(response["response_to"], {"any_opponent_activation": True})
         self.assertNotIn("prepare_set", response)
         self.assertEqual([reg["family"] for reg in response["registrations"]], [0])
+        field, = [q for q in plans if q.get("response_zone") == "monster"]
+        self.assertEqual(field["summons"], [1])
+        self.assertEqual([reg["family"] for reg in field["registrations"]], [0, 1])
 
     def test_side_windows_bind_physical_exchanges_and_resident_only_skips_them(self):
         deck = DeckParts((1, 2, 2), (), (3, 3))

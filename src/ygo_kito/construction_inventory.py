@@ -1063,12 +1063,23 @@ class InventoryDependencies:
                                   lp_before=event["lp"] + event["amount"], lp_after=event["lp"], events=choices))
             else:
                 req = self.item_requirement(item, "costs")
-                # Both entities of a compound hand payment remain distinct,
-                # including the case where another copy has the same name.
-                if not req or req["origin"] != "hand" or item.get("to_zone") != "grave":
+                if not req or item.get("to_zone") != "grave":
                     return None
-                choices = [event for event in pending if event["kind"] == 50 and event["from_zone"] == 2
+                if req["origin"] == "hand":
+                    zone, caster = 2, None
+                elif req["origin"] == "field" and item.get("subject") == "this_card" and req["minimum"] == 1:
+                    activation = evidence["chain"]["activation"]
+                    caster = activation["public_card"]
+                    if (activation["zone"] != 4 or evidence["stock_prefix"]["summons"].count(caster) != 1
+                            or item["kind"] not in ("release", "send_grave")):
+                        return None
+                    zone = 4
+                else:
+                    return None
+                choices = [event for event in pending if event["kind"] == 50 and event["from_zone"] == zone
                            and event["to_zone"] == 16 and event.get("public_card") in self.rows
+                           and (caster is None or event["public_card"] == caster)
+                           and (zone != 4 or bool(event["reason"] & 2) == (item["kind"] == "release"))
                            and matches(self.rows[event["public_card"]], req["query"])]
                 if len(choices) != req["minimum"] and item.get("subject") == "this_card" and choices and all(
                         event["public_card"] == item["source_card_id"] for event in choices):
