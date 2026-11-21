@@ -28,7 +28,7 @@ def evaluation_coverage(evaluations, asset_version):
                 or quality["normalization_version"] != NORMALIZATION_VERSION):
             raise ValueError("evaluation belongs to different rules or uses a different rule authority")
         evaluation = quality["evaluation_id"]
-        for code, card in source["registration_coverage"].items():
+        for code, card in quality.get("static_rules", {}).items():
             for row in card["registrations"]:
                 coverage[code, digest(row["rule"])][evaluation] = row["status"]
         for receipt in source["receipts"]:
@@ -38,10 +38,16 @@ def evaluation_coverage(evaluations, asset_version):
                 registrations[key] = rule
                 coverage[key].setdefault(evaluation, case["status"])
         for use, detail in quality["use_details"].items():
+            if detail["relation"]["status"] != "supported":
+                continue
             proof = detail["inventory_checks"].get("native")
-            if proof and detail["relation"]["status"] == "supported":
+            if proof:
                 key = str(detail["card_id"]), digest(proof["registration"])
                 uses[key].append(dict(evaluation=evaluation, use=use, receipt=proof["receipt"], scope=proof["scope"]))
+            elif rule := detail.get("rule_registration"):
+                key = str(detail["card_id"]), digest(rule)
+                uses[key].append(dict(evaluation=evaluation, use=use, scope=use.split(":")[-1]
+                    if use.endswith((":going_first", ":going_second")) else "resident"))
     return coverage, uses, registrations
 
 

@@ -57,6 +57,61 @@ def functional_fill():
 
 
 class FunctionalFlowTests(unittest.TestCase):
+    def test_locked_search_is_scored_from_distinct_inventory_without_a_replay(self):
+        from hashlib import sha256
+        from pathlib import Path
+        from ygo_kito.effect_lua import LuaEffectSource
+
+        task, assets, graph, binder, decks, p = fixture()
+        script = b"""function effect.filter(c)
+  return c:IsSetCard(0x2123) and c:IsAbleToHand()
+end
+function effect.target(e,tp,eg,ep,ev,re,r,rp,chk)
+  if chk==0 then return Duel.IsExistingMatchingCard(effect.filter,tp,LOCATION_DECK,0,1,nil) end
+end
+function effect.resolve(e,tp,eg,ep,ev,re,r,rp)
+  local g=Duel.SelectMatchingCard(tp,effect.filter,tp,LOCATION_DECK,0,1,1,nil)
+  if #g>0 then
+    Duel.SendtoHand(g,nil,REASON_EFFECT)
+  end
+end
+"""
+        checksum = sha256(script).hexdigest()
+        lua = LuaEffectSource.__new__(LuaEffectSource)
+        lua._scripts = {"c2.lua": (script, checksum)}
+        lua._constants = dict(EFFECT_TYPE_ACTIVATE=16, EFFECT_TYPE_QUICK_O=256, EFFECT_TYPE_SINGLE=1,
+            EVENT_FREE_CHAIN=1002, EVENT_SUMMON_SUCCESS=1100, EVENT_SPSUMMON_SUCCESS=1102, EVENT_FLIP=1001, LOCATION_DECK=1,
+            LOCATION_HAND=2, TYPE_MONSTER=1, REASON_EFFECT=64)
+        lua.assert_binding = lambda *args: None
+        rule = dict(scope="card", type=1 | 8 | 128, event=1100, range=0, category=1, count_code=2,
+            count_maximum=1, count_persistent=False, callbacks={
+                role: dict(file="c2.lua", sha256=checksum, lines=span)
+                for role, span in (("target", [4, 6]), ("operation", [7, 12]))})
+        assets._lua_assets_verified = True
+        assets._locked_lua_source = lua
+        assets.root = Path(".")
+        assets.rule_authority = "locked_period_core"
+        assets.period_context = {"period_id": "test-period"}
+        assets.construction_rule_trace = None
+        assets.construction_rules = SimpleNamespace(
+            frontier_binding=lambda *args: None, record_quality=lambda *args: None,
+            evaluate=lambda *args, **kwargs: {"status": "complete", "receipts": [], "pending": []},
+        )
+        assets.native_registration_source = SimpleNamespace(for_cards=lambda codes: {
+            code: dict(diagnostics=[], native=[rule] if code == 2 else []) for code in codes
+        })
+        deck = decks[1]
+        missing = DeckParts(tuple(1 if code == 3 else code for code in deck.main))
+        with patch.object(binder.semantic_catalog, "card", side_effect=AssertionError("printed profile")):
+            results = ConstructionLayerAdapter(binder).evaluate(
+                task, graph, [{"deck": deck}, {"deck": missing}], {}, [0, 1], policy=p)[1]
+        supported, short = (results[i]["quality_evaluation"] for i in (0, 1))
+        self.assertTrue(supported["complete"])
+        self.assertEqual(supported["score"]["value"], log2(2))
+        self.assertTrue(short["complete"])
+        self.assertEqual(short["score"]["value"], 0)
+        self.assertEqual(short["losses"][0]["lower"], log2(2))
+
     def test_period_candidate_reaches_gate_without_printed_binding(self):
         task, assets, graph, binder, decks, p = fixture()
         assets.rule_authority = "locked_period_core"

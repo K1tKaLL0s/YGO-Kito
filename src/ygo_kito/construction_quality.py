@@ -673,7 +673,7 @@ def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, 
                 "variables", "constraints", "coverage", "scope_status"}
     optional = {"source_aliases", "extra_card_ids", "unpriced_effects", "unknown_scope",
                 "normalization_version", "coverage_details", "use_details", "fact_details", "hard_requirements", "side_contexts",
-                "theme_witnesses", "native_rule_evidence"}
+                "theme_witnesses", "native_rule_evidence", "static_rules", "rule_source_error"}
     if required - set(facts) or set(facts) - required - optional or facts["version"] != "construction-quality-facts-v1":
         raise ContractError("functional facts contract differs")
     axis = evaluation["axis"]
@@ -1006,22 +1006,18 @@ def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, 
         use_details=deepcopy(facts.get("use_details", {})), fact_details=deepcopy(facts.get("fact_details", {})),
         unpriced_effects=deepcopy(facts.get("unpriced_effects", [])),
         completion_results=completion_results, details=work['details'] if complete else None)
+    for field in ("static_rules", "rule_source_error"):
+        if field in facts:
+            body[field] = deepcopy(facts[field])
     if "native_rule_evidence" in facts:
         body["native_rule_evidence"] = deepcopy(facts["native_rule_evidence"])
         applications = []
         for uid, use in facts.get("use_details", {}).items():
             proof = use["inventory_checks"].get("native")
-            if uid in relevant and proof and proof.get("rule_id"):
+            if proof and proof.get("rule_id") and use["relation"]["status"] == "supported":
                 applications.append(dict(use=uid, rule=proof["rule_id"], receipt=proof["receipt"],
                     scope=proof["scope"], status=proof["status"], condition=deepcopy(proof["applicability"])))
         body["condition_applicability"] = applications
-        if facts["native_rule_evidence"].get("authority") == "locked_period_core":
-            witnessed = {d: _functional_inputs(uses, sources, runtime, known, 3, d, impacts,
-                                             family_prices=family_prices, optimistic=False) for d in directions}
-            body["observed_score_contribution"] = dict(
-                value=sum(directions[d] * row["value"] for d, row in witnessed.items()),
-                directions={d: {k: row[k] for k in ("value", "functions", "benefits", "surviving_uses")}
-                            for d, row in witnessed.items()})
     if component_score is not None:
         from .construction_score_bounds import _public
         body['score_components'] = [{k: v for k, v in component.items() if k != 'side'} for component in components]

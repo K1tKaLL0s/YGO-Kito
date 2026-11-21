@@ -60,12 +60,12 @@ def primary_goal(profile, code, record, operation, dependencies):
     return False
 
 
-def observed_primary_goal(profile, code, semantic, proof, rows):
-    """Evaluate the fixed theme policy against a settled use and catalog facts."""
+def configured_primary_goal(profile, code, semantic, outcomes, event, rows):
+    """Match a sourced function and its available outcomes to the fixed theme."""
     if code in profile.get("required_card_ids", ()):
         return True
     route = profile.get("route_goal")
-    if route and semantic["kind"] == route["kind"] and route["card_id"] in proof["observed_card_ids"]:
+    if route and semantic["kind"] == route["kind"] and route["card_id"] in outcomes:
         return True
     if tags := profile.get("goal_tags"):
         from .effect_blocks import LABELS
@@ -75,7 +75,7 @@ def observed_primary_goal(profile, code, semantic, proof, rows):
         names = {LABELS.get(kind)}
         if kind == "send_grave" and semantic["from_zones"] == ["deck"]:
             names.add(MILL.value)
-        if kind == "fusion_summon" and proof["applicability"]["event"] == 1014:  # EVENT_TO_GRAVE
+        if kind == "fusion_summon" and event == 1014:  # EVENT_TO_GRAVE
             names.add(GRAVE_FUSION.value)
         if all(tag["dimension"] == "effect_type" and tag["value"] == kind
                 or tag["dimension"] == "effect" and tag["value"] in names for tag in tags):
@@ -91,7 +91,7 @@ def observed_primary_goal(profile, code, semantic, proof, rows):
         if expected.get("from_zones") and not set(semantic["from_zones"]) <= set(expected["from_zones"]):
             continue
         selector = expected.get("selector")
-        if selector and not any(card in rows and matches(rows[card], selector) for card in proof["observed_card_ids"]):
+        if selector and not any(card in rows and matches(rows[card], selector) for card in outcomes):
             continue
         return True
     return False
@@ -406,7 +406,7 @@ def automatic_rules(profile):
 
 def theme_pairs(operation_facts, records, dependencies, available, profile, budget, fusion_proofs,
                 *, continuation=None, should_stop=None, work_state=None):
-    """Collect printed pairs without extending the resource graph."""
+    """Collect static pairs without extending the resource graph."""
     entries = [(code, ri, oi, records[code][ri], records[code][ri]['operations'][oi])
         for code, ri, oi in operation_facts if oi is not None]
     preparations = {digest(p) for p in profile['preparations']}
@@ -419,9 +419,12 @@ def theme_pairs(operation_facts, records, dependencies, available, profile, budg
     accepted = dict((continuation or {}).get('accepted', {}))
     movement_domains = {entry[:3]: _movement_domain(entry, dependencies, available, None,
         fusion_proof=fusion_proofs[entry[:3]]) for entry in entries if entry[:3] in fusion_proofs}
+    derive = profile.get("rule_basis") == "locked_period_core" and not profile["explicit_goals"]
     position = 0
     for receiver in entries:
-        if not primary_goal(profile, receiver[0], receiver[3], receiver[4], dependencies):
+        derived = derive and any(matches(dependencies.rows[receiver[0]], {"predicate": predicate})
+                                 for predicate in profile["predicates"])
+        if not derived and not primary_goal(profile, receiver[0], receiver[3], receiver[4], dependencies):
             continue
         goal = digest(function_goal(receiver[3], receiver[4]))
         for source in entries:
@@ -432,14 +435,17 @@ def theme_pairs(operation_facts, records, dependencies, available, profile, budg
                     return pairs, dict(version='theme-pairs-v1', operations=positions, cursor=position, accepted=accepted)
                 attempts += 1
                 connection = direct_connection(source, receiver, dependencies, available, movement_domains)
-                if connection and not profile['explicit_goals'] and digest(dict(goal=goal, kind=connection['kind'],
+                if connection and not derived and not profile['explicit_goals'] and digest(dict(goal=goal, kind=connection['kind'],
                         zone=connection['zone'], event=connection['event'])) not in preparations:
                     connection = None
                 if connection:
                     accepted[str(position)] = connection
             position += 1
             if connection:
-                pairs.append(dict(source=source[:3], receiver=receiver[:3], connection=connection))
+                pair = dict(source=source[:3], receiver=receiver[:3], connection=connection)
+                if derived:
+                    pair["derived_goal"] = True
+                pairs.append(pair)
     if work_state is not None:
         work_state.update(version='theme-pairs-v1', operations=positions, cursor=position, accepted=accepted)
     return pairs, None

@@ -27,7 +27,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v62"
+NORMALIZATION_VERSION = "construction-function-normalization-v63"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -347,16 +347,7 @@ def _settled_operation_fact(fact, operation, native, pools):
         key = "configuration:physical:" + str(code)
         pools.setdefault(key, ResourcePool(key, "candidate physical copies", inventory=((section, code),)))
         claims.append(Claim(key, stock["quantity"]))
-    registration = native["registration"]
-    limit = registration["count_maximum"]
-    counter = registration["count_code"]
-    if limit and not counter & 0x40000000:
-        shared = (counter & 0x0fffffff) not in (0, 1)
-        name = str(counter) if shared else native["rule_id"]
-        key = "native-activation-limit:" + name
-        copies = () if shared else ((fact.zone, fact.card_id),)
-        pools.setdefault(key, ResourcePool(key, source, capacity=limit, count_inventory=copies))
-        claims.append(Claim(key))
+    _activation_claims(fact, native["registration"], native["rule_id"], source, pools, claims)
     paid = sum(payment["amount"] for payment in native["payments"])
     if paid:
         pools.setdefault(LP_PAYMENT_POOL, ResourcePool(LP_PAYMENT_POOL,
@@ -375,6 +366,18 @@ def _settled_operation_fact(fact, operation, native, pools):
         ":unparsed_resolution_or_restriction", "restriction_joint_scope_unresolved")))
     return replace(fact, source=source, inputs=None, claims=tuple(claims), conditions=(source,),
                    unknown=unknown, quantity=projection["quantity"], transfer=transfer)
+
+
+def _activation_claims(fact, registration, local_id, source, pools, claims):
+    limit = registration["count_maximum"]
+    counter = registration["count_code"]
+    if limit and not counter & 0x40000000:
+        shared = (counter & 0x0fffffff) not in (0, 1)
+        name = str(counter) if shared else local_id
+        key = "native-activation-limit:" + name
+        copies = () if shared else ((fact.zone, fact.card_id),)
+        pools.setdefault(key, ResourcePool(key, source, capacity=limit, count_inventory=copies))
+        claims.append(Claim(key))
 
 
 def _functional_relations(deck, available, records, aliases, extra_ids, context, budget, dependencies, config,
@@ -409,7 +412,22 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
             cost_rows = [r for r in rows if r["category"] == "costs"]
             native = dependencies.witnessed_processing(available, scoped_record, operation, inventory=deck, scope=projection)
             authoritative = native is not None
-            if authoritative:
+            static_rule = scoped_record["block_view"]["status"] == "native_static"
+            if static_rule:
+                complete = dependencies._check(available, rows, distinct=True)
+                checks, fusion, processing = [complete], None, None
+                claims = []
+                _activation_claims(fact, scoped_record["rule_registration"], scoped_record["effect_key"],
+                                   fact.source, rel_pools, claims)
+                for cost in cost_rows:
+                    key = "configuration:physical:" + str(code)
+                    rel_pools.setdefault(key, ResourcePool(key, "candidate physical copies", inventory=((zone, code),)))
+                    claims.append(Claim(key, cost["minimum"]))
+                members = tuple(("main", code) for code in complete["requirements"][-1]["matching_card_ids"])
+                transfer = ResourceTransfer(fact.source, "deck", operation["to_zone"], "self", "self",
+                    "random" if operation["random"] else "targeted", members, "effect")
+                fact = replace(fact, claims=tuple(claims), quantity=operation["quantity"], transfer=transfer)
+            elif authoritative:
                 checks, fusion, processing = [native], None, None
                 fact = _settled_operation_fact(fact, operation, native, rel_pools)
             elif native_authority:
@@ -487,10 +505,13 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
             rel_pools[pool.pool_id] = pool
         rel_uses.extend(context.relations.uses)
     pairs, theme_state = [], {}
-    if not native_authority and config.get('theme_profile', {}).get('goals'):
+    theme_profile = config.get('theme_profile')
+    if theme_profile and (theme_profile['goals'] or theme_profile.get('rule_basis') == 'locked_period_core'):
         from .construction_theme import theme_pairs
-        pairs, pending = theme_pairs(operation_facts, records,
-            dependencies, available, config['theme_profile'], budget, fusion_proofs,
+        static_operations = {key: value for key, value in operation_facts.items()
+                             if not native_authority or records[key[0]][key[1]]["block_view"]["status"] == "native_static"}
+        pairs, pending = theme_pairs(static_operations, records,
+            dependencies, available, theme_profile, budget, fusion_proofs,
             continuation=(continuation or {}).get('theme'), should_stop=should_stop, work_state=theme_state)
         if pending is not None:
             return dict(calculation_pending=dict(theme=pending)), operation_facts
@@ -757,7 +778,9 @@ def _bind_automatic_themes(facts, projections, config, condition, sources, *, na
             compatible = True
             if connection['gaps']:
                 compatible = condition('theme:' + digest((source.use_id, receiver.use_id)), None,
-                    'printed_theme_compatibility', (*source.evidence_refs, *receiver.evidence_refs))
+                    'theme_compatibility', (*source.evidence_refs, *receiver.evidence_refs))
+            elif pair.get('derived_goal'):
+                facts['use_details'][receiver.use_id]['explicit_task_goal'] = True
             own = _all_support([compatible, receiver.self_condition])
             joint = own
             if scope != 'resident':
@@ -797,40 +820,6 @@ def _bind_automatic_themes(facts, projections, config, condition, sources, *, na
         revised.append(replace(use, theme_conditions=tuple(themes), theme_eligible=tuple(k for k, _ in themes),
             theme_joint_conditions=tuple(joint), joint_condition=joint_condition))
     facts['uses'] = revised
-
-
-def _native_theme_pairs(facts, projections, profile, rows):
-    """Connect witnessed preparations to the later use of the same entity."""
-    from .construction_inventory import matches
-
-    derive = profile.get("rule_basis") == "locked_period_core" and not profile["explicit_goals"]
-    receivers = defaultdict(list)
-    for use in facts["uses"]:
-        detail = facts["use_details"][use.use_id]
-        member = derive and any(matches(rows[detail["card_id"]], {"predicate": predicate})
-                                for predicate in profile["predicates"])
-        if not member and not detail.get("explicit_task_goal"):
-            continue
-        proof = detail["inventory_checks"].get("native") or {}
-        for path in proof.get("native_paths", ()):
-            receivers[use.scope_id, path["receipt"], path["actor"]].append((detail, path))
-    for use in facts["uses"]:
-        detail = facts["use_details"][use.use_id]
-        proof = detail["inventory_checks"].get("native") or {}
-        seen = set()
-        pairs = projections[use.scope_id][0]["theme_pairs"]
-        for path in proof.get("native_paths", ()):
-            for move in path["moves"]:
-                if move["owner"] != "self" or "entity" not in move or "card" not in move:
-                    continue
-                for receiver, later in receivers[use.scope_id, path["receipt"], move["entity"]]:
-                    key = receiver["operation_key"], move["card"]
-                    if (path["solved"] < later["opened"] and detail["operation_key"] != receiver["operation_key"]
-                            and (not derive or move["destination"] == later["zone"]) and key not in seen):
-                        seen.add(key)
-                        receiver["explicit_task_goal"] = True
-                        pairs.append(dict(source=detail["operation_key"], receiver=receiver["operation_key"],
-                            connection=dict(resources=[move["card"]], gaps=[], receipt=path["receipt"])))
 
 
 def _side_joint_capacity(group, bound, facts, scope, relation, sources, *, required_sources=None):
@@ -1398,7 +1387,7 @@ def _function_semantics(record, operation):
                "phase", "quantity", "quantity_status", "quantity_options", "quantity_binding", "count", "from_zones", "selector",
                "selector_query", "selector_source", "reason", "owner", "to_zone", "random", "observed_operation",
                "selection_group", "simultaneous_group", "outcome_requirement", "different_name_from_cost",
-               "different_name_from_reveal", "subject_ref", "state_conditions"}
+               "different_name_from_reveal", "subject_ref", "state_conditions", "event_condition"}
     query = operation.get("selector_query")
     if query is None and operation.get("selector"):
         query = selector(operation["selector"])
@@ -1480,6 +1469,16 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
             reuse[cache].clear()
         reuse['asset_version'] = facts['asset_version']
     shared_specs = reuse['specifications'] if reuse is not None else None
+    active_codes = codes if "side" in config["required_scope"] else sorted(set(deck.main + deck.extra))
+    if native_authority and "rule_sources" not in work:
+        from .native_registrations import NativeRegistryError
+        source = getattr(catalog.assets, "native_registration_source", None)
+        try:
+            initialized = source.for_cards(active_codes) if source is not None else {}
+        except NativeRegistryError as error:
+            initialized = {}
+            work["rule_source_error"] = str(error)
+        work["rule_sources"] = {str(code): value for code, value in initialized.items()}
     if native_rules is not None and "native_rule_evidence" not in work:
         native = native_rules.evaluate(task, deck, role=role, policy=policy, should_stop=should_stop,
                                        continuation=work.get("native_query_work"))
@@ -1500,7 +1499,17 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
         code=codes[work['read_cursor']]
         cached = shared_specs.get(code) if shared_specs is not None else None
         if native_authority:
+            from .construction_static_rules import static_rule_specs
+            declaration = work["rule_sources"].get(str(code))
             effect_specs, materials = [], []
+            if declaration is not None:
+                if cached is not None:
+                    (effect_specs, materials), source_status = cached[1:]
+                else:
+                    effect_specs, source_status = static_rule_specs(catalog.assets, code, declaration, dependencies)
+                    if shared_specs is not None:
+                        shared_specs[code] = (catalog.assets.rows[code], (effect_specs, materials), source_status)
+                work.setdefault("static_rules", {})[str(code)] = source_status
         elif cached is not None and cached[0] == catalog.assets.rows[code]:
             effect_specs, materials = cached[1]
         else:
@@ -1515,27 +1524,23 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
     records={code:tuple(e['record'] for e in value[0]) for code,value in specs.items()}
     dependencies._specifications=specs
     missing_scripts = {}
-    native_coverage = {}
+    static_rules = work.get("static_rules", {})
+    if native_authority:
+        facts["static_rules"] = deepcopy(static_rules)
+        if "rule_source_error" in work:
+            facts["rule_source_error"] = work["rule_source_error"]
     if native_rules is not None:
-        from .construction_native_settlement import install_execution_contracts, registration_coverage
-        from .native_registrations import NativeRegistryError
+        from .construction_native_settlement import install_execution_contracts
         lua = catalog.assets.effect_lua_source
         if lua is not None:
             missing_scripts = {code: script for code in codes
                                if (script := lua.missing_required_card_script(catalog.assets.rows, code)) is not None}
         facts["native_rule_evidence"] = deepcopy(work["native_rule_evidence"])
         facts["native_rule_evidence"]["authority"] = "locked_period_core"
+        classified = {(int(code), digest(row["rule"])) for code, card in static_rules.items()
+                      for row in card["registrations"] if row["status"] in ("function", "alternate_trigger")}
         install_execution_contracts(facts["native_rule_evidence"], specs, catalog.assets,
-                                    dependencies.native_execution_contracts)
-        if native_sources := getattr(catalog.assets, "native_registration_source", None):
-            active_codes = codes if "side" in config["required_scope"] else sorted(set(deck.main + deck.extra))
-            try:
-                initialized = native_sources.for_cards(active_codes)
-                native_coverage = registration_coverage(
-                    initialized, facts["native_rule_evidence"], dependencies.native_execution_contracts)
-                facts["native_rule_evidence"]["registration_coverage"] = native_coverage
-            except NativeRegistryError as error:
-                facts["native_rule_evidence"]["registration_coverage_error"] = str(error)
+                                    dependencies.native_execution_contracts, classified=classified)
         records = {code: tuple(effect["record"] for effect in value[0]) for code, value in specs.items()}
 
     def condition(key, value, reason, evidence):
@@ -1652,6 +1657,7 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                     scope=record.get("scope"), position=record.get("effect_key", str(ri))))
                 ref = f"catalog:{code}:{record.get('effect_key', ri)}:{record['text_sha256']}"
                 view = record.get("block_view", {})
+                static_rule = view.get("status") == "native_static"
                 empty_reviewed = view.get("status") in ("flavor", "summon_description", "summon_procedure", "restriction", "cost_only")
                 covered = bool(record["operations"]) or empty_reviewed
                 # A coarse action does not acknowledge unrelated unparsed text.
@@ -1703,7 +1709,11 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                         key = uid if scope == "resident" else uid + ":" + scope
                         native = dependencies.witnessed_processing(view, scoped_record, operation, inventory=deck, scope=scope)
                         authoritative = native is not None and native.get("authority") == "native"
-                        if authoritative or native_authority:
+                        if static_rule:
+                            checked = dependencies._check(view, requirement_rows, distinct=True)
+                            objects = material = fusion = summon_trigger = processing = complete_payment = None
+                            used_operation, use_semantics = operation, semantics
+                        elif authoritative or native_authority:
                             checked = objects = material = fusion = summon_trigger = processing = complete_payment = None
                             used_operation = _settled_operation(operation, native) if authoritative else operation
                             use_semantics = _function_semantics({"block_view": {}}, used_operation)
@@ -1766,7 +1776,7 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                         use = FunctionalUse(key, eid, family, family, source_ids,
                             "called" if code in extra_ids else "main_density", refs, self_condition,
                             scope_id=scope, theme_conditions=tuple(themes), theme_eligible=tuple(k for k, _ in themes),
-                            contributes=operation is not None)
+                            contributes=operation is not None and (not native_authority or static_rule))
                         prior = next((u for u in facts["uses"] if u.use_id == key), None)
                         if prior is None:
                             facts["uses"].append(use)
@@ -1792,7 +1802,9 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                             facts["use_details"][key]["inventory_checks"]["native"] = deepcopy(native)
                         if authoritative:
                             facts["use_details"][key]["historical_operation"] = deepcopy(operation)
-                        from .construction_theme import function_goal, observed_primary_goal, primary_goal
+                        if static_rule:
+                            facts["use_details"][key]["rule_registration"] = deepcopy(record["rule_registration"])
+                        from .construction_theme import configured_primary_goal, function_goal, primary_goal
                         facts['use_details'][key].update(operation_key=(code, ri, oi),
                             goal_id=digest(function_goal(record, operation)) if operation is not None else None)
                         if used_operation is not None and used_operation['kind'] in _SPECIAL_SUMMONS:
@@ -1802,9 +1814,13 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                                 facts['use_details'][key]['summoned_card_ids'] = _summoned_inventory(
                                     scoped_record, operation, objects, fusion)
                         if config.get('theme_profile'):
-                            if native_authority:
-                                facts["use_details"][key]["explicit_task_goal"] = bool(authoritative and
-                                    observed_primary_goal(config["theme_profile"], code, use_semantics, native, catalog.assets.rows))
+                            if static_rule:
+                                outcomes = checked["requirements"][-1]["matching_card_ids"] if not operation["random"] else ()
+                                facts['use_details'][key]['explicit_task_goal'] = configured_primary_goal(
+                                    config['theme_profile'], code, use_semantics, outcomes,
+                                    record["rule_registration"]["event"], catalog.assets.rows)
+                            elif native_authority:
+                                facts["use_details"][key]["explicit_task_goal"] = False
                             else:
                                 facts['use_details'][key]['explicit_task_goal'] = primary_goal(
                                     config['theme_profile'],code,record,operation,dependencies)
@@ -1814,19 +1830,18 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
             if missing_source:
                 facts["coverage_details"][card_key]["rule_source"] = dict(status="missing_rule_source", **missing_source)
             if native_authority and (zone != "side" or "side" in config["required_scope"]):
-                rule_coverage = native_coverage.get(str(code))
-                if rule_coverage is None or rule_coverage["diagnostics"] or any(
-                        row["status"] != "observed_use" for row in rule_coverage["registrations"]):
+                declaration = static_rules.get(str(code))
+                if declaration is None or declaration["diagnostics"] or any(
+                        row["status"] == "unknown" for row in declaration["registrations"]):
                     coverage[card_key] = facts["coverage_details"][card_key]["status"] = "unknown"
-                facts["coverage_details"][card_key]["rule_coverage"] = rule_coverage
+                if declaration is None:
+                    facts["coverage_details"][card_key]["reason"] = "native_registration_unavailable"
     if "side" not in config["required_scope"]:
         facts["scope_status"]["side"] = "not_applicable"
     elif deck.side and any(coverage.get(f"side:{code}") != "evaluated" for code in deck.side):
         facts["scope_status"]["side"] = "deferred"
     _bind_functional_support(facts, projections, available, specs, catalog, context, condition, config, sources,
                              native_authority=native_authority)
-    if native_authority and profile is not None:
-        _native_theme_pairs(facts, projections, profile, catalog.assets.rows)
     _bind_automatic_themes(facts, projections, config, condition, sources, native_authority=native_authority)
     @lru_cache(maxsize=None)
     def check_summon_choice(operation_key, allowed):

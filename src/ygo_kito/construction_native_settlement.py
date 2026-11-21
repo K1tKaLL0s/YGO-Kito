@@ -231,13 +231,14 @@ def _native_record(execution, branch, groups, ordinal, cards_sha256):
     return record
 
 
-def install_execution_contracts(observed, specifications, assets, contracts):
-    """Translate each settled native branch into the physical inventory contract."""
+def install_execution_contracts(observed, specifications, assets, contracts, *, classified=()):
+    """Translate settled branches that do not have a static function contract."""
     added = defaultdict(dict)
     for receipt in observed["receipts"]:
         for execution in receipt.get("native_executions", ()):
             code = execution["card"]
             if (execution["status"] != "observed" or code not in specifications
+                    or (code, digest(execution["registration"])) in classified
                     or "operation" not in execution["registration"]["callbacks"]):
                 continue
             groups = operation_groups(execution)
@@ -261,63 +262,3 @@ def install_execution_contracts(observed, specifications, assets, contracts):
         effects, materials = specifications[code]
         specifications[code] = [*effects, *(dict(record=record, requirements=[], unknown=[])
                                  for record in branches.values())], materials
-
-
-def registration_coverage(declarations, observed, contracts):
-    """Track every initialized rule to its planned window, checked result and S3 port."""
-    executions = defaultdict(list)
-    consumed = defaultdict(set)
-    planned = defaultdict(set)
-    trajectories = defaultdict(set)
-    checks = defaultdict(list)
-    for receipt in observed["receipts"]:
-        for case in receipt.get("native_executions", ()):
-            key = case["card"], digest(case["registration"])
-            executions[key].append(dict(status=case["status"], receipt=receipt["receipt"],
-                                        result=[operation["kind"] for operation in case["operations"]]))
-        for outcome in receipt.get("native_applicability", ()):
-            checks[outcome["card"], digest(outcome["declaration"])].append(dict(
-                receipt=receipt["receipt"], predicate=outcome["predicate"], role=outcome["role"],
-                index=outcome["index"], entity=outcome["entity"], status=outcome["status"],
-                turn=outcome["turn"], phase=outcome["phase"], zone=outcome["zone"]))
-    for (_, effect, block), rows in contracts.items():
-        for row in rows:
-            case = row["execution"]
-            consumed[case["card"], digest(case["registration"])].add((effect, block))
-    queries = [r["query"] for r in observed["receipts"]] + [r["query"] for r in observed.get("pending", ())]
-    for query in queries:
-        if query["setup"] == "trajectory":
-            for code in query["scope_cards"]:
-                trajectories[code].add(query["setup"])
-        else:
-            for window in (*query["registrations"], *query.get("attached", ())):
-                if registration := window.get("initialized"):
-                    planned[query["card"], digest(registration)].add(query["setup"])
-    result = {}
-    for code, source in declarations.items():
-        rows = []
-        signatures = Counter(digest(rule) for rule in source["native"])
-        for ordinal, rule in enumerate(source["native"]):
-            signature = digest(rule)
-            key = code, signature
-            uses = [dict(effect=effect, block=block) for effect, block in sorted(consumed[key])]
-            active = rule["type"] & 0x8 or rule["event"] in (34, 320)
-            windows = planned[key] | trajectories[code]
-            if (uses or executions[key]) and signatures[signature] > 1:
-                status = "native_registration_identity_ambiguous"
-            elif uses:
-                status = "observed_use"
-            elif executions[key]:
-                status = "native_settlement_unconsumed"
-            elif checks[key]:
-                status = "native_precondition_checked"
-            elif active:
-                status = "native_window_unreached" if windows else "native_preparation_unavailable"
-            else:
-                status = "native_modifier_unverified"
-            rows.append(dict(ordinal=ordinal, rule=rule, status=status, windows=sorted(windows), checks=checks[key],
-                             executions=executions[key], uses=uses))
-        dynamic = {signature: cases for (actor, signature), cases in executions.items()
-                   if actor == code and signature not in signatures and cases}
-        result[str(code)] = dict(registrations=rows, diagnostics=source["diagnostics"], runtime_only=dynamic)
-    return result

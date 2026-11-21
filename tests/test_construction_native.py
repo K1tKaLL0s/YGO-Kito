@@ -21,7 +21,7 @@ from ygo_kito.construction_native import (
 )
 from ygo_kito.construction_native_evidence import chain_links, stock_prefix
 from ygo_kito.construction_native_settlement import (
-    install_execution_contracts, operation_groups, registration_coverage, settled_executions,
+    install_execution_contracts, operation_groups, settled_executions,
 )
 from ygo_kito.effect_lua import LuaEffectSource
 from ygo_kito.native_rule_trace import align_rule_trace
@@ -94,18 +94,20 @@ class ConstructionNativeTests(unittest.TestCase):
         from ygo_kito.construction_layer_flow import NORMALIZATION_VERSION
         from ygo_kito.construction_quality import FUNCTIONAL_QUALITY_VERSION, validate_evaluation
 
-        sources = {5: {"diagnostics": [], "native": []}, 25: {"diagnostics": [], "native": []}}
-        coverage = registration_coverage(sources, {"receipts": []}, {})
-        self.assertEqual(set(coverage), {"5", "25"})
-        for revision, items in ((NORMALIZATION_VERSION, coverage),
-                                ("construction-function-normalization-v61",
-                                 {int(code): row for code, row in coverage.items()})):
-            quality = dict(version=FUNCTIONAL_QUALITY_VERSION, normalization_version=revision,
-                           native_rule_evidence=dict(registration_coverage=items))
+        sources = {code: dict(diagnostics=[], registrations=[]) for code in ("5", "25")}
+        for quality, container in (
+                (dict(version=FUNCTIONAL_QUALITY_VERSION, normalization_version=NORMALIZATION_VERSION,
+                      static_rules=sources), ("static_rules",)),
+                (dict(version=FUNCTIONAL_QUALITY_VERSION, normalization_version="construction-function-normalization-v61",
+                      native_rule_evidence=dict(registration_coverage={int(code): row for code, row in sources.items()})),
+                 ("native_rule_evidence", "registration_coverage"))):
             quality["evaluation_id"] = digest(quality)
             saved = json.loads(json.dumps(quality))
             validate_evaluation(saved)
-            saved["native_rule_evidence"]["registration_coverage"]["5"]["diagnostics"] = ["changed"]
+            rows = saved
+            for key in container:
+                rows = rows[key]
+            rows["5"]["diagnostics"] = ["changed"]
             with self.assertRaisesRegex(ContractError, "bound evaluation"):
                 validate_evaluation(saved)
 

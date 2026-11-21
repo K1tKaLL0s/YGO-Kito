@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 from dataclasses import dataclass, field
-from functools import cache, cached_property
+from functools import cache, cached_property, lru_cache
 from hashlib import sha256
 from operator import add, and_, lt, mul, or_, sub
 from pathlib import Path
@@ -2426,6 +2426,29 @@ class LuaEffectSource:
         content, checksum = script
         lines = [1 + len(re.findall(rb'\r\n|\n\r|[\r\n]', content[:offset])) for offset in (start, stop - 1)]
         return dict(file=filename, sha256=checksum, lines=lines)
+
+    @lru_cache(maxsize=256)
+    def _callback_functions(self, filename):
+        content, _ = self._scripts[filename]
+        root = _parse(content)
+        if root.has_error:
+            return {}
+        libraries = {"Card", "Duel", "Effect", "Group"}
+        for node in _children(root):
+            targets = (node.child_by_field_name("name"),) if node.type == "function_declaration" else _assignment(node)[1]
+            if any(re.split(r"[.:\[]", _name(target) or "", maxsplit=1)[0] in libraries for target in targets):
+                return {}
+        return _functions(root)
+
+    def registered_callback(self, source):
+        """Find a source function using the locked core's callback location."""
+        script = self._scripts.get(source["file"])
+        if script is None or script[1] != source.get("sha256"):
+            return None, {}
+        functions = self._callback_functions(source["file"])
+        matching = [node for node in functions.values()
+                    if [node.start_point.row + 1, node.end_point.row + 1] == source["lines"]]
+        return (matching[0], functions) if len(matching) == 1 else (None, {})
 
     @cached_property
     def _ritual_callbacks(self):

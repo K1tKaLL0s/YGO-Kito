@@ -1040,7 +1040,8 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
                 reason = 'no_valid_optimizer_candidate'
                 save()
                 break
-            if policy['pass']['mode'] == 'reference_ratio' and result['quality_evaluation']['scope_complete']:
+            if policy['pass']['mode'] == 'reference_ratio' and (result['quality_evaluation']['scope_complete']
+                    or getattr(assets, 'rule_authority', None) == 'locked_period_core'):
                 batch = dict(batch, evaluations={}, calculation_progress={},
                     pending_indices=list(batch['order']), evaluation_cursor=0)
                 reference_stage = dict(version=REFERENCE_STAGE_VERSION, candidate_batch=batch,

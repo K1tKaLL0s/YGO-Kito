@@ -65,9 +65,9 @@ def admission_effects(quality):
                 facts=sorted(unknowns), partial=partial, hard=hard, spans=[],
                 response=registration["event"] == 1027 or registration["event"] in SUMMON_RESPONSE_EVENTS,
                 width=max((width_by_fact[f] for f in unknowns), default=0.))
-    for code, coverage in quality.get("native_rule_evidence", {}).get("registration_coverage", {}).items():
+    for code, coverage in quality.get("static_rules", {}).items():
         for row in coverage["registrations"]:
-            if row["status"] == "observed_use":
+            if row["status"] != "unknown":
                 continue
             rule = row["rule"]
             ref = "native-registration:" + digest((int(code), rule))
