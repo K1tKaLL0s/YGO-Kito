@@ -319,5 +319,5 @@ def registration_coverage(declarations, observed, contracts):
                              executions=executions[key], uses=uses))
         dynamic = {signature: cases for (actor, signature), cases in executions.items()
                    if actor == code and signature not in signatures and cases}
-        result[code] = dict(registrations=rows, diagnostics=source["diagnostics"], runtime_only=dynamic)
+        result[str(code)] = dict(registrations=rows, diagnostics=source["diagnostics"], runtime_only=dynamic)
     return result

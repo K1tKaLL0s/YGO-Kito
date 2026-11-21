@@ -27,7 +27,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v61"
+NORMALIZATION_VERSION = "construction-function-normalization-v62"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -1814,7 +1814,7 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
             if missing_source:
                 facts["coverage_details"][card_key]["rule_source"] = dict(status="missing_rule_source", **missing_source)
             if native_authority and (zone != "side" or "side" in config["required_scope"]):
-                rule_coverage = native_coverage.get(code)
+                rule_coverage = native_coverage.get(str(code))
                 if rule_coverage is None or rule_coverage["diagnostics"] or any(
                         row["status"] != "observed_use" for row in rule_coverage["registrations"]):
                     coverage[card_key] = facts["coverage_details"][card_key]["status"] = "unknown"

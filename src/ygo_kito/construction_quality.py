@@ -1054,9 +1054,24 @@ class _ComparisonInput:
 
 
 def validate_evaluation(row):
-    if (not isinstance(row, dict) or row.get('version') != FUNCTIONAL_QUALITY_VERSION
-            or row.get('evaluation_id') != digest({k: v for k, v in row.items() if k != 'evaluation_id'})):
-        raise ContractError('functional comparison requires a bound evaluation')
+    if isinstance(row, dict) and row.get("version") == FUNCTIONAL_QUALITY_VERSION:
+        body = {key: value for key, value in row.items() if key != "evaluation_id"}
+        identity = row.get("evaluation_id")
+        if digest(body) == identity:
+            return
+        legacy = row.get("normalization_version") in (
+            "construction-function-normalization-v60", "construction-function-normalization-v61")
+        native = row.get("native_rule_evidence")
+        coverage = native.get("registration_coverage") if isinstance(native, dict) else None
+        if legacy and isinstance(coverage, dict) and coverage and all(
+                isinstance(code, str) and code.isascii() and code.isdecimal() and code == str(int(code))
+                for code in coverage):
+            # Older evaluations used integer keys to hash the native registry.
+            # Restore can verify that exact hash before marking the old result stale.
+            original = dict(native, registration_coverage={int(code): value for code, value in coverage.items()})
+            if digest(dict(body, native_rule_evidence=original)) == identity:
+                return
+    raise ContractError("functional comparison requires a bound evaluation")
 
 
 def restore_comparison_progress(progress):

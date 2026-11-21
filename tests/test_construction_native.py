@@ -20,7 +20,9 @@ from ygo_kito.construction_native import (
     planned_queries,
 )
 from ygo_kito.construction_native_evidence import chain_links, stock_prefix
-from ygo_kito.construction_native_settlement import install_execution_contracts, operation_groups, settled_executions
+from ygo_kito.construction_native_settlement import (
+    install_execution_contracts, operation_groups, registration_coverage, settled_executions,
+)
 from ygo_kito.effect_lua import LuaEffectSource
 from ygo_kito.native_rule_trace import align_rule_trace
 
@@ -87,6 +89,25 @@ class ConstructionNativeTests(unittest.TestCase):
         case, = settled_executions(events, chain_links(events), trace, seat=0, resources="locked")
         self.assertEqual(case["unresolved_moves"], [4])
         self.assertEqual(case["status"], "partial")
+
+    def test_native_evaluation_identity_survives_json_round_trip(self):
+        from ygo_kito.construction_layer_flow import NORMALIZATION_VERSION
+        from ygo_kito.construction_quality import FUNCTIONAL_QUALITY_VERSION, validate_evaluation
+
+        sources = {5: {"diagnostics": [], "native": []}, 25: {"diagnostics": [], "native": []}}
+        coverage = registration_coverage(sources, {"receipts": []}, {})
+        self.assertEqual(set(coverage), {"5", "25"})
+        for revision, items in ((NORMALIZATION_VERSION, coverage),
+                                ("construction-function-normalization-v61",
+                                 {int(code): row for code, row in coverage.items()})):
+            quality = dict(version=FUNCTIONAL_QUALITY_VERSION, normalization_version=revision,
+                           native_rule_evidence=dict(registration_coverage=items))
+            quality["evaluation_id"] = digest(quality)
+            saved = json.loads(json.dumps(quality))
+            validate_evaluation(saved)
+            saved["native_rule_evidence"]["registration_coverage"]["5"]["diagnostics"] = ["changed"]
+            with self.assertRaisesRegex(ContractError, "bound evaluation"):
+                validate_evaluation(saved)
 
     def test_payment_and_resolution_stay_with_their_own_chain_link(self):
         opened = dict(kind=70, player=0, public_card=1, description=16, link=1)
