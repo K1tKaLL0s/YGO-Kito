@@ -2238,6 +2238,8 @@ class LuaEffectSource:
         self._binding = dict(extractor=LUA_EFFECT_VERSION, scripts_sha256=resources["scripts"],
                              script_commit=commits["scripts"], core_commit=commits["core"],
                              source_lock_sha256=receipt["source_lock_sha256"], card_data_sha256=resources["card_data_abi"])
+        if supplement := receipt.get("period_script_lock"):
+            self._binding.update(period_script_lock_sha256=supplement["sha256"], period_script_commit=supplement["commit"])
 
         self._constants = {}
         try:
@@ -2274,7 +2276,8 @@ class LuaEffectSource:
         commits = receipt["source_commits"]
         resources = receipt["resources"]
         return (Path(root), resources["scripts"], resources["card_data_abi"],
-                commits["scripts"], commits["core"], receipt["source_lock_sha256"])
+                commits["scripts"], commits["core"], receipt["source_lock_sha256"],
+                tuple(sorted(receipt.get("period_script_lock", {}).items())))
 
     def assert_binding(self, root, receipt):
         if self._receipt_binding != self._receipt_identity(root, receipt):

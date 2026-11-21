@@ -6,6 +6,18 @@
 
 来源由 [native-sources.lock.json](../../configs/native-sources.lock.json) 固定。客户端 `mycard/ygopro` 的 `ocgcore` 和 `script` Git 子模块分别指向锁中的核心与脚本提交；构建脚本会检查这两个关系及协议 `0x1362`。核心同一提交从 Fluorohydride 上游取得；Lua 从 Lua 团队官方开发仓库的 5.4.8 提交构建。没有运行下载的引擎、premake 或其他第三方可执行文件。
 
+2026-10 的 [YAC1 脚本补包锁](../../configs/native-period-script-locks/2026-10-yac1-662eb95.json) 记录了 MyCard 2026-10-26 提交中的 25 个新增脚本。用已有已核资源根和已下载包生成独立资源根。
+
+```bash
+PYTHONPATH=src python scripts/prepare_native_engine.py \
+  --root /home/chaos/.local/share/ygo-kito/native-periods/2026-10-yac1-662eb95 \
+  --base-native-root /home/chaos/.local/share/ygo-kito/native \
+  --script-package /mnt/n/YGO-Kito/.cache/optimization-order-03-reference-reuse/v59-script-origins/scripts \
+  --period-script-lock 2026-10-yac1-662eb95
+```
+
+给现有构筑命令传入新 `--native-root` 和 `--period 2026-10`，并使用东京日期 2026-10-27 或之后的对应时期截止日。资源回执校验完整合并脚本哈希、补包锁、原内核、卡库和禁限。Lua 效果记录、实际引擎和缓存共享该版本绑定。旧回放使用原 `--native-root` 复现。
+
 ## 复现
 
 要求本仓库 checkout、Python 3.12+、Git、G++ 和网络。使用现有项目虚拟环境；没有新增 Python 运行依赖，也不需要 PyTorch、CUDA、CMake 或 Ninja。

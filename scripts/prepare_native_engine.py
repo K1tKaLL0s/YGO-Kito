@@ -8,10 +8,12 @@ import argparse
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import shutil
 import subprocess
+from tempfile import TemporaryDirectory
 import time
 
-from ygo_kito.native_assets import LOCK_PATH, digest, resource_hashes
+from ygo_kito.native_assets import LOCK_PATH, digest, load_period_script_lock, resource_hashes, resource_paths, verify_resources
 
 
 def run(command, **kwargs):
@@ -72,9 +74,54 @@ def prepare(root: Path, *, rebuild: bool = False):
     print(json.dumps({"ok": True, "receipt": str(build / "receipt.json"), "build_seconds": receipt["build_seconds"]}))
 
 
+def prepare_period_scripts(root: Path, base: Path, package: Path, lock_id: str):
+    """Prepare a separately sealed native root from existing approved resources."""
+    lock, binding = load_period_script_lock(lock_id)
+    base_receipt = verify_resources(base)
+    if "period_script_lock" in base_receipt or base_receipt["resources"] != lock["base_resources"]:
+        raise RuntimeError("base resource receipt does not match the period script lock")
+    if root == base or root.is_relative_to(base) or root.exists():
+        raise FileExistsError("the period resource root must be a new directory outside the base")
+    for filename, script in lock["files"].items():
+        if (Path(filename).name != filename or not filename.endswith(".lua")
+                or (base / "engine-src/scripts" / filename).exists() or digest(package / filename) != script["sha256"]):
+            raise RuntimeError(f"period script is not the locked addition: {filename}")
+    root.parent.mkdir(parents=True, exist_ok=True)
+    with TemporaryDirectory(dir=root.parent, prefix="native-period-") as scratch:
+        staged = Path(scratch) / "root"
+        for path in resource_paths(base).values():
+            target = staged / path.relative_to(base)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, target)
+        for directory in ("core", "lua", "scripts"):
+            relative = Path("engine-src") / directory
+            shutil.copytree(base / relative, staged / relative, symlinks=True, dirs_exist_ok=True,
+                            ignore=shutil.ignore_patterns(".git"))
+        for filename in lock["files"]:
+            shutil.copy2(package / filename, staged / "engine-src/scripts" / filename)
+        resources = dict(lock["base_resources"], scripts=lock["scripts_sha256"])
+        receipt = dict(base_receipt, resources=resources, period_script_lock=binding)
+        (staged / "engine-build/receipt.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+        verify_resources(staged)
+        if root.exists():
+            raise FileExistsError("the period resource root was created during preparation")
+        staged.rename(root)
+    print(json.dumps(dict(ok=True, root=str(root), period_script_lock=binding, scripts_sha256=resources["scripts"])))
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(".cache"))
     parser.add_argument("--rebuild", action="store_true")
+    parser.add_argument("--period-script-lock", help="Prepare a new resource root for an approved period script lock")
+    parser.add_argument("--base-native-root", type=Path, help="Existing native root for the selected period lock")
+    parser.add_argument("--script-package", type=Path, help="Local directory with the approved Lua files")
     args = parser.parse_args()
-    prepare(args.root.resolve(), rebuild=args.rebuild)
+    inputs = (args.period_script_lock, args.base_native_root, args.script_package)
+    if any(inputs):
+        if not all(inputs) or args.rebuild:
+            parser.error("period preparation requires --period-script-lock, --base-native-root and --script-package")
+        prepare_period_scripts(args.root.resolve(), args.base_native_root.resolve(), args.script_package.resolve(),
+                               args.period_script_lock)
+    else:
+        prepare(args.root.resolve(), rebuild=args.rebuild)

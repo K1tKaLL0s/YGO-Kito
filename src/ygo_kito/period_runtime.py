@@ -69,6 +69,10 @@ class PeriodBuildAssets(BuildAssets):
         if parsed is None:
             raise ContractError("period catalog/release/banlist evidence is incomplete or invalid")
         super().__init__(root)
+        supplement = self.receipt.get("period_script_lock")
+        if supplement is not None and (supplement["period_id"] != period_id or
+                supplement["source_date"] > environment["release_cutoff"]):
+            raise ContractError("native script supplement is outside the selected period or cutoff")
         if (evidence["artifacts"]["catalog"]["sha256"] != self.receipt["resources"]["cards"] or
                 evidence["artifacts"]["banlist"]["sha256"] != self.receipt["resources"]["banlist"]):
             raise ContractError("period catalog/banlist must match the actual pinned native resources")

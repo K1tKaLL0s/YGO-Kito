@@ -126,9 +126,23 @@ def compare_versions(previous, current):
     if previous.get("schema_version") != 1:
         raise ValueError("incompatible prior registration audit")
     before, after = previous["cards"], current["cards"]
+    prior_resources = previous["resources"]["resources"]
+    current_resources = current["resources"]["resources"]
+    changed_resources = {key: dict(previous=prior_resources.get(key), current=current_resources.get(key))
+        for key in sorted(prior_resources.keys() | current_resources.keys())
+        if prior_resources.get(key) != current_resources.get(key)}
+
+    def card_content(card):
+        # The bundle identity already has its own comparison. Keep each
+        # script's bytes, callback sources, registrations and S3 records here.
+        static = {k: v for k, v in card["static"].items() if k not in ("extractor", "scripts_sha256")}
+        return dict(card, static=static)
+
     return dict(previous_source=previous["source"], previous_period=previous["period"],
-                added=sorted(after.keys() - before.keys(), key=int), removed=sorted(before.keys() - after.keys(), key=int),
-                changed=sorted((code for code in before.keys() & after.keys() if before[code] != after[code]), key=int))
+                changed_resources=changed_resources, added=sorted(after.keys() - before.keys(), key=int),
+                removed=sorted(before.keys() - after.keys(), key=int),
+                changed=sorted((code for code in before.keys() & after.keys()
+                                if card_content(before[code]) != card_content(after[code])), key=int))
 
 
 def main():
