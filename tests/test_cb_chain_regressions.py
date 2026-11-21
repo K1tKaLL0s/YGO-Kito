@@ -176,10 +176,10 @@ class CbChainRegressionTests(unittest.TestCase):
             proof=dict(status='not_found_within_budget',exploration=dict(nodes_expanded=count))
             result=infer_basic_cb(task,deck,assets,**synthetic_cb_authorization(task,deck),verifier=lambda *a,**k:deepcopy(proof),limit=1)
             self.assertTrue(result['attempts']);self.assertEqual(result['status'],status)
-            self.assertEqual(result['inference_completed'],bool(count))
+            self.assertFalse(result['inference_completed'])
         with patch('ygo_kito.basic_cb_inference.proposals',return_value=[]):
             result=infer_basic_cb(task,deck,assets,**synthetic_cb_authorization(task,deck))
-        self.assertEqual(result['status'],'bounded_inference_unknown');self.assertTrue(result['inference_completed'])
+        self.assertEqual(result['status'],'not_run');self.assertFalse(result['inference_completed'])
 
     def test_initialization_can_exhaust_budget_without_any_action_expansion(self):
         task,deck,assets=construction();task=route_task(proposals(task,deck,assets)[1])

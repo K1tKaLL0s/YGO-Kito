@@ -87,6 +87,7 @@ def _starting(cards):
 def _ritual_openings(record, counts, rows, inventory):
     from .construction_inventory import matches, selector, query_supported
     from .effect_records import operation_record
+    from .effect_text import RITUAL_MATERIAL_RELEASE
 
     for operation in record['operations']:
         if operation['kind'] != 'ritual_summon' or operation.get('reason') != 'effect' or operation.get('from_zones') != ['hand']:
@@ -96,8 +97,8 @@ def _ritual_openings(record, counts, rows, inventory):
             continue
         exact = re.fullmatch(r'从手卡把(?:1只)?(「[^」]+」(?:仪式怪兽)?)仪式召唤', operation['source'])
         query = operation.get('selector_query') or (selector(exact[1]) if exact else None)
-        payments = [re.fullmatch(r'从自己(?:的)?(?:手卡·场上|场上·手卡|手卡)把等级合计(?:直到|为)(\d+)(以上)?的怪兽解放',
-                                 op['source']) for op in scoped['operations'] if op['kind'] == 'release']
+        payments = [RITUAL_MATERIAL_RELEASE.fullmatch(op['source']) for op in scoped['operations']
+                    if op['kind'] == 'release']
         if not query_supported(query) or len(payments) != 1 or payments[0] is None:
             continue
         required, at_least = int(payments[0][1]), bool(payments[0][2])
@@ -376,16 +377,17 @@ def infer_basic_cb(task,deck,assets,*,builder=None,seconds=20.,limit=8,verifier=
                                'origin':'inferred_after_construction_gate'})
                 break # One basic route suffices for this bounded inference; no optimality claim.
     if before!=(task.sha256,digest(deck.to_dict())):raise ContractError('Basic CB inference cannot modify construction or its goal')
-    completed=bool(routes) or (bool(candidates) and len(attempts)==len(candidates) and
+    searched = any(expanded(attempt['proof']) for attempt in attempts)
+    completed=bool(routes) or (searched and len(attempts)==len(candidates) and
         all(a['proof'].get('native_route',a['proof']).get('normal_completion') is True for a in attempts))
     from .basic_cb_scope import VERSION
     return {'schema_version':2,'scope_version':VERSION,'kind':'basic_cb_inference_after_construction','task_sha256':task.sha256,
         'construction_gate':deepcopy(construction_gate), 'execution_authorized':True,
         'candidate_version':construction_gate['candidate_version'],
         'subject_deck_sha256':before[1],'status':('routes_inferred' if routes else
-            'no_route_found' if completed else 'bounded_inference_unknown' if attempts else 'not_run'),
+            'no_route_found' if completed else 'bounded_inference_unknown' if searched else 'not_run'),
         'stop_reason':('route_inferred' if routes else 'no_supported_proposals' if not candidates else
-            'completed_without_route' if completed else 'incomplete_route_search' if attempts else 'no_action_expansion'),
+            'completed_without_route' if completed else 'incomplete_route_search' if searched else 'no_action_expansion'),
         'candidate_generation':ranking,'candidate_count':len(candidates),'attempts':attempts,'routes':routes,
         'symbolic_route_templates':dict(BLOCK_ROUTES),'scoring_theme':theme,
         'initial_state_mode':'hypothetical_exact_hand_v1','opening_probability_evaluated':False,

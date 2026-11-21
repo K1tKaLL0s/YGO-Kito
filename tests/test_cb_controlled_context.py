@@ -15,7 +15,7 @@ from ygo_kito.route_search import _CONDITIONAL_CB, discover_goal
 
 
 class ControlledCbContextTests(unittest.TestCase):
-    def test_real_infer_factory_path_uses_exact_hand_once_and_keeps_unknown(self):
+    def test_real_infer_factory_path_uses_exact_hand_once_for_completed_search(self):
         task,deck,assets=construction()
         candidate=proposals(task,deck,assets)[1]
         opening=candidate.goal['route_goal']['starting_conditions']['requires_opening_hand']
@@ -50,7 +50,7 @@ class ControlledCbContextTests(unittest.TestCase):
         self.assertFalse(_CONDITIONAL_CB.get())
         self.assertEqual(result['initial_state_mode'],'hypothetical_exact_hand_v1')
         self.assertFalse(result['opening_probability_evaluated'])
-        self.assertEqual(result['status'],'bounded_inference_unknown')
+        self.assertEqual(result['status'],'no_route_found')
         self.assertTrue(result['inference_completed'])
         self.assertEqual(result['routes'],[])
         proof=result['attempts'][0]['proof']

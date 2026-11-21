@@ -15,7 +15,7 @@ from ygo_kito.validation import ContractError
 
 class OptimizationContracts(unittest.TestCase):
     def test_unit_base_and_theme_are_separate(self):
-        generic=route_effect_points('another_theme');pearl=route_effect_points('pearl_grave_fusion')
+        generic=route_effect_points('another_theme');pearl=route_effect_points('pearl_grave_fusion', {'grave_fusion':1.5})
         self.assertTrue(all(value==1. for value in generic.values()))
         self.assertEqual(pearl['grave_fusion'],1.5)
         self.assertEqual(generic['grave_fusion'],1.)
@@ -64,9 +64,10 @@ class OptimizationContracts(unittest.TestCase):
             observed_operations=[{'kind':'return_fusion_materials','from_zones':('hand','field','grave'),'to_zone':'deck_bottom'}])
         profiles={c:SimpleNamespace(effects=([starter] if c==1 else [fusion] if c==2 else []),
             cards_sha256='a'*64,text_sha256='b'*64) for c in deck.main}
-        catalog=SimpleNamespace(card=lambda c:profiles[c])
+        assets = SimpleNamespace(rows=rows, receipt={'resources': {'cards': 'a' * 64}})
+        catalog=SimpleNamespace(assets=assets, card=lambda c:profiles[c], effect_records=lambda c: ())
         with patch('ygo_kito.basic_cb_inference.MechanismCatalog',return_value=catalog):
-            candidates=proposals(task,deck,SimpleNamespace(rows=rows))
+            candidates=proposals(task,deck,assets)
         self.assertEqual({c.goal['route_goal']['card_id'] for c in candidates},{42,43})
         self.assertTrue(all(c.goal['route_goal']['fusion_witness']['required_source_zones']==[16] for c in candidates))
 

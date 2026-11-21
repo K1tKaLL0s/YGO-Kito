@@ -70,13 +70,14 @@ class BasicCbDuelIntegrationTests(unittest.TestCase):
         with self.assertRaisesRegex(ContractError,'original task/goal/deck'):
             plans_from_construction(task,bad,deck=deck)
 
-    def test_missing_provider_is_not_run_while_bounded_search_unknown_is_completed(self):
+    def test_missing_provider_is_not_run_while_bounded_search_remains_unknown(self):
         task,deck,assets,result,calls=self.inference_fixture(unknown=True)
         missing=_candidate_basic_cb(task,deck,assets,None)
         self.assertEqual(missing['status'],'not_run');self.assertFalse(missing['inference_completed'])
         inferred=result['basic_cb']
         self.assertTrue(calls);self.assertTrue(inferred['attempts'])
-        self.assertEqual(inferred['status'],'bounded_inference_unknown');self.assertTrue(inferred['inference_completed'])
+        self.assertEqual(inferred['status'],'bounded_inference_unknown');self.assertFalse(inferred['inference_completed'])
+        self.assertFalse(inferred['failure_count_eligible'])
         self.assertEqual(inferred['routes'],[]);self.assertTrue(inferred['unknown_is_not_negative'])
         self.assertEqual(plans_from_construction(task,result,deck=deck),())
 

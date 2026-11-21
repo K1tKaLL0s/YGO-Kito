@@ -126,6 +126,10 @@ def merge_payments(existing, head):
     return result
 
 
+RITUAL_MATERIAL_RELEASE = re.compile(
+    r'从自己(?:的)?(?:手卡·场上|场上·手卡|手卡)把等级合计(?:直到|为)(\d+)(以上)?的怪兽解放')
+
+
 def legacy_payment_boundary(text):
     """Clear older payment→instruction syntax, without moving resolution fees."""
     first_sentence=text.split('。',1)[0]
@@ -153,6 +157,8 @@ def legacy_payment_boundary(text):
         preceding=[p[0] for p in parts[:-1] if not re.search(r'(?:场合|时|之际|阶段|回合)$',p[0])]
         if any(re.search(r'确认|检视|抽|破坏|特殊召唤|加入手卡',p) and not payment_records(p) for p in preceding):continue
         tail = text[match.end():]
+        if RITUAL_MATERIAL_RELEASE.fullmatch(last) and re.match(r'\s*从手卡[^。，,]+仪式召唤', tail):
+            return None  # The level sum is a material requirement during ritual resolution.
         # A resolution connector joins two operations even if the first
         # verb could also describe an activation payment.
         if not paid and '作为代价' not in last and re.match(r'\s*(?:那之后|之后|然后)', tail):

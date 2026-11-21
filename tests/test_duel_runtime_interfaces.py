@@ -71,7 +71,10 @@ class BasicCbRuntimeShapeTests(unittest.TestCase):
         self.assertTrue(all(p.opening==(1,2) for p in plans))
         self.assertEqual(task.to_dict(),before)
         for plan in plans:
-            self.assertEqual(set(asdict(plan)),{'plan_id','goal_card','opening','steps','effect_descriptions'})
+            self.assertEqual(set(asdict(plan)), {'plan_id', 'goal_card', 'opening', 'steps', 'effect_descriptions',
+                                               'goal_kind', 'effect_objective'})
+            self.assertEqual(plan.goal_kind, 'synchro_summon')
+            self.assertEqual(plan.effect_objective, ())
             self.assertNotIn('private-seed-secret',repr(plan));self.assertNotIn('987654321',repr(plan))
             self.assertNotIn('private-native-action',repr(plan));self.assertNotIn('123456789',repr(plan))
 

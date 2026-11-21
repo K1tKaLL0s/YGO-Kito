@@ -25,7 +25,7 @@ class CourseAdmissionPolicyTests(unittest.TestCase):
 
     def test_unknown_selectors_remain_unknown_without_a_numeric_failure_or_review_loop(self):
         value,_,_=fixture();task,assets=value[:2]
-        assets.rows[1]['desc']='①：从手卡把1只7星以上的「绯色」怪兽送去墓地才能发动。从自己卡组上面把3张卡送去墓地。'
+        assets.rows[1]['desc']='①：从手卡把1只7星以上且满足未知标志的「绯色」怪兽送去墓地才能发动。从自己卡组上面把3张卡送去墓地。'
         host=load_course_admission_policy(SimpleNamespace(events=[]))
         feedback=host.record_completed_construction(task=task,deck=value[4][0],assets=assets,basic_cb=None,cycle_id='cycle')
         self.assertTrue(feedback['inventory_dependencies']['unknown_requirements'])

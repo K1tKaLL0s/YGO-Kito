@@ -113,5 +113,7 @@ class ConstructionCliTests(unittest.TestCase):
                 "--state-root",str(self.root/"state"),"--verify-existing-goal","--candidate-id","cli-construction")
         self.assertEqual(code,0,err)
         result=json.loads(out)
-        self.assertEqual(result["handoff"]["status"],"submitted_existing_coordinator")
+        self.assertFalse(result["cb_verified"])
+        self.assertEqual(result["handoff"]["status"], "not_submitted")
+        self.assertEqual(result["coordinator"]["mode"], "existing_network_advisory_rule_authoritative")
         self.assertFalse(result["graph_execution_verified"])
