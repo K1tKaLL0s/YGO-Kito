@@ -26,7 +26,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v41"
+NORMALIZATION_VERSION = "construction-function-normalization-v42"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -1004,7 +1004,8 @@ def _bind_mandatory_impacts(facts, context, condition, *, summon_choice=None):
                     and rule.get("duration") == "while_applicable")
                 if continuous:
                     value = True  # The adoption's own support includes this exact field state.
-                if (not contract or affected is None
+                # An unresolved recipient cannot make an inactive lock apply.
+                if (not contract or (affected is None and value is True)
                         or not continuous and rule.get("condition") not in ("effect_use", "effect_activation")):
                     value = None
                 if rule.get("lua_summon_lock") and after:

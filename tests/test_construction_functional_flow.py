@@ -1208,6 +1208,39 @@ class FunctionalFlowTests(unittest.TestCase):
         self.assertEqual(arranged['score']['value'],2.)
         self.assertTrue(arranged['complete'])
 
+    def test_unknown_summon_choice_cannot_activate_a_later_restriction(self):
+        from ygo_kito.construction_layer_flow import _bind_mandatory_impacts
+        from ygo_kito.construction_relations import InputGroup, Need, Resource, UseRequirement, JointConstraint, RelationContext
+        from tests.test_construction_functional_quality import fixture as qfixture, use
+
+        layer, facts = qfixture([use("lock", family="draw"), use("summon", family="fusion")])
+        rule = dict(kind="cannot_special_summon", scope="player",
+                    source="这个效果的发动后，直到下次的自己回合的结束时自己不是水属性怪兽不能特殊召唤")
+        facts.update(coverage_details={}, card_properties={"20": {"attribute": 2}, "21": {"attribute": 32}},
+                     use_details={"lock": dict(restrictions=[rule], semantics={"kind": "draw"}),
+                                  "summon": dict(restrictions=[], semantics={"kind": "fusion_summon"},
+                                                 summoned_card_ids=(20, 21))})
+
+        def condition(key, value, reason, evidence):
+            if value is not None:
+                return value
+            facts["variables"][key] = None
+            return key
+
+        requirements = tuple(UseRequirement(k, InputGroup("all", (Need(k, Resource(k)),)),
+                             "sourced order", functional_use_ids=(k,)) for k in ("lock", "summon"))
+        p = policy()
+        p["pass"] = p.pop("pass_")
+        for ordered, expected in (((), (2., 2.)), (("summon", "lock"), (2., 2.)), (("lock", "summon"), (1., 2.))):
+            with self.subTest(order=ordered):
+                order = (JointConstraint("order", ordered, "before", "reviewed"),) if ordered else ()
+                context = SimpleNamespace(relations=RelationContext(requirements, constraints=order))
+                facts["impacts"] = []
+                _bind_mandatory_impacts(facts, context, condition)
+                normalized = {key: value for key, value in facts.items() if key != "card_properties"}
+                score = evaluate_functional_quality(layer, policy=p, facts=normalized)["score"]
+                self.assertEqual((score["lower"], score["upper"]), expected)
+
     def test_printed_processing_order_does_not_cross_cards_with_equal_local_block_ids(self):
         from ygo_kito.construction_layer_flow import _bind_mandatory_impacts
         from tests.test_construction_functional_quality import fixture as qfixture, use
