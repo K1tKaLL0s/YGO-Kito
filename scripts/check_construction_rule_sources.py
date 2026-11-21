@@ -95,15 +95,23 @@ def compare_versions(previous, current):
     changed_resources = {key: dict(previous=prior_resources.get(key), current=current_resources.get(key))
         for key in sorted(prior_resources.keys() | current_resources.keys())
         if prior_resources.get(key) != current_resources.get(key)}
+    unrecorded = set()
+    if previous["schema_version"] == 1:
+        count_details = {"count_maximum", "count_persistent"}
+        recorded = {field for card in before.values() for rule in card["native"] for field in count_details & rule.keys()}
+        unrecorded = count_details - recorded
 
     def card_content(card):
-        snapshot = {key: card[key] for key in ("printed_code", "rule_name", "diagnostics", "native")}
+        snapshot = {key: card[key] for key in ("printed_code", "rule_name", "diagnostics")}
+        snapshot["native"] = [{key: value for key, value in rule.items() if key not in unrecorded}
+                              for rule in card["native"]] if unrecorded else card["native"]
         if previous["schema_version"] == 2:
             snapshot["script_sha256"] = card["script_sha256"]
         return snapshot
 
     return dict(previous_source=previous["source"], previous_period=previous["period"],
-                changed_resources=changed_resources, added=sorted(after.keys() - before.keys(), key=int),
+                changed_resources=changed_resources, prior_unrecorded_fields=sorted(unrecorded),
+                added=sorted(after.keys() - before.keys(), key=int),
                 removed=sorted(before.keys() - after.keys(), key=int),
                 changed=sorted((code for code in before.keys() & after.keys()
                                 if card_content(before[code]) != card_content(after[code])), key=int))
