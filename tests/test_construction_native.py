@@ -272,6 +272,19 @@ class ConstructionNativeTests(unittest.TestCase):
                          (10, "response", [10], True))
         self.assertEqual(excluded[0]["card"], 3)
 
+    def test_hand_response_accepts_a_registered_range_that_includes_hand(self):
+        source = dict(type=128, event_code=1027, family=0, registration_span=[17, 29],
+                      operation={"reference": "source"})
+        lua = SimpleNamespace(summarize_effects=lambda code: {"script_card_id": code, "registrations":
+            [dict(source, range=2 | 4), dict(source, range=4, family=1, registration_span=[34, 39])]})
+        assets = SimpleNamespace(effect_lua_source=lua, rows={1: dict(type=33, level=3)})
+        plans, _ = planned_queries(DeckParts(main=(1,)), assets)
+        response, = [q for q in plans if q["setup"] == "response"]
+        self.assertEqual(response["opening"], [1])
+        self.assertEqual(response["response_to"], {"any_opponent_activation": True})
+        self.assertNotIn("prepare_set", response)
+        self.assertEqual([reg["family"] for reg in response["registrations"]], [0])
+
     def test_side_windows_bind_physical_exchanges_and_resident_only_skips_them(self):
         deck = DeckParts((1, 2, 2), (), (3, 3))
         assets = SimpleNamespace(effect_lua_source=None, rows={c: dict(type=1, level=4) for c in (1, 2, 3)})

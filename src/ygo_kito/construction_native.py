@@ -25,7 +25,7 @@ from .validation import ContractError
 
 
 NATIVE_RULE_VERSION = "construction-native-rules-v5"
-NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v7"
+NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v8"
 _QUERY_WORK_VERSION = "construction-native-query-work-v1"
 _DECISION_BUDGET = 100
 _DECK_DESTINATIONS = {2: "hand", 16: "grave"}
@@ -81,24 +81,27 @@ def _main_queries(deck, assets, subject=None):
         script = (lua.summarize_effects(script_code, summon_responses=True) if settable_response else
                   lua.summarize_effects(script_code)) if lua is not None else {"registrations": []}
         source = {key: script[key] for key in ("file", "sha256", "helpers") if key in script}
-        has_set_window = False
-        for response_event in (1027, *SUMMON_RESPONSE_EVENTS) if settable_response else ():
-            registrations = _set_responses(script, response_event)
+        has_response = False
+        response_events = (1027, *SUMMON_RESPONSE_EVENTS) if settable_response else (1027,) if monster else ()
+        for response_event in response_events:
+            registrations = _response_registrations(script, response_event, prepare_set=settable_response)
             if not registrations:
                 continue
-            has_set_window = True
+            has_response = True
             response = (dict(summon_message=SUMMON_RESPONSE_EVENTS[response_event])
                         if response_event in SUMMON_RESPONSE_EVENTS else dict(any_opponent_activation=True))
-            query = dict(card=code, seat=0, setup="response", prepare_set=True, opening=[code],
+            query = dict(card=code, seat=0, setup="response", opening=[code],
                 summons=[], response_to=response, registrations=registrations,
                 destinations=["grave", "hand"], registration_source=source, priority=1, seed=7, path=[])
+            if settable_response:
+                query["prepare_set"] = True
             planned.append(query)
             spans = {tuple(r["span"]) for r in registrations}
             if any("cost" in reg and tuple(reg["registration_span"]) in spans for reg in script["registrations"]):
                 spare = next((card for card in deck.main if card != code or counts[card] >= 2), None)
                 if spare is not None:
                     planned.append(dict(query, opening=[code, spare], priority=2))
-        if not setups and not has_set_window:
+        if not setups and not has_response:
             excluded.append(dict(card=code, reason="needs_set_or_other_preparation"))
         windows = {setup: _registration_choices(script, setup) for setup in setups}
         for setup, registrations in windows.items():
@@ -147,8 +150,11 @@ def planned_queries(deck, assets, *, include_side=True):
     return sorted(planned, key=lambda q: (q["priority"], q["card"], q["setup"])), excluded
 
 
-def _set_responses(script, event):
-    activations = {tuple(r["registration_span"]) for r in script["registrations"] if r.get("type") == 16}
+def _response_registrations(script, event, *, prepare_set):
+    if prepare_set:
+        activations = {tuple(r["registration_span"]) for r in script["registrations"] if r.get("type") == 16}
+    else:
+        activations = {tuple(r["registration_span"]) for r in script["registrations"] if (r.get("range") or 0) & 2}
     return [r for r in _registration_choices(script, "response", response_event=event)
             if tuple(r["span"]) in activations]
 
@@ -156,7 +162,7 @@ def _set_responses(script, event):
 def _effect_projection(query, records):
     effects = []
     for root in records.get(query["card"], ()):
-        selections = root["operations"] if query.get("prepare_set") and root.get("branch_records") else [None]
+        selections = root["operations"] if query["setup"] == "response" and root.get("branch_records") else [None]
         scopes = {}
         for operation in selections:
             scopes.setdefault((operation or {}).get("choice"), operation_record(root, operation) if operation else root)
@@ -806,7 +812,7 @@ class NativeRuleChecks:
         excluded = previous.get("excluded", [])
         if getattr(self.assets, "effect_lua_source", None) is not None:
             planned, current_excluded = planned_queries(deck, self.assets, include_side=include_side)
-            prepared = [q for q in planned if q.get("prepare_set") or q.get("side_swaps")]
+            prepared = [q for q in planned if q["setup"] == "response" or q.get("side_swaps")]
             for query in prepared:
                 identity = digest(query)
                 if identity not in seen:
