@@ -510,6 +510,7 @@ class UnresolvedDictionaryRepairTests(unittest.TestCase):
 
 CONSTANTS = """\
 EFFECT_TYPE_SINGLE=1
+EFFECT_TYPE_FIELD=2
 EFFECT_TYPE_TRIGGER_O=0x80
 EFFECT_TYPE_TRIGGER_F=0x200
 EFFECT_TYPE_IGNITION=0x10
@@ -527,6 +528,11 @@ HINTMSG_SPSUMMON=509
 EVENT_FREE_CHAIN=1002
 EFFECT_FLAG_NO_TURN_RESET=0x400000
 EFFECT_FLAG_CARD_TARGET=0x10
+EFFECT_FLAG_PLAYER_TARGET=0x800
+EFFECT_CANNOT_SPECIAL_SUMMON=31
+RESET_PHASE=0x40000000
+PHASE_END=0x200
+ATTRIBUTE_WATER=2
 TYPE_SPELL=0x2
 TYPE_TRAP=0x4
 CATEGORY_TOGRAVE=0x20
@@ -546,6 +552,7 @@ EVENT_SPSUMMON_SUCCESS=1102
 EVENT_TO_GRAVE=1014
 HINT_OPSELECTED=6
 LOCATION_GRAVE=0x10
+LOCATION_EXTRA=0x40
 """
 
 UTILITY = """\
@@ -814,6 +821,72 @@ class LuaEffectBlockTests(unittest.TestCase):
                        source_commits=dict(core="fixture-core", scripts="fixture-lua"))
         (self.root / "engine-build/receipt.json").write_text(json.dumps(receipt), encoding="utf-8")
         return BuildAssets(self.root)
+
+    def test_resolution_summon_lock_consumes_original_scope_and_physical_recipients(self):
+        from ygo_kito.build_semantics import matches
+        from ygo_kito.construction_relations import _restriction_contract
+
+        script = f"""
+function c{LUA_CARD_ID}.initial_effect(c)
+    local e=Effect.CreateEffect(c)
+    e:SetDescription(aux.Stringid({LUA_CARD_ID},0))
+    e:SetType(EFFECT_TYPE_IGNITION)
+    e:SetRange(LOCATION_MZONE)
+    e:SetOperation(c{LUA_CARD_ID}.resolve)
+    c:RegisterEffect(e)
+end
+function c{LUA_CARD_ID}.resolve(e,tp)
+    Duel.Draw(tp,1,REASON_EFFECT)
+    local restriction=Effect.CreateEffect(e:GetHandler())
+    restriction:SetCode(EFFECT_CANNOT_SPECIAL_SUMMON)
+    restriction:SetType(EFFECT_TYPE_FIELD)
+    restriction:SetProperty(EFFECT_FLAG_PLAYER_TARGET)
+    restriction:SetTargetRange(1,0)
+    restriction:SetTarget(c{LUA_CARD_ID}.blocked)
+    restriction:SetReset(RESET_PHASE|PHASE_END)
+    Duel.RegisterEffect(restriction,tp)
+end
+function c{LUA_CARD_ID}.blocked(e,c)
+    return not c:IsAttribute(ATTRIBUTE_WATER)
+end
+"""
+        text = '①：自己从卡组抽1张。这个回合，自己若非水属性怪兽则不能特殊召唤。'
+        for variant, printing, resolved in (
+            (script, text, True),
+            (script.replace('    Duel.Draw', '    if Duel.GetTurnPlayer()~=tp then return end\n    Duel.Draw'), text, False),
+            (script.replace('ATTRIBUTE_WATER)', 'ATTRIBUTE_FIRE)'), text, False),
+            (script, text.replace('这个回合', '发动这个效果的回合'), False),
+        ):
+            with self.subTest(resolved=resolved, printing=printing, guarded=variant != script):
+                assets = self.assets(script=variant, description=printing)
+                assets.rows[LUA_CARD_ID].update(attribute=4, level=4)
+                for code, attr in ((11, 2), (12, 4)):
+                    assets.rows[code] = dict(id=code, alias=0, type=17, name=str(code), desc="",
+                                             setcode=0, race=1, attribute=attr, level=4)
+                stock = DeckParts((11, 12, LUA_CARD_ID))
+                catalog = CatalogBindingAdapter(assets).semantic_catalog
+                inventory = InventoryDependencies(catalog)
+                (spec,), _ = inventory.specs(LUA_CARD_ID)
+                restriction = next(rule for rule in spec["record"]["restrictions"]
+                                   if rule["kind"] == "cannot_special_summon")
+                if not resolved:
+                    self.assertNotIn("lua_summon_lock", restriction)
+                    continue
+                contract = _restriction_contract(restriction)
+                self.assertIs(contract["whole_turn"], False)
+                self.assertEqual((contract["condition"], contract["duration"], contract["controller"]),
+                                 ("effect_use", "turn", "self"))
+                self.assertEqual(contract["lua_summon_lock"]["applies_after"], "resolution")
+                self.assertEqual(len(restriction["evidence_refs"]), 2)
+                allowed = tuple(code for code in stock.main if matches(assets.rows[code], contract["allowed_summons"]))
+                self.assertEqual(allowed, (11,))
+                summon = dict(kind="special_summon", from_zones=["deck"], to_zone="field", owner="self",
+                              selector_query={"type": 1}, quantity=1,
+                              source="从卡组把1只怪兽特殊召唤", phase="resolution")
+                record = dict(spec["record"], operations=[summon], costs=[], targets=[])
+                self.assertIs(inventory.summon_choice_check(stock, record, summon, allowed, physical_inventory=stock), True)
+                without = DeckParts((12, LUA_CARD_ID))
+                self.assertIs(inventory.summon_choice_check(without, record, summon, allowed, physical_inventory=without), False)
 
     def test_locked_resolution_send_allocates_the_original_target_and_a_separate_hand_card(self):
         from tests.test_construction_functional_flow import fixture

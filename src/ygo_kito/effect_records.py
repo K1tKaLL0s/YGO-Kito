@@ -12,7 +12,7 @@ from collections import Counter, defaultdict
 from .rule_references import effect_reference_requests
 
 EFFECT_RECORD_VERSION = "public-effect-records-v4"
-LUA_EFFECT_RECORD_VERSION = "public-effect-records-v11"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v12"
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (
     "fusion_target", "synchro_target", "xyz_target", "tuner",
@@ -1501,6 +1501,47 @@ def _merge_lua_preselected_grave_summon(record, printed, window, script):
     return True
 
 
+def _bind_lua_summon_lock(record, windows, source_binding, rows):
+    from .build_semantics import matches
+    from .construction_relations import _restriction_contract
+
+    locks = [window.get("resolution_summon_lock") for window in windows]
+    if not locks or locks[0] is None or any(lock != locks[0] for lock in locks[1:]):
+        return
+    lock = locks[0]
+    printed = [rule for rule in record["restrictions"]
+               if rule["kind"] in ("cannot_special_summon", "cannot_special_summon_from_extra")]
+    if len(printed) != 1:
+        return
+    restriction, = printed
+    contract = _restriction_contract(restriction)
+    if (contract is None or contract.get("duration") != lock["duration"]
+            or contract.get("controller") != lock["controller"]
+            or contract.get("from_zones", []) != lock["from_zones"]
+            or not contract.get("allowed_summons")
+            or contract.get("whole_turn") and not restriction["source"].startswith("这个回合")):
+        return
+    # A reading of 「这个回合」 is not an explicit prior-summon activation
+    # check. Keep any such check separate from this resolution observation.
+    if contract.get("whole_turn") and any(window.get("cost") or window.get("condition")
+                                           for window in windows):
+        return False
+    printed_allowed, lua_allowed = contract["allowed_summons"], lock["allowed_summons"]
+    if printed_allowed != lua_allowed and any(
+            matches(row, printed_allowed) != matches(row, lua_allowed)
+            for row in rows.values() if row.get("type", 0) & 1):
+        return False
+    evidence = dict(lock, core_commit=source_binding["core_commit"],
+                    scripts_sha256=source_binding["scripts_sha256"])
+    refs = [f"lua:{site['file']}:{site['sha256']}:{site['byte_span'][0]}-{site['byte_span'][1]}"
+            for site in (lock["operation"], lock["target"])]
+    for rules in (record["restrictions"], record["block_view"]["restrictions"]):
+        for rule in rules:
+            if rule["kind"] in (restriction["kind"], "cannot_summon") and rule["source"] == restriction["source"]:
+                rule.update(lua_summon_lock=deepcopy(evidence), evidence_refs=refs.copy())
+    return True
+
+
 def merge_lua_effect_sources(records, source, script_code, *, rows, same_printing=True):
     """Attach Lua evidence to the matching printed effect and refine supported facts."""
     if not records:
@@ -1518,7 +1559,9 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
                      if (payment := _printed_self_payment(record)) is not None}
     grave_summons = {record["effect_key"]: fact for record in records
                      if (fact := _grave_summon_printing(record)) is not None}
-    script_options = dict(deck_send_indices=deck_sends, self_send_costs=bool(self_payments))
+    script_options = dict(deck_send_indices=deck_sends, self_send_costs=bool(self_payments),
+        summon_locks=any(r["kind"] in ("cannot_special_summon", "cannot_special_summon_from_extra")
+                         for record in records for r in record["restrictions"]))
     if grave_summons:
         script_options["preselected_grave_summons"] = True
     script = source.summarize_effects(script_code, **script_options)
@@ -1554,12 +1597,19 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
         printed_event = record["trigger"].get("event")
         events = {window["event"] for window in windows}
         matches = events == (_LUA_SUMMON_EVENTS if printed_event == "normal_or_special_summon" else {printed_event})
+        restriction_bound = (index > 0 and indices[index] == 1 and
+            (matches or printed_event in (None, "unknown") and events == {"own_main_phase"})
+            and _bind_lua_summon_lock(record, windows, source.binding, rows))
         if index <= 0 or indices[index] != 1 or not printed_event or not windows or not matches:
             record["lua_source"] = dict(source_info, alignment="unresolved")
             if windows:
                 record["lua_source"]["candidate_spans"] = [window["registration_span"] for window in windows]
+            if restriction_bound:
+                record["lua_source"]["summon_lock_alignment"] = "matched"
             continue
         record["lua_source"] = dict(source_info, alignment="matched", registrations=list(windows))
+        if restriction_bound:
+            record["lua_source"]["summon_lock_alignment"] = "matched"
         if index - 1 in deck_sends:
             _merge_lua_deck_send(record, source, rows)
     if self_payments:

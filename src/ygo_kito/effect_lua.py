@@ -11,7 +11,7 @@ import re
 from .validation import ContractError
 
 
-LUA_EFFECT_VERSION = "mycard-effect-registration-v7"
+LUA_EFFECT_VERSION = "mycard-effect-registration-v8"
 _TABLE, _CARD = object(), object()
 _CALLBACKS = {
     "SetCondition": "condition", "SetCost": "cost", "SetTarget": "target",
@@ -1132,6 +1132,134 @@ def _intrinsic_grave_summon_lock(registration, constants):
             and not any(role in registration for role in ("condition", "cost", "target", "operation", "value", "count_limit")))
 
 
+def _summon_predicate(node, card, constants, depth=0):
+    """Translate a pure card-property test for the printed-inventory view."""
+    node = _unwrapped(node)
+    if node is None or depth > 5:
+        return None
+    for operator, group in (("and", "all"), ("or", "any")):
+        left, right = _binary(node, operator)
+        if left is not None:
+            terms = [_summon_predicate(term, card, constants, depth + 1) for term in (left, right)]
+            return {group: terms} if all(terms) else None
+    if node.type == "unary_expression" and _text(node.child_by_field_name("operator")) == "not":
+        term = _summon_predicate(node.child_by_field_name("operand"), card, constants, depth + 1)
+        if term:
+            return term["not"] if "not" in term else {"not": term}
+        return None
+    name, args = _call(node)
+    receiver, _, method = name.partition(":")
+    value = _integer_value(args[0], constants) if len(args) == 1 else None
+    if receiver != card or value is None or not 0 < value < 2**32:
+        return None
+    if method == "IsType" and value & (value - 1) == 0:
+        return dict(field="type_all", value=value)
+    if method in ("IsRace", "IsAttribute"):
+        return dict(field={"IsRace": "race_any", "IsAttribute": "attribute_any"}[method], value=value)
+    xyz_type, link_type = constants.get("TYPE_XYZ"), constants.get("TYPE_LINK")
+    if method in ("IsLevelAbove", "IsRankAbove") and value <= 255 and xyz_type and link_type:
+        xyz = dict(field="type_all", value=xyz_type)
+        link = dict(field="type_all", value=link_type)
+        kind = xyz if method == "IsRankAbove" else {"not": {"any": [xyz, link]}}
+        return {"all": [kind, dict(field="level_between", value=[value, 255])]}
+    return None
+
+
+def _resolution_summon_lock(operation, definitions, constants, files):
+    """Read a single player lock registered at the end of a resolution."""
+    required = {"SetType": "EFFECT_TYPE_FIELD", "SetProperty": "EFFECT_FLAG_PLAYER_TARGET",
+                "SetCode": "EFFECT_CANNOT_SPECIAL_SUMMON"}
+    if any(type(constants.get(symbol)) is not int
+           for symbol in (*required.values(), "RESET_PHASE", "PHASE_END", "LOCATION_EXTRA")):
+        return None
+    params = tuple(map(_text, operation.child_by_field_name("parameters").children_by_field_name("name")))
+    statements = _children(operation.child_by_field_name("body"))
+    if len(params) < 2 or len(statements) < 8:
+        return None
+    effect, player = params[:2]
+    create, *settings, register = statements[-8:]
+    lock, constructor = _local_value(create)
+    name, args = _call(constructor)
+    if not lock or name != "Effect.CreateEffect" or len(args) != 1:
+        return None
+    handler = _name(args[0])
+    handler_call = (f"{effect}:GetHandler", [])
+    if _call(args[0]) != handler_call and not handler:
+        return None
+    if not _literal_call(register, constants, "Duel.RegisterEffect", lock, player):
+        return None
+    # A guard that exits before this tail makes registration conditional.
+    # No proof is emitted until its condition has its own binding.
+    handler_binding = None
+    pending = list(reversed(statements[:-8]))
+    while pending:
+        node = pending.pop()
+        if node.type in ("return_statement", "goto_statement", "function_declaration"):
+            return None
+        local, names, values = _assignment(node)
+        if names:
+            for index, variable in enumerate(map(_name, names)):
+                if variable in (effect, player, "Effect", "Duel"):
+                    return None
+                if variable == handler:
+                    if handler_binding is not None or not local or node.parent != operation.child_by_field_name("body"):
+                        return None
+                    handler_binding = _call(values[index]) if index < len(values) else ("", [])
+            continue
+        pending.extend(reversed(_children(node)))
+    if handler and handler_binding != handler_call:
+        return None
+    calls = {}
+    for statement in settings:
+        name, args = _call(statement)
+        receiver, _, method = name.partition(":")
+        if receiver != lock or method in calls:
+            return None
+        calls[method] = args
+    if calls.keys() != required.keys() | {"SetTargetRange", "SetReset", "SetTarget"}:
+        return None
+    if any(len(calls[key]) != 1 or _integer_value(calls[key][0], constants) != constants[symbol]
+           for key, symbol in required.items()):
+        return None
+    target_range = [_integer_value(arg, constants) for arg in calls["SetTargetRange"]]
+    controller = {(1, 0): "self", (0, 1): "opponent", (1, 1): "both"}.get(tuple(target_range))
+    reset = [_integer_value(arg, constants) for arg in calls["SetReset"]]
+    if controller is None or reset != [constants["RESET_PHASE"] | constants["PHASE_END"]]:
+        return None
+    target_args = calls["SetTarget"]
+    target_name = _name(target_args[0]) if len(target_args) == 1 else ""
+    target_name = target_name.replace("aux.", "Auxiliary.", 1) if target_name.startswith("aux.") else target_name
+    target = definitions.get(target_name)
+    if target is None:
+        return None
+    target_params = target.child_by_field_name("parameters").children_by_field_name("name")
+    if len(target_params) < 2:
+        return None
+    card = _text(target_params[1])
+    expression = _return_expression(_children(target.child_by_field_name("body")))
+    origins, terms = [], []
+    if expression is None:
+        return None
+    for term in _conjuncts(expression):
+        if _literal_call(term, constants, f"{card}:IsLocation", constants["LOCATION_EXTRA"]):
+            origins.append("extra")
+        else:
+            predicate = _summon_predicate(term, card, constants)
+            if predicate is None:
+                return None
+            terms.append(predicate)
+    if not terms or len(origins) > 1:
+        return None
+    forbidden = terms[0] if len(terms) == 1 else {"all": terms}
+    allowed = forbidden["not"] if "not" in forbidden else {"not": forbidden}
+    operation_name = _name(operation.child_by_field_name("name"))
+    return dict(controller=controller, from_zones=origins, allowed_summons=allowed,
+                applies_after="resolution", duration="turn", reset=reset[0],
+                property_scope="printed_card_configuration",
+                operation=dict(files[operation_name], byte_span=_span(operation)),
+                target=dict(files[target_name], byte_span=_span(target)), registration_span=_span(register))
+
+
 def _helper_return(function, bindings):
     """Read the simple assignment/return form used by GetID and Stringid."""
     if function is None:
@@ -1289,7 +1417,7 @@ class LuaEffectSource:
                     byte_span=_span(node), function=name) if node else None
 
     def summarize_effects(self, code, *, deck_send_indices=(), self_send_costs=False,
-                          preselected_grave_summons=False):
+                          preselected_grave_summons=False, summon_locks=False):
         """Report registrations and requested callback facts for printed effects."""
         filename = f"c{code}.lua"
         result = dict(status="missing_script", file=filename, registrations=[], unknown=[],
@@ -1369,7 +1497,7 @@ class LuaEffectSource:
             self._registrations(initial, initial_bindings, functions, result, unresolved)
         if result["unknown"]:
             result["status"] = "partial"
-        if deck_send_indices or self_send_costs or preselected_grave_summons:
+        if deck_send_indices or self_send_costs or preselected_grave_summons or summon_locks:
             # Callback domains use unshadowed core constants and the card's namespace.
             # Deck filters can also read an unchanged local GetID result.
             tables = {name for name, value in constants.items()
@@ -1381,6 +1509,9 @@ class LuaEffectSource:
             shadowed = {name for name in core_tables if assignments[name]} | (function_namespaces & core_tables)
             cost_shadowed = shadowed | ({"Group"} if assignments["Group"] or "Group" in function_namespaces else set())
             callbacks = {name: node for name, node in functions.items() if name not in overwritten_functions}
+            if summon_locks and result["status"] == "parsed" and not shadowed and not assignments["Effect"]:
+                self._summon_locks(result, callbacks, tables, static_constants,
+                                   use_utility=not (assignments["aux"] or assignments["Auxiliary"]))
             observations = {}
             local_ids = _unmodified_locals(root, local_ids)
             # These initial-effect helpers may add independent registrations.
@@ -1429,6 +1560,23 @@ class LuaEffectSource:
                                                    local_ids)
                 registration["deck_send"] = observations[key]
         return result
+
+    def _summon_locks(self, result, callbacks, tables, constants, *, use_utility):
+        definitions = {name: node for name, node in callbacks.items() if name.partition(".")[0] in tables}
+        files = {name: {key: result[key] for key in ("file", "sha256")} for name in definitions}
+        if use_utility:
+            for name, node in self._utility.items():
+                if name.startswith("Auxiliary.") and name not in callbacks:
+                    definitions[name] = node
+                    files[name] = self._helper(name)
+        for registration in result["registrations"]:
+            reference = registration.get("operation", {}).get("reference", "")
+            if reference.startswith("aux."):
+                reference = reference.replace("aux.", "Auxiliary.", 1)
+            if reference in definitions:
+                observed = _resolution_summon_lock(definitions[reference], definitions, constants, files)
+                if observed is not None:
+                    registration["resolution_summon_lock"] = observed
 
     def _registered_callback_scope_known(self, gaps, initial, bindings, *, grave_check=False):
         if not gaps:

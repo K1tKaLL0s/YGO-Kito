@@ -26,7 +26,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v37"
+NORMALIZATION_VERSION = "construction-function-normalization-v38"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -820,6 +820,13 @@ def _restriction_match(rule, detail, card_properties=None, *, summon_choice=None
                 unknown |= operation.get(key) is None
         if excluded:
             continue
+        player = rule.get("controller", rule.get("owner"))
+        actor = operation.get("owner") if kind in ("cannot_draw", "cannot_add_hand") else (
+            operation.get("controller", raw.get("controller", "self")))
+        if player in ("self", "opponent") and actor in ("self", "opponent") and player != actor:
+            continue
+        unknown |= actor not in ("self", "opponent") and not (
+            kind in ("cannot_draw", "cannot_add_hand") and actor == "both")
         if rule.get('allowed_summons') and action in special:
             from .build_semantics import matches as predicate_matches
             properties = card_properties or {}
@@ -835,13 +842,6 @@ def _restriction_match(rule, detail, card_properties=None, *, summon_choice=None
                     unknown |= proof is None
             else:
                 unknown = True
-        player = rule.get("controller", rule.get("owner"))
-        actor = operation.get("owner") if kind in ("cannot_draw", "cannot_add_hand") else (
-            operation.get("controller", raw.get("controller", "self")))
-        if player in ("self", "opponent") and actor in ("self", "opponent") and player != actor:
-            continue
-        unknown |= actor not in ("self", "opponent") and not (
-            kind in ("cannot_draw", "cannot_add_hand") and actor == "both")
         matches.append(None if unknown else True)
     return True if True in matches else None if matches else False
 
@@ -972,6 +972,10 @@ def _bind_mandatory_impacts(facts, context, condition, *, summon_choice=None):
             for target in facts["uses"]:
                 if target.scope_id != use.scope_id or target.use_id == use.use_id or target.use_id not in relevant:
                     continue
+                before = precedes(target.use_id, use.use_id)
+                after = precedes(use.use_id, target.use_id)
+                if rule.get("lua_summon_lock") and (use.effect_id == target.effect_id or before and not after):
+                    continue
                 other = facts["use_details"][target.use_id]
                 # Keep the object choice when it can change a joint requirement,
                 # a priced recipient, or the interaction of distinct restrictions.
@@ -989,8 +993,6 @@ def _bind_mandatory_impacts(facts, context, condition, *, summon_choice=None):
                 whole = rule.get("whole_turn", rule.get("duration") == "whole_turn" or None)
                 if whole is False and use.effect_id == target.effect_id:
                     continue  # A lock does not prohibit its own resolution or another proof of it.
-                before = precedes(target.use_id, use.use_id)
-                after = precedes(use.use_id, target.use_id)
                 value = True if whole is True else (after if whole is False else None)
                 continuous = (rule.get("condition") == detail.get("applicability") == "this_card_in_monster_zone"
                     and rule.get("duration") == "while_applicable")
@@ -998,6 +1000,10 @@ def _bind_mandatory_impacts(facts, context, condition, *, summon_choice=None):
                     value = True  # The adoption's own support includes this exact field state.
                 if (not contract or affected is None
                         or not continuous and rule.get("condition") not in ("effect_use", "effect_activation")):
+                    value = None
+                if rule.get("lua_summon_lock") and after:
+                    # A relative order alone does not bind the turn in which
+                    # the second use is performed.
                     value = None
                 if value is not None and affected is True:
                     for group_id, members in groups.items():
@@ -1008,15 +1014,19 @@ def _bind_mandatory_impacts(facts, context, condition, *, summon_choice=None):
                                 group_edges[group_id].add((target.use_id,use.use_id))
                 impact_id = "impact:" + digest((use.use_id, target.use_id, restriction))
                 applicability = impact_id
-                if whole is True and affected is None:
+                if value is None and (whole is True and affected is None or rule.get("lua_summon_lock")):
                     # Adoption is separate from applicability. The same
-                    # printed restriction on identical stock shares its test.
+                    # registration, recipient stock and order share its test.
                     stock = side_views.get(use.scope_id, use.scope_id)
                     target_key = target.use_id.removesuffix(':' + use.scope_id)
-                    applicability = "impact:" + digest((use.effect_id, target_key, restriction, stock))
-                expr = condition(applicability, value, "mandatory_restriction:" + kind, (restriction["source"],))
+                    parts = (use.effect_id, target_key, restriction, stock)
+                    if rule.get("lua_summon_lock"):
+                        parts += (after,)
+                    applicability = "impact:" + digest(parts)
+                refs = (restriction["source"], *restriction.get("evidence_refs", ()))
+                expr = condition(applicability, value, "mandatory_restriction:" + kind, refs)
                 facts["impacts"].append(UseImpact(impact_id, use.use_id, (target.use_id,),
-                    ("base", *target.theme_eligible), (kind,), (restriction["source"],), expr,
+                    ("base", *target.theme_eligible), (kind,), refs, expr,
                     use.scope_id, target.source_ids))
             check["status"] = ("mapped" if contract else "unknown_conditions") if check["affected_use_ids"] else "outside_affected_uses"
     for group_id, members in groups.items():

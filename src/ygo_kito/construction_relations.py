@@ -655,9 +655,19 @@ def _restriction_contract(restriction):
     """Adapt complete observed clauses; coarse labels never discharge qualifiers."""
     allowed = {"kind", "source", "scope", "controller", "owner", "condition", "duration", "whole_turn",
         "includes_set", "from_zones", "to_zone", "reason", "tag", "block_id", "group", "source_span",
-        "evidence_refs", "observed_source", "context_source", "unknown", "allowed_summons", "summon_kind"}
+        "evidence_refs", "observed_source", "context_source", "unknown", "allowed_summons", "summon_kind",
+        "lua_summon_lock"}
     if set(restriction) - allowed:
         return None
+    lock = restriction.get("lua_summon_lock")
+    if lock is not None:
+        clause = _restriction_contract({key: value for key, value in restriction.items() if key != "lua_summon_lock"})
+        if (clause is None or clause["kind"] not in ("cannot_special_summon", "cannot_special_summon_from_extra")
+                or clause.get("duration") != lock["duration"] or clause.get("controller") != lock["controller"]
+                or clause.get("from_zones", []) != lock["from_zones"]):
+            return None
+        return dict(clause, condition="effect_use", whole_turn=False, allowed_summons=lock["allowed_summons"],
+                    lua_summon_lock=lock)
     kind = restriction["kind"]
     source = restriction.get("source", "")
     if kind == "cannot_summon":
