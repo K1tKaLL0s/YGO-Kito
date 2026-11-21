@@ -266,9 +266,13 @@ def _summon_draw(operation, functions, constants):
 def _static_record(lua, rule, code, ordinal, rows, cards_sha256):
     constants, callbacks = lua._constants, rule["callbacks"]
     source = callbacks.get("operation")
-    if not source or rule["scope"] != "card" or "condition" in callbacks:
+    if not source or rule["scope"] != "card":
         return None
     kind, event, area = rule["type"], rule["event"], rule["range"]
+    fusion = (rule["category"] & constants.get("CATEGORY_FUSION_SUMMON", 0)
+              and "target" in callbacks and "cost" not in callbacks)
+    if "condition" in callbacks and not fusion:
+        return None
     if kind & constants["EFFECT_TYPE_ACTIVATE"] and event == constants["EVENT_FREE_CHAIN"]:
         trigger = dict(event="spell_trap_activation", zone="spell_trap")
     elif (kind & constants["EFFECT_TYPE_QUICK_O"] and event == constants["EVENT_FREE_CHAIN"]
@@ -279,6 +283,8 @@ def _static_record(lua, rule, code, ordinal, rows, cards_sha256):
           and rows[code]["type"] & constants["TYPE_MONSTER"] and 1 <= rows[code]["level"] <= 4):
         trigger = dict(event="normal_summon" if event == constants["EVENT_SUMMON_SUCCESS"] else "flip",
                        zone="field")
+    elif fusion and kind & constants["EFFECT_TYPE_SINGLE"] and event == constants["EVENT_TO_GRAVE"]:
+        trigger = dict(event="sent_to_grave", zone="grave", rule_condition=callbacks.get("condition"))
     else:
         return None
     ref = f"{source['file']}:{source['lines'][0]}"
@@ -292,13 +298,16 @@ def _static_record(lua, rule, code, ordinal, rows, cards_sha256):
             quantity=1, owner="self", subject="this_card", source_card_id=code,
             selector_query={"predicate": {"field": "card_ids", "value": [code]}},
             source=f"{cost_source['file']}:{cost_source['lines'][0]}"))
-    operation, functions = lua.registered_callback(source)
-    if "target" in callbacks:
-        target, _ = lua.registered_callback(callbacks["target"])
-        output = _checked_deck_output(operation, target, constants) or _deck_selection(
-            operation, target, functions, constants)
+    if fusion:
+        output = dict(kind="fusion_summon", from_zones=["extra"], to_zone="field", quantity=1, random=False)
     else:
-        output = _deck_output(operation, constants) or _summon_draw(operation, functions, constants)
+        operation, functions = lua.registered_callback(source)
+        if "target" in callbacks:
+            target, _ = lua.registered_callback(callbacks["target"])
+            output = _checked_deck_output(operation, target, constants) or _deck_selection(
+                operation, target, functions, constants)
+        else:
+            output = _deck_output(operation, constants) or _summon_draw(operation, functions, constants)
     if output is None:
         return None
     if "selector_query" in output:
@@ -308,7 +317,7 @@ def _static_record(lua, rule, code, ordinal, rows, cards_sha256):
     rule_id = "native-static:" + digest((code, rule))
     count = [dict(code=rule["count_code"], maximum=rule["count_maximum"], persistent=rule["count_persistent"],
                   source=ref)] if rule["count_maximum"] else []
-    return dict(record_version="native-construction-static-v1", semantic_version="native-construction-static-v1",
+    record = dict(record_version="native-construction-static-v1", semantic_version="native-construction-static-v1",
         card_id=code, cards_sha256=cards_sha256, text_sha256=digest(rule), effect_index=ordinal,
         effect_key=rule_id, relation_ref=rule_id, source_text=ref,
         scope="spell_trap" if kind & constants["EFFECT_TYPE_ACTIVATE"] else "monster",
@@ -318,6 +327,10 @@ def _static_record(lua, rule, code, ordinal, rows, cards_sha256):
         count_limits=count, restrictions=[], card_restrictions=[], printed_materials=[],
         unknown=[], block_view={"status": "native_static", "blocks": [], "unknown": []},
         rule_registration=rule)
+    if fusion:
+        record["fusion_stock_location"] = constants[{"spell_trap": "LOCATION_SZONE", "hand": "LOCATION_HAND",
+                                                     "field": "LOCATION_MZONE", "grave": "LOCATION_GRAVE"}[trigger["zone"]]]
+    return record
 
 
 def static_rule_specs(assets, code, initialized, dependencies):
@@ -335,6 +348,11 @@ def static_rule_specs(assets, code, initialized, dependencies):
             continue
         record = _static_record(lua, rule, code, ordinal, assets.rows, assets.receipt["resources"]["cards"])
         if record is not None:
+            if "fusion_stock_location" in record:
+                effects.append(dict(record=record, requirements=[], unknown=[]))
+                sources.append(dict(rule=rule, effect=record["effect_key"], status="unknown",
+                                    reason="fusion_operation_scope_unreviewed"))
+                continue
             operation, = record["operations"]
             spent = record["costs"] or [dict(source=record["source_text"], quantity=1,
                 owner="self", from_zones=[record["trigger"]["zone"].replace("spell_trap", "field")],

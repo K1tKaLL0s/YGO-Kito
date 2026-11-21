@@ -18,4 +18,4 @@ ygo-kito = "ygo_kito.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 [tool.setuptools.package-data]
-ygo_kito = ["resources/rules/*.json", "resources/rules/*.cpp", "resources/rules/*.h"]
+ygo_kito = ["resources/rules/*.json", "resources/rules/*.cpp", "resources/rules/*.h", "resources/rules/*.lua"]

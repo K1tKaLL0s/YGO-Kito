@@ -1,5 +1,6 @@
-"""Read declaration and callback identity from the locked core after initial_effect."""
+"""Read declarations and configuration resource checks from the locked core."""
 
+from contextlib import contextmanager
 import json
 from pathlib import Path
 import sqlite3
@@ -15,6 +16,7 @@ from .native_assets import digest as file_digest, verify_resources
 
 _PROBE = Path(__file__).with_name("resources") / "rules/construction_rule_registrations.cpp"
 RULE_DECLARATION_HEADER = _PROBE.with_name("construction_rule_effect.h")
+_FUSION_STOCK = _PROBE.with_name("construction_fusion_stock.lua")
 _CALLBACK_ROLES = ("condition", "cost", "target", "operation", "value")
 
 
@@ -80,8 +82,8 @@ def _read_cards(assets, raw, codes):
     return cards
 
 
-def collect_native_registrations(assets, codes, output, *, compiler="g++", raw=None):
-    """Initialize the selected cards in isolated core sessions with no duel actions."""
+@contextmanager
+def _rule_probe(assets, output, request, *, compiler="g++", raw=None, arguments=()):
     sources = assets.root / "engine-src"
     library = assets.root / "engine-build/libocgcore.so"
     try:
@@ -100,14 +102,48 @@ def collect_native_registrations(assets, codes, output, *, compiler="g++", raw=N
                     handle.write(" ".join(map(str, row)) + "\n")
             path = raw if raw is not None else directory / "registrations.tsv"
             with path.open("w", encoding="utf-8") as handle:
-                subprocess.run([executable, sources / "scripts", table],
-                               input="\n".join(map(str, codes)), stdout=handle, stderr=subprocess.PIPE,
+                subprocess.run([executable, sources / "scripts", table, *arguments],
+                               input=request, stdout=handle, stderr=subprocess.PIPE,
                                text=True, check=True, timeout=180)
-            return _read_cards(assets, path, codes)
+            yield path
     except subprocess.CalledProcessError as error:
         raise NativeRegistryError(f"locked registration probe exited {error.returncode}: {error.stderr.strip()}") from error
     except (OSError, ValueError, EngineUnavailable, sqlite3.Error, subprocess.TimeoutExpired) as error:
         raise NativeRegistryError(f"locked registration probe failed: {error}") from error
+
+
+def collect_native_registrations(assets, codes, output, *, compiler="g++", raw=None):
+    """Initialize the selected cards in isolated core sessions with no duel actions."""
+    with _rule_probe(assets, output, "\n".join(map(str, codes)), compiler=compiler, raw=raw) as path:
+        return _read_cards(assets, path, codes)
+
+
+def _read_fusion_stock(handle, main, extra, requests):
+    stock = [("main", code) for code in main] + [("extra", code) for code in extra]
+    assignments = {}
+    for effect_key, (code, _, _) in requests.items():
+        heading, status, *outcomes = handle.readline().rstrip("\n").split("\t")
+        if heading != "stock" or status not in ("inventory_present", "missing", "unknown"):
+            raise ValueError("invalid locked fusion stock response")
+        options = []
+        for outcome in outcomes:
+            target, *material = outcome.split(",")
+            target = int(target)
+            pairs = [tuple(map(int, assignment.split(":"))) for assignment in material]
+            positions = [copy for copy, _ in pairs]
+            if (not len(main) < target <= len(stock) or not positions
+                    or any(not 1 <= copy <= len(stock) for copy in positions)
+                    or len({target, *positions}) != 1 + len(positions)):
+                raise ValueError("invalid physical fusion assignment")
+            options.append(dict(target=stock[target - 1][1], material_quantity=len(positions),
+                materials=[dict(copy=copy, section=stock[copy - 1][0], card_id=stock[copy - 1][1], location=location)
+                           for copy, location in sorted(pairs)], target_copy=target))
+        if bool(options) != (status == "inventory_present"):
+            raise ValueError("fusion stock status disagrees with its assignment")
+        assignments[effect_key] = dict(status=status, options=sorted(options, key=lambda row: row["target_copy"]),
+            source_card_id=code, shortfall=int(status == "missing"), uncovered_targets=[],
+            actual_duel_state_required=False)
+    return assignments
 
 
 class NativeRegistrationSource:
@@ -120,6 +156,28 @@ class NativeRegistrationSource:
                             declaration_sha256=file_digest(RULE_DECLARATION_HEADER), resources=assets.receipt,
                             card_identities=digest(assets.native_code_overrides), period=assets.period_context)
         self._cards = {}
+        self._fusion = {}
+
+    @property
+    def stock_binding(self):
+        return dict(self.binding, fusion_stock_sha256=file_digest(_FUSION_STOCK))
+
+    def fusion_stock(self, main, extra, requests, *, alternate=False):
+        """Ask the registered predicate to allocate distinct copies from the supplied view."""
+        main, extra = tuple(sorted(main)), tuple(sorted(extra))
+        key = main, extra, tuple(sorted(requests.items())), alternate
+        if key not in self._fusion:
+            stock = main + extra
+            payload = [f"{len(main)} {len(extra)} {len(requests)} {int(alternate)}",
+                       " ".join(map(str, stock))]
+            payload.extend(f"{stock.index(code) + 1} {ordinal} {location}"
+                           for code, ordinal, location in requests.values())
+            with _rule_probe(self.assets, self.directory, "\n".join(payload), arguments=(_FUSION_STOCK,)) as path:
+                with path.open(encoding="utf-8") as handle:
+                    self._fusion[key] = _read_fusion_stock(handle, main, extra, requests)
+                    if handle.readline():
+                        raise ValueError("unexpected locked fusion stock response")
+        return self._fusion[key]
 
     def for_cards(self, codes):
         keys = sorted({str(code) for code in codes}, key=int)

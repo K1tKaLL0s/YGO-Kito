@@ -114,6 +114,40 @@ end
         self.assertTrue(assets.construction_rules.evaluate.called)
         self.assertTrue(all(call.kwargs["queries"] == () for call in assets.construction_rules.evaluate.call_args_list))
 
+        from ygo_kito.construction_relations import InputGroup, JointConstraint, Need, RelationContext, Resource, UseRequirement
+
+        send = script.replace(b"IsAbleToHand", b"IsAbleToGrave").replace(
+            b"Duel.SendtoHand(g,nil,REASON_EFFECT)", b"Duel.SendtoGrave(g,REASON_EFFECT)")
+        send_checksum = sha256(send).hexdigest()
+        lua._scripts["c1.lua"] = send, send_checksum
+        send_rule = dict(rule, type=lua._constants["EFFECT_TYPE_QUICK_O"], event=lua._constants["EVENT_FREE_CHAIN"],
+            range=lua._constants["LOCATION_HAND"], count_code=1, callbacks={k: dict(v, file="c1.lua", sha256=send_checksum)
+                                                                          for k, v in rule["callbacks"].items()})
+        rules = {1: [send_rule], 2: [rule]}
+        assets.native_registration_source.for_cards = lambda codes: {
+            code: dict(diagnostics=[], native=rules.get(code, [])) for code in codes}
+        one_object = decks[2]
+        with_spare_object = list(one_object.main)
+        with_spare_object[with_spare_object.index(4)] = 3
+        two_objects = DeckParts(tuple(sorted(with_spare_object)))
+        options = dict(policy=p)
+        ordinary = normalize_function_uses(task, one_object, binder.semantic_catalog, **options)
+        self.assertEqual(len(ordinary["uses"]), 2)
+        self.assertTrue(all(u.self_condition is True for u in ordinary["uses"]))
+        joint_uses = []
+        for use in ordinary["uses"]:
+            row = ordinary["use_details"][use.use_id]
+            use_id = "combined:" + str(row["card_id"])
+            selected = Resource("functional_operation", attributes=(row["relation_fact_id"],))
+            joint_uses.append(UseRequirement(use_id, InputGroup("all", (Need(use_id, selected, mode="presence"),)),
+                "explicitly require both deck movements", required=False, functional_use_ids=(use.use_id,)))
+        constraint = JointConstraint("both", tuple(use.use_id for use in joint_uses), "all", "combined retrieval and send")
+        joint = SimpleNamespace(relations=RelationContext(tuple(joint_uses), (), constraints=(constraint,)))
+        for deck, fits in ((one_object, False), (two_objects, True)):
+            facts = normalize_function_uses(task, deck, binder.semantic_catalog, context=joint, **options)
+            self.assertTrue(all(u.self_condition is True for u in facts["uses"]))
+            self.assertEqual([u.joint_condition for u in facts["uses"]], [fits, fits])
+
     def test_period_candidate_reaches_gate_without_printed_binding(self):
         task, assets, graph, binder, decks, p = fixture()
         assets.rule_authority = "locked_period_core"

@@ -27,7 +27,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v64"
+NORMALIZATION_VERSION = "construction-function-normalization-v65"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -380,6 +380,34 @@ def _activation_claims(fact, registration, local_id, source, pools, claims):
         claims.append(Claim(key))
 
 
+def _fusion_assignment(fact, check, facts, pools):
+    """Supply native recipe alternatives to the shared configuration allocator."""
+    resource = Resource("fusion_assignment", attributes=(fact.fact_id,))
+    assigned = set()
+    for option in check["options"]:
+        stock = Counter((m["section"], m["card_id"]) for m in option["materials"])
+        stock["extra", option["target"]] += 1
+        key = tuple(sorted(stock.items()))
+        if key in assigned:
+            continue
+        assigned.add(key)
+        claims = []
+        for (zone, code), count in key:
+            pool = "configuration:physical:" + str(code)
+            pools.setdefault(pool, ResourcePool(pool, "candidate physical copies", inventory=((zone, code),)))
+            claims.append(Claim(pool, count))
+        choice = f"fusion:{len(assigned)}"
+        facts.append(RelationFact(fact.fact_id + ":" + choice, fact.effect_ref, resource, fact.source,
+                                  fact.card_id, fact.zone, claims=tuple(claims), choice=choice))
+    if not assigned:
+        return fact.inputs
+    # The native predicate reports a witness per recipient. Additional recipes
+    # for the same recipient may matter to an explicit joint requirement.
+    facts.append(RelationFact(fact.fact_id + ":fusion:alternatives", fact.effect_ref, resource, fact.source,
+        fact.card_id, fact.zone, unknown=("additional_fusion_assignments_unqueried",), choice="fusion:alternatives"))
+    return InputGroup("all", (Need(fact.fact_id + ":recipe", resource, mode="presence"),))
+
+
 def _functional_relations(deck, available, records, aliases, extra_ids, context, budget, dependencies, config,
                           *, continuation=None, should_stop=None, previous_projections=None, projection='resident',
                           native_authority=False):
@@ -414,19 +442,31 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
             authoritative = native is not None
             static_rule = scoped_record["block_view"]["status"] == "native_static"
             if static_rule:
-                complete = dependencies._check(available, rows, distinct=True)
-                checks, fusion, processing = [complete], None, None
+                fusion = dependencies.fusion_check(available, code, scoped_record)
+                checks, processing = [], None
                 claims = []
                 _activation_claims(fact, scoped_record["rule_registration"], scoped_record["effect_key"],
                                    fact.source, rel_pools, claims)
-                for cost in cost_rows:
-                    key = "configuration:physical:" + str(code)
-                    rel_pools.setdefault(key, ResourcePool(key, "candidate physical copies", inventory=((zone, code),)))
-                    claims.append(Claim(key, cost["minimum"]))
-                members = tuple(("main", code) for code in complete["requirements"][-1]["matching_card_ids"])
-                transfer = ResourceTransfer(fact.source, "deck", operation["to_zone"], "self", "self",
+                if fusion is not None:
+                    recipe = _fusion_assignment(fact, fusion, rel_facts, rel_pools)
+                    members = tuple(sorted({("extra", row["target"]) for row in fusion["options"]}))
+                    origin = "extra"
+                else:
+                    complete = dependencies._check(available, rows, distinct=True)
+                    checks.append(complete)
+                    for cost in cost_rows:
+                        key = "configuration:physical:" + str(code)
+                        rel_pools.setdefault(key, ResourcePool(key, "candidate physical copies", inventory=((zone, code),)))
+                        claims.append(Claim(key, cost["minimum"]))
+                    members = tuple(("main", c) for c in complete["requirements"][-1]["matching_card_ids"])
+                    if members:
+                        key = "configuration:deck-objects:" + digest(members)
+                        rel_pools.setdefault(key, ResourcePool(key, "eligible candidate deck copies", inventory=members))
+                        claims.append(Claim(key, operation["quantity"]))
+                    recipe, origin = fact.inputs, "deck"
+                transfer = ResourceTransfer(fact.source, origin, operation["to_zone"], "self", "self",
                     "random" if operation["random"] else "targeted", members, "effect")
-                fact = replace(fact, claims=tuple(claims), quantity=operation["quantity"], transfer=transfer)
+                fact = replace(fact, inputs=recipe, claims=tuple(claims), quantity=operation["quantity"], transfer=transfer)
             elif authoritative:
                 checks, fusion, processing = [native], None, None
                 fact = _settled_operation_fact(fact, operation, native, rel_pools)
@@ -1247,8 +1287,10 @@ def functional_asset_version(catalog):
         from .construction_native import NATIVE_EVIDENCE_VERSION, NATIVE_RULE_VERSION
         assets = catalog.assets
         trace = assets.construction_rule_trace
+        registration = getattr(assets, "native_registration_source", None)
         return digest(dict(resources=assets.receipt, period=assets.period_context,
                            native_rules=NATIVE_RULE_VERSION, native_evidence=NATIVE_EVIDENCE_VERSION,
+                           stock=getattr(registration, "stock_binding", None),
                            trace=trace.binding if trace is not None else None))
     from .effect_mechanisms import SEMANTIC_VERSION
     from .effect_records import EFFECT_RECORD_VERSION, LUA_EFFECT_RECORD_VERSION
@@ -1450,6 +1492,7 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
     role = ("reference" if layer_evaluation is not None and layer_evaluation["axis"].get("logic") is None
             else "candidate")
     frontier = native_rules.frontier_binding(task, deck, role, policy) if native_rules is not None else None
+    query_routes = requires_route or frontier is not None
     binding=digest(dict(task=task.sha256,inventory=inventory,policy=policy,
         assets=facts['asset_version'],normalization=NORMALIZATION_VERSION,
         relations=relation_binding,evidence=None if callable(quality_evidence) else quality_evidence,
@@ -1481,7 +1524,7 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
             work["rule_source_error"] = str(error)
         work["rule_sources"] = {str(code): value for code, value in initialized.items()}
     if native_rules is not None and "native_rule_evidence" not in work:
-        query_options = {"queries": ()} if native_authority and not requires_route and frontier is None else {}
+        query_options = {"queries": ()} if native_authority and not query_routes else {}
         native = native_rules.evaluate(task, deck, role=role, policy=policy, should_stop=should_stop,
                                        continuation=work.get("native_query_work"), **query_options)
         if native["status"] == "paused":
@@ -1541,8 +1584,9 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
         facts["native_rule_evidence"]["authority"] = "locked_period_core"
         classified = {(int(code), digest(row["rule"])) for code, card in static_rules.items()
                       for row in card["registrations"] if row["status"] in ("function", "alternate_trigger")}
-        install_execution_contracts(facts["native_rule_evidence"], specs, catalog.assets,
-                                    dependencies.native_execution_contracts, classified=classified)
+        if query_routes:
+            install_execution_contracts(facts["native_rule_evidence"], specs, catalog.assets,
+                                        dependencies.native_execution_contracts, classified=classified)
         records = {code: tuple(effect["record"] for effect in value[0]) for code, value in specs.items()}
 
     def condition(key, value, reason, evidence):
@@ -1578,6 +1622,32 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                 status="evaluated", gaps=[],
                 alternatives_require_subsets=bool(over),
                 excluded_source_ids=sorted(set(sources)-allowed), main_size=len(deck.main))
+    if native_authority:
+        from .native_registrations import NativeRegistryError
+
+        registration = getattr(catalog.assets, "native_registration_source", None)
+        fusion_rows = {record["effect_key"]: (code, record["effect_index"], record["fusion_stock_location"])
+            for code, values in records.items() for record in values if "fusion_stock_location" in record}
+        alternate = any(row["rule"]["event"] == catalog.assets.effect_lua_source._constants["EFFECT_CHAIN_MATERIAL"]
+                        for source in static_rules.values() for row in source["registrations"]) if fusion_rows else False
+        for scope, view in available.items():
+            stock = view.main + view.extra
+            requests = {key: row for key, row in fusion_rows.items() if row[0] in stock}
+            identity = (tuple(view.main), tuple(view.extra))
+            if requests and identity not in dependencies.native_fusion_stock:
+                if should_stop is not None and should_stop():
+                    facts["calculation_pending"] = work
+                    return facts
+                cache = work.setdefault("fusion_stock", {})
+                key = digest(identity)
+                if key not in cache:
+                    try:
+                        cache[key] = registration.fusion_stock(*identity, requests, alternate=alternate)
+                    except NativeRegistryError as error:
+                        facts["rule_source_error"] = str(error)
+                        work["rule_source_error"] = str(error)
+                        cache[key] = {}
+                dependencies.native_fusion_stock[identity] = cache[key]
     projections={}
     for scope,view in available.items():
         saved=work['projections'].get(scope)
@@ -1644,6 +1714,9 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
         facts["hard_requirements"].append(dict(requirement_id="original_goal", origin="original-task:" + task.sha256, condition=expr))
 
     special_entries = {}
+    fusion_recipients = {scope: {option["target"]
+        for row in dependencies.native_fusion_stock.get((tuple(view.main), tuple(view.extra)), {}).values()
+        for option in row["options"]} for scope, view in available.items()}
     for zone, cards in inventory.items():
         for code in sorted(set(cards)):
             card_key = f"{zone}:{code}"
@@ -1712,8 +1785,9 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                         native = dependencies.witnessed_processing(view, scoped_record, operation, inventory=deck, scope=scope)
                         authoritative = native is not None and native.get("authority") == "native"
                         if static_rule:
-                            checked = dependencies._check(view, requirement_rows, distinct=True)
-                            objects = material = fusion = summon_trigger = processing = complete_payment = None
+                            fusion = dependencies.fusion_check(view, code, scoped_record)
+                            checked = dependencies._check(view, requirement_rows, distinct=True) if fusion is None else None
+                            objects = material = summon_trigger = processing = complete_payment = None
                             used_operation, use_semantics = operation, semantics
                         elif authoritative or native_authority:
                             checked = objects = material = fusion = summon_trigger = processing = complete_payment = None
@@ -1737,7 +1811,8 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                         current_relation, operation_facts = projections[scope]
                         if (scope,code) not in special_entries:
                             if native_authority:
-                                special_entries[scope,code] = next((True for receipt in facts["native_rule_evidence"]["receipts"]
+                                special_entries[scope,code] = True if code in fusion_recipients[scope] else next((
+                                    True for receipt in facts["native_rule_evidence"]["receipts"] if query_routes
                                     if not receipt["query"].get("side_swaps")
                                     for case in receipt.get("native_executions", ()) for move in case["operations"]
                                     if move.get("card") == code and move["kind"] in _SPECIAL_SUMMONS
@@ -1810,14 +1885,18 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                         facts['use_details'][key].update(operation_key=(code, ri, oi),
                             goal_id=digest(function_goal(record, operation)) if operation is not None else None)
                         if used_operation is not None and used_operation['kind'] in _SPECIAL_SUMMONS:
-                            if authoritative:
+                            if fusion is not None:
+                                facts['use_details'][key]['summoned_card_ids'] = _summoned_inventory(
+                                    scoped_record, operation, objects, fusion)
+                            elif authoritative:
                                 facts['use_details'][key]['summoned_card_ids'] = native['observed_card_ids']
                             elif not native_authority:
                                 facts['use_details'][key]['summoned_card_ids'] = _summoned_inventory(
                                     scoped_record, operation, objects, fusion)
                         if config.get('theme_profile'):
                             if static_rule:
-                                outcomes = checked["requirements"][-1]["matching_card_ids"] if not operation["random"] else ()
+                                outcomes = (tuple(row["target"] for row in fusion["options"]) if fusion is not None else
+                                            checked["requirements"][-1]["matching_card_ids"] if not operation["random"] else ())
                                 facts['use_details'][key]['explicit_task_goal'] = configured_primary_goal(
                                     config['theme_profile'], code, use_semantics, outcomes,
                                     record["rule_registration"]["event"], catalog.assets.rows)
@@ -1863,6 +1942,8 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
     resident_cards = set(deck.main + deck.extra)
     def summon_choice(scope, source_code, detail, allowed):
         if native_authority:
+            if set(detail.get("summoned_card_ids", ())).intersection(allowed):
+                return True
             native = detail["inventory_checks"].get("native")
             return True if native and set(native["observed_card_ids"]).intersection(allowed) else None
         if scope == 'resident':

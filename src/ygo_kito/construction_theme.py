@@ -205,8 +205,9 @@ def direct_connection(source, receiver, dependencies, available, movement_domain
     if triggered:
         if rc not in cards:
             return None
-        statuses = [dependencies.candidate_status(rc, dict(category='operations',
-            operation=dict(op, from_zones=[origin])))[0] for origin in op.get('from_zones', ())]
+        native_fusion = "fusion_stock_location" in source[3]
+        statuses = ([True if rc in known else None] if native_fusion else [dependencies.candidate_status(rc, dict(category='operations',
+            operation=dict(op, from_zones=[origin])))[0] for origin in op.get('from_zones', ())])
         if statuses and all(status is False for status in statuses):
             return None
         if statuses and True not in statuses:

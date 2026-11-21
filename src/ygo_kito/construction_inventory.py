@@ -409,6 +409,7 @@ class InventoryDependencies:
         self._specifications = {}
         self._processing = {}
         self.native_execution_contracts = {}
+        self.native_fusion_stock = {}
         self.set_names, self.registry_source = asset_archetype_names(catalog.assets)
         self.strict_names = bool(self.set_names or self.registry_source)
 
@@ -875,6 +876,10 @@ class InventoryDependencies:
         searching an operation sequence. The existing integer matcher assigns
         the remaining material slots after this card occupies one legal slot.
         """
+        if "fusion_stock_location" in record:
+            results = self.native_fusion_stock.get((tuple(deck.main), tuple(deck.extra)), {})
+            return results.get(record["effect_key"], dict(status="unknown", options=[], shortfall=0,
+                uncovered_targets=[], actual_duel_state_required=False))
         selection=record.get('fusion_material_selection')
         if not selection:
             return None
