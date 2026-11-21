@@ -16,7 +16,7 @@ from ygo_kito.construction_native import (
     _resolved_deck_moves,
     planned_queries,
 )
-from ygo_kito.construction_native_evidence import chain_links
+from ygo_kito.construction_native_evidence import chain_links, stock_prefix
 
 
 class ConstructionNativeTests(unittest.TestCase):
@@ -205,6 +205,32 @@ class ConstructionNativeTests(unittest.TestCase):
         self.assertEqual({(q["card"], q["setup"]) for q in plans},
                          {(1, "normal_summon"), (1, "hand"), (2, "spell")})
         self.assertTrue(all("effects" not in q for q in plans))
+
+    def test_chain_activations_are_planned_from_settable_originals(self):
+        registered = dict(type=16, event_code=1027, event=None, family=0, registration_span=[17, 29],
+                          operation={"reference": "source"})
+        lua = SimpleNamespace(summarize_effects=lambda code: {"script_card_id": code, "registrations":
+            [registered] if code == 2 else [dict(registered, event_code=1002)]})
+        assets = SimpleNamespace(effect_lua_source=lua, rows={10: dict(type=4, alias=2), 3: dict(type=4)})
+        plans, excluded = planned_queries(SimpleNamespace(main=(10, 3), extra=(), side=()), assets)
+        plan, = plans
+        self.assertEqual((plan["card"], plan["setup"], plan["opening"], plan["prepare_set"]),
+                         (10, "response", [10], True))
+        self.assertEqual(excluded[0]["card"], 3)
+
+    def test_masked_set_move_requires_a_matching_original_hand_entity(self):
+        choice = dict(kind="set", refs=["p0.hand.0"], cards=[2])
+        events = [dict(kind=90, player=0, count=1), dict(kind=11),
+                  dict(kind=50, player=0, from_zone=2, to_zone=8), dict(kind=54),
+                  dict(kind=70, public_card=2, player=0, zone=8)]
+        query = dict(seat=0, opening=[2], summons=[], prepare_set=True)
+        link = dict(activation=events[-1], turn=2, phase="main1", opened=4)
+        step = (1, dict(seat=0, turn=1), choice)
+        prefix = stock_prefix(events, [step], link, query, [], [])
+        self.assertEqual(prefix["set_preparation"], dict(card=2, turn=1, activation_turn=2, zone="spell_trap"))
+        self.assertIsNone(stock_prefix(events, [], link, query, [], []))
+        self.assertIsNone(stock_prefix(events, [(1, step[1], dict(choice, cards=[3]))], link, query, [], []))
+        self.assertIsNone(stock_prefix(events, [step], dict(link, turn=1), query, [], []))
 
     def test_grave_arrival_requires_the_native_special_summon_completion(self):
         activation = dict(link=1, player=0)

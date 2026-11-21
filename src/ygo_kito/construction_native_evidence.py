@@ -73,6 +73,8 @@ def witnessed_rule(receipt):
                      response_to={k: preceding[k] for k in ("public_card", "zone", "description")}
                      if preceding is not None else None,
                      selection=receipt["path"])
+    if receipt["stock_prefix"].get("set_preparation"):
+        condition["set_preparation"] = receipt["stock_prefix"]["set_preparation"]
     proposition = dict(resources=receipt.get("rule_resources"), card=receipt["query"]["card"], effect=identity["effect_key"],
         registration=identity["source"], blocks=identity.get("blocks") or [identity["block"]],
         description=activation["description"])
@@ -196,13 +198,38 @@ def stock_prefix(events, steps, link, query, prepared_moves, own_payments):
     if normal_summons != summons:
         return None
     source = link["activation"]
+    settings = [(index, row, chosen) for index, row, chosen in steps if index < link["opened"]
+                and row["seat"] == seat and chosen["kind"] == "set"]
+    preparation = None
+    set_move = None
+    if query.get("prepare_set"):
+        if len(settings) != 1 or source["zone"] != 8:
+            return None
+        index, setting, choice = settings[0]
+        if choice["cards"] != [source["public_card"]] or not all(
+                ref.startswith(f"p{seat}.hand.") for ref in choice["refs"]):
+            return None
+        transfers = [(i, e) for i, e in enumerate(before) if e["kind"] == 50
+                     and e["player"] == seat and e["from_zone"] == 2 and e["to_zone"] == 8]
+        if len(transfers) != 1 or not index < transfers[0][0] or setting["turn"] >= link["turn"]:
+            return None
+        move_index, set_move = transfers[0]
+        if (set_move.get("public_card") not in (None, source["public_card"])
+                or not any(e["kind"] == 54 for e in before[move_index + 1:])):
+            return None
+        preparation = dict(card=source["public_card"], turn=setting["turn"],
+                           activation_turn=link["turn"], zone="spell_trap")
+    elif settings:
+        return None
     if source["zone"] == 4:
         if not summons[source["public_card"]]:
             return None
     elif source["zone"] not in (2, 8) or not opening[source["public_card"]]:
         return None
     spent_hand = Counter(e.get("public_card") for e in (*before, *own_payments)
-                         if e["kind"] == 50 and e["player"] == seat and e["from_zone"] == 2)
+                         if e is not set_move and e["kind"] == 50 and e["player"] == seat and e["from_zone"] == 2)
+    if preparation:
+        spent_hand[preparation["card"]] += 1
     if spent_hand - opening:
         return None
     # Other actions require a traceable preparation. A responding opponent
@@ -220,12 +247,15 @@ def stock_prefix(events, steps, link, query, prepared_moves, own_payments):
     if any(e["kind"] == 50 and e["player"] == seat
            and (e["from_zone"], e["to_zone"]) not in ((1, 1), (1, 16), (2, 4), (2, 8)) for e in before):
         return None
-    if any(row["seat"] == seat and index < link["opened"] and chosen["kind"] in ("set", "special_summon")
+    if any(row["seat"] == seat and index < link["opened"] and chosen["kind"] == "special_summon"
            for index, row, chosen in steps):
         return None
     summon_turns = [row["turn"] for i, row, chosen in steps if row["seat"] == seat
                     and i < link["opened"] and chosen["kind"] == "summon"]
     if len(summon_turns) != len(set(summon_turns)):
         return None
-    return dict(opening=list(query["opening"]), summons=list(query["summons"]),
-                prepared_moves=prepared_moves, normal_summon_turns=summon_turns)
+    prefix = dict(opening=list(query["opening"]), summons=list(query["summons"]),
+                  prepared_moves=prepared_moves, normal_summon_turns=summon_turns)
+    if preparation:
+        prefix["set_preparation"] = preparation
+    return prefix
