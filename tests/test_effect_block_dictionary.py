@@ -1008,6 +1008,81 @@ end
                     (f"card:{LUA_CARD_ID}", "latest_entry:fusion_summon")))
                 self.assertEqual(bool(fact.unknown), bool(old))
 
+    def test_selected_field_type_requires_a_different_deck_type_and_distinct_handler(self):
+        from ygo_kito.construction_inventory import InventoryDependencies
+
+        printing = ('①：这张卡在手卡存在的场合，以自己场上1张「测试组」卡为对象才能发动。'
+                    '和那张卡种类（怪兽·魔法·陷阱）不同的1张「测试组」卡从卡组送去墓地，这张卡特殊召唤。')
+        (self.directory / "constant.lua").write_text(
+            CONSTANTS + "\nTYPE_MONSTER=1\nLOCATION_ONFIELD=12\n", encoding="utf-8")
+        script = f"""
+function c{LUA_CARD_ID}.initial_effect(c)
+    local e=Effect.CreateEffect(c)
+    e:SetDescription(aux.Stringid({LUA_CARD_ID},0))
+    e:SetType(EFFECT_TYPE_IGNITION)
+    e:SetProperty(EFFECT_FLAG_CARD_TARGET)
+    e:SetRange(LOCATION_HAND)
+    e:SetTarget(c{LUA_CARD_ID}.target)
+    e:SetOperation(c{LUA_CARD_ID}.resolve)
+    c:RegisterEffect(e)
+end
+function c{LUA_CARD_ID}.onfield(card,player)
+    local kind=card:GetType()&(TYPE_MONSTER|TYPE_SPELL|TYPE_TRAP)
+    return card:IsSetCard(0xdb) and card:IsFaceup()
+        and Duel.IsExistingMatchingCard(c{LUA_CARD_ID}.indeck,player,LOCATION_DECK,0,1,nil,kind)
+end
+function c{LUA_CARD_ID}.indeck(card,kind)
+    return not card:IsType(kind) and card:IsSetCard(0xdb) and card:IsAbleToGrave()
+end
+function c{LUA_CARD_ID}.target(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
+    if chkc then return chkc:IsOnField() and chkc:IsControler(tp) and c{LUA_CARD_ID}.onfield(chkc,tp) end
+    if chk==0 then return Duel.GetLocationCount(tp,LOCATION_MZONE)>0
+        and e:GetHandler():IsCanBeSpecialSummoned(e,0,tp,false,false)
+        and Duel.IsExistingTarget(c{LUA_CARD_ID}.onfield,tp,LOCATION_ONFIELD,0,1,nil,tp) end
+    local target=Duel.SelectTarget(tp,c{LUA_CARD_ID}.onfield,tp,LOCATION_ONFIELD,0,1,1,nil,tp)
+end
+function c{LUA_CARD_ID}.resolve(e,tp,eg,ep,ev,re,r,rp)
+    local handler,target=e:GetHandler(),Duel.GetFirstTarget()
+    local kind=target:GetType()&0x7
+    if target:IsRelateToEffect(e) then
+        local chosen=Duel.SelectMatchingCard(tp,c{LUA_CARD_ID}.indeck,tp,LOCATION_DECK,0,1,1,nil,kind)
+        local card=chosen:GetFirst()
+        if card and Duel.SendtoGrave(card,REASON_EFFECT)~=0 and card:IsLocation(LOCATION_GRAVE)
+            and handler:IsRelateToEffect(e) and Duel.SpecialSummon(handler,0,tp,tp,false,false,POS_FACEUP)~=0 then
+        end
+    end
+end
+"""
+        for bad, changed in (("", ""), ("not card:IsType(kind)", "card:IsType(kind)"),
+                             ("card:IsLocation(LOCATION_GRAVE)", "card:IsLocation(LOCATION_DECK)"),
+                             ("SpecialSummon(handler,0", "SpecialSummon(target,0")):
+            with self.subTest(changed=bad):
+                assets = self.assets(script=script.replace(bad, changed), description=printing)
+                row = assets.rows[LUA_CARD_ID]
+                row.update(name="测试组·本体", setcode=0xdb)
+                assets.rows[11] = dict(row, id=11, name="测试组·魔法", type=2, desc="")
+                assets.rows[12] = dict(row, id=12, name="测试组·通常怪兽", type=17, desc="")
+                catalog = MechanismCatalog(assets)
+                record, = catalog.effect_records(LUA_CARD_ID)
+                self.assertEqual("type_matched_deck_send" in record, not bad)
+                if bad:
+                    continue
+                dependencies = InventoryDependencies(catalog)
+                send, handler = record["operations"]
+                self.assertEqual(handler["from_zones"], ["hand"])
+                self.assertEqual(handler["depends_on"], [send["block_id"]])
+                self.assertTrue(send["requires_arrival"])
+                for main, side, expected in (((LUA_CARD_ID, LUA_CARD_ID, 12), (), "missing"),
+                        ((LUA_CARD_ID, LUA_CARD_ID), (11,), "missing"),
+                        ((LUA_CARD_ID, 11), (), "missing"),
+                        ((LUA_CARD_ID, LUA_CARD_ID, 11), (), "inventory_present")):
+                    proof = dependencies.processing_check(DeckParts(main, (), side), record, handler)
+                    self.assertEqual(proof["status"], expected)
+                    # The Spell can also be the face-up target, with a second
+                    # copy of the activating monster still in the Deck.
+                    choices = [11, LUA_CARD_ID] if expected == "inventory_present" else []
+                    self.assertEqual(proof["possible_send_card_ids"], choices)
+
     def test_hand_deck_grave_window_requires_the_opposing_card(self):
         from ygo_kito.construction_relations import _needs, _record_facts
 

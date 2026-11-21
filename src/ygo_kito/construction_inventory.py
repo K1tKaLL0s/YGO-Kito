@@ -973,6 +973,54 @@ class InventoryDependencies:
         return True if processing is None or processing['status'] == 'inventory_present' else (
             False if processing['status'] == 'missing' else None)
 
+    def _type_matched_deck_inventory(self, resident, extra, record, selected=None):
+        """Allocate the target, Deck send, hand handler and optional revival together."""
+        binding = record['type_matched_deck_send']
+        operations = {op['block_id']: op for op in record['operations']}
+        move = operations[binding['send']]
+        handler = operations[binding['handler']]
+        target = self.item_requirement(record['targets'][0], 'targets')
+        sender = dict(self.item_requirement(move, 'operations'), operation=move)
+        activating = dict(self.item_requirement(handler, 'operations'), operation=handler)
+        revival = (dict(self.item_requirement(selected, 'operations'), operation=selected)
+                   if selected and selected['block_id'] == binding.get('revival') else None)
+        source = getattr(self.catalog.assets, 'effect_lua_source', None)
+        main = {code for code in resident if resident[code] > extra[code]}
+        rows = {code: self.rows[code] for code in resident}
+        mask = binding['base_type_mask']
+        best = None
+        send_cards = set()
+        rank = {'inventory_present': 0, 'unknown': 1, 'missing': 2}
+
+        for kind in (1, 2, 4):
+            if not mask & kind:
+                continue
+            target_query = dict(target['query'], type=kind)
+            if kind == 2:
+                # Pendulum cards retain their printed monster type in Deck and
+                # can supply a face-up Spell target in a Pendulum Zone.
+                del target_query['type']
+                target_query['any'] = [{'type': kind}, {'type_all': 0x1000001}]
+            field = dict(target, query=target_query)
+            send_query = dict(sender['query'], type=mask ^ kind)
+            candidates = sorted(code for code in main if matches(rows[code], send_query))
+            for code in candidates or [None]:
+                query = dict(send_query, predicate={'field': 'card_ids', 'value': [code]}) if code else send_query
+                requirements = [field, dict(sender, query=query), activating]
+                if revival:
+                    name = rows[code].get('alias') or code if code else None
+                    exclusion = source.inventory_query({'exclude_rule_codes': [name]}, rows) if name and source else None
+                    revived_query = dict(revival['query'], any=[exclusion]) if exclusion else {'unresolved_name': True}
+                    requirements.append(dict(revival, query=revived_query))
+                value = self._check_counts(resident, extra, requirements, distinct=True)
+                if code and value['status'] != 'missing':
+                    send_cards.add(code)
+                if best is None or (rank[value['status']], value['shortfall']) < (
+                        rank[best['status']], best['shortfall']):
+                    best = value
+        return dict(best, reason='complete_processing_different_base_types',
+                    possible_send_card_ids=sorted(send_cards))
+
     def processing_check(self, deck, record, selected=None, *, physical_inventory=None):
         """Allocate the printed complete processing, not a duel starting hand.
 
@@ -989,6 +1037,10 @@ class InventoryDependencies:
                       record,(selected or {}).get('block_id')])
         if key in self._processing:
             return self._processing[key]
+        if record.get('type_matched_deck_send'):
+            proof = self._type_matched_deck_inventory(Counter(deck.main + deck.extra), Counter(deck.extra), record, selected)
+            self._processing[key] = proof
+            return proof
         targets = record.get('targets', ())
         if 'targets' not in record and any(op.get('target_ref') is not None for op in record['operations']):
             raise KeyError('targets')
@@ -1304,7 +1356,10 @@ class InventoryDependencies:
                     requirements = [req for req in effect['requirements'] if not tags or 'operation' not in req or
                         effect_matches(dict(effect['record'], operations=[req['operation']]),tags)]
                     dependencies = {ref for req in requirements for ref in req.get('operation', {}).get('depends_on', ())}
-                    proof = self._handler_grave_processing(resident, extra, effect['record'])
+                    record = effect['record']
+                    proof = (self._type_matched_deck_inventory(resident, extra, record)
+                             if record.get('type_matched_deck_send') else
+                             self._handler_grave_processing(resident, extra, record))
                     if proof is not None:
                         value = proof
                     else:

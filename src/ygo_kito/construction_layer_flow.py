@@ -26,7 +26,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v47"
+NORMALIZATION_VERSION = "construction-function-normalization-v48"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -348,6 +348,10 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
             processing = dependencies.processing_check(available, scoped_record, operation,physical_inventory=deck)
             if processing:
                 checks.append(processing)
+                binding = scoped_record.get('type_matched_deck_send')
+                if binding and operation['block_id'] == binding['send'] and fact.transfer:
+                    fact = replace(fact, transfer=replace(fact.transfer,
+                        inventory=tuple(('main', c) for c in processing['possible_send_card_ids'])))
             if context is not None:
                 def supplied_external(req):
                     if req.get('owner','self') == 'self' or req['category'] not in ('costs','targets'):
@@ -1213,9 +1217,10 @@ def _special_summon_supported(code, available, records, dependencies, relation, 
                         if proof['status'] == 'unknown':
                             status = 'unknown'
                 activation_target = _activation_target(record, operation)
-                if (status in ('supported', 'unknown') and activation_target
-                        and (activation_target.get('availability_timing') == 'before_activation_payment'
-                             or _has_self_grave_payment(record))):
+                if (status in ('supported', 'unknown') and (
+                        record.get('type_matched_deck_send', {}).get('revival') == operation['block_id']
+                        or activation_target and (activation_target.get('availability_timing') == 'before_activation_payment'
+                                                  or _has_self_grave_payment(record)))):
                     legal = dependencies.summon_choice_check(available, operation_record(record, operation), operation,
                                                              (code,), physical_inventory=physical_inventory)
                     if legal is False:

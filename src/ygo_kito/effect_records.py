@@ -12,7 +12,7 @@ from collections import Counter, defaultdict
 from .rule_references import effect_reference_requests
 
 EFFECT_RECORD_VERSION = "public-effect-records-v6"
-LUA_EFFECT_RECORD_VERSION = "public-effect-records-v18"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v19"
 _OPPONENT_SUMMON_RESPONSE = 'opponent_special_summon_effect_activation'
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (
@@ -1746,6 +1746,87 @@ def _bind_lua_hand_deck_grave_trigger(record, window, source):
     return True
 
 
+def _bind_lua_type_matched_deck_send(record, window, rows):
+    from .construction_inventory import matches
+    from .effect_blocks import activation_parts
+
+    observed = window["type_matched_deck_send"]
+    if (not observed["complete"] or record["scope"] != "monster" or record["costs"]
+            or record.get("branch_records") or record["block_view"]["alternatives"]
+            or len(record["targets"]) != 1):
+        return False
+    head, body, _, mode = activation_parts(record["source_text"])
+    target = record["targets"][0]
+    printed = re.fullmatch(r"这张卡在手卡存在的场合[，,]以自己场上(?:表侧表示的)?1张「([^」]+)」卡为对象", head)
+    if (mode != "activated" or not printed or target.get("zones") != ["field"]
+            or target.get("owner") != "self" or target.get("quantity") != 1):
+        return False
+    field = printed[1]
+    label = "「" + field + "」"
+    literal, query = {"name_contains": field}, observed["selector_query"]
+    if target.get("selector") != label + "卡" or any(
+            matches(row, literal) != matches(row, query) for row in rows.values()):
+        return False
+    prefix = ("和那张卡种类（怪兽·魔法·陷阱）不同的1张" + label
+              + "卡从卡组送去墓地，这张卡特殊召唤。")
+    if not body.startswith(prefix):
+        return False
+    tail = body[len(prefix):].rstrip("。")
+    revive = observed["revival"]
+    optional = ("那之后，可以从自己墓地选和送去墓地的卡卡名不同的1只" + label
+                + "怪兽效果无效守备表示特殊召唤。")
+    if revive:
+        if not tail.startswith(optional):
+            return False
+        tail = tail[len(optional):]
+    if tail and tail not in {rule["source"] for rule in record["restrictions"]}:
+        return False
+    operations = record["operations"]
+    expected = ["send_grave", "special_summon", "negate", "special_summon"] if revive else [
+        "send_grave", "special_summon"]
+    if ([op["kind"] for op in operations] != expected or any(op.get("quantity") != 1 for op in operations)
+            or operations[0].get("from_zones") != ["deck"] or operations[1]["source"] != "这张卡特殊召唤"
+            or any(op.get("choice") or op["reason"] != "effect" for op in operations)):
+        return False
+    blocks = {block["block_id"]: block for block in record["block_view"]["blocks"]}
+    if not all(op["block_id"] in blocks for op in operations):
+        return False
+
+    send, handler, *extra = operations
+    target.update(selector_query=deepcopy(query), timing="activation", face_up=True)
+    code = record["card_id"]
+    updates = [dict(selector_query=query, selector_source=send["source"], requires_arrival=True),
+               dict(from_zones=["hand"], subject="this_card", source_card_id=code, random=False,
+                    depends_on=[send["block_id"]])]
+    binding = dict(send=send["block_id"], handler=handler["block_id"], base_type_mask=observed["base_type_mask"])
+    if revive:
+        negate, summon = extra
+        binding["revival"] = summon["block_id"]
+        updates.extend((dict(processing_role="auxiliary", subject_ref=summon["block_id"],
+                             depends_on=[summon["block_id"]]),
+                        dict(selector_query=revive["selector_query"], selector_source=summon["source"],
+                             random=False, depends_on=[handler["block_id"]], optional=True,
+                             position=revive["position"], effects_disabled=revive["effects_disabled"])))
+    changes = {item.get("block_id"): item for item in record["resource_changes"]}
+    for operation, fields in zip(operations, updates):
+        operation.update(deepcopy(fields), observed_operation=deepcopy(operation))
+        blocks[operation["block_id"]]["qualifiers"].update(deepcopy(fields))
+        if operation["block_id"] in changes:
+            changes[operation["block_id"]].update(deepcopy(operation))
+    record["type_matched_deck_send"] = binding
+    record.setdefault("model_summary_observation", {}).update(
+        trigger=deepcopy(record["trigger"]), conditions=deepcopy(record["conditions"]), unknown=list(record["unknown"]))
+    condition = "none_in_recognized_activation_clause"
+    record["trigger"].update(event="own_main_phase", zone="hand", reason="not_applicable",
+                             available_monster_zones=observed["activation_monster_zones"], additional_conditions=condition)
+    record["conditions"].update(status="recognized", additional_conditions=condition)
+    record["unknown"] = [gap for gap in record["unknown"] if gap not in (
+        "activation_condition", "additional_activation_conditions", "cost_or_condition",
+        "resolution", "unparsed_resolution_or_restriction")]
+    record["block_view"]["unknown"] = list(record["unknown"])
+    return True
+
+
 def merge_lua_effect_sources(records, source, script_code, *, rows, same_printing=True):
     """Attach Lua evidence to the matching printed effect and refine supported facts."""
     if not records:
@@ -1796,6 +1877,8 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
         record["record_version"] = LUA_EFFECT_RECORD_VERSION
         index = record["effect_index"]
         windows = groups.get(index - 1, ())
+        if (len(windows) == indices[index] == 1 and windows[0].get("type_matched_deck_send")):
+            _bind_lua_type_matched_deck_send(record, windows[0], rows)
         if len(response_records) == len(response_windows) == 1 and record is response_records[0]:
             # A passive printed effect can occupy a number without a Stringid
             # slot. The observed chain condition identifies the response.
@@ -1857,7 +1940,9 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
         record["lua_source"] = dict(source_info, alignment="matched", registrations=list(windows))
         if restriction_bound:
             record["lua_source"]["summon_lock_alignment"] = "matched"
-        if index - 1 in deck_sends:
+        if record.get("type_matched_deck_send"):
+            record["lua_source"]["deck_send_status"] = "field_type_binding"
+        elif index - 1 in deck_sends:
             _merge_lua_deck_send(record, source, rows)
     if self_payments:
         _merge_lua_self_send_costs(records, self_payments, script)

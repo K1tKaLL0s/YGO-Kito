@@ -11,7 +11,7 @@ import re
 from .validation import ContractError
 
 
-LUA_EFFECT_VERSION = "mycard-effect-registration-v12"
+LUA_EFFECT_VERSION = "mycard-effect-registration-v13"
 _TABLE, _CARD = object(), object()
 _CALLBACKS = {
     "SetCondition": "condition", "SetCost": "cost", "SetTarget": "target",
@@ -723,6 +723,234 @@ def _member_call(node, method, constants, *arguments):
             and _literal_arguments(args, constants, arguments)):
         return name.child_by_field_name("table")
     return None
+
+
+def _type_matched_target(callback, functions, constants, reserved):
+    """Read the on-field target and its dependent Deck selection filter."""
+    params = tuple(map(_text, callback.child_by_field_name("parameters").children_by_field_name("name")))
+    if len(params) != 10 or len(set(params)) != 10 or set(params) & reserved:
+        return None
+    effect, player, *_, chk, candidate = params
+    steps = list(_processing_statements(_children(callback.child_by_field_name("body")), constants, player, effect))
+    if len(steps) != 3:
+        return None
+    preview, check, select = steps
+    _, value = _local_value(select)
+    call, args = _call(value)
+    if call != "Duel.SelectTarget" or len(args) != 9:
+        return None
+    field = constants["LOCATION_ONFIELD"]
+    field_filter = _name(args[1])
+    if field_filter not in functions or not _literal_call(
+            value, constants, "Duel.SelectTarget", player, field_filter, player, field, 0, 1, 1, None, player):
+        return None
+    preview_terms = _conjuncts(_return_expression(_check_body(preview)))
+    if (_name(preview.child_by_field_name("condition")) != candidate or len(preview_terms) != 3
+            or not _literal_call(preview_terms[0], constants, f"{candidate}:IsOnField")
+            or not _literal_call(preview_terms[1], constants, f"{candidate}:IsControler", player)
+            or not _literal_call(preview_terms[2], constants, field_filter, candidate, player)):
+        return None
+    flag, value = _binary(check.child_by_field_name("condition"), "==")
+    terms = _conjuncts(_return_expression(_check_body(check)))
+    if _name(flag) != chk or _integer_value(value, constants) != 0 or len(terms) != 3:
+        return None
+    zone, zero = _binary(terms[0], ">")
+    handler = _member_call(terms[1], "IsCanBeSpecialSummoned", constants, effect, 0, player, False, False)
+    if (not _literal_call(zone, constants, "Duel.GetLocationCount", player, constants["LOCATION_MZONE"])
+            or _integer_value(zero, constants) != 0 or not _literal_call(handler, constants, f"{effect}:GetHandler")
+            or not _literal_call(terms[2], constants, "Duel.IsExistingTarget", field_filter, player, field, 0, 1, None, player)):
+        return None
+
+    field_fn = functions[field_filter]
+    params = tuple(map(_text, field_fn.child_by_field_name("parameters").children_by_field_name("name")))
+    body = _children(field_fn.child_by_field_name("body"))
+    if len(params) != 2 or len(set(params)) != 2 or set(params) & reserved or len(body) != 2:
+        return None
+    card, player = params
+    kind, value = _local_value(body[0])
+    left, right = _binary(value, "&")
+    mask = constants["TYPE_MONSTER"] | constants["TYPE_SPELL"] | constants["TYPE_TRAP"]
+    terms = _conjuncts(_return_expression(body[1:]))
+    if (not kind or kind in reserved or kind in params or not _literal_call(left, constants, f"{card}:GetType")
+            or _integer_value(right, constants) != mask or len(terms) != 3):
+        return None
+    query = _selection_query(terms[0], card, constants)
+    call, args = _call(terms[2])
+    if (not query or query.keys() != {"setcode"} or not _literal_call(terms[1], constants, f"{card}:IsFaceup")
+            or call != "Duel.IsExistingMatchingCard" or len(args) != 7
+            or not _literal_arguments(args[1:], constants, (player, constants["LOCATION_DECK"], 0, 1, None, kind))):
+        return None
+    deck_filter = _name(args[0])
+    deck_fn = functions.get(deck_filter)
+    if deck_fn is None:
+        return None
+    params = tuple(map(_text, deck_fn.child_by_field_name("parameters").children_by_field_name("name")))
+    terms = _conjuncts(_return_expression(_children(deck_fn.child_by_field_name("body"))))
+    if len(params) != 2 or len(set(params)) != 2 or set(params) & reserved or len(terms) != 3:
+        return None
+    card, kind = params
+    different = terms[0]
+    if (different is None or different.type != "unary_expression"
+            or _text(different.child_by_field_name("operator")) != "not"
+            or not _literal_call(different.child_by_field_name("operand"), constants, f"{card}:IsType", kind)
+            or _selection_query(terms[1], card, constants) != query
+            or not _literal_call(terms[2], constants, f"{card}:IsAbleToGrave")):
+        return None
+    return query, deck_filter, mask, [_span(field_fn), _span(deck_fn)]
+
+
+def _type_matched_revival(body, effect, player, handler, sent, query, functions, constants, reserved):
+    """Confirm the optional Graveyard branch, including its selected recipient."""
+    if len(body) != 3:
+        return None
+    rule_code, value = _local_value(body[0])
+    group, selection = _local_value(body[1])
+    name, args = _call(selection)
+    if (not rule_code or not group or not _literal_call(value, constants, f"{sent}:GetCode")
+            or name != "Duel.GetMatchingGroup" or len(args) != 8
+            or not _literal_arguments(args[1:], constants,
+                (player, constants["LOCATION_GRAVE"], 0, None, effect, player, rule_code))):
+        return None
+    wrapper, filters = _call(args[0])
+    fn = functions.get(_name(filters[0])) if wrapper == "aux.NecroValleyFilter" and len(filters) == 1 else None
+    if fn is None:
+        return None
+    params = tuple(map(_text, fn.child_by_field_name("parameters").children_by_field_name("name")))
+    terms = _conjuncts(_return_expression(_children(fn.child_by_field_name("body"))))
+    if len(params) != 4 or len(set(params)) != 4 or set(params) & constants.keys() or len(terms) != 3:
+        return None
+    card, ef, tp, code = params
+    different = terms[1]
+    if (_selection_query(terms[0], card, constants) != query or different is None
+            or different.type != "unary_expression" or _text(different.child_by_field_name("operator")) != "not"
+            or not _literal_call(different.child_by_field_name("operand"), constants, f"{card}:IsCode", code)
+            or not _literal_call(terms[2], constants, f"{card}:IsCanBeSpecialSummoned", ef, 0, tp,
+                                 False, False, constants["POS_FACEUP_DEFENSE"])):
+        return None
+    guard = body[2]
+    checks = _conjuncts(guard.child_by_field_name("condition"))
+    if len(checks) != 3:
+        return None
+    zone, zero = _binary(checks[1], ">")
+    yes, yes_args = _call(checks[2])
+    if (not _nonempty_group(checks[0], group, constants)
+            or not _literal_call(zone, constants, "Duel.GetLocationCount", player, constants["LOCATION_MZONE"])
+            or _integer_value(zero, constants) != 0 or yes != "Duel.SelectYesNo" or len(yes_args) != 2
+            or _name(yes_args[0]) != player):
+        return None
+    description, desc_args = _call(yes_args[1])
+    if description != "aux.Stringid" or len(desc_args) != 2 or any(
+            _integer_value(arg, constants) is None for arg in desc_args):
+        return None
+    steps = list(_processing_statements(_check_body(guard), constants, player, effect))
+    if len(steps) != 15 or not _literal_call(steps[0], constants, "Duel.BreakEffect"):
+        return None
+    revived, choice = _local_value(steps[1])
+    selected = _member_call(choice, "GetFirst", constants)
+    if (not revived or not _literal_call(selected, constants, f"{group}:Select", player, 1, 1, None)
+            or not _literal_call(steps[2], constants, "Duel.SpecialSummonStep", revived, 0, player, player,
+                                 False, False, constants["POS_FACEUP_DEFENSE"])
+            or not _literal_call(steps[-1], constants, "Duel.SpecialSummonComplete")):
+        return None
+    locals_used = {rule_code, group, revived}
+    if len(locals_used) != 3 or locals_used & reserved:
+        return None
+    reset = constants["RESET_EVENT"] | constants["RESETS_STANDARD"]
+    for part, effect_type, flag in ((steps[3:8], "EFFECT_DISABLE", ()),
+                                   (steps[8:14], "EFFECT_DISABLE_EFFECT", (constants["RESET_TURN_SET"],))):
+        local, constructor = _local_value(part[0])
+        if (not local or local in locals_used or local in reserved
+                or not _literal_call(constructor, constants, "Effect.CreateEffect", handler)):
+            return None
+        locals_used.add(local)
+        setters = [("SetType", constants["EFFECT_TYPE_SINGLE"]), ("SetCode", constants[effect_type])]
+        if flag:
+            setters.append(("SetValue", flag[0]))
+        setters.append(("SetReset", reset))
+        if not all(_literal_call(node, constants, f"{local}:{key}", expected)
+                   for node, (key, expected) in zip(part[1:-1], setters)):
+            return None
+        if not _literal_call(part[-1], constants, f"{revived}:RegisterEffect", local):
+            return None
+    return dict(selector_query=dict(query, type=constants["TYPE_MONSTER"]), different_name_from_send=True,
+                available_monster_zones_after_handler=1, position="faceup_defense", effects_disabled=True,
+                byte_span=_span(fn))
+
+
+def _type_matched_deck_send(registration, functions, tables, constants, *, grave_filter):
+    """Bind a different-base-type Deck send, followed by the same hand card."""
+    symbols = ("TYPE_MONSTER", "TYPE_SPELL", "TYPE_TRAP", "LOCATION_ONFIELD", "LOCATION_DECK", "LOCATION_HAND",
+               "LOCATION_MZONE", "LOCATION_GRAVE", "EFFECT_TYPE_IGNITION", "EFFECT_FLAG_CARD_TARGET",
+               "POS_FACEUP", "REASON_EFFECT")
+    if (any(type(constants.get(k)) is not int for k in symbols)
+            or registration.get("type") != constants["EFFECT_TYPE_IGNITION"]
+            or registration.get("range") != constants["LOCATION_HAND"]
+            or registration.get("property") != constants["EFFECT_FLAG_CARD_TARGET"]
+            or any(registration.get(role) for role in ("cost", "condition"))):
+        return None
+    _, target, target_span = _callback(registration, "target", functions, tables)
+    _, operation, operation_span = _callback(registration, "operation", functions, tables)
+    functions = {name: node for name, node in functions.items() if name.partition(".")[0] in tables}
+    reserved = tables | constants.keys() | {"Duel", "Card", "Group", "Effect", "aux", "Auxiliary"}
+    if target is None or operation is None or not (binding := _type_matched_target(target, functions, constants, reserved)):
+        return None
+    query, deck_filter, mask, spans = binding
+    params = tuple(map(_text, operation.child_by_field_name("parameters").children_by_field_name("name")))
+    if len(params) < 2 or len(set(params)) != len(params) or set(params) & reserved:
+        return None
+    effect, player = params[:2]
+    reserved |= set(params)
+    body = _children(operation.child_by_field_name("body"))
+    if registration.get("resolution_summon_lock"):
+        body = body[:-8]
+    if len(body) != 3:
+        return None
+    local, names, values = _assignment(body[0])
+    if not local or len(names) != 2 or len(values) != 2 or any(name.type != "identifier" for name in names):
+        return None
+    handler, chosen = map(_name, names)
+    kind, value = _local_value(body[1])
+    left, right = _binary(value, "&")
+    if (not kind or len({handler, chosen, kind}) != 3 or {handler, chosen, kind} & reserved
+            or not _literal_call(values[0], constants, f"{effect}:GetHandler")
+            or not _literal_call(values[1], constants, "Duel.GetFirstTarget")
+            or not _literal_call(left, constants, f"{chosen}:GetType") or _integer_value(right, constants) != mask
+            or not _literal_call(body[2].child_by_field_name("condition"), constants, f"{chosen}:IsRelateToEffect", effect)):
+        return None
+    reserved |= {handler, chosen, kind}
+    steps = list(_processing_statements(_check_body(body[2]), constants, player, effect))
+    if len(steps) != 3:
+        return None
+    group, selection = _local_value(steps[0])
+    sent, first = _local_value(steps[1])
+    if (not group or not sent or group == sent or {group, sent} & reserved
+            or not _literal_call(selection, constants, "Duel.SelectMatchingCard", player, deck_filter, player,
+                                 constants["LOCATION_DECK"], 0, 1, 1, None, kind)
+            or not _literal_call(first, constants, f"{group}:GetFirst")):
+        return None
+    guard = steps[2]
+    checks = _conjuncts(guard.child_by_field_name("condition"))
+    if len(checks) != 5 or _name(checks[0]) != sent:
+        return None
+    sent_result, zero = _binary(checks[1], "~=")
+    summoned, failed = _binary(checks[4], "~=")
+    if (not _literal_call(sent_result, constants, "Duel.SendtoGrave", sent, constants["REASON_EFFECT"])
+            or _integer_value(zero, constants) != 0
+            or not _literal_call(checks[2], constants, f"{sent}:IsLocation", constants["LOCATION_GRAVE"])
+            or not _literal_call(checks[3], constants, f"{handler}:IsRelateToEffect", effect)
+            or not _literal_call(summoned, constants, "Duel.SpecialSummon", handler, 0, player, player,
+                                 False, False, constants["POS_FACEUP"]) or _integer_value(failed, constants) != 0
+            or guard.child_by_field_name("alternative") or guard.type != "if_statement"):
+        return None
+    tail = _check_body(guard)
+    revival_symbols = ("POS_FACEUP_DEFENSE", "RESET_EVENT", "RESETS_STANDARD", "EFFECT_TYPE_SINGLE",
+                       "EFFECT_DISABLE", "EFFECT_DISABLE_EFFECT", "RESET_TURN_SET")
+    revival = (_type_matched_revival(tail, effect, player, handler, sent, query, functions, constants,
+                                    reserved | {group, sent})
+               if grave_filter and all(type(constants.get(k)) is int for k in revival_symbols) else None)
+    return dict(selector_query=query, base_type_mask=mask, activation_monster_zones=1,
+                target_span=target_span, operation_span=operation_span, filter_spans=spans,
+                revival=revival, complete=not tail or revival is not None)
 
 
 def _self_summon_zone_check(callback, constants, tables):
@@ -1866,6 +2094,15 @@ class LuaEffectSource:
                         registration["preselected_grave_summon"] = observed
                 if index not in deck_send_indices or not deck_scope:
                     continue
+                if result["status"] == "parsed" and not shadowed and not assignments["Effect"]:
+                    helper_name = "Auxiliary.NecroValleyFilter"
+                    helper = self._helper(helper_name) if not (assignments["aux"] or assignments["Auxiliary"]) else None
+                    binding = _type_matched_deck_send(registration, callbacks, tables, static_constants,
+                                                     grave_filter=helper is not None)
+                    if binding:
+                        registration["type_matched_deck_send"] = binding
+                        if binding["revival"] and helper not in result["helpers"]:
+                            result["helpers"].append(helper)
                 operation, target = (registration.get(role, {}) for role in ("operation", "target"))
                 key = (registration["family"], registration.get("property", 0),
                        operation.get("reference"), target.get("reference"),
