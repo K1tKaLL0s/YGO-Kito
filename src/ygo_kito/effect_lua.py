@@ -11,7 +11,7 @@ import re
 from .validation import ContractError
 
 
-LUA_EFFECT_VERSION = "mycard-effect-registration-v9"
+LUA_EFFECT_VERSION = "mycard-effect-registration-v10"
 _TABLE, _CARD = object(), object()
 _CALLBACKS = {
     "SetCondition": "condition", "SetCost": "cost", "SetTarget": "target",
@@ -753,6 +753,51 @@ def _summon_chain_response(registration, functions, constants, tables):
             and _name(_member_call(category, "IsHasCategory", constants, constants["CATEGORY_SPECIAL_SUMMON"])) == chain_effect)
 
 
+def _own_effect_sent_race(registration, functions, constants, tables):
+    """Read a field trigger matching a race in the controller's sent group."""
+    field, optional = (constants.get(key) for key in ("EFFECT_TYPE_FIELD", "EFFECT_TYPE_TRIGGER_O"))
+    if (type(field) is not int or type(optional) is not int
+            or registration.get("type") != (field | optional)
+            or registration.get("event_code") != constants.get("EVENT_TO_GRAVE")
+            or registration.get("range") != constants.get("LOCATION_MZONE")
+            or not all(key in constants for key in ("EVENT_TO_GRAVE", "LOCATION_MZONE", "REASON_EFFECT"))):
+        return None
+    _, callback, _ = _callback(registration, "condition", functions, tables)
+    if callback is None:
+        return None
+    params = callback.child_by_field_name("parameters").children_by_field_name("name")
+    if len(params) < 3:
+        return None
+    _, player, event_group = map(_text, params[:3])
+    exists = _return_expression(_children(callback.child_by_field_name("body")))
+    name, args = _call(exists)
+    if name != f"{event_group}:IsExists" or len(args) != 4:
+        return None
+    filter_name = _name(args[0])
+    predicate = functions.get(filter_name)
+    if (predicate is None or filter_name.partition(".")[0] not in tables
+            or not _literal_call(exists, constants, name, filter_name, 1, None, player)):
+        return None
+    filter_params = predicate.child_by_field_name("parameters").children_by_field_name("name")
+    if len(filter_params) != 2:
+        return None
+    card, controller = map(_text, filter_params)
+    checks = _conjuncts(_return_expression(_children(predicate.child_by_field_name("body"))))
+    if len(checks) != 3:
+        return None
+    reason = [node for node in checks if _literal_call(node, constants, f"{card}:IsReason", constants["REASON_EFFECT"])]
+    controlled = [node for node in checks if any(_literal_call(node, constants, f"{card}:{method}", controller)
+                  for method in ("IsControler", "IsController"))]
+    if len(reason) != 1 or len(controlled) != 1:
+        return None
+    race_node, = [node for node in checks if node not in (*reason, *controlled)]
+    method, args = _call(race_node)
+    mask = _integer_value(args[0], constants) if len(args) == 1 else None
+    if method == f"{card}:IsRace" and type(mask) is int and mask > 0 and mask & (mask - 1) == 0:
+        return dict(race=mask, predicate_span=_span(predicate))
+    return None
+
+
 def _processing_statements(statements, constants, player, effect=None):
     """Remove client hints and operation announcements with simple arguments."""
     for statement in statements:
@@ -1448,7 +1493,8 @@ class LuaEffectSource:
                     byte_span=_span(node), function=name) if node else None
 
     def summarize_effects(self, code, *, deck_send_indices=(), self_send_costs=False,
-                          preselected_grave_summons=False, summon_locks=False, summon_chain_response=False):
+                          preselected_grave_summons=False, summon_locks=False, summon_chain_response=False,
+                          summon_grave_clone=False):
         """Report registrations and requested callback facts for printed effects."""
         filename = f"c{code}.lua"
         result = dict(status="missing_script", file=filename, registrations=[], unknown=[],
@@ -1528,7 +1574,8 @@ class LuaEffectSource:
             self._registrations(initial, initial_bindings, functions, result, unresolved)
         if result["unknown"]:
             result["status"] = "partial"
-        if deck_send_indices or self_send_costs or preselected_grave_summons or summon_locks or summon_chain_response:
+        if (deck_send_indices or self_send_costs or preselected_grave_summons or summon_locks
+                or summon_chain_response or summon_grave_clone):
             # Callback domains use unshadowed core constants and the card's namespace.
             # Deck filters can also read an unchanged local GetID result.
             tables = {name for name, value in constants.items()
@@ -1560,6 +1607,10 @@ class LuaEffectSource:
                 if summon_chain_response and not shadowed and _summon_chain_response(
                         registration, callbacks, static_constants, tables):
                     registration["summon_chain_response"] = True
+                if summon_grave_clone and not shadowed and not assignments["Effect"] and registration["clone_from"] is not None:
+                    grave_trigger = _own_effect_sent_race(registration, callbacks, static_constants, tables)
+                    if grave_trigger is not None:
+                        registration["own_effect_sent_race"] = grave_trigger
                 if payment_scope:
                     observed = _self_send_cost(registration, callbacks, static_constants, tables, cost_shadowed)
                     if observed["status"] == "resolved":

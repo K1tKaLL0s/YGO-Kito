@@ -12,7 +12,7 @@ from collections import Counter, defaultdict
 from .rule_references import effect_reference_requests
 
 EFFECT_RECORD_VERSION = "public-effect-records-v6"
-LUA_EFFECT_RECORD_VERSION = "public-effect-records-v15"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v16"
 _OPPONENT_SUMMON_RESPONSE = 'opponent_special_summon_effect_activation'
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (
@@ -1626,6 +1626,52 @@ def _bind_lua_attack_obligation(records, script, source):
                 rule.update(condition="this_card_can_attack", evidence_refs=[evidence])
 
 
+def _printed_summon_grave_clone(record, row):
+    from .effect_mechanisms import RACES
+
+    # These monsters must first enter the field by Special Summon. The
+    # summon window already supplies the static return-to-deck capability.
+    if not row.get("type", 0) & (0x40 | 0x2000 | 0x800000 | 0x4000000):
+        return None
+    if record["trigger"]["event"] != "special_summon" or record["costs"]:
+        return None
+    condition = record["conditions"]["source"]
+    for target in record["targets"]:
+        condition = condition.replace(target["source"], "", 1)
+    match = re.fullmatch(r"这张卡特殊召唤成功的场合(?:或者|或)这张卡在场上存在的状态有"
+                         r"([^，,。]+族)怪兽被效果送去自己墓地的场合", condition.strip("，, "))
+    return RACES.get(match[1]) if match else None
+
+
+def _bind_lua_summon_grave_clone(record, windows, race, source):
+    if race is None or len(windows) != 2:
+        return None
+    summon, grave = windows
+    sent = grave.get("own_effect_sent_race")
+    if (summon["event"] != "special_summon" or summon.get("condition")
+            or sent is None or sent["race"] != race or summon["family"] != grave["family"]
+            or any(window.get("cost") or window.get("value") for window in windows)
+            or any(not summon.get(role, {}).get("definition") or summon[role] != grave.get(role)
+                   for role in ("target", "operation"))):
+        return None
+    limits = record["count_limits"]
+    count = source.turn_count(summon)
+    if (count is None or count != source.turn_count(grave) or len(limits) != 1
+            or limits[0]["status"] != "known" or limits[0]["scope"] != "same_name_this_effect"
+            or limits[0]["maximum"] != count[0] or limits[0]["period"] != "turn"
+            or limits[0]["count_event"] != "use"):
+        return None
+    record.setdefault("model_summary_observation", {}).update(
+        conditions=deepcopy(record["conditions"]), unknown=list(record["unknown"]))
+    condition = "none_in_recognized_activation_clause"
+    record["trigger"].update(additional_conditions=condition, alternative_window={
+        "event": "own_race_sent_to_grave_by_effect", "handler_zone": "field", "event_zone": "grave", "race": race})
+    record["conditions"].update(status="recognized", additional_conditions=condition)
+    record["unknown"] = [gap for gap in record["unknown"] if gap != "additional_activation_conditions"]
+    record["block_view"]["unknown"] = list(record["unknown"])
+    return [summon, dict(grave, event="own_race_sent_to_grave_by_effect")]
+
+
 def merge_lua_effect_sources(records, source, script_code, *, rows, same_printing=True):
     """Attach Lua evidence to the matching printed effect and refine supported facts."""
     if not records:
@@ -1652,6 +1698,10 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
                         if record['trigger'].get('event') == _OPPONENT_SUMMON_RESPONSE]
     if response_records:
         script_options["summon_chain_response"] = True
+    clone_races = {r["effect_key"]: race for r in records
+                   if (race := _printed_summon_grave_clone(r, rows[r["card_id"]])) is not None}
+    if clone_races:
+        script_options["summon_grave_clone"] = True
     script = source.summarize_effects(script_code, **script_options)
     _bind_lua_attack_obligation(records, script, source)
     groups = defaultdict(list)
@@ -1693,6 +1743,12 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
                                                 preselected_grave_summon_status="bound")
                     continue
         printed_event = record["trigger"].get("event")
+        if index > 0 and indices[index] == 1:
+            clone = _bind_lua_summon_grave_clone(record, windows, clone_races.get(record["effect_key"]), source)
+            if clone is not None:
+                record["lua_source"] = dict(source_info, alignment="matched", registrations=clone,
+                                            shared_activation_use=True, count_status="printed_shared_limit_confirmed")
+                continue
         events = {window["event"] for window in windows}
         matches = events == (_LUA_SUMMON_EVENTS if printed_event == "normal_or_special_summon" else {printed_event})
         restriction_bound = (index > 0 and indices[index] == 1 and
@@ -1717,6 +1773,8 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
     candidates = {}
     for record in aligned:
         lua = record["lua_source"]
+        if lua.get("shared_activation_use"):
+            continue
         windows = lua["registrations"]
         if lua.get("preselected_grave_summon_status") == "bound" and record["effect_index"] == 0:
             lua["count_status"] = "printed_local_limit_confirmed"

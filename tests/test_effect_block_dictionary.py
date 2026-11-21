@@ -551,6 +551,7 @@ EFFECT_SPSUMMON_CONDITION=30
 CATEGORY_SPECIAL_SUMMON=0x200
 ATTRIBUTE_FIRE=4
 RACE_DRAGON=8192
+RACE_AQUA=64
 POS_FACEUP=5
 HINTMSG_SPSUMMON=509
 EVENT_FREE_CHAIN=1002
@@ -892,6 +893,64 @@ end
                                  (['hand', 'field'], {'field': 'face_up'}))
                 self.assertEqual(recipient['query']['name_contains'], '同族')
                 self.assertEqual(record['costs'], [])
+
+    def test_cloned_summon_and_grave_windows_share_one_printed_use(self):
+        from ygo_kito.construction_relations import _record_outputs
+
+        printing = ('这个卡名的①的效果1回合只能使用1次。①：这张卡特殊召唤成功的场合或者'
+                    '这张卡在场上存在的状态有水族怪兽被效果送去自己墓地的场合，'
+                    '以对方场上1张卡为对象才能发动。那张卡回到持有者卡组。')
+        script = f"""
+local s,id=GetID()
+function s.initial_effect(c)
+    local first=Effect.CreateEffect(c)
+    first:SetDescription(aux.Stringid(id,0))
+    first:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O)
+    first:SetCode(EVENT_SPSUMMON_SUCCESS)
+    first:SetCountLimit(1,id)
+    first:SetTarget(s.pick)
+    first:SetOperation(s.putback)
+    c:RegisterEffect(first)
+    local other=first:Clone()
+    other:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_TRIGGER_O)
+    other:SetCode(EVENT_TO_GRAVE)
+    other:SetRange(LOCATION_MZONE)
+    other:SetCondition(s.trigger)
+    c:RegisterEffect(other)
+end
+function s.trigger(e,player,sent)
+    return sent:IsExists(s.matches,1,nil,player)
+end
+function s.matches(card,player)
+    return card:IsRace(RACE_AQUA) and card:IsControler(player) and card:IsReason(REASON_EFFECT)
+end
+function s.pick(e,tp)
+    return Duel.IsExistingTarget(Card.IsAbleToDeck,tp,0,LOCATION_MZONE,1,nil)
+end
+function s.putback(e,tp)
+    Duel.SendtoDeck(Duel.GetFirstTarget(),nil,0,REASON_EFFECT)
+end
+"""
+        for variant in (script, script.replace("RACE_AQUA", "RACE_DRAGON"),
+                        script.replace("card:IsReason(REASON_EFFECT)", "card:IsReason(REASON_COST)")):
+            with self.subTest(matches=variant == script):
+                assets = self.assets(script=variant, description=printing)
+                assets.rows[LUA_CARD_ID]["type"] = 0x41
+                catalog = MechanismCatalog(assets)
+                record, = catalog.effect_records(LUA_CARD_ID)
+                lua = record["lua_source"]
+                if variant != script:
+                    self.assertEqual(lua["alignment"], "unresolved")
+                    self.assertNotIn("alternative_window", record["trigger"])
+                    continue
+                self.assertEqual(lua["alignment"], "matched")
+                self.assertEqual([row["event"] for row in lua["registrations"]],
+                                 ["special_summon", "own_race_sent_to_grave_by_effect"])
+                self.assertEqual(lua["count_status"], "printed_shared_limit_confirmed")
+                self.assertEqual(record["count_limits"][0]["maximum"], 1)
+                self.assertEqual(record["trigger"]["alternative_window"]["race"], 64)
+                self.assertEqual(record["conditions"]["status"], "recognized")
+                self.assertEqual([op["kind"] for _, op in _record_outputs(record)], ["return_deck"])
 
     def test_own_attack_obligation_only_binds_the_single_card_registration(self):
         from tests.test_construction_functional_flow import fixture
