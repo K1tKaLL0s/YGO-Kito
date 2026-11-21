@@ -6,6 +6,7 @@
 #include <iostream>
 #include <iterator>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -27,9 +28,9 @@ static std::vector<std::string> diagnostics;
 
 static byte* locked_script(const char* name, int* length) {
     std::string relative(name);
-    if (relative.starts_with("./script/"))
+    if (relative.rfind("./script/", 0) == 0)
         relative.erase(0, 9);
-    else if (relative.starts_with("script/"))
+    else if (relative.rfind("script/", 0) == 0)
         relative.erase(0, 7);
     *length = 0;
     auto known = script_bytes.find(relative);
@@ -74,7 +75,8 @@ static void print_callback(lua_State* state, int reference) {
     if (reference) {
         lua_rawgeti(state, LUA_REGISTRYINDEX, reference);
         if (lua_getinfo(state, ">S", &info)) {
-            std::cout << '\t' << info.short_src << '\t' << info.linedefined << '\t' << info.lastlinedefined;
+            std::cout << '\t' << std::string_view(info.source, info.srclen)
+                      << '\t' << info.linedefined << '\t' << info.lastlinedefined;
             return;
         }
     }
@@ -88,7 +90,7 @@ int main(int argc, char** argv) {
     std::ifstream cards(argv[2]);
     uint64_t setcodes;
     uint32_t code;
-    card_data row;
+    card_data row{};
     while (cards >> code >> row.alias >> setcodes >> row.type >> row.level
                  >> row.attribute >> row.race >> row.attack >> row.defense
                  >> row.lscale >> row.rscale >> row.link_marker >> row.rule_code) {
@@ -103,8 +105,10 @@ int main(int argc, char** argv) {
     set_message_handler(note_diagnostic);
     uint32_t seed[] = {7, 8, 9, 10, 11, 12, 13, 14};
     while (std::cin >> code) {
-        if (!rows.contains(code))
+        if (rows.find(code) == rows.end()) {
+            std::cerr << "card absent from pinned data: " << code << '\n';
             return 4;
+        }
         diagnostics.clear();
         const intptr_t handle = create_duel_v2(seed);
         if (!handle)
@@ -117,7 +121,8 @@ int main(int argc, char** argv) {
         card* printed = engine->new_card(code);
         std::vector<effect*> effects(printed->initial_effect.begin(), printed->initial_effect.end());
         for (const auto& entry : field)
-            if (!earlier.contains(entry.first) && !printed->initial_effect.contains(entry.first))
+            if (earlier.find(entry.first) == earlier.end() &&
+                    printed->initial_effect.find(entry.first) == printed->initial_effect.end())
                 effects.push_back(entry.first);
         std::sort(effects.begin(), effects.end(), [](effect* a, effect* b) { return a->ref_handle < b->ref_handle; });
         if (printed->data.code != code)
@@ -128,7 +133,8 @@ int main(int argc, char** argv) {
         for (const auto& message : diagnostics)
             std::cout << "diagnostic\t" << message << '\n';
         for (effect* registered : effects) {
-            std::cout << "registration\t" << (printed->initial_effect.contains(registered) ? "card" : "field")
+            const bool on_card = printed->initial_effect.find(registered) != printed->initial_effect.end();
+            std::cout << "registration\t" << (on_card ? "card" : "field")
                       << '\t' << registered->type << '\t' << registered->code << '\t' << registered->range
                       << '\t' << registered->description << '\t' << registered->category << '\t' << registered->count_code;
             auto* state = engine->lua->lua_state;

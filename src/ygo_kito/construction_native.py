@@ -20,17 +20,22 @@ from .effect_duel import choose_effect_duel_action
 from .effect_records import operation_record
 from .extra_routes import engine_for_goal
 from .native import NativeError
+from .native_registrations import NativeRegistryError
 from .normal_duel import request_digest
 from .validation import ContractError
 
 
 NATIVE_RULE_VERSION = "construction-native-rules-v5"
-NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v11"
+NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v12"
 _QUERY_WORK_VERSION = "construction-native-query-work-v1"
 _SUBGROUP_REPLAY_VERSION = 1
 _DECISION_BUDGET = 100
 _DECK_DESTINATIONS = {2: "hand", 16: "grave"}
 _OPERATIONS = frozenset(("search_or_recover", "search", "add_hand", "send_grave"))
+# Declaration fields use the locked core's effect.h. The core sets ACTIONS
+# and the activation's FIELD/range automatically when applying SetType.
+_ACTIVATE, _IGNITION, _TRIGGERS, _QUICK = 0x10, 0x40, 0x280, 0x500
+_FREE_CHAIN, _CHAINING, _NORMAL_SUMMON = 1002, 1027, 1100
 
 
 def _deck_operations(record):
@@ -67,7 +72,68 @@ def _registration_choices(script, setup, *, response_event=1027):
     return choices
 
 
-def _main_queries(deck, assets, subject=None):
+def _same_declaration(lua, script, static, native):
+    kind = static.get("type")
+    if kind is not None:
+        normalized = (kind | 2) if kind & _ACTIVATE else kind
+        if native["type"] & ~8 != normalized:
+            return False
+    index = static.get("description_index")
+    description = script["script_card_id"] * 16 + index if index is not None else (
+        None if "description_index" in static else 0)
+    if description is not None and native["description"] != description:
+        return False
+    for source, field in (("event_code", "event"), ("range", "range"), ("category", "category")):
+        if static.get(source) is not None and static[source] != native[field]:
+            return False
+    callbacks = native["callbacks"]
+    if not callbacks or not any(role in callbacks for role in ("operation", "target", "cost")):
+        return False
+    for role in ("condition", "cost", "target", "operation", "value"):
+        if role in callbacks:
+            if lua.callback_location(static.get(role, {}).get("definition")) != callbacks[role]:
+                return False
+        elif role in static and role != "value":
+            return False
+    return True
+
+
+def _initialized_choices(lua, script, initialized, setup, legacy, *, zone=None, event=None):
+    if initialized is None or initialized["diagnostics"]:
+        return legacy
+    choices = []
+    for ordinal, reg in enumerate(initialized["native"]):
+        kind, code, area = reg["type"], reg["event"], reg["range"]
+        if reg["scope"] != "card":
+            continue
+        if setup == "response":
+            legal_range = kind & _ACTIVATE if zone == "spell_trap" else area & {"hand": 2, "monster": 4}[zone]
+            if (code != event or not legal_range or not kind & (_ACTIVATE | _TRIGGERS | _QUICK)
+                    or not reg["callbacks"]):
+                continue
+            window = "summon_response" if code in SUMMON_RESPONSE_EVENTS else "chain_response"
+        elif setup == "spell" and kind & _ACTIVATE and code == _FREE_CHAIN:
+            window = "card_activation"
+        elif setup == "normal_summon" and kind & _TRIGGERS and code == _NORMAL_SUMMON and (not area or area & 4):
+            window = "normal_summon"
+        elif setup in ("hand", "normal_summon") and kind & _IGNITION and area & (2 if setup == "hand" else 4):
+            window = "own_main_phase"
+        else:
+            continue
+        origins = [s for s in script["registrations"] if _same_declaration(lua, script, s, reg)]
+        spans = [s["registration_span"] for s in origins]
+        matched = [r for r in legacy if r["span"] in spans]
+        if len(origins) == len(matched) == 1 and (matched[0]["description"] == reg["description"]
+                                                  and matched[0]["event"] == window):
+            choices.append(matched[0])
+            continue
+        span = spans[0] if len(spans) == 1 else None
+        choices.append(dict(description=reg["description"], family=f"initialized:{ordinal}",
+                            event=window, span=span, initialized=reg))
+    return choices
+
+
+def _main_queries(deck, assets, initialized, subject=None):
     planned, excluded = [], []
     lua = assets.effect_lua_source
     counts = Counter(deck.main)
@@ -82,6 +148,10 @@ def _main_queries(deck, assets, subject=None):
         script = (lua.summarize_effects(script_code, summon_responses=True) if settable_response else
                   lua.summarize_effects(script_code)) if lua is not None else {"registrations": []}
         source = {key: script[key] for key in ("file", "sha256", "helpers") if key in script}
+        declarations = initialized.get(code)
+        if declarations and declarations["diagnostics"]:
+            excluded.append(dict(card=code, reason="native_initialization_diagnostic",
+                                 diagnostics=declarations["diagnostics"]))
         has_response = False
         response_windows = [("spell_trap", event) for event in (1027, *SUMMON_RESPONSE_EVENTS)] if settable_response else []
         if monster:
@@ -89,7 +159,9 @@ def _main_queries(deck, assets, subject=None):
         if can_normal:
             response_windows.append(("monster", 1027))
         for zone, response_event in response_windows:
-            registrations = _response_registrations(script, response_event, zone=zone)
+            legacy = _response_registrations(script, response_event, zone=zone)
+            registrations = _initialized_choices(lua, script, declarations, "response", legacy,
+                                                  zone=zone, event=response_event)
             if not registrations:
                 continue
             has_response = True
@@ -103,14 +175,16 @@ def _main_queries(deck, assets, subject=None):
             elif zone == "monster":
                 query.update(response_zone=zone, summons=[code])
             planned.append(query)
-            spans = {tuple(r["span"]) for r in registrations}
-            if any("cost" in reg and tuple(reg["registration_span"]) in spans for reg in script["registrations"]):
+            spans = [r["span"] for r in registrations]
+            if (any("cost" in reg and reg["registration_span"] in spans for reg in script["registrations"])
+                    or any("cost" in r.get("initialized", {}).get("callbacks", {}) for r in registrations)):
                 spare = next((card for card in deck.main if card != code or counts[card] >= 2), None)
                 if spare is not None:
                     planned.append(dict(query, opening=[code, spare], priority=2))
         if not setups and not has_response:
             excluded.append(dict(card=code, reason="needs_set_or_other_preparation"))
-        windows = {setup: _registration_choices(script, setup) for setup in setups}
+        windows = {setup: _initialized_choices(lua, script, declarations, setup, _registration_choices(script, setup))
+                   for setup in setups}
         for setup, registrations in windows.items():
             field = [r for r in registrations if r["event"] == "own_main_phase"] if (
                 setup == "normal_summon" and counts[code] >= 3
@@ -118,7 +192,9 @@ def _main_queries(deck, assets, subject=None):
             planned.append(dict(card=code, seat=0, setup=setup, opening=[code],
                 summons=[code] if setup == "normal_summon" else [], registrations=registrations,
                 field_followup=field, registration_source=source, destinations=["grave", "hand"],
-                priority=0 if registrations and setup == "normal_summon" else 1 if registrations else 2,
+                priority=0 if registrations and setup == "normal_summon" else
+                         1 if any(r.get("operation") or r.get("initialized", {}).get("callbacks")
+                                  for r in registrations) else 2,
                 seed=7, path=[]))
     return planned, excluded
 
@@ -140,7 +216,16 @@ def _side_inventory(deck, swaps):
 
 def planned_queries(deck, assets, *, include_side=True):
     """Plan reachable starts from the resident stock and legal Side exchanges."""
-    planned, excluded = _main_queries(deck, assets)
+    initialized, issues = {}, []
+    if (source := getattr(assets, "native_registration_source", None)) is not None:
+        codes = set(deck.main) | set(deck.extra)
+        if include_side:
+            codes.update(deck.side)
+        try:
+            initialized = source.for_cards(codes)
+        except NativeRegistryError as error:
+            issues.append(dict(reason="native_registration_probe_unavailable", diagnostic=str(error)))
+    planned, excluded = _main_queries(deck, assets, initialized)
     if include_side and isinstance(deck, DeckParts):
         for incoming in sorted(set(deck.side)):
             if assets.rows[incoming]["type"] & EXTRA_TYPES:
@@ -151,10 +236,10 @@ def planned_queries(deck, assets, *, include_side=True):
                 continue
             swaps = [dict(zone="main", incoming=incoming, outgoing=outgoing)]
             active = _side_inventory(deck, swaps)
-            queries, skipped = _main_queries(active, assets, subject=incoming)
+            queries, skipped = _main_queries(active, assets, initialized, subject=incoming)
             planned.extend(dict(query, side_swaps=swaps) for query in queries)
             excluded.extend(dict(item, zone="side") for item in skipped)
-    return sorted(planned, key=lambda q: (q["priority"], q["card"], q["setup"])), excluded
+    return sorted(planned, key=lambda q: (q["priority"], q["card"], q["setup"])), [*excluded, *issues]
 
 
 def _response_registrations(script, event, *, zone):
@@ -353,6 +438,8 @@ def _bind_movement(query, moves, rows):
     registrations = [r for r in query["registrations"] if r["description"] == description]
     if len({r["family"] for r in registrations}) != 1:
         return dict(status="registration_ambiguous", candidates=registrations)
+    if any(r.get("initialized") and r["span"] is None for r in registrations):
+        return dict(status="registration_use_unmapped", candidates=registrations)
     events = {r["event"] for r in registrations}
     if "normal_summon" in events:
         events.add("normal_or_special_summon")
@@ -384,6 +471,8 @@ def _bind_processing(query, moves, rows):
     registrations = [r for r in query["registrations"] if r["description"] == description]
     if len({r["family"] for r in registrations}) != 1:
         return dict(status="registration_ambiguous")
+    if any(r.get("initialized") and r["span"] is None for r in registrations):
+        return dict(status="registration_use_unmapped", candidates=registrations)
     events = {r["event"] for r in registrations} | {None, "unknown"}
     if query["setup"] == "response":
         events |= {"opponent_monster_effect", "card_activation"}
@@ -839,15 +928,18 @@ class NativeRuleChecks:
         excluded = previous.get("excluded", [])
         if getattr(self.assets, "effect_lua_source", None) is not None:
             planned, current_excluded = planned_queries(deck, self.assets, include_side=include_side)
-            prepared = [q for q in planned if q["setup"] == "response" or q.get("side_swaps")]
+            prepared = [q for q in planned if q["setup"] == "response" or q.get("side_swaps")
+                        or any(r.get("initialized") for r in q["registrations"])]
             for query in prepared:
                 identity = digest(query)
                 if identity not in seen:
                     queue[identity] = query
                     seen.add(identity)
             prepared_cards = {q["card"] for q in prepared if not q.get("side_swaps")}
-            excluded = [row for row in excluded if row["card"] not in prepared_cards and row.get("zone") != "side"]
-            excluded.extend(row for row in current_excluded if row.get("zone") == "side")
+            excluded = [row for row in excluded if row.get("card") not in prepared_cards and row.get("zone") != "side"
+                        and not row.get("reason", "").startswith("native_")]
+            excluded.extend(row for row in current_excluded if row.get("zone") == "side"
+                            or row["reason"].startswith("native_"))
         initial = [*(r["query"] for r in receipts), *queue.values()]
         return dict(initial=initial, excluded=excluded, queue=list(queue.values()),
                     seen=sorted(seen), receipts=receipts, history=history)

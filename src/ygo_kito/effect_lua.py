@@ -2411,6 +2411,22 @@ class LuaEffectSource:
     def has_script(self, filename):
         return filename in self._scripts
 
+    def script_checksum(self, filename):
+        script = self._scripts.get(filename)
+        return script[1] if script else None
+
+    def callback_location(self, definition):
+        if not definition:
+            return None
+        filename = definition["file"]
+        script = self._scripts.get(filename)
+        if script is None or script[1] != definition["sha256"]:
+            return None
+        start, stop = definition["byte_span"]
+        content, checksum = script
+        lines = [1 + len(re.findall(rb'\r\n|\n\r|[\r\n]', content[:offset])) for offset in (start, stop - 1)]
+        return dict(file=filename, sha256=checksum, lines=lines)
+
     def missing_required_card_script(self, rows, code):
         """Identify an absent script required by the locked core for a deck card."""
         from .card_identity import native_card_identity

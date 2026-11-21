@@ -354,6 +354,50 @@ class ConstructionNativeTests(unittest.TestCase):
                          (10, "response", [10], True))
         self.assertEqual(excluded[0]["card"], 3)
 
+    def test_initialized_callback_discovers_a_response_absent_from_static_registration(self):
+        callback = dict(file="utility.lua", lines=[12, 17], sha256="helper")
+        observed = dict(scope="card", type=0x10a, event=1027, range=2,
+                        description=16, callbacks=dict(cost=callback, operation=callback))
+        unrelated = [dict(observed, scope="field"), dict(observed, range=16)]
+        registry = {1: dict(diagnostics=[], native=[*unrelated, observed]),
+                    2: dict(diagnostics=[], native=[])}
+        lua = SimpleNamespace(summarize_effects=lambda code, **_options: dict(
+            script_card_id=code, registrations=[]))
+        assets = SimpleNamespace(effect_lua_source=lua,
+            native_registration_source=SimpleNamespace(for_cards=lambda codes: registry),
+            rows={1: dict(type=33, level=3), 2: dict(type=17, level=4)})
+        plans, excluded = planned_queries(DeckParts(main=(1, 2)), assets)
+        self.assertFalse(excluded)
+        responses = [q for q in plans if q["setup"] == "response"]
+        self.assertEqual([q["opening"] for q in responses], [[1], [1, 2]])
+        for query in responses:
+            registration, = query["registrations"]
+            self.assertEqual(registration["description"], 16)
+            self.assertEqual(registration["initialized"], observed)
+            self.assertIsNone(registration["span"])
+
+    def test_registration_receipt_reuses_only_an_intact_matching_source(self):
+        from ygo_kito.native_registrations import NativeRegistrationSource
+
+        with TemporaryDirectory() as workspace:
+            assets = SimpleNamespace(workspace=Path(workspace), receipt={"scripts": "first"},
+                                     period_context={"period_id": "selected"}, native_code_overrides={})
+            cards = {"1": dict(printed_code=1, rule_name=1, diagnostics=[], native=[])}
+            with patch("ygo_kito.native_registrations.collect_native_registrations", return_value=cards) as collect:
+                first = NativeRegistrationSource(assets)
+                self.assertEqual(first.for_cards((1,)), {1: cards["1"]})
+                self.assertEqual(NativeRegistrationSource(assets).for_cards((1,)), {1: cards["1"]})
+                self.assertEqual(collect.call_count, 1)
+                path, = first.directory.glob("*.json")
+                broken = json.loads(path.read_text(encoding="utf-8"))
+                broken["registrations"]["1"]["diagnostics"] = ["corrupt"]
+                path.write_text(json.dumps(broken), encoding="utf-8")
+                self.assertEqual(NativeRegistrationSource(assets).for_cards((1,)), {1: cards["1"]})
+                changed = SimpleNamespace(**vars(assets))
+                changed.receipt = {"scripts": "updated"}
+                self.assertEqual(NativeRegistrationSource(changed).for_cards((1,)), {1: cards["1"]})
+                self.assertEqual(collect.call_count, 3)
+
     def test_hand_response_accepts_a_registered_range_that_includes_hand(self):
         source = dict(type=128, event_code=1027, family=0, registration_span=[17, 29],
                       operation={"reference": "source"})

@@ -7,6 +7,7 @@ context vary. Native ABI/response handling stays in the existing adapter.
 
 from copy import deepcopy
 from dataclasses import asdict, replace
+from functools import cached_property
 import hashlib
 import inspect
 from pathlib import Path
@@ -177,6 +178,12 @@ class PeriodBuildAssets(BuildAssets):
         if not hasattr(self, "_construction_rules"):
             self._construction_rules = NativeRuleChecks(self)
         return self._construction_rules
+
+    @cached_property
+    def native_registration_source(self):
+        from .native_registrations import NativeRegistrationSource
+
+        return NativeRegistrationSource(self)
 
     def bind_rule_opponent(self, profile, opponent_id, *, seat=1, driver_version=LOCAL_DRIVERS[0], source=None):
         self.assert_integrity(physical=False)

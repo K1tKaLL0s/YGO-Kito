@@ -4,76 +4,16 @@ import argparse
 from collections import Counter
 import json
 from pathlib import Path
-import re
-import sqlite3
-import subprocess
 import sys
-from tempfile import TemporaryDirectory
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from ygo_kito.build_pipeline import BuildAssets
-from ygo_kito.card_identity import native_card_identity, rule_name_id
+from ygo_kito.card_identity import rule_name_id
 from ygo_kito.construction_relations import _record_outputs
 from ygo_kito.deck_intake import PERIODS
 from ygo_kito.effect_mechanisms import MechanismCatalog
+from ygo_kito.native_registrations import collect_native_registrations
 from ygo_kito.period_runtime import PeriodBuildAssets
-
-
-def card_data(assets):
-    cdb = assets.root / "engine-src/database/locales/zh-CN/cards.cdb"
-    with sqlite3.connect(cdb.as_uri() + "?mode=ro", uri=True) as connection:
-        connection.row_factory = sqlite3.Row
-        rows = {row["id"]: dict(row) for row in connection.execute("SELECT * FROM datas")}
-    for code, row in rows.items():
-        printed, name = assets.native_code_overrides.get(code, (row["alias"] or code,) * 2)
-        link = row["def"] if row["type"] & 0x4000000 else 0
-        yield (code, printed if printed != code else 0, row["setcode"] % (1 << 64),
-               row["type"], row["level"] & 255, row["attribute"], row["race"], row["atk"], row["def"],
-               (row["level"] >> 24) & 255, (row["level"] >> 16) & 255, link,
-               name if name != printed else 0)
-
-
-def run_core(assets, output, codes, compiler):
-    core = assets.root / "engine-src"
-    library = assets.root / "engine-build/libocgcore.so"
-    with TemporaryDirectory(dir=output, prefix="registration-build-") as scratch:
-        scratch = Path(scratch)
-        executable = scratch / "registrations"
-        subprocess.run([compiler, "-std=c++20", "-O2", "-I", core / "core", "-I", core / "lua",
-                        Path(__file__).with_name("construction_rule_registrations.cpp"), library,
-                        f"-Wl,-rpath,{library.parent}", "-o", executable], check=True)
-        table = scratch / "card-data.tsv"
-        with table.open("w", encoding="utf-8") as handle:
-            for row in card_data(assets):
-                handle.write(" ".join(map(str, row)) + "\n")
-        raw = output / "registrations.tsv"
-        with raw.open("w", encoding="utf-8") as handle:
-            subprocess.run([executable, core / "scripts", table],
-                           input="\n".join(map(str, codes)), stdout=handle, text=True, check=True)
-    return raw
-
-
-def read_row(handle, expected):
-    kind, *values = next(handle).rstrip("\n").split("\t")
-    if kind != expected:
-        raise ValueError("expected locked core " + expected + " row, got " + kind)
-    return values
-
-
-def registered_effect(handle, scripts):
-    scope, kind, event, area, description, category, limit, *callbacks = read_row(handle, "registration")
-    bindings = {}
-    for offset, role in enumerate(("condition", "cost", "target", "operation", "value")):
-        source, start, end = callbacks[3 * offset:3 * offset + 3]
-        if source == "-":
-            continue
-        match = re.fullmatch(r'\[string "\./script/(.+)"\]', source)
-        name = match[1] if match else source
-        bindings[role] = dict(file=name, lines=[int(start), int(end)])
-        if name in scripts:
-            bindings[role]["sha256"] = scripts[name][1]
-    return dict(scope=scope, type=int(kind), event=int(event), range=int(area), description=int(description),
-                category=int(category), count_code=int(limit), callbacks=bindings)
 
 
 def signature(registration):
@@ -92,32 +32,25 @@ def construction_records(catalog, code):
     return records
 
 
-def compare_registrations(assets, raw, codes):
+def compare_registrations(assets, initialized):
     lua = assets.effect_lua_source
     catalog = MechanismCatalog(assets)
     counts = Counter()
     cards = {}
-    with raw.open(encoding="utf-8") as handle:
-        for code in codes:
-            current, printed, name, warnings, registrations = map(int, read_row(handle, "card"))
-            if current != code or (printed, name) != native_card_identity(assets.rows, code):
-                raise ValueError(f"core script identity disagrees with the construction catalog for {code}")
-            diagnostics = [read_row(handle, "diagnostic")[0] for _ in range(warnings)]
-            native = [registered_effect(handle, lua._scripts) for _ in range(registrations)]
-            static = lua.summarize_effects(printed)
-            formal = construction_records(catalog, code)
-            signatures = Counter(map(signature, native))
-            extracted = Counter((reg.get("event_code") or 0,
-                printed * 16 + reg["description_index"] if reg.get("description_index") is not None else 0,
-                reg.get("category") or 0) for reg in static["registrations"])
-            unmatched = sum((signatures - extracted).values())
-            counts.update(cards=1, same_printing_variants=int(code != printed), distinct_rule_names=int(printed != name),
-                          core_registrations=len(native), field_registrations=sum(r["scope"] == "field" for r in native),
-                          cards_with_diagnostics=int(bool(diagnostics)), core_signatures_without_static_match=unmatched)
-            cards[str(code)] = dict(printed_code=printed, rule_name=name, diagnostics=diagnostics,
-                native=native, static=static, s3_records=formal, unmatched_signatures=unmatched)
-        if handle.readline():
-            raise ValueError("core returned registrations beyond the selected catalog")
+    for card, observed in initialized.items():
+        code, printed, name = int(card), observed["printed_code"], observed["rule_name"]
+        native, diagnostics = observed["native"], observed["diagnostics"]
+        static = lua.summarize_effects(printed)
+        formal = construction_records(catalog, code)
+        signatures = Counter(map(signature, native))
+        extracted = Counter((reg.get("event_code") or 0,
+            printed * 16 + reg["description_index"] if reg.get("description_index") is not None else 0,
+            reg.get("category") or 0) for reg in static["registrations"])
+        unmatched = sum((signatures - extracted).values())
+        counts.update(cards=1, same_printing_variants=int(code != printed), distinct_rule_names=int(printed != name),
+                      core_registrations=len(native), field_registrations=sum(r["scope"] == "field" for r in native),
+                      cards_with_diagnostics=int(bool(diagnostics)), core_signatures_without_static_match=unmatched)
+        cards[card] = dict(observed, static=static, s3_records=formal, unmatched_signatures=unmatched)
     return dict(source=lua.binding, resources=assets.receipt, period=getattr(assets, "period_context", None),
                 statistics=dict(counts), cards=cards)
 
@@ -169,8 +102,9 @@ def main():
     codes = sorted(code for code in available if assets.rows[code]["ot"] & 1
                    and not assets.rows[code]["type"] & 0x4000
                    and (not args.period or assets.limits.get(rule_name_id(assets.rows, code), 3) > 0))
-    args.output.mkdir(parents=True, exist_ok=True)
-    result = compare_registrations(assets, run_core(assets, args.output, codes, args.compiler), codes)
+    initialized = collect_native_registrations(assets, codes, args.output, compiler=args.compiler,
+                                               raw=args.output / "registrations.tsv")
+    result = compare_registrations(assets, initialized)
     result["schema_version"] = 1
     if args.against:
         result["version_comparison"] = compare_versions(json.loads(args.against.read_text(encoding="utf-8")), result)
