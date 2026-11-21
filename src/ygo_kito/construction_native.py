@@ -200,7 +200,7 @@ def _project_operations(query, record):
         operations=[dict(block=op["block_id"], kind=op["kind"], origin=op.get("from_zones", []),
             destination=op.get("to_zone"), quantity=op.get("quantity"),
             selector=op.get("selector_query"), negation=op.get("negation"), choice=op.get("choice"),
-            subject=op.get("subject"), owner=op.get("owner"))
+            subject=op.get("subject"))
             for op in ops])
 
 
@@ -400,7 +400,6 @@ def _bind_processing(query, moves, rows):
             choices = [operation["block"] for operation in effect["operations"]
                        if (operation["kind"] == move["kind"] or operation["kind"] == "fusion_summon"
                            and move["kind"] == "special_summon" and move["origin"] == "extra")
-                       and operation.get("owner") != ("self" if opposite else "opponent")
                        and (operation.get("subject") != "this_card"
                             or not opposite and move["card"] == move["activation"]["public_card"])
                        and (operation["quantity"] == 1 or move.get("response") and operation["quantity"] is None)
