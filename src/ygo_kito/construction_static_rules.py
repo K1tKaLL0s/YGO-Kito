@@ -263,6 +263,25 @@ def _summon_draw(operation, functions, constants):
     return None
 
 
+def _fusion_trigger(rule, constants):
+    event = rule["event"]
+    events = {constants[key]: (name, zone) for key, name, zone in (
+        ("EVENT_TO_GRAVE", "sent_to_grave", "grave"),
+        ("EVENT_SUMMON_SUCCESS", "normal_summon", "field"),
+        ("EVENT_SPSUMMON_SUCCESS", "special_summon", "field"),
+        ("EVENT_FLIP", "flip", "field"),
+    )}
+    if rule["type"] & constants["EFFECT_TYPE_ACTIVATE"]:
+        name, zone = "spell_trap_activation", "spell_trap"
+    elif rule["type"] & constants["EFFECT_TYPE_SINGLE"] and event in events:
+        name, zone = events[event]
+    else:
+        areas = {constants[key]: area for key, area in (("LOCATION_HAND", "hand"), ("LOCATION_MZONE", "field"),
+                 ("LOCATION_SZONE", "spell_trap"), ("LOCATION_GRAVE", "grave"), ("LOCATION_REMOVED", "banished"))}
+        name, zone = "registered_effect", areas.get(rule["range"])
+    return dict(event=name, zone=zone, event_code=event, rule_condition=rule["callbacks"].get("condition")) if zone else None
+
+
 def _static_record(lua, rule, code, ordinal, rows, cards_sha256):
     constants, callbacks = lua._constants, rule["callbacks"]
     source = callbacks.get("operation")
@@ -273,7 +292,11 @@ def _static_record(lua, rule, code, ordinal, rows, cards_sha256):
               and "target" in callbacks and "cost" not in callbacks)
     if "condition" in callbacks and not fusion:
         return None
-    if kind & constants["EFFECT_TYPE_ACTIVATE"] and event == constants["EVENT_FREE_CHAIN"]:
+    if fusion:
+        trigger = _fusion_trigger(rule, constants)
+        if trigger is None:
+            return None
+    elif kind & constants["EFFECT_TYPE_ACTIVATE"] and event == constants["EVENT_FREE_CHAIN"]:
         trigger = dict(event="spell_trap_activation", zone="spell_trap")
     elif (kind & constants["EFFECT_TYPE_QUICK_O"] and event == constants["EVENT_FREE_CHAIN"]
           and area == constants["LOCATION_HAND"]):
@@ -283,8 +306,6 @@ def _static_record(lua, rule, code, ordinal, rows, cards_sha256):
           and rows[code]["type"] & constants["TYPE_MONSTER"] and 1 <= rows[code]["level"] <= 4):
         trigger = dict(event="normal_summon" if event == constants["EVENT_SUMMON_SUCCESS"] else "flip",
                        zone="field")
-    elif fusion and kind & constants["EFFECT_TYPE_SINGLE"] and event == constants["EVENT_TO_GRAVE"]:
-        trigger = dict(event="sent_to_grave", zone="grave", rule_condition=callbacks.get("condition"))
     else:
         return None
     ref = f"{source['file']}:{source['lines'][0]}"
@@ -329,7 +350,7 @@ def _static_record(lua, rule, code, ordinal, rows, cards_sha256):
         rule_registration=rule)
     if fusion:
         record["fusion_stock_location"] = constants[{"spell_trap": "LOCATION_SZONE", "hand": "LOCATION_HAND",
-                                                     "field": "LOCATION_MZONE", "grave": "LOCATION_GRAVE"}[trigger["zone"]]]
+            "field": "LOCATION_MZONE", "grave": "LOCATION_GRAVE", "banished": "LOCATION_REMOVED"}[trigger["zone"]]]
     return record
 
 
@@ -343,6 +364,10 @@ def static_rule_specs(assets, code, initialized, dependencies):
     normal = {}
     alternate = []
     for ordinal, rule in enumerate(rules):
+        if (rule["scope"] == "card" and rule["type"] == constants["EFFECT_TYPE_SINGLE"] and not rule["category"]
+                and rule["event"] in (constants.get("EFFECT_FUSION_MATERIAL"), constants.get("EFFECT_REVIVE_LIMIT"))):
+            sources.append(dict(rule=rule, status="summon_rule"))
+            continue
         if counts[digest(rule)] > 1:
             sources.append(dict(rule=rule, status="unknown", reason="ambiguous_registration"))
             continue

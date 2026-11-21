@@ -73,10 +73,14 @@ def compare_registrations(assets, initialized, evaluations=()):
                 classified = set(searched.values())
                 if multiplicity[signature] > 1:
                     status = "ambiguous_registration"
+                elif "unknown" in classified and supported:
+                    status = "supported_s3_use_with_unresolved_scope"
                 elif "unknown" in classified:
                     status = "unmapped_static_rule"
                 elif classified == {"activation_only"}:
                     status = "activation_only"
+                elif classified == {"summon_rule"}:
+                    status = "summon_rule"
                 elif supported:
                     status = "supported_s3_use"
                 elif classified & {"function", "alternate_trigger"}:
@@ -179,7 +183,8 @@ def main():
         json.dump(result, handle, ensure_ascii=False, separators=(",", ":"))
     print(json.dumps(dict(report=str(path), **result["statistics"]), ensure_ascii=False))
     return int(any(result["statistics"].get(key) for key in
-                   ("cards_with_diagnostics", "unmapped_static_rule", "without_supported_s3_use", "ambiguous_registration",
+                   ("cards_with_diagnostics", "unmapped_static_rule", "supported_s3_use_with_unresolved_scope",
+                    "without_supported_s3_use", "ambiguous_registration",
                     "runtime_without_supported_s3_use")))
 
 

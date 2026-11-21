@@ -27,7 +27,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v65"
+NORMALIZATION_VERSION = "construction-function-normalization-v66"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
