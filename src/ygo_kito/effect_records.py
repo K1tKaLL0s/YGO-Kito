@@ -12,7 +12,7 @@ from collections import Counter, defaultdict
 from .rule_references import effect_reference_requests
 
 EFFECT_RECORD_VERSION = "public-effect-records-v6"
-LUA_EFFECT_RECORD_VERSION = "public-effect-records-v22"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v23"
 _OPPONENT_SUMMON_RESPONSE = 'opponent_special_summon_effect_activation'
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (
@@ -2044,6 +2044,45 @@ def _bind_registered_activation(record, registration, source, rows):
         view["unknown"] = [gap for gap in view["unknown"] if gap not in gaps]
 
 
+def _merge_lua_lp_payments(records, script):
+    active = [record for record in records if any(
+        op.get("phase") not in ("continuous", "rule", "summon_procedure") for op in record["operations"])]
+    for record in active:
+        lua = record["lua_source"]
+        if lua["alignment"] == "matched":
+            windows = lua["registrations"]
+        elif len(active) == 1 and script["status"] == "parsed":
+            # Every possible registration must have the same cost when the
+            # printed scope does not distinguish their timing or callbacks.
+            windows = [window for window in script["registrations"] if "operation" in window]
+        else:
+            continue
+        payments = [w.get("lp_payment") for w in windows]
+        if not payments or not all(payments) or len({p["divisor"] for p in payments}) != 1:
+            continue
+        divisor = payments[0]["divisor"]
+        branches = record.get("branch_records")
+        scopes = list(branches.values()) if branches else [record]
+        fraction = [1, divisor]
+        if any(scope["costs"] and (len(scope["costs"]) != 1 or scope["costs"][0].get("resource") != "lp"
+                or scope["costs"][0].get("fraction") not in (None, fraction) or scope["costs"][0].get("quantity") is not None)
+               for scope in scopes):
+            continue
+        evidence = []
+        for window, payment in zip(windows, payments):
+            start, end = window["registration_span"]
+            evidence.append(dict(payment, registration_span=window["registration_span"],
+                reference=f"lua:lp-payment:{script['file']}:{script['sha256']}:{start}-{end}"))
+        for scope in scopes:
+            if not scope["costs"]:
+                scope["costs"] = [dict(kind="pay_lp", reason="cost", owner="self", owner_status="recognized",
+                    from_zones=[], to_zone=None, resource="lp", source=evidence[0]["reference"])]
+            scope["costs"][0].update(quantity=None, quantity_status="current_fraction", fraction=fraction,
+                                    lua_lp_payment=deepcopy(evidence))
+        if branches:
+            record["costs"] = [deepcopy(cost) for scope in scopes for cost in scope["costs"]]
+
+
 def merge_lua_effect_sources(records, source, script_code, *, rows, same_printing=True):
     """Attach Lua evidence to the matching printed effect and refine supported facts."""
     if not records:
@@ -2061,7 +2100,7 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
                      if (payment := _printed_self_payment(record)) is not None}
     grave_summons = {record["effect_key"]: fact for record in records
                      if (fact := _grave_summon_printing(record)) is not None}
-    script_options = dict(deck_send_indices=deck_sends, self_send_costs=bool(self_payments),
+    script_options = dict(deck_send_indices=deck_sends, self_send_costs=bool(self_payments), lp_payments=True,
         summon_locks=any(r["kind"] in ("cannot_special_summon", "cannot_special_summon_from_extra")
                          for record in records for r in record["restrictions"]))
     if any(record["effect_index"] == 0 and any(extra_summon_method(op["source"]) for op in record["operations"])
@@ -2192,6 +2231,7 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
             _bind_registered_activation(record, registered, source, rows)
     if self_payments:
         _merge_lua_self_send_costs(records, self_payments, script)
+    _merge_lua_lp_payments(records, script)
 
     aligned = [record for record in records if record["lua_source"]["alignment"] == "matched"]
     candidates = {}

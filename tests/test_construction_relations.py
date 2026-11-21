@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from ygo_kito.construction_relations import (
-    Claim, InputGroup, JointConstraint, Need, PoolRecovery, ProbabilityRequest, RelationBudget,
+    Claim, InputGroup, JointConstraint, LP_PAYMENT_POOL, Need, PoolRecovery, ProbabilityRequest, RelationBudget,
     RelationContext, RelationFact, Resource, ResourcePool, ResourceTransfer, UseRequirement,
     compare_configurations, evaluate_relations, relation_index,
     single_event_probabilities, update_relations,
@@ -48,6 +48,24 @@ def semantic(result):
 
 
 class SupportAssessmentTests(unittest.TestCase):
+    def test_current_lp_payments_share_the_fixed_lp_balance(self):
+        relative = Resource("payment", attributes=("relative",))
+        fixed = Resource("payment", attributes=("fixed",))
+        sources = (
+            fact("relative", None, output=relative, output_pool=LP_PAYMENT_POOL, quantity=7999),
+            fact("fixed", None, output=fixed, output_pool=LP_PAYMENT_POOL, quantity=7999),
+        )
+        pools = (ResourcePool(LP_PAYMENT_POOL, "starting LP less one", capacity=7999),)
+        for fee, expected in ((1000, "supported"), (2500, "unknown"), (8000, "missing")):
+            with self.subTest(fee=fee):
+                uses = (use("half-a", Need("half-a", relative, lp_divisor=2)),
+                        use("half-b", Need("half-b", relative, lp_divisor=2)),
+                        use("fixed", Need("fixed", fixed, fee)))
+                result = evaluate(RelationContext(uses, sources, pools)).data["joint_required"]
+                self.assertEqual(result["status"], expected)
+                if expected == "unknown":
+                    self.assertIn("relative_lp_payment_order:" + LP_PAYMENT_POOL, result["unknown"])
+
     def test_effect_counter_scales_with_copies_without_spending_physical_stock(self):
         ctx=RelationContext((use('both',need('left'),need('right')),),
             (fact('left',None,claims=(Claim('per-copy'),)),fact('right',None,claims=(Claim('per-copy'),))),

@@ -8,13 +8,16 @@ and integer allocation uses the shared bounded allocator.
 from collections import Counter, defaultdict, deque
 from copy import deepcopy
 from dataclasses import asdict, dataclass, field, is_dataclass, replace
-from functools import lru_cache, wraps
+from functools import cached_property, lru_cache, wraps
 from itertools import chain
 from math import comb
 import re
 from time import perf_counter
 
 from .validation import ContractError, integer, member, text
+
+
+LP_PAYMENT_POOL = "configuration:payable_lp"
 
 
 def _tuple(value, kind, label):
@@ -60,6 +63,8 @@ class Need:
     mode: str = "consume"
     # A consumed entity's resulting state; absence is not a guessed movement.
     destination: str | None = None
+    # With a divisor, quantity counts one payment and the debit is floor(LP / divisor).
+    lp_divisor: int | None = None
 
     def __post_init__(self):
         text(self.need_id, "need ID")
@@ -71,6 +76,10 @@ class Need:
             text(self.destination, "consumed entity destination")
             if self.mode != "consume":
                 raise ContractError("only consumption has a resulting destination")
+        if self.lp_divisor is not None:
+            integer(self.lp_divisor, "current LP divisor", 2)
+            if self.resource.kind != "payment" or self.mode != "consume" or self.quantity != 1:
+                raise ContractError("a current LP cost requires one consumed payment")
 
 
 @dataclass(frozen=True)
@@ -405,6 +414,13 @@ class RelationIndex:
     name_groups: tuple = ()
     continuation: dict | None = field(default=None, repr=False)
     matched_state: dict | None = field(default=None, repr=False)
+
+    @cached_property
+    def lp_payment_needs(self):
+        if not any(need.lp_divisor is not None for need in self.needs.values()):
+            return {}
+        return {token: need.lp_divisor for token, need in _usage_needs(self).items()
+                if need.lp_divisor is not None}
 
 
 def relation_index(catalog, context, *, continuation=None, should_stop=None):
@@ -1017,17 +1033,21 @@ def _record_facts(code, records, *, zone="main", same_name=None, inventory=None,
         for category in ("costs", "targets"):
             for i, item in enumerate(record[category]):
                 quantity = item.get("quantity")
+                lp_payment = item.get("lua_lp_payment") if static and category == "costs" else None
                 if static and quantity is None:
                     requirement = dependencies.item_requirement(item, category) if dependencies else None
                     quantity = requirement['minimum'] if requirement else None
                 attributes = (item.get("source") or ref + f":{category}:{i}",)
+                if lp_payment:
+                    attributes += (lp_payment[0]["reference"],)
                 if category == "costs" and item.get('subject') == 'this_card' and item.get('source_card_id') == code:
                     attributes += ('source_card:' + str(code),)
                 resource = Resource("payment" if category == "costs" else "target",
                     reason=item.get("reason"), attributes=attributes)
                 state_payment = item.get('consumes_card') is False or item.get('resource') in ('public_state','card_state')
                 inputs.append(Need(ref + f":{category}:{i}", resource, quantity or 1,
-                                   "consume" if category == "costs" and not state_payment else "presence"))
+                                   "consume" if category == "costs" and not state_payment else "presence",
+                                   lp_divisor=lp_payment[0]["divisor"] if lp_payment else None))
                 if not static:
                     if category=='costs' and state_payment:
                         unknown.append(f"costs:{i}:state_change_requires_binding")
@@ -1716,12 +1736,32 @@ def _allocate_inventory_usage(result, index, counts, schedule=None, returns=None
             result["return_selections"] = selections
 
 
+def _lp_usage(entries, index, capacity):
+    divisors = [index.lp_payment_needs[token] for token in entries if token in index.lp_payment_needs]
+    if not divisors:
+        return _demand(entries), False
+    fixed = _demand({token: amount for token, amount in entries.items() if token not in index.lp_payment_needs})
+    # Paying fixed costs first leaves the most LP. For the other order,
+    # ceil(LP * product((d - 1) / d)) bounds the surviving LP from below.
+    numerator, denominator = capacity + 1, 1
+    for divisor in divisors:
+        numerator *= divisor - 1
+        denominator *= divisor
+    minimum_remaining = (numerator + denominator - 1) // denominator
+    return fixed, minimum_remaining <= fixed <= capacity
+
+
 def _check_static_usage(result, index, capacities):
     for pid, entries in result["usage"].items():
         amount, capacity = _demand(entries), capacities.get(pid)
         if capacity is None:
             result["unknown"].append("capacity:" + pid)
-        elif amount > capacity:
+            continue
+        if pid == LP_PAYMENT_POOL:
+            amount, depends_on_order = _lp_usage(entries, index, capacity)
+            if depends_on_order:
+                result["unknown"].append("relative_lp_payment_order:" + pid)
+        if amount > capacity:
             result["conflicts"].append({"pool": pid, "required": amount, "capacity": capacity})
     counts = getattr(index, "_active_counts", None)
     if counts is not None:

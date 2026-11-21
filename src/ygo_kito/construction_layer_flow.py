@@ -17,7 +17,7 @@ from .construction_layers import (
     RoleAssessment, SkeletonSpec, evaluate_layers,
 )
 from .construction_relations import (
-    Claim, InputGroup, Need, RelationBudget, RelationContext, RelationFact, Resource,
+    Claim, InputGroup, LP_PAYMENT_POOL, Need, RelationBudget, RelationContext, RelationFact, Resource,
     ResourcePool, ResourceTransfer, UseRequirement, relation_index,
     _needs, _record_facts, _record_outputs, _record_applicability, _leave_field_rule,
     _restriction_contract, _PLAYER_RESTRICTIONS, _INTRINSIC_RESTRICTIONS,
@@ -26,7 +26,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v56"
+NORMALIZATION_VERSION = "construction-function-normalization-v57"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -274,11 +274,13 @@ def _configuration_relations(available, records, dependencies, aliases, operatio
                         if item is None:
                             unbound.add(need.need_id)
                             continue
-                        if item.get('resource') == 'lp' and type(item.get('quantity')) is int:
-                            pid = 'configuration:payable_lp'
+                        if item.get('resource') == 'lp' and (type(item.get('quantity')) is int or need.lp_divisor is not None):
+                            pid = LP_PAYMENT_POOL
                             pools.setdefault(pid, ResourcePool(pid, 'rule: initial 8000 LP; payment leaves positive LP', capacity=7999))
-                            source = "native-receipt:" + proof[1] if proof else 'static LP payment capacity'
-                            added.append(RelationFact(key, key, resource, source, quantity=7999, output_pool=pid))
+                            origins = tuple(p["reference"] for p in item.get("lua_lp_payment", ()))
+                            source = origins[0] if origins else "native-receipt:" + proof[1] if proof else 'static LP payment capacity'
+                            added.append(RelationFact(key, key, resource, source, quantity=7999, output_pool=pid,
+                                                     conditions=origins))
                             continue
                         req = dependencies.item_requirement(item, category)
                         if req is None:

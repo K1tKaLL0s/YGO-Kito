@@ -281,7 +281,7 @@ def allocate_relation_group(group, index, states, counts, capacities, prefix, bl
     from .construction_relations import InputGroup, _blank, _combine, _needs, _shared_allocation
 
     needs = tuple(_needs(group))
-    if (any(n.need_id in index.incomplete_needs for n in needs) or
+    if (any(n.lp_divisor is not None or n.need_id in index.incomplete_needs for n in needs) or
             any(counts[("main", c)] or counts[("extra", c)] for c in index.unresolved_cards)):
         return None
     wanted = {n.need_id: n for n in needs}

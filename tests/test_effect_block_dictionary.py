@@ -853,6 +853,54 @@ class LuaEffectBlockTests(unittest.TestCase):
         (self.root / "engine-build/receipt.json").write_text(json.dumps(receipt), encoding="utf-8")
         return BuildAssets(self.root)
 
+    def test_registered_current_lp_formula_reaches_the_ordinary_inventory(self):
+        from tests.test_construction_functional_flow import fixture
+        from ygo_kito.build_contracts import BuildTask
+        from ygo_kito.construction_layer_flow import ConstructionLayerAdapter
+
+        script = f"""
+function c{LUA_CARD_ID}.initial_effect(c)
+    local e=Effect.CreateEffect(c)
+    e:SetType(EFFECT_TYPE_IGNITION)
+    e:SetRange(LOCATION_MZONE)
+    e:SetCost(c{LUA_CARD_ID}.cost)
+    e:SetOperation(c{LUA_CARD_ID}.draw)
+    c:RegisterEffect(e)
+end
+function c{LUA_CARD_ID}.cost(e,tp,eg,ep,ev,re,r,rp,chk)
+    if chk==0 then return true end
+    Duel.PayLPCost(tp,math.floor(Duel.GetLP(tp)/2))
+end
+function c{LUA_CARD_ID}.draw(e,tp,eg,ep,ev,re,r,rp)
+    Duel.Draw(tp,1,REASON_EFFECT)
+end
+"""
+        plain = "①：自己主要阶段才能发动。自己从卡组抽1张。"
+        assets = self.assets(script=script, description=plain)
+        assets.rows[LUA_CARD_ID]["level"] = 4
+        binder = CatalogBindingAdapter(assets)
+        template, _, _, _, _, policy = fixture()
+        task = BuildTask.from_dict(dict(template.to_dict(), pool=[LUA_CARD_ID], requirements=[],
+            environment=assets.environment_for("deck_constraints"), sizes=dict(main=40, extra=0, side=15)))
+        deck = DeckParts((LUA_CARD_ID,))
+        layer = dict(axis=dict(inventory=deck.to_dict(), task=task.to_dict(), logic=None))
+        quality, pending, stop = ConstructionLayerAdapter(binder).evaluate_inventory(task, deck, layer, None, policy=policy)
+        self.assertIsNone(pending)
+        self.assertIsNone(stop)
+        use, = quality["use_details"].values()
+        cost, = use["costs"]
+        proof, = cost["lua_lp_payment"]
+        self.assertEqual(cost["fraction"], [1, 2])
+        self.assertEqual(use["relation"]["status"], "supported")
+        self.assertIn(proof["reference"], use["relation"]["conditions"])
+        self.assertIsNone(cost["quantity"])
+
+        for changed in (script.replace("GetLP(tp)", "GetLP(1-tp)"),
+                        script.replace("return true", "return Duel.GetLP(tp)>1000")):
+            assets = self.assets(script=changed, description=plain)
+            result = assets.effect_lua_source.summarize_effects(LUA_CARD_ID, lp_payments=True)
+            self.assertNotIn("lp_payment", result["registrations"][0])
+
     def test_chain_response_matches_actual_condition_and_keeps_processing_order(self):
         from ygo_kito.construction_inventory import requirement
 

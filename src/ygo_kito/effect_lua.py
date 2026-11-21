@@ -11,7 +11,7 @@ import re
 from .validation import ContractError
 
 
-LUA_EFFECT_VERSION = "mycard-effect-registration-v16"
+LUA_EFFECT_VERSION = "mycard-effect-registration-v17"
 _TABLE, _CARD = object(), object()
 _CALLBACKS = {
     "SetCondition": "condition", "SetCost": "cost", "SetTarget": "target",
@@ -278,6 +278,42 @@ def _unconditional_target_check(registration, functions, constants, tables):
                 and _value(_return_expression(_check_body(guard)), local) is True):
             return dict(byte_span=_span(guard), metadata_only=next(steps, None) is None)
     return None
+
+
+def _relative_lp_payment(registration, functions, constants, tables):
+    """Read an unconditional cost callback that pays a fraction of current LP."""
+    _, callback, _ = _callback(registration, "cost", functions, tables)
+    if callback is None:
+        return None
+    params = tuple(map(_text, callback.child_by_field_name("parameters").children_by_field_name("name")))
+    if len(params) != 9 or len(set(params)) != 9 or {"Duel", "math"} & set(params):
+        return None
+    statements = _children(callback.child_by_field_name("body"))
+    if len(statements) != 2:
+        return None
+    guard, payment = statements
+    left, right = _binary(guard.child_by_field_name("condition"), "==")
+    if _name(right) == params[8]:
+        left, right = right, left
+    local = {name: value for name, value in constants.items() if name not in params}
+    if (_name(left) != params[8] or _integer_value(right, local) != 0
+            or _value(_return_expression(_check_body(guard)), local) is not True):
+        return None
+    call, args = _call(payment)
+    if call != "Duel.PayLPCost" or len(args) != 2 or _name(args[0]) != params[1]:
+        return None
+    expression = _unwrapped(args[1])
+    name, values = _call(expression)
+    if name == "math.floor" and len(values) == 1:
+        numerator, denominator = _binary(values[0], "/")
+    else:
+        numerator, denominator = _binary(expression, "//")
+    divisor = _integer_value(denominator, local)
+    if (divisor is None or divisor < 2
+            or not _literal_call(numerator, local, "Duel.GetLP", params[1])):
+        return None
+    return dict(divisor=divisor, check="unconditional", precheck_span=_span(guard), payment_span=_span(payment),
+                callback=registration["cost"]["definition"])
 
 
 def _direct_chain_negation(registration, functions, constants, tables):
@@ -2208,7 +2244,8 @@ class LuaEffectSource:
     def summarize_effects(self, code, *, deck_send_indices=(), self_send_costs=False, summon_methods=False,
                           preselected_grave_summons=False, summon_locks=False, summon_chain_response=False,
                           summon_grave_clone=False, latest_fusion_revival=False, hand_deck_grave_trigger=False,
-                          battle_group_revival=False, field_targets=False, activation_windows=False):
+                          battle_group_revival=False, field_targets=False, activation_windows=False,
+                          lp_payments=False):
         """Report registrations and requested callback facts for printed effects."""
         filename = f"c{code}.lua"
         result = dict(status="missing_script", file=filename, registrations=[], unknown=[],
@@ -2290,7 +2327,7 @@ class LuaEffectSource:
             result["status"] = "partial"
         if (deck_send_indices or self_send_costs or preselected_grave_summons or summon_locks
                 or summon_chain_response or summon_grave_clone or latest_fusion_revival or hand_deck_grave_trigger
-                or summon_methods or battle_group_revival or field_targets or activation_windows):
+                or summon_methods or battle_group_revival or field_targets or activation_windows or lp_payments):
             # Callback domains use unshadowed core constants and the card's namespace.
             # Deck filters can also read an unchanged local GetID result.
             tables = {name for name, value in constants.items()
@@ -2312,6 +2349,9 @@ class LuaEffectSource:
             activation_scope = activation_windows and not (shadowed or assignments["Effect"]) and (
                 self._registered_callback_scope_known(result["unknown"], initial, initial_bindings,
                     grave_check=True, fusion_procedure=True, synchro_procedure=True))
+            lp_scope = (lp_payments and result["status"] == "parsed" and not shadowed and not assignments["Effect"]
+                        and not assignments["math"] and "math" not in function_namespaces
+                        and "math.floor" not in overwritten_functions)
             deck_scope = deck_send_indices and (activation_scope or self._registered_callback_scope_known(
                 result["unknown"], initial, initial_bindings))
             payment_scope = self_send_costs and self._registered_callback_scope_known(
@@ -2339,6 +2379,8 @@ class LuaEffectSource:
                         registration["intrinsic_grave_summon_lock"] = True
             for registration in result["registrations"]:
                 index = registration.get("description_index")
+                if lp_scope and (payment := _relative_lp_payment(registration, callbacks, static_constants, tables)):
+                    registration["lp_payment"] = payment
                 if activation_scope and (window := _activation_window(registration, static_constants)):
                     registration["activation_window"] = window
                     if "target" in registration and (check := _unconditional_target_check(
