@@ -20,6 +20,19 @@ def pending_summons(events):
     return list(reversed(pending))
 
 
+def flip_completion(events, start, seat, code):
+    announced = False
+    for i in range(start, len(events)):
+        event = events[i]
+        if event["kind"] == 64:
+            if announced or event["player"] != seat or event.get("public_summoning_card") != code:
+                return None
+            announced = True
+        elif event["kind"] == 65:
+            return i if announced else None
+    return None
+
+
 def admission_effects(quality):
     """Index the S3 obligations that can be traced to a printed effect."""
     facts_by_source = defaultdict(set)
@@ -93,6 +106,8 @@ def witnessed_rule(receipt):
         condition["set_preparation"] = receipt["stock_prefix"]["set_preparation"]
     if receipt["stock_prefix"].get("opposing_normal_summon"):
         condition["opposing_normal_summon"] = receipt["stock_prefix"]["opposing_normal_summon"]
+    if receipt["stock_prefix"].get("flip_preparation"):
+        condition["flip_preparation"] = receipt["stock_prefix"]["flip_preparation"]
     if receipt["query"].get("side_swaps"):
         condition["side_swaps"] = receipt["query"]["side_swaps"]
     if receipt["field_moves"] and (attempt := receipt["field_moves"][0].get("summon_attempt")):
@@ -168,7 +183,19 @@ def replay_steps(events, trace):
     return steps
 
 
-def window_link(links, steps, query, window):
+def window_link(links, steps, query, window, *, events=()):
+    if query.get("prepare_flip") and (window or {}).get("automatic"):
+        seat, code = query["seat"], query["card"]
+        start, opened = window["flip_start"], window["opened"]
+        completion = flip_completion(events, start, seat, code)
+        forced = [r for r in query["registrations"] if r.get("forced") and r["description"] == window["description"]]
+        flips = [i for i, row, chosen in steps if i < start and row["seat"] == seat
+                 and row["prompt"] == 11 and chosen["kind"] == "position" and chosen["cards"] == [code]]
+        if completion is None or not completion < opened or len(forced) != 1 or len(flips) != 1:
+            return None
+        return next((link for link in links if link["opened"] == opened
+                     and link["activation"]["public_card"] == code and link["activation"]["player"] == seat
+                     and link["activation"]["zone"] == 4 and link["activation"]["description"] == window["description"]), None)
     selection = (window or {}).get("selection")
     if not selection:
         return None
@@ -227,17 +254,20 @@ def stock_prefix(events, steps, link, query, prepared_moves, own_payments):
     source = link["activation"]
     settings = [(index, row, chosen) for index, row, chosen in steps if index < link["opened"]
                 and row["seat"] == seat and chosen["kind"] == "set"]
-    preparation = None
+    preparation = flip_preparation = None
     set_move = None
-    if query.get("prepare_set"):
-        if len(settings) != 1 or source["zone"] != 8:
+    if query.get("prepare_set") or query.get("prepare_flip"):
+        flipping = query.get("prepare_flip")
+        area = 4 if flipping else 8
+        if len(settings) != 1 or source["zone"] != area:
             return None
         index, setting, choice = settings[0]
         if choice["cards"] != [source["public_card"]] or not all(
                 ref.startswith(f"p{seat}.hand.") for ref in choice["refs"]):
             return None
         transfers = [(i, e) for i, e in enumerate(before) if e["kind"] == 50
-                     and e["player"] == seat and e["from_zone"] == 2 and e["to_zone"] == 8]
+                     and e["player"] == seat and e["from_zone"] == 2 and e["to_zone"] == area
+                     and (not flipping or e.get("public_card") in (None, source["public_card"]))]
         if len(transfers) != 1 or not index < transfers[0][0] or setting["turn"] >= link["turn"]:
             return None
         move_index, set_move = transfers[0]
@@ -245,11 +275,23 @@ def stock_prefix(events, steps, link, query, prepared_moves, own_payments):
                 or not any(e["kind"] == 54 for e in before[move_index + 1:])):
             return None
         preparation = dict(card=source["public_card"], turn=setting["turn"],
-                           activation_turn=link["turn"], zone="spell_trap")
+                           activation_turn=link["turn"], zone="monster" if flipping else "spell_trap")
+        if flipping:
+            flips = [(i, row) for i, row, chosen in steps if move_index < i < link["opened"] and row["seat"] == seat
+                     and row["prompt"] == 11 and chosen["kind"] == "position" and chosen["cards"] == [source["public_card"]]]
+            if len(flips) != 1:
+                return None
+            at, turned = flips[0]
+            if turned["turn"] <= setting["turn"] or flip_completion(before, at, seat, source["public_card"]) is None:
+                return None
+            announcements = [e for e in before if e["kind"] == 64 and e["player"] == seat]
+            if len(announcements) != 1 or announcements[0]["slot"] != source["slot"]:
+                return None
+            flip_preparation = dict(preparation, flip_turn=turned["turn"])
     elif settings:
         return None
     if source["zone"] == 4:
-        if not summons[source["public_card"]]:
+        if not (summons[source["public_card"]] or flip_preparation):
             return None
     elif source["zone"] not in (2, 8) or not opening[source["public_card"]]:
         return None
@@ -262,7 +304,8 @@ def stock_prefix(events, steps, link, query, prepared_moves, own_payments):
     # Other actions require a traceable preparation. A responding opponent
     # stays an external branch; their cards do not become our stock.
     active = [e for e in before if e["kind"] == 70 and e["player"] == seat]
-    if len(active) != len(prepared_moves) or any(e["kind"] in (62, 64) and e["player"] == seat for e in before):
+    excluded_summons = (62,) if flip_preparation else (62, 64)
+    if len(active) != len(prepared_moves) or any(e["kind"] in excluded_summons and e["player"] == seat for e in before):
         return None
     prefix_deck = Counter(e.get("public_card") for e in before
                           if e["kind"] == 50 and e["player"] == seat and e["from_zone"] == 1
@@ -285,4 +328,6 @@ def stock_prefix(events, steps, link, query, prepared_moves, own_payments):
                   prepared_moves=prepared_moves, normal_summon_turns=summon_turns)
     if preparation:
         prefix["set_preparation"] = preparation
+    if flip_preparation:
+        prefix["flip_preparation"] = flip_preparation
     return prefix

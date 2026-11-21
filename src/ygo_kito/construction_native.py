@@ -13,7 +13,8 @@ from .card_identity import native_card_identity
 from .construction_checkpoint import write_json
 from .construction_inventory import matches
 from .construction_native_evidence import (SUMMON_RESPONSE_EVENTS, admission_effects, chain_links,
-    pending_summons, replay_steps, selected_objects, stock_prefix, window_link, window_priority, witnessed_rule)
+    flip_completion, pending_summons, replay_steps, selected_objects, stock_prefix, window_link, window_priority,
+    witnessed_rule)
 from .contracts import ActionSelection
 from .deck_profile import validate_sideboard_stock
 from .effect_duel import choose_effect_duel_action
@@ -27,7 +28,7 @@ from .validation import ContractError
 
 
 NATIVE_RULE_VERSION = "construction-native-rules-v5"
-NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v14"
+NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v15"
 _QUERY_WORK_VERSION = "construction-native-query-work-v1"
 _SUBGROUP_REPLAY_VERSION = 1
 _EFFECT_CONFIRMATION_VERSION = 2
@@ -36,8 +37,9 @@ _DECK_DESTINATIONS = {2: "hand", 16: "grave"}
 _OPERATIONS = frozenset(("search_or_recover", "search", "add_hand", "send_grave"))
 # Declaration fields use the locked core's effect.h. The core sets ACTIONS
 # and FIELD/range where appropriate when applying SetType.
-_ACTIVATE, _IGNITION, _TRIGGERS, _QUICK = 0x10, 0x40, 0x280, 0x500
+_ACTIVATE, _FLIP, _IGNITION, _TRIGGERS, _QUICK = 0x10, 0x20, 0x40, 0x280, 0x500
 _FREE_CHAIN, _CHAINING, _NORMAL_SUMMON = 1002, 1027, 1100
+_FLIP_EVENTS = {1001: "flip", 1101: "flip_summon"}
 _RITUAL_MONSTER = 0x81
 _RITUAL_MATERIAL = 0x100008
 
@@ -79,7 +81,12 @@ def _registration_choices(script, setup, *, response_event=1027):
 def _same_declaration(lua, script, static, native):
     kind = static.get("type")
     if kind is not None:
-        normalized = _ACTIVATE | 2 if kind & _ACTIVATE else kind | 2 if kind & (_IGNITION | _QUICK) else kind
+        if kind & _ACTIVATE:
+            normalized = _ACTIVATE | 2
+        elif kind & _FLIP:
+            normalized = 1 | _FLIP | (0x80 if kind & 0x80 else 0x200)
+        else:
+            normalized = kind | 2 if kind & (_IGNITION | _QUICK) else kind
         if native["type"] & ~8 != normalized:
             return False
     index = static.get("description_index")
@@ -120,6 +127,10 @@ def _initialized_choices(lua, script, initialized, setup, legacy, *, zone=None, 
             if not kind & 0x100 or code != _FREE_CHAIN or not area & 8 or "operation" not in reg["callbacks"]:
                 continue
             window = "card_activation"
+        elif setup == "flip_summon" and code in _FLIP_EVENTS and kind & _TRIGGERS and (not area or area & 4):
+            if "operation" not in reg["callbacks"]:
+                continue
+            window = _FLIP_EVENTS[code]
         elif setup == "spell" and kind & _ACTIVATE and code == _FREE_CHAIN:
             window = "card_activation"
         elif setup == "normal_summon" and kind & _TRIGGERS and code == _NORMAL_SUMMON and (not area or area & 4):
@@ -139,6 +150,8 @@ def _initialized_choices(lua, script, initialized, setup, legacy, *, zone=None, 
         span = spans[0] if len(spans) == 1 else None
         choice = dict(description=reg["description"], family=f"initialized:{ordinal}",
                       event=window, span=span, initialized=reg)
+        if setup == "flip_summon":
+            choice["forced"] = bool(kind & 0x200)
         choices.append(dict(choice, procedure="ritual") if ritual else choice)
     return choices
 
@@ -228,6 +241,8 @@ def _main_queries(deck, assets, initialized, subject=None):
             excluded.append(dict(card=code, reason="needs_set_or_other_preparation"))
         windows = {setup: _initialized_choices(lua, script, declarations, setup, _registration_choices(script, setup))
                    for setup in setups}
+        if can_normal and (flips := _initialized_choices(lua, script, declarations, "flip_summon", [])):
+            windows["flip_summon"] = flips
         for setup, registrations in windows.items():
             field = [r for r in registrations if r["event"] == "own_main_phase"] if (
                 setup == "normal_summon" and counts[code] >= 3
@@ -239,6 +254,8 @@ def _main_queries(deck, assets, initialized, subject=None):
                          1 if any(r.get("operation") or r.get("initialized", {}).get("callbacks")
                                   for r in registrations) else 2,
                 seed=7, path=[])
+            if setup == "flip_summon":
+                query["prepare_flip"] = True
             planned.append(query)
             if any(r.get("procedure") == "ritual" for r in registrations):
                 for index, (target, opening) in enumerate(_ritual_preparations(deck, assets.rows, code)):
@@ -539,6 +556,8 @@ def _bind_movement(query, moves, rows):
     events = {r["event"] for r in registrations}
     if "normal_summon" in events:
         events.add("normal_or_special_summon")
+    if query.get("prepare_flip"):
+        events.update(("flip", "flip_summon"))
     spans = [r["span"] for r in registrations]
     candidates = []
     for effect in query["effects"]:
@@ -697,6 +716,10 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
     opposing_start = None
     waiting_to_set = query.get("prepare_set", False)
     source_summoned = False
+    prepare_flip = query.get("prepare_flip", False)
+    waiting_to_set = waiting_to_set or prepare_flip
+    flip_start = None
+    declined_flip = False
     public = {code: {"type": row["type"], "attack": row.get("atk", 0)} for code, row in assets.rows.items()}
     with engine_for_goal(assets, active_deck, query["seed"], selection_key=selection_key,
                          cb_opening_hand=tuple(query["opening"])) as engine:
@@ -715,6 +738,15 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
             known, menu = _visible(request), _menu(request)
             own_cards = {c.ref: c for c in request.observation.cards if c.controller == seat}
             hand = Counter(c.card_id for c in own_cards.values() if c.zone == "hand" and c.card_id)
+            completion = flip_completion(engine.events, flip_start, seat, subject) if flip_start is not None else None
+            if prepare_flip and completion is not None and activation is None:
+                forced = Counter(r["description"] for r in query["registrations"] if r.get("forced"))
+                links = [(i, e) for i, e in enumerate(engine.events) if i > completion and e["kind"] == 70
+                         and e["player"] == seat and e["public_card"] == subject and e["zone"] == 4]
+                if len(links) == 1 and forced[links[0][1]["description"]] == 1:
+                    event_start, link = links[0]
+                    activation = dict(automatic=True, flip_start=flip_start, opened=event_start,
+                                      description=link["description"])
             if own and event_start is not None:
                 own_hand_gains.update((hand - before_hand).keys())
             if event_start is not None and msg in (10, 11):
@@ -753,9 +785,9 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
                     status = "response_not_offered" if response_seen else "response_precondition_unreached"
                     break
             active = own and event_start is None and (reply_open if response_source else
-                early or not setup and (not field_window or msg == 11))
+                early or not setup and (not field_window or msg == 11) and (not prepare_flip or completion is not None))
             actor_zone = ("spell_trap" if query.get("prepare_set") else "monster"
-                          if query["setup"] in ("normal_summon", "field_after_summons")
+                          if query["setup"] in ("normal_summon", "field_after_summons", "flip_summon")
                           else query.get("response_zone", "hand"))
             offers = [item for item in menu if active and item["kind"] in ("activate", "yes") and
                       any(ref in own_cards and own_cards[ref].zone == actor_zone and known.get(ref) == subject
@@ -764,12 +796,15 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
             offers.sort(key=lambda item: item["description"] not in descriptions)
             if active and not offers and msg == 11:
                 activation = dict(turn=request.observation.turn, phase=request.observation.phase, menu=menu)
-                status = "not_offered"
+                status = "declined" if declined_flip else "not_offered"
                 break
 
             refs = _deck_refs(request, seat) if own else set()
             preparation_choice = own and query.get("response_zone") == "monster" and not setup
-            tokens = (_choice_tokens(offers, msg, refs, activation=True) if offers else
+            confirm_flip = prepare_flip and bool(offers) and msg == 12
+            participants = [item for item in menu if item["kind"] in ("yes", "no")
+                            and any(item["refs"] == offer["refs"] for offer in offers)] if confirm_flip else offers
+            tokens = (_choice_tokens(participants, msg, refs, activation=not confirm_flip) if offers else
                       _choice_tokens(menu, msg, refs) if event_start is not None or preparation_choice else {})
             default = offers[0]["action_id"] if offers else None
             if response_source and not own and not response_started and not waiting_to_set:
@@ -849,12 +884,21 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
                         status = "set_preparation_not_offered"
                         break
                     default, waiting_to_set = setting["action_id"], False
+                if default is None and own and msg == 11 and prepare_flip and not waiting_to_set and flip_start is None:
+                    facedown = {ref for ref, card in own_cards.items() if card.zone == "monster"
+                                and card.card_id == subject and card.position is not None and card.position & 10}
+                    turning = next((item for item in menu if item["kind"] == "position"
+                                    and facedown.intersection(item["refs"])), None)
+                    if turning is not None:
+                        default, flip_start, before_hand = turning["action_id"], len(engine.events), hand
                 if default is None and msg in (10, 11, 12, 13, 16):
                     defaults = [item["action_id"] for item in menu if item["kind"] in ("pass", "no")]
                     default = defaults[-1] if defaults else None
             action_id = default if default is not None else choose_effect_duel_action(request, public).action_id
             chosen = next(item for item in menu if item["action_id"] == action_id)
-            if offers:
+            if confirm_flip and chosen["kind"] == "no":
+                declined_flip = True
+            elif offers:
                 if sum(item["description"] == chosen["description"] and item["refs"] == chosen["refs"]
                        for item in offers) != 1:
                     status = "activation_ambiguous"
@@ -1251,7 +1295,7 @@ class NativeRuleChecks:
         events = result.get("events", ())
         links = chain_links(events)
         steps = replay_steps(events, result.get("trace", ()))
-        link = window_link(links, steps, query, result.get("window"))
+        link = window_link(links, steps, query, result.get("window"), events=events)
         activation = link["activation"] if link else None
         payments = link["payments"] if link else []
         prepared = result.get("prepared_moves", [])

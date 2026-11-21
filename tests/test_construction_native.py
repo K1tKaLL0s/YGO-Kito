@@ -449,6 +449,21 @@ class ConstructionNativeTests(unittest.TestCase):
             self.assertEqual(work["receipts"], [evidence])
             self.assertEqual(work["queue"], [ordinary])
 
+    def test_automatic_flip_effect_uses_the_actual_turning_action_and_completion(self):
+        from ygo_kito.construction_native_evidence import window_link
+
+        action = dict(kind="position", cards=[41])
+        steps = [(0, dict(seat=0, prompt=11), action)]
+        activation = dict(kind=70, player=0, public_card=41, zone=4, description=0)
+        events = [dict(kind=11), dict(kind=64, player=0, public_summoning_card=41),
+                  dict(kind=65), activation]
+        link = dict(opened=3, activation=activation)
+        query = dict(seat=0, card=41, prepare_flip=True, registrations=[dict(forced=True, description=0)])
+        window = dict(automatic=True, flip_start=1, opened=3, description=0)
+        self.assertEqual(window_link([link], steps, query, window, events=events), link)
+        self.assertIsNone(window_link([link], [], query, window, events=events))
+        self.assertIsNone(window_link([link], steps, query, window, events=[*events[:2], dict(kind=74), activation]))
+
     def test_hand_response_accepts_a_registered_range_that_includes_hand(self):
         source = dict(type=128, event_code=1027, family=0, registration_span=[17, 29],
                       operation={"reference": "source"})
