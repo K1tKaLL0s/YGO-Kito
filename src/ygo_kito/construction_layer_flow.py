@@ -423,7 +423,14 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
                     if need.resource.kind == "payment" and (payment := payments.get(need.need_id.rsplit(":", 1)[1])):
                         native_payments[need.need_id] = (payment, native["receipt"])
                 move, = native["observed_moves"]
-                if (fact.transfer and fact.transfer.origin == move["origin"] and fact.transfer.inventory is None
+                ritual = move.get("kind") == "ritual_summon" and operation["kind"] == "ritual_summon"
+                if ritual:
+                    transfer = fact.transfer
+                    if transfer and transfer.origin in (None, move["origin"]):
+                        transfer = replace(transfer, origin=move["origin"], selection="targeted",
+                                           inventory=(("main", move["card"]),))
+                    fact = replace(fact, quantity=1, transfer=transfer)
+                elif (fact.transfer and fact.transfer.origin == move["origin"] and fact.transfer.inventory is None
                         and move["origin"] in ("deck", "extra") and not move.get("response")):
                     section = "extra" if move["origin"] == "extra" else "main"
                     fact = replace(fact, transfer=replace(fact.transfer, selection="targeted",
@@ -433,10 +440,12 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
             if not any(r["status"] == "missing" for r in checks):
                 gaps = tuple("inventory_selector:"+str(i) for i,r in enumerate(checks) if r["status"] == "unknown"
                     and (r.get('unknown_selectors') or r.get('unknown_restrictions') or not r.get('requirements')))
+                verified_block = operation["block_id"] if witnessed and operation is not None else None
                 gaps += tuple("complete_selector:"+r.get("source", "") for r in effect_specs[ri]["unknown"]
                               if r['category'] not in ('costs', 'targets')
                               and ("operation" not in r or r["operation"] == operation)
-                              and not (witnessed and operation is not None and r.get("operation") == operation)
+                              and not (verified_block is not None and (
+                                  r.get("operation") == operation or r.get("block_id") == verified_block))
                               and r.get('choice') in (None, (operation or {}).get('choice')))
                 rel_facts.append(RelationFact(inventory_key, inventory_key, inventory_port,
                     "complete candidate inventory", code, zone, unknown=gaps))
@@ -1453,8 +1462,11 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
         for evidence in facts["native_rule_evidence"]["receipts"]:
             identity = evidence["identity"]
             if evidence["rule_status"] == "bound":
+                code = evidence["query"]["card"]
+                if dependencies.bind_ritual_material_payment(code, identity["effect_key"], evidence):
+                    records[code] = tuple(spec["record"] for spec in dependencies.specs(code)[0])
                 for block in identity.get("blocks") or (identity["block"],):
-                    key = (evidence["query"]["card"], identity["effect_key"], block)
+                    key = (code, identity["effect_key"], block)
                     dependencies.native_witnesses.setdefault(key, []).append(evidence)
 
     def condition(key, value, reason, evidence):

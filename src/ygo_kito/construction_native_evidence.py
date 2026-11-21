@@ -189,6 +189,7 @@ def selected_objects(steps, link):
     return {(ref[len(prefix):].split(".")[0], code)
             for index, row, chosen in steps if link["opened"] < index < link["solved"]
             and row["seat"] == seat and chosen["kind"] == "select"
+            and (row["prompt"] != 26 or chosen.get("operation") == "add")
             for ref, code in zip(chosen["refs"], chosen["cards"]) if ref.startswith(prefix) and code is not None}
 
 

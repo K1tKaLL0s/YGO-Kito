@@ -2427,6 +2427,30 @@ class LuaEffectSource:
         lines = [1 + len(re.findall(rb'\r\n|\n\r|[\r\n]', content[:offset])) for offset in (start, stop - 1)]
         return dict(file=filename, sha256=checksum, lines=lines)
 
+    @cached_property
+    def _ritual_callbacks(self):
+        filename = "procedure.lua"
+        script = self._scripts.get(filename)
+        if script is None:
+            return {}
+        content, checksum = script
+        functions = _functions(_parse(content))
+        callbacks = {}
+        for role in ("target", "operation"):
+            definition = functions.get("Auxiliary.RitualUltimate" + role.capitalize())
+            if definition is None:
+                return {}
+            closure = _return_expression(_children(definition.child_by_field_name("body")))
+            if closure is None or closure.type != "function_definition":
+                return {}
+            callbacks[role] = self.callback_location(dict(file=filename, sha256=checksum, byte_span=_span(closure)))
+        return callbacks
+
+    def uses_ritual_procedure(self, registration):
+        callbacks = registration["callbacks"]
+        return bool(self._ritual_callbacks) and all(callbacks.get(role) == source
+                                                    for role, source in self._ritual_callbacks.items())
+
     def missing_required_card_script(self, rows, code):
         """Identify an absent script required by the locked core for a deck card."""
         from .card_identity import native_card_identity

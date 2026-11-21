@@ -26,7 +26,7 @@ from .validation import ContractError
 
 
 NATIVE_RULE_VERSION = "construction-native-rules-v5"
-NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v12"
+NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v13"
 _QUERY_WORK_VERSION = "construction-native-query-work-v1"
 _SUBGROUP_REPLAY_VERSION = 1
 _DECISION_BUDGET = 100
@@ -36,6 +36,8 @@ _OPERATIONS = frozenset(("search_or_recover", "search", "add_hand", "send_grave"
 # and the activation's FIELD/range automatically when applying SetType.
 _ACTIVATE, _IGNITION, _TRIGGERS, _QUICK = 0x10, 0x40, 0x280, 0x500
 _FREE_CHAIN, _CHAINING, _NORMAL_SUMMON = 1002, 1027, 1100
+_RITUAL_MONSTER = 0x81
+_RITUAL_MATERIAL = 0x100008
 
 
 def _deck_operations(record):
@@ -120,17 +122,41 @@ def _initialized_choices(lua, script, initialized, setup, legacy, *, zone=None, 
             window = "own_main_phase"
         else:
             continue
+        ritual = setup == "spell" and lua.uses_ritual_procedure(reg)
         origins = [s for s in script["registrations"] if _same_declaration(lua, script, s, reg)]
         spans = [s["registration_span"] for s in origins]
         matched = [r for r in legacy if r["span"] in spans]
         if len(origins) == len(matched) == 1 and (matched[0]["description"] == reg["description"]
                                                   and matched[0]["event"] == window):
-            choices.append(matched[0])
+            choices.append(dict(matched[0], procedure="ritual", initialized=reg) if ritual else matched[0])
             continue
         span = spans[0] if len(spans) == 1 else None
-        choices.append(dict(description=reg["description"], family=f"initialized:{ordinal}",
-                            event=window, span=span, initialized=reg))
+        choice = dict(description=reg["description"], family=f"initialized:{ordinal}",
+                      event=window, span=span, initialized=reg)
+        choices.append(dict(choice, procedure="ritual") if ritual else choice)
     return choices
+
+
+def _ritual_preparations(deck, rows, spell):
+    """Propose controlled openings; the core accepts materials and levels."""
+    targets = sorted({code for code in deck.main if rows[code]["type"] & _RITUAL_MONSTER == _RITUAL_MONSTER})
+    for target in targets:
+        level = rows[target]["level"] & 255
+        available = Counter(deck.main) - Counter((spell, target))
+        choices = {0: ()}
+        for card in sorted(available.elements()):
+            rating = rows[card].get("level", 0) & 255
+            if not rows[card]["type"] & 1 or rating == 0:
+                continue
+            for total, before in list(choices.items()):
+                material = (*before, card)
+                combined = total + rating
+                if len(material) <= 3 and (combined not in choices or len(material) < len(choices[combined])):
+                    choices[combined] = material
+        levels = sorted((total for total in choices if total > 0), key=lambda total: (
+            total < level, abs(total - level), len(choices[total])))
+        for total in levels:
+            yield target, [spell, target, *choices[total]]
 
 
 def _main_queries(deck, assets, initialized, subject=None):
@@ -189,13 +215,17 @@ def _main_queries(deck, assets, initialized, subject=None):
             field = [r for r in registrations if r["event"] == "own_main_phase"] if (
                 setup == "normal_summon" and counts[code] >= 3
             ) else []
-            planned.append(dict(card=code, seat=0, setup=setup, opening=[code],
+            query = dict(card=code, seat=0, setup=setup, opening=[code],
                 summons=[code] if setup == "normal_summon" else [], registrations=registrations,
                 field_followup=field, registration_source=source, destinations=["grave", "hand"],
                 priority=0 if registrations and setup == "normal_summon" else
                          1 if any(r.get("operation") or r.get("initialized", {}).get("callbacks")
                                   for r in registrations) else 2,
-                seed=7, path=[]))
+                seed=7, path=[])
+            planned.append(query)
+            if any(r.get("procedure") == "ritual" for r in registrations):
+                for index, (target, opening) in enumerate(_ritual_preparations(deck, assets.rows, code)):
+                    planned.append(dict(query, opening=opening, preferred_selection=target, priority=1 + index))
     return planned, excluded
 
 
@@ -274,6 +304,7 @@ def _project_operations(query, record):
         op["kind"] == "special_summon" and op.get("from_zones") == ["extra"]
         or op["kind"] == "fusion_summon" and op.get("summon_method") == "effect"
         and op.get("materials_required") is False
+        or op["kind"] == "ritual_summon" and any(r.get("procedure") == "ritual" for r in query["registrations"])
         or query["setup"] == "response" and op["kind"] in ("negate", "negate_summon", "destroy"))]
     if not ops:
         return None
@@ -283,7 +314,7 @@ def _project_operations(query, record):
         scopes=record["scope"], zone=record["trigger"].get("zone"),
         spans=[reg["registration_span"] for reg in matched] or (
             source.get("candidate_spans", []) if query["setup"] == "response" else []),
-        operations=[dict(block=op["block_id"], kind=op["kind"], origin=op.get("from_zones", []),
+        operations=[dict(block=op["block_id"], kind=op["kind"], origin=op.get("from_zones") or [],
             destination=op.get("to_zone"), quantity=op.get("quantity"),
             selector=op.get("selector_query"), negation=op.get("negation"), choice=op.get("choice"),
             subject=op.get("subject"))
@@ -429,6 +460,34 @@ def _field_moves(activation, resolved, selected, seat):
     return result
 
 
+def _ritual_moves(activation, resolved, selected, query):
+    if activation is None:
+        return []
+    registrations = [r for r in query["registrations"] if r["description"] == activation["description"]]
+    if len(registrations) != 1 or registrations[0].get("procedure") != "ritual":
+        return []
+    seat = query["seat"]
+    summons = [(index, e) for index, e in enumerate(resolved) if e["kind"] == 62 and e["player"] == seat]
+    if len(summons) != 1:
+        return []
+    index, start = summons[0]
+    target = start.get("public_summoning_card")
+    if ("hand", target) not in selected or not any(e["kind"] == 63 for e in resolved[index + 1:]):
+        return []
+    moves = [e for e in resolved[:index] if e["kind"] == 50 and e.get("player") == seat]
+    transfers = [e for e in moves if e.get("public_card") == target and
+                 (e["from_zone"], e["to_zone"]) == (2, 4) and e.get("reason", 0) & 0x800]
+    materials = [e for e in moves if e.get("reason", 0) & _RITUAL_MATERIAL == _RITUAL_MATERIAL]
+    if len(transfers) != 1 or not materials or any(e["from_zone"] != 2 or
+            ("hand", e.get("public_card")) not in selected for e in materials):
+        return []
+    used = Counter([query["card"], target, *(e["public_card"] for e in materials)])
+    if used - Counter(query["opening"]):
+        return []
+    return [dict(card=target, kind="ritual_summon", origin="hand", destination="field",
+                 reason="effect", activation=activation, materials=materials)]
+
+
 def _bind_movement(query, moves, rows):
     """Disambiguate the printed use by the source registration and the observed branch."""
     if len(moves) != 1:
@@ -471,7 +530,9 @@ def _bind_processing(query, moves, rows):
     registrations = [r for r in query["registrations"] if r["description"] == description]
     if len({r["family"] for r in registrations}) != 1:
         return dict(status="registration_ambiguous")
-    if any(r.get("initialized") and r["span"] is None for r in registrations):
+    ritual = len(moves) == 1 and moves[0]["kind"] == "ritual_summon" and all(
+        r.get("procedure") == "ritual" for r in registrations)
+    if not ritual and any(r.get("initialized") and r["span"] is None for r in registrations):
         return dict(status="registration_use_unmapped", candidates=registrations)
     events = {r["event"] for r in registrations} | {None, "unknown"}
     if query["setup"] == "response":
@@ -490,7 +551,8 @@ def _bind_processing(query, moves, rows):
             response = moves[0].get("response")
             if not response or response["zone"] in (8, 256) or not rows[response["public_card"]]["type"] & 1:
                 continue
-        if effect["spans"] and not any(r["span"] in effect["spans"] for r in registrations):
+        if effect["spans"] and not any(r["span"] in effect["spans"] for r in registrations) and not (
+                ritual and all(r["span"] is None for r in registrations)):
             continue
         parts = []
         for move in moves:
@@ -500,8 +562,10 @@ def _bind_processing(query, moves, rows):
                            and move["kind"] == "special_summon" and move["origin"] == "extra")
                        and (operation.get("subject") != "this_card"
                             or not opposite and move["card"] == move["activation"]["public_card"])
-                       and (operation["quantity"] == 1 or move.get("response") and operation["quantity"] is None)
-                       and (move["origin"] in operation["origin"] or move.get("response") and not operation["origin"])
+                       and (operation["quantity"] == 1 or (ritual or move.get("response"))
+                            and operation["quantity"] is None)
+                       and (move["origin"] in operation["origin"] or (ritual or move.get("response"))
+                            and not operation["origin"])
                        and (operation["destination"] in (None, move["destination"])
                             or move["kind"] == "negate_summon" and operation["destination"] == "field")
                        and operation["negation"] in (None, move.get("negation"))
@@ -771,6 +835,7 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
     moves = _resolved_deck_moves(action_events, selections, own_hand_gains, query, description)
     activation_event, resolved_events = _resolved_chain(action_events, query, description)
     field_moves = _field_moves(activation_event, resolved_events, selected, seat)
+    field_moves += _ritual_moves(activation_event, resolved_events, selected, query)
     if field_window and activation_event is not None:
         handler_refs = activation["selection"]["refs"]
         expected = f"p{seat}.monster.{activation_event['slot']}"
@@ -1109,7 +1174,9 @@ class NativeRuleChecks:
         resolved = bool(link and link["resolved"] and link["opened"] < link.get("chained", -1) < link["solving"])
         if resolved:
             resolution = events[link["solving"] + 1:link["solved"]]
-            field_moves = _field_moves(activation, resolution, selected_objects(steps, link), query["seat"])
+            selected = selected_objects(steps, link)
+            field_moves = _field_moves(activation, resolution, selected, query["seat"])
+            field_moves += _ritual_moves(activation, resolution, selected, query)
             if query.get("setup") == "field_after_summons":
                 expected = f"p{query['seat']}.monster.{activation['slot']}"
                 if expected not in result["window"]["selection"]["refs"]:

@@ -719,10 +719,13 @@ class InventoryDependencies:
             shortfall=int(allowed is False), restriction_checks=[r for _,checks in candidates for r in checks],
             event=event, access_to_required_zone_verified=False)
 
-    @lru_cache(maxsize=256)
     def specs(self, code):
         if code in self._specifications:
             return self._specifications[code]
+        return self._catalog_specs(code)
+
+    @lru_cache(maxsize=256)
+    def _catalog_specs(self, code):
         profile = self.catalog.card(code)
         effects = []
         from .construction_relations import _INTRINSIC_RESTRICTIONS
@@ -1090,6 +1093,38 @@ class InventoryDependencies:
             for event in choices:
                 pending.remove(event)
         return sorted(bound, key=lambda row: row["index"]) if not pending else None
+
+    def bind_ritual_material_payment(self, code, effect_key, evidence):
+        """Classify releases performed inside the shared ritual procedure as materials."""
+        moves = evidence["field_moves"]
+        registrations = evidence["identity"]["source"]
+        if len(moves) != 1 or len(registrations) != 1 or evidence["payments"]:
+            return False
+        move, = moves
+        registration, = registrations
+        callbacks = registration.get("initialized", {}).get("callbacks")
+        if move["kind"] != "ritual_summon" or callbacks is None or "cost" in callbacks:
+            return False
+        if not all(event["reason"] & 2 and event["to_zone"] == 16 for event in move["materials"]):
+            return False
+        specs, materials = self._specifications[code]
+        effects = list(specs)
+        for i, spec in enumerate(effects):
+            record = spec["record"]
+            if record["effect_key"] != effect_key or len(record["costs"]) != 1 or len(record["operations"]) != 1:
+                continue
+            cost, = record["costs"]
+            if (cost["kind"] != "release" or cost.get("owner") != "self" or cost.get("resource") != "cards"
+                    or "hand" not in cost.get("from_zones", ()) or cost.get("to_zone") != "grave"):
+                return False
+            actual = dict(record, costs=[], ritual_material_resolution=dict(
+                source=cost["source"], receipt=evidence["receipt"], registration=registration))
+            effects[i] = dict(spec, record=actual,
+                requirements=[r for r in spec["requirements"] if r["category"] != "costs"],
+                unknown=[r for r in spec["unknown"] if r["category"] != "costs"])
+            self._specifications[code] = effects, materials
+            return True
+        return False
 
     def witnessed_processing(self, deck, record, operation, *, inventory, scope="resident"):
         """Reallocate one settled procedure in this configuration's own stock."""

@@ -398,6 +398,20 @@ class ConstructionNativeTests(unittest.TestCase):
                 self.assertEqual(NativeRegistrationSource(changed).for_cards((1,)), {1: cards["1"]})
                 self.assertEqual(collect.call_count, 3)
 
+    def test_ritual_witness_uses_the_summoned_card_and_each_paid_physical_copy(self):
+        from ygo_kito.construction_native import _ritual_moves
+
+        activation = dict(public_card=1, description=0)
+        query = dict(card=1, seat=0, opening=[1, 2, 3, 3], registrations=[dict(description=0, procedure="ritual")])
+        release = dict(kind=50, player=0, public_card=3, from_zone=2, to_zone=16, reason=0x10004a)
+        summoned = dict(kind=50, player=0, public_card=2, from_zone=2, to_zone=4, reason=0x800)
+        events = [release, release, summoned, dict(kind=62, player=0, public_summoning_card=2), dict(kind=63)]
+        selected = {("hand", 2), ("hand", 3)}
+        move, = _ritual_moves(activation, events, selected, query)
+        self.assertEqual((move["kind"], move["card"], move["materials"]), ("ritual_summon", 2, [release, release]))
+        self.assertEqual(_ritual_moves(activation, events, selected, dict(query, opening=[1, 2, 3])), [])
+        self.assertEqual(_ritual_moves(activation, events[:-1], selected, query), [])
+
     def test_hand_response_accepts_a_registered_range_that_includes_hand(self):
         source = dict(type=128, event_code=1027, family=0, registration_span=[17, 29],
                       operation={"reference": "source"})
