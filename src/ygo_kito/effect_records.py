@@ -12,7 +12,7 @@ from collections import Counter, defaultdict
 from .rule_references import effect_reference_requests
 
 EFFECT_RECORD_VERSION = "public-effect-records-v6"
-LUA_EFFECT_RECORD_VERSION = "public-effect-records-v19"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v20"
 _OPPONENT_SUMMON_RESPONSE = 'opponent_special_summon_effect_activation'
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (
@@ -1827,6 +1827,106 @@ def _bind_lua_type_matched_deck_send(record, window, rows):
     return True
 
 
+def _printed_battle_group_revival(record):
+    from .effect_mechanisms import RACES
+    match = re.fullmatch(r"这张卡在墓地存在的状态[，,]自己的(.+族)怪兽被战斗破坏时", record["conditions"]["source"])
+    operations = record["operations"]
+    if (not match or match[1] not in RACES or record["scope"] != "monster"
+            or record["costs"] or record["targets"] or record.get("branch_records")
+            or [op["kind"] for op in operations] != ["special_summon", "banish"]
+            or operations[0]["source"] != "这张卡特殊召唤"
+            or operations[1]["source"] != "这个效果特殊召唤的这张卡从场上离开的场合除外"
+            or len(record["restrictions"]) != 1 or record["restrictions"][0]["kind"] != "leave_field_banish"):
+        return None
+    return RACES[match[1]]
+
+
+def _bind_lua_battle_group_revival(record, window, race, source):
+    from .construction_relations import _leave_field_rule
+    observed = window["battle_group_revival"]
+    # Accept the same-name counter already bound by the registered description.
+    count = source.turn_count(window)
+    limits = record["count_limits"]
+    if (race != observed["previous_race"] or count is None or len(limits) != 1
+            or limits[0]["status"] != "known" or limits[0]["scope"] not in _LUA_NAMED_SCOPES
+            or limits[0]["maximum"] != count[0] or limits[0]["period"] != "turn"):
+        return False
+    summon, redirect = record["operations"]
+    fields = dict(from_zones=["grave"], to_zone="field", subject="this_card", source_card_id=record["card_id"],
+        owner="self", selector_query={"predicate": {"field": "card_ids", "value": [record["card_id"]]}},
+        selector_source=summon["source"], random=False)
+    if not _leave_field_rule(record, dict(summon, **fields)):
+        return False
+    record.setdefault("model_summary_observation", {}).update(
+        trigger=deepcopy(record["trigger"]), conditions=deepcopy(record["conditions"]), unknown=list(record["unknown"]))
+    condition = "none_in_recognized_activation_clause"
+    record["trigger"].update(event="own_monster_destroyed_by_battle", reason="battle", zone="grave",
+                             previous_race=observed["previous_race"], excludes_handler=True,
+                             additional_conditions=condition)
+    record["conditions"].update(status="recognized", additional_conditions=condition)
+    record["unknown"] = [gap for gap in record["unknown"] if gap not in (
+        "activation_condition", "additional_activation_conditions", "cost_or_condition")]
+    record["block_view"]["unknown"] = list(record["unknown"])
+    fields["observed_operation"] = deepcopy(summon)
+    summon.update(fields)
+    redirect["phase"] = "replacement"
+    for block in record["block_view"]["blocks"]:
+        if block["block_id"] == summon["block_id"]:
+            block["qualifiers"].update(deepcopy(fields))
+        elif block["block_id"] == redirect["block_id"]:
+            block["phase"] = "replacement"
+    record["resource_changes"] = deepcopy(record["operations"])
+    return True
+
+
+def extra_summon_method(clause):
+    """Read the self-only printed Extra Deck method clause."""
+    text = re.fullmatch(r"这张卡用(融合|同调|超量|连接)召唤才能从额外卡组特殊召唤", clause)
+    return ({"融合": "fusion_summon", "同调": "synchro_summon", "超量": "xyz_summon", "连接": "link_summon"}[text[1]]
+            if text else None)
+
+
+def _bind_lua_extra_summon_method(record, script, windows):
+    operations = record["operations"]
+    clauses = {op["source"] for op in operations}
+    if (record["scope"] != "monster" or record["effect_index"] or record["costs"] or record["targets"]
+            or len(clauses) != 1 or len(windows) != 1 or record.get("branch_records") or record["restrictions"]):
+        return None
+    clause, = clauses
+    method = extra_summon_method(clause)
+    window, = windows
+    observed = window["extra_summon_method"]
+    if (method != observed["summon_kind"] or not operations
+            or any(op["kind"] not in (method, "special_summon") or op.get("from_zones") != ["extra"]
+                   for op in operations)):
+        return None
+    view = record["block_view"]
+    descriptions = view["description_blocks"]
+    other_text = record["source_text"].replace(clause, "", 1)
+    for item in descriptions:
+        other_text = other_text.replace(item["source"], "", 1)
+    if other_text.strip("。\r\n "):
+        return None
+    # The source clause restricts eligibility. The material formula stays a
+    # description and the actual Fusion use keeps its own source.
+    refs = [f"lua:{script['file']}:{script['sha256']}:{span[0]}-{span[1]}"
+            for span in (window["registration_span"], observed["value_span"])]
+    rule = dict(kind="special_summon_condition", source=clause, scope="this_card", duration="intrinsic",
+                condition="summon_method", from_zones=["extra"], summon_kind=method,
+                evidence_refs=refs, revive_limit=observed["revive_limit"])
+    record.setdefault("model_summary_observation", {}).update(operations=deepcopy(operations),
+        trigger=deepcopy(record["trigger"]), conditions=deepcopy(record["conditions"]), unknown=list(record["unknown"]))
+    record["operations"] = []
+    record["resource_changes"] = []
+    record["unknown"] = []
+    record["card_restrictions"].append(rule)
+    record["trigger"].update(event=None, reason="not_applicable", additional_conditions="not_applicable")
+    record["conditions"].update(status="recognized", additional_conditions="not_applicable")
+    record["intrinsic_summon_method"] = method
+    view.update(blocks=[], status="summon_description", unknown=[], connectors=[])
+    return rule
+
+
 def merge_lua_effect_sources(records, source, script_code, *, rows, same_printing=True):
     """Attach Lua evidence to the matching printed effect and refine supported facts."""
     if not records:
@@ -1847,6 +1947,9 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
     script_options = dict(deck_send_indices=deck_sends, self_send_costs=bool(self_payments),
         summon_locks=any(r["kind"] in ("cannot_special_summon", "cannot_special_summon_from_extra")
                          for record in records for r in record["restrictions"]))
+    if any(record["effect_index"] == 0 and any(extra_summon_method(op["source"]) for op in record["operations"])
+           for record in records):
+        script_options["summon_methods"] = True
     if grave_summons:
         script_options["preselected_grave_summons"] = True
     response_records = [record for record in records
@@ -1863,6 +1966,9 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
     grave_triggers = {r["effect_key"]: kind for r in records if (kind := _printed_hand_deck_grave_trigger(r))}
     if grave_triggers:
         script_options["hand_deck_grave_trigger"] = True
+    battle_revivals = {r["effect_key"]: race for r in records if (race := _printed_battle_group_revival(r))}
+    if battle_revivals:
+        script_options["battle_group_revival"] = True
     script = source.summarize_effects(script_code, **script_options)
     _bind_lua_attack_obligation(records, script, source)
     groups = defaultdict(list)
@@ -1872,11 +1978,19 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
     grave_windows = [window for window in script["registrations"] if "preselected_grave_summon" in window]
     response_windows = [window for window in script["registrations"] if window.get("summon_chain_response")]
     revival_windows = [window for window in script["registrations"] if window.get("latest_fusion_revival")]
+    methods = [window for window in script["registrations"] if window.get("extra_summon_method")]
     source_info = {k: v for k, v in script.items() if k != "registrations"}
     for record in records:
         record["record_version"] = LUA_EFFECT_RECORD_VERSION
         index = record["effect_index"]
         windows = groups.get(index - 1, ())
+        if methods and _bind_lua_extra_summon_method(record, script, methods):
+            record["lua_source"] = dict(source_info, alignment="matched", registrations=methods)
+            continue
+        if (record["effect_key"] in battle_revivals and len(windows) == indices[index] == 1
+                and windows[0].get("battle_group_revival")
+                and _bind_lua_battle_group_revival(record, windows[0], battle_revivals[record["effect_key"]], source)):
+            windows = [dict(windows[0], event="own_monster_destroyed_by_battle")]
         if (len(windows) == indices[index] == 1 and windows[0].get("type_matched_deck_send")):
             _bind_lua_type_matched_deck_send(record, windows[0], rows)
         if len(response_records) == len(response_windows) == 1 and record is response_records[0]:

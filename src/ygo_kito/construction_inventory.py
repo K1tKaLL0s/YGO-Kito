@@ -172,9 +172,15 @@ def matches(row, query):
 
 
 def printed_extra_material_slots(row):
-    """Parse complete ordinary Xyz or inclusion-based Link material lines."""
+    """Read complete standard material slots through the existing selectors."""
     source = row.get('desc', '').partition('\n')[0].strip().rstrip('。')
     card_type = row.get('type', 0)
+    if card_type & 0x40:
+        parts = re.split(r'\s*[＋+]\s*', source)
+        queries = [selector(part) for part in parts]
+        if len(parts) > 1 and all(query_supported(query) for query in queries):
+            return [dict(selector_query=query, count=1, source=part, summon_type='fusion')
+                    for part, query in zip(parts, queries)]
     if card_type & 0x800000:
         clause = re.fullmatch(r'(?P<selector>.+?)\s*[×x](?P<count>[2-9])(?:只)?(?:以上)?', source)
         if clause:
@@ -576,7 +582,8 @@ class InventoryDependencies:
                     for r in observed_rules):
                 observed_rules.append(dict(kind='cannot_special_summon_this_card', scope='this_card',
                     duration='intrinsic', condition='this_card_in_zone', from_zones=['grave'], source=grave_lock))
-            if clause in exclusive_methods:
+            if clause in exclusive_methods and not any(
+                    rule['source'] == clause and _restriction_contract(rule) for rule in observed_rules):
                 observed_rules.append(dict(kind='special_summon_condition', scope='this_card', duration='intrinsic',
                     condition='summon_method', source=clause, unknown=['summon_method_eligibility']))
             for word,kind in (('通常','normal'),('特殊','special')):
@@ -652,6 +659,15 @@ class InventoryDependencies:
             if rule and not (material and target is None):
                 if action == 'normal_set' and not rule.get('includes_set'):
                     allowed = True
+                elif rule['condition'] == 'summon_method':
+                    zones = set(origins)
+                    history = req.get('summon_history') or {}
+                    if action == rule['summon_kind']:
+                        allowed = True
+                    elif zones and zones <= set(rule['from_zones']):
+                        allowed = False
+                    elif zones and not zones & set(rule['from_zones']):
+                        allowed = not rule['revive_limit'] or history.get('properly_summoned') is not False
                 elif rule['condition'] == 'summoned_this_turn':
                     history = req.get('summon_history')
                     if history is None or history.get('this_turn') is False:
@@ -1036,6 +1052,14 @@ class InventoryDependencies:
         key = digest([dict(main=deck.main,extra=deck.extra),physical_inventory.to_dict(),
                       record,(selected or {}).get('block_id')])
         if key in self._processing:
+            return self._processing[key]
+        if record['trigger'].get('excludes_handler') and record['trigger'].get('event') == 'own_monster_destroyed_by_battle':
+            subject = next(op for op in record['operations'] if op['kind'] == 'special_summon')
+            handler = dict(self.item_requirement(subject, 'operations'), operation=subject)
+            witness = dict(category='event', origin='field', minimum=1, owner='self', source=record['trigger']['source'],
+                           query={'type': 1, 'race_any': record['trigger']['previous_race']})
+            proof = self._check(deck, [handler, witness], distinct=True)
+            self._processing[key] = dict(proof, reason='distinct_own_monster_destroyed_by_battle')
             return self._processing[key]
         if record.get('type_matched_deck_send'):
             proof = self._type_matched_deck_inventory(Counter(deck.main + deck.extra), Counter(deck.extra), record, selected)

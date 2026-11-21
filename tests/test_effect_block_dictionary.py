@@ -1008,6 +1008,51 @@ end
                     (f"card:{LUA_CARD_ID}", "latest_entry:fusion_summon")))
                 self.assertEqual(bool(fact.unknown), bool(old))
 
+    def test_extra_fusion_method_disallows_other_extra_summons_but_preserves_grave_revival(self):
+        from ygo_kito.construction_inventory import InventoryDependencies
+        from ygo_kito.construction_relations import _record_outputs
+
+        printing = ("「测试组」怪兽＋光属性怪兽\n这张卡用融合召唤才能从额外卡组特殊召唤。\n"
+                    "①：这张卡特殊召唤成功的场合才能发动。抽1张。")
+        (self.directory / "constant.lua").write_text(
+            CONSTANTS + "\nSUMMON_TYPE_FUSION=0x43000000\nSUMMON_TYPE_SYNCHRO=0x46000000\n", encoding="utf-8")
+        script = f"""
+function c{LUA_CARD_ID}.initial_effect(c)
+    c:EnableReviveLimit()
+    local e=Effect.CreateEffect(c)
+    e:SetType(EFFECT_TYPE_SINGLE)
+    e:SetProperty(EFFECT_FLAG_SINGLE_RANGE|EFFECT_FLAG_CANNOT_DISABLE|EFFECT_FLAG_UNCOPYABLE)
+    e:SetCode(EFFECT_SPSUMMON_CONDITION)
+    e:SetRange(LOCATION_EXTRA)
+    e:SetValue(c{LUA_CARD_ID}.method)
+    c:RegisterEffect(e)
+end
+function c{LUA_CARD_ID}.method(e,se,tp,st)
+    return (st&SUMMON_TYPE_FUSION)==SUMMON_TYPE_FUSION
+end
+"""
+        for old, new in (("", ""), ("LOCATION_EXTRA", "LOCATION_GRAVE"),
+                         ("SUMMON_TYPE_FUSION", "SUMMON_TYPE_SYNCHRO")):
+            with self.subTest(change=old):
+                assets = self.assets(script=script.replace(old, new), description=printing)
+                assets.rows[LUA_CARD_ID]["type"] = 0x61
+                catalog = MechanismCatalog(assets)
+                record, = [entry for entry in catalog.effect_records(LUA_CARD_ID) if entry["effect_index"] == 0]
+                self.assertEqual(record.get("intrinsic_summon_method"), None if old else "fusion_summon")
+                if old:
+                    continue
+                self.assertEqual(_record_outputs(record), ())
+                inventory = InventoryDependencies(catalog)
+                for kind, origin, proper, expected in (
+                    ("fusion_summon", "extra", None, True),
+                    ("special_summon", "extra", None, False),
+                    ("special_summon", "grave", True, True),
+                    ("special_summon", "grave", False, False),
+                ):
+                    req = dict(category="operations", operation=dict(kind=kind, from_zones=[origin]),
+                               summon_history={"properly_summoned": proper})
+                    self.assertIs(inventory.candidate_status(LUA_CARD_ID, req)[0], expected)
+
     def test_selected_field_type_requires_a_different_deck_type_and_distinct_handler(self):
         from ygo_kito.construction_inventory import InventoryDependencies
 

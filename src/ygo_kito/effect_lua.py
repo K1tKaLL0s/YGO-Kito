@@ -11,7 +11,7 @@ import re
 from .validation import ContractError
 
 
-LUA_EFFECT_VERSION = "mycard-effect-registration-v13"
+LUA_EFFECT_VERSION = "mycard-effect-registration-v14"
 _TABLE, _CARD = object(), object()
 _CALLBACKS = {
     "SetCondition": "condition", "SetCost": "cost", "SetTarget": "target",
@@ -992,6 +992,87 @@ def _self_summon_zone_check(callback, constants, tables):
             and _literal_arguments(args[3:], local, (1, 0, 0)))
 
 
+def _battle_group_revival(registration, functions, constants, tables):
+    """Read a Graveyard revival conditioned on another card in the battle event."""
+    required = ("EFFECT_TYPE_FIELD", "EFFECT_TYPE_TRIGGER_O", "EVENT_BATTLE_DESTROYED", "LOCATION_GRAVE",
+                "POS_FACEUP", "EFFECT_TYPE_SINGLE", "EFFECT_FLAG_CANNOT_DISABLE", "EFFECT_LEAVE_FIELD_REDIRECT",
+                "LOCATION_REMOVED", "RESET_EVENT", "RESETS_REDIRECT")
+    if (any(type(constants.get(key)) is not int for key in required)
+            or registration.get("type") != constants["EFFECT_TYPE_FIELD"] | constants["EFFECT_TYPE_TRIGGER_O"]
+            or registration.get("event_code") != constants["EVENT_BATTLE_DESTROYED"]
+            or registration.get("range") != constants["LOCATION_GRAVE"]
+            or registration.get("cost")):
+        return None
+    _, condition, condition_span = _callback(registration, "condition", functions, tables)
+    _, target, target_span = _callback(registration, "target", functions, tables)
+    _, operation, operation_span = _callback(registration, "operation", functions, tables)
+    if condition is None or target is None or operation is None or not _self_summon_zone_check(target, constants, tables):
+        return None
+    reserved = constants.keys() | tables | {"Duel", "Effect", "Group", "Card"}
+    params = tuple(map(_text, condition.child_by_field_name("parameters").children_by_field_name("name")))
+    terms = _conjuncts(_return_expression(_children(condition.child_by_field_name("body"))))
+    if len(params) < 3 or len(set(params)) != len(params) or set(params) & reserved or len(terms) != 2:
+        return None
+    effect, player, group = params[:3]
+    name, args = _call(terms[0])
+    exclusion = terms[1]
+    if (name != f"{group}:IsExists" or len(args) != 4
+            or not _literal_arguments(args[1:], constants, (1, None, player))
+            or exclusion is None or exclusion.type != "unary_expression"
+            or _text(exclusion.child_by_field_name("operator")) != "not"):
+        return None
+    name, self_args = _call(exclusion.child_by_field_name("operand"))
+    if name != f"{group}:IsContains" or len(self_args) != 1 or not _literal_call(
+            self_args[0], constants, f"{effect}:GetHandler"):
+        return None
+    filter_name = _name(args[0])
+    fn = functions.get(filter_name)
+    if fn is None or filter_name.partition(".")[0] not in tables:
+        return None
+    params = tuple(map(_text, fn.child_by_field_name("parameters").children_by_field_name("name")))
+    terms = _conjuncts(_return_expression(_children(fn.child_by_field_name("body"))))
+    if len(params) != 2 or len(set(params)) != 2 or set(params) & reserved or len(terms) != 2:
+        return None
+    card, player = params
+    tested, zero = _binary(terms[0], "~=")
+    previous, race_value = _binary(tested, "&")
+    race = _integer_value(race_value, constants)
+    if (not race or race <= 0 or not _literal_call(previous, constants, f"{card}:GetPreviousRaceOnField")
+            or _integer_value(zero, constants) != 0
+            or not _literal_call(terms[1], constants, f"{card}:IsPreviousControler", player)):
+        return None
+    params = tuple(map(_text, operation.child_by_field_name("parameters").children_by_field_name("name")))
+    body = _children(operation.child_by_field_name("body"))
+    if len(params) < 2 or len(set(params)) != len(params) or set(params) & reserved or len(body) != 2:
+        return None
+    effect, player = params[:2]
+    handler, value = _local_value(body[0])
+    guards = _conjuncts(body[1].child_by_field_name("condition"))
+    steps = _check_body(body[1])
+    if (not handler or handler in reserved or handler in params or not _literal_call(value, constants, f"{effect}:GetHandler")
+            or len(steps) != 7 or len(guards) != 2
+            or not _literal_call(guards[0], constants, f"{handler}:IsRelateToEffect", effect)):
+        return None
+    summon, zero = _binary(guards[1], ">")
+    if not _literal_call(summon, constants, "Duel.SpecialSummon", handler, 0, player, player,
+                         False, False, constants["POS_FACEUP"]) or _integer_value(zero, constants) != 0:
+        return None
+    redirect, constructor = _local_value(steps[0])
+    if (not redirect or redirect == handler or redirect in reserved or redirect in params
+            or not _literal_call(constructor, constants, "Effect.CreateEffect", handler)):
+        return None
+    expected = (("SetType", "EFFECT_TYPE_SINGLE"), ("SetProperty", "EFFECT_FLAG_CANNOT_DISABLE"),
+                ("SetCode", "EFFECT_LEAVE_FIELD_REDIRECT"), ("SetValue", "LOCATION_REMOVED"))
+    if not all(_literal_call(step, constants, f"{redirect}:{setter}", constants[flag])
+               for step, (setter, flag) in zip(steps[1:5], expected)):
+        return None
+    if (not _literal_call(steps[5], constants, f"{redirect}:SetReset", constants["RESET_EVENT"] | constants["RESETS_REDIRECT"])
+            or not _literal_call(steps[6], constants, f"{handler}:RegisterEffect", redirect, True)):
+        return None
+    return dict(previous_race=race, previous_controller="self", excludes_handler=True, leave_field="banished",
+                byte_spans=[condition_span, _span(fn), target_span, operation_span])
+
+
 def _latest_fusion_revival(registration, functions, constants, tables):
     single, optional = (constants.get(key) for key in ("EFFECT_TYPE_SINGLE", "EFFECT_TYPE_TRIGGER_O"))
     symbols = ("EVENT_TO_GRAVE", "REASON_EFFECT", "LOCATION_MZONE", "SUMMON_TYPE_FUSION",
@@ -1628,8 +1709,8 @@ def _preselected_grave_summon(registration, functions, constants, tables, shadow
         requires_arrival=True), summon=summon)
 
 
-def _intrinsic_grave_summon_lock(registration, constants):
-    fields = {"type": "EFFECT_TYPE_SINGLE", "range": "LOCATION_GRAVE", "event_code": "EFFECT_SPSUMMON_CONDITION"}
+def _intrinsic_summon_condition(registration, constants, location):
+    fields = {"type": "EFFECT_TYPE_SINGLE", "range": location, "event_code": "EFFECT_SPSUMMON_CONDITION"}
     uncopyable, cannot_disable, single_range = (
         constants.get(name) for name in ("EFFECT_FLAG_UNCOPYABLE", "EFFECT_FLAG_CANNOT_DISABLE", "EFFECT_FLAG_SINGLE_RANGE"))
     if not all(type(flag) is int for flag in (uncopyable, cannot_disable, single_range)):
@@ -1638,7 +1719,34 @@ def _intrinsic_grave_summon_lock(registration, constants):
         return False
     return (all(type(constants.get(key)) is int and registration.get(field) == constants[key]
                 for field, key in fields.items())
-            and not any(role in registration for role in ("condition", "cost", "target", "operation", "value", "count_limit")))
+            and not any(role in registration for role in ("condition", "cost", "target", "operation", "count_limit")))
+
+
+def _intrinsic_grave_summon_lock(registration, constants):
+    return "value" not in registration and _intrinsic_summon_condition(registration, constants, "LOCATION_GRAVE")
+
+
+def _extra_summon_method(registration, functions, constants, tables):
+    if not _intrinsic_summon_condition(registration, constants, "LOCATION_EXTRA"):
+        return None
+    _, callback, span = _callback(registration, "value", functions, tables)
+    if callback is None:
+        return None
+    params = tuple(map(_text, callback.child_by_field_name("parameters").children_by_field_name("name")))
+    if len(params) != 4 or len(set(params)) != 4 or set(params) & (constants.keys() | tables | {"bit"}):
+        return None
+    check = _return_expression(_children(callback.child_by_field_name("body")))
+    result, expected = _binary(check, "==")
+    kind = next((kind for kind in ("fusion", "synchro", "xyz", "link")
+                 if type(constants.get("SUMMON_TYPE_" + kind.upper())) is int
+                 and _integer_value(expected, constants) == constants["SUMMON_TYPE_" + kind.upper()]), None)
+    if kind is None:
+        return None
+    mask = constants["SUMMON_TYPE_" + kind.upper()]
+    bits, flag = _binary(result, "&")
+    matches = (_name(bits) == params[-1] and _integer_value(flag, constants) == mask
+               or _literal_call(result, constants, "bit.band", params[-1], mask))
+    return dict(summon_kind=kind + "_summon", from_zones=["extra"], value_span=span) if matches else None
 
 
 def _summon_predicate(node, card, constants, depth=0):
@@ -1883,15 +1991,17 @@ class LuaEffectSource:
         return dict(self._binding)
 
     @cached_property
-    def _fusion_procedure(self):
+    def _procedure_functions(self):
         item = self._scripts.get("procedure.lua")
         if item is None:
-            return None
+            return {}
         root = _parse(item[0])
-        name = "Auxiliary.AddFusionProcCodeFun"
-        definition = _functions(root).get(name) if not root.has_error else None
-        return dict(file="procedure.lua", sha256=item[1], function=name,
-                    byte_span=_span(definition)) if definition is not None else None
+        return {} if root.has_error else {name: dict(file="procedure.lua", sha256=item[1], function=name,
+            byte_span=_span(node)) for name, node in _functions(root).items()}
+
+    @property
+    def _fusion_procedure(self):
+        return self._procedure_functions.get("Auxiliary.AddFusionProcCodeFun")
 
     @staticmethod
     def _receipt_identity(root, receipt):
@@ -1936,9 +2046,10 @@ class LuaEffectSource:
         return dict(file="utility.lua", sha256=self._scripts["utility.lua"][1],
                     byte_span=_span(node), function=name) if node else None
 
-    def summarize_effects(self, code, *, deck_send_indices=(), self_send_costs=False,
+    def summarize_effects(self, code, *, deck_send_indices=(), self_send_costs=False, summon_methods=False,
                           preselected_grave_summons=False, summon_locks=False, summon_chain_response=False,
-                          summon_grave_clone=False, latest_fusion_revival=False, hand_deck_grave_trigger=False):
+                          summon_grave_clone=False, latest_fusion_revival=False, hand_deck_grave_trigger=False,
+                          battle_group_revival=False):
         """Report registrations and requested callback facts for printed effects."""
         filename = f"c{code}.lua"
         result = dict(status="missing_script", file=filename, registrations=[], unknown=[],
@@ -2019,7 +2130,8 @@ class LuaEffectSource:
         if result["unknown"]:
             result["status"] = "partial"
         if (deck_send_indices or self_send_costs or preselected_grave_summons or summon_locks
-                or summon_chain_response or summon_grave_clone or latest_fusion_revival or hand_deck_grave_trigger):
+                or summon_chain_response or summon_grave_clone or latest_fusion_revival or hand_deck_grave_trigger
+                or summon_methods or battle_group_revival):
             # Callback domains use unshadowed core constants and the card's namespace.
             # Deck filters can also read an unchanged local GetID result.
             tables = {name for name, value in constants.items()
@@ -2047,12 +2159,29 @@ class LuaEffectSource:
                                                       fusion_procedure=True))
             grave_window_scope = hand_deck_grave_trigger and not (cost_shadowed or assignments["Effect"]) and (
                 self._registered_callback_scope_known(result["unknown"], initial, initial_bindings))
+            extra_method_scope = summon_methods and not (shadowed or assignments["Effect"] or assignments["bit"]
+                or "bit" in function_namespaces) and self._registered_callback_scope_known(
+                    result["unknown"], initial, initial_bindings, fusion_procedure=True)
+            if extra_method_scope and len(params) == 1:
+                handler = _text(params[0])
+                revive_limit = any(_literal_call(node, initial_bindings, f"{handler}:EnableReviveLimit")
+                                   for node in _children(initial.child_by_field_name("body")))
+            battle_scope = battle_group_revival and not (cost_shadowed or assignments["Effect"]) and (
+                self._registered_callback_scope_known(result["unknown"], initial, initial_bindings, synchro_procedure=True))
             if preselected_grave_summons and result["status"] == "parsed":
                 for registration in result["registrations"]:
                     if _intrinsic_grave_summon_lock(registration, static_constants):
                         registration["intrinsic_grave_summon_lock"] = True
             for registration in result["registrations"]:
                 index = registration.get("description_index")
+                if extra_method_scope and len(params) == 1:
+                    method = _extra_summon_method(registration, callbacks, static_constants, tables)
+                    if method:
+                        registration["extra_summon_method"] = dict(method, revive_limit=revive_limit)
+                if battle_scope:
+                    revival = _battle_group_revival(registration, callbacks, static_constants, tables)
+                    if revival:
+                        registration["battle_group_revival"] = revival
                 if summon_chain_response and not shadowed and _summon_chain_response(
                         registration, callbacks, static_constants, tables):
                     registration["summon_chain_response"] = True
@@ -2131,7 +2260,8 @@ class LuaEffectSource:
                 if observed is not None:
                     registration["resolution_summon_lock"] = observed
 
-    def _registered_callback_scope_known(self, gaps, initial, bindings, *, grave_check=False, fusion_procedure=False):
+    def _registered_callback_scope_known(self, gaps, initial, bindings, *, grave_check=False, fusion_procedure=False,
+                                         synchro_procedure=False):
         if not gaps:
             return True
         params = initial.child_by_field_name("parameters").children_by_field_name("name")
@@ -2154,6 +2284,18 @@ class LuaEffectSource:
             if gap["reason"] != "unsupported_initial_effect_statement":
                 return False
             if name == f"{card}:EnableReviveLimit" and not args:
+                continue
+            if (synchro_procedure and name == "aux.AddSynchroProcedure" and len(args) == 4
+                    and "Auxiliary.AddSynchroProcedure" in self._procedure_functions
+                    and "Auxiliary.NonTuner" in self._procedure_functions and not {"aux", "Auxiliary", "Card"} & bindings.keys()
+                    and _literal_arguments(args[:2], bindings, (card, None))
+                    and _literal_call(args[2], bindings, "aux.NonTuner", None)
+                    and _integer_value(args[3], bindings) == 1):
+                continue
+            if (fusion_procedure and name == "aux.AddFusionProcShaddoll"
+                    and "Auxiliary.AddFusionProcShaddoll" in self._procedure_functions
+                    and not {"aux", "Auxiliary", "Card"} & bindings.keys()
+                    and len(args) == 2 and _name(args[0]) == card and _integer_value(args[1], bindings) is not None):
                 continue
             if (fusion_procedure and name == "aux.AddFusionProcCodeFun"
                     and self._fusion_procedure and not {"aux", "Card"} & bindings.keys()

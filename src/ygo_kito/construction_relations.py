@@ -624,7 +624,7 @@ def _operation_transfer(operation, source, inventory=None, dependencies=None, co
 
 def _record_outputs(record):
     """An observed non-flavor record can supply adoption without a benefit."""
-    if record.get('summon_procedure'):
+    if record.get('summon_procedure') or record.get('intrinsic_summon_method'):
         return ()  # The configuration adapter supplies this non-scoring entry.
     if record["operations"]:
         leave_sources = {r["source"] for r in record["restrictions"] if r["kind"] == "leave_field_banish"}
@@ -656,7 +656,7 @@ def _restriction_contract(restriction):
     allowed = {"kind", "source", "scope", "controller", "owner", "condition", "duration", "whole_turn",
         "includes_set", "from_zones", "to_zone", "reason", "tag", "block_id", "group", "source_span",
         "evidence_refs", "observed_source", "context_source", "unknown", "allowed_summons", "summon_kind",
-        "lua_summon_lock"}
+        "lua_summon_lock", "revive_limit"}
     if set(restriction) - allowed:
         return None
     lock = restriction.get("lua_summon_lock")
@@ -686,8 +686,13 @@ def _restriction_contract(restriction):
     else:
         kind = _RESTRICTION_ALIASES.get(kind, kind)
     if kind == "special_summon_condition":
-        # Eligibility depends on how the current summon is being performed.
-        return None
+        from .effect_records import extra_summon_method
+        method = extra_summon_method(source)
+        return (dict(restriction) if method and restriction.get("summon_kind") == method
+                and restriction.get("scope") == "this_card" and restriction.get("duration") == "intrinsic"
+                and restriction.get("condition") == "summon_method" and restriction.get("from_zones") == ["extra"]
+                and restriction.get("evidence_refs") and type(restriction.get("revive_limit")) is bool
+                and not restriction.get("unknown") else None)
     if kind in _INTRINSIC_RESTRICTIONS:
         rule = dict(restriction)
         if rule.get("duration") == "summon_turn":
