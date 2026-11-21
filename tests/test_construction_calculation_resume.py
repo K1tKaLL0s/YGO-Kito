@@ -4,6 +4,8 @@ import json
 import unittest
 from copy import deepcopy
 from dataclasses import asdict
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from ygo_kito.construction_relations import (RelationBudget, RelationContext, evaluate_relations,
@@ -333,6 +335,51 @@ class CalculationResumeTests(unittest.TestCase):
         self.assertEqual(values[0]['quality_evaluation']['score'],expected[0]['quality_evaluation']['score'])
         self.assertEqual(values[0]['quality_evaluation']['unknowns'],expected[0]['quality_evaluation']['unknowns'])
         self.assertFalse(any('budget' in str(item) for item in values[0]['quality_evaluation']['unknowns']))
+
+    def test_reference_disk_cache_checks_binding_and_preserves_finished_entries(self):
+        from ygo_kito.build_contracts import digest
+        from ygo_kito.construction_checkpoint import ConstructionReferenceCache
+        from ygo_kito.construction_layer_flow import ConstructionLayerAdapter
+        from tests.test_construction_functional_flow import fixture
+
+        task, assets, graph, binder, decks, policy = fixture()
+        deck = decks[-1]
+        descriptor = dict(reference_id='fixed-reference', source='specified fixture',
+                          deck_sha256=digest(deck.to_dict()))
+        reference = dict(reference_id=descriptor['reference_id'], source=descriptor['source'],
+                         environment=task.environment, deck=deck.to_dict())
+        policy['pass'] = dict(mode='reference_ratio', minimum_reference_ratio=.8, reference=descriptor)
+        adapter = ConstructionLayerAdapter(binder)
+        _, binding, inputs = adapter.reference_inputs(task, graph, reference, descriptor, policy=policy)
+        evaluation, pending, _ = adapter.evaluate_inventory(task, deck, **inputs)
+        self.assertIsNone(pending)
+
+        with TemporaryDirectory() as scratch:
+            cache = ConstructionReferenceCache(Path(scratch))
+            expected = dict(task=task, deck=deck, policy=policy, catalog=adapter.catalog)
+            self.assertIsNone(cache.load(binding, **expected))
+            cache.store(binding, evaluation)
+            reopened = ConstructionReferenceCache(Path(scratch))
+            self.assertEqual(reopened.load(binding, **expected), roundtrip(evaluation))
+
+            changed_policy = deepcopy(policy)
+            changed_policy['pass']['minimum_reference_ratio'] = .9
+            _, changed_binding, _ = adapter.reference_inputs(task, graph, reference, descriptor, policy=changed_policy)
+            self.assertNotEqual(binding, changed_binding)
+            self.assertIsNone(reopened.load(changed_binding, **dict(expected, policy=changed_policy)))
+            self.assertIsNone(reopened.load(binding, **dict(expected, task=replace(task, task_id='different-task'))))
+
+            with patch('ygo_kito.construction_checkpoint.write_json', side_effect=OSError('test write failure')):
+                reopened.store(binding, evaluation)
+            self.assertEqual(reopened.load(binding, **expected), roundtrip(evaluation))
+            reopened._path(binding).write_bytes(b'\x1f\x8b\x08')
+            self.assertIsNone(reopened.load(binding, **expected))
+
+            cache.store(binding, evaluation)
+            assets.rows[2]['desc'] = '①：自己从卡组抽2张。'
+            _, changed_binding, _ = adapter.reference_inputs(task, graph, reference, descriptor, policy=policy)
+            self.assertNotEqual(binding, changed_binding)
+            self.assertIsNone(reopened.load(changed_binding, **expected))
 
     def test_reference_resume_reuses_candidate_batch_and_optimizer_phase(self):
         from ygo_kito.build_contracts import DeckParts,digest

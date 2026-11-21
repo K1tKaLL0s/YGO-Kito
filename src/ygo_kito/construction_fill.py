@@ -801,6 +801,7 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
                        binding_provider=None, text_reviewer=None, verifier=existing_goal_verifier,
                        basic_cb_provider=None, mechanism_groups=None, layer_adapter=None,
                        quality_criteria=None, quality_evidence=None, quality_reference=None, max_iterations=4, seconds=None,
+                       _reference_cache=None,
                        max_candidates=None, pause_requested=None, cb_authorized=False,
                        recognition_provider=None, recognition_mode="off", quality_factory=None, retrieval_limit=128,
                        _validate_saved=True, _comparisons=None):
@@ -1051,13 +1052,20 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
                     invalidate_reference_evaluation(state)
                     calculation = (reference_stage['calculation']
                                    if reference_stage['binding'] == binding else None)
-                    reference, work, stop = reference_adapter.evaluate_inventory(session.task, reference_deck,
-                        **inputs, should_stop=stopped, calculation=calculation)
-                    if work is not None:
-                        state['pending_reference'] = dict(reference_stage, binding=binding, calculation=work)
-                        reason = stop or 'reference_calculation_budget'
-                        save()
-                        break
+                    reference = None
+                    if _reference_cache is not None and calculation is None:
+                        reference = _reference_cache.load(binding, task=session.task, deck=reference_deck,
+                            policy=policy, catalog=reference_adapter.catalog)
+                    if reference is None:
+                        reference, work, stop = reference_adapter.evaluate_inventory(session.task, reference_deck,
+                            **inputs, should_stop=stopped, calculation=calculation)
+                        if work is not None:
+                            state['pending_reference'] = dict(reference_stage, binding=binding, calculation=work)
+                            reason = stop or 'reference_calculation_budget'
+                            save()
+                            break
+                        if _reference_cache is not None:
+                            _reference_cache.store(binding, reference)
                     state.update(reference_evaluation=reference, reference_binding=binding)
             except ContractError as error:
                 invalidate_reference_evaluation(state)
@@ -1177,6 +1185,7 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
                     layer_adapter=layer_adapter,quality_criteria=policy,quality_evidence=quality_evidence,
                     quality_reference=quality_reference,max_iterations=max_iterations-used_iterations,seconds=remaining,
                     max_candidates=max_candidates-spent,pause_requested=pause_requested,cb_authorized=cb_authorized,
+                    _reference_cache=_reference_cache,
                     recognition_provider=recognition_provider, recognition_mode=recognition_mode,
                     retrieval_limit=retrieval_limit, _validate_saved=False, _comparisons=_comparisons)
                 following['phases'] = phases + following['phases']

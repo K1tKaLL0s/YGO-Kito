@@ -1,7 +1,8 @@
 """Run the maintained construction pipeline with existing course weights.
 
 No optimizer step or training worker is started. Basic CB is opt-in and gated.
-Artifacts and a resumable kernel session are written only to --output.
+Artifacts and a resumable kernel session are written to --output.
+The workspace holds reusable reference evaluations.
 """
 import argparse
 import json
@@ -12,8 +13,8 @@ import signal
 import time
 import traceback
 
-from ygo_kito.construction_checkpoint import (ConstructionCheckpoint, KERNEL_FILENAME,
-    LEGACY_KERNEL_FILENAME, write_json)
+from ygo_kito.construction_checkpoint import (ConstructionCheckpoint, ConstructionReferenceCache,
+    KERNEL_FILENAME, LEGACY_KERNEL_FILENAME, write_json)
 
 
 def export_candidate_artifacts(output, task, candidate, progress):
@@ -162,6 +163,7 @@ def main(argv=None):
     parser.add_argument('--slice-seconds', type=float, default=30., help='Internal calculation/checkpoint slice')
     parser.add_argument('--iterations', type=int, default=4, help='Optimizer iterations per internal slice')
     parser.add_argument('--resume', type=Path, help='kernel.json.gz or kernel.json from a previous slice using these weights')
+    parser.add_argument('--no-reference-cache', action='store_true', help='Bypass the workspace reference cache')
     parser.add_argument('--device', default='cuda:0', help='Inference device (default cuda:0)')
     parser.add_argument('--basic-cb', action='store_true', help='Run existing basic CB only after static admission')
     parser.add_argument('--candidate-budget', type=int, choices=range(2,33), metavar='N',
@@ -257,10 +259,12 @@ def main(argv=None):
                updates=before,mode=args.mode,seconds=args.seconds,slice_seconds=args.slice_seconds,
                iterations_per_slice=args.iterations)
         with torch.no_grad():
+            reference_cache = None if args.no_reference_cache else ConstructionReferenceCache(
+                args.workspace / 'construction-reference-cache')
             result = advance_construction(kernel, selection, checkpoint, pause_requested=lambda: pause, status=status,
                 basic_cb_enabled=args.basic_cb,
                 run_mode=args.mode,seconds=args.seconds,slice_seconds=args.slice_seconds,
-                max_iterations=args.iterations)
+                max_iterations=args.iterations, _reference_cache=reference_cache)
         if models.builder.updates != before:
             raise RuntimeError('construction unexpectedly changed model update counters')
         if models.device.type == 'cuda':
