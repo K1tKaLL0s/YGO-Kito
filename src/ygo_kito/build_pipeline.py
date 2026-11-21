@@ -7,7 +7,7 @@ Card-list legality, conditional route success and quality are separate results.
 from collections import Counter
 from dataclasses import asdict
 from functools import cached_property
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import sqlite3
 import time
 import math
@@ -26,11 +26,18 @@ ROUND_CANDIDATE_LIMIT = 5
 EXTRA_TYPES = 0x40 | 0x2000 | 0x800000 | 0x4000000
 
 
+class MissingNativeScript(NativeError):
+    def __init__(self, files):
+        self.files = tuple(files)
+        super().__init__("missing locked Lua source: " + ", ".join(self.files))
+
+
 class CatalogNativeEngine(NativeNormalEngine):
     """Use the rule-name field of the locked client/core card-data contract."""
 
     def __init__(self, assets, **options):
         self._catalog_assets = assets
+        self._failed_scripts = set()
         super().__init__(assets.root, **options)
 
     def _deck_limits(self):
@@ -42,21 +49,45 @@ class CatalogNativeEngine(NativeNormalEngine):
     def _install_callbacks(self):
         super()._install_callbacks()
         overrides = self._catalog_assets.native_code_overrides
-        if not overrides:
-            return
-        script_reader, original_reader, log_handler = self._callbacks
+        original_script, original_card, log_handler = self._callbacks
+
+        def read_script(name, length):
+            result = original_script(name, length)
+            if not result and name:
+                try:
+                    relative = name.decode().removeprefix("./").removeprefix("script/")
+                except UnicodeDecodeError:
+                    return result
+                path = PurePosixPath(relative)
+                if (path.suffix == ".lua" and not path.is_absolute() and ".." not in path.parts
+                        and "\\" not in relative and path.as_posix() == relative):
+                    self._failed_scripts.add(relative)
+            return result
 
         def read_card(code, target):
-            result = original_reader(code, target)
+            result = original_card(code, target)
             if identity := overrides.get(code):
                 printed, rule_name = identity
                 target.contents.alias = printed if printed != code else 0
                 target.contents.rule_code = rule_name if rule_name != printed else 0
             return result
 
-        card_reader = self._card_type(read_card)
+        script_reader = self._script_type(read_script)
+        card_reader = self._card_type(read_card) if overrides else original_card
         self._callbacks = (script_reader, card_reader, log_handler)
-        self.lib.set_card_reader(card_reader)
+        self.lib.set_script_reader(script_reader)
+        if overrides:
+            self.lib.set_card_reader(card_reader)
+
+    def _check_callbacks(self):
+        try:
+            super()._check_callbacks()
+        except NativeError as error:
+            if self._failed_scripts and (lua := self._catalog_assets.effect_lua_source) is not None:
+                missing = sorted(filename for filename in self._failed_scripts if not lua.has_script(filename))
+                if missing:
+                    raise MissingNativeScript(missing) from error
+            raise
 
 
 class BuildAssets:

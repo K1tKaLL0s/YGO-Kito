@@ -6,6 +6,8 @@ import unittest
 from unittest.mock import patch
 
 from ygo_kito.build_contracts import DeckParts, digest
+from ygo_kito.build_pipeline import CatalogNativeEngine, MissingNativeScript
+from ygo_kito.native import NativeError, NativeNormalEngine
 from ygo_kito.validation import ContractError
 
 from ygo_kito.construction_native import (
@@ -161,6 +163,58 @@ class ConstructionNativeTests(unittest.TestCase):
                 self.assertTrue((checks.directory / (before["receipt"] + ".json")).is_file())
                 self.assertEqual(checks._ask(task, deck, query, "candidate", 100, None), current)
                 self.assertEqual(run.call_count, 2)
+
+    def test_runtime_missing_helper_is_bound_to_the_window_and_resource_receipt(self):
+        with TemporaryDirectory() as workspace:
+            assets = SimpleNamespace(workspace=Path(workspace), period_context={}, adapter_revision=5,
+                                     receipt={"resources": {"scripts": "original"}})
+            task = SimpleNamespace(sha256="task")
+            deck = DeckParts(main=(1,))
+            query = dict(card=1, setup="hand", seat=0, path=[])
+
+            def run(*args, counters, **kwargs):
+                counters["submitted_decisions"] += 4
+                raise MissingNativeScript(("common/missing.lua",))
+
+            checker = NativeRuleChecks(assets)
+            with patch("ygo_kito.construction_native.run_window", side_effect=run) as window:
+                row = checker._ask(task, deck, query, "candidate", 100, None)
+                self.assertEqual(row["status"], "missing_rule_source")
+                self.assertEqual(row["decisions"], 4)
+                self.assertEqual(row["missing_scripts"], [dict(file="common/missing.lua", scripts_sha256="original",
+                                                              stage="execution")])
+                self.assertEqual(checker._ask(task, deck, query, "candidate", 100, None), row)
+                window.assert_called_once()
+                assets.receipt = {"resources": {"scripts": "updated"}}
+                window.side_effect = None
+                window.return_value = dict(status="settled", decisions=4)
+                ready = checker._ask(task, deck, query, "candidate", 100, None)
+                self.assertEqual(ready["status"], "settled")
+                self.assertNotEqual(ready["receipt"], row["receipt"])
+                self.assertEqual(window.call_count, 2)
+
+    def test_script_reader_attributes_only_paths_missing_from_the_snapshot(self):
+        lua = LuaEffectSource.__new__(LuaEffectSource)
+        lua._scripts = {"present.lua": (b"", "present")}
+        engine = CatalogNativeEngine.__new__(CatalogNativeEngine)
+        engine._catalog_assets = SimpleNamespace(effect_lua_source=lua, native_code_overrides={})
+        engine._failed_scripts = set()
+        engine._script_type = lambda callback: callback
+        engine.lib = SimpleNamespace(set_script_reader=lambda callback: None)
+        engine._callbacks = (lambda name, length: None, None, None)
+        engine.callback_errors = ["script source missing or invalid"]
+        with patch.object(NativeNormalEngine, "_install_callbacks"):
+            engine._install_callbacks()
+        script_reader = engine._callbacks[0]
+        script_reader(b"./script/present.lua", None)
+        script_reader(b"./script/../invalid.lua", None)
+        with self.assertRaises(NativeError) as ordinary:
+            engine._check_callbacks()
+        self.assertNotIsInstance(ordinary.exception, MissingNativeScript)
+        script_reader(b"./script/common/missing.lua", None)
+        with self.assertRaises(MissingNativeScript) as missing:
+            engine._check_callbacks()
+        self.assertEqual(missing.exception.files, ("common/missing.lua",))
 
     def test_prior_windows_do_not_spend_the_resumed_budget(self):
         with TemporaryDirectory() as workspace:

@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 from time import perf_counter
 
 from .build_contracts import DeckParts, digest
-from .build_pipeline import EXTRA_TYPES
+from .build_pipeline import EXTRA_TYPES, MissingNativeScript
 from .card_identity import native_card_identity
 from .construction_checkpoint import write_json
 from .construction_inventory import matches
@@ -25,7 +25,7 @@ from .validation import ContractError
 
 
 NATIVE_RULE_VERSION = "construction-native-rules-v5"
-NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v9"
+NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v10"
 _QUERY_WORK_VERSION = "construction-native-query-work-v1"
 _DECISION_BUDGET = 100
 _DECK_DESTINATIONS = {2: "hand", 16: "grave"}
@@ -948,6 +948,11 @@ class NativeRuleChecks:
         try:
             result = run_window(self.assets, deck, query, selection_key=selection_key, decision_budget=budget,
                                 should_stop=should_stop, counters=self.counts)
+        except MissingNativeScript as error:
+            checksum = self.assets.receipt["resources"]["scripts"]
+            result = dict(status="missing_rule_source", decisions=self.counts["submitted_decisions"] - previous,
+                          missing_scripts=[dict(file=filename, scripts_sha256=checksum, stage="execution")
+                                           for filename in error.files])
         except (NativeError, ContractError, OSError) as error:
             result = dict(status="engine_error", error_type=type(error).__name__, error=str(error),
                           decisions=self.counts["submitted_decisions"] - previous)

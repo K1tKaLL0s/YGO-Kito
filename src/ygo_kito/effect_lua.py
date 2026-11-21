@@ -2315,6 +2315,9 @@ class LuaEffectSource:
         return tuple(int(name[1:-4]) for name in self._scripts
                      if name.startswith("c") and name[1:-4].isascii() and name[1:-4].isdigit())
 
+    def has_script(self, filename):
+        return filename in self._scripts
+
     def missing_required_card_script(self, rows, code):
         """Identify an absent script required by the locked core for a deck card."""
         from .card_identity import native_card_identity
@@ -2324,7 +2327,7 @@ class LuaEffectSource:
             return None
         printed, _ = native_card_identity(rows, code)
         filename = f"c{printed}.lua"
-        if filename not in self._scripts:
+        if not self.has_script(filename):
             return dict(card_id=code, script_card_id=printed, file=filename,
                         scripts_sha256=self._binding["scripts_sha256"])
         return None
