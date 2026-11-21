@@ -13,6 +13,7 @@ import json
 import re
 
 from .build_contracts import DeckParts, ZONES, digest
+from .card_identity import rule_name_id
 from .effect_mechanisms import EXTRA_TYPES, RACES, MechanismCatalog
 from .validation import ContractError
 
@@ -1027,7 +1028,7 @@ class InventoryDependencies:
                 query = dict(send_query, predicate={'field': 'card_ids', 'value': [code]}) if code else send_query
                 requirements = [field, dict(sender, query=query), activating]
                 if revival:
-                    name = rows[code].get('alias') or code if code else None
+                    name = rule_name_id(rows, code) if code else None
                     exclusion = source.inventory_query({'exclude_rule_codes': [name]}, rows) if name and source else None
                     revived_query = dict(revival['query'], any=[exclusion]) if exclusion else {'unresolved_name': True}
                     requirements.append(dict(revival, query=revived_query))
@@ -1197,7 +1198,7 @@ class InventoryDependencies:
             else:
                 check = self._check(deck,[req])
                 codes = sorted(set(deck.main + deck.extra))
-                rule_names = {code: self.rows.get(self.rows[code].get('alias'), self.rows[code])['name'] for code in codes}
+                rule_names = {code: self.rows.get(rule_name_id(self.rows, code), self.rows[code])['name'] for code in codes}
                 names = sorted({rule_names[code] for code in check['requirements'][0]['matching_card_ids']})
                 def restrict(query, predicate):
                     if 'predicate' in query:
@@ -1373,9 +1374,9 @@ class InventoryDependencies:
             checked = check([dict(material, query=query)])
             checked['summon_procedure'] = procedure
             if checked['status'] == 'inventory_present':
-                family = self.rows[code].get('alias') or code
+                family = rule_name_id(self.rows, code)
                 bases = checked['requirements'][-1]['matching_card_ids']
-                if all((self.rows[base].get('alias') or base) == family for base in bases):
+                if all(rule_name_id(self.rows, base) == family for base in bases):
                     checked.update(status='unknown', unknown_restrictions=[dict(category='material',
                         source=procedure['source'], reason='overlay_base_requires_independent_access')])
             if checked['status'] == 'inventory_present':
@@ -1592,7 +1593,7 @@ def recall_dependencies(catalog, pool, available, *, limit=16, rounds=3, checks=
         main=[];extra=[]
         for code in sorted(current):
             zone = extra if catalog.assets.rows[code]['type'] & EXTRA_TYPES else main
-            zone.extend([code]*catalog.assets.limits.get(catalog.assets.rows[code].get('alias') or code,3))
+            zone.extend([code]*catalog.assets.limits.get(rule_name_id(catalog.assets.rows, code),3))
         # A pool can exceed deck section limits. It is a supply bound, never
         # a DeckParts proposal; actual candidates still pass assets.validate.
         analysis=dependencies.evaluate(SimpleNamespace(main=tuple(main),extra=tuple(extra),side=()))
@@ -1630,7 +1631,7 @@ def repair_ideas(task, assets, base, *, graph=None, limit=6, checks=128, edits=N
     original = editor.counts
     current = original
     pool = sorted(task.pool)
-    names = {code: assets.rows[code].get('alias') or code for code in pool}
+    names = {code: rule_name_id(assets.rows, code) for code in pool}
     analysis = catalog.evaluate_counts(current['main'], current['extra'], graph)
     ideas = []
     for step in range(limit):

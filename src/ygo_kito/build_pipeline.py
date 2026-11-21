@@ -13,6 +13,7 @@ import time
 import math
 
 from .build_contracts import BuildTask, DeckParts, ZONES, digest
+from .card_identity import native_card_identity, rule_name_id
 from .contracts import ActionSelection, Versions
 from .deck_profile import validate_deck_parts
 from .native import NativeError, NativeNormalEngine, banlist_limits
@@ -23,6 +24,39 @@ from .validation import ContractError, fields, integer
 ROUND_CANDIDATE_LIMIT = 5
 
 EXTRA_TYPES = 0x40 | 0x2000 | 0x800000 | 0x4000000
+
+
+class CatalogNativeEngine(NativeNormalEngine):
+    """Use the rule-name field of the locked client/core card-data contract."""
+
+    def __init__(self, assets, **options):
+        self._catalog_assets = assets
+        super().__init__(assets.root, **options)
+
+    def _deck_limits(self):
+        # The base reader also keeps rows without display text for generated
+        # entities. The joined catalog supplies the printed-identity evidence.
+        self._rows.update(self._catalog_assets.rows)
+        return dict(self._catalog_assets.limits)
+
+    def _install_callbacks(self):
+        super()._install_callbacks()
+        overrides = self._catalog_assets.native_code_overrides
+        if not overrides:
+            return
+        script_reader, original_reader, log_handler = self._callbacks
+
+        def read_card(code, target):
+            result = original_reader(code, target)
+            if identity := overrides.get(code):
+                printed, rule_name = identity
+                target.contents.alias = printed if printed != code else 0
+                target.contents.rule_code = rule_name if rule_name != printed else 0
+            return result
+
+        card_reader = self._card_type(read_card)
+        self._callbacks = (script_reader, card_reader, log_handler)
+        self.lib.set_card_reader(card_reader)
 
 
 class BuildAssets:
@@ -55,6 +89,16 @@ class BuildAssets:
 
         return LuaEffectSource(self.root, self.receipt)
 
+    @cached_property
+    def native_code_overrides(self):
+        return {code: identity for code, row in self.rows.items() if (alias := row.get("alias"))
+                and (identity := native_card_identity(self.rows, code)) != (alias, alias)}
+
+    def engine_factory(self, root, **options):
+        if Path(root).resolve() != self.root:
+            raise ContractError("construction engine cannot use another physical resource root")
+        return CatalogNativeEngine(self, **options)
+
     def environment_for(self, kind):
         from .build_contracts import DISCOVERY_GOALS
         environment = dict(self.environment, versions=dict(self.environment["versions"]))
@@ -72,7 +116,7 @@ class BuildAssets:
         required = Counter()
         for req in task.requirements:
             code = req["card_id"]
-            required[self.rows[code]["alias"] or code] += req["minimum"]
+            required[rule_name_id(self.rows, code)] += req["minimum"]
         if any(n > self.limits.get(code, 3) for code, n in required.items()):
             raise ContractError("required cards conflict with combined alias/banlist limits")
 
@@ -116,7 +160,7 @@ class BuildAssets:
                     raise ContractError("skeleton card outside original environment")
                 if zone != 'side' and bool(row['type'] & EXTRA_TYPES) != (zone == 'extra'):
                     raise ContractError("skeleton card in wrong section")
-                counts[row['alias'] or code] += 1
+                counts[rule_name_id(self.rows, code)] += 1
         if any(n > self.limits.get(code, 3) for code, n in counts.items()):
             raise ContractError("skeleton exceeds combined copy limits")
         for req in task.requirements:
@@ -158,7 +202,7 @@ class DeckEdits:
         self.aliases = Counter()
         for counts in self.counts.values():
             for card, quantity in counts.items():
-                self.aliases[assets.rows[card]["alias"] or card] += quantity
+                self.aliases[rule_name_id(assets.rows, card)] += quantity
         self.constraints = [
             (item, count(base, item, assets.rows))
             for item in task.goal.get("constraints", ())
@@ -184,7 +228,7 @@ class DeckEdits:
             delta = deltas[zone] = added.copy()
             delta.subtract(removed)
             for card, quantity in delta.items():
-                aliases[self.assets.rows[card]["alias"] or card] += quantity
+                aliases[rule_name_id(self.assets.rows, card)] += quantity
         if any(self.aliases[card] + quantity > self.assets.limits.get(card, 3)
                for card, quantity in aliases.items()):
             return "combined main/extra/side alias limit exceeded"
@@ -236,7 +280,7 @@ def _goal_candidates(task, assets, base=None, *, skeleton=None, candidate_ids=No
             parts[req["zone"]].extend([req["card_id"]] * req["minimum"])
         if skeleton is not None:
             parts = {z: list((Counter(parts[z]) | Counter(getattr(skeleton, z))).elements()) for z in ZONES}
-        all_counts = Counter(assets.rows[c]["alias"] or c for cards in parts.values() for c in cards)
+        all_counts = Counter(rule_name_id(assets.rows, c) for cards in parts.values() for c in cards)
         valid = True
         allowed = task.pool if candidate_ids is None else tuple(candidate_ids)
         if not set(allowed) <= set(task.pool):
@@ -252,7 +296,7 @@ def _goal_candidates(task, assets, base=None, *, skeleton=None, candidate_ids=No
                         continue
                     if zone in ("main", "extra") and bool(row["type"] & EXTRA_TYPES) != (zone == "extra"):
                         continue
-                    alias = row["alias"] or code
+                    alias = rule_name_id(assets.rows, code)
                     maximum = next((r["maximum"] for r in task.requirements if r["zone"] == zone and r["card_id"] == code), 3)
                     if all_counts[alias] >= assets.limits.get(alias, 3) or parts[zone].count(code) >= maximum:
                         continue

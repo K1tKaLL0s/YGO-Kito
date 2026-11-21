@@ -14,7 +14,7 @@ import pickle
 
 from .agent_registry import RUNTIME_POOLS, identifier
 from .build_contracts import DeckParts, digest
-from .build_pipeline import BuildAssets
+from .build_pipeline import BuildAssets, CatalogNativeEngine
 from .contracts import Versions
 from .deck_intake import PERIODS, _date, _environment, cutoff_timing
 from .deck_profile import validate_deck_parts, validate_profile
@@ -258,7 +258,7 @@ class PeriodBuildAssets(BuildAssets):
             driver_version=binding["driver_version"], source=binding["source"])
 
 
-class PeriodNativeEngine(NativeNormalEngine):
+class PeriodNativeEngine(CatalogNativeEngine):
     def __init__(self, assets, *, deck_profile, scenario="effect-duel", **options):
         if not isinstance(assets, PeriodBuildAssets) or scenario not in ("effect-duel", "conditional-cb"):
             raise ContractError("period native execution requires typed assets and an explicit effect-duel profile")
@@ -267,14 +267,10 @@ class PeriodNativeEngine(NativeNormalEngine):
         assets.assert_integrity()
         profile = assets.validate_profile(deck_profile)
         self._period_assets = assets
-        super().__init__(assets.root, scenario=scenario, deck_profile=profile, **options)
+        super().__init__(assets, scenario=scenario, deck_profile=profile, **options)
         self.context = replace(self.context, versions=Versions.from_dict(assets.environment["versions"]))
         self.period_context = deepcopy(assets.period_context)
         self.historical_rules_verified = False
-
-    def _deck_limits(self):
-        return dict(self._period_assets.limits)
-
 
 class PeriodRuleOpponent(FrozenOpponent):
     """The existing visible rule policy with a real period-bound frozen profile.

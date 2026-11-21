@@ -12,6 +12,7 @@ from functools import lru_cache
 from itertools import islice
 
 from .build_contracts import digest
+from .card_identity import rule_name_id
 from .construction_layers import (
     AxisModule, FunctionEvidence, FunctionRequirement, LayerContext,
     RoleAssessment, SkeletonSpec, evaluate_layers,
@@ -1205,7 +1206,7 @@ def functional_asset_version(catalog):
 def reference_asset_binding(catalog, deck):
     assets = catalog.assets
     rows = {str(code): assets.rows.get(code) for code in sorted(set(deck.main + deck.extra + deck.side))}
-    aliases = {row.get("alias") or row["id"] for row in rows.values() if row is not None}
+    aliases = {rule_name_id(assets.rows, int(code)) for code, row in rows.items() if row is not None}
     return digest(dict(asset_version=functional_asset_version(catalog), rows=rows,
         limits={str(code): assets.limits.get(code, 3) for code in sorted(aliases)},
         resources=assets.receipt, period=getattr(assets, "period_context", None)))
@@ -1365,7 +1366,7 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
     codes = sorted(set(deck.main + deck.extra + deck.side))
     if any(c not in catalog.assets.rows for c in codes):
         raise ContractError("candidate card is absent from its bound catalog")
-    aliases = {str(c): catalog.assets.rows[c].get("alias") or c for c in codes}
+    aliases = {str(c): rule_name_id(catalog.assets.rows, c) for c in codes}
     extra_ids = [c for c in codes if catalog.assets.rows[c]["type"] & EXTRA_TYPES]
     sources = physical_sources(inventory, aliases, extra_ids)
     coverage = {f"{z}:{c}": "deferred" for z, cards in inventory.items() for c in cards}
@@ -1811,7 +1812,7 @@ class ConstructionLayerAdapter:
                 bound[binding.node_id].update(binding.card_ids)
         names = defaultdict(list)
         for code in task.pool:
-            names[self.binding.assets.rows[code].get("alias") or code].append(code)
+            names[rule_name_id(self.binding.assets.rows, code)].append(code)
         groups = tuple(tuple(v) for v in names.values() if len(v) > 1)
         requirements, roles, uses, facts, pools = [], [], [], [], {}
         fact_ids = set()
@@ -1835,7 +1836,7 @@ class ConstructionLayerAdapter:
             specs,_=dependencies.specs(code)
             static_records[code]=[spec['record'] for spec in specs]
             observed[code] = list(islice(_record_facts(code, static_records[code], zone=zones[code],
-                same_name=self.binding.assets.rows[code].get("alias") or code,
+                same_name=rule_name_id(self.binding.assets.rows, code),
                 inventory=members,dependencies=dependencies,controller='self',static=True), remaining))
             remaining -= len(observed[code])
             positions=[(ri,oi) for ri,record in enumerate(static_records[code]) for oi,_ in _record_outputs(record)]
@@ -1847,7 +1848,7 @@ class ConstructionLayerAdapter:
             }
         raw_facts=[fact for pairs in observed.values() for fact,_ in pairs]
         configured, unbound = _configuration_relations(view,static_records,dependencies,
-            {str(c):self.binding.assets.rows[c].get('alias') or c for c in codes},
+            {str(c):rule_name_id(self.binding.assets.rows, c) for c in codes},
             operation_facts,raw_facts,pools,None)
         for fact in configured:add_fact(fact)
         inspected = set(observed)

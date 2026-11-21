@@ -9,6 +9,7 @@ from copy import deepcopy
 import math
 
 from .build_contracts import DeckParts, digest
+from .card_identity import rule_name_id
 from .construction_logic import ConstructionLogic, LogicTag, reachable, select_main_axes, short
 from .proof_visibility import without_private_selection_key
 from .validation import ContractError, array, fields, member
@@ -318,7 +319,7 @@ def _skeleton_candidates(session, assets, binding, scopes):
         def add(code, quantity):
             zone = 'extra' if assets.rows[code]['type'] & EXTRA_TYPES else 'main'
             maximum = next((r['maximum'] for r in task.requirements if r['zone'] == zone and r['card_id'] == code), 3)
-            alias = assets.rows[code]['alias'] or code
+            alias = rule_name_id(assets.rows, code)
             limit = min(maximum, assets.limits.get(alias, 3))
             parts[zone][code] = max(parts[zone][code], min(quantity, limit))
         for codes in matches.values():

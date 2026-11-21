@@ -2,6 +2,7 @@
 
 from collections import Counter
 
+from .card_identity import rule_name_id
 from .validation import ContractError, array, fields, integer, text
 
 
@@ -46,7 +47,7 @@ def validate_main_deck(codes, rows, limits, *, allowed=None, strict_40=False):
             raise ContractError("card outside declared database/pool")
         if row["type"] & (0x40 | 0x2000 | 0x800000 | 0x4000000):
             raise ContractError("extra-deck card cannot be placed in main deck")
-        aliases[row["alias"] or code] += 1
+        aliases[rule_name_id(rows, code)] += 1
     if any(count > limits.get(code, 3) for code, count in aliases.items()):
         raise ContractError("deck aliases exceed combined copy limit")
 
@@ -68,7 +69,7 @@ def validate_deck_parts(deck, rows, limits, *, allowed=None):
             raise ContractError("card absent from declared OCG pool")
         if row["type"] & 0x4000:  # TYPE_TOKEN in the locked core common.h.
             raise ContractError("tokens cannot be listed in a deck")
-        counts[row["alias"] or code] += 1
+        counts[rule_name_id(rows, code)] += 1
     if any(count > limits.get(code, 3) for code, count in counts.items()):
         raise ContractError("combined main/extra/side alias limit exceeded")
     if any(not rows[code]["type"] & (0x40 | 0x2000 | 0x800000 | 0x4000000) for code in deck["extra"]):

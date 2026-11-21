@@ -12,7 +12,7 @@ from collections import Counter, defaultdict
 from .rule_references import effect_reference_requests
 
 EFFECT_RECORD_VERSION = "public-effect-records-v6"
-LUA_EFFECT_RECORD_VERSION = "public-effect-records-v23"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v24"
 _OPPONENT_SUMMON_RESPONSE = 'opponent_special_summon_effect_activation'
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (

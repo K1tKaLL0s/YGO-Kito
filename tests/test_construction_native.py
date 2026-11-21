@@ -108,6 +108,25 @@ class ConstructionNativeTests(unittest.TestCase):
                 self.assertEqual(run.call_count, 3)
                 self.assertEqual(next_run.counts["cache_hits"], 1)
 
+    def test_old_replay_rechecking_a_changed_script_keeps_both_receipts(self):
+        with TemporaryDirectory() as workspace:
+            assets = SimpleNamespace(workspace=Path(workspace), receipt={}, period_context={}, adapter_revision=5,
+                                     native_code_overrides={}, rows={2: {"alias": 1}})
+            task = SimpleNamespace(sha256="task")
+            deck = SimpleNamespace(to_dict=lambda: dict(main=[3]))
+            query = dict(card=3, seat=0, path=[])
+            former = dict(status="not_offered", offered=False, decisions=1, scripts=["c1.lua"])
+            checks = NativeRuleChecks(assets)
+            with patch("ygo_kito.construction_native.run_window", return_value=former) as run:
+                before = checks._ask(task, deck, query, "candidate", 100, None)
+                assets.native_code_overrides = {2: (2, 1)}
+                run.return_value = dict(former, scripts=["c2.lua"], native_code_projection=digest(assets.native_code_overrides))
+                current = checks._ask(task, deck, query, "candidate", 100, None)
+                self.assertNotEqual(current["receipt"], before["receipt"])
+                self.assertTrue((checks.directory / (before["receipt"] + ".json")).is_file())
+                self.assertEqual(checks._ask(task, deck, query, "candidate", 100, None), current)
+                self.assertEqual(run.call_count, 2)
+
     def test_prior_windows_do_not_spend_the_resumed_budget(self):
         with TemporaryDirectory() as workspace:
             assets = SimpleNamespace(workspace=Path(workspace), receipt={"core": "pinned"},
@@ -217,6 +236,31 @@ class ConstructionNativeTests(unittest.TestCase):
         self.assertEqual((plan["card"], plan["setup"], plan["opening"], plan["prepare_set"]),
                          (10, "response", [10], True))
         self.assertEqual(excluded[0]["card"], 3)
+
+    def test_cards_with_a_shared_rule_name_load_their_own_registered_script(self):
+        from ygo_kito.card_identity import native_card_identity, rule_name_id
+        from ygo_kito.deck_profile import validate_deck_parts
+
+        original = dict(alias=0, type=4, ot=1, name="Original", desc="Original effect")
+        alternative = dict(original, alias=1, name="Different printing", desc="Different effect")
+        artwork = dict(alternative, alias=2)
+        rows = {1: original, 2: alternative, 3: artwork}
+        self.assertEqual([native_card_identity(rows, c) for c in rows], [(1, 1), (2, 1), (2, 1)])
+        fillers = list(range(4, 41))
+        rows.update((c, dict(original)) for c in fillers)
+        valid = dict(main=[1, 2, 3, *fillers], extra=[], side=[])
+        validate_deck_parts(valid, rows, {})
+        with self.assertRaisesRegex(ContractError, "combined main/extra/side alias limit"):
+            validate_deck_parts(dict(valid, side=[3]), rows, {})
+        self.assertEqual(rule_name_id(rows, 3), 1)
+
+        lookup = []
+        def summarize(code):
+            lookup.append(code)
+            return dict(registrations=[])
+        assets = SimpleNamespace(effect_lua_source=SimpleNamespace(summarize_effects=summarize), rows=rows)
+        planned_queries(SimpleNamespace(main=(1, 2, 3), extra=(), side=()), assets)
+        self.assertEqual(lookup, [1, 2, 2])
 
     def test_masked_set_move_requires_a_matching_original_hand_entity(self):
         choice = dict(kind="set", refs=["p0.hand.0"], cards=[2])

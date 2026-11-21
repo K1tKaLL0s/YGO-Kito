@@ -8,6 +8,7 @@ from collections import Counter
 import math
 import time
 
+from .card_identity import rule_name_id
 from .validation import ContractError,array,fields,integer,member
 
 PREDICATES=('card_ids','setcode','type_all','race_any','attribute_any','level_between')
@@ -141,7 +142,7 @@ def _draft_priorities(task, assets, graph, catalog, pool, variables, skeleton):
         stock = {z: [] for z in ('main', 'extra')}
         seen = set()
         for code in (*skeleton.main, *skeleton.extra, *pool):
-            alias = assets.rows[code]['alias'] or code
+            alias = rule_name_id(assets.rows, code)
             if alias in seen:
                 continue
             seen.add(alias)
@@ -277,8 +278,11 @@ def solve_candidates(task,assets,base=None,*,max_edits=None,seconds=3.,candidate
         upper.append(hi)
 
     for zone in ZONES:constraint({i:1 for i,(z,c) in enumerate(variables) if z==zone},task.sizes[zone],task.sizes[zone])
-    for alias in sorted({assets.rows[c]['alias'] or c for z,c in variables}):
-        constraint({i:1 for i,(z,c) in enumerate(variables) if (assets.rows[c]['alias'] or c)==alias},0,assets.limits.get(alias,3))
+    name_counts = {}
+    for i, (_, code) in enumerate(variables):
+        name_counts.setdefault(rule_name_id(assets.rows, code), {})[i] = 1
+    for alias, terms in sorted(name_counts.items()):
+        constraint(terms, 0, assets.limits.get(alias, 3))
     for req in task.requirements:
         indices=[i for i,v in enumerate(variables) if v==(req['zone'],req['card_id'])]
         if not indices:

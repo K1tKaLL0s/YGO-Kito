@@ -14,6 +14,7 @@ from math import comb
 import re
 from time import perf_counter
 
+from .card_identity import native_card_identity
 from .validation import ContractError, integer, member, text
 
 
@@ -454,12 +455,13 @@ def relation_index(catalog, context, *, continuation=None, should_stop=None):
                               "unknown": list(profile.unknown), "text_sha256": profile.text_sha256}
         imported += 1
         row = catalog.assets.rows[code]
-        snapshot[code] = (row.get("desc"), row.get("alias"), row.get("type"))
+        identity = native_card_identity(catalog.assets.rows, code)
+        snapshot[code] = (row.get("desc"), row.get("alias"), row.get("type"), *identity)
         if any(r["unknown"] and not r["operations"] for r in records) or (profile.unknown and not records):
             unresolved_cards.append(code)
         zone = "extra" if row.get("type", 0) & (0x40 | 0x2000 | 0x800000 | 0x4000000) else "main"
         names = {c: min(group) for group in getattr(context, "same_name_groups", ()) for c in group}
-        same_name = names.get(code, row.get("alias") or code)
+        same_name = names.get(code, identity[1])
         imported_facts = _record_facts(code, records, zone=zone, same_name=same_name)
         material = _material_fact(code, profile, zone)
         for f, new_pools in chain(imported_facts, ((material, ()),) if material else ()):
@@ -2409,7 +2411,8 @@ def evaluate_relations(skeleton, context, index, *, previous=None, inventory_cou
         raise ContractError("same-name identities changed; rebuild the relation index")
     for code, snapshot in index.catalog_snapshot.items():
         row = index.catalog.assets.rows.get(code, {})
-        if snapshot != (row.get("desc"), row.get("alias"), row.get("type")):
+        if snapshot != (row.get("desc"), row.get("alias"), row.get("type"),
+                        *native_card_identity(index.catalog.assets.rows, code)):
             raise ContractError("catalog facts changed; rebuild the affected relation index")
     if hasattr(context, "task"):
         from .construction_layers import _inventory as validate_inventory

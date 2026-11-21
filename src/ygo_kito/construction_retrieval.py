@@ -2,6 +2,7 @@
 from .build_contracts import DeckParts
 from .build_pipeline import EXTRA_TYPES
 from .build_semantics import matches as public_matches
+from .card_identity import rule_name_id
 from .construction_inventory import InventoryDependencies, matches, qualified_effect_node, recall_dependencies
 from .effect_blocks import functional_tags
 from .effect_mechanisms import MechanismCatalog
@@ -78,7 +79,7 @@ def candidate_ids(task, assets, graph, *, base=None, scopes=(), cursor=0, limit=
             if public_matches(assets.rows[code], predicate):
                 selected.add(code)
     def capacity(zone=None):
-        identities = {assets.rows[c]['alias'] or c for c in selected if zone is None or
+        identities = {rule_name_id(assets.rows, c) for c in selected if zone is None or
             bool(assets.rows[c]['type'] & EXTRA_TYPES) == (zone == 'extra')}
         return sum(assets.limits.get(c, 3) for c in identities)
     for zone in ('main', 'extra', None):

@@ -11,7 +11,7 @@ import re
 from .validation import ContractError
 
 
-LUA_EFFECT_VERSION = "mycard-effect-registration-v17"
+LUA_EFFECT_VERSION = "mycard-effect-registration-v18"
 _TABLE, _CARD = object(), object()
 _CALLBACKS = {
     "SetCondition": "condition", "SetCost": "cost", "SetTarget": "target",
@@ -2221,9 +2221,14 @@ class LuaEffectSource:
         if excluded:
             if self._second_codes is None or "predicate" in query:
                 return None
-            original = ((code, row.get("alias") or code) for code, row in rows.items())
-            ids = sorted(code for code, canonical in original
-                         if canonical in excluded or self._second_codes.get(canonical) in excluded)
+            from .card_identity import native_card_identity
+
+            ids = []
+            for code in sorted(rows):
+                printed, name = native_card_identity(rows, code)
+                second = self._second_codes.get(printed)
+                if (bool({printed, second} & excluded) if second is not None else name in excluded):
+                    ids.append(code)
             if ids:
                 query["predicate"] = {"not": {"field": "card_ids", "value": ids}}
             else:

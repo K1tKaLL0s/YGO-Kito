@@ -30,3 +30,22 @@ def released_identities(rows, released):
     """Alternate same-name IDs inherit the identity's existing release record."""
     identities = {canonical_card_id(rows, c) for c in released}
     return {c for c in rows if canonical_card_id(rows, c) in identities}
+
+
+def native_card_identity(rows, code):
+    """Return the script's printed code and the core's permanent rule name."""
+    row = rows[code]
+    alias = row.get("alias") or code
+    if alias == code or row.get("type", 0) & 0x4000:
+        return alias, alias
+    # Period assets contain both printed rows. An incomplete catalog can
+    # retain its existing mapping until the source printing is available.
+    target = rows.get(alias, {})
+    if any(not isinstance(item.get(key), str) for item in (row, target) for key in ("name", "desc")):
+        return alias, alias
+    printed = canonical_card_id(rows, code)
+    return printed, rows[printed].get("alias") or printed
+
+
+def rule_name_id(rows, code):
+    return native_card_identity(rows, code)[1]

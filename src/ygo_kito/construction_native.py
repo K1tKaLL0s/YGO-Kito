@@ -8,6 +8,7 @@ from tempfile import TemporaryDirectory
 from time import perf_counter
 
 from .build_contracts import digest
+from .card_identity import native_card_identity
 from .construction_checkpoint import write_json
 from .construction_inventory import matches
 from .construction_native_evidence import (admission_effects, chain_links, replay_steps, selected_objects,
@@ -22,7 +23,7 @@ from .validation import ContractError
 
 
 NATIVE_RULE_VERSION = "construction-native-rules-v5"
-NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v3"
+NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v4"
 _QUERY_WORK_VERSION = "construction-native-query-work-v1"
 _DECISION_BUDGET = 100
 _DECK_DESTINATIONS = {2: "hand", 16: "grave"}
@@ -69,7 +70,8 @@ def planned_queries(deck, assets):
         can_normal = monster and 1 <= (row["level"] & 255) <= 4 and not row["type"] & 0x80
         setups = (["normal_summon"] if can_normal else []) + (
             ["hand"] if monster else ["spell"] if row["type"] & 2 else [])
-        script = lua.summarize_effects(row.get("alias") or code) if lua is not None else {"registrations": []}
+        script_code, _ = native_card_identity(assets.rows, code)
+        script = lua.summarize_effects(script_code) if lua is not None else {"registrations": []}
         source = {key: script[key] for key in ("file", "sha256", "helpers") if key in script}
         chain_responses = _set_chain_responses(row, script)
         if chain_responses:
@@ -158,8 +160,8 @@ def bind_observations(observed, records, rows, *, lua=None):
     if lua is not None:
         responses = []
         for code, effects in records.items():
-            alias = rows[code].get("alias") or code
-            for registration in lua.summarize_effects(alias)["registrations"]:
+            script_code, _ = native_card_identity(rows, code)
+            for registration in lua.summarize_effects(script_code)["registrations"]:
                 if registration.get("event_code") != 1027:  # EVENT_CHAINING
                     continue
                 location = registration.get("range")
@@ -538,6 +540,8 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
             request = engine.next_decision()
         events = list(engine.events)
         metadata = dict(period=engine.period_context, scripts=sorted(engine.loaded_scripts))
+        if hasattr(engine, "_catalog_assets"):
+            metadata["native_code_projection"] = digest(engine._catalog_assets.native_code_overrides)
     if status == "settled" and len(path) < len(query["path"]):
         status = "branch_unavailable"
     action_events = events[event_start:] if event_start is not None and status == "settled" else []
@@ -642,9 +646,31 @@ class NativeRuleChecks:
         return None
 
     def _binding(self, task, deck):
-        return dict(version=NATIVE_RULE_VERSION, task=task.sha256, deck=deck.to_dict(),
-                    resources=self.assets.receipt, period=self.assets.period_context,
-                    adapter=self.assets.adapter_revision)
+        inventory = deck.to_dict()
+        binding = dict(version=NATIVE_RULE_VERSION, task=task.sha256, deck=inventory,
+                       resources=self.assets.receipt, period=self.assets.period_context, adapter=self.assets.adapter_revision)
+        if projection := self._inventory_code_projection(inventory):
+            binding["native_code_projection"] = projection
+        return binding
+
+    def _inventory_code_projection(self, inventory):
+        overrides = getattr(self.assets, "native_code_overrides", {})
+        if not overrides:
+            return None
+        codes = {c for section in inventory.values() for c in section}
+        projected = {c: overrides[c] for c in sorted(codes & overrides.keys())}
+        return digest(projected) if projected else None
+
+    def _current_card_sources(self, result):
+        overrides = getattr(self.assets, "native_code_overrides", {})
+        if not overrides:
+            return True
+        if "native_code_projection" in result:
+            return result["native_code_projection"] == digest(overrides)
+        # Old raw replays may also have introduced a rule-name card during
+        # processing, even when it was absent from both starting decks.
+        former_scripts = {f"c{self.assets.rows[c]['alias']}.lua" for c in overrides}
+        return not former_scripts.intersection(result.get("scripts", ()))
 
     def _initial_work(self, task, deck, role, previous, queries):
         if previous is None:
@@ -660,6 +686,9 @@ class NativeRuleChecks:
             row = self._evidence(raw)
             identity = digest(row["query"])
             seen.add(identity)
+            if not self._current_card_sources(raw["result"]):
+                queue[identity] = row["query"]
+                continue
             history.append(key)
             self.counts["frontier_reads"] += 1
             self.counts["frontier_replayed_decisions"] += row["decisions"]
@@ -693,6 +722,9 @@ class NativeRuleChecks:
         deck_sha = digest(deck.to_dict())
         policy_sha = digest(policy) if policy is not None else None
         previous, frontier = self._frontier(task.sha256, deck_sha, role, policy_sha)
+        projection = self._inventory_code_projection(deck.to_dict())
+        if previous is not None and previous.get("native_code_projection") != projection:
+            previous = frontier = None
         if queries is not None:
             previous = frontier = None
         admission = (previous or {}).get("admission") or {}
@@ -761,6 +793,7 @@ class NativeRuleChecks:
             work.update(queue=list(queue), seen=sorted(seen), decisions=charged)
             result["continuation"] = work
         self.inventories.append(dict(role=role, task=task.sha256, deck=deck_sha, policy=policy_sha,
+                                     native_code_projection=projection,
                                      **{k: v for k, v in result.items() if k not in ("receipts", "continuation")},
                                      receipts=[r["receipt"] for r in receipts]))
         return result
@@ -771,6 +804,11 @@ class NativeRuleChecks:
         path = self.directory / (key + ".json")
         self.counts["requests"] += 1
         cached = self._read_receipt(key, binding)
+        if cached is not None and not self._current_card_sources(cached["result"]):
+            binding["runtime_code_projection"] = digest(self.assets.native_code_overrides)
+            key = digest(binding)
+            path = self.directory / (key + ".json")
+            cached = self._read_receipt(key, binding)
         if cached is not None and cached["result"]["status"] != "engine_error":
             result = cached["result"]
             self.counts["cache_hits"] += 1

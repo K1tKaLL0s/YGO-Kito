@@ -18,6 +18,7 @@ from torch.nn.utils import parametrize
 from .build_contracts import BuildTask, DeckParts, digest
 from .build_model import BuildEncoder, BuildRanker
 from .build_training import BuildTrainer
+from .card_identity import rule_name_id
 from .construction_binding import CatalogBindingAdapter, PublicFactTag
 from .construction_controller import ConstructionController
 from .construction_fill import existing_goal_verifier
@@ -44,7 +45,7 @@ def _available(assets, supplied):
         row = assets.rows.get(code)
         reason = ("catalog_missing" if row is None else "outside_period_pool" if allowed is not None and code not in allowed
                   else "non_ocg_or_token" if not row["ot"] & 1 or row["type"] & 0x4000
-                  else "forbidden" if assets.limits.get(row["alias"] or code, 3) <= 0 else None)
+                  else "forbidden" if assets.limits.get(rule_name_id(assets.rows, code), 3) <= 0 else None)
         if reason:
             rejected.append({"card_id": code, "reason": reason})
         else:
