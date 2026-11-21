@@ -21,8 +21,8 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def run_group_acceptance(root, state_root, run_id, recipe):
     identifier(run_id)
-    from .native_assets import verify_resources
-    verify_resources(Path(root).resolve())
+    from .native_assets import require_resource_receipt
+    require_resource_receipt(Path(root))
     recipe = validate_recipe(recipe)
     if recipe["max_updates"] != 2 or recipe["wall_seconds"] > 180 or recipe["stages_per_worker"] < 13:
         raise ContractError("group acceptance only runs two short CPU cycles within 180 active seconds per run")

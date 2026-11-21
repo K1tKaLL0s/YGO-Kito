@@ -65,9 +65,16 @@ def load_period_script_lock(lock_id: str) -> tuple[dict, dict]:
         raise EngineUnavailable("period script lock unavailable or invalid") from error
 
 
+def require_resource_receipt(root: Path) -> Path:
+    path = root / "engine-build/receipt.json"
+    if not path.is_file():
+        raise EngineUnavailable("native resources unavailable; run scripts/prepare_native_engine.py")
+    return path
+
+
 def verify_resources(root: Path) -> dict:
     try:
-        receipt = json.loads((root / "engine-build/receipt.json").read_text())
+        receipt = json.loads(require_resource_receipt(root).read_text())
         if receipt["source_lock_sha256"] != digest(LOCK_PATH):
             raise EngineUnavailable("native source lock changed; rebuild explicitly")
         if "period_script_lock" in receipt:

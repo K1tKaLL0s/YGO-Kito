@@ -219,6 +219,10 @@ def main(argv=None) -> int:
     args = parser().parse_args(argv)
     try:
         config = load_config(args.config)
+        if args.command in ("duel-train", "duel-train-cpu", "build-train", "build-train-cpu",
+                            "model-group-cpu", "lora-group-cpu"):
+            from .native_assets import require_resource_receipt
+            require_resource_receipt(args.root)
         match args.command:
             case "construction-intent-fit":
                 from .build_intent import DEFAULT_LEXICON, DomainLexicon
