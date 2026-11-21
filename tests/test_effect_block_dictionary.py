@@ -1008,6 +1008,55 @@ end
                     (f"card:{LUA_CARD_ID}", "latest_entry:fusion_summon")))
                 self.assertEqual(bool(fact.unknown), bool(old))
 
+    def test_hand_deck_grave_window_requires_the_opposing_card(self):
+        from ygo_kito.construction_relations import _needs, _record_facts
+
+        (self.directory / "constant.lua").write_text(CONSTANTS + "\nEFFECT_FLAG_DELAY=0x10000\n", encoding="utf-8")
+        printing = ('这个卡名的①的效果1回合只能使用1次。'
+                    '①：从手卡·卡组有卡被送去对方墓地的场合才能发动。这张卡从手卡特殊召唤。')
+        script = f"""
+local s,id=GetID()
+function s.initial_effect(c)
+    local e=Effect.CreateEffect(c)
+    e:SetDescription(aux.Stringid(id,0))
+    e:SetType(EFFECT_TYPE_FIELD+EFFECT_TYPE_TRIGGER_O)
+    e:SetCode(EVENT_TO_GRAVE)
+    e:SetRange(LOCATION_HAND)
+    e:SetProperty(EFFECT_FLAG_DELAY)
+    e:SetCountLimit(1,id)
+    e:SetCondition(s.sent)
+    e:SetTarget(s.check)
+    e:SetOperation(s.summon)
+    c:RegisterEffect(e)
+end
+function s.sent(e,tp,eg,ep,ev,re,r,rp)
+    return eg:IsExists(s.filter,1,nil,tp)
+end
+function s.filter(card,tp)
+    return card:IsControler(1-tp) and card:IsPreviousLocation(LOCATION_HAND+LOCATION_DECK)
+end
+function s.check(e,tp,eg,ep,ev,re,r,rp,chk)
+    if chk==0 then return Duel.GetLocationCount(tp,LOCATION_MZONE)>0
+        and e:GetHandler():IsCanBeSpecialSummoned(e,0,tp,false,false) end
+    Duel.SetOperationInfo(0,CATEGORY_SPECIAL_SUMMON,e:GetHandler(),1,0,0)
+end
+function s.summon(e,tp)
+    Duel.SpecialSummon(e:GetHandler(),0,tp,tp,false,false,POS_FACEUP)
+end
+"""
+        for old, new in (("", ""), ("IsControler(1-tp)", "IsControler(tp)"),
+                         ("LOCATION_HAND+LOCATION_DECK", "LOCATION_HAND+LOCATION_MZONE")):
+            with self.subTest(change=old):
+                catalog = MechanismCatalog(self.assets(script=script.replace(old, new), description=printing))
+                record, = catalog.effect_records(LUA_CARD_ID)
+                (fact, _), = _record_facts(LUA_CARD_ID, (record,), functional=True)
+                activation = [need.resource for need in _needs(fact.inputs) if need.resource.kind == "activation"]
+                self.assertEqual(bool(activation), not old)
+                if activation:
+                    self.assertEqual(activation[0].attributes, (f"card:{LUA_CARD_ID}",
+                                                               "hand_deck_sent_controller:opponent"))
+                self.assertEqual(bool(fact.unknown), bool(old))
+
     def test_own_attack_obligation_only_binds_the_single_card_registration(self):
         from tests.test_construction_functional_flow import fixture
         from ygo_kito.construction_quality import evaluate_functional_quality

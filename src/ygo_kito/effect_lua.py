@@ -11,7 +11,7 @@ import re
 from .validation import ContractError
 
 
-LUA_EFFECT_VERSION = "mycard-effect-registration-v11"
+LUA_EFFECT_VERSION = "mycard-effect-registration-v12"
 _TABLE, _CARD = object(), object()
 _CALLBACKS = {
     "SetCondition": "condition", "SetCost": "cost", "SetTarget": "target",
@@ -807,6 +807,126 @@ def _latest_fusion_revival(registration, functions, constants, tables):
                 condition_span=_span(condition), target_span=_span(target), operation_span=_span(operation))
 
 
+def _opposing_player(node, constants, player):
+    one, turn_player = _binary(node, "-")
+    return _integer_value(one, constants) == 1 and _name(turn_player) == player
+
+
+def _two_deck_mill_prefix(target, operation, constants, tables):
+    """Observe the completed first move before any optional follow-up."""
+    if target is None or operation is None:
+        return None
+    callbacks = (operation, target)
+    params = [tuple(map(_text, body.child_by_field_name("parameters").children_by_field_name("name")))
+              for body in callbacks]
+    if [len(names) for names in params] != [8, 9]:
+        return None
+    if any(len(set(names)) != len(names) or set(names) & (tables | {"Duel", "Card"}) for names in params):
+        return None
+    player = params[0][1]
+    local = {k: v for k, v in constants.items() if k not in params[0]}
+    steps = _children(operation.child_by_field_name("body"))
+    if len(steps) != 5 or not all(k in local for k in ("REASON_EFFECT", "CATEGORY_DECKDES", "PLAYER_ALL")):
+        return None
+    own, own_call = _local_value(steps[0])
+    other, other_call = _local_value(steps[1])
+    first_name, first = _call(own_call)
+    second_name, second = _call(other_call)
+    if (not own or not other or own == other or {own, other} & (set(params[0]) | tables | {"Duel", "Card"})
+            or first_name != second_name or first_name != "Duel.GetDecktopGroup" or len(first) != 2 or len(second) != 2):
+        return None
+    quantity = _integer_value(first[1], local)
+    if (not quantity or quantity < 0 or _name(first[0]) != player
+            or not _opposing_player(second[0], local, player) or _integer_value(second[1], local) != quantity
+            or not _literal_call(steps[2], local, f"{own}:Merge", other)
+            or not _literal_call(steps[3], local, "Duel.DisableShuffleCheck")
+            or steps[4].type != "if_statement"):
+        return None
+    guard = _conjuncts(steps[4].child_by_field_name("condition"))
+    send, zero = _binary(guard[0], "~=") if guard else (None, None)
+    if not (_integer_value(zero, local) == 0
+            and _literal_call(send, local, "Duel.SendtoGrave", own, local["REASON_EFFECT"])):
+        return None
+    local = {k: v for k, v in constants.items() if k not in params[1]}
+    player, chk = params[1][1], params[1][8]
+    steps = _children(target.child_by_field_name("body"))
+    if len(steps) != 2 or not all(k in local for k in ("CATEGORY_DECKDES", "PLAYER_ALL")):
+        return None
+    flag, zero = _binary(steps[0].child_by_field_name("condition"), "==")
+    checks = _conjuncts(_return_expression(_check_body(steps[0])))
+    if _name(flag) != chk or _integer_value(zero, local) != 0 or len(checks) != 2:
+        return None
+    seats = []
+    for node in checks:
+        name, args = _call(node)
+        if name != "Duel.IsPlayerCanDiscardDeck" or len(args) != 2 or _integer_value(args[1], local) != quantity:
+            return None
+        if _name(args[0]) == player:
+            seats.append("self")
+        elif _opposing_player(args[0], local, player):
+            seats.append("opponent")
+    if set(seats) == {"self", "opponent"} and _literal_call(steps[1], local, "Duel.SetOperationInfo",
+            0, local["CATEGORY_DECKDES"], None, 0, local["PLAYER_ALL"], quantity):
+        return dict(quantity=quantity, movement_span=_span(send), target_span=_span(target))
+    return None
+
+
+def _hand_deck_grave_trigger(registration, functions, constants, tables):
+    symbols = ("EVENT_TO_GRAVE", "EFFECT_TYPE_SINGLE", "EFFECT_TYPE_FIELD", "EFFECT_TYPE_TRIGGER_O",
+               "LOCATION_HAND", "LOCATION_DECK", "EFFECT_FLAG_DELAY")
+    if (not all(type(constants.get(key)) is int for key in symbols)
+            or registration.get("event_code") != constants["EVENT_TO_GRAVE"]
+            or registration.get("property") != constants["EFFECT_FLAG_DELAY"]
+            or registration.get("cost") or registration.get("value")):
+        return None
+    kind = registration.get("type")
+    optional, hand = constants["EFFECT_TYPE_TRIGGER_O"], constants["LOCATION_HAND"]
+    location_mask = hand | constants["LOCATION_DECK"]
+    _, callback, _ = _callback(registration, "condition", functions, tables)
+    if callback is None:
+        return None
+    params = tuple(map(_text, callback.child_by_field_name("parameters").children_by_field_name("name")))
+    if len(params) != 8 or len(set(params)) != len(params) or set(params) & (tables | set(symbols)):
+        return None
+    effect, player, sent_group = params[:3]
+    result = _return_expression(_children(callback.child_by_field_name("body")))
+    target = _callback(registration, "target", functions, tables)[1]
+    if kind == (constants["EFFECT_TYPE_SINGLE"] | optional) and registration.get("range") is None:
+        receiver = _member_call(result, "IsPreviousLocation", constants, location_mask)
+        if _literal_call(receiver, constants, f"{effect}:GetHandler"):
+            operation = _callback(registration, "operation", functions, tables)[1]
+            mill = _two_deck_mill_prefix(target, operation, constants, tables)
+            if mill is not None:
+                return dict(controller="self", condition_span=_span(callback), initial_mill=mill)
+        return None
+    if (kind != (constants["EFFECT_TYPE_FIELD"] | optional) or registration.get("range") != hand
+            or target is None or not _self_summon_zone_check(target, constants, tables)):
+        return None
+    name, args = _call(result)
+    if name != f"{sent_group}:IsExists" or len(args) != 4:
+        return None
+    selector = _name(args[0])
+    predicate = functions.get(selector)
+    if (predicate is None or selector.partition(".")[0] not in tables
+            or not _literal_call(result, constants, name, selector, 1, None, player)):
+        return None
+    params = tuple(map(_text, predicate.child_by_field_name("parameters").children_by_field_name("name")))
+    if len(params) != 2 or len(set(params)) != 2 or set(params) & (tables | set(symbols)):
+        return None
+    card, player = params
+    checks = _conjuncts(_return_expression(_children(predicate.child_by_field_name("body"))))
+    origins = [term for term in checks
+               if _literal_call(term, constants, f"{card}:IsPreviousLocation", location_mask)]
+    if len(checks) != 2 or len(origins) != 1:
+        return None
+    name, args = _call(next(term for term in checks if term != origins[0]))
+    if name in (f"{card}:IsControler", f"{card}:IsController") and len(args) == 1 and (
+            _opposing_player(args[0], constants, player)):
+        return dict(controller="opponent", condition_span=_span(callback),
+                    predicate_span=_span(predicate), target_span=_span(target))
+    return None
+
+
 def _summon_chain_response(registration, functions, constants, tables):
     """Identify a direct response to a negatable opponent summon effect."""
     window = {"type": "EFFECT_TYPE_QUICK_O", "event_code": "EVENT_CHAINING", "range": "LOCATION_MZONE"}
@@ -1590,7 +1710,7 @@ class LuaEffectSource:
 
     def summarize_effects(self, code, *, deck_send_indices=(), self_send_costs=False,
                           preselected_grave_summons=False, summon_locks=False, summon_chain_response=False,
-                          summon_grave_clone=False, latest_fusion_revival=False):
+                          summon_grave_clone=False, latest_fusion_revival=False, hand_deck_grave_trigger=False):
         """Report registrations and requested callback facts for printed effects."""
         filename = f"c{code}.lua"
         result = dict(status="missing_script", file=filename, registrations=[], unknown=[],
@@ -1671,7 +1791,7 @@ class LuaEffectSource:
         if result["unknown"]:
             result["status"] = "partial"
         if (deck_send_indices or self_send_costs or preselected_grave_summons or summon_locks
-                or summon_chain_response or summon_grave_clone or latest_fusion_revival):
+                or summon_chain_response or summon_grave_clone or latest_fusion_revival or hand_deck_grave_trigger):
             # Callback domains use unshadowed core constants and the card's namespace.
             # Deck filters can also read an unchanged local GetID result.
             tables = {name for name, value in constants.items()
@@ -1697,6 +1817,8 @@ class LuaEffectSource:
             revival_scope = latest_fusion_revival and not shadowed and not assignments["Effect"] and (
                 self._registered_callback_scope_known(result["unknown"], initial, initial_bindings,
                                                       fusion_procedure=True))
+            grave_window_scope = hand_deck_grave_trigger and not (cost_shadowed or assignments["Effect"]) and (
+                self._registered_callback_scope_known(result["unknown"], initial, initial_bindings))
             if preselected_grave_summons and result["status"] == "parsed":
                 for registration in result["registrations"]:
                     if _intrinsic_grave_summon_lock(registration, static_constants):
@@ -1716,6 +1838,10 @@ class LuaEffectSource:
                         registration["latest_fusion_revival"] = observed
                         if self._fusion_procedure and self._fusion_procedure not in result["helpers"]:
                             result["helpers"].append(self._fusion_procedure.copy())
+                if grave_window_scope:
+                    observed = _hand_deck_grave_trigger(registration, callbacks, static_constants, tables)
+                    if observed:
+                        registration["hand_deck_grave_trigger"] = observed
                 if payment_scope:
                     observed = _self_send_cost(registration, callbacks, static_constants, tables, cost_shadowed)
                     if observed["status"] == "resolved":

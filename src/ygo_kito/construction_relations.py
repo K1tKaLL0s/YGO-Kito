@@ -998,6 +998,8 @@ def _record_facts(code, records, *, zone="main", same_name=None, inventory=None,
             attributes = (f"card:{code}",)
             if latest_entry := trigger.get("latest_entry"):
                 attributes += (f"latest_entry:{latest_entry}",)
+            if sent_controller := trigger.get("hand_deck_controller"):
+                attributes += (f"hand_deck_sent_controller:{sent_controller}",)
             inputs.append(Need(ref + ":trigger", Resource("activation", zone=trigger.get("zone"),
                 origin=trigger.get("previous_zone"), reason=trigger.get("reason"), event=trigger["event"],
                 attributes=attributes), mode="presence"))
@@ -1063,6 +1065,8 @@ def _record_facts(code, records, *, zone="main", same_name=None, inventory=None,
             shared_unknown = tuple(sorted(set(unknown)))
             if static:
                 phase = (op or {}).get('phase')
+                if (op or {}).get("block_id") in record.get("confirmed_resolution_prefix", ()):
+                    shared_unknown = tuple(v for v in shared_unknown if v != "unparsed_resolution_or_restriction")
                 shared_unknown = tuple(f'catalog-text:{ref.removeprefix("catalog:")}:{gap}' for gap in shared_unknown
                     if gap != 'activation_condition_unparsed' or record['conditions'].get('source')
                     or phase not in ('continuous', 'rule', 'summon_procedure'))

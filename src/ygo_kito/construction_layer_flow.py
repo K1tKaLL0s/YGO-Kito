@@ -26,7 +26,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v46"
+NORMALIZATION_VERSION = "construction-function-normalization-v47"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -96,6 +96,27 @@ def _fusion_revival_route(code, available, records, dependencies, operation_fact
         if eligible is True:
             exits.append(Need(f"{key}:exit:{len(exits)}", fact.output, mode="presence"))
     return InputGroup("all", (InputGroup("any", tuple(entries)), InputGroup("any", tuple(exits)))) if exits else None
+
+
+def _hand_deck_grave_route(code, controller, available, operation_facts, facts, key):
+    """Bind a legal prior movement from the named player's hand or deck."""
+    if code not in available.main:
+        return None
+    sources = []
+    copies = available.main.count(code)
+    for (source, _, _), uid in operation_facts.items():
+        fact = facts[uid]
+        move = fact.transfer
+        if (move is None or move.destination != "grave" or move.origin not in ("hand", "deck")
+                or move.owner not in (controller, "both") or move.reason not in ("effect", "cost")):
+            continue
+        if source == code and (controller == "self" or copies < 2):
+            continue
+        if controller == "self" and (("main", code) not in (move.inventory or ())
+                and not (move.origin == "deck" and move.selection == "random")):
+            continue
+        sources.append(Need(f"{key}:send:{len(sources)}", fact.output, mode="presence"))
+    return InputGroup("any", tuple(sources)) if sources else None
 
 
 def _configuration_relations(available, records, dependencies, aliases, operation_facts, facts, pools, context,
@@ -173,6 +194,12 @@ def _configuration_relations(available, records, dependencies, aliases, operatio
                                 output_pool=pid if route else None, transfer=moved,
                                 conditions=("same card: fusion summon, then effect send from monster zone",),
                                 unknown=() if route else ("latest_fusion_send_route_unobserved",)))
+                            continue
+                        if controller := scoped["trigger"].get("hand_deck_controller"):
+                            route = _hand_deck_grave_route(code, controller, available, operation_facts, facts_by_use, key)
+                            added.append(RelationFact(key, key, resource, scoped["trigger"]["source"],
+                                code, "main", inputs=route, conditions=("sent from hand or deck: " + controller,),
+                                unknown=() if route else ("hand_deck_grave_route_unobserved",)))
                             continue
                         if event in (None, 'unknown'):
                             continue

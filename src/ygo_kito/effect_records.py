@@ -12,7 +12,7 @@ from collections import Counter, defaultdict
 from .rule_references import effect_reference_requests
 
 EFFECT_RECORD_VERSION = "public-effect-records-v6"
-LUA_EFFECT_RECORD_VERSION = "public-effect-records-v17"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v18"
 _OPPONENT_SUMMON_RESPONSE = 'opponent_special_summon_effect_activation'
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (
@@ -1683,12 +1683,16 @@ def _printed_fusion_revival(record):
             and ops[0].get("quantity") == 1 and ops[0]["source"] in ("这张卡特殊召唤", "这张卡从墓地特殊召唤"))
 
 
-def _bind_lua_fusion_revival(record, window, source):
+def _printed_turn_count_matches(record, window, source):
     limits = record["count_limits"]
     count = source.turn_count(window)
-    if (count is None or len(limits) != 1 or limits[0]["status"] != "known"
-            or limits[0]["scope"] != "same_name_this_effect" or limits[0]["maximum"] != count[0]
-            or limits[0]["period"] != "turn" or limits[0]["count_event"] != "use"):
+    return (count is not None and len(limits) == 1 and limits[0]["status"] == "known"
+            and limits[0]["scope"] == "same_name_this_effect" and limits[0]["maximum"] == count[0]
+            and limits[0]["period"] == "turn" and limits[0]["count_event"] == "use")
+
+
+def _bind_lua_fusion_revival(record, window, source):
+    if not _printed_turn_count_matches(record, window, source):
         return False
     observed = window["latest_fusion_revival"]
     record.setdefault("model_summary_observation", {}).update(
@@ -1699,6 +1703,46 @@ def _bind_lua_fusion_revival(record, window, source):
     record["conditions"].update(status="recognized", additional_conditions=condition)
     record["unknown"] = [gap for gap in record["unknown"] if gap != "additional_activation_conditions"]
     record["block_view"]["unknown"] = list(record["unknown"])
+    return True
+
+
+def _printed_hand_deck_grave_trigger(record):
+    if (record["scope"] != "monster" or record["costs"] or record["targets"]
+            or not record["operations"] or record["effect_index"] <= 0):
+        return None
+    text = record["conditions"]["source"]
+    first = record["operations"][0]
+    if (text == "从手卡·卡组有卡被送去对方墓地的场合" and first["kind"] == "special_summon"
+            and first["source"] == "这张卡从手卡特殊召唤" and first["from_zones"] == ["hand"]):
+        return "opponent"
+    if (text == "这张卡从手卡·卡组送去墓地的场合" and first["kind"] == "mill"
+            and first["from_zones"] == ["deck"] and first["owner"] == "both"):
+        return "self"
+    return None
+
+
+def _bind_lua_hand_deck_grave_trigger(record, window, source):
+    if not _printed_turn_count_matches(record, window, source):
+        return False
+    observed = window["hand_deck_grave_trigger"]
+    mill = observed.get("initial_mill")
+    first = record["operations"][0]
+    if mill is not None and not (
+            first.get("quantity") == mill["quantity"] and first.get("to_zone") == "grave"
+            and first.get("reason") == "effect" and first.get("random") is True):
+        return False
+    record.setdefault("model_summary_observation", {}).update(
+        trigger=deepcopy(record["trigger"]), conditions=deepcopy(record["conditions"]), unknown=list(record["unknown"]))
+    condition = "none_in_recognized_activation_clause"
+    controller = observed["controller"]
+    record["trigger"].update(event="sent_to_grave", reason=None, zone="hand" if controller == "opponent" else "grave",
+        hand_deck_controller=controller, additional_conditions=condition)
+    record["conditions"].update(status="recognized", additional_conditions=condition)
+    record["unknown"] = [gap for gap in record["unknown"] if gap not in (
+        "activation_condition", "additional_activation_conditions", "cost_or_condition")]
+    record["block_view"]["unknown"] = list(record["unknown"])
+    if mill is not None:
+        record["confirmed_resolution_prefix"] = [first["block_id"]]
     return True
 
 
@@ -1735,6 +1779,9 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
     revival_records = [record for record in records if _printed_fusion_revival(record)]
     if revival_records:
         script_options["latest_fusion_revival"] = True
+    grave_triggers = {r["effect_key"]: kind for r in records if (kind := _printed_hand_deck_grave_trigger(r))}
+    if grave_triggers:
+        script_options["hand_deck_grave_trigger"] = True
     script = source.summarize_effects(script_code, **script_options)
     _bind_lua_attack_obligation(records, script, source)
     groups = defaultdict(list)
@@ -1762,6 +1809,13 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
             record["lua_source"] = dict(source_info, alignment="matched", registrations=revival_windows,
                                         count_status="printed_limit_confirmed")
             continue
+        if index > 0 and indices[index] == 1 and record["effect_key"] in grave_triggers:
+            candidates = [window for window in windows if window.get("hand_deck_grave_trigger", {}).get("controller")
+                          == grave_triggers[record["effect_key"]]]
+            if len(candidates) == 1 and _bind_lua_hand_deck_grave_trigger(record, candidates[0], source):
+                record["lua_source"] = dict(source_info, alignment="matched", registrations=candidates,
+                                            count_status="printed_limit_confirmed")
+                continue
         scope = grave_summons.get(record["effect_key"])
         if scope is not None and indices[index] == 1:
             kind, query, legacy = scope
