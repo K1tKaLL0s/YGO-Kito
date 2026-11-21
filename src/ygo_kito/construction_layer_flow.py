@@ -26,7 +26,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v42"
+NORMALIZATION_VERSION = "construction-function-normalization-v43"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -1388,9 +1388,11 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                     semantic_gaps = list(record.get("unknown") or ("no_recognized_function",))
                 effect_details.append(dict(effect_id=eid, effect_ref=ref, status="evaluated" if covered and not semantic_gaps else "unknown",
                     record=deepcopy(record), gaps=semantic_gaps))
-                for cost in (*record.get("costs", ()), *record.get("non_activation_costs", ())):
+                deferred_draws = (op for op in record["operations"]
+                    if op.get("phase") == "delayed" and op["kind"] == "draw" and op.get("owner") == "opponent")
+                for burden in (*record.get("costs", ()), *record.get("non_activation_costs", ()), *deferred_draws):
                     facts["unpriced_effects"].append(dict(effect_id=eid, source_id=card_key,
-                        kind="unpriced_effect", resource=deepcopy(cost), evidence_refs=[ref]))
+                        kind="unpriced_effect", resource=deepcopy(burden), evidence_refs=[ref]))
                 for oi, operation in _record_outputs(record):
                     observed = operation if operation is not None else {"kind": "effect_adoption"}
                     semantics = _function_semantics(record, observed)

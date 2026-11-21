@@ -11,8 +11,8 @@ from collections import Counter, defaultdict
 
 from .rule_references import effect_reference_requests
 
-EFFECT_RECORD_VERSION = "public-effect-records-v5"
-LUA_EFFECT_RECORD_VERSION = "public-effect-records-v14"
+EFFECT_RECORD_VERSION = "public-effect-records-v6"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v15"
 _OPPONENT_SUMMON_RESPONSE = 'opponent_special_summon_effect_activation'
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (
@@ -1068,6 +1068,53 @@ def _scope_choices(record, row):
             record[category] = [deepcopy(v) for branch in branches.values() for v in branch[category]]
 
 
+def _bind_end_phase_position_and_draw(record):
+    """Resolve a fresh end-phase selection and its counted draw."""
+    if record["trigger"]["event"] != "card_activation" or record["costs"] or record["targets"]:
+        return
+    clause = re.fullmatch(
+        r"(?P<set>场上(?:的)?表侧表示(?:的)?怪兽全部变成里侧守备表示)[。.]"
+        r"(?P<timing>这个回合的结束阶段(?:时)?)[，,]"
+        r"(?P<flip>对方场上(?:的)?里侧守备表示(?:的)?怪兽全部变成表侧守备表示)[。.，,](?:那之后|然后)[，,]?"
+        r"(?P<draw>对方(?:从卡组)?抽出这个效果变成表侧守备表示的怪兽的数量(?:的卡)?)[。.]?",
+        record["source_text"])
+    if clause is None:
+        return
+    operations = record["operations"]
+    signatures = [(op["kind"], op["source"]) for op in operations]
+    expected = [("position", clause["set"]), ("position", clause["flip"]), ("draw", clause["draw"])]
+    if signatures not in (expected, expected + [("position", clause["draw"])]):
+        return
+    put_down, flip, draw = operations[:3]
+    repeated_ids = {op["block_id"] for op in operations[3:]}
+    record["model_summary_observation"] = {
+        key: deepcopy(record[key]) for key in ("resource_changes", "unknown")
+    }
+    delayed = dict(phase="delayed", timing="end_phase", timing_source=clause["timing"], owner="opponent")
+    changes = (
+        dict(owner="both", from_zones=["field"], subject="monsters_that_can_be_set"),
+        dict(delayed, face_down=False, subject="face_down_monsters", selection_timing="end_phase"),
+        dict(delayed, depends_on=[flip["block_id"]],
+             quantity_binding={"operation_ref": flip["block_id"], "measure": "successful_position_changes"}),
+    )
+    view = record["block_view"]
+    view["blocks"] = [block for block in view["blocks"] if block["block_id"] not in repeated_ids]
+    view["connectors"] = [connector for connector in view["connectors"] if connector.get("target") not in repeated_ids]
+    blocks = {block["block_id"]: block for block in view["blocks"]}
+    for operation, fields in zip((put_down, flip, draw), changes):
+        operation.update(fields)
+        operation.pop("duration", None)
+        block = blocks[operation["block_id"]]
+        block["phase"] = operation["phase"]
+        block["qualifiers"].update({key: deepcopy(value) for key, value in fields.items() if key != "phase"})
+        block["qualifiers"].pop("duration", None)
+    record["operations"] = [put_down, flip, draw]
+    record["resource_changes"] = [deepcopy(item) for item in record["operations"]]
+    record["unknown"] = [gap for gap in record["unknown"] if gap not in (
+        "resolution", "unparsed_resolution_or_restriction")]
+    view["unknown"] = list(record["unknown"])
+
+
 def effect_records(profile, *, semantic_version, row=None):
     """Return detached records; source/card identity is provenance, not a feature."""
     from .effect_blocks import activation_parts, block_view, record_operations
@@ -1184,6 +1231,7 @@ def effect_records(profile, *, semantic_version, row=None):
             record['resource_changes'] = [dict(item,phase='activation_payment') for item in record['costs']]
             record['resource_changes'] += deepcopy(record['non_activation_costs'])
             record['resource_changes'] += [dict(item) for item in record['operations'] if item.get('from_zones') or item.get('to_zone')]
+            _bind_end_phase_position_and_draw(record)
             record['knowledge']['operation_projection'] = record['block_view']['version']
             if pos>=first_prelude and prelude.strip() and not (
                     record['block_view']['blocks'] or record['block_view']['cost_blocks'] or record['block_view']['procedure_blocks']

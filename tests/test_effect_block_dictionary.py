@@ -81,6 +81,34 @@ class EffectBlockDictionaryTests(unittest.TestCase):
                 self.assertEqual(draw['depends_on'], [mill['block_id']])
                 self.assertTrue(all(op['reason'] == 'effect' for op in (mill, draw)))
 
+    def test_delayed_flip_draw_uses_end_phase_selection_and_successful_count(self):
+        from tests.test_construction_functional_flow import fixture
+
+        printing = ('场上的表侧表示怪兽全部变成里侧守备表示。'
+                    '这个回合的结束阶段，对方场上的里侧守备表示怪兽全部变成表侧守备表示，'
+                    '那之后，对方抽出这个效果变成表侧守备表示的怪兽的数量。')
+        catalog = synthetic(printing, type=0x10002)
+        record, = catalog.effect_records(1)
+        turned_down, flipped, draw = record["operations"]
+        self.assertEqual((turned_down["phase"], turned_down["owner"]), ("resolution", "both"))
+        self.assertEqual((flipped["phase"], flipped["selection_timing"], flipped["face_down"]),
+                         ("delayed", "end_phase", False))
+        self.assertEqual(flipped["owner"], "opponent")
+        self.assertEqual((draw["phase"], draw["timing"], draw["owner"]), ("delayed", "end_phase", "opponent"))
+        self.assertEqual(draw["depends_on"], [flipped["block_id"]])
+        self.assertEqual(draw["quantity_binding"], {
+            "operation_ref": flipped["block_id"], "measure": "successful_position_changes"})
+        self.assertEqual([block["phase"] for block in record["block_view"]["blocks"]],
+                         ["resolution", "delayed", "delayed"])
+        task, _, _, _, _, policy = fixture()
+        facts = normalize_function_uses(task, DeckParts((1,)), catalog, policy=policy)
+        self.assertEqual([item["semantics"]["kind"] for item in facts["use_details"].values()], ["position"])
+        burden, = facts["unpriced_effects"]
+        self.assertEqual(burden["resource"]["quantity_binding"], draw["quantity_binding"])
+        different = printing.replace("这个效果变成表侧守备表示的怪兽的数量", "1张卡")
+        other, = synthetic(different, type=0x10002).effect_records(1)
+        self.assertTrue(all("selection_timing" not in op for op in other["operations"]))
+
     def test_shuffle_reborn_grave_payment_and_delayed_banish_have_distinct_roles(self):
         code, other = 14816688, 28004531
         catalog = synthetic('这个卡名的②的效果1回合只能使用1次。\n'
