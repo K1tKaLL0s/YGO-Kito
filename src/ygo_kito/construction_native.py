@@ -330,8 +330,7 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
                       any(ref in own_cards and own_cards[ref].zone == actor_zone and known.get(ref) == subject
                           for ref in item["refs"])]
             descriptions = {r["description"] for r in query["registrations"] if r["description"] is not None}
-            source_offers = [item for item in offers if item["description"] in descriptions]
-            offers = source_offers or offers
+            offers.sort(key=lambda item: item["description"] not in descriptions)
             if active and not offers and msg == 11:
                 activation = dict(turn=request.observation.turn, phase=request.observation.phase, menu=menu)
                 status = "not_offered"
