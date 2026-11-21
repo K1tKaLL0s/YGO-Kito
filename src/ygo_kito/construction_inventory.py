@@ -546,7 +546,7 @@ class InventoryDependencies:
         query = self.resolve_query(query) if query else None
         if not query_supported(query):
             return None
-        if parsed:
+        if parsed and "lua_target" not in item:
             if item.get('quantity') is not None and item['quantity'] != parsed['minimum']:
                 return None
             return dict(parsed, query=query, source=item.get('source',''),
@@ -558,7 +558,7 @@ class InventoryDependencies:
             return None
         return dict(query=query, minimum=quantity, source=item.get('source',''), origin=origins[0] if len(origins)==1 else 'choice',origins=list(origins),
                     owner=item.get('owner','unknown'), category=category,
-                    **{k:item[k] for k in ('source_card_id','exclude_source_copy') if k in item})
+                    **{k:item[k] for k in ('source_card_id','exclude_source_copy','lua_target') if k in item})
 
     @lru_cache(maxsize=256)
     def intrinsic_restrictions(self, code):

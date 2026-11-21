@@ -26,7 +26,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v54"
+NORMALIZATION_VERSION = "construction-function-normalization-v55"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -282,11 +282,14 @@ def _configuration_relations(available, records, dependencies, aliases, operatio
                         if req is None:
                             unbound.add(need.need_id)
                             continue
-                        if req['owner'] == 'opponent' and category == 'targets':
-                            # Quantity belongs to the printed capability. It is
-                            # not a report that those opponent cards now exist.
-                            added.append(RelationFact(key, key, resource, 'printed opponent object range: '+req['source'],
-                                quantity=req['minimum'], conditions=('configuration purpose: opponent object range '+req['source'],)))
+                        lua_target = req.get('lua_target', {})
+                        if req['owner'] in ('opponent', 'either') and category == 'targets':
+                            # Legal input domain of the effect. The actual
+                            # object and face-up state belong to the duel.
+                            domain = req['owner'] + ' object range: ' + req['source']
+                            source = next(iter(lua_target), 'printed ' + domain)
+                            added.append(RelationFact(key, key, resource, source,
+                                quantity=req['minimum'], conditions=('configuration purpose: ' + domain,)))
                         elif req['owner'] == 'self':
                             stock = [target for target in sorted(present) if matches(rows[target], req['query'])
                                 and (req['origin'] not in ('hand', 'deck') or target in available.main)
@@ -298,13 +301,15 @@ def _configuration_relations(available, records, dependencies, aliases, operatio
                                 pid = key+':stock'
                                 members = tuple(('extra' if c in available.extra else 'main', c) for c in stock)
                                 pools[pid] = ResourcePool(pid, req['source'], inventory=members)
-                                added.append(RelationFact(key, key, resource, 'complete static selector: '+req['source'],
+                                source = next(iter(lua_target), 'complete static selector: ' + req['source'])
+                                added.append(RelationFact(key, key, resource, source,
                                     quantity=len(available.main)+len(available.extra), output_pool=pid))
                                 continue
                             for target in stock:
                                 section, pid = physical(target)
                                 target_key = key+':'+str(target)
-                                added.append(RelationFact(target_key, target_key, resource, 'complete static selector: '+req['source'],
+                                source = next(iter(lua_target), 'complete static selector: ' + req['source'])
+                                added.append(RelationFact(target_key, target_key, resource, source,
                                     target, section, output_pool=pid, inventory_scaled=True))
                         else:
                             unbound.add(need.need_id)

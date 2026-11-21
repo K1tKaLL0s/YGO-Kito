@@ -12,7 +12,7 @@ from collections import Counter, defaultdict
 from .rule_references import effect_reference_requests
 
 EFFECT_RECORD_VERSION = "public-effect-records-v6"
-LUA_EFFECT_RECORD_VERSION = "public-effect-records-v20"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v21"
 _OPPONENT_SUMMON_RESPONSE = 'opponent_special_summon_effect_activation'
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (
@@ -1927,6 +1927,38 @@ def _bind_lua_extra_summon_method(record, script, windows):
     return rule
 
 
+def _unfiltered_printed_field_target(record):
+    targets = record["targets"]
+    if not record.get("branch_records") and len(targets) == 1:
+        target, = targets
+        if target.get("zones") == ["field"] and target.get("selector") == "卡" and target.get("quantity") == 1:
+            return target
+    return None
+
+
+def _bind_lua_field_target(record, registrations):
+    target = _unfiltered_printed_field_target(record)
+    if target is None:
+        return
+    observations = [reg.get("unfiltered_field_target") for reg in registrations]
+    if not all(observations):
+        return
+    owners = {proof["owner"] for proof in observations}
+    if len(owners) != 1:
+        return
+    owner, = owners
+    if target.get("owner", "unknown") not in ("unknown", owner):
+        return
+    sources = {}
+    for reg, proof in zip(registrations, observations):
+        origin = reg["target"]["definition"]
+        start, end = origin["byte_span"]
+        ref = f"lua:target:{origin['file']}:{origin['sha256']}:{start}-{end}"
+        evidence = sources.setdefault(ref, dict(proof, origin=origin, registrations=[]))
+        evidence["registrations"].append(reg["registration_span"])
+    target.update(owner=owner, selector_query={"selector": "卡"}, lua_target=sources)
+
+
 def merge_lua_effect_sources(records, source, script_code, *, rows, same_printing=True):
     """Attach Lua evidence to the matching printed effect and refine supported facts."""
     if not records:
@@ -1969,6 +2001,8 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
     battle_revivals = {r["effect_key"]: race for r in records if (race := _printed_battle_group_revival(r))}
     if battle_revivals:
         script_options["battle_group_revival"] = True
+    if any(_unfiltered_printed_field_target(record) is not None for record in records):
+        script_options["field_targets"] = True
     script = source.summarize_effects(script_code, **script_options)
     _bind_lua_attack_obligation(records, script, source)
     groups = defaultdict(list)
@@ -2052,6 +2086,7 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
                 record["lua_source"]["summon_lock_alignment"] = "matched"
             continue
         record["lua_source"] = dict(source_info, alignment="matched", registrations=list(windows))
+        _bind_lua_field_target(record, windows)
         if restriction_bound:
             record["lua_source"]["summon_lock_alignment"] = "matched"
         if record.get("type_matched_deck_send"):

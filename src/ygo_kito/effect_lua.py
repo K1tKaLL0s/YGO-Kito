@@ -11,7 +11,7 @@ import re
 from .validation import ContractError
 
 
-LUA_EFFECT_VERSION = "mycard-effect-registration-v14"
+LUA_EFFECT_VERSION = "mycard-effect-registration-v15"
 _TABLE, _CARD = object(), object()
 _CALLBACKS = {
     "SetCondition": "condition", "SetCost": "cost", "SetTarget": "target",
@@ -1333,6 +1333,45 @@ def _processing_statements(statements, constants, player, effect=None):
         yield statement
 
 
+def _unfiltered_field_target(registration, functions, constants, tables):
+    """Read one identical unfiltered field selector at check and selection."""
+    _, body, _ = _callback(registration, "target", functions, tables)
+    field = constants.get("LOCATION_ONFIELD")
+    target_flag = constants.get("EFFECT_FLAG_CARD_TARGET")
+    flags = registration.get("property")
+    if (body is None or type(field) is not int or type(target_flag) is not int
+            or type(flags) is not int or not flags & target_flag):
+        return None
+    params = tuple(map(_text, body.child_by_field_name("parameters").children_by_field_name("name")))
+    if len(params) not in (9, 10) or len(set(params)) != len(params) or set(params) & (tables | {"Duel", "Card"}):
+        return None
+    effect, player, chk = params[0], params[1], params[8]
+    local = {key: value for key, value in constants.items() if key not in params}
+    steps = list(_processing_statements(_children(body.child_by_field_name("body")), local, player, effect))
+    if len(steps) not in (2, 3):
+        return None
+    *redirect, guard, choose = steps
+    group, selection = _local_value(choose)
+    if not group or group in set(params) | tables | local.keys() | {"Duel", "Card"}:
+        return None
+    left, right = _binary(guard.child_by_field_name("condition"), "==")
+    if _name(left) != chk or _integer_value(right, local) != 0:
+        return None
+    check = _return_expression(_check_body(guard))
+    for own, other, owner in ((field, field, "either"), (field, 0, "self"), (0, field, "opponent")):
+        if not (_literal_call(check, local, "Duel.IsExistingTarget", None, player, own, other, 1, None)
+                and _literal_call(selection, local, "Duel.SelectTarget", player, None, player, own, other, 1, 1, None)):
+            continue
+        if redirect:
+            redirect, = redirect
+            change = _return_expression(_check_body(redirect))
+            if (len(params) != 10 or owner != "either" or _name(redirect.child_by_field_name("condition")) != params[9]
+                    or not _literal_call(change, local, f"{params[9]}:IsOnField")):
+                return None
+        return dict(owner=owner, quantity=1, zone="field", check_span=_span(check), selection_span=_span(selection))
+    return None
+
+
 def _processing_steps(statements, constants, player, effect, depth=0):
     """Read the successful path through tail branches and early-return guards."""
     if depth == 8:
@@ -2049,7 +2088,7 @@ class LuaEffectSource:
     def summarize_effects(self, code, *, deck_send_indices=(), self_send_costs=False, summon_methods=False,
                           preselected_grave_summons=False, summon_locks=False, summon_chain_response=False,
                           summon_grave_clone=False, latest_fusion_revival=False, hand_deck_grave_trigger=False,
-                          battle_group_revival=False):
+                          battle_group_revival=False, field_targets=False):
         """Report registrations and requested callback facts for printed effects."""
         filename = f"c{code}.lua"
         result = dict(status="missing_script", file=filename, registrations=[], unknown=[],
@@ -2131,7 +2170,7 @@ class LuaEffectSource:
             result["status"] = "partial"
         if (deck_send_indices or self_send_costs or preselected_grave_summons or summon_locks
                 or summon_chain_response or summon_grave_clone or latest_fusion_revival or hand_deck_grave_trigger
-                or summon_methods or battle_group_revival):
+                or summon_methods or battle_group_revival or field_targets):
             # Callback domains use unshadowed core constants and the card's namespace.
             # Deck filters can also read an unchanged local GetID result.
             tables = {name for name, value in constants.items()
@@ -2168,12 +2207,19 @@ class LuaEffectSource:
                                    for node in _children(initial.child_by_field_name("body")))
             battle_scope = battle_group_revival and not (cost_shadowed or assignments["Effect"]) and (
                 self._registered_callback_scope_known(result["unknown"], initial, initial_bindings, synchro_procedure=True))
+            field_target_scope = field_targets and not (shadowed or assignments["Effect"]) and (
+                self._registered_callback_scope_known(result["unknown"], initial, initial_bindings,
+                    synchro_procedure=True, fusion_procedure=True))
             if preselected_grave_summons and result["status"] == "parsed":
                 for registration in result["registrations"]:
                     if _intrinsic_grave_summon_lock(registration, static_constants):
                         registration["intrinsic_grave_summon_lock"] = True
             for registration in result["registrations"]:
                 index = registration.get("description_index")
+                if field_target_scope:
+                    target = _unfiltered_field_target(registration, callbacks, static_constants, tables)
+                    if target is not None:
+                        registration["unfiltered_field_target"] = target
                 if extra_method_scope and len(params) == 1:
                     method = _extra_summon_method(registration, callbacks, static_constants, tables)
                     if method:

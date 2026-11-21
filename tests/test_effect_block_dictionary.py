@@ -894,6 +894,46 @@ end
                 self.assertEqual(recipient['query']['name_contains'], '同族')
                 self.assertEqual(record['costs'], [])
 
+    def test_matched_field_target_keeps_both_controller_masks_through_inventory(self):
+        from tests.test_construction_functional_flow import fixture
+
+        constants = self.directory / 'constant.lua'
+        constants.write_text(CONSTANTS + '\nLOCATION_ONFIELD=12\n', encoding='utf-8')
+        script = f"""
+function c{LUA_CARD_ID}.initial_effect(c)
+    local e=Effect.CreateEffect(c)
+    e:SetDescription(aux.Stringid({LUA_CARD_ID},0))
+    e:SetType(EFFECT_TYPE_IGNITION)
+    e:SetRange(LOCATION_MZONE)
+    e:SetProperty(EFFECT_FLAG_CARD_TARGET)
+    e:SetTarget(c{LUA_CARD_ID}.pick)
+    c:RegisterEffect(e)
+end
+function c{LUA_CARD_ID}.pick(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
+    if chkc then return chkc:IsOnField() end
+    if chk==0 then return Duel.IsExistingTarget(nil,tp,LOCATION_ONFIELD,LOCATION_ONFIELD,1,nil) end
+    local g=Duel.SelectTarget(tp,nil,tp,LOCATION_ONFIELD,LOCATION_ONFIELD,1,1,nil)
+end
+"""
+        printing = '①：自己主要阶段，以场上1张卡为对象才能发动。那张卡破坏。'
+        task, _, _, _, _, policy = fixture()
+        deck = DeckParts((LUA_CARD_ID,))
+        variants = ((script, True),
+                    (script.replace('LOCATION_ONFIELD,LOCATION_ONFIELD,1,1', 'LOCATION_ONFIELD,0,1,1'), False),
+                    (script.replace('1,1,nil)', '1,1,e:GetHandler())'), False))
+        for variant, supported in variants:
+            with self.subTest(supported=supported, changed=variant != script):
+                catalog = MechanismCatalog(self.assets(script=variant, description=printing))
+                record, = catalog.effect_records(LUA_CARD_ID)
+                self.assertEqual(record['lua_source']['alignment'], 'matched')
+                target, = record['targets']
+                self.assertEqual('lua_target' in target, supported)
+                facts = normalize_function_uses(task, deck, catalog, policy=policy)
+                self.assertEqual(any('unparsed_target' in key for key in facts['variables']), not supported)
+                if supported:
+                    self.assertEqual(target['owner'], 'either')
+                    self.assertEqual(len(target['lua_target']), 1)
+
     def test_cloned_summon_and_grave_windows_share_one_printed_use(self):
         from ygo_kito.construction_relations import _record_outputs
 
