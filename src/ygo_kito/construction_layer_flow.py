@@ -26,7 +26,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v50"
+NORMALIZATION_VERSION = "construction-function-normalization-v51"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -333,6 +333,8 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
                     if ("operation" not in r or r["operation"] == operation)
                     and r.get('choice') in (None, (operation or {}).get('choice'))]
             cost_rows = [r for r in rows if r["category"] == "costs"]
+            native = (dependencies.witnessed_processing(available, scoped_record, operation, inventory=deck)
+                      if projection == "resident" else None)
             checks = [dependencies.summon_trigger_check(code, scoped_record),
                       dependencies._check(available, cost_rows, distinct=True),
                       dependencies._check(available, [r for r in rows if r["category"] != "costs"])]
@@ -367,6 +369,11 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
             material = dependencies.summon_material_check(available, code)
             if material:
                 checks.append(material)
+            if native and native["status"] == "inventory_present":
+                checks.append(native)
+                if fact.transfer and fact.transfer.inventory is None:
+                    fact = replace(fact, transfer=replace(fact.transfer, selection="targeted",
+                        inventory=tuple(("main", c) for c in native["observed_card_ids"])))
             inventory_port = Resource("functional_inventory", attributes=(fact.fact_id,))
             inventory_key = fact.fact_id+":inventory"
             if not any(r["status"] == "missing" for r in checks):
@@ -375,12 +382,16 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
                 gaps += tuple("complete_selector:"+r.get("source", "") for r in effect_specs[ri]["unknown"]
                               if r['category'] not in ('costs', 'targets')
                               and ("operation" not in r or r["operation"] == operation)
+                              and not (native and operation is not None and r.get("operation") == operation)
                               and r.get('choice') in (None, (operation or {}).get('choice')))
                 rel_facts.append(RelationFact(inventory_key, inventory_key, inventory_port,
                     "complete candidate inventory", code, zone, unknown=gaps))
             inputs = InputGroup("all", tuple(v for v in (fact.inputs,
                 Need(inventory_key, inventory_port, mode="presence")) if v is not None))
             unknown = fact.unknown
+            if native and native["status"] == "inventory_present":
+                unknown = tuple(gap for gap in unknown if not gap.endswith(":activation_condition_unparsed"))
+                fact = replace(fact, conditions=(*fact.conditions, "native-receipt:" + native["receipt"]))
             if processing and processing['status'] == 'unknown':
                 unknown += (processing['reason'],)
             rel_facts.append(replace(fact, output=output, quantity=fact.quantity if fact.transfer else 1,
@@ -1130,6 +1141,9 @@ def functional_asset_version(catalog):
     lua = catalog.lua_binding
     if lua is not None:
         binding.update(lua=lua, records=LUA_EFFECT_RECORD_VERSION, revision=LUA_BLOCK_REVISION)
+    if getattr(catalog.assets, "period_context", None) is not None:
+        from .construction_native import NATIVE_RULE_VERSION
+        binding["native_rules"] = NATIVE_RULE_VERSION
     return digest(binding)
 
 
@@ -1352,6 +1366,22 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
     specs={int(c):tuple(value) for c,value in work['specifications'].items()}
     records={code:tuple(e['record'] for e in value[0]) for code,value in specs.items()}
     dependencies._specifications=specs
+    native_rules = getattr(catalog.assets, "construction_rules", None)
+    if native_rules is not None:
+        if "native_rule_evidence" not in work:
+            role = ("reference" if layer_evaluation is not None and layer_evaluation["axis"].get("logic") is None
+                    else "candidate")
+            native = native_rules.evaluate(task, deck, records, role=role, should_stop=should_stop)
+            if native["status"] == "paused":
+                facts["calculation_pending"] = work
+                return facts
+            work["native_rule_evidence"] = native
+        facts["native_rule_evidence"] = work["native_rule_evidence"]
+        for evidence in facts["native_rule_evidence"]["receipts"]:
+            identity = evidence["identity"]
+            if identity.get("status") == "bound":
+                key = (evidence["query"]["card"], identity["effect_key"], identity["block"])
+                dependencies.native_witnesses.setdefault(key, []).append(evidence)
 
     def condition(key, value, reason, evidence):
         # Comparisons verify the task and asset versions before joining this
@@ -1504,6 +1534,8 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                             continue
                         key = uid if scope == "resident" else uid + ":" + scope
                         checked = dependencies._check(view, costs, distinct=True) if costs else None
+                        native = (dependencies.witnessed_processing(view, scoped_record, operation, inventory=deck)
+                                  if scope == "resident" else None)
                         summon_trigger = dependencies.summon_trigger_check(code, scoped_record)
                         objects = dependencies._check(view, other)
                         material = dependencies.summon_material_check(view, code)
@@ -1570,6 +1602,8 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                                 processing=processing), relation=state)
                         if prerequisites:
                             facts["use_details"][key]["processing_prerequisites"] = deepcopy(prerequisites)
+                        if native is not None:
+                            facts["use_details"][key]["inventory_checks"]["native"] = deepcopy(native)
                         from .construction_theme import function_goal, primary_goal
                         facts['use_details'][key].update(operation_key=(code, ri, oi),
                             goal_id=digest(function_goal(record, operation)) if operation is not None else None)

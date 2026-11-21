@@ -407,6 +407,7 @@ class InventoryDependencies:
         self.requirement_limit = requirement_limit
         self._specifications = {}
         self._processing = {}
+        self.native_witnesses = {}
         self.set_names, self.registry_source = asset_archetype_names(catalog.assets)
         self.strict_names = bool(self.set_names or self.registry_source)
 
@@ -1038,6 +1039,47 @@ class InventoryDependencies:
                     best = value
         return dict(best, reason='complete_processing_different_base_types',
                     possible_send_card_ids=sorted(send_cards))
+
+    def witnessed_processing(self, deck, record, operation, *, inventory):
+        """Allocate the opening and chosen Deck card of one completed legal use."""
+        if (not operation or not self.native_witnesses or operation.get("from_zones") != ["deck"]
+                or operation.get("random") or operation.get("reason") != "effect"
+                or operation.get("owner") != "self"):
+            return None
+        witnesses = self.native_witnesses.get((record["card_id"], record["effect_key"], operation["block_id"]), ())
+        if (not witnesses or Counter(deck.main) != Counter(inventory.main)
+                or Counter(deck.extra) != Counter(inventory.extra)):
+            return None
+        req = self.item_requirement(operation, "operations")
+        stock_sha = digest(inventory.to_dict())
+        proven = []
+        for evidence in witnesses:
+            if (evidence["status"] != "settled" or evidence["deck_sha256"] != stock_sha
+                    or record.get("costs") or evidence["payments"]):
+                continue
+            query = evidence["query"]
+            moves = [move for move in evidence["moves"] if move["destination"] == operation.get("to_zone")
+                     and (req is None or matches(self.rows[move["card"]], req["query"]))]
+            if len(moves) != operation.get("quantity") or not moves:
+                continue
+            requirements = [dict(query={"predicate": {"field": "card_ids", "value": [code]}},
+                minimum=count, origin="hand", owner="self", source="native opening hand", category="source")
+                for code, count in Counter(query["opening"]).items()]
+            requirements.extend(dict(query={"predicate": {"field": "card_ids", "value": [code]}},
+                minimum=count, origin="deck", owner="self", source=operation["source"], category="operations",
+                operation=operation)
+                for code, count in Counter(move["card"] for move in moves).items())
+            allocation = self._check(deck, requirements, distinct=True)
+            if allocation["status"] == "inventory_present":
+                proven.append(dict(allocation=allocation, receipt=evidence["receipt"], moves=moves,
+                                   summons=query["summons"]))
+        if not proven:
+            return None
+        first = proven[0]
+        return dict(first["allocation"], reason="native_resolved_deck_selection", receipt=first["receipt"],
+                    observed_moves=first["moves"], prepared_summons=first["summons"],
+                    alternatives=[row["receipt"] for row in proven],
+                    observed_card_ids=sorted({move["card"] for row in proven for move in row["moves"]}))
 
     def processing_check(self, deck, record, selected=None, *, physical_inventory=None):
         """Allocate the printed complete processing, not a duel starting hand.

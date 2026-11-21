@@ -265,6 +265,7 @@ def main(argv=None):
                 basic_cb_enabled=args.basic_cb,
                 run_mode=args.mode,seconds=args.seconds,slice_seconds=args.slice_seconds,
                 max_iterations=args.iterations, _reference_cache=reference_cache)
+        write_json(args.output / "native-rule-checks.json", assets.construction_rules.report())
         if models.builder.updates != before:
             raise RuntimeError('construction unexpectedly changed model update counters')
         if models.device.type == 'cuda':

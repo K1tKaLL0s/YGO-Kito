@@ -673,7 +673,7 @@ def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, 
                 "variables", "constraints", "coverage", "scope_status"}
     optional = {"source_aliases", "extra_card_ids", "unpriced_effects", "unknown_scope",
                 "normalization_version", "coverage_details", "use_details", "fact_details", "hard_requirements", "side_contexts",
-                "theme_witnesses"}
+                "theme_witnesses", "native_rule_evidence"}
     if required - set(facts) or set(facts) - required - optional or facts["version"] != "construction-quality-facts-v1":
         raise ContractError("functional facts contract differs")
     axis = evaluation["axis"]
@@ -1000,6 +1000,8 @@ def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, 
         use_details=deepcopy(facts.get("use_details", {})), fact_details=deepcopy(facts.get("fact_details", {})),
         unpriced_effects=deepcopy(facts.get("unpriced_effects", [])),
         completion_results=completion_results, details=work['details'] if complete else None)
+    if "native_rule_evidence" in facts:
+        body["native_rule_evidence"] = deepcopy(facts["native_rule_evidence"])
     if component_score is not None:
         from .construction_score_bounds import _public
         body['score_components'] = [{k: v for k, v in component.items() if k != 'side'} for component in components]

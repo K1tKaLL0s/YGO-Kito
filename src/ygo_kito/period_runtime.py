@@ -166,6 +166,14 @@ class PeriodBuildAssets(BuildAssets):
             raise ContractError("period engine cannot use another physical resource root")
         return PeriodNativeEngine(self, **options)
 
+    @property
+    def construction_rules(self):
+        from .construction_native import NativeRuleChecks
+
+        if not hasattr(self, "_construction_rules"):
+            self._construction_rules = NativeRuleChecks(self)
+        return self._construction_rules
+
     def bind_rule_opponent(self, profile, opponent_id, *, seat=1, driver_version=LOCAL_DRIVERS[0], source=None):
         self.assert_integrity(physical=False)
         source = source or ("engineering_fixture" if self.evidence_source == "engineering_fixture" else "user_provided")
