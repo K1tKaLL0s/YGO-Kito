@@ -12,9 +12,28 @@ from ygo_kito.construction_native import (
     _resolved_deck_moves,
     planned_queries,
 )
+from ygo_kito.construction_native_evidence import chain_links
 
 
 class ConstructionNativeTests(unittest.TestCase):
+    def test_payment_and_resolution_stay_with_their_own_chain_link(self):
+        opened = dict(kind=70, player=0, public_card=1, description=16, link=1)
+        reply = dict(kind=70, player=1, public_card=2, description=32, link=2)
+        paid = dict(kind=100, player=0, amount=1000, lp=7000)
+        discarded = dict(kind=50, player=1, public_card=3, from_zone=2, to_zone=16, reason=0x80)
+        events = [opened, paid, dict(kind=71, link=1), reply, discarded, dict(kind=71, link=2),
+                  dict(kind=72, link=2), dict(kind=75, link=1), dict(kind=73, link=2),
+                  dict(kind=74), opened, dict(kind=71, link=1), dict(kind=72, link=1), dict(kind=73, link=1)]
+        first, response, later = chain_links(events)
+        self.assertEqual(first['payments'], [dict(paid, event_index=1)])
+        self.assertEqual(response['payments'], [dict(discarded, event_index=4)])
+        self.assertEqual(response['response_to'], opened)
+        self.assertFalse(first['resolved'])
+        self.assertTrue(response['resolved'])
+        self.assertTrue(later['resolved'])
+        self.assertEqual(later['payments'], [])
+        self.assertIsNone(later['response_to'])
+
     def test_movement_requires_selected_card_and_resolving_link(self):
         query = dict(card=1, seat=0, destinations=["hand", "grave"])
         activation = dict(kind=70, public_card=1, player=0, link=1, description=16)

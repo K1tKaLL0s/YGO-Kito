@@ -1040,57 +1040,101 @@ class InventoryDependencies:
         return dict(best, reason='complete_processing_different_base_types',
                     possible_send_card_ids=sorted(send_cards))
 
-    def witnessed_processing(self, deck, record, operation, *, inventory):
-        """Allocate the opening and chosen Deck card of one completed legal use."""
+    def _witnessed_payments(self, record, evidence):
+        """Bind every observed cost to this effect's printed payment slots."""
+        pending = list(evidence["payments"])
+        bound = []
+        for i, item in sorted(enumerate(record["costs"]), key=lambda pair: pair[1].get("subject") != "this_card"):
+            if item.get("owner") != "self":
+                return None
+            quantity = item.get("quantity")
+            if item.get("resource") == "lp":
+                if item.get("kind") != "pay_lp":
+                    return None
+                choices = [event for event in pending if event["kind"] == 100 and event["amount"] > 0
+                           and event["lp"] > 0 and (event["amount"] == quantity or quantity is None
+                           and (fraction := item.get("fraction")) is not None
+                           and event["amount"] == (event["lp"] + event["amount"]) * fraction[0] // fraction[1])]
+                if len(choices) != 1:
+                    return None
+                event, = choices
+                bound.append(dict(index=i, resource="lp", amount=event["amount"],
+                                  lp_before=event["lp"] + event["amount"], lp_after=event["lp"], events=choices))
+            else:
+                req = self.item_requirement(item, "costs")
+                # Both entities of a compound hand payment remain distinct,
+                # including the case where another copy has the same name.
+                if not req or req["origin"] != "hand" or item.get("to_zone") != "grave":
+                    return None
+                choices = [event for event in pending if event["kind"] == 50 and event["from_zone"] == 2
+                           and event["to_zone"] == 16 and event.get("public_card") in self.rows
+                           and matches(self.rows[event["public_card"]], req["query"])]
+                if len(choices) != req["minimum"] and item.get("subject") == "this_card" and choices and all(
+                        event["public_card"] == item["source_card_id"] for event in choices):
+                    choices = choices[:req["minimum"]]
+                if len(choices) != req["minimum"]:
+                    return None
+                bound.append(dict(index=i, resource="cards", card_ids=[e["public_card"] for e in choices], events=choices))
+            for event in choices:
+                pending.remove(event)
+        return sorted(bound, key=lambda row: row["index"]) if not pending else None
+
+    def witnessed_processing(self, deck, record, operation, *, inventory, scope="resident"):
+        """Reallocate one settled procedure in this configuration's own stock."""
         if not operation or not self.native_witnesses or operation.get("reason") != "effect":
             return None
         witnesses = self.native_witnesses.get((record["card_id"], record["effect_key"], operation["block_id"]), ())
-        if (not witnesses or Counter(deck.main) != Counter(inventory.main)
-                or Counter(deck.extra) != Counter(inventory.extra)):
-            return None
         req = self.item_requirement(operation, "operations")
-        stock_sha = digest(inventory.to_dict())
-        proven = []
+        checked = []
         for evidence in witnesses:
-            if (evidence["status"] != "settled" or evidence["deck_sha256"] != stock_sha
-                    or record.get("costs") or evidence["payments"]):
+            if not evidence.get("resolved") or not evidence.get("stock_prefix"):
                 continue
-            query = evidence["query"]
             identity = evidence["identity"]
-            field_use = "blocks" in identity
-            if field_use:
-                moves = [evidence["field_moves"][identity["blocks"].index(operation["block_id"])]]
-                deck_moves = evidence["prepared_moves"]
+            if "blocks" in identity:
+                index = identity["blocks"].index(operation["block_id"])
+                move = evidence["field_moves"][index]
+                all_moves = evidence["field_moves"]
             else:
-                if (operation.get("from_zones") != ["deck"] or operation.get("random")
-                        or operation.get("owner") != "self"):
-                    continue
-                moves = [move for move in evidence["moves"] if move["destination"] == operation.get("to_zone")]
-                deck_moves = moves
-            moves = [move for move in moves if req is None or matches(self.rows[move["card"]], req["query"])]
-            if len(moves) != operation.get("quantity") or not moves:
+                move, = all_moves = evidence["moves"]
+            if req is not None and not matches(self.rows[move["card"]], req["query"]):
                 continue
+            base = dict(receipt=evidence["receipt"], scope=scope, observed_moves=[move],
+                        prepared_summons=evidence["stock_prefix"]["summons"], chain=evidence["chain"],
+                        observed_target_ids=[m["card"] for m in all_moves if m["kind"] == "destroy"
+                                             and not m.get("response")] if "blocks" in identity else [],
+                        observed_card_ids=[move["card"]])
+            payments = self._witnessed_payments(record, evidence)
+            if payments is None:
+                checked.append(dict(base, status="unknown", reason="native_payment_unbound"))
+                continue
+            prefix = evidence["stock_prefix"]
             requirements = [dict(query={"predicate": {"field": "card_ids", "value": [code]}},
                 minimum=count, origin="hand", owner="self", source="native opening hand", category="source")
-                for code, count in Counter(query["opening"]).items()]
+                for code, count in Counter(prefix["opening"]).items()]
+            entries = Counter((m["origin"], m["card"]) for m in (*prefix["prepared_moves"], *all_moves)
+                              if not m.get("response") and m["origin"] in ("deck", "extra"))
             requirements.extend(dict(query={"predicate": {"field": "card_ids", "value": [code]}},
-                minimum=count, origin="deck", owner="self", source=operation["source"], category="operations",
-                operation=operation)
-                for code, count in Counter(move["card"] for move in deck_moves).items())
+                minimum=count, origin=origin, owner="self", source=operation["source"], category="source")
+                for (origin, code), count in entries.items())
+            occupancy = Counter()
+            for requirement in requirements:
+                occupancy["extra" if requirement["origin"] == "extra" else "main"] += requirement["minimum"]
+            if any(occupancy[z] > len(getattr(inventory, z)) for z in occupancy):
+                checked.append(dict(base, status="missing", reason="native_route_zone_capacity", occupancy=dict(occupancy)))
+                continue
             allocation = self._check(deck, requirements, distinct=True)
-            if allocation["status"] == "inventory_present":
-                proven.append(dict(allocation=allocation, receipt=evidence["receipt"], moves=moves,
-                                   summons=query["summons"], field_use=field_use,
-                                   targets=[m["card"] for m in evidence["field_moves"] if m["kind"] == "destroy"]))
-        if not proven:
-            return None
-        first = proven[0]
-        return dict(first["allocation"], reason=("native_resolved_field_processing" if first["field_use"] else
-                    "native_resolved_deck_selection"), receipt=first["receipt"],
-                    observed_moves=first["moves"], prepared_summons=first["summons"],
-                    alternatives=[row["receipt"] for row in proven],
-                    observed_target_ids=sorted({code for row in proven for code in row["targets"]}),
-                    observed_card_ids=sorted({move["card"] for row in proven for move in row["moves"]}))
+            # Link/phase/turn, the completed preparation and any external
+            # chain are the applicability of this proof. Other state, count
+            # and restriction checks remain on the normal relation.
+            supported = allocation["status"] == "inventory_present"
+            checked.append(dict(allocation, **base, payments=payments, occupancy=dict(occupancy),
+                reason=("native_resolved_response" if move.get("response") else
+                        "native_resolved_field_processing" if "blocks" in identity else
+                        "native_resolved_deck_selection") if supported else "native_route_stock_missing"))
+        if checked:
+            supported = [row for row in checked if row["status"] == "inventory_present"]
+            return dict((supported or checked)[0], alternatives=[row["receipt"] for row in supported])
+        return None
 
     def processing_check(self, deck, record, selected=None, *, physical_inventory=None):
         """Allocate the printed complete processing, not a duel starting hand.

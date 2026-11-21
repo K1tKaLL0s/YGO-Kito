@@ -26,7 +26,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v52"
+NORMALIZATION_VERSION = "construction-function-normalization-v53"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -120,7 +120,7 @@ def _hand_deck_grave_route(code, controller, available, operation_facts, facts, 
 
 
 def _configuration_relations(available, records, dependencies, aliases, operation_facts, facts, pools, context,
-                             *, compact_stock=False, fusion_proofs=None, native_targets=None):
+                             *, compact_stock=False, fusion_proofs=None, native_targets=None, native_payments=None):
     """Static applicability and complete stock, without a current duel state.
 
     An activation port describes a printed use, not an event witnessed in a
@@ -257,14 +257,26 @@ def _configuration_relations(available, records, dependencies, aliases, operatio
                                 added.append(RelationFact(actual, actual, resource, "native-receipt:" + proof["receipt"],
                                     target, section, output_pool=pool))
                             continue
-                        item = next((v for v in scoped[category] if v.get('source') in resource.attributes), None)
+                        if resource.kind == "payment" and (proof := (native_payments or {}).get(need.need_id)):
+                            payment, receipt = proof
+                            if payment["resource"] == "cards":
+                                for card, count in Counter(payment["card_ids"]).items():
+                                    section, pool = physical(card)
+                                    actual = key + ":" + str(card)
+                                    added.append(RelationFact(actual, actual, resource, "native-receipt:" + receipt,
+                                        card, section, quantity=count, output_pool=pool))
+                                continue
+                        # The slot index distinguishes costs with identical printed text.
+                        slot = need.need_id.rsplit(":", 1)[1]
+                        item = scoped[category][int(slot)] if slot.isdecimal() and int(slot) < len(scoped[category]) else None
                         if item is None:
                             unbound.add(need.need_id)
                             continue
                         if item.get('resource') == 'lp' and type(item.get('quantity')) is int:
                             pid = 'configuration:payable_lp'
                             pools.setdefault(pid, ResourcePool(pid, 'rule: initial 8000 LP; payment leaves positive LP', capacity=7999))
-                            added.append(RelationFact(key, key, resource, 'static LP payment capacity', quantity=7999, output_pool=pid))
+                            source = "native-receipt:" + proof[1] if proof else 'static LP payment capacity'
+                            added.append(RelationFact(key, key, resource, source, quantity=7999, output_pool=pid))
                             continue
                         req = dependencies.item_requirement(item, category)
                         if req is None:
@@ -321,7 +333,7 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
     """Evaluate one inventory projection; Side never enters the resident call."""
     from .construction_relations import evaluate_relations
     rel_facts, rel_pools, rel_uses, operation_facts = [], {}, [], {}
-    fusion_proofs, native_targets = {}, {}
+    fusion_proofs, native_targets, native_payments = {}, {}, {}
     present = set(available.main + available.extra)
     members = tuple(sorted({(zone, code) for zone in ("main", "extra") for code in getattr(available, zone)}))
     for code in sorted(present & records.keys()):
@@ -340,8 +352,8 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
                     if ("operation" not in r or r["operation"] == operation)
                     and r.get('choice') in (None, (operation or {}).get('choice'))]
             cost_rows = [r for r in rows if r["category"] == "costs"]
-            native = (dependencies.witnessed_processing(available, scoped_record, operation, inventory=deck)
-                      if projection == "resident" else None)
+            native = dependencies.witnessed_processing(available, scoped_record, operation, inventory=deck, scope=projection)
+            witnessed = native is not None and native["status"] == "inventory_present"
             checks = [dependencies.summon_trigger_check(code, scoped_record),
                       dependencies._check(available, cost_rows, distinct=True),
                       dependencies._check(available, [r for r in rows if r["category"] != "costs"])]
@@ -376,15 +388,20 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
             material = dependencies.summon_material_check(available, code)
             if material:
                 checks.append(material)
-            if native and native["status"] == "inventory_present":
+            if witnessed:
                 checks.append(native)
-                if len(scoped_record["targets"]) == 1 and native["observed_target_ids"]:
-                    for need in _needs(fact.inputs):
-                        if need.resource.kind == "target" and need.quantity == 1:
-                            native_targets[need.need_id] = native
-                if fact.transfer and fact.transfer.origin == "deck" and fact.transfer.inventory is None:
+                payments = {str(payment["index"]): payment for payment in native["payments"]}
+                for need in _needs(fact.inputs):
+                    if need.resource.kind == "target" and len(scoped_record["targets"]) == need.quantity == 1 and native["observed_target_ids"]:
+                        native_targets[need.need_id] = native
+                    if need.resource.kind == "payment" and (payment := payments.get(need.need_id.rsplit(":", 1)[1])):
+                        native_payments[need.need_id] = (payment, native["receipt"])
+                move, = native["observed_moves"]
+                if (fact.transfer and fact.transfer.origin == move["origin"] and fact.transfer.inventory is None
+                        and move["origin"] in ("deck", "extra") and not move.get("response")):
+                    section = "extra" if move["origin"] == "extra" else "main"
                     fact = replace(fact, transfer=replace(fact.transfer, selection="targeted",
-                        inventory=tuple(("main", c) for c in native["observed_card_ids"])))
+                        inventory=((section, move["card"]),)))
             inventory_port = Resource("functional_inventory", attributes=(fact.fact_id,))
             inventory_key = fact.fact_id+":inventory"
             if not any(r["status"] == "missing" for r in checks):
@@ -393,15 +410,17 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
                 gaps += tuple("complete_selector:"+r.get("source", "") for r in effect_specs[ri]["unknown"]
                               if r['category'] not in ('costs', 'targets')
                               and ("operation" not in r or r["operation"] == operation)
-                              and not (native and operation is not None and r.get("operation") == operation)
+                              and not (witnessed and operation is not None and r.get("operation") == operation)
                               and r.get('choice') in (None, (operation or {}).get('choice')))
                 rel_facts.append(RelationFact(inventory_key, inventory_key, inventory_port,
                     "complete candidate inventory", code, zone, unknown=gaps))
             inputs = InputGroup("all", tuple(v for v in (fact.inputs,
                 Need(inventory_key, inventory_port, mode="presence")) if v is not None))
             unknown = fact.unknown
-            if native and native["status"] == "inventory_present":
-                unknown = tuple(gap for gap in unknown if not gap.endswith(":activation_condition_unparsed"))
+            if witnessed:
+                trigger_known = scoped_record["trigger"].get("event") not in (None, "unknown")
+                if not native["chain"]["response_to"] or trigger_known:
+                    unknown = tuple(gap for gap in unknown if not gap.endswith(":activation_condition_unparsed"))
                 fact = replace(fact, conditions=(*fact.conditions, "native-receipt:" + native["receipt"]))
             if processing and processing['status'] == 'unknown':
                 unknown += (processing['reason'],)
@@ -415,7 +434,7 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
     compact_stock = context is None and len(available.main) <= len(deck.main) and len(available.extra) <= len(deck.extra)
     configured, unbound = _configuration_relations(available, records, dependencies, aliases,
         operation_facts, rel_facts, rel_pools, context, compact_stock=compact_stock, fusion_proofs=fusion_proofs,
-        native_targets=native_targets)
+        native_targets=native_targets, native_payments=native_payments)
     rel_facts = [_bind_unparsed_requirements(f, unbound) for f in rel_facts]
     rel_facts.extend(configured)
     if context is not None:
@@ -1154,8 +1173,8 @@ def functional_asset_version(catalog):
     if lua is not None:
         binding.update(lua=lua, records=LUA_EFFECT_RECORD_VERSION, revision=LUA_BLOCK_REVISION)
     if getattr(catalog.assets, "period_context", None) is not None:
-        from .construction_native import NATIVE_RULE_VERSION
-        binding["native_rules"] = NATIVE_RULE_VERSION
+        from .construction_native import NATIVE_EVIDENCE_VERSION, NATIVE_RULE_VERSION
+        binding.update(native_rules=NATIVE_RULE_VERSION, native_evidence=NATIVE_EVIDENCE_VERSION)
     return digest(binding)
 
 
@@ -1391,10 +1410,11 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
     dependencies._specifications=specs
     if native_rules is not None:
         from .construction_native import bind_observations
-        facts["native_rule_evidence"] = bind_observations(work["native_rule_evidence"], records, catalog.assets.rows)
+        facts["native_rule_evidence"] = bind_observations(work["native_rule_evidence"], records, catalog.assets.rows,
+            lua=catalog.assets.effect_lua_source)
         for evidence in facts["native_rule_evidence"]["receipts"]:
             identity = evidence["identity"]
-            if identity.get("status") == "bound":
+            if evidence["rule_status"] == "bound":
                 for block in identity.get("blocks") or (identity["block"],):
                     key = (evidence["query"]["card"], identity["effect_key"], block)
                     dependencies.native_witnesses.setdefault(key, []).append(evidence)
@@ -1451,7 +1471,7 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
         relation,operation_facts=_functional_relations(deck,view,records,aliases,extra_ids,context,budget,
             dependencies,config,continuation=active['work'] if active and active['scope']==scope else None,
             should_stop=should_stop, previous_projections=reuse['projections'] if reuse is not None else None,
-            projection='resident' if scope == 'resident' else 'side')
+            projection=scope)
         if relation.get('calculation_pending'):
             work['active']=dict(scope=scope,work=relation['calculation_pending'])
             facts['calculation_pending']=work
@@ -1553,8 +1573,7 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                             continue
                         key = uid if scope == "resident" else uid + ":" + scope
                         checked = dependencies._check(view, costs, distinct=True) if costs else None
-                        native = (dependencies.witnessed_processing(view, scoped_record, operation, inventory=deck)
-                                  if scope == "resident" else None)
+                        native = dependencies.witnessed_processing(view, scoped_record, operation, inventory=deck, scope=scope)
                         summon_trigger = dependencies.summon_trigger_check(code, scoped_record)
                         objects = dependencies._check(view, other)
                         material = dependencies.summon_material_check(view, code)
