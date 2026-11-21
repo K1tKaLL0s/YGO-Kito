@@ -74,3 +74,15 @@ def validate_deck_parts(deck, rows, limits, *, allowed=None):
         raise ContractError("combined main/extra/side alias limit exceeded")
     if any(not rows[code]["type"] & (0x40 | 0x2000 | 0x800000 | 0x4000000) for code in deck["extra"]):
         raise ContractError("non-extra-deck card in extra deck")
+
+
+def validate_sideboard_stock(original, proposal):
+    """Check the physical invariants shared by construction and BO3."""
+    from .build_contracts import DeckParts, ZONES
+
+    if not isinstance(original, DeckParts) or not isinstance(proposal, DeckParts):
+        raise ContractError("sideboarding requires complete typed own deck parts")
+    if any(len(getattr(original, zone)) != len(getattr(proposal, zone)) for zone in ZONES):
+        raise ContractError("sideboarding must preserve each original section count")
+    if Counter(original.main + original.extra + original.side) != Counter(proposal.main + proposal.extra + proposal.side):
+        raise ContractError("sideboarding must preserve the exact raw-card multiset")

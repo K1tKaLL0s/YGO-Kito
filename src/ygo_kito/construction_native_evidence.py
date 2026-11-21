@@ -90,6 +90,8 @@ def witnessed_rule(receipt):
                      selection=receipt["path"])
     if receipt["stock_prefix"].get("set_preparation"):
         condition["set_preparation"] = receipt["stock_prefix"]["set_preparation"]
+    if receipt["query"].get("side_swaps"):
+        condition["side_swaps"] = receipt["query"]["side_swaps"]
     if receipt["field_moves"] and (attempt := receipt["field_moves"][0].get("summon_attempt")):
         condition["summon_attempt"] = attempt
     proposition = dict(resources=receipt.get("rule_resources"), card=receipt["query"]["card"], effect=identity["effect_key"],

@@ -7,13 +7,15 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import perf_counter
 
-from .build_contracts import digest
+from .build_contracts import DeckParts, digest
+from .build_pipeline import EXTRA_TYPES
 from .card_identity import native_card_identity
 from .construction_checkpoint import write_json
 from .construction_inventory import matches
 from .construction_native_evidence import (SUMMON_RESPONSE_EVENTS, admission_effects, chain_links,
     pending_summons, replay_steps, selected_objects, stock_prefix, window_link, window_priority, witnessed_rule)
 from .contracts import ActionSelection
+from .deck_profile import validate_sideboard_stock
 from .effect_duel import choose_effect_duel_action
 from .effect_records import operation_record
 from .extra_routes import engine_for_goal
@@ -23,7 +25,7 @@ from .validation import ContractError
 
 
 NATIVE_RULE_VERSION = "construction-native-rules-v5"
-NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v5"
+NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v6"
 _QUERY_WORK_VERSION = "construction-native-query-work-v1"
 _DECISION_BUDGET = 100
 _DECK_DESTINATIONS = {2: "hand", 16: "grave"}
@@ -64,12 +66,11 @@ def _registration_choices(script, setup, *, response_event=1027):
     return choices
 
 
-def planned_queries(deck, assets):
-    """Plan reachable starts using physical stock and registration metadata only."""
+def _main_queries(deck, assets, subject=None):
     planned, excluded = [], []
     lua = assets.effect_lua_source
     counts = Counter(deck.main)
-    for code in sorted(counts):
+    for code in sorted(counts) if subject is None else (subject,):
         row = assets.rows[code]
         monster = bool(row["type"] & 1)
         can_normal = monster and 1 <= (row["level"] & 255) <= 4 and not row["type"] & 0x80
@@ -109,6 +110,40 @@ def planned_queries(deck, assets):
                 field_followup=field, registration_source=source, destinations=["grave", "hand"],
                 priority=0 if registrations and setup == "normal_summon" else 1 if registrations else 2,
                 seed=7, path=[]))
+    return planned, excluded
+
+
+def _side_inventory(deck, swaps):
+    if not swaps:
+        return deck
+    parts = deck.to_dict()
+    for move in swaps:
+        incoming, outgoing, zone = (move[key] for key in ("incoming", "outgoing", "zone"))
+        if zone not in ("main", "extra") or incoming not in parts["side"] or outgoing not in parts[zone]:
+            raise ContractError("a native preparation requires an actual side and active-deck copy")
+        parts["side"][parts["side"].index(incoming)] = outgoing
+        parts[zone][parts[zone].index(outgoing)] = incoming
+    proposal = DeckParts.from_dict(parts)
+    validate_sideboard_stock(deck, proposal)
+    return proposal
+
+
+def planned_queries(deck, assets, *, include_side=True):
+    """Plan reachable starts from the resident stock and legal Side exchanges."""
+    planned, excluded = _main_queries(deck, assets)
+    if include_side and isinstance(deck, DeckParts):
+        for incoming in sorted(set(deck.side)):
+            if assets.rows[incoming]["type"] & EXTRA_TYPES:
+                excluded.append(dict(card=incoming, zone="side", reason="needs_extra_preparation"))
+                continue
+            outgoing = next((card for card in deck.main if card != incoming), None)
+            if outgoing is None:
+                continue
+            swaps = [dict(zone="main", incoming=incoming, outgoing=outgoing)]
+            active = _side_inventory(deck, swaps)
+            queries, skipped = _main_queries(active, assets, subject=incoming)
+            planned.extend(dict(query, side_swaps=swaps) for query in queries)
+            excluded.extend(dict(item, zone="side") for item in skipped)
     return sorted(planned, key=lambda q: (q["priority"], q["card"], q["setup"])), excluded
 
 
@@ -432,7 +467,8 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
     waiting_to_set = query.get("prepare_set", False)
     source_summoned = False
     public = {code: {"type": row["type"], "attack": row.get("atk", 0)} for code, row in assets.rows.items()}
-    with engine_for_goal(assets, deck, query["seed"], selection_key=selection_key,
+    active_deck = _side_inventory(deck, query.get("side_swaps"))
+    with engine_for_goal(assets, active_deck, query["seed"], selection_key=selection_key,
                          cb_opening_hand=tuple(query["opening"])) as engine:
         if counters is not None:
             counters["sessions"] += 1
@@ -726,9 +762,9 @@ class NativeRuleChecks:
         former_scripts = {f"c{self.assets.rows[c]['alias']}.lua" for c in overrides}
         return not former_scripts.intersection(result.get("scripts", ()))
 
-    def _initial_work(self, task, deck, role, previous, queries):
+    def _initial_work(self, task, deck, role, previous, queries, *, include_side):
         if previous is None:
-            initial, excluded = planned_queries(deck, self.assets) if queries is None else (list(queries), [])
+            initial, excluded = planned_queries(deck, self.assets, include_side=include_side) if queries is None else (list(queries), [])
             return dict(initial=initial, excluded=excluded, queue=list(initial),
                         seen=sorted({digest(q) for q in initial}), receipts=[], history=[])
         binding = self._binding(task, deck)
@@ -738,6 +774,8 @@ class NativeRuleChecks:
             if raw is None:
                 raise ContractError("native query frontier replay is missing or belongs to different inputs: " + str(key))
             row = self._evidence(raw)
+            if not include_side and row["query"].get("side_swaps"):
+                continue
             identity = digest(row["query"])
             seen.add(identity)
             if not self._current_card_sources(raw["result"]):
@@ -753,21 +791,24 @@ class NativeRuleChecks:
             else:
                 receipts.append(row)
         for query in [*(item["query"] for item in previous["pending"]), *previous.get("additional_windows", ())]:
+            if not include_side and query.get("side_swaps"):
+                continue
             identity = digest(query)
             if identity not in seen:
                 queue[identity] = query
             seen.add(identity)
         excluded = previous.get("excluded", [])
         if getattr(self.assets, "effect_lua_source", None) is not None:
-            planned, _ = planned_queries(deck, self.assets)
-            prepared = [q for q in planned if q.get("prepare_set")]
+            planned, current_excluded = planned_queries(deck, self.assets, include_side=include_side)
+            prepared = [q for q in planned if q.get("prepare_set") or q.get("side_swaps")]
             for query in prepared:
                 identity = digest(query)
                 if identity not in seen:
                     queue[identity] = query
                     seen.add(identity)
-            prepared_cards = {q["card"] for q in prepared}
-            excluded = [row for row in excluded if row["card"] not in prepared_cards]
+            prepared_cards = {q["card"] for q in prepared if not q.get("side_swaps")}
+            excluded = [row for row in excluded if row["card"] not in prepared_cards and row.get("zone") != "side"]
+            excluded.extend(row for row in current_excluded if row.get("zone") == "side")
         initial = [*(r["query"] for r in receipts), *queue.values()]
         return dict(initial=initial, excluded=excluded, queue=list(queue.values()),
                     seen=sorted(seen), receipts=receipts, history=history)
@@ -781,6 +822,8 @@ class NativeRuleChecks:
             previous = frontier = None
         if queries is not None:
             previous = frontier = None
+        required_scope = (policy or {}).get("quality", {}).get("required_scope")
+        include_side = required_scope is None or "side" in required_scope
         admission = (previous or {}).get("admission") or {}
         if admission.get("policy") != policy_sha:
             admission = {}
@@ -793,7 +836,7 @@ class NativeRuleChecks:
                 raise ContractError("native query continuation belongs to different inputs")
             work = deepcopy(continuation)
         else:
-            work = self._initial_work(task, deck, role, previous, queries)
+            work = self._initial_work(task, deck, role, previous, queries, include_side=include_side)
             work.update(version=_QUERY_WORK_VERSION, binding=work_binding, decisions=0)
         receipts, charged, seen = work["receipts"], work["decisions"], set(work["seen"])
         priority = lambda q: window_priority(q, admission, role)

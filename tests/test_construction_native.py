@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from ygo_kito.build_contracts import digest
+from ygo_kito.build_contracts import DeckParts, digest
 from ygo_kito.validation import ContractError
 
 from ygo_kito.construction_native import (
@@ -14,6 +14,7 @@ from ygo_kito.construction_native import (
     _choice_tokens,
     _field_moves,
     _resolved_deck_moves,
+    _side_inventory,
     _summon_response_moves,
     planned_queries,
 )
@@ -237,6 +238,20 @@ class ConstructionNativeTests(unittest.TestCase):
         self.assertEqual((plan["card"], plan["setup"], plan["opening"], plan["prepare_set"]),
                          (10, "response", [10], True))
         self.assertEqual(excluded[0]["card"], 3)
+
+    def test_side_windows_bind_physical_exchanges_and_resident_only_skips_them(self):
+        deck = DeckParts((1, 2, 2), (), (3, 3))
+        assets = SimpleNamespace(effect_lua_source=None, rows={c: dict(type=1, level=4) for c in (1, 2, 3)})
+        plans, _ = planned_queries(deck, assets)
+        side_plans = [q for q in plans if q.get("side_swaps")]
+        self.assertEqual({q["card"] for q in side_plans}, {3})
+        swap = side_plans[0]["side_swaps"]
+        self.assertEqual(_side_inventory(deck, swap), DeckParts((3, 2, 2), (), (1, 3)))
+        self.assertEqual(deck, DeckParts((1, 2, 2), (), (3, 3)))
+        resident, _ = planned_queries(deck, assets, include_side=False)
+        self.assertFalse(any(q.get("side_swaps") for q in resident))
+        with self.assertRaisesRegex(ContractError, "actual side and active-deck copy"):
+            _side_inventory(deck, swap + swap)
 
     def test_cards_with_a_shared_rule_name_load_their_own_registered_script(self):
         from ygo_kito.card_identity import native_card_identity, rule_name_id

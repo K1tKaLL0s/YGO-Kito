@@ -1090,6 +1090,9 @@ class InventoryDependencies:
         for evidence in witnesses:
             if not evidence.get("resolved") or not evidence.get("stock_prefix"):
                 continue
+            if evidence.get("query", {}).get("side_swaps") and (
+                    scope == "resident" or digest(inventory.to_dict()) != evidence["deck_sha256"]):
+                continue
             identity = evidence["identity"]
             if "blocks" in identity:
                 index = identity["blocks"].index(operation["block_id"])

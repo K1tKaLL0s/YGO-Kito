@@ -12,7 +12,8 @@ import time
 
 from .agent_registry import identifier
 from .build_contracts import BuildTask, DeckParts, ZONES, digest
-from .deck_profile import validate_deck_parts
+from .card_identity import rule_name_id
+from .deck_profile import validate_deck_parts, validate_sideboard_stock
 from .validation import ContractError, array, fields, integer
 
 PUBLIC_GAME_FIELDS = ("game_number", "selected_first_participant_id", "actual_first_participant_id",
@@ -140,6 +141,9 @@ class MatchRules:
     """Snapshot of host-selected public listing rules, not historical proof."""
     def __init__(self, rows, limits, allowed_card_ids):
         self.rows = {code: {key: row[key] for key in ("id", "alias", "ot", "type")} for code, row in rows.items()}
+        for code, row in self.rows.items():
+            name = rule_name_id(rows, code)
+            row["alias"] = name if name != code else 0
         self.limits = dict(limits)
         self.allowed_card_ids = frozenset(allowed_card_ids)
         if not self.allowed_card_ids:
@@ -157,12 +161,7 @@ class MatchRules:
         validate_deck_parts(deck.to_dict(), self.rows, self.limits, allowed=self.allowed_card_ids)
 
     def validate_sideboard(self, original, proposal):
-        if not isinstance(proposal, DeckParts):
-            raise ContractError("side policy must return complete typed own deck parts")
-        if any(len(getattr(original, z)) != len(getattr(proposal, z)) for z in ZONES):
-            raise ContractError("sideboarding must preserve each original section count")
-        if Counter(sum((getattr(original, z) for z in ZONES), ())) != Counter(sum((getattr(proposal, z) for z in ZONES), ())):
-            raise ContractError("sideboarding must preserve the exact raw-card multiset")
+        validate_sideboard_stock(original, proposal)
         self.validate(proposal)
 
 
