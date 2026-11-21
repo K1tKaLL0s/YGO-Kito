@@ -27,7 +27,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v66"
+NORMALIZATION_VERSION = "construction-function-normalization-v67"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -1905,18 +1905,22 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                             else:
                                 facts['use_details'][key]['explicit_task_goal'] = primary_goal(
                                     config['theme_profile'],code,record,operation,dependencies)
-            coverage[card_key] = "evaluated" if not missing_source and all(
-                e["status"] == "evaluated" for e in effect_details) else "unknown"
-            facts["coverage_details"][card_key] = dict(status=coverage[card_key], effects=effect_details)
-            if missing_source:
-                facts["coverage_details"][card_key]["rule_source"] = dict(status="missing_rule_source", **missing_source)
-            if native_authority and (zone != "side" or "side" in config["required_scope"]):
+            if native_authority:
+                active = zone != "side" or "side" in config["required_scope"]
                 declaration = static_rules.get(str(code))
-                if declaration is None or declaration["diagnostics"] or any(
-                        row["status"] == "unknown" for row in declaration["registrations"]):
-                    coverage[card_key] = facts["coverage_details"][card_key]["status"] = "unknown"
-                if declaration is None:
-                    facts["coverage_details"][card_key]["reason"] = "native_registration_unavailable"
+                source_available = missing_source is None and declaration is not None and not declaration["diagnostics"]
+                # Registration diagnostics remain available in static_rules. The
+                # evaluation checks the sourced uses, affected resources and hard requirements.
+                coverage[card_key] = "unknown" if active and not source_available else "evaluated"
+            else:
+                coverage[card_key] = "evaluated" if not missing_source and all(
+                    e["status"] == "evaluated" for e in effect_details) else "unknown"
+            details = dict(status=coverage[card_key], effects=effect_details)
+            if missing_source:
+                details["rule_source"] = dict(status="missing_rule_source", **missing_source)
+            elif native_authority and active and not source_available:
+                details["reason"] = "native_registration_unavailable"
+            facts["coverage_details"][card_key] = details
     if "side" not in config["required_scope"]:
         facts["scope_status"]["side"] = "not_applicable"
     elif deck.side and any(coverage.get(f"side:{code}") != "evaluated" for code in deck.side):

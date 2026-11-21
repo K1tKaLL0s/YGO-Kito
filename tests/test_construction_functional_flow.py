@@ -97,8 +97,9 @@ end
             frontier_binding=lambda *args: None, record_quality=lambda *args: None,
             evaluate=Mock(return_value={"status": "complete", "receipts": [], "pending": []}),
         )
+        auxiliary = dict(rule, scope="field", category=0, event=999, callbacks={"operation": rule["callbacks"]["operation"]})
         assets.native_registration_source = SimpleNamespace(for_cards=lambda codes: {
-            code: dict(diagnostics=[], native=[rule] if code == 2 else []) for code in codes
+            code: dict(diagnostics=[], native=[rule, auxiliary] if code == 2 else []) for code in codes
         })
         deck = decks[1]
         missing = DeckParts(tuple(1 if code == 3 else code for code in deck.main))
@@ -108,6 +109,7 @@ end
         supported, short = (results[i]["quality_evaluation"] for i in (0, 1))
         self.assertTrue(supported["complete"])
         self.assertEqual(supported["score"]["value"], log2(2))
+        self.assertEqual(supported["static_rules"]["2"]["registrations"][1]["status"], "unknown")
         self.assertTrue(short["complete"])
         self.assertEqual(short["score"]["value"], 0)
         self.assertEqual(short["losses"][0]["lower"], log2(2))
