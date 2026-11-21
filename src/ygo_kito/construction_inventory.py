@@ -178,7 +178,9 @@ def printed_extra_material_slots(row):
     if card_type & 0x40:
         parts = re.split(r'\s*[＋+]\s*', source)
         queries = [selector(part) for part in parts]
-        if len(parts) > 1 and all(query_supported(query) for query in queries):
+        simple_fields = {'selector', 'type', 'name_contains', 'attribute_any', 'race'}
+        if len(parts) > 1 and all(query and query.get('type') == 1 and query.keys() <= simple_fields
+                                  for query in queries):
             return [dict(selector_query=query, count=1, source=part, summon_type='fusion')
                     for part, query in zip(parts, queries)]
     if card_type & 0x800000:
@@ -1053,11 +1055,12 @@ class InventoryDependencies:
                       record,(selected or {}).get('block_id')])
         if key in self._processing:
             return self._processing[key]
-        if record['trigger'].get('excludes_handler') and record['trigger'].get('event') == 'own_monster_destroyed_by_battle':
+        trigger = record.get('trigger', {})
+        if trigger.get('excludes_handler') and trigger.get('event') == 'own_monster_destroyed_by_battle':
             subject = next(op for op in record['operations'] if op['kind'] == 'special_summon')
             handler = dict(self.item_requirement(subject, 'operations'), operation=subject)
-            witness = dict(category='event', origin='field', minimum=1, owner='self', source=record['trigger']['source'],
-                           query={'type': 1, 'race_any': record['trigger']['previous_race']})
+            witness = dict(category='event', origin='field', minimum=1, owner='self', source=trigger['source'],
+                           query={'type': 1, 'race_any': trigger['previous_race']})
             proof = self._check(deck, [handler, witness], distinct=True)
             self._processing[key] = dict(proof, reason='distinct_own_monster_destroyed_by_battle')
             return self._processing[key]
