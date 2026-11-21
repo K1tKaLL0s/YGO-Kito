@@ -75,8 +75,9 @@ def window_priority(query, admission, role):
     """Prefer verified dependencies of the Gate, then its unresolved score line."""
     spans = [r["span"] for r in (*query.get("registrations", ()), *query.get("attached", ()))
              if r["span"] is not None]
-    related = [effect for effect in admission.get("effects", ()) if effect["card"] == query["card"]
-               and (not effect.get("response") or query["setup"] == "response")
+    scope = query.get("scope_cards", (query["card"],))
+    related = [effect for effect in admission.get("effects", ()) if effect["card"] in scope
+               and (not effect.get("response") or query["setup"] in ("response", "trajectory"))
                and (not spans or not effect["spans"] or any(span in effect["spans"] for span in spans))]
     aligned = [effect for effect in related if any(span in effect["spans"] for span in spans)]
     affected = aligned or related

@@ -1205,6 +1205,11 @@ class InventoryDependencies:
             execution = branch["execution"]
             if branch["deck"] != inventory_sha:
                 continue
+            active = branch["active_deck"]
+            if active is not None:
+                if scope != "going_first" or Counter((zone, code) for zone in ("main", "extra")
+                                                     for code in active[zone]) - available:
+                    continue
             stock = {(row["zone"], row["card"]): row["quantity"] for row in execution["stock"]}
             if Counter(stock) - available:
                 continue
@@ -1227,10 +1232,13 @@ class InventoryDependencies:
                 card_payments=execution["card_payments"], prepared_summons=[],
                 applicability=dict(branch["prepared"], resources=branch["resources"], inventory=inventory_sha,
                     query=branch["query"], turn=branch["chain"]["turn"], phase=branch["chain"]["phase"],
-                    registration=execution["registration"], event=execution["event"]))
+                    registration=execution["registration"], event=execution["event"],
+                    configuration=digest(active) if active is not None else inventory_sha,
+                    side_swaps=branch["query"].get("side_swaps", [])))
             proofs.append(proof)
         if proofs:
-            return dict(proofs[0], alternatives=list(dict.fromkeys(proof["receipt"] for proof in proofs)))
+            return dict(proofs[0], alternatives=list(dict.fromkeys(proof["receipt"] for proof in proofs)),
+                        configurations=sorted({proof["applicability"]["configuration"] for proof in proofs}))
         return None
 
     def processing_check(self, deck, record, selected=None, *, physical_inventory=None):

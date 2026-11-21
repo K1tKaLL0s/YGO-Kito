@@ -17,6 +17,7 @@ from .construction_native_evidence import (SUMMON_RESPONSE_EVENTS, admission_eff
     flip_completion, pending_summons, replay_steps, selected_objects, stock_prefix, window_link, window_priority,
     witnessed_rule)
 from .construction_native_settlement import settled_executions
+from .construction_native_trajectory import play_trajectory, trajectory_queries
 from .contracts import ActionSelection
 from .deck_profile import validate_sideboard_stock
 from .effect_duel import choose_effect_duel_action
@@ -30,7 +31,7 @@ from .validation import ContractError
 
 
 NATIVE_RULE_VERSION = "construction-native-rules-v5"
-NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v16"
+NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v17"
 _QUERY_WORK_VERSION = "construction-native-query-work-v1"
 _SUBGROUP_REPLAY_VERSION = 1
 _EFFECT_CONFIRMATION_VERSION = 2
@@ -147,7 +148,10 @@ def _initialized_choices(lua, script, initialized, setup, legacy, *, zone=None, 
         matched = [r for r in legacy if r["span"] in spans]
         if len(origins) == len(matched) == 1 and (matched[0]["description"] == reg["description"]
                                                   and matched[0]["event"] == window):
-            choices.append(dict(matched[0], procedure="ritual", initialized=reg) if ritual else matched[0])
+            selected = dict(matched[0], initialized=reg)
+            if ritual:
+                selected["procedure"] = "ritual"
+            choices.append(selected)
             continue
         span = spans[0] if len(spans) == 1 else None
         choice = dict(description=reg["description"], family=f"initialized:{ordinal}",
@@ -282,6 +286,29 @@ def _side_inventory(deck, swaps):
     return proposal
 
 
+def _joint_side_trajectories(deck, initialized, rows):
+    """Bind hands requiring several Side cards to one physically legal exchange."""
+    side_main = tuple(code for code in deck.side if not rows[code]["type"] & EXTRA_TYPES)
+    if len(side_main) < 2:
+        return []
+    resident = Counter(deck.main)
+    queries = []
+    for query in trajectory_queries(deck.main + side_main, deck.extra, initialized, rows):
+        opening = Counter(query["opening"])
+        entering = list((opening - resident).elements())
+        if len(entering) < 2:
+            continue
+        leaving = sorted((resident - opening).elements(),
+                         key=lambda code: (bool(initialized.get(code, {}).get("native")), code))
+        if len(leaving) < len(entering):
+            continue
+        moves = [dict(zone="main", incoming=incoming, outgoing=outgoing)
+                 for incoming, outgoing in zip(entering, leaving)]
+        _side_inventory(deck, moves)
+        queries.append(dict(query, side_swaps=moves))
+    return queries
+
+
 def planned_queries(deck, assets, *, include_side=True):
     """Plan reachable starts from the resident stock and legal Side exchanges."""
     initialized, issues = {}, []
@@ -294,17 +321,24 @@ def planned_queries(deck, assets, *, include_side=True):
         except NativeRegistryError as error:
             issues.append(dict(reason="native_registration_probe_unavailable", diagnostic=str(error)))
     planned, excluded = _main_queries(deck, assets, initialized)
+    planned.extend(trajectory_queries(deck.main, getattr(deck, "extra", ()), initialized, assets.rows))
     if include_side and isinstance(deck, DeckParts):
+        planned.extend(_joint_side_trajectories(deck, initialized, assets.rows))
         for incoming in sorted(set(deck.side)):
-            if assets.rows[incoming]["type"] & EXTRA_TYPES:
-                excluded.append(dict(card=incoming, zone="side", reason="needs_extra_preparation"))
-                continue
-            outgoing = next((card for card in deck.main if card != incoming), None)
+            section = "extra" if assets.rows[incoming]["type"] & EXTRA_TYPES else "main"
+            outgoing = min((card for card in getattr(deck, section) if card != incoming),
+                           key=lambda card: (bool(initialized.get(card, {}).get("native")), card), default=None)
             if outgoing is None:
+                excluded.append(dict(card=incoming, zone="side", reason="no_exchange_slot_in_" + section))
                 continue
-            swaps = [dict(zone="main", incoming=incoming, outgoing=outgoing)]
+            swaps = [dict(zone=section, incoming=incoming, outgoing=outgoing)]
             active = _side_inventory(deck, swaps)
-            queries, skipped = _main_queries(active, assets, initialized, subject=incoming)
+            if section == "main":
+                queries, skipped = _main_queries(active, assets, initialized, subject=incoming)
+            else:
+                queries, skipped = [], []
+            support = trajectory_queries(active.main, active.extra, initialized, assets.rows)
+            queries.extend(q for q in support if incoming in q["opening"] or section == "extra")
             planned.extend(dict(query, side_swaps=swaps) for query in queries)
             excluded.extend(dict(item, zone="side") for item in skipped)
     return sorted(planned, key=lambda q: (q["priority"], q["card"], q["setup"])), [*excluded, *issues]
@@ -733,6 +767,9 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
     ):
         if counters is not None:
             counters["sessions"] += 1
+        if query["setup"] == "trajectory":
+            return play_trajectory(engine, query, public, _menu, read_rule_trace, decision_budget=decision_budget,
+                                   should_stop=should_stop, counters=counters)
         request = engine.next_decision()
         for _ in range(decision_budget):
             if should_stop is not None and should_stop():
@@ -1137,7 +1174,7 @@ class NativeRuleChecks:
         excluded = previous.get("excluded", [])
         if getattr(self.assets, "effect_lua_source", None) is not None:
             planned, current_excluded = planned_queries(deck, self.assets, include_side=include_side)
-            prepared = [q for q in planned if q["setup"] == "response" or q.get("side_swaps")
+            prepared = [q for q in planned if q["setup"] in ("response", "trajectory") or q.get("side_swaps")
                         or any(r.get("initialized") for r in q["registrations"])]
             for query in prepared:
                 identity = digest(query)
@@ -1319,6 +1356,8 @@ class NativeRuleChecks:
         resources = digest((binding.get("resources"), binding.get("period"), binding.get("adapter")))
         execution = settled_executions(events, links, result.get("rule_trace", {}), seat=query["seat"],
                                        resources=resources)
+        active_deck = (_side_inventory(DeckParts.from_dict(binding["deck"]), query["side_swaps"]).to_dict()
+                       if execution and query.get("side_swaps") else None)
         steps = replay_steps(events, result.get("trace", ()))
         link = window_link(links, steps, query, result.get("window"), events=events)
         activation = link["activation"] if link else None
@@ -1374,6 +1413,7 @@ class NativeRuleChecks:
                     query=query, decisions=result["decisions"], moves=result.get("moves", []) if resolved else [],
                     field_moves=field_moves, prepared_moves=prepared, stock_prefix=prefix,
                     activation_event=activation, chain_links=links, resolved=resolved, native_executions=execution,
+                    **({"active_deck": active_deck} if active_deck is not None else {}),
                     chain=link, path=result.get("path", []), payments=payments,
                     unmet_precondition=result.get("unmet_precondition"), alternatives=result.get("alternatives", []),
                     identity=result.get("identity", {}), error=result.get("error"),

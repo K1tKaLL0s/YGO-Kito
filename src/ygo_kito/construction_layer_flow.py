@@ -27,7 +27,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v59"
+NORMALIZATION_VERSION = "construction-function-normalization-v60"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -873,6 +873,17 @@ def _side_joint_capacity(group, bound, facts, scope, relation, sources, *, requi
     shortage = [z for z,n in used.items() if n > capacities[z]]
     if shortage:
         return {**group, 'status':'missing', 'gaps':[*group['gaps'],*('swap_capacity:'+z for z in shortage)]}
+    native_configurations = []
+    for use in bound:
+        detail = facts["use_details"].get(use + ":" + scope, {})
+        proof = detail.get("inventory_checks", {}).get("native") or {}
+        if proof.get("configurations"):
+            native_configurations.append(set(proof["configurations"]))
+    if len(native_configurations) > 1 and not set.intersection(*native_configurations):
+        gap = "native_side_joint_configuration_unwitnessed"
+        return {**group, "status": "unknown", "gaps": [*group["gaps"], gap],
+                "unknown": [*group.get("unknown", ()), gap],
+                "support_expression": ("atom", gap + ":" + digest(sorted(bound)))}
     # The existing allocator identifies every physical payment/material copy.
     # A consumption without a declared return cannot share that copy.
     branches = group.get('branches') or [group]
@@ -1523,7 +1534,8 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
     missing_scripts = {}
     if native_rules is not None:
         from .construction_native import bind_observations
-        from .construction_native_settlement import install_execution_contracts
+        from .construction_native_settlement import install_execution_contracts, registration_coverage
+        from .native_registrations import NativeRegistryError
         lua = catalog.assets.effect_lua_source
         if lua is not None:
             missing_scripts = {code: script for code in codes
@@ -1540,6 +1552,14 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                     dependencies.native_witnesses.setdefault(key, []).append(evidence)
         install_execution_contracts(facts["native_rule_evidence"], specs, catalog.assets,
                                     dependencies.native_execution_contracts)
+        if native_sources := getattr(catalog.assets, "native_registration_source", None):
+            active_codes = codes if "side" in config["required_scope"] else sorted(set(deck.main + deck.extra))
+            try:
+                initialized = native_sources.for_cards(active_codes)
+                facts["native_rule_evidence"]["registration_coverage"] = registration_coverage(
+                    initialized, facts["native_rule_evidence"], dependencies.native_execution_contracts)
+            except NativeRegistryError as error:
+                facts["native_rule_evidence"]["registration_coverage_error"] = str(error)
         records = {code: tuple(effect["record"] for effect in value[0]) for code, value in specs.items()}
 
     def condition(key, value, reason, evidence):

@@ -3,6 +3,7 @@
 from collections import Counter, defaultdict
 
 from .build_contracts import digest
+from .native_registrations import NativeRegistryError
 
 
 _ZONES = {1: "deck", 2: "hand", 4: "field", 8: "field", 16: "grave", 32: "banished", 64: "extra",
@@ -228,9 +229,9 @@ def install_execution_contracts(observed, specifications, assets, contracts):
     if lua is None:
         return
     added = defaultdict(dict)
+    native_sources = getattr(assets, "native_registration_source", None)
+    initialized = {}
     for receipt in observed["receipts"]:
-        if receipt.get("query", {}).get("side_swaps"):
-            continue  # A direction needs its own binding to a complete legal exchange.
         for execution in receipt.get("native_executions", ()):
             code = execution["card"]
             if (execution["status"] != "observed" or code not in specifications
@@ -242,6 +243,15 @@ def install_execution_contracts(observed, specifications, assets, contracts):
             linked = matching_records(execution, records, lua)
             if not linked:
                 linked = _historic_label(receipt, execution, records)
+            if not linked and len(records) == 1 and native_sources is not None:
+                if code not in initialized:
+                    try:
+                        initialized[code] = [row for row in native_sources.for_cards((code,))[code]["native"]
+                                             if row["type"] & 0x8 and "operation" in row["callbacks"]]
+                    except NativeRegistryError:
+                        initialized[code] = []
+                if initialized[code] == [execution["registration"]]:
+                    linked = records
             if len(linked) == 1:
                 record, = linked
                 blocks = list(_historical_blocks(record, groups))
@@ -262,10 +272,62 @@ def install_execution_contracts(observed, specifications, assets, contracts):
             for block, operations in blocks:
                 contracts.setdefault((code, record["effect_key"], block), []).append(dict(
                     execution=execution, receipt=receipt["receipt"], deck=receipt["deck_sha256"], query=receipt["query"],
-                    resources=receipt["rule_resources"], operations=operations,
+                    active_deck=receipt.get("active_deck"), resources=receipt["rule_resources"], operations=operations,
                     prepared=receipt.get("condition", {}) if (receipt.get("chain") or {}).get("opened") == execution["opened"] else {},
                     chain=next(link for link in receipt["chain_links"] if link["opened"] == execution["opened"])))
     for code, branches in added.items():
         effects, materials = specifications[code]
         specifications[code] = [*effects, *(dict(record=record, requirements=[], unknown=[])
                                  for record, _ in branches.values())], materials
+
+
+def registration_coverage(declarations, observed, contracts):
+    """Track every initialized rule to its planned window, checked result and S3 port."""
+    executions = defaultdict(list)
+    consumed = defaultdict(set)
+    planned = defaultdict(set)
+    trajectories = defaultdict(set)
+    for receipt in observed["receipts"]:
+        for case in receipt.get("native_executions", ()):
+            key = case["card"], digest(case["registration"])
+            executions[key].append(dict(status=case["status"], receipt=receipt["receipt"],
+                                        result=[operation["kind"] for operation in case["operations"]]))
+    for (_, effect, block), rows in contracts.items():
+        for row in rows:
+            case = row["execution"]
+            consumed[case["card"], digest(case["registration"])].add((effect, block))
+    queries = [r["query"] for r in observed["receipts"]] + [r["query"] for r in observed.get("pending", ())]
+    for query in queries:
+        if query["setup"] == "trajectory":
+            for code in query["scope_cards"]:
+                trajectories[code].add(query["setup"])
+        else:
+            for window in (*query["registrations"], *query.get("attached", ())):
+                if registration := window.get("initialized"):
+                    planned[query["card"], digest(registration)].add(query["setup"])
+    result = {}
+    for code, source in declarations.items():
+        rows = []
+        signatures = Counter(digest(rule) for rule in source["native"])
+        for ordinal, rule in enumerate(source["native"]):
+            signature = digest(rule)
+            key = code, signature
+            uses = [dict(effect=effect, block=block) for effect, block in sorted(consumed[key])]
+            active = rule["type"] & 0x8 or rule["event"] in (34, 320)
+            windows = planned[key] | trajectories[code]
+            if (uses or executions[key]) and signatures[signature] > 1:
+                status = "native_registration_identity_ambiguous"
+            elif uses:
+                status = "observed_use"
+            elif executions[key]:
+                status = "native_settlement_unconsumed"
+            elif active:
+                status = "native_window_unreached" if windows else "native_preparation_unavailable"
+            else:
+                status = "native_modifier_unverified"
+            rows.append(dict(ordinal=ordinal, rule=rule, status=status, windows=sorted(windows),
+                             executions=executions[key], uses=uses))
+        dynamic = {signature: cases for (actor, signature), cases in executions.items()
+                   if actor == code and signature not in signatures and cases}
+        result[code] = dict(registrations=rows, diagnostics=source["diagnostics"], runtime_only=dynamic)
+    return result
