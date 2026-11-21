@@ -1,6 +1,7 @@
 """Execute scoped construction questions through the period core's legal decisions."""
 
 from collections import Counter, deque
+from copy import deepcopy
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -9,7 +10,8 @@ from time import perf_counter
 from .build_contracts import digest
 from .construction_checkpoint import write_json
 from .construction_inventory import matches
-from .construction_native_evidence import chain_links, replay_steps, selected_objects, stock_prefix, window_link
+from .construction_native_evidence import (admission_effects, chain_links, replay_steps, selected_objects,
+    stock_prefix, window_link, window_priority, witnessed_rule)
 from .contracts import ActionSelection
 from .effect_duel import choose_effect_duel_action
 from .extra_routes import engine_for_goal
@@ -19,7 +21,8 @@ from .validation import ContractError
 
 
 NATIVE_RULE_VERSION = "construction-native-rules-v5"
-NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v1"
+NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v2"
+_QUERY_WORK_VERSION = "construction-native-query-work-v1"
 _DECISION_BUDGET = 100
 _DECK_DESTINATIONS = {2: "hand", 16: "grave"}
 _OPERATIONS = frozenset(("search_or_recover", "search", "add_hand", "send_grave"))
@@ -121,6 +124,8 @@ def bind_observations(observed, records, rows, *, lua=None):
             else "unbound_stock_prefix" if identity.get("status") == "bound"
             else "resolved_use_unbound" if receipt.get("activation_event") and receipt.get("resolved")
             else receipt["status"])
+        if receipt["rule_status"] == "bound":
+            receipt.update(witnessed_rule(receipt))
     if lua is not None:
         responses = []
         for code, effects in records.items():
@@ -510,7 +515,7 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
 
 
 class NativeRuleChecks:
-    """Budget legal windows together and reuse only identical task/stock/scope receipts."""
+    """Run a bounded frontier of legal windows for one task and physical stock."""
 
     def __init__(self, assets):
         self.assets = assets
@@ -518,12 +523,130 @@ class NativeRuleChecks:
         self.counts = Counter()
         self.attempts = []
         self.inventories = []
+        self.frontiers = {}
+        self.admission = {}
 
-    def evaluate(self, task, deck, *, role, should_stop=None, queries=None):
-        initial, excluded = planned_queries(deck, self.assets) if queries is None else (queries, [])
-        queue = deque(initial)
-        seen = {digest(query) for query in initial}
-        receipts, charged = [], 0
+    def load_frontier(self, report):
+        """Read a prior report as a query agenda. Facts come only from raw replays."""
+        if not isinstance(report, dict) or report.get("version") != NATIVE_RULE_VERSION:
+            raise ContractError("native query frontier version differs")
+        entries = report.get("inventories")
+        if not isinstance(entries, list):
+            raise ContractError("native query frontier requires inventory reports")
+        for row in entries:
+            if (not isinstance(row, dict) or row.get("role") not in ("candidate", "reference")
+                    or not isinstance(row.get("status"), str)
+                    or any(not isinstance(row.get(k), str) for k in ("task", "deck"))
+                    or any(not isinstance(row.get(k), list) for k in ("receipts", "pending", "exhausted_receipts"))):
+                raise ContractError("native query frontier has an invalid inventory report")
+            key = (row["task"], row["deck"], row["role"], row.get("policy"))
+            if row["status"] != "paused" or key not in self.frontiers:
+                self.frontiers[key] = deepcopy(row), digest(row)
+
+    def _frontier(self, task_sha, deck_sha, role, policy_sha):
+        key = (task_sha, deck_sha, role)
+        return self.frontiers.get((*key, policy_sha), self.frontiers.get((*key, None), (None, None)))
+
+    def frontier_binding(self, task, deck, role, policy):
+        _, entry = self._frontier(task.sha256, digest(deck.to_dict()), role, digest(policy))
+        return entry
+
+    def record_quality(self, quality, role):
+        key = (quality["task_sha256"], quality["deck_sha256"], role, quality["policy_sha256"])
+        previous = self.admission.get(key)
+        if previous is None or previous["evaluation"] != quality["evaluation_id"]:
+            self.admission[key] = dict(evaluation=quality["evaluation_id"], policy=quality["policy_sha256"],
+                                       effects=admission_effects(quality), comparisons={})
+
+    def record_comparison(self, candidate, reference, bounds):
+        for role, quality, peer in (("candidate", candidate, reference), ("reference", reference, candidate)):
+            self.record_quality(quality, role)
+            key = (quality["task_sha256"], quality["deck_sha256"], role, quality["policy_sha256"])
+            self.admission[key]["comparisons"][peer["deck_sha256"]] = dict(
+                delta=bounds, ratio=bounds["ratio"])
+
+    def _read_receipt(self, key, binding):
+        if not isinstance(key, str) or len(key) != 64 or any(c not in "0123456789abcdef" for c in key):
+            return None
+        for suffix in (".json", ".engine_error.json"):
+            path = self.directory / (key + suffix)
+            try:
+                saved = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            if not isinstance(saved, dict) or saved.get("id") != key:
+                continue
+            saved_binding, result = saved.get("binding"), saved.get("result")
+            if (isinstance(saved_binding, dict) and digest(saved_binding) == key
+                    and all(saved_binding.get(k) == v for k, v in binding.items())
+                    and isinstance(saved_binding.get("query"), dict) and isinstance(result, dict)
+                    and type(saved_binding.get("decision_limit")) is int
+                    and type(result.get("decisions")) is int
+                    and 0 <= result["decisions"] <= saved_binding["decision_limit"]
+                    and isinstance(result.get("status"), str)):
+                return saved
+        return None
+
+    def _binding(self, task, deck):
+        return dict(version=NATIVE_RULE_VERSION, task=task.sha256, deck=deck.to_dict(),
+                    resources=self.assets.receipt, period=self.assets.period_context,
+                    adapter=self.assets.adapter_revision)
+
+    def _initial_work(self, task, deck, role, previous, queries):
+        if previous is None:
+            initial, excluded = planned_queries(deck, self.assets) if queries is None else (list(queries), [])
+            return dict(initial=initial, excluded=excluded, queue=list(initial),
+                        seen=sorted({digest(q) for q in initial}), receipts=[], history=[])
+        binding = self._binding(task, deck)
+        queue, seen, receipts, history = {}, set(), [], []
+        for key in dict.fromkeys((*previous["receipts"], *previous["exhausted_receipts"])):
+            raw = self._read_receipt(key, binding)
+            if raw is None:
+                raise ContractError("native query frontier replay is missing or belongs to different inputs: " + str(key))
+            row = self._evidence(raw)
+            identity = digest(row["query"])
+            seen.add(identity)
+            history.append(key)
+            self.counts["frontier_reads"] += 1
+            self.counts["frontier_replayed_decisions"] += row["decisions"]
+            self.attempts.append(dict(role=role, receipt=key, acquisition="frontier", status=row["status"],
+                                      decisions=row["decisions"]))
+            if row["status"] in ("decision_budget", "engine_error"):
+                queue[identity] = row["query"]
+            else:
+                receipts.append(row)
+        for query in [*(item["query"] for item in previous["pending"]), *previous.get("additional_windows", ())]:
+            identity = digest(query)
+            if identity not in seen:
+                queue[identity] = query
+            seen.add(identity)
+        initial = [*(r["query"] for r in receipts), *queue.values()]
+        return dict(initial=initial, excluded=previous.get("excluded", []), queue=list(queue.values()),
+                    seen=sorted(seen), receipts=receipts, history=history)
+
+    def evaluate(self, task, deck, *, role, should_stop=None, queries=None, policy=None, continuation=None):
+        deck_sha = digest(deck.to_dict())
+        policy_sha = digest(policy) if policy is not None else None
+        previous, frontier = self._frontier(task.sha256, deck_sha, role, policy_sha)
+        if queries is not None:
+            previous = frontier = None
+        admission = (previous or {}).get("admission") or {}
+        if admission.get("policy") != policy_sha:
+            admission = {}
+        work_binding = digest((task.sha256, deck_sha, role, policy_sha, frontier, queries,
+                               getattr(self.assets, "period_context", None), getattr(self.assets, "receipt", None),
+                               getattr(self.assets, "adapter_revision", None)))
+        if continuation is not None:
+            if (continuation.get("version") != _QUERY_WORK_VERSION
+                    or continuation.get("binding") != work_binding):
+                raise ContractError("native query continuation belongs to different inputs")
+            work = deepcopy(continuation)
+        else:
+            work = self._initial_work(task, deck, role, previous, queries)
+            work.update(version=_QUERY_WORK_VERSION, binding=work_binding, decisions=0)
+        receipts, charged, seen = work["receipts"], work["decisions"], set(work["seen"])
+        priority = lambda q: window_priority(q, admission, role)
+        queue = deque(sorted(work["queue"], key=priority) if previous is not None else work["queue"])
         status = "complete"
         while queue:
             if should_stop is not None and should_stop():
@@ -533,13 +656,16 @@ class NativeRuleChecks:
                 status = "decision_budget"
                 break
             query = queue.popleft()
+            attempt_start = len(self.attempts)
             row = self._ask(task, deck, query, role, _DECISION_BUDGET - charged, should_stop)
+            if admission and len(self.attempts) > attempt_start:
+                self.attempts[-1]["admission_priority"] = list(priority(query))
+            charged += row["decisions"]
             if row["status"] == "paused":
                 queue.appendleft(query)
                 status = "paused"
                 break
             receipts.append(row)
-            charged += row["decisions"]
             branches = [dict(query, path=alternative["path"], priority=0 if alternative.get("prompt") == 14
                              else query.get("priority", 0) + 1) for alternative in row["alternatives"]]
             if query.get("field_followup") and any(move["destination"] == "grave" for move in row["moves"]):
@@ -552,41 +678,41 @@ class NativeRuleChecks:
                 if key not in seen:
                     seen.add(key)
                     queue.append(branch)
-            queue = deque(sorted(queue, key=lambda q: (q.get("priority", 0), q["card"])))
+            queue = deque(sorted(queue, key=priority))
         pending = [dict(card=q["card"], wanted=q.get("wanted", []), setup=q["setup"], path=q["path"], query=q,
                         reason="native_decision_budget" if status == "decision_budget" else "construction_deadline")
                    for q in queue]
         exhausted = [row["receipt"] for row in receipts if row["status"] == "decision_budget"]
-        if exhausted and status == "complete":
-            status = "decision_budget"
-        result = dict(status=status, eligible_cards=len({q["card"] for q in initial}),
-                      initial_windows=len(initial), known_windows=len(seen), completed_windows=len(receipts),
-                      decisions=charged, decision_budget=_DECISION_BUDGET, excluded=excluded,
-                      pending=pending, exhausted_receipts=exhausted, receipts=receipts)
-        self.inventories.append(dict(role=role, task=task.sha256, deck=digest(deck.to_dict()),
-                                     **{k: v for k, v in result.items() if k != "receipts"},
+        engine_errors = [row["receipt"] for row in receipts if row["status"] == "engine_error"]
+        if status == "complete":
+            status = "decision_budget" if exhausted else "engine_error" if engine_errors else status
+        initial = work["initial"]
+        result = dict(status=status, eligible_cards=len({q["card"] for q in initial}), initial_windows=len(initial),
+                      known_windows=len(seen), completed_windows=len(receipts), decisions=charged,
+                      decision_budget=_DECISION_BUDGET, excluded=work["excluded"], pending=pending,
+                      exhausted_receipts=exhausted, engine_error_receipts=engine_errors, receipts=receipts, frontier=frontier,
+                      replayed_receipts=work["history"], admission_evaluation=admission.get("evaluation"))
+        if status == "paused":
+            work.update(queue=list(queue), seen=sorted(seen), decisions=charged)
+            result["continuation"] = work
+        self.inventories.append(dict(role=role, task=task.sha256, deck=deck_sha, policy=policy_sha,
+                                     **{k: v for k, v in result.items() if k not in ("receipts", "continuation")},
                                      receipts=[r["receipt"] for r in receipts]))
         return result
 
     def _ask(self, task, deck, query, role, budget, should_stop):
-        binding = dict(version=NATIVE_RULE_VERSION, task=task.sha256, deck=deck.to_dict(),
-                       resources=self.assets.receipt, period=self.assets.period_context,
-                       adapter=self.assets.adapter_revision, decision_limit=budget, query=query)
+        binding = dict(self._binding(task, deck), decision_limit=budget, query=query)
         key = digest(binding)
         path = self.directory / (key + ".json")
         self.counts["requests"] += 1
-        if path.is_file():
-            try:
-                cached = json.loads(path.read_text(encoding="utf-8"))
-            except (OSError, ValueError):
-                cached = {}
-            result = cached.get("result") if isinstance(cached, dict) else None
-            if (isinstance(result, dict) and cached.get("binding") == binding and cached.get("id") == key
-                    and isinstance(result.get("decisions"), int) and 0 <= result["decisions"] <= budget
-                    and "status" in result):
-                self.counts["cache_hits"] += 1
-                self.attempts.append(dict(role=role, receipt=key, acquisition="cache", status=result["status"]))
-                return self._evidence(cached)
+        cached = self._read_receipt(key, binding)
+        if cached is not None and cached["result"]["status"] != "engine_error":
+            result = cached["result"]
+            self.counts["cache_hits"] += 1
+            self.counts["cache_replayed_decisions"] += result["decisions"]
+            self.attempts.append(dict(role=role, receipt=key, acquisition="cache", status=result["status"],
+                                      decisions=result["decisions"]))
+            return self._evidence(cached)
         start = perf_counter()
         selection_key = key[:32]
         self.counts["engine_attempts"] += 1
@@ -617,8 +743,12 @@ class NativeRuleChecks:
         return self._evidence(row)
 
     def report(self):
+        inventories = []
+        for row in self.inventories:
+            admission = self.admission.get((row["task"], row["deck"], row["role"], row["policy"]))
+            inventories.append(dict(row, admission=admission))
         return dict(version=NATIVE_RULE_VERSION, cache=str(self.directory), counts=dict(self.counts),
-                    inventories=self.inventories, attempts=self.attempts)
+                    inventories=inventories, attempts=self.attempts)
 
     @staticmethod
     def _evidence(row):
@@ -655,4 +785,5 @@ class NativeRuleChecks:
                     chain=link, path=result.get("path", []), payments=payments,
                     unmet_precondition=result.get("unmet_precondition"), alternatives=result.get("alternatives", []),
                     identity=result.get("identity", {}), error=result.get("error"),
+                    rule_resources=digest((binding.get("resources"), binding.get("period"), binding.get("adapter"))),
                     deck_sha256=digest(binding["deck"]))

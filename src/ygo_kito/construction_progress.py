@@ -351,6 +351,9 @@ def _functional_gate(task, deck, assets, evaluation, policy, candidate_version, 
                     candidate_evaluation_id=quality['evaluation_id'])
                 line['status'] = ('passed' if bounds['lower'] is not None and bounds['lower'] >= 0 else
                                   'failed' if bounds['upper'] is not None and bounds['upper'] < 0 else 'unknown')
+                native_rules = getattr(assets, 'construction_rules', None)
+                if native_rules is not None and 'native_rule_evidence' in quality and 'native_rule_evidence' in reference_quality:
+                    native_rules.record_comparison(quality, reference_quality, bounds)
             if not reference_quality.get('complete'):
                 reasons.append('reference_evaluation_incomplete')
             if any(r['status'] != 'satisfied' for r in reference_quality.get('hard_requirements', ())):
@@ -366,6 +369,11 @@ def _functional_gate(task, deck, assets, evaluation, policy, candidate_version, 
     gate['outcome'] = gate_outcome(gate)
     gate['evaluation_complete'] = bool(quality and quality['complete'] and (
         declared['mode'] != 'reference_ratio' or reference_quality and reference_quality['complete']))
+    gate['static_completeness'] = {role: dict(complete=q['complete'], scope_complete=q['scope_complete'],
+        unresolved=len(q['unknowns']), deferred=q['deferred'], partial=q['total']['partial_items'],
+        hard_requirements=q['hard_requirements'], rule_evidence=sorted({row['rule'] for row in
+            q.get('condition_applicability', ()) if row['status'] == 'inventory_present'}))
+        for role, q in (('candidate', quality), ('reference', reference_quality)) if q is not None}
     return gate
 
 
@@ -513,6 +521,12 @@ def restore_progress(session, value, assets, *, policy=None, _comparisons=None):
         from .effect_mechanisms import MechanismCatalog
         catalog = MechanismCatalog(assets, session.task.pool)
         asset_version = functional_asset_version(catalog)
+        native_rules = getattr(assets, 'construction_rules', None)
+
+        def frontier(inventory, role):
+            return (native_rules.frontier_binding(session.task, DeckParts.from_dict(inventory), role,
+                    state['quality_policy']) if native_rules is not None else None)
+
         pending = state.get('pending_quality')
         stage = state.get('pending_reference')
         selection_rows = []
@@ -551,7 +565,8 @@ def restore_progress(session, value, assets, *, policy=None, _comparisons=None):
                 assets.validate(session.task, DeckParts.from_dict(row['deck']))
             for key,work in list(pending.get('calculation_progress',{}).items()):
                 if (work.get('normalization_version')!=NORMALIZATION_VERSION
-                        or work.get('asset_version')!=asset_version):
+                        or work.get('asset_version')!=asset_version
+                        or work.get('native_frontier') != frontier(pending['candidates'][int(key)]['deck'], 'candidate')):
                     del pending['calculation_progress'][key]
             for key, row in pending['evaluations'].items():
                 if row['layer_evaluation']['axis']['inventory'] != pending['candidates'][int(key)]['deck']:
@@ -579,6 +594,7 @@ def restore_progress(session, value, assets, *, policy=None, _comparisons=None):
                 or quality.get('normalization_version') != NORMALIZATION_VERSION
                 or quality.get('function_dictionary_version') != (state.get('quality_policy') or {}).get('quality',{}).get('function_dictionary_version')
                 or quality.get('asset_version') != asset_version
+                or quality.get('native_rule_evidence', {}).get('frontier') != frontier(inventory, 'candidate')
                 or quality.get('policy_sha256') != policy_sha)
             if not outdated:
                 outdated = any(e['record']['text_sha256'] != catalog.card(int(key.split(':')[1])).text_sha256
@@ -618,6 +634,7 @@ def restore_progress(session, value, assets, *, policy=None, _comparisons=None):
             binding = state.get('reference_binding')
             if (reference.get('version') != FUNCTIONAL_QUALITY_VERSION or reference.get('asset_version') != asset_version
                     or reference.get('normalization_version') != NORMALIZATION_VERSION
+                    or reference.get('native_rule_evidence', {}).get('frontier') != frontier(reference['inventory'], 'reference')
                     or reference.get('function_dictionary_version') != state['quality_policy']['quality']['function_dictionary_version']
                     or reference.get('policy_sha256') != policy_sha
                     or reference.get('logic_sha256') != digest(None)

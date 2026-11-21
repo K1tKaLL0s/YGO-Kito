@@ -1075,13 +1075,17 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
         reference = state.get('reference_evaluation')
         if reference_stage is not None and reference is not None:
             ratio = policy['pass']['minimum_reference_ratio']
+            native_rules = getattr(assets, 'construction_rules', None)
             chosen_id = row['quality_evaluation']['evaluation_id']
             trace_by_id = {item['quality_evaluation_id']: item for item in result['candidate_trace']['candidates']}
             for item in result.get('learning_candidates', ()):
                 quality = item['quality_evaluation']
                 identity = quality['evaluation_id']
                 if identity != chosen_id:
-                    trace_by_id[identity]['reference_delta'] = _comparisons.delta(reference, quality, ratio)
+                    bounds = _comparisons.delta(reference, quality, ratio)
+                    trace_by_id[identity]['reference_delta'] = bounds
+                    if native_rules is not None and 'native_rule_evidence' in quality and 'native_rule_evidence' in reference:
+                        native_rules.record_comparison(quality, reference, bounds)
         state.update(pending_quality=None,pending_phase=None,pending_reference=None)
         state['iteration']=iteration
         row['deck_sha256'] = digest(row['deck'])

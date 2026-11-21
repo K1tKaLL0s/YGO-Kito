@@ -164,6 +164,8 @@ def main(argv=None):
     parser.add_argument('--iterations', type=int, default=4, help='Optimizer iterations per internal slice')
     parser.add_argument('--resume', type=Path, help='kernel.json.gz or kernel.json from a previous slice using these weights')
     parser.add_argument('--no-reference-cache', action='store_true', help='Bypass the workspace reference cache')
+    parser.add_argument('--native-query-resume', type=Path,
+        help='Continue a native-rule-checks.json frontier using the original workspace receipts')
     parser.add_argument('--device', default='cuda:0', help='Inference device (default cuda:0)')
     parser.add_argument('--basic-cb', action='store_true', help='Run existing basic CB only after static admission')
     parser.add_argument('--candidate-budget', type=int, choices=range(2,33), metavar='N',
@@ -210,6 +212,8 @@ def main(argv=None):
         status('loading_assets')
         assets = PeriodBuildAssets(args.native_root,args.period,environment,args.workspace,
                                   adapter_revision=5,evidence_source='user_supplied')
+        if args.native_query_resume is not None:
+            assets.construction_rules.load_frontier(json.loads(args.native_query_resume.read_text(encoding='utf-8')))
         status('restoring_weights',period=args.period)
         saved = torch.load(args.checkpoint,map_location='cpu',weights_only=True)
         binding = json.loads(args.model_binding.read_text(encoding='utf-8'))

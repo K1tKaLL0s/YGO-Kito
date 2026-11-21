@@ -1,8 +1,12 @@
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
+
+from ygo_kito.build_contracts import digest
+from ygo_kito.validation import ContractError
 
 from ygo_kito.construction_native import (
     NativeRuleChecks,
@@ -103,6 +107,92 @@ class ConstructionNativeTests(unittest.TestCase):
                 self.assertNotEqual(next_run._ask(task, deck, query, "candidate", 90, None), cold)
                 self.assertEqual(run.call_count, 3)
                 self.assertEqual(next_run.counts["cache_hits"], 1)
+
+    def test_prior_windows_do_not_spend_the_resumed_budget(self):
+        with TemporaryDirectory() as workspace:
+            assets = SimpleNamespace(workspace=Path(workspace), receipt={"core": "pinned"},
+                                     period_context={"period_id": "period"}, adapter_revision=5)
+            task = SimpleNamespace(sha256="task")
+            deck = SimpleNamespace(to_dict=lambda: dict(main=[1, 2, 3]))
+            policy = {"policy": "original"}
+            queries = [dict(card=i, setup="hand", seat=0, path=[]) for i in (1, 2, 3)]
+
+            def run(_assets, _deck, query, *, decision_budget, **_options):
+                needed = {1: 50, 2: 60, 3: 40}[query["card"]]
+                return dict(status="settled" if decision_budget >= needed else "decision_budget",
+                            decisions=min(needed, decision_budget))
+
+            with patch("ygo_kito.construction_native.run_window", side_effect=run) as engine:
+                prior = NativeRuleChecks(assets)
+                baseline = prior.evaluate(task, deck, role="candidate", queries=queries)
+                self.assertEqual(baseline["decisions"], 100)
+                self.assertEqual([r["card"] for r in baseline["pending"]], [3])
+                report = prior.report()
+                report["inventories"][0]["admission"] = dict(policy=digest(policy), evaluation="prior",
+                    effects=[dict(card=3, spans=[], facts=["required"], partial=False, hard=True, width=0.)])
+                resumed = NativeRuleChecks(assets)
+                resumed.load_frontier(report)
+                engine.reset_mock()
+                result = resumed.evaluate(task, deck, role="candidate", policy=policy)
+                self.assertEqual([(call.args[2]["card"], call.kwargs["decision_budget"])
+                                  for call in engine.call_args_list], [(3, 100), (2, 60)])
+                self.assertEqual(result["status"], "complete")
+                self.assertEqual(result["decisions"], 100)
+                self.assertEqual(result["replayed_receipts"], report["inventories"][0]["receipts"])
+                self.assertEqual(resumed.counts["frontier_replayed_decisions"], 100)
+                self.assertEqual({r["query"]["card"] for r in result["receipts"]}, {1, 2, 3})
+
+    def test_native_pause_serializes_remaining_budget_and_rejects_other_policy(self):
+        with TemporaryDirectory() as workspace:
+            assets = SimpleNamespace(workspace=Path(workspace), receipt={"core": "pinned"},
+                                     period_context={"period_id": "period"}, adapter_revision=5)
+            task = SimpleNamespace(sha256="task")
+            deck = SimpleNamespace(to_dict=lambda: dict(main=[1, 2]))
+            queries = [dict(card=i, setup="hand", seat=0, path=[]) for i in (1, 2)]
+            paused = False
+
+            def run(_assets, _deck, query, *, decision_budget, **_options):
+                nonlocal paused
+                if query["card"] == 1:
+                    paused = True
+                return dict(status="settled", decisions=min(25, decision_budget))
+
+            checks = NativeRuleChecks(assets)
+            with patch("ygo_kito.construction_native.run_window", side_effect=run) as engine:
+                partial = checks.evaluate(task, deck, role="candidate", queries=queries, should_stop=lambda: paused)
+                work = json.loads(json.dumps(partial["continuation"]))
+                self.assertEqual(partial["decisions"], 25)
+                restored = NativeRuleChecks(assets)
+                with self.assertRaisesRegex(ContractError, "different inputs"):
+                    restored.evaluate(task, deck, role="candidate", queries=queries, policy={"changed": True},
+                                      continuation=work)
+                result = restored.evaluate(task, deck, role="candidate", queries=queries, continuation=work)
+                self.assertEqual([(call.args[2]["card"], call.kwargs["decision_budget"])
+                                  for call in engine.call_args_list], [(1, 100), (2, 75)])
+                self.assertEqual(result["decisions"], 50)
+                self.assertEqual(result["receipts"][0], partial["receipts"][0])
+
+    def test_same_stock_frontiers_keep_their_actual_admission_policy(self):
+        checks = NativeRuleChecks(SimpleNamespace(workspace=Path("."), receipt={"core": "pinned"},
+                                   period_context={"period_id": "period"}, adapter_revision=5))
+        task = SimpleNamespace(sha256="task")
+        deck = SimpleNamespace(to_dict=lambda: dict(main=[1, 2]))
+        formal, frozen = {"theme": "formal"}, {"theme": "frozen"}
+        prior = dict(task=task.sha256, deck=digest(deck.to_dict()), role="reference", status="decision_budget",
+                     receipts=[], exhausted_receipts=[])
+        checks.load_frontier(dict(version="construction-native-rules-v5", inventories=[
+            dict(prior, policy=digest(policy), pending=[dict(query=dict(card=card, setup="hand", path=[]))])
+            for card, policy in enumerate((formal, frozen), 1)]))
+
+        def ask(_task, _deck, query, _role, _budget, _should_stop):
+            return dict(receipt=str(query["card"]), status="settled", decisions=1, alternatives=[])
+
+        with patch.object(checks, "_ask", side_effect=ask):
+            work = checks.evaluate(task, deck, role="reference", policy=formal)
+            locked = checks.evaluate(task, deck, role="reference", policy=frozen)
+        self.assertNotEqual(work["frontier"], locked["frontier"])
+        self.assertEqual([r["receipt"] for r in work["receipts"]], ["1"])
+        self.assertEqual([r["receipt"] for r in locked["receipts"]], ["2"])
 
     def test_stock_still_gets_legal_windows_without_any_effect_records(self):
         deck = SimpleNamespace(main=(1, 1, 2))

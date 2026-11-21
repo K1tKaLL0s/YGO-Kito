@@ -1,6 +1,82 @@
 """Attribute the public messages of a construction replay to their chain links."""
 
-from collections import Counter
+from collections import Counter, defaultdict
+
+from .build_contracts import digest
+
+
+def admission_effects(quality):
+    """Index the S3 obligations that can be traced to a printed effect."""
+    facts_by_source = defaultdict(set)
+    for fact in quality.get("unknowns", ()):
+        for source in quality["fact_details"].get(fact, {}).get("evidence_refs", ()):
+            facts_by_source[source].add(fact)
+    width_by_fact = defaultdict(float)
+    for component in quality.get("score_components", ()):
+        values = component["rows"]
+        width = max(value[2] for value in values) - min(value[1] for value in values)
+        for fact in component["facts"]:
+            width_by_fact[fact] = max(width_by_fact[fact], width)
+    details = quality.get("use_details", {})
+    hard_effects = {details[row["requirement_id"]]["effect_id"] for row in quality.get("hard_requirements", ())
+                    if row["status"] == "unknown" and row["requirement_id"] in details}
+    hard_facts = {fact for requirement in quality.get("hard_requirements", ())
+                  for fact in requirement.get("unresolved_facts", ())}
+    responses = {(row["card"], effect) for row in quality.get("native_rule_evidence", {}).get("response_windows", ())
+                 for effect in row["effects"]}
+    result = {}
+    for coverage in quality.get("coverage_details", {}).values():
+        for effect in coverage.get("effects", ()):
+            ref = effect["effect_ref"]
+            unknowns = facts_by_source[ref]
+            partial = effect["status"] != "evaluated"
+            hard = effect["effect_id"] in hard_effects or bool(unknowns & hard_facts)
+            if not (unknowns or partial or hard) or ref in result:
+                continue
+            record = effect["record"]
+            lua = record.get("lua_source", {})
+            spans = [reg["registration_span"] for reg in lua.get("registrations", ())]
+            result[ref] = dict(card=record["card_id"], effect=record["effect_key"], source=ref,
+                facts=sorted(unknowns), partial=partial, hard=hard, spans=spans or lua.get("candidate_spans", []),
+                response=(record["card_id"], record["effect_key"]) in responses,
+                width=max((width_by_fact[f] for f in unknowns), default=0.))
+    return list(result.values())
+
+
+def window_priority(query, admission, role):
+    """Prefer verified dependencies of the Gate, then its unresolved score line."""
+    spans = [registration["span"] for registration in query.get("registrations", ())]
+    related = [effect for effect in admission.get("effects", ()) if effect["card"] == query["card"]
+               and (not effect.get("response") or query["setup"] == "response")
+               and (not spans or not effect["spans"] or any(span in effect["spans"] for span in spans))]
+    aligned = [effect for effect in related if any(span in effect["spans"] for span in spans)]
+    affected = aligned or related
+    facts = {fact for effect in affected for fact in effect["facts"]}
+    width = max((effect["width"] for effect in affected), default=0.)
+    unresolved = [row for row in admission.get("comparisons", {}).values()
+                  if (row["delta"]["lower"] is None or row["delta"]["lower"] < 0)
+                  and (row["delta"]["upper"] is None or row["delta"]["upper"] >= 0)]
+    coefficient = max((row["ratio"] if role == "reference" else 1. for row in unresolved), default=0.)
+    return (-sum(effect["hard"] for effect in affected), -int(bool(affected)),
+            -int(bool(aligned)), -width * coefficient, -len(facts),
+            -sum(effect["partial"] for effect in affected), -width, query.get("priority", 0), query["card"])
+
+
+def witnessed_rule(receipt):
+    """Identify the observed conditional rule separately from its stock allocation."""
+    chain = receipt["chain"]
+    preceding = chain.get("response_to")
+    activation = chain["activation"]
+    identity = receipt["identity"]
+    condition = dict(zone=activation["zone"], phase=chain["phase"], turn_player=chain["turn_player"],
+                     preparation=receipt["query"]["setup"],
+                     response_to={k: preceding[k] for k in ("public_card", "zone", "description")}
+                     if preceding is not None else None,
+                     selection=receipt["path"])
+    proposition = dict(resources=receipt.get("rule_resources"), card=receipt["query"]["card"], effect=identity["effect_key"],
+        registration=identity["source"], blocks=identity.get("blocks") or [identity["block"]],
+        description=activation["description"])
+    return dict(rule_id="native-rule:" + digest(proposition), condition=condition)
 
 
 def chain_links(events):

@@ -91,6 +91,7 @@ MODULES=(
     "tests.test_construction_theme",
     "tests.test_construction_entrypoints",
     "tests.test_construction_inventory",
+    "tests.test_construction_native",
     "tests.test_construction_unification",
     "tests.test_construction_selection",
     "tests.test_construction_workflow",

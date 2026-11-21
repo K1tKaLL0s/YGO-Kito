@@ -1098,7 +1098,8 @@ class InventoryDependencies:
                 move, = all_moves = evidence["moves"]
             if req is not None and not matches(self.rows[move["card"]], req["query"]):
                 continue
-            base = dict(receipt=evidence["receipt"], scope=scope, observed_moves=[move],
+            base = dict(receipt=evidence["receipt"], rule_id=evidence.get("rule_id"),
+                        applicability=evidence.get("condition"), scope=scope, observed_moves=[move],
                         prepared_summons=evidence["stock_prefix"]["summons"], chain=evidence["chain"],
                         observed_target_ids=[m["card"] for m in all_moves if m["kind"] == "destroy"
                                              and not m.get("response")] if "blocks" in identity else [],

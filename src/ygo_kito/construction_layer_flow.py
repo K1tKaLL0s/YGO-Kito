@@ -26,7 +26,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v53"
+NORMALIZATION_VERSION = "construction-function-normalization-v54"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -1357,16 +1357,21 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
         ('id','name','type','level','race','attribute','atk','def','setcode')} for c in codes}
     relation_binding=asdict(context.relations) if context is not None else None
     if relation_binding is not None:relation_binding.pop('budget',None)
+    native_rules = getattr(catalog.assets, "construction_rules", None)
+    role = ("reference" if layer_evaluation is not None and layer_evaluation["axis"].get("logic") is None
+            else "candidate")
+    frontier = native_rules.frontier_binding(task, deck, role, policy) if native_rules is not None else None
     binding=digest(dict(task=task.sha256,inventory=inventory,policy=policy,
         assets=facts['asset_version'],normalization=NORMALIZATION_VERSION,
         relations=relation_binding,evidence=None if callable(quality_evidence) else quality_evidence,
-        logic=layer_evaluation['axis'].get('logic') if layer_evaluation is not None else None))
+        logic=layer_evaluation['axis'].get('logic') if layer_evaluation is not None else None,
+        native_frontier=frontier))
     if continuation is not None and (continuation.get('version')!='functional-normalization-work-v1'
             or continuation.get('binding')!=binding):
         raise ContractError('normalization continuation belongs to different inputs')
     work=deepcopy(continuation or dict(version='functional-normalization-work-v1',binding=binding,
         asset_version=facts['asset_version'],normalization_version=NORMALIZATION_VERSION,
-        read_cursor=0,specifications={},projections={},active=None))
+        native_frontier=frontier,read_cursor=0,specifications={},projections={},active=None))
     if work_state is not None:
         work_state.clear();work_state.update(work)
     dependencies = InventoryDependencies(catalog, requirement_limit=budget.facts)
@@ -1376,14 +1381,14 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
             reuse[cache].clear()
         reuse['asset_version'] = facts['asset_version']
     shared_specs = reuse['specifications'] if reuse is not None else None
-    native_rules = getattr(catalog.assets, "construction_rules", None)
     if native_rules is not None and "native_rule_evidence" not in work:
-        role = ("reference" if layer_evaluation is not None and layer_evaluation["axis"].get("logic") is None
-                else "candidate")
-        native = native_rules.evaluate(task, deck, role=role, should_stop=should_stop)
+        native = native_rules.evaluate(task, deck, role=role, policy=policy, should_stop=should_stop,
+                                       continuation=work.get("native_query_work"))
         if native["status"] == "paused":
+            work["native_query_work"] = native["continuation"]
             facts["calculation_pending"] = work
             return facts
+        work.pop("native_query_work", None)
         work["native_rule_evidence"] = native
         if work_state is not None:
             work_state["native_rule_evidence"] = native
@@ -1956,9 +1961,11 @@ class ConstructionLayerAdapter:
                         not isinstance(row, kind) for row in evidence[key]):
                     raise ContractError("functional supplement requires typed " + key)
                 evidence_binding[key] = [asdict(row) for row in evidence[key]]
+        native_rules = getattr(self.catalog.assets, "construction_rules", None)
+        frontier = native_rules.frontier_binding(task, deck, "reference", policy) if native_rules is not None else None
         binding = dict(version=REFERENCE_BINDING_VERSION, assets=reference_asset_binding(self.catalog, deck),
             inputs=digest(dict(task=task.sha256, reference=descriptor, policy=policy, normalization=NORMALIZATION_VERSION,
-                relations=relation_binding, evidence=evidence_binding)))
+                relations=relation_binding, evidence=evidence_binding, native_frontier=frontier)))
         if binding == completed_binding:
             return deck, binding, None
         if self._prepared_reference is not None:
@@ -2000,6 +2007,9 @@ class ConstructionLayerAdapter:
                 work['quality'] = quality['calculation_pending']
             stop = should_stop() if should_stop is not None else None
             return None, work, stop or 'quality_evaluation_budget'
+        if "native_rule_evidence" in quality:
+            role = "reference" if layer["axis"].get("logic") is None else "candidate"
+            self.catalog.assets.construction_rules.record_quality(quality, role)
         return quality, None, None
 
     def evaluate(self, task, graph, rows, proposals, order, context=None, *, policy=None,
@@ -2020,6 +2030,7 @@ class ConstructionLayerAdapter:
         calculations = dict(calculations or {})
         task_sha, logic_sha, policy_sha = task.sha256, graph.sha256, digest(policy)
         asset_version = functional_asset_version(self.catalog)
+        native_rules = getattr(self.catalog.assets, "construction_rules", None)
         for i, row in list(evaluations.items()):
             q = row.get("quality_evaluation")
             if (i not in order or q is None or q["deck_sha256"] != digest(rows[i]["deck"].to_dict())
@@ -2029,6 +2040,8 @@ class ConstructionLayerAdapter:
             evaluation_comparisons.bind(q)
             if (q.get('evaluation_timed_out') or q['asset_version'] != asset_version
                     or q['normalization_version'] != NORMALIZATION_VERSION
+                    or (native_rules is not None and q.get('native_rule_evidence', {}).get('frontier') !=
+                        native_rules.frontier_binding(task, rows[i]['deck'], 'candidate', policy))
                     or any(e['record']['text_sha256'] != self.catalog.card(int(key.split(':')[1])).text_sha256
                         for key, detail in q.get('coverage_details', {}).items() for e in detail.get('effects', ()))):
                 del evaluations[i]

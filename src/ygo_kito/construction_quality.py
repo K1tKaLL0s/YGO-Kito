@@ -961,6 +961,10 @@ def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, 
             if u.required and u.scope_id == 'resident'] + [
         dict(requirement_id=r['requirement_id'], origin=r['origin']) for r in requirements]
     known_requirements = {r['requirement_id']: _support_state(r['condition'], known) for r in requirements}
+    requirement_facts = {r['requirement_id']: _support_facts(r['condition']) for r in requirements}
+    requirement_facts.update({u.use_id: _support_facts(u.self_condition) | _support_facts(u.joint_condition)
+                              for u in uses if u.required and u.scope_id == 'resident'})
+    unresolved = set(unknown)
     for row in hard:
         bounds = work['hard'].get(row['requirement_id'])
         row['status'] = 'unknown'
@@ -968,6 +972,8 @@ def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, 
             row['status'] = 'satisfied' if bounds[0] else 'failed'
         elif known_requirements.get(row['requirement_id']) is not None:
             row['status'] = 'satisfied' if known_requirements[row['requirement_id']] else 'failed'
+        if row['status'] == 'unknown':
+            row['unresolved_facts'] = sorted(requirement_facts[row['requirement_id']] & unresolved)
     losses = [dict(stage=name, lower=bounds[0] if exact_bounds else 0.,
         upper=bounds[1] if exact_bounds else None, accounted_by='effective_inputs')
         for name, bounds in zip(('self', 'joint', 'mandatory_impact'), work['losses'])]
@@ -1002,6 +1008,13 @@ def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, 
         completion_results=completion_results, details=work['details'] if complete else None)
     if "native_rule_evidence" in facts:
         body["native_rule_evidence"] = deepcopy(facts["native_rule_evidence"])
+        applications = []
+        for uid, use in facts.get("use_details", {}).items():
+            proof = use["inventory_checks"].get("native")
+            if uid in relevant and proof and proof.get("rule_id"):
+                applications.append(dict(use=uid, rule=proof["rule_id"], receipt=proof["receipt"],
+                    scope=proof["scope"], status=proof["status"], condition=deepcopy(proof["applicability"])))
+        body["condition_applicability"] = applications
     if component_score is not None:
         from .construction_score_bounds import _public
         body['score_components'] = [{k: v for k, v in component.items() if k != 'side'} for component in components]
