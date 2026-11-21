@@ -26,7 +26,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v55"
+NORMALIZATION_VERSION = "construction-function-normalization-v56"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -234,10 +234,12 @@ def _configuration_relations(available, records, dependencies, aliases, operatio
                         hand_handler = (scoped['trigger'].get('zone') == 'hand' and any(
                             cost.get('exclude_source_copy') and cost.get('source_card_id') == code
                             and cost.get('from_zones') == ['hand'] for cost in scoped['costs']))
-                        added.append(RelationFact(key, key, resource, 'printed static applicability: '+scoped['source_text'],
+                        source = scoped['trigger'].get('lua_activation', 'printed static applicability: '+scoped['source_text'])
+                        evidence = (source,) if scoped['trigger'].get('lua_activation') else ()
+                        added.append(RelationFact(key, key, resource, source,
                             code, 'extra' if code in available.extra else 'main', inputs=inputs,
                             claims=(Claim(physical(code)[1]),) if hand_handler else (),
-                            conditions=('static applicability: '+event,),
+                            conditions=('static applicability: '+event, *evidence),
                             unknown=('summon_configuration_uncovered',) if checks['status'] == 'unknown' else ()))
                     elif resource.kind == 'effect_applicability' and 'state:occurred_this_turn' in resource.attributes:
                         # The candidate includes the card. Whether the event
@@ -333,6 +335,18 @@ def _bind_unparsed_requirements(fact, unbound):
     return replace(fact, inputs=inputs, unknown=(*fact.unknown, *gaps)) if gaps else fact
 
 
+def _native_confirms_resolution(record, operation, native):
+    """Use a settled link and its matched complete operation together."""
+    source = record.get("lua_source", {})
+    registrations = source.get("registrations", ())
+    if (source.get("alignment") != "matched" or len(registrations) != 1 or record.get("branch_records")
+            or record["operations"] != [operation] or not native["chain"].get("response_to")):
+        return False
+    proof = registrations[0].get("direct_chain_negation")
+    observed, = native["observed_moves"]
+    return bool(proof and operation["kind"] == observed["kind"] == "negate" and proof["mode"] == observed.get("negation"))
+
+
 def _functional_relations(deck, available, records, aliases, extra_ids, context, budget, dependencies, config,
                           *, continuation=None, should_stop=None, previous_projections=None, projection='resident'):
     """Evaluate one inventory projection; Side never enters the resident call."""
@@ -423,9 +437,12 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
                 Need(inventory_key, inventory_port, mode="presence")) if v is not None))
             unknown = fact.unknown
             if witnessed:
-                trigger_known = scoped_record["trigger"].get("event") not in (None, "unknown")
-                if not native["chain"]["response_to"] or trigger_known:
-                    unknown = tuple(gap for gap in unknown if not gap.endswith(":activation_condition_unparsed"))
+                # The selected and settled registration proves this activation
+                # in its recorded window, including the preceding link for a response.
+                proven = (":activation_condition_unparsed",)
+                if _native_confirms_resolution(scoped_record, operation, native):
+                    proven += (":unparsed_resolution_or_restriction",)
+                unknown = tuple(gap for gap in unknown if not gap.endswith(proven))
                 fact = replace(fact, conditions=(*fact.conditions, "native-receipt:" + native["receipt"]))
             if processing and processing['status'] == 'unknown':
                 unknown += (processing['reason'],)

@@ -11,7 +11,7 @@ import re
 from .validation import ContractError
 
 
-LUA_EFFECT_VERSION = "mycard-effect-registration-v15"
+LUA_EFFECT_VERSION = "mycard-effect-registration-v16"
 _TABLE, _CARD = object(), object()
 _CALLBACKS = {
     "SetCondition": "condition", "SetCost": "cost", "SetTarget": "target",
@@ -229,6 +229,75 @@ def _callback(registration, role, functions, tables):
     namespace, dot, _ = name.partition(".")
     node = functions.get(name) if reference.get("definition") and dot and namespace in tables else None
     return name, node, reference.get("byte_span", registration["registration_span"])
+
+
+def _activation_window(registration, constants):
+    """Read the registered engine event separately from callback preconditions."""
+    kind = registration.get("type")
+    active_types = ("EFFECT_TYPE_ACTIVATE", "EFFECT_TYPE_IGNITION", "EFFECT_TYPE_FLIP",
+                    "EFFECT_TYPE_TRIGGER_O", "EFFECT_TYPE_TRIGGER_F", "EFFECT_TYPE_QUICK_O", "EFFECT_TYPE_QUICK_F")
+    flags = registration.get("property", 0)
+    target_flag = constants.get("EFFECT_FLAG_CARD_TARGET")
+    if type(kind) is not int or not registration.get("operation", {}).get("definition") or not any(
+            kind & constants[name] for name in active_types if type(constants.get(name)) is int):
+        return None
+    location = registration.get("range")
+    zone = next((zone for name, zone in (("LOCATION_HAND", "hand"), ("LOCATION_MZONE", "field"),
+                                        ("LOCATION_GRAVE", "grave"), ("LOCATION_PZONE", "field"),
+                                        ("LOCATION_SZONE", "field"), ("LOCATION_FZONE", "field"))
+                 if location is not None and constants.get(name) == location), None)
+    pendulum = location is not None and location == constants.get("LOCATION_PZONE")
+    event = registration["event"]
+    if "range" not in registration:
+        zone = {"normal_summon": "field", "special_summon": "field", "sent_to_grave": "grave"}.get(event)
+    if (constants.get("EVENT_FREE_CHAIN") is not None
+            and registration.get("event_code") == constants["EVENT_FREE_CHAIN"]):
+        if kind == constants.get("EFFECT_TYPE_ACTIVATE"):
+            event, zone = "card_activation", "field"
+        elif kind in (constants.get("EFFECT_TYPE_QUICK_O"), constants.get("EFFECT_TYPE_QUICK_F")):
+            event = "either_turn"
+    targets = False if flags == 0 else bool(flags & target_flag) if type(flags) is type(target_flag) is int else None
+    return dict(event=event, zone=zone, pendulum=pendulum, targets=targets)
+
+
+def _unconditional_target_check(registration, functions, constants, tables):
+    _, body, _ = _callback(registration, "target", functions, tables)
+    if body is None:
+        return None
+    params = tuple(map(_text, body.child_by_field_name("parameters").children_by_field_name("name")))
+    if len(params) not in (9, 10) or len(set(params)) != len(params) or {"Duel", "Card"} & set(params):
+        return None
+    local = {key: value for key, value in constants.items() if key not in params}
+    steps = _processing_statements(_children(body.child_by_field_name("body")), local, params[1], params[0])
+    guard = next(steps, None)
+    if guard is not None:
+        left, right = _binary(guard.child_by_field_name("condition"), "==")
+        if _name(right) == params[8]:
+            left, right = right, left
+        if (_name(left) == params[8] and _integer_value(right, local) == 0
+                and _value(_return_expression(_check_body(guard)), local) is True):
+            return dict(byte_span=_span(guard), metadata_only=next(steps, None) is None)
+    return None
+
+
+def _direct_chain_negation(registration, functions, constants, tables):
+    """An isolated core negation of the triggering link has no resolution tail."""
+    chaining = constants.get("EVENT_CHAINING")
+    if chaining is None or registration.get("event_code") != chaining:
+        return None
+    _, body, _ = _callback(registration, "operation", functions, tables)
+    if body is None:
+        return None
+    params = tuple(map(_text, body.child_by_field_name("parameters").children_by_field_name("name")))
+    if len(params) != 8 or len(set(params)) != len(params) or "Duel" in params:
+        return None
+    statements = _children(body.child_by_field_name("body"))
+    if len(statements) != 1:
+        return None
+    for kind, call in (("effect", "Duel.NegateEffect"), ("activation", "Duel.NegateActivation")):
+        if _literal_call(statements[0], {}, call, params[4]):
+            return dict(mode=kind, byte_span=_span(statements[0]))
+    return None
 
 
 def _skip_unused_handler(statements, effect, reserved):
@@ -1333,14 +1402,12 @@ def _processing_statements(statements, constants, player, effect=None):
         yield statement
 
 
-def _unfiltered_field_target(registration, functions, constants, tables):
-    """Read one identical unfiltered field selector at check and selection."""
+def _registered_target(registration, functions, constants, tables, *, grave_targets=False):
+    """Read a selector shared by the activation check and the actual selection."""
     _, body, _ = _callback(registration, "target", functions, tables)
-    field = constants.get("LOCATION_ONFIELD")
     target_flag = constants.get("EFFECT_FLAG_CARD_TARGET")
     flags = registration.get("property")
-    if (body is None or type(field) is not int or type(target_flag) is not int
-            or type(flags) is not int or not flags & target_flag):
+    if body is None or type(target_flag) is not int or type(flags) is not int or not flags & target_flag:
         return None
     params = tuple(map(_text, body.child_by_field_name("parameters").children_by_field_name("name")))
     if len(params) not in (9, 10) or len(set(params)) != len(params) or set(params) & (tables | {"Duel", "Card"}):
@@ -1358,6 +1425,17 @@ def _unfiltered_field_target(registration, functions, constants, tables):
     if _name(left) != chk or _integer_value(right, local) != 0:
         return None
     check = _return_expression(_check_body(guard))
+    field = constants.get("LOCATION_ONFIELD")
+    if type(field) is int:
+        proof = _field_target(check, selection, redirect, params, player, field, local)
+        if proof is not None:
+            return proof
+    if grave_targets:
+        return _own_grave_target(check, selection, redirect, params, player, local, functions, tables)
+    return None
+
+
+def _field_target(check, selection, redirect, params, player, field, local):
     for own, other, owner in ((field, field, "either"), (field, 0, "self"), (0, field, "opponent")):
         if not (_literal_call(check, local, "Duel.IsExistingTarget", None, player, own, other, 1, None)
                 and _literal_call(selection, local, "Duel.SelectTarget", player, None, player, own, other, 1, 1, None)):
@@ -1370,6 +1448,48 @@ def _unfiltered_field_target(registration, functions, constants, tables):
                 return None
         return dict(owner=owner, quantity=1, zone="field", check_span=_span(check), selection_span=_span(selection))
     return None
+
+
+def _own_grave_target(check, selection, redirect, params, player, constants, functions, tables):
+    _, args = _call(check)
+    grave = constants.get("LOCATION_GRAVE")
+    if type(grave) is not int or len(args) != 6:
+        return None
+    name = _name(args[0])
+    definition = functions.get(name) if name.partition(".")[0] in tables else None
+    if (definition is None or not _literal_call(check, constants, "Duel.IsExistingTarget", name, player, grave, 0, 1, None)
+            or not _literal_call(selection, constants, "Duel.SelectTarget", player, name, player, grave, 0, 1, 1, None)):
+        return None
+    if redirect:
+        guard, = redirect
+        target = params[-1]
+        checks = _conjuncts(_return_expression(_check_body(guard)))
+        if (len(params) != 10 or _name(guard.child_by_field_name("condition")) != target or len(checks) != 3
+                or not _literal_call(checks[0], constants, f"{target}:IsLocation", grave)
+                or not _literal_call(checks[1], constants, f"{target}:IsControler", player)
+                or not _literal_call(checks[2], constants, name, target)):
+            return None
+    formal = definition.child_by_field_name("parameters").children_by_field_name("name")
+    if len(formal) != 1:
+        return None
+    candidate = _text(formal[0])
+    query, eligibility = {}, []
+    expression = _return_expression(_children(definition.child_by_field_name("body")))
+    local = {key: value for key, value in constants.items() if key != candidate}
+    allowed = {f"{candidate}:{method}" for method in ("IsAbleToHand", "IsAbleToDeck", "IsAbleToRemove")}
+    for term in _conjuncts(expression):
+        call, args = _call(term)
+        if not args and call in allowed:
+            eligibility.append(call.partition(":")[2])
+            continue
+        predicate = _selection_query(term, candidate, local)
+        if not predicate or query.keys() & predicate.keys():
+            return None
+        query.update(predicate)
+    if not query:
+        return None
+    return dict(owner="self", quantity=1, zone="grave", check_span=_span(check), selection_span=_span(selection),
+                selector_query=query, filter=dict(function=name, byte_span=_span(definition), eligibility=eligibility))
 
 
 def _processing_steps(statements, constants, player, effect, depth=0):
@@ -2088,7 +2208,7 @@ class LuaEffectSource:
     def summarize_effects(self, code, *, deck_send_indices=(), self_send_costs=False, summon_methods=False,
                           preselected_grave_summons=False, summon_locks=False, summon_chain_response=False,
                           summon_grave_clone=False, latest_fusion_revival=False, hand_deck_grave_trigger=False,
-                          battle_group_revival=False, field_targets=False):
+                          battle_group_revival=False, field_targets=False, activation_windows=False):
         """Report registrations and requested callback facts for printed effects."""
         filename = f"c{code}.lua"
         result = dict(status="missing_script", file=filename, registrations=[], unknown=[],
@@ -2170,7 +2290,7 @@ class LuaEffectSource:
             result["status"] = "partial"
         if (deck_send_indices or self_send_costs or preselected_grave_summons or summon_locks
                 or summon_chain_response or summon_grave_clone or latest_fusion_revival or hand_deck_grave_trigger
-                or summon_methods or battle_group_revival or field_targets):
+                or summon_methods or battle_group_revival or field_targets or activation_windows):
             # Callback domains use unshadowed core constants and the card's namespace.
             # Deck filters can also read an unchanged local GetID result.
             tables = {name for name, value in constants.items()
@@ -2189,8 +2309,11 @@ class LuaEffectSource:
             local_ids = _unmodified_locals(root, local_ids)
             # These initial-effect helpers may add independent registrations.
             # Preserve their script diagnostics while using explicit callbacks.
-            deck_scope = deck_send_indices and self._registered_callback_scope_known(
-                result["unknown"], initial, initial_bindings)
+            activation_scope = activation_windows and not (shadowed or assignments["Effect"]) and (
+                self._registered_callback_scope_known(result["unknown"], initial, initial_bindings,
+                    grave_check=True, fusion_procedure=True, synchro_procedure=True))
+            deck_scope = deck_send_indices and (activation_scope or self._registered_callback_scope_known(
+                result["unknown"], initial, initial_bindings))
             payment_scope = self_send_costs and self._registered_callback_scope_known(
                 result["unknown"], initial, initial_bindings, grave_check=True)
             revival_scope = latest_fusion_revival and not shadowed and not assignments["Effect"] and (
@@ -2216,10 +2339,22 @@ class LuaEffectSource:
                         registration["intrinsic_grave_summon_lock"] = True
             for registration in result["registrations"]:
                 index = registration.get("description_index")
-                if field_target_scope:
-                    target = _unfiltered_field_target(registration, callbacks, static_constants, tables)
+                if activation_scope and (window := _activation_window(registration, static_constants)):
+                    registration["activation_window"] = window
+                    if "target" in registration and (check := _unconditional_target_check(
+                            registration, callbacks, static_constants, tables)):
+                        window["unconditional_target_check"] = check
+                    isolated = result["status"] == "parsed" and len(result["registrations"]) == 1
+                    metadata = "target" not in registration or window.get("unconditional_target_check", {}).get("metadata_only")
+                    if isolated and metadata:
+                        if negation := _direct_chain_negation(registration, callbacks, static_constants, tables):
+                            registration["direct_chain_negation"] = negation
+                if field_target_scope or activation_scope:
+                    target = _registered_target(registration, callbacks, static_constants, tables,
+                                                grave_targets=activation_scope)
                     if target is not None:
-                        registration["unfiltered_field_target"] = target
+                        key = "unfiltered_field_target" if target["zone"] == "field" else "typed_grave_target"
+                        registration[key] = target
                 if extra_method_scope and len(params) == 1:
                     method = _extra_summon_method(registration, callbacks, static_constants, tables)
                     if method:

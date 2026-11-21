@@ -12,7 +12,7 @@ from collections import Counter, defaultdict
 from .rule_references import effect_reference_requests
 
 EFFECT_RECORD_VERSION = "public-effect-records-v6"
-LUA_EFFECT_RECORD_VERSION = "public-effect-records-v21"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v22"
 _OPPONENT_SUMMON_RESPONSE = 'opponent_special_summon_effect_activation'
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (
@@ -1927,27 +1927,33 @@ def _bind_lua_extra_summon_method(record, script, windows):
     return rule
 
 
-def _unfiltered_printed_field_target(record):
+def _printed_lua_target(record):
     targets = record["targets"]
     if not record.get("branch_records") and len(targets) == 1:
         target, = targets
-        if target.get("zones") == ["field"] and target.get("selector") == "卡" and target.get("quantity") == 1:
+        if target.get("quantity") == 1 and (target.get("zones") == ["grave"] and target.get("selector")
+                or target.get("zones") == ["field"] and target.get("selector") == "卡"):
             return target
     return None
 
 
-def _bind_lua_field_target(record, registrations):
-    target = _unfiltered_printed_field_target(record)
+def _bind_lua_target(record, registrations, source, rows):
+    from .construction_inventory import query_supported
+
+    target = _printed_lua_target(record)
     if target is None:
         return
-    observations = [reg.get("unfiltered_field_target") for reg in registrations]
+    zone, = target["zones"]
+    key = "unfiltered_field_target" if zone == "field" else "typed_grave_target"
+    observations = [reg.get(key) for reg in registrations]
     if not all(observations):
         return
-    owners = {proof["owner"] for proof in observations}
-    if len(owners) != 1:
-        return
-    owner, = owners
-    if target.get("owner", "unknown") not in ("unknown", owner):
+    first = observations[0]
+    owner = first["owner"]
+    query = source.inventory_query(first.get("selector_query", {"selector": "卡"}), rows)
+    if (not query_supported(query) or target.get("owner", "unknown") not in ("unknown", owner)
+            or any(proof["owner"] != owner or proof.get("selector_query") != first.get("selector_query")
+                   for proof in observations[1:])):
         return
     sources = {}
     for reg, proof in zip(registrations, observations):
@@ -1956,7 +1962,86 @@ def _bind_lua_field_target(record, registrations):
         ref = f"lua:target:{origin['file']}:{origin['sha256']}:{start}-{end}"
         evidence = sources.setdefault(ref, dict(proof, origin=origin, registrations=[]))
         evidence["registrations"].append(reg["registration_span"])
-    target.update(owner=owner, selector_query={"selector": "卡"}, lua_target=sources)
+    target.update(owner=owner, selector_query=query, lua_target=sources)
+
+
+def _registered_activation_sources(records, script):
+    """Associate unambiguous registration identities without requiring a parsed trigger."""
+    entries = defaultdict(list)
+    windows = defaultdict(list)
+    for record in records:
+        if any(op.get("phase") not in ("continuous", "rule", "summon_procedure") for op in record["operations"]):
+            entries[record["scope"]].append(record)
+    if not entries:
+        return {}
+    card_scope = "spell_trap" if "spell_trap" in entries else "monster"
+    for registration in script["registrations"]:
+        if window := registration.get("activation_window"):
+            windows["pendulum" if window["pendulum"] else card_scope].append(registration)
+
+    result = {}
+    for scope, effects in entries.items():
+        activations = windows[scope]
+        if len(effects) == len(activations) == 1:
+            pairs = zip(effects, activations)
+        else:
+            indexed = {registration.get("description_index"): registration for registration in activations}
+            indices = {effect["effect_index"] - 1 for effect in effects}
+            if len(indices) != len(effects) or len(indexed) != len(activations) or set(indexed) != indices:
+                continue
+            pairs = ((effect, indexed[effect["effect_index"] - 1]) for effect in effects)
+        compatible = {}
+        for effect, registration in pairs:
+            window = registration["activation_window"]
+            trigger = effect["trigger"]
+            if (window["event"] is not None and trigger.get("event") not in (None, "unknown", window["event"])
+                    or window["zone"] is not None and trigger.get("zone") not in (None, window["zone"])):
+                break
+            compatible[effect["effect_key"]] = registration
+        else:
+            result.update(compatible)
+    return result
+
+
+def _bind_registered_activation(record, registration, source, rows):
+    """Consume the registered timing only after the complete precheck is represented."""
+    window = registration["activation_window"]
+    if (not window["event"] or not window["zone"] or record["conditions"]["status"] == "recognized"
+            or record.get("branch_records") or record.get("activation_state_conditions")
+            or record.get("activation_requirements") or record["costs"] or "condition" in registration
+            or "cost" in registration or ("count_limit" in registration and not record["count_limits"])):
+        return
+    selector = None
+    if record["targets"]:
+        if not all(target.get("lua_target") for target in record["targets"]):
+            return
+    elif window.get("targets") is not False:
+        return
+    elif "target" in registration and not window.get("unconditional_target_check"):
+        from .construction_inventory import query_supported
+
+        deck_send = registration.get("deck_send", {})
+        if (deck_send.get("status") != "resolved" or record["lua_source"].get("deck_send_status") not in (
+                "selector_bound", "printed_selector_retained")):
+            return
+        selector = source.inventory_query(deck_send["selector_query"], rows)
+        if not query_supported(selector):
+            return
+    lua = record["lua_source"]
+    start, end = registration["registration_span"]
+    ref = f"lua:activation:{lua['file']}:{lua['sha256']}:{start}-{end}"
+    if selector is not None:
+        record["activation_requirements"] = [dict(query=selector, minimum=deck_send["quantity"], source=ref,
+            origin="deck", owner="self", exclude_source_copy=True, source_card_id=record["card_id"])]
+    prior = record.setdefault("model_summary_observation", {})
+    for key in ("trigger", "conditions", "unknown"):
+        prior.setdefault(key, deepcopy(record[key]))
+    record["trigger"].update(event=window["event"], zone=window["zone"], reason="not_applicable",
+                             additional_conditions="registered_precheck", lua_activation=ref)
+    record["conditions"].update(status="recognized", additional_conditions="registered_precheck")
+    gaps = {"activation_condition", "additional_activation_conditions", "activation_boundary", "cost_or_condition"}
+    for view in (record, record["block_view"]):
+        view["unknown"] = [gap for gap in view["unknown"] if gap not in gaps]
 
 
 def merge_lua_effect_sources(records, source, script_code, *, rows, same_printing=True):
@@ -2001,10 +2086,17 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
     battle_revivals = {r["effect_key"]: race for r in records if (race := _printed_battle_group_revival(r))}
     if battle_revivals:
         script_options["battle_group_revival"] = True
-    if any(_unfiltered_printed_field_target(record) is not None for record in records):
+    if any((target := _printed_lua_target(record)) is not None and target["zones"] == ["field"] for record in records):
         script_options["field_targets"] = True
+    if any(record["conditions"]["status"] == "unknown" and record["operations"] for record in records):
+        script_options["activation_windows"] = True
     script = source.summarize_effects(script_code, **script_options)
     _bind_lua_attack_obligation(records, script, source)
+    methods = [window for window in script["registrations"] if window.get("extra_summon_method")]
+    if methods:
+        for record in records:
+            _bind_lua_extra_summon_method(record, script, methods)
+    activation_sources = _registered_activation_sources(records, script)
     groups = defaultdict(list)
     for registration in script["registrations"]:
         groups[registration.get("description_index")].append(registration)
@@ -2012,13 +2104,12 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
     grave_windows = [window for window in script["registrations"] if "preselected_grave_summon" in window]
     response_windows = [window for window in script["registrations"] if window.get("summon_chain_response")]
     revival_windows = [window for window in script["registrations"] if window.get("latest_fusion_revival")]
-    methods = [window for window in script["registrations"] if window.get("extra_summon_method")]
     source_info = {k: v for k, v in script.items() if k != "registrations"}
     for record in records:
         record["record_version"] = LUA_EFFECT_RECORD_VERSION
         index = record["effect_index"]
         windows = groups.get(index - 1, ())
-        if methods and _bind_lua_extra_summon_method(record, script, methods):
+        if record.get("intrinsic_summon_method"):
             record["lua_source"] = dict(source_info, alignment="matched", registrations=methods)
             continue
         if (record["effect_key"] in battle_revivals and len(windows) == indices[index] == 1
@@ -2078,21 +2169,27 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
         restriction_bound = (index > 0 and indices[index] == 1 and
             (matches or printed_event in (None, "unknown") and events == {"own_main_phase"})
             and _bind_lua_summon_lock(record, windows, source.binding, rows))
-        if index <= 0 or indices[index] != 1 or not printed_event or not windows or not matches:
+        registered = activation_sources.get(record["effect_key"])
+        printed_alignment = index > 0 and indices[index] == 1 and bool(printed_event and windows and matches)
+        if not printed_alignment and registered is None:
             record["lua_source"] = dict(source_info, alignment="unresolved")
             if windows:
                 record["lua_source"]["candidate_spans"] = [window["registration_span"] for window in windows]
             if restriction_bound:
                 record["lua_source"]["summon_lock_alignment"] = "matched"
             continue
+        if not printed_alignment:
+            windows = [registered]
         record["lua_source"] = dict(source_info, alignment="matched", registrations=list(windows))
-        _bind_lua_field_target(record, windows)
+        _bind_lua_target(record, windows, source, rows)
         if restriction_bound:
             record["lua_source"]["summon_lock_alignment"] = "matched"
         if record.get("type_matched_deck_send"):
             record["lua_source"]["deck_send_status"] = "field_type_binding"
         elif index - 1 in deck_sends:
             _merge_lua_deck_send(record, source, rows)
+        if len(windows) == 1 and windows[0] is registered:
+            _bind_registered_activation(record, registered, source, rows)
     if self_payments:
         _merge_lua_self_send_costs(records, self_payments, script)
 

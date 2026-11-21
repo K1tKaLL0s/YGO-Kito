@@ -934,6 +934,49 @@ end
                     self.assertEqual(target['owner'], 'either')
                     self.assertEqual(len(target['lua_target']), 1)
 
+    def test_registered_event_requires_unique_identity_and_verified_precheck_in_s3(self):
+        from tests.test_construction_functional_flow import fixture
+
+        script = """
+local s,id=GetID()
+function s.initial_effect(c)
+    local e=Effect.CreateEffect(c)
+    e:SetDescription(aux.Stringid(id,0))
+    e:SetType(EFFECT_TYPE_SINGLE+EFFECT_TYPE_TRIGGER_O)
+    e:SetCode(EVENT_SPSUMMON_SUCCESS)
+    e:SetTarget(s.target)
+    e:SetOperation(s.draw)
+    c:RegisterEffect(e)
+end
+function s.target(e,tp,eg,ep,ev,re,r,rp,chk)
+    if chk==0 then return true end
+end
+function s.draw(e,tp)
+    Duel.Draw(tp,1,REASON_EFFECT)
+end
+"""
+        printing = '①：这张卡特殊召唤的场合才能发动。自己从卡组抽1张。'
+        target_check = script.replace('return true', 'return Duel.GetFieldGroupCount(tp,LOCATION_HAND,0)>0')
+        competing = script.replace('c:RegisterEffect(e)', '''
+    c:RegisterEffect(e)
+    local other=e:Clone()
+    other:SetCode(EVENT_SUMMON_SUCCESS)
+    c:RegisterEffect(other)''')
+        task, _, _, _, _, policy = fixture()
+        deck = DeckParts((LUA_CARD_ID,))
+        for variant, aligned, complete in ((script, True, True), (target_check, True, False),
+                                            (competing, False, False)):
+            with self.subTest(aligned=aligned, complete=complete):
+                catalog = MechanismCatalog(self.assets(script=variant, description=printing))
+                record, = catalog.effect_records(LUA_CARD_ID)
+                self.assertEqual(record['lua_source']['alignment'] == 'matched', aligned)
+                self.assertEqual(record['trigger']['event'], 'special_summon' if complete else 'unknown')
+                facts = normalize_function_uses(task, deck, catalog, policy=policy)
+                self.assertEqual(any('activation_condition_unparsed' in key for key in facts['variables']), not complete)
+                use, = facts['use_details'].values()
+                if complete:
+                    self.assertIn(record['trigger']['lua_activation'], use['relation']['conditions'])
+
     def test_cloned_summon_and_grave_windows_share_one_printed_use(self):
         from ygo_kito.construction_relations import _record_outputs
 
