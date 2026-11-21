@@ -148,6 +148,7 @@ def settled_executions(events, links, trace, *, seat, resources):
     observed = trace.get("observations", {})
     movements = {int(index): row for index, row in trace.get("moves", {}).items()}
     executions = []
+    deck_order = set(trace.get("deck_order_notices", ()))
     for link in links:
         snapshots = {key: observed[str(link[key])] for key in _LIFECYCLE.values()
                      if key in link and str(link[key]) in observed}
@@ -175,6 +176,7 @@ def settled_executions(events, links, trace, *, seat, resources):
         operations = [operation for row in motion if (operation := effect_movement(row, seat, resolution))]
         operations.extend(_scalar_operations(link, events, declaration, seat))
         unresolved_moves = [i for i in range(link["solving"] + 1, link["solved"]) if events[i]["kind"] == 50
+                            and i not in deck_order
                             and events[i]["reason"] & (_EFFECT | _SPECIAL_SUMMON) and (
                                 i not in movements or not movements[i]["chain_id"])]
         target = committed.get("targets", [])

@@ -1,10 +1,12 @@
 // Observe the chain at native message boundaries. The locked library still
 // advances the duel and produces every response and message itself.
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <sstream>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "card.h"
 #include "duel.h"
@@ -28,6 +30,8 @@ struct Trace {
     uint8_t seat;
     construction_rule_guards::Observer guards;
     std::unordered_map<uint64_t, uint16_t> stock;
+    std::array<std::vector<card*>, 2> decks_before_message;
+    std::vector<byte> message;
     std::string rows;
     bool failed = false;
 };
@@ -42,56 +46,84 @@ void write_entity(std::ostream& out, const Trace& trace, const card& entity) {
         << (source == trace.stock.end() ? 0 : source->second);
 }
 
-void capture_moves(Trace& trace, const duel& engine, std::size_t index) {
-    const auto& buffer = engine.message_buffer;
-    constexpr std::size_t movement_size = 17;
-    std::ostringstream out;
-    for (std::size_t offset = 0; offset + movement_size <= buffer.size() && buffer[offset] == MSG_MOVE;
-            offset += movement_size, ++index) {
-        const auto* bytes = buffer.data() + offset;
-        const auto code = word(bytes + 1);
-        const auto* from = bytes + 5;
-        const auto* to = bytes + 9;
-        const auto reason = word(bytes + 13);
-        auto* entity = engine.game_field->get_field_card(to[0], to[1], to[2]);
-        if (!entity || entity->data.code != code || entity->get_info_location() != word(to))
-            continue;
-        auto* causing_rule = entity->current.reason_effect;
-        uint16_t chain_id = 0;
-        if (causing_rule) {
-            for (const auto& link : engine.game_field->core.current_chain) {
-                if (link.triggering_effect != causing_rule)
-                    continue;
-                if (chain_id) {
-                    chain_id = 0;
-                    break;
-                }
-                chain_id = link.chain_id;
-            }
+void capture_move(Trace& trace, const duel& engine, std::size_t index, const byte* bytes) {
+    const auto code = word(bytes + 1);
+    const auto* from = bytes + 5;
+    const auto* to = bytes + 9;
+    const auto reason = word(bytes + 13);
+    card* entity = nullptr;
+    if (from[0] < 2 && from[0] == to[0] && from[1] == LOCATION_DECK && to[1] == LOCATION_DECK) {
+        auto& order = trace.decks_before_message[from[0]];
+        // PROCESSOR_SORT_DECK uses a zero-code, identical-slot notice to
+        // refresh the client. It carries neither a transfer nor an entity.
+        if (code == 0 && word(from) == word(to) && reason == REASON_EFFECT) {
+            trace.rows.append("deck-order\t" + std::to_string(index) + '\n');
+            order.clear();
+            return;
         }
-        const bool public_destination = to[1] == LOCATION_GRAVE ||
-            ((to[1] & (LOCATION_ONFIELD | LOCATION_REMOVED | LOCATION_EXTRA)) && (to[3] & POS_FACEUP));
-        const auto operation = trace.guards.operation(chain_id);
-        out << "move\t" << index << '\t' << unsigned(from[0]) << '\t' << unsigned(from[1]) << '\t'
-            << unsigned(from[2]) << '\t' << unsigned(from[3]) << '\t' << unsigned(to[0]) << '\t'
-            << unsigned(to[1]) << '\t' << unsigned(to[2]) << '\t' << unsigned(to[3]) << '\t'
-            << reason << '\t' << (entity->owner == trace.seat || public_destination ? code : 0) << '\t' << chain_id
-            << '\t' << entity->summon_info << '\t' << operation.id << '\t' << operation.stage;
-        write_entity(out, trace, *entity);
-        out << '\n';
+        // Successive real insertions can shift an earlier destination before
+        // the buffer reaches the decoder. Follow the native positions in order.
+        if (from[2] < order.size() && to[2] < order.size() && order[from[2]]->data.code == code) {
+            entity = order[from[2]];
+            order.erase(order.begin() + from[2]);
+            order.insert(order.begin() + to[2], entity);
+            constexpr uint32_t except_sequence = 0xff00ffff;
+            if ((entity->get_info_location() & except_sequence) != (word(to) & except_sequence))
+                return;
+        } else {
+            order.clear();
+            return;
+        }
+    } else {
+        if (from[0] < 2 && from[1] == LOCATION_DECK)
+            trace.decks_before_message[from[0]].clear();
+        if (to[0] < 2 && to[1] == LOCATION_DECK)
+            trace.decks_before_message[to[0]].clear();
+        entity = engine.game_field->get_field_card(to[0], to[1], to[2]);
+        const uint32_t shown = word(to) & ~(to[1] & LOCATION_ONFIELD ? uint32_t(POS_REVEAL) << 24 : 0);
+        if (!entity || entity->data.code != code || entity->get_info_location() != shown)
+            return;
     }
+    auto* causing_rule = entity->current.reason_effect;
+    uint16_t chain_id = 0;
+    if (causing_rule) {
+        for (const auto& link : engine.game_field->core.current_chain) {
+            if (link.triggering_effect != causing_rule)
+                continue;
+            if (chain_id) {
+                chain_id = 0;
+                break;
+            }
+            chain_id = link.chain_id;
+        }
+    }
+    const bool public_destination = to[1] == LOCATION_GRAVE ||
+        ((to[1] & (LOCATION_ONFIELD | LOCATION_REMOVED | LOCATION_EXTRA)) && (to[3] & POS_FACEUP));
+    const auto operation = trace.guards.operation(chain_id);
+    std::ostringstream out;
+    out << "move\t" << index << '\t' << unsigned(from[0]) << '\t' << unsigned(from[1]) << '\t'
+        << unsigned(from[2]) << '\t' << unsigned(from[3]) << '\t' << unsigned(to[0]) << '\t'
+        << unsigned(to[1]) << '\t' << unsigned(to[2]) << '\t' << unsigned(to[3]) << '\t'
+        << reason << '\t' << (entity->owner == trace.seat || public_destination ? code : 0) << '\t' << chain_id
+        << '\t' << entity->summon_info << '\t' << operation.id << '\t' << operation.stage;
+    write_entity(out, trace, *entity);
+    out << '\n';
     trace.rows.append(out.str());
 }
 
-void capture(Trace& trace, std::size_t index) {
+void capture(Trace& trace, std::size_t index, std::size_t start) {
     auto* engine = reinterpret_cast<duel*>(trace.handle);
-    const auto& buffer = engine->message_buffer;
-    if (buffer.empty())
+    if (start >= trace.message.size())
         return;
-    const auto kind = buffer.front();
+    const auto* bytes = trace.message.data() + start;
+    const auto size = trace.message.size() - start;
+    const auto kind = bytes[0];
     std::size_t offset;
     switch (kind) {
-    case MSG_MOVE: capture_moves(trace, *engine, index); return;
+    case MSG_MOVE:
+        if (size >= 17)
+            capture_move(trace, *engine, index, bytes);
+        return;
     case MSG_CHAINING: offset = 16; break;
     case MSG_CHAINED:
     case MSG_CHAIN_SOLVING:
@@ -99,21 +131,15 @@ void capture(Trace& trace, std::size_t index) {
     default: return;
     }
     const auto& links = engine->game_field->core.current_chain;
-    if (buffer.size() <= offset || !buffer[offset] || buffer[offset] > links.size()) {
-        trace.failed = true;
+    if (size <= offset || !bytes[offset] || bytes[offset] > links.size())
         return;
-    }
-    const auto& link = links[buffer[offset] - 1];
+    const auto& link = links[bytes[offset] - 1];
     const auto* rule = link.triggering_effect;
-    if (!rule || !rule->handler || link.chain_count != buffer[offset]) {
-        trace.failed = true;
+    if (!rule || !rule->handler || link.chain_count != bytes[offset])
         return;
-    }
     const auto* handler = rule->get_handler();
-    if (!handler) {
-        trace.failed = true;
+    if (!handler)
         return;
-    }
     std::ostringstream out;
     out << "link\t" << index << '\t' << unsigned(kind) << '\t' << unsigned(link.chain_count) << '\t'
         << handler->data.code << '\t' << unsigned(link.triggering_player) << '\t'
@@ -149,18 +175,40 @@ extern "C" void* ygo_rule_trace_start(intptr_t handle, uint8_t seat) {
 
 extern "C" uint32_t ygo_rule_trace_process(intptr_t handle, void* opaque, std::size_t index) {
     auto& trace = *static_cast<Trace*>(opaque);
+    const auto* engine = reinterpret_cast<const duel*>(handle);
+    if (trace.handle == handle && !trace.failed) {
+        try {
+            for (uint8_t seat = 0; seat < 2; ++seat) {
+                const auto& deck = engine->game_field->player[seat].list_main;
+                trace.decks_before_message[seat].assign(deck.begin(), deck.end());
+            }
+        } catch (...) {
+            trace.failed = true;
+        }
+    }
     trace.guards.enter(index);
     const auto result = process(handle);
     trace.guards.leave();
     if (trace.handle == handle && !trace.failed) {
         try {
             trace.rows.append(trace.guards.take());
-            capture(trace, index);
+            trace.message = engine->message_buffer;
         } catch (...) {
             trace.failed = true;
         }
     }
     return result;
+}
+
+extern "C" void ygo_rule_trace_message(void* opaque, std::size_t index, std::size_t offset) {
+    auto& trace = *static_cast<Trace*>(opaque);
+    if (trace.failed)
+        return;
+    try {
+        capture(trace, index, offset);
+    } catch (...) {
+        trace.failed = true;
+    }
 }
 
 extern "C" const char* ygo_rule_trace_read(const void* opaque) {

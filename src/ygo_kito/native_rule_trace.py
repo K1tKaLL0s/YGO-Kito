@@ -24,7 +24,7 @@ class NativeRuleTraceError(RuntimeError):
 
 def _decode(raw, lua):
     handle = StringIO(raw)
-    links, moves, targets, guards, calls = {}, {}, {}, [], {}
+    links, moves, targets, guards, calls, deck_order = {}, {}, {}, [], {}, set()
     while handle.tell() < len(raw):
         start = handle.tell()
         tag = handle.readline().split("\t", 1)[0]
@@ -48,6 +48,11 @@ def _decode(raw, lua):
         elif tag == "target":
             index, *location, card, entity, owner, stock = map(int, _read_row(handle, tag, 9))
             targets.setdefault(index, []).append(dict(location=location, card=card, entity=entity, owner=owner, stock=stock))
+        elif tag == "deck-order":
+            index, = map(int, _read_row(handle, tag, 1))
+            if index in deck_order:
+                raise ValueError("duplicate native deck order notice")
+            deck_order.add(index)
         elif tag == "guard":
             *state, role, result = _read_row(handle, tag, 10)
             index, entity, card, seat, turn, phase, zone, position = map(int, state)
@@ -63,10 +68,10 @@ def _decode(raw, lua):
             calls[key] = dict(index=int(index), chain_id=int(chain), stage=int(stage), method=method)
         else:
             raise ValueError("invalid row in the rule trace")
-    return links, moves, targets, guards, calls
+    return links, moves, targets, guards, calls, deck_order
 
 
-def align_rule_trace(events, links, moves, targets, guards=(), calls=None):
+def align_rule_trace(events, links, moves, targets, guards=(), calls=None, deck_order=()):
     """Verify captured identities against the message at the same replay index."""
     captured = {}
     unaligned = set()
@@ -95,6 +100,9 @@ def align_rule_trace(events, links, moves, targets, guards=(), calls=None):
             continue
         captured[str(i)] = dict(row, targets=targets.get(i, [])) if kind == 71 else row
     return dict(observations=captured, moves=verified_moves, unaligned_phases=sorted(unaligned),
+                deck_order_notices=sorted(i for i in deck_order if 0 <= i < len(events)
+                    and events[i]["kind"] == 50 and events[i]["from_zone"] == events[i]["to_zone"] == 1
+                    and events[i]["reason"] == 0x40 and not events[i].get("public_card")),
                 guards=[row for row in guards if 0 <= row["index"] <= len(events)],
                 calls={str(key): row for key, row in calls.items() if 0 <= row["index"] <= len(events)})
 
@@ -136,6 +144,8 @@ class NativeRuleTraceSource:
         opened.ygo_rule_trace_start.restype = C.c_void_p
         opened.ygo_rule_trace_process.argtypes = [C.c_void_p, C.c_void_p, C.c_size_t]
         opened.ygo_rule_trace_process.restype = C.c_uint32
+        opened.ygo_rule_trace_message.argtypes = [C.c_void_p, C.c_size_t, C.c_size_t]
+        opened.ygo_rule_trace_message.restype = None
         opened.ygo_rule_trace_read.argtypes = [C.c_void_p]
         opened.ygo_rule_trace_read.restype = C.c_char_p
         opened.ygo_rule_trace_guard_status.argtypes = [C.c_void_p]
@@ -146,6 +156,9 @@ class NativeRuleTraceSource:
 
     @contextmanager
     def observe(self, engine, *, seat=0):
+        if not engine.modern_actions:
+            yield lambda _: dict(observations={}, error="rule_trace_needs_period_message_decoder")
+            return
         try:
             library = self.library
         except NativeRuleTraceError as error:
@@ -159,8 +172,10 @@ class NativeRuleTraceSource:
         original = engine.lib.process
         try:
             engine.lib.process = lambda duel: library.ygo_rule_trace_process(duel, trace, len(engine.events))
+            engine._construction_rule_message = partial(library.ygo_rule_trace_message, trace)
             yield partial(self._read, library, trace)
         finally:
+            del engine._construction_rule_message
             engine.lib.process = original
             library.ygo_rule_trace_end(trace)
 

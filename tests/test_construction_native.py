@@ -70,6 +70,24 @@ class ConstructionNativeTests(unittest.TestCase):
         self.assertEqual(operation_groups({"operations": [first, same_call, optional]}),
                          [[first, same_call], [optional]])
 
+    def test_deck_order_notice_cannot_discharge_a_real_material_move(self):
+        source = dict(file="procedure.lua", lines=[81, 110], sha256="a" * 64)
+        declaration = dict(type=0x10, event=1002, description=0, category=0, callbacks=dict(operation=source))
+        link = dict(link=1, card=1, zone=8, slot=0, seat=0, owner=0, issuer=1, stock=1,
+                    entity=10, chain_id=14, declaration=declaration, event=1002, replaced=False)
+        notice = dict(kind=50, from_zone=1, to_zone=1, player=0, reason=0x40)
+        events = [
+            dict(kind=70, link=1, public_card=1, player=0, zone=8, slot=0, description=0),
+            dict(kind=71, link=1), dict(kind=72, link=1), notice,
+            dict(notice, reason=0x40048), dict(kind=73, link=1),
+        ]
+        phases = {i: dict(link, kind=events[i]["kind"]) for i in (0, 1, 2, 5)}
+        trace = align_rule_trace(events, phases, {}, {}, deck_order=(3, 4))
+        self.assertEqual(trace["deck_order_notices"], [3])
+        case, = settled_executions(events, chain_links(events), trace, seat=0, resources="locked")
+        self.assertEqual(case["unresolved_moves"], [4])
+        self.assertEqual(case["status"], "partial")
+
     def test_payment_and_resolution_stay_with_their_own_chain_link(self):
         opened = dict(kind=70, player=0, public_card=1, description=16, link=1)
         reply = dict(kind=70, player=1, public_card=2, description=32, link=2)

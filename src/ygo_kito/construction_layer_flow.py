@@ -263,7 +263,7 @@ def _configuration_relations(available, records, dependencies, aliases, operatio
                             pid = LP_PAYMENT_POOL
                             pools.setdefault(pid, ResourcePool(pid, 'rule: initial 8000 LP; payment leaves positive LP', capacity=7999))
                             origins = tuple(p["reference"] for p in item.get("lua_lp_payment", ()))
-                            source = origins[0] if origins else "native-receipt:" + proof[1] if proof else 'static LP payment capacity'
+                            source = origins[0] if origins else 'static LP payment capacity'
                             added.append(RelationFact(key, key, resource, source, quantity=7999, output_pool=pid,
                                                      conditions=origins))
                             continue
@@ -1796,8 +1796,11 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                         facts['use_details'][key].update(operation_key=(code, ri, oi),
                             goal_id=digest(function_goal(record, operation)) if operation is not None else None)
                         if used_operation is not None and used_operation['kind'] in _SPECIAL_SUMMONS:
-                            facts['use_details'][key]['summoned_card_ids'] = (native['observed_card_ids'] if authoritative else
-                                _summoned_inventory(scoped_record, operation, objects, fusion))
+                            if authoritative:
+                                facts['use_details'][key]['summoned_card_ids'] = native['observed_card_ids']
+                            elif not native_authority:
+                                facts['use_details'][key]['summoned_card_ids'] = _summoned_inventory(
+                                    scoped_record, operation, objects, fusion)
                         if config.get('theme_profile'):
                             if native_authority:
                                 facts["use_details"][key]["explicit_task_goal"] = bool(authoritative and

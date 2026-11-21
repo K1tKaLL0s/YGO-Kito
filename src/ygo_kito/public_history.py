@@ -45,6 +45,8 @@ def emit(engine, kind, message, codes=(), **kwargs):
 
 def consume(engine, kind, r, audit):
     """Consume one non-decision message. Unknown/tag/debug messages fail closed."""
+    if kind in (50, 70, 71, 72, 73) and (observer := getattr(engine, "_construction_rule_message", None)):
+        observer(len(engine.events) - 1, r.offset - 1)
     if kind == 2:
         hint, player, value = r.u8(), r.u8(), r.u32()
         if player not in (0,1):
