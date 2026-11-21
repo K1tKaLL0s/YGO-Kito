@@ -14,6 +14,7 @@ from .native_assets import digest as file_digest, verify_resources
 
 
 _PROBE = Path(__file__).with_name("resources") / "rules/construction_rule_registrations.cpp"
+RULE_DECLARATION_HEADER = _PROBE.with_name("construction_rule_effect.h")
 _CALLBACK_ROLES = ("condition", "cost", "target", "operation", "value")
 
 
@@ -43,7 +44,7 @@ def _read_row(handle, expected, fields):
 
 
 def _read_effect(handle, lua):
-    scope, kind, event, area, desc, category, limit, *values = _read_row(handle, "registration", 22)
+    scope, kind, event, area, desc, category, limit, maximum, persistent, *values = _read_row(handle, "registration", 24)
     if scope not in ("card", "field"):
         raise ValueError("invalid registration scope from the locked core")
     callbacks = {}
@@ -57,7 +58,8 @@ def _read_effect(handle, lua):
             callback["sha256"] = checksum
         callbacks[role] = callback
     return dict(scope=scope, type=int(kind), event=int(event), range=int(area), description=int(desc),
-                category=int(category), count_code=int(limit), callbacks=callbacks)
+                category=int(category), count_code=int(limit), count_maximum=int(maximum),
+                count_persistent=bool(int(persistent)), callbacks=callbacks)
 
 
 def _read_cards(assets, raw, codes):
@@ -114,7 +116,8 @@ class NativeRegistrationSource:
     def __init__(self, assets):
         self.assets = assets
         self.directory = assets.workspace / "construction-native-registrations"
-        self.binding = dict(schema_version=1, probe_sha256=file_digest(_PROBE), resources=assets.receipt,
+        self.binding = dict(schema_version=1, probe_sha256=file_digest(_PROBE),
+                            declaration_sha256=file_digest(RULE_DECLARATION_HEADER), resources=assets.receipt,
                             card_identities=digest(assets.native_code_overrides), period=assets.period_context)
         self._cards = {}
 

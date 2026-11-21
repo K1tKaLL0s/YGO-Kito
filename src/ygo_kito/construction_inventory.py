@@ -409,6 +409,7 @@ class InventoryDependencies:
         self._specifications = {}
         self._processing = {}
         self.native_witnesses = {}
+        self.native_execution_contracts = {}
         self.set_names, self.registry_source = asset_archetype_names(catalog.assets)
         self.strict_names = bool(self.set_names or self.registry_source)
 
@@ -1128,6 +1129,8 @@ class InventoryDependencies:
 
     def witnessed_processing(self, deck, record, operation, *, inventory, scope="resident"):
         """Reallocate one settled procedure in this configuration's own stock."""
+        if operation is not None and (proof := self._settled_use(deck, inventory, record, operation, scope)) is not None:
+            return proof
         if not operation or not self.native_witnesses or operation.get("reason") != "effect":
             return None
         witnesses = self.native_witnesses.get((record["card_id"], record["effect_key"], operation["block_id"]), ())
@@ -1186,6 +1189,48 @@ class InventoryDependencies:
         if checked:
             supported = [row for row in checked if row["status"] == "inventory_present"]
             return dict((supported or checked)[0], alternatives=[row["receipt"] for row in supported])
+        return None
+
+    def _settled_use(self, deck, inventory, record, operation, scope):
+        if not self.native_execution_contracts:
+            return None
+        key = record["card_id"], record["effect_key"], operation["block_id"]
+        exact = self.native_execution_contracts.get(key, ())
+        if not exact:
+            return None
+        inventory_sha = digest(inventory.to_dict())
+        available = Counter((zone, code) for zone in ("main", "extra") for code in getattr(deck, zone))
+        proofs = []
+        for branch in exact:
+            execution = branch["execution"]
+            if branch["deck"] != inventory_sha:
+                continue
+            stock = {(row["zone"], row["card"]): row["quantity"] for row in execution["stock"]}
+            if Counter(stock) - available:
+                continue
+            operations = branch["operations"]
+            used = {move["entity"]: (move["stock"], move["card"])
+                    for move in (*execution["card_payments"], *execution["movements"])
+                    if move["owner"] == execution["actor"]["seat"] and move["stock"] in (1, 64)
+                    and (move["reason"] & 0x88)}
+            used = Counter(("main" if zone == 1 else "extra", card) for zone, card in used.values())
+            claims = [dict(zone=zone, card=card, quantity=count) for (zone, card), count in sorted(used.items())]
+            targets = execution["targets"]
+            proof = dict(status="inventory_present", authority="native", reason="native_settled_construction_use",
+                receipt=branch["receipt"], rule_id=execution["rule_id"], scope=scope, observed_moves=operations,
+                observed_card_ids=[move["card"] for move in operations if move.get("card")],
+                observed_target_ids=[target["card"] for target in targets if target["card"]],
+                observed_external_target_ids=[target["card"] for target in targets if target["card"]
+                                              and target["owner"] != execution["actor"]["seat"]],
+                stock=execution["stock"], stock_claims=claims, chain=branch["chain"], registration=execution["registration"],
+                issuer=execution["resolved_registration"]["issuer"], payments=execution["payments"],
+                card_payments=execution["card_payments"], prepared_summons=[],
+                applicability=dict(branch["prepared"], resources=branch["resources"], inventory=inventory_sha,
+                    query=branch["query"], turn=branch["chain"]["turn"], phase=branch["chain"]["phase"],
+                    registration=execution["registration"], event=execution["event"]))
+            proofs.append(proof)
+        if proofs:
+            return dict(proofs[0], alternatives=list(dict.fromkeys(proof["receipt"] for proof in proofs)))
         return None
 
     def processing_check(self, deck, record, selected=None, *, physical_inventory=None):

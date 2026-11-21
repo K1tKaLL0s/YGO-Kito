@@ -6,7 +6,6 @@
 #include <iostream>
 #include <iterator>
 #include <string>
-#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -18,6 +17,7 @@
 #include "interpreter.h"
 #include "lua.h"
 #include "ocgapi.h"
+#include "construction_rule_effect.h"
 
 namespace fs = std::filesystem;
 
@@ -68,19 +68,6 @@ static uint32_t note_diagnostic(intptr_t handle, uint32_t) {
             character = ' ';
     diagnostics.push_back(message);
     return 0;
-}
-
-static void print_callback(lua_State* state, int reference) {
-    lua_Debug info{};
-    if (reference) {
-        lua_rawgeti(state, LUA_REGISTRYINDEX, reference);
-        if (lua_getinfo(state, ">S", &info)) {
-            std::cout << '\t' << std::string_view(info.source, info.srclen)
-                      << '\t' << info.linedefined << '\t' << info.lastlinedefined;
-            return;
-        }
-    }
-    std::cout << (reference ? "\t?\t0\t0" : "\t-\t0\t0");
 }
 
 int main(int argc, char** argv) {
@@ -134,16 +121,7 @@ int main(int argc, char** argv) {
             std::cout << "diagnostic\t" << message << '\n';
         for (effect* registered : effects) {
             const bool on_card = printed->initial_effect.find(registered) != printed->initial_effect.end();
-            std::cout << "registration\t" << (on_card ? "card" : "field")
-                      << '\t' << registered->type << '\t' << registered->code << '\t' << registered->range
-                      << '\t' << registered->description << '\t' << registered->category << '\t' << registered->count_code;
-            auto* state = engine->lua->lua_state;
-            print_callback(state, registered->condition);
-            print_callback(state, registered->cost);
-            print_callback(state, registered->target);
-            print_callback(state, registered->operation);
-            print_callback(state, registered->is_flag(EFFECT_FLAG_FUNC_VALUE) ? registered->value : 0);
-            std::cout << '\n';
+            write_rule_declaration(std::cout, engine->lua->lua_state, registered, on_card);
         }
         end_duel(handle);
     }

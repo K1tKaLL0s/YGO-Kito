@@ -21,10 +21,48 @@ from ygo_kito.construction_native import (
     planned_queries,
 )
 from ygo_kito.construction_native_evidence import chain_links, stock_prefix
+from ygo_kito.construction_native_settlement import install_execution_contracts, settled_executions
 from ygo_kito.effect_lua import LuaEffectSource
+from ygo_kito.native_rule_trace import align_rule_trace
 
 
 class ConstructionNativeTests(unittest.TestCase):
+    def test_native_settlement_checks_source_copy_and_links_without_printed_record(self):
+        source = dict(file="procedure.lua", lines=[81, 110], sha256="a" * 64)
+        declaration = dict(type=0x10, event=1002, description=0, category=1,
+                           count_code=0, count_maximum=0, callbacks=dict(operation=source))
+        trace_link = dict(link=1, card=1, zone=8, slot=0, seat=0, owner=0, issuer=1, stock=1,
+                          entity=10, chain_id=14, declaration=declaration, event=1002, replaced=False)
+        events = [
+            dict(kind=70, link=1, public_card=1, player=0, zone=8, slot=0, description=0),
+            dict(kind=71, link=1), dict(kind=72, link=1),
+            dict(kind=50, from_zone=4, to_zone=16, player=0, public_card=2, reason=65),
+            dict(kind=73, link=1),
+        ]
+        phases = {i: dict(trace_link, kind=events[i]["kind"]) for i in (0, 1, 2, 4)}
+        move = dict(origin=[0, 4, 0, 1], destination=[0, 16, 0, 1], reason=65, card=2,
+                    owner=0, stock=1, entity=11, chain_id=14)
+        trace = align_rule_trace(events, phases, {3: move}, {})
+        links = chain_links(events)
+        case, = settled_executions(events, links, trace, seat=0, resources="locked")
+        self.assertEqual(case["status"], "observed")
+        self.assertEqual(case["stock"], [dict(zone="main", card=1, quantity=1),
+                                         dict(zone="main", card=2, quantity=1)])
+        self.assertEqual(case["operations"][0]["kind"], "destroy")
+        specs = {1: ([], [])}
+        assets = SimpleNamespace(effect_lua_source=object(), receipt={"resources": {"cards": "cards"}})
+        row = dict(native_executions=[case], chain_links=links, receipt="proof", deck_sha256="deck",
+                   rule_resources="locked", query={"setup": "trajectory"})
+        contracts = {}
+        install_execution_contracts(dict(receipts=[row]), specs, assets, contracts)
+        record = specs[1][0][0]["record"]
+        self.assertEqual(record["rule_registration"]["callbacks"]["operation"], source)
+        self.assertEqual(list(contracts), [(1, record["effect_key"], record["operations"][0]["block_id"])])
+        missing, = settled_executions(events, chain_links(events), align_rule_trace(events, phases, {}, {}),
+                                      seat=0, resources="locked")
+        self.assertEqual(missing["status"], "partial")
+        self.assertFalse(missing["operations"])
+
     def test_payment_and_resolution_stay_with_their_own_chain_link(self):
         opened = dict(kind=70, player=0, public_card=1, description=16, link=1)
         reply = dict(kind=70, player=1, public_card=2, description=32, link=2)

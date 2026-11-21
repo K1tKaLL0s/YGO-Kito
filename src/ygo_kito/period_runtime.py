@@ -185,6 +185,12 @@ class PeriodBuildAssets(BuildAssets):
 
         return NativeRegistrationSource(self)
 
+    @cached_property
+    def construction_rule_trace(self):
+        from .native_rule_trace import NativeRuleTraceSource
+
+        return NativeRuleTraceSource(self)
+
     def bind_rule_opponent(self, profile, opponent_id, *, seat=1, driver_version=LOCAL_DRIVERS[0], source=None):
         self.assert_integrity(physical=False)
         source = source or ("engineering_fixture" if self.evidence_source == "engineering_fixture" else "user_provided")

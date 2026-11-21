@@ -1,6 +1,7 @@
 """Execute scoped construction questions through the period core's legal decisions."""
 
 from collections import Counter, deque
+from contextlib import nullcontext
 from copy import deepcopy
 import json
 from pathlib import Path
@@ -15,6 +16,7 @@ from .construction_inventory import matches
 from .construction_native_evidence import (SUMMON_RESPONSE_EVENTS, admission_effects, chain_links,
     flip_completion, pending_summons, replay_steps, selected_objects, stock_prefix, window_link, window_priority,
     witnessed_rule)
+from .construction_native_settlement import settled_executions
 from .contracts import ActionSelection
 from .deck_profile import validate_sideboard_stock
 from .effect_duel import choose_effect_duel_action
@@ -28,7 +30,7 @@ from .validation import ContractError
 
 
 NATIVE_RULE_VERSION = "construction-native-rules-v5"
-NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v15"
+NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v16"
 _QUERY_WORK_VERSION = "construction-native-query-work-v1"
 _SUBGROUP_REPLAY_VERSION = 1
 _EFFECT_CONFIRMATION_VERSION = 2
@@ -244,6 +246,8 @@ def _main_queries(deck, assets, initialized, subject=None):
         if can_normal and (flips := _initialized_choices(lua, script, declarations, "flip_summon", [])):
             windows["flip_summon"] = flips
         for setup, registrations in windows.items():
+            if declarations is not None and not registrations:
+                continue
             field = [r for r in registrations if r["event"] == "own_main_phase"] if (
                 setup == "normal_summon" and counts[code] >= 3
             ) else []
@@ -721,8 +725,12 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
     flip_start = None
     declined_flip = False
     public = {code: {"type": row["type"], "attack": row.get("atk", 0)} for code, row in assets.rows.items()}
-    with engine_for_goal(assets, active_deck, query["seed"], selection_key=selection_key,
-                         cb_opening_hand=tuple(query["opening"])) as engine:
+    observer = getattr(assets, "construction_rule_trace", None)
+    with (
+        engine_for_goal(assets, active_deck, query["seed"], selection_key=selection_key,
+                        cb_opening_hand=tuple(query["opening"])) as engine,
+        (observer.observe(engine) if observer else nullcontext()) as read_rule_trace,
+    ):
         if counters is not None:
             counters["sessions"] += 1
         request = engine.next_decision()
@@ -941,6 +949,8 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
         metadata = dict(period=engine.period_context, scripts=sorted(engine.loaded_scripts),
                         subgroup_replay_version=_SUBGROUP_REPLAY_VERSION,
                         effect_confirmation_version=_EFFECT_CONFIRMATION_VERSION)
+        if read_rule_trace is not None:
+            metadata["rule_trace"] = read_rule_trace(events)
         if hasattr(engine, "_catalog_assets"):
             metadata["native_code_projection"] = digest(engine._catalog_assets.native_code_overrides)
     if status == "settled" and len(path) < len(query["path"]):
@@ -1082,6 +1092,8 @@ class NativeRuleChecks:
                         seen=sorted({digest(q) for q in initial}), receipts=[], history=[])
         binding = self._binding(task, deck)
         queue, seen, receipts, history = {}, set(), [], []
+        observer = getattr(self.assets, "construction_rule_trace", None)
+        retrace, traced = {}, set()
         for key in dict.fromkeys((*previous["receipts"], *previous["exhausted_receipts"])):
             raw = self._read_receipt(key, binding)
             if raw is None:
@@ -1099,6 +1111,12 @@ class NativeRuleChecks:
                 # Its submitted answers and settlement still support the old
                 # play. Revisit the window to discover the other answers.
                 queue[identity] = row["query"]
+            if observer is not None and row["resolved"]:
+                trace = raw["result"].get("rule_trace", {})
+                if raw["binding"].get("rule_trace") == observer.binding and not trace.get("error"):
+                    traced.add(identity)
+                else:
+                    retrace[identity] = row["query"]
             history.append(key)
             self.counts["frontier_reads"] += 1
             self.counts["frontier_replayed_decisions"] += row["decisions"]
@@ -1108,6 +1126,7 @@ class NativeRuleChecks:
                 queue[identity] = row["query"]
             else:
                 receipts.append(row)
+        queue.update((key, query) for key, query in retrace.items() if key not in traced)
         for query in [*(item["query"] for item in previous["pending"]), *previous.get("additional_windows", ())]:
             if not include_side and query.get("side_swaps"):
                 continue
@@ -1221,6 +1240,8 @@ class NativeRuleChecks:
 
     def _ask(self, task, deck, query, role, budget, should_stop):
         binding = dict(self._binding(task, deck), decision_limit=budget, query=query)
+        if observer := getattr(self.assets, "construction_rule_trace", None):
+            binding["rule_trace"] = observer.binding
         key = digest(binding)
         path = self.directory / (key + ".json")
         self.counts["requests"] += 1
@@ -1239,7 +1260,8 @@ class NativeRuleChecks:
                 key = current
                 path = self.directory / (key + ".json")
                 cached = self._read_receipt(key, binding)
-        if cached is not None and cached["result"]["status"] != "engine_error":
+        if (cached is not None and cached["result"]["status"] != "engine_error"
+                and not cached["result"].get("rule_trace", {}).get("error")):
             result = cached["result"]
             self.counts["cache_hits"] += 1
             self.counts["cache_replayed_decisions"] += result["decisions"]
@@ -1294,6 +1316,9 @@ class NativeRuleChecks:
         query = binding["query"]
         events = result.get("events", ())
         links = chain_links(events)
+        resources = digest((binding.get("resources"), binding.get("period"), binding.get("adapter")))
+        execution = settled_executions(events, links, result.get("rule_trace", {}), seat=query["seat"],
+                                       resources=resources)
         steps = replay_steps(events, result.get("trace", ()))
         link = window_link(links, steps, query, result.get("window"), events=events)
         activation = link["activation"] if link else None
@@ -1348,11 +1373,14 @@ class NativeRuleChecks:
         return dict(receipt=row["id"], status=result["status"], offered=result.get("offered"),
                     query=query, decisions=result["decisions"], moves=result.get("moves", []) if resolved else [],
                     field_moves=field_moves, prepared_moves=prepared, stock_prefix=prefix,
-                    activation_event=activation, chain_links=links, resolved=resolved,
+                    activation_event=activation, chain_links=links, resolved=resolved, native_executions=execution,
                     chain=link, path=result.get("path", []), payments=payments,
                     unmet_precondition=result.get("unmet_precondition"), alternatives=result.get("alternatives", []),
                     identity=result.get("identity", {}), error=result.get("error"),
+                    **({"rule_trace_diagnostic": {key: result["rule_trace"][key]
+                        for key in ("error", "unaligned_phases") if result["rule_trace"].get(key)}}
+                        if "rule_trace" in result else {}),
                     **({"confirmed_attachments": attachments} if attachments else {}),
                     **({"missing_scripts": result["missing_scripts"]} if "missing_scripts" in result else {}),
-                    rule_resources=digest((binding.get("resources"), binding.get("period"), binding.get("adapter"))),
+                    rule_resources=resources,
                     deck_sha256=digest(binding["deck"]))
