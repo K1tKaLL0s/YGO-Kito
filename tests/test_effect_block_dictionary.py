@@ -550,6 +550,8 @@ HINTMSG_TOGRAVE=504
 EVENT_SUMMON_SUCCESS=1100
 EVENT_SPSUMMON_SUCCESS=1102
 EVENT_TO_GRAVE=1014
+EFFECT_MUST_ATTACK=191
+EFFECT_FIRST_ATTACK=192
 HINT_OPSELECTED=6
 LOCATION_GRAVE=0x10
 LOCATION_EXTRA=0x40
@@ -862,6 +864,46 @@ end
                                  (['hand', 'field'], {'field': 'face_up'}))
                 self.assertEqual(recipient['query']['name_contains'], '同族')
                 self.assertEqual(record['costs'], [])
+
+    def test_own_attack_obligation_only_binds_the_single_card_registration(self):
+        from tests.test_construction_functional_flow import fixture
+        from ygo_kito.construction_quality import evaluate_functional_quality
+
+        task, _, _, _, _, policy = fixture()
+        deck = DeckParts((LUA_CARD_ID,))
+        layers = dict(axis=dict(task=task.to_dict(), inventory=deck.to_dict(), logic=None))
+        printing = "这张卡可以攻击的场合必须作出攻击。①：自己从卡组抽1张。"
+        script = f"""
+function c{LUA_CARD_ID}.initial_effect(c)
+    local obligation=Effect.CreateEffect(c)
+    obligation:SetType(EFFECT_TYPE_SINGLE)
+    obligation:SetCode(EFFECT_MUST_ATTACK)
+    c:RegisterEffect(obligation)
+end
+"""
+        for variant, expected in (
+            (script, True),
+            (script.replace("EFFECT_TYPE_SINGLE", "EFFECT_TYPE_FIELD"), False),
+            (script.replace("EFFECT_MUST_ATTACK", "EFFECT_FIRST_ATTACK"), False),
+            (script.replace("    c:RegisterEffect", "    obligation:SetReset(RESET_PHASE+PHASE_END)\n    c:RegisterEffect"), False),
+        ):
+            with self.subTest(variant=variant):
+                catalog = MechanismCatalog(self.assets(script=variant, description=printing))
+                facts = normalize_function_uses(task, deck, catalog, policy=policy)
+                result = evaluate_functional_quality(layers, policy=policy, facts=facts)
+                self.assertEqual("impacts" not in result["deferred"], expected)
+                draws = [row for row in result["use_details"].values() if row["semantics"]["kind"] == "draw"]
+                for row in draws:
+                    checks = [check for check in row["restriction_checks"]
+                              if check["restriction"]["kind"] == "must_attack"]
+                    self.assertTrue(checks)
+                    for check in checks:
+                        self.assertEqual(check["status"], "battle_command_constraint" if expected else "unmapped")
+                        self.assertEqual(check["affected_use_ids"], [])
+                        if expected:
+                            self.assertEqual(check["phases"], ["main1", "battle"])
+                            self.assertEqual(check["restriction"]["condition"], "this_card_can_attack")
+                self.assertTrue(draws)
 
     def test_resolution_summon_lock_consumes_original_scope_and_physical_recipients(self):
         from ygo_kito.build_semantics import matches

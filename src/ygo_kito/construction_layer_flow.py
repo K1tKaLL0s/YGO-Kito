@@ -26,7 +26,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v40"
+NORMALIZATION_VERSION = "construction-function-normalization-v41"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -947,6 +947,12 @@ def _bind_mandatory_impacts(facts, context, condition, *, summon_choice=None):
                 continue
             kind = restriction["kind"]
             scope = restriction.get('scope')
+            if kind == "must_attack" and contract is not None:
+                # The core enforces attack eligibility on the handler and gates
+                # voluntary phase transitions. Card effects do not use that command.
+                check["status"] = "battle_command_constraint"
+                check["phases"] = ["main1", "battle"]
+                continue
             if (scope in ('this_effect', 'this_effect_summoned_card', 'this_effect_affected_monster')
                     and record and _mapped_restriction(record, restriction)):
                 check['status'] = 'effect_activation_timing' if scope == 'this_effect' else 'result_entity_restriction'

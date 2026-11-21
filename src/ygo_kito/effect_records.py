@@ -12,7 +12,7 @@ from collections import Counter, defaultdict
 from .rule_references import effect_reference_requests
 
 EFFECT_RECORD_VERSION = "public-effect-records-v5"
-LUA_EFFECT_RECORD_VERSION = "public-effect-records-v13"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v14"
 _OPPONENT_SUMMON_RESPONSE = 'opponent_special_summon_effect_activation'
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (
@@ -1559,6 +1559,25 @@ def _bind_lua_summon_lock(record, windows, source_binding, rows):
     return True
 
 
+def _bind_lua_attack_obligation(records, script, source):
+    if script["status"] != "parsed":
+        return
+    windows = [window for window in script["registrations"] if source.intrinsic_attack_obligation(window)]
+    if len(windows) != 1:
+        return
+    start, end = windows[0]["registration_span"]
+    evidence = f"lua:{script['file']}:{script['sha256']}:{start}-{end}"
+    for record in records:
+        if record["scope"] != "monster":
+            continue
+        for rule in (*record["card_restrictions"], *record["restrictions"], *record["block_view"]["restrictions"]):
+            if (rule["kind"] == "must_attack" and rule["scope"] == "this_card"
+                    and rule["duration"] == "while_applicable"
+                    and re.fullmatch(r"(?:这张卡)?(?:可以|能够)攻击的场合(?:必须|必需)(?:作出|进行)?攻击",
+                                     rule["source"])):
+                rule.update(condition="this_card_can_attack", evidence_refs=[evidence])
+
+
 def merge_lua_effect_sources(records, source, script_code, *, rows, same_printing=True):
     """Attach Lua evidence to the matching printed effect and refine supported facts."""
     if not records:
@@ -1586,6 +1605,7 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
     if response_records:
         script_options["summon_chain_response"] = True
     script = source.summarize_effects(script_code, **script_options)
+    _bind_lua_attack_obligation(records, script, source)
     groups = defaultdict(list)
     for registration in script["registrations"]:
         groups[registration.get("description_index")].append(registration)

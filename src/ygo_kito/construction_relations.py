@@ -670,6 +670,13 @@ def _restriction_contract(restriction):
                     lua_summon_lock=lock)
     kind = restriction["kind"]
     source = restriction.get("source", "")
+    if kind == "must_attack":
+        if (restriction.get("scope") == "this_card"
+                and restriction.get("condition") == "this_card_can_attack"
+                and restriction.get("duration") == "while_applicable"
+                and restriction.get("evidence_refs")):
+            return dict(restriction)
+        return None
     if kind == "cannot_summon":
         kind = ("cannot_normal_summon" if "通常召唤" in source else
                 "cannot_special_summon_from_extra" if "额外卡组" in source and "特殊召唤" in source else

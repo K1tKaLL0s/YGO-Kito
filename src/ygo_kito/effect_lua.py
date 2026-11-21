@@ -1738,6 +1738,15 @@ class LuaEffectSource:
         elif method not in _METADATA:
             unresolved("unsupported_effect_setter", node)
 
+    def intrinsic_attack_obligation(self, registration):
+        """Recognize the unconditional registration on the effect's own card."""
+        single = self._constants.get("EFFECT_TYPE_SINGLE")
+        must_attack = self._constants.get("EFFECT_MUST_ATTACK")
+        return (type(single) is int and type(must_attack) is int
+                and registration.get("type") == single and registration.get("event_code") == must_attack
+                and registration.get("property", 0) == 0
+                and not {"range", "reset", "count_limit", *_CALLBACKS.values()} & registration.keys())
+
     def turn_count(self, registration):
         """Ordinary named, player-scoped counters in the pinned core's two-argument API."""
         limit = registration.get("count_limit")
