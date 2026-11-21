@@ -76,6 +76,14 @@ class ConstructionNativeTests(unittest.TestCase):
         self.assertEqual(tokens["0"], tokens["1"])
         self.assertNotEqual(tokens["0"], tokens["2"])
 
+    def test_subgroup_branches_keep_actual_additions_and_completion(self):
+        menu = [dict(action_id="first", operation="add", kind="select", refs=["p0.hand.0"], cards=[1]),
+                dict(action_id="second", operation="add", kind="select", refs=["p0.hand.1"], cards=[1]),
+                dict(action_id="undo", operation="remove", kind="select", refs=["p0.hand.2"], cards=[2]),
+                dict(action_id="finish", operation="finish", kind="select", refs=[], cards=[])]
+        self.assertEqual(_choice_tokens(menu, 26, set()), {
+            "first": ["add", ["p0.hand.0"]], "second": ["add", ["p0.hand.1"]], "finish": ["finish", []]})
+
     def test_legal_alternatives_and_other_uses_share_the_budget(self):
         assets = SimpleNamespace(workspace=Path("."))
         checks = NativeRuleChecks(assets)
@@ -192,6 +200,26 @@ class ConstructionNativeTests(unittest.TestCase):
                 self.assertEqual(ready["status"], "settled")
                 self.assertNotEqual(ready["receipt"], row["receipt"])
                 self.assertEqual(window.call_count, 2)
+
+    def test_only_old_receipts_that_encountered_subgroups_are_replayed(self):
+        with TemporaryDirectory() as workspace:
+            assets = SimpleNamespace(workspace=Path(workspace), period_context={}, adapter_revision=5, receipt={})
+            task = SimpleNamespace(sha256="task")
+            deck = DeckParts(main=(1, 2))
+            subgroup, ordinary = (dict(card=c, setup="hand", seat=0, path=[]) for c in (1, 2))
+            checker = NativeRuleChecks(assets)
+            def previous(_, __, query, **options):
+                return dict(status="settled", decisions=1, trace=[dict(prompt=26 if query == subgroup else 15, seat=0)])
+            with patch("ygo_kito.construction_native.run_window", side_effect=previous):
+                original = checker._ask(task, deck, subgroup, "candidate", 100, None)
+                untouched = checker._ask(task, deck, ordinary, "candidate", 100, None)
+            with patch("ygo_kito.construction_native.run_window", return_value=dict(
+                    status="settled", decisions=1, subgroup_replay_version=1)) as engine:
+                updated = checker._ask(task, deck, subgroup, "candidate", 100, None)
+                self.assertNotEqual(updated["receipt"], original["receipt"])
+                self.assertEqual(checker._ask(task, deck, subgroup, "candidate", 100, None), updated)
+                self.assertEqual(checker._ask(task, deck, ordinary, "candidate", 100, None), untouched)
+                engine.assert_called_once()
 
     def test_script_reader_attributes_only_paths_missing_from_the_snapshot(self):
         lua = LuaEffectSource.__new__(LuaEffectSource)

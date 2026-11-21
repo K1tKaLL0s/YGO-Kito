@@ -25,8 +25,9 @@ from .validation import ContractError
 
 
 NATIVE_RULE_VERSION = "construction-native-rules-v5"
-NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v10"
+NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v11"
 _QUERY_WORK_VERSION = "construction-native-query-work-v1"
+_SUBGROUP_REPLAY_VERSION = 1
 _DECISION_BUDGET = 100
 _DECK_DESTINATIONS = {2: "hand", 16: "grave"}
 _OPERATIONS = frozenset(("search_or_recover", "search", "add_hand", "send_grave"))
@@ -253,7 +254,8 @@ def _menu(request):
     known = _visible(request)
     return [dict(action_id=action.action_id, kind=action.kind, cards=[known.get(ref) for ref in action.card_refs],
                  refs=list(action.card_refs), value=action.value,
-                 description=action.details.description if action.details else None)
+                 description=action.details.description if action.details else None,
+                 **({"operation": action.details.operation} if request.prompt.message == 26 and action.details else {}))
             for action in request.actions]
 
 
@@ -275,8 +277,15 @@ def _choice_tokens(menu, message, deck_refs, *, activation=False):
         elif message == 15 and row["kind"] == "select":
             objects = row["cards"] if row["refs"] and set(row["refs"]) <= deck_refs else row["refs"]
             tokens[item] = [row["kind"], sorted(objects)]
+        elif message == 26 and row.get("operation") in ("add", "finish"):
+            tokens[item] = [row["operation"], sorted(row["refs"])]
     # Physical copies with equal card codes are equivalent for this directed one-card query.
     return tokens if len({digest(token) for token in tokens.values()}) > 1 else {}
+
+
+def _unrecorded_subgroup(result):
+    return (result.get("subgroup_replay_version") != _SUBGROUP_REPLAY_VERSION
+            and any(row.get("prompt") == 26 for row in result.get("trace", ())))
 
 
 def _resolved_chain(events, query, offered_description):
@@ -596,7 +605,10 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
             preferred = query.get("preferred_selection")
             if own and event_start is not None and preferred is not None and default is None:
                 default = next((item["action_id"] for item in menu if item["kind"] == "select"
+                               and (msg != 26 or item.get("operation") == "add")
                                and preferred in item["cards"]), None)
+            if default is None and msg == 26 and tokens:
+                default = next((item["action_id"] for item in menu if item.get("operation") == "finish"), None)
             if tokens:
                 depth = len(path)
                 choice = query["path"][depth] if depth < len(query["path"]) else None
@@ -641,7 +653,8 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
                                   prompt=msg, menu=menu, selection=chosen)
                 event_start = len(engine.events)
                 preparing = early
-            if own and event_start is not None and chosen["kind"] == "select":
+            if (own and event_start is not None and chosen["kind"] == "select"
+                    and (msg != 26 or chosen.get("operation") == "add")):
                 selections.update(code for ref, code in zip(chosen["refs"], chosen["cards"])
                                   if ref in refs and code is not None)
                 selected.update((own_cards[ref].zone, known[ref]) for ref in chosen["refs"]
@@ -654,7 +667,8 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
                 counters["submitted_decisions"] += 1
             request = engine.next_decision()
         events = list(engine.events)
-        metadata = dict(period=engine.period_context, scripts=sorted(engine.loaded_scripts))
+        metadata = dict(period=engine.period_context, scripts=sorted(engine.loaded_scripts),
+                        subgroup_replay_version=_SUBGROUP_REPLAY_VERSION)
         if hasattr(engine, "_catalog_assets"):
             metadata["native_code_projection"] = digest(engine._catalog_assets.native_code_overrides)
     if status == "settled" and len(path) < len(query["path"]):
@@ -803,7 +817,7 @@ class NativeRuleChecks:
                 continue
             identity = digest(row["query"])
             seen.add(identity)
-            if not self._current_card_sources(raw["result"]):
+            if not self._current_card_sources(raw["result"]) or _unrecorded_subgroup(raw["result"]):
                 queue[identity] = row["query"]
                 continue
             history.append(key)
@@ -929,11 +943,16 @@ class NativeRuleChecks:
         path = self.directory / (key + ".json")
         self.counts["requests"] += 1
         cached = self._read_receipt(key, binding)
-        if cached is not None and not self._current_card_sources(cached["result"]):
-            binding["runtime_code_projection"] = digest(self.assets.native_code_overrides)
-            key = digest(binding)
-            path = self.directory / (key + ".json")
-            cached = self._read_receipt(key, binding)
+        if cached is not None:
+            if not self._current_card_sources(cached["result"]):
+                binding["runtime_code_projection"] = digest(self.assets.native_code_overrides)
+            if _unrecorded_subgroup(cached["result"]):
+                binding["subgroup_replay_version"] = _SUBGROUP_REPLAY_VERSION
+            current = digest(binding)
+            if current != key:
+                key = current
+                path = self.directory / (key + ".json")
+                cached = self._read_receipt(key, binding)
         if cached is not None and cached["result"]["status"] != "engine_error":
             result = cached["result"]
             self.counts["cache_hits"] += 1
