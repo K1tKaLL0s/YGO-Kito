@@ -16,8 +16,8 @@ import tempfile
 from .effect_block_rules import FUNCTIONS, structural_records
 
 BLOCK_VERSION = "public-effect-blocks-v1"
-BLOCK_REVISION = 'local-library-review-20261115-b33-printed'
-LUA_BLOCK_REVISION = 'local-library-review-20261121-b34'
+BLOCK_REVISION = 'local-library-review-20261121-b35-printed'
+LUA_BLOCK_REVISION = 'local-library-review-20261121-b35'
 LABELS = {
     "send_grave": "送墓", "search": "检索", "recover": "回收", "add_hand": "加入手牌",
     "draw": "抽卡", "special_summon": "特召", "fusion_summon": "融合召唤",

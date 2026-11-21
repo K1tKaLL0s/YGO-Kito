@@ -11,7 +11,7 @@ import re
 from .validation import ContractError
 
 
-LUA_EFFECT_VERSION = "mycard-effect-registration-v8"
+LUA_EFFECT_VERSION = "mycard-effect-registration-v9"
 _TABLE, _CARD = object(), object()
 _CALLBACKS = {
     "SetCondition": "condition", "SetCost": "cost", "SetTarget": "target",
@@ -722,6 +722,37 @@ def _member_call(node, method, constants, *arguments):
     return None
 
 
+def _summon_chain_response(registration, functions, constants, tables):
+    """Identify a direct response to a negatable opponent summon effect."""
+    window = {"type": "EFFECT_TYPE_QUICK_O", "event_code": "EVENT_CHAINING", "range": "LOCATION_MZONE"}
+    if any(symbol not in constants or registration.get(field) != constants[symbol]
+           for field, symbol in window.items()):
+        return False
+    _, callback, _ = _callback(registration, "condition", functions, tables)
+    if callback is None or "STATUS_BATTLE_DESTROYED" not in constants or "CATEGORY_SPECIAL_SUMMON" not in constants:
+        return False
+    params = callback.child_by_field_name("parameters").children_by_field_name("name")
+    steps = _children(callback.child_by_field_name("body"))
+    if len(params) != 8 or len(steps) != 2:
+        return False
+    effect, player, _, chain_player, link, chain_effect, _, _ = map(_text, params)
+    guard, result = steps
+    if _text(_return_expression(_check_body(guard))) != "false":
+        return False
+    battle, negatable = _binary(guard.child_by_field_name("condition"), "or")
+    handler = _member_call(battle, "IsStatus", constants, constants["STATUS_BATTLE_DESTROYED"])
+    negatable = _unwrapped(negatable)
+    if (_call(handler) != (f"{effect}:GetHandler", []) or negatable is None
+            or negatable.type != "unary_expression"
+            or _text(negatable.child_by_field_name("operator")) != "not"
+            or not _literal_call(negatable.child_by_field_name("operand"), constants, "Duel.IsChainNegatable", link)):
+        return False
+    category, opponent = _binary(_return_expression([result]), "and")
+    left, right = _binary(opponent, "~=")
+    return ({_name(left), _name(right)} == {chain_player, player}
+            and _name(_member_call(category, "IsHasCategory", constants, constants["CATEGORY_SPECIAL_SUMMON"])) == chain_effect)
+
+
 def _processing_statements(statements, constants, player, effect=None):
     """Remove client hints and operation announcements with simple arguments."""
     for statement in statements:
@@ -1417,7 +1448,7 @@ class LuaEffectSource:
                     byte_span=_span(node), function=name) if node else None
 
     def summarize_effects(self, code, *, deck_send_indices=(), self_send_costs=False,
-                          preselected_grave_summons=False, summon_locks=False):
+                          preselected_grave_summons=False, summon_locks=False, summon_chain_response=False):
         """Report registrations and requested callback facts for printed effects."""
         filename = f"c{code}.lua"
         result = dict(status="missing_script", file=filename, registrations=[], unknown=[],
@@ -1497,7 +1528,7 @@ class LuaEffectSource:
             self._registrations(initial, initial_bindings, functions, result, unresolved)
         if result["unknown"]:
             result["status"] = "partial"
-        if deck_send_indices or self_send_costs or preselected_grave_summons or summon_locks:
+        if deck_send_indices or self_send_costs or preselected_grave_summons or summon_locks or summon_chain_response:
             # Callback domains use unshadowed core constants and the card's namespace.
             # Deck filters can also read an unchanged local GetID result.
             tables = {name for name, value in constants.items()
@@ -1526,6 +1557,9 @@ class LuaEffectSource:
                         registration["intrinsic_grave_summon_lock"] = True
             for registration in result["registrations"]:
                 index = registration.get("description_index")
+                if summon_chain_response and not shadowed and _summon_chain_response(
+                        registration, callbacks, static_constants, tables):
+                    registration["summon_chain_response"] = True
                 if payment_scope:
                     observed = _self_send_cost(registration, callbacks, static_constants, tables, cost_shadowed)
                     if observed["status"] == "resolved":

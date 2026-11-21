@@ -822,6 +822,47 @@ class LuaEffectBlockTests(unittest.TestCase):
         (self.root / "engine-build/receipt.json").write_text(json.dumps(receipt), encoding="utf-8")
         return BuildAssets(self.root)
 
+    def test_chain_response_matches_actual_condition_and_keeps_processing_order(self):
+        from ygo_kito.construction_inventory import requirement
+
+        constants = self.directory / 'constant.lua'
+        constants.write_text(CONSTANTS + '\nEVENT_CHAINING=1020\nSTATUS_BATTLE_DESTROYED=0x8\n', encoding='utf-8')
+        script = f"""
+function c{LUA_CARD_ID}.initial_effect(c)
+    local e=Effect.CreateEffect(c)
+    e:SetDescription(aux.Stringid({LUA_CARD_ID},0))
+    e:SetType(EFFECT_TYPE_QUICK_O)
+    e:SetCode(EVENT_CHAINING)
+    e:SetRange(LOCATION_MZONE)
+    e:SetCondition(c{LUA_CARD_ID}.eligible)
+    c:RegisterEffect(e)
+end
+function c{LUA_CARD_ID}.eligible(e,tp,eg,ep,ev,re,r,rp)
+    if e:GetHandler():IsStatus(STATUS_BATTLE_DESTROYED) or not Duel.IsChainNegatable(ev) then return false end
+    return re:IsHasCategory(CATEGORY_SPECIAL_SUMMON) and ep~=tp
+end
+"""
+        printing = ('①：这张卡以外的自己的水族怪兽不会被战斗破坏。'
+                    '②：包含把怪兽特殊召唤效果的效果由对方发动时才能发动。'
+                    '那个发动无效并破坏。那之后，从手卡以及自己场上的表侧表示的卡之中选1张「同族」卡送去墓地。')
+        for variant, matched in ((script, True), (script.replace('ep~=tp', 'ep==tp'), False)):
+            with self.subTest(matched=matched):
+                catalog = MechanismCatalog(self.assets(script=variant, description=printing))
+                _, record = catalog.effect_records(LUA_CARD_ID)
+                self.assertEqual(record['trigger']['event'], 'opponent_special_summon_effect_activation')
+                self.assertEqual(record['lua_source']['alignment'], 'matched' if matched else 'unresolved')
+                self.assertEqual(record['trigger'].get('requires_negatable_chain', False), matched)
+                negate, destroy, send = record['operations']
+                self.assertEqual(negate['subject'], 'activated_effect')
+                self.assertEqual(destroy['subject'], 'activated_card')
+                self.assertEqual(destroy['depends_on'], [negate['block_id']])
+                self.assertEqual(send['depends_on'], [destroy['block_id']])
+                recipient = requirement(send['source'], 'operations')
+                self.assertEqual((recipient['origins'], recipient['origin_states']),
+                                 (['hand', 'field'], {'field': 'face_up'}))
+                self.assertEqual(recipient['query']['name_contains'], '同族')
+                self.assertEqual(record['costs'], [])
+
     def test_resolution_summon_lock_consumes_original_scope_and_physical_recipients(self):
         from ygo_kito.build_semantics import matches
         from ygo_kito.construction_relations import _restriction_contract

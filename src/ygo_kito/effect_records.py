@@ -11,8 +11,9 @@ from collections import Counter, defaultdict
 
 from .rule_references import effect_reference_requests
 
-EFFECT_RECORD_VERSION = "public-effect-records-v4"
-LUA_EFFECT_RECORD_VERSION = "public-effect-records-v12"
+EFFECT_RECORD_VERSION = "public-effect-records-v5"
+LUA_EFFECT_RECORD_VERSION = "public-effect-records-v13"
+_OPPONENT_SUMMON_RESPONSE = 'opponent_special_summon_effect_activation'
 SUMMARY_VERSION = "public-mechanism-summary-v2"
 SUMMARY_FIELDS = (
     "fusion_target", "synchro_target", "xyz_target", "tuner",
@@ -442,6 +443,11 @@ def _refine_record(record,row,head,body,mode):
             return {'自己':'own','对方':'opponent'}.get(response[1],'either')+'_card_or_monster_effect_activation'
         if text == '要让场上的卡破坏的效果的发动时':
             return 'card_destruction_effect_activation'
+        if text in ('包含把怪兽特殊召唤效果的效果由对方发动时',
+                    '包含把怪兽特殊召唤的效果的魔法·陷阱·怪兽的效果由对方发动时'):
+            record['trigger'].update(controller='opponent', chain_relation='direct_response',
+                                     effect_category='special_summon')
+            return _OPPONENT_SUMMON_RESPONSE
         if text == '对方的攻击宣言时':
             return 'opponent_attack_declaration'
         if text == '对方怪兽进行战斗的攻击宣言时':
@@ -561,6 +567,8 @@ def _refine_record(record,row,head,body,mode):
                 'normal_summon','tribute_summon','reveal','add_extra'):
             op.update(source=complete_source, selector_query=parsed['query'],quantity=parsed['minimum'],
                 from_zones=parsed['origins'],owner=parsed['owner'],random=False)
+            if 'origin_states' in parsed:
+                op['origin_states'] = dict(parsed['origin_states'])
             if len(parsed['actions'])>1:inline.setdefault(complete_source,[]).append(op)
         source=op.get('source','')
         if op['kind'] == 'destroy' and re.fullmatch(r'(?:把|将)?这张卡破坏', source):
@@ -639,6 +647,15 @@ def _refine_record(record,row,head,body,mode):
             op.update(subject='activated_card', quantity=1, owner='both', random=False)
         if op['kind']=='negate' and source=='那个效果无效并破坏' and event=='card_destruction_effect_activation':
             op.update(subject='activated_effect', quantity=1, owner='both')
+        if event == _OPPONENT_SUMMON_RESPONSE and source in ('那个发动无效', '那个发动无效并破坏'):
+            if op['kind'] == 'negate':
+                op.update(subject='activated_effect', owner='opponent', quantity=1, negation='activation')
+            elif op['kind'] == 'destroy' and source.endswith('并破坏'):
+                negate = next((other for other in record['operations']
+                               if other['kind'] == 'negate' and other['source'] == source), None)
+                if negate is not None:
+                    op.update(subject='activated_card', owner='opponent', quantity=1, random=False,
+                              requires_effect_relation=True, depends_on=[negate['block_id']])
         if op['kind']=='negate_attack' and source=='那次攻击无效' and event=='opponent_attack_declaration':
             op.update(subject='declared_attack',quantity=1,owner='opponent')
         if op['kind']=='draw':
@@ -1564,17 +1581,30 @@ def merge_lua_effect_sources(records, source, script_code, *, rows, same_printin
                          for record in records for r in record["restrictions"]))
     if grave_summons:
         script_options["preselected_grave_summons"] = True
+    response_records = [record for record in records
+                        if record['trigger'].get('event') == _OPPONENT_SUMMON_RESPONSE]
+    if response_records:
+        script_options["summon_chain_response"] = True
     script = source.summarize_effects(script_code, **script_options)
     groups = defaultdict(list)
     for registration in script["registrations"]:
         groups[registration.get("description_index")].append(registration)
     indices = Counter(record["effect_index"] for record in records)
     grave_windows = [window for window in script["registrations"] if "preselected_grave_summon" in window]
+    response_windows = [window for window in script["registrations"] if window.get("summon_chain_response")]
     source_info = {k: v for k, v in script.items() if k != "registrations"}
     for record in records:
         record["record_version"] = LUA_EFFECT_RECORD_VERSION
         index = record["effect_index"]
         windows = groups.get(index - 1, ())
+        if len(response_records) == len(response_windows) == 1 and record is response_records[0]:
+            # A passive printed effect can occupy a number without a Stringid
+            # slot. The observed chain condition identifies the response.
+            registration = dict(response_windows[0], event=_OPPONENT_SUMMON_RESPONSE)
+            record['trigger'].update(zone='field', requires_negatable_chain=True,
+                                     excludes_battle_destroyed_handler=True)
+            record['lua_source'] = dict(source_info, alignment='matched', registrations=[registration])
+            continue
         scope = grave_summons.get(record["effect_key"])
         if scope is not None and indices[index] == 1:
             kind, query, legacy = scope

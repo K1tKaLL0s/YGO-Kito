@@ -267,6 +267,10 @@ def requirement(source, category):
     either = re.fullmatch(r'从(?:自己)?手卡(?:以及|和)自己场上的表侧表示怪兽之中(?:把|将)(\d+只.+?怪兽)除外', source)
     if either:
         source = '从手卡·场上把' + either[1] + '除外'
+    faceup_send = re.fullmatch(r'从(?:自己)?手卡(?:以及|和)自己场上的表侧表示的卡之中'
+        r'(?P<instruction>(?:选|把|将)\d+张[^。；，]+送去墓地)', source)
+    if faceup_send:
+        source = '从手卡·场上' + faceup_send['instruction']
     if source.endswith('特殊召唤'):
         source = re.sub(r'(?:当作|作为)(?:融合|同调|超量|连接|仪式)召唤(?:处理)?', '', source)
         source = re.sub(r'^除效果怪兽外的(\d+只)(?=.+从(?:自己)?(?:的)?额外卡组特殊召唤$)',
@@ -300,7 +304,7 @@ def requirement(source, category):
                 origin=origins[0] if len(origins)==1 else 'choice', origins=origins,
                 owner={'自己':'self','对方':'opponent','双方':'both',None:'self'}[match['owner']],
                 category=category, action=match['action'], actions=match['action'].split('或'),
-                **({'origin_states': {'field': 'face_up'}} if either else {}),
+                **({'origin_states': {'field': 'face_up'}} if either or faceup_send else {}),
                 **({'exclude_source_copy':True} if other else {}))
 
 
