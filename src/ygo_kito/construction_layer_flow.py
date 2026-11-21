@@ -27,7 +27,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v63"
+NORMALIZATION_VERSION = "construction-function-normalization-v64"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -1446,6 +1446,7 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
     relation_binding=asdict(context.relations) if context is not None else None
     if relation_binding is not None:relation_binding.pop('budget',None)
     native_rules = getattr(catalog.assets, "construction_rules", None)
+    requires_route = task.goal["kind"] != "deck_constraints" or "route_goal" in task.goal
     role = ("reference" if layer_evaluation is not None and layer_evaluation["axis"].get("logic") is None
             else "candidate")
     frontier = native_rules.frontier_binding(task, deck, role, policy) if native_rules is not None else None
@@ -1480,8 +1481,9 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
             work["rule_source_error"] = str(error)
         work["rule_sources"] = {str(code): value for code, value in initialized.items()}
     if native_rules is not None and "native_rule_evidence" not in work:
+        query_options = {"queries": ()} if native_authority and not requires_route and frontier is None else {}
         native = native_rules.evaluate(task, deck, role=role, policy=policy, should_stop=should_stop,
-                                       continuation=work.get("native_query_work"))
+                                       continuation=work.get("native_query_work"), **query_options)
         if native["status"] == "paused":
             work["native_query_work"] = native["continuation"]
             facts["calculation_pending"] = work
@@ -1620,7 +1622,7 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
         expr = _relation_support(relation["joint_required"], "required:joint", "resident", condition,
                                  ("original-task:" + task.sha256,), native_authority=native_authority)
         facts["hard_requirements"].append(dict(requirement_id="joint_required", origin="original-task:" + task.sha256, condition=expr))
-    if task.goal["kind"] != "deck_constraints" or "route_goal" in task.goal:
+    if requires_route:
         route = task.goal.get("route_goal", task.goal)
         opening = Counter(route["starting_conditions"]["requires_opening_hand"])
         required = {route["card_id"], *task.goal.get("required_activations", ()),

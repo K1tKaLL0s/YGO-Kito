@@ -5,7 +5,7 @@ import json
 from math import log2
 import unittest
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from ygo_kito.build_contracts import BuildTask, DeckParts, digest
 from ygo_kito.construction_binding import CatalogBindingAdapter
@@ -95,7 +95,7 @@ end
         assets.construction_rule_trace = None
         assets.construction_rules = SimpleNamespace(
             frontier_binding=lambda *args: None, record_quality=lambda *args: None,
-            evaluate=lambda *args, **kwargs: {"status": "complete", "receipts": [], "pending": []},
+            evaluate=Mock(return_value={"status": "complete", "receipts": [], "pending": []}),
         )
         assets.native_registration_source = SimpleNamespace(for_cards=lambda codes: {
             code: dict(diagnostics=[], native=[rule] if code == 2 else []) for code in codes
@@ -111,6 +111,8 @@ end
         self.assertTrue(short["complete"])
         self.assertEqual(short["score"]["value"], 0)
         self.assertEqual(short["losses"][0]["lower"], log2(2))
+        self.assertTrue(assets.construction_rules.evaluate.called)
+        self.assertTrue(all(call.kwargs["queries"] == () for call in assets.construction_rules.evaluate.call_args_list))
 
     def test_period_candidate_reaches_gate_without_printed_binding(self):
         task, assets, graph, binder, decks, p = fixture()
