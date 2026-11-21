@@ -96,6 +96,20 @@ def static_cycle(test, f, session, **options):
 
 
 class AutomaticThemeTests(unittest.TestCase):
+    def test_default_period_policy_uses_task_membership_without_printed_effects(self):
+        task, assets, _, binder, _, _ = theme_fixture()
+        assets.rule_authority = "locked_period_core"
+        catalog = binder.semantic_catalog
+        with (patch.object(catalog, "card", side_effect=AssertionError("printed profile")),
+              patch.object(catalog, "effect_records", side_effect=AssertionError("printed effects"))):
+            policy, _ = host_construction_quality(task, catalog=catalog)
+        profile = policy["quality"]["theme_profile"]
+        self.assertEqual(profile["rule_basis"], "locked_period_core")
+        self.assertEqual(profile["predicates"], [{"field": "setcode", "value": 0x515}])
+        self.assertEqual(profile["goals"], [])
+        self.assertEqual(profile["status"], "evaluated")
+        self.assertEqual([row["increment"] for row in policy["quality"]["theme_rules"]], [1., .5])
+
     def test_default_inference_uses_percentages_for_two_non_grave_mechanisms(self):
         for kind in ('summon', 'banished'):
             with self.subTest(kind=kind):

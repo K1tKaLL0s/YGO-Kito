@@ -318,7 +318,12 @@ def _functional_gate(task, deck, assets, evaluation, policy, candidate_version, 
                 reasons.append('required_function:' + row['requirement_id'] + ':' + row['status'])
     # All optional deficits remain available for repair; only original hard
     # requirements above veto admission independently of S.
-    dependencies = InventoryDependencies(MechanismCatalog(assets, task.pool)).evaluate(deck)
+    if getattr(assets, "rule_authority", None) == "locked_period_core":
+        dependencies = dict(kind="native_construction_inventory",
+            uses=(quality or {}).get("condition_applicability", []),
+            uncovered_cards=(quality or {}).get("total", {}).get("partial_items", []))
+    else:
+        dependencies = InventoryDependencies(MechanismCatalog(assets, task.pool)).evaluate(deck)
     for row in policy['metrics']:
         value = _quality_source(quality if row['path'][0] == 'quality' else evaluation, row['path']) if (quality if row['path'][0] == 'quality' else evaluation) else None
         known = type(value) in (int, float) and math.isfinite(value)
@@ -596,7 +601,7 @@ def restore_progress(session, value, assets, *, policy=None, _comparisons=None):
                 or quality.get('asset_version') != asset_version
                 or quality.get('native_rule_evidence', {}).get('frontier') != frontier(inventory, 'candidate')
                 or quality.get('policy_sha256') != policy_sha)
-            if not outdated:
+            if not outdated and getattr(catalog.assets, "rule_authority", None) != "locked_period_core":
                 outdated = any(e['record']['text_sha256'] != catalog.card(int(key.split(':')[1])).text_sha256
                     for key, detail in quality.get('coverage_details', {}).items() for e in detail.get('effects', ()))
             if outdated:

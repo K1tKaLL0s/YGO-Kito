@@ -57,6 +57,28 @@ def functional_fill():
 
 
 class FunctionalFlowTests(unittest.TestCase):
+    def test_period_candidate_reaches_gate_without_printed_binding(self):
+        task, assets, graph, binder, decks, p = fixture()
+        assets.rule_authority = "locked_period_core"
+        assets.period_context = {"period_id": "test-period"}
+        assets.construction_rule_trace = None
+        assets.construction_rules = SimpleNamespace(
+            frontier_binding=lambda *args: None,
+            evaluate=lambda *args, **kwargs: {"status": "complete", "receipts": [], "pending": []},
+            record_quality=lambda *args: None,
+        )
+        with (patch("ygo_kito.build_pipeline.edit_candidates", return_value=rows_for(task, decks[:1])),
+              patch.object(binder, "bind", side_effect=AssertionError("printed binding")),
+              patch.object(binder, "reviewer", side_effect=AssertionError("printed review")),
+              patch.object(binder.semantic_catalog, "card", side_effect=AssertionError("printed profile"))):
+            result = fill_with_existing(session_for(task, graph), assets, role="build_optimizer", base=decks[0],
+                binding_provider=binder, text_reviewer=binder.reviewer, quality_policy=p, defer_engine=True)
+            gate = construction_gate(task, decks[0], assets, result["layer_evaluation"],
+                                     policy=p, quality=result["quality_evaluation"])
+        self.assertEqual(result["best_deck"], decks[0].to_dict())
+        self.assertEqual(gate["status"], "pending")
+        self.assertTrue(any(reason.startswith("card_effect_coverage_unresolved:") for reason in gate["reasons"]))
+
     def test_copy_edit_reuses_unchanged_resources_and_function_pricing(self):
         from ygo_kito import construction_layer_flow as flow, construction_quality as scoring
 

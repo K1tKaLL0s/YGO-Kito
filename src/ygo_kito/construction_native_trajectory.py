@@ -41,6 +41,21 @@ def trajectory_queries(main, extra, initialized, rows):
     return queries
 
 
+def declared_goal_query(task, deck):
+    goal = task.goal.get("route_goal") if task.goal["kind"] == "deck_constraints" else task.goal
+    if goal is None:
+        return None
+    start = goal["starting_conditions"]
+    opening = start["requires_opening_hand"]
+    if Counter(opening) - Counter(deck.main):
+        return None
+    effects = set(task.goal.get("required_activations", ())) | set(task.goal.get("required_chain_resolutions", ()))
+    return dict(setup="trajectory", card=goal["card_id"], scope_cards=sorted(set(opening) | set(deck.extra) | effects),
+                seat=start["player"], through_turn=start["turn"], seed=7, opening=opening,
+                goal=dict(goal, _required_effects=sorted(effects)),
+                summons=[], registrations=[], destinations=[], path=[], priority=0)
+
+
 def _action_tokens(request, menu):
     """Use stable positions in the native menu, independent of private request IDs."""
     return dict((row["action_id"], [request.observation.observer, request.prompt.message, index,
@@ -76,7 +91,12 @@ def play_trajectory(engine, query, public, menu_for, read_trace, *, decision_bud
                     status = "branch_unavailable"
                     break
             else:
-                chosen = choose_effect_duel_action(request, public).action_id
+                if goal := query.get("goal"):
+                    from .route_search import ranked_actions
+                    choices = ranked_actions(request, goal, public)
+                    chosen = choices[0].action_id if choices else choose_effect_duel_action(request, public).action_id
+                else:
+                    chosen = choose_effect_duel_action(request, public).action_id
                 alternatives.extend(dict(path=[*path, token], prompt=request.prompt.message)
                                     for action_id, token in tokens.items() if action_id != chosen)
             path.append(tokens[chosen])

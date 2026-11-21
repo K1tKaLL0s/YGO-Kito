@@ -1015,6 +1015,13 @@ def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, 
                 applications.append(dict(use=uid, rule=proof["rule_id"], receipt=proof["receipt"],
                     scope=proof["scope"], status=proof["status"], condition=deepcopy(proof["applicability"])))
         body["condition_applicability"] = applications
+        if facts["native_rule_evidence"].get("authority") == "locked_period_core":
+            witnessed = {d: _functional_inputs(uses, sources, runtime, known, 3, d, impacts,
+                                             family_prices=family_prices, optimistic=False) for d in directions}
+            body["observed_score_contribution"] = dict(
+                value=sum(directions[d] * row["value"] for d, row in witnessed.items()),
+                directions={d: {k: row[k] for k in ("value", "functions", "benefits", "surviving_uses")}
+                            for d, row in witnessed.items()})
     if component_score is not None:
         from .construction_score_bounds import _public
         body['score_components'] = [{k: v for k, v in component.items() if k != 'side'} for component in components]

@@ -397,7 +397,8 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
     session.check_goal()
     if session.logic is None:
         raise ContractError("stage 1 construction logic is required")
-    if binding_provider is None:
+    native_authority = getattr(assets, "rule_authority", None) == "locked_period_core"
+    if binding_provider is None and not native_authority:
         return {"status": "binding_provider_unavailable", "training_status": "engineering_untrained", "best_deck": None}
     task = session.task
     from .construction_progress import host_construction_quality, quality_policy as validate_quality_policy
@@ -480,7 +481,7 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
     from .construction_recognition import (collect_recognition, recognition_quality_evidence,
         recognition_evidence_validator, recognition_binding)
     recognition_records = collect_recognition(recognition_provider, recognition_mode, task, candidates, assets)
-    recognition_identity = recognition_binding(recognition_provider, recognition_records, recognition_mode)
+    recognition_identity = None if native_authority else recognition_binding(recognition_provider, recognition_records, recognition_mode)
     compatible = pending_quality is not None and pending_quality.get('recognition_binding') == recognition_identity
     if not compatible:
         cached = {}
@@ -527,14 +528,16 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
         layer_logic = session.logic
         context = layer_adapter.context(task, layer_logic)
         limit = layer_adapter.limit(task, context)
-        quality_evidence = recognition_quality_evidence(quality_evidence, recognition_provider, recognition_records,
-            recognition_mode, validator=recognition_evidence_validator(layer_adapter, quality_policy, context))
-        if pending_quality is not None:
+        if not native_authority:
+            quality_evidence = recognition_quality_evidence(quality_evidence, recognition_provider, recognition_records,
+                recognition_mode, validator=recognition_evidence_validator(layer_adapter, quality_policy, context))
+        if pending_quality is not None and not native_authority:
             proposals = {int(i): FillProposal.from_dict(row) for i, row in pending_quality['proposals'].items()}
             binding_errors = {int(i): message for i, message in pending_quality['binding_errors'].items()}
         cursor = pending_quality.get('evaluation_cursor', 0) if compatible else 0
         schedule = order[cursor:] + order[:cursor]
-        for index in [i for i in schedule if i not in cached and i not in binding_errors][:limit]:
+        to_bind = [] if native_authority else [i for i in schedule if i not in cached and i not in binding_errors][:limit]
+        for index in to_bind:
             try:
                 proposal = binding_provider(session.logic, task, candidates[index])
                 if not isinstance(proposal, FillProposal) or proposal.deck != candidates[index]:
@@ -570,7 +573,8 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
         layer_evaluations = {i: row['layer_evaluation'] for i, row in candidate_evaluations.items()}
         comparisons = layer_trace.pop("_comparisons", {})
         layer_trace.update(candidate_limit=limit, uncovered_indices=[i for i in range(len(candidates))
-            if i not in proposals and i not in binding_errors], binding_failures=dict(binding_errors),
+            if i not in (candidate_evaluations if native_authority else proposals) and i not in binding_errors],
+            binding_failures=dict(binding_errors),
             upstream_generation_work=deepcopy(generation_trace))
     quality_evaluations = {i: row['quality_evaluation'] for i, row in candidate_evaluations.items()}
     preference = evidence_order(feedback,task.sha256,"deck")
@@ -613,25 +617,30 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
         attempt_index = len(results)
         item = trace_rows[index]
         item["attempt_index"] = attempt_index
-        try:
-            if index in binding_errors:
-                raise ContractError(binding_errors[index])
-            proposal = proposals[index] if index in proposals else binding_provider(session.logic, task, candidates[index])
-        except ContractError as error:
-            session.record_feedback("fill", "graph binding failed: " + str(error))
-            results.append({"status":"binding_unmatched","unmet":[str(error)],"best_deck":None,
-                "candidate_index":index,"ranking":ranking,"model_score_uncalibrated":item["model_score_uncalibrated"]})
-            item.update(status="binding_unmatched",unmet=[str(error)])
-            continue
-        if not isinstance(proposal, FillProposal) or proposal.deck != candidates[index]:
-            raise ContractError("binding provider must preserve the generated candidate and quantities")
-        result = evaluate_fill(session, assets, proposal, scopes=scopes, text_reviewer=text_reviewer, verifier=verifier, defer_engine=defer_engine)
+        proposal = None
+        if native_authority:
+            result = dict(status='concrete_candidate_cb_pending', best_deck=candidates[index].to_dict(),
+                card_list_legal=True, unmet=[], engine_validation={'status':'not_run'})
+        else:
+            try:
+                if index in binding_errors:
+                    raise ContractError(binding_errors[index])
+                proposal = proposals[index] if index in proposals else binding_provider(session.logic, task, candidates[index])
+            except ContractError as error:
+                session.record_feedback("fill", "graph binding failed: " + str(error))
+                results.append({"status":"binding_unmatched","unmet":[str(error)],"best_deck":None,
+                    "candidate_index":index,"ranking":ranking,"model_score_uncalibrated":item["model_score_uncalibrated"]})
+                item.update(status="binding_unmatched",unmet=[str(error)])
+                continue
+            if not isinstance(proposal, FillProposal) or proposal.deck != candidates[index]:
+                raise ContractError("binding provider must preserve the generated candidate and quantities")
+            result = evaluate_fill(session, assets, proposal, scopes=scopes, text_reviewer=text_reviewer, verifier=verifier, defer_engine=defer_engine)
         result.update(role=role, ranking=ranking, candidate_index=index, model_score_uncalibrated=item["model_score_uncalibrated"],
             layer_candidate_index=index, layer_status=item["layer_status"])
         results.append(result)
         item.update(status=result["status"],unmet=deepcopy(result.get("unmet",[])),card_list_legal=result.get("card_list_legal"),
             public_effect_evidence={"text_reviews_attempt_index":attempt_index,
-                "bindings":[b.to_dict() for b in proposal.bindings],
+                "bindings":[b.to_dict() for b in proposal.bindings] if proposal is not None else [],
                 "reviewed_card_ids":sorted({e["card_id"] for review in result.get("text_reviews",[]) for e in review["evidence"]}),
                 "interpretation":"source_bound_card_effect_assessment_not_model_score_attribution"})
         if result["status"] in ("task_goal_verified_logic_unproven", "list_constraints_verified_logic_unproven", "concrete_candidate_cb_pending"):
@@ -677,7 +686,7 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
         learning_candidates = [{"deck":candidates[i].to_dict(),"layer_evaluation":layer_evaluations[i],
             **({'quality_evaluation':quality_evaluations[i], 'evaluation_status':candidate_evaluations[i]['evaluation_status']}),
             "quality_comparisons":[v for pair,v in comparisons.items() if i in pair]}
-            for i in proposals if i in layer_evaluations]
+            for i in (candidate_evaluations if native_authority else proposals) if i in layer_evaluations]
         return {"status":best["status"],"best_deck":best["best_deck"],"attempts":results,
                 "_evaluation_batch":batch,
                 "selected_attempt_index":selected,"portfolio":retained,
@@ -1151,6 +1160,14 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
                 checked = True
                 validation = dict(status='list_constraints_verified_logic_unproven', best_deck=row['deck'],
                     attempts=[{'engine_validation':proof(session.task,deck,assets)}])
+            elif getattr(assets, "rule_authority", None) == "locked_period_core":
+                from .build_semantics import accepted_status, proof
+                receipt = row["quality_evaluation"]["native_rule_evidence"]["goal_receipt"]
+                verified = dict(proof(session.task, deck, assets), status=accepted_status(session.task),
+                                native_receipt=receipt, effect_execution_verified=True)
+                checked = True
+                validation = dict(status="task_goal_verified_logic_unproven", best_deck=row["deck"],
+                                  attempts=[{"engine_validation": verified}])
             elif allowed and verifier is not None:
                 proof = evaluate_fill(session, assets, FillProposal.from_dict(row['concrete_proposal']),
                     scopes=scopes, text_reviewer=text_reviewer, verifier=verifier)

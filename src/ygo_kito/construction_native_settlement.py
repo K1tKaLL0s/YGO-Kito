@@ -3,7 +3,6 @@
 from collections import Counter, defaultdict
 
 from .build_contracts import digest
-from .native_registrations import NativeRegistryError
 
 
 _ZONES = {1: "deck", 2: "hand", 4: "field", 8: "field", 16: "grave", 32: "banished", 64: "extra",
@@ -13,6 +12,65 @@ _SUMMON_TYPES = {0x43000000: "fusion_summon", 0x46000000: "synchro_summon",
                  0x4a000000: "pendulum_summon", 0x4c000000: "link_summon"}
 _LIFECYCLE = {70: "opened", 71: "chained", 72: "solving", 73: "solved"}
 _COST, _EFFECT, _SPECIAL_SUMMON, _MATERIAL = 0x80, 0x40, 0x800, 0x8
+
+
+def observed_applicability(trace, *, resources, query):
+    """Read eligibility outcomes for the actual state visited by a legal replay."""
+    result = []
+    seen = set()
+    for row in trace.get("guards", ()):
+        role = row["role"]
+        source = row["declaration"]["callbacks"].get(role, {})
+        if row["seat"] != query["seat"] or "sha256" not in source:
+            continue
+        predicate = "native-check:" + digest((resources, row["card"], row["declaration"], role))
+        key = (predicate, row["index"], row["entity"], row["turn"], row["phase"], row["zone"], row["passed"])
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(dict(row, predicate=predicate, callback=source,
+            status="satisfied" if row["passed"] else f"native_{role}_failed"))
+    return result
+
+
+def observed_goal_receipt(route, goal, evidence):
+    """Return the actual first-turn replay proving the original goal and required links."""
+    from .route_search import effect_goal_witness, resolved_chain_cards
+
+    start = route["starting_conditions"]
+    for receipt in evidence["receipts"]:
+        query = receipt["query"]
+        if (query.get("side_swaps") or query["seat"] != start["player"]
+                or Counter(start["requires_opening_hand"]) - Counter(query["opening"])):
+            continue
+        events = receipt.get("goal_timeline", ())
+        activated = {e["public_card"] for e in events if e["kind"] == 70 and e["player"] == 0}
+        if not set(goal.get("required_activations", ())) <= activated or not set(
+                goal.get("required_chain_resolutions", ())) <= resolved_chain_cards(events):
+            continue
+        if route["kind"] == "effect_resolution" and effect_goal_witness(route, events, exact_description=True):
+            return receipt["receipt"]
+        if route["kind"] == "normal_summon":
+            if any(event["kind"] == 60 and event.get("player") == 0 and
+                    event.get("public_summoning_card") == route["card_id"] and
+                    i + 1 < len(events) and events[i + 1]["kind"] == 61 for i, event in enumerate(events)):
+                return receipt["receipt"]
+        for case in receipt.get("native_executions", ()):
+            if (case["status"] != "observed" or case["solved"] >= receipt["first_turn_end"]
+                    or not any(move["kind"] == route["kind"] and move.get("card") == route["card_id"]
+                               and move["owner"] == "self" for move in case["operations"])):
+                continue
+            fusion = route.get("fusion_witness")
+            if fusion:
+                materials = [move for move in case["movements"]
+                             if move["owner"] == start["player"] and move["reason"] & 0x40008 == 0x40008
+                             and move["destination"][1] in fusion["allowed_destination_zones"]]
+                if (case["card"] not in {row["card_id"] for row in fusion["effect_assessments"]}
+                        or len({move["entity"] for move in materials}) < fusion["minimum_materials"]
+                        or not set(fusion["required_source_zones"]) <= {move["origin"][1] for move in materials}):
+                    continue
+            return receipt["receipt"]
+    return None
 
 
 def effect_movement(motion, seat, resolution):
@@ -48,7 +106,8 @@ def effect_movement(motion, seat, resolution):
     if not kind:
         return None
     return dict(kind=kind, origin=origin, destination=destination, card=motion["card"], entity=motion["entity"],
-                owner="self" if motion["owner"] == seat else "opponent", reason="effect")
+                owner="self" if motion["owner"] == seat else "opponent", reason="effect",
+                **({"native_call": dict(motion["operation"], id=motion["call"])} if motion.get("operation") else {}))
 
 
 def _scalar_operations(link, events, declaration, seat):
@@ -131,70 +190,18 @@ def settled_executions(events, links, trace, *, seat, resources):
     return executions
 
 
-_EQUIVALENT = {
-    "add_hand": {"add_hand", "search", "search_or_recover", "recover"},
-    "send_grave": {"send_grave", "mill"},
-    "return_deck": {"return_deck", "return"},
-    "return_extra": {"return_extra", "return"},
-}
-
-
 def operation_groups(execution):
     """Keep one actual operation over a group of simultaneously selected copies."""
     groups = {}
     for operation in execution["operations"]:
-        identity = tuple(operation.get(key) for key in ("kind", "origin", "destination", "owner", "negation"))
+        identity = (operation.get("native_call", {}).get("id"), *(operation.get(key)
+                    for key in ("kind", "origin", "destination", "owner", "negation")))
         groups.setdefault(identity, []).append(operation)
     return list(groups.values())
 
 
-def matching_records(execution, records, lua):
-    """Find historical labels using only their linked Lua callback provenance."""
-    actual = execution["registration"]
-    callbacks = actual["callbacks"]
-    result = []
-    for record in records:
-        for registration in record.get("lua_source", {}).get("registrations", ()):
-            if registration.get("event_code") != actual["event"] or "operation" not in callbacks:
-                continue
-            if all(lua.callback_location(registration.get(role, {}).get("definition")) == observed
-                   for role, observed in callbacks.items()):
-                result.append(record)
-                break
-    return result
-
-
-def _historic_label(receipt, execution, records):
-    """Retain a proven historical label when its original link has this exact declaration."""
-    if (receipt.get("chain") or {}).get("opened") != execution["opened"]:
-        return []
-    identity = receipt["identity"]
-    if identity.get("status") != "bound":
-        return []
-    actual = execution["registration"]
-    for source in identity["source"]:
-        declared = source.get("initialized")
-        if declared and all(declared.get(key) == actual[key] for key in (
-                "scope", "type", "event", "range", "description", "category", "count_code", "callbacks")):
-            return [record for record in records if record["effect_key"] == identity["effect_key"]]
-    return []
-
-
-def _historical_blocks(record, groups):
-    for group in groups:
-        observed = group[0]
-        choices = [operation for operation in record["operations"] if operation.get("phase") not in ("delayed", "replacement")
-                   and operation["kind"] in _EQUIVALENT.get(observed["kind"], {observed["kind"]})
-                   and (not operation.get("from_zones") or observed.get("origin") in operation["from_zones"])
-                   and operation.get("to_zone") in (None, observed.get("destination"))
-                   and operation.get("owner") in (None, "unknown", "either", observed["owner"])
-                   and operation.get("negation") in (None, observed.get("negation"))]
-        if len(choices) == 1:
-            yield choices[0]["block_id"], group
-
-
-def _native_record(execution, groups, ordinal, cards_sha256):
-    rule = execution["rule_id"]
+def _native_record(execution, branch, groups, ordinal, cards_sha256):
+    rule = execution["rule_id"] + ":" + branch
     registration = execution["registration"]
     callback = registration["callbacks"]["operation"]
     source = f"{callback['file']}:{callback['lines'][0]}"
@@ -203,13 +210,12 @@ def _native_record(execution, groups, ordinal, cards_sha256):
     ops = []
     for group in groups:
         observed = group[0]
-        cards = sorted({value["card"] for value in group if value.get("card")})
         values = dict(kind=observed["kind"], owner=observed["owner"], reason="effect",
             from_zones=[observed["origin"]] if observed.get("origin") else [], to_zone=observed.get("destination"),
             quantity=sum(row.get("quantity", 1) for row in group), source=source, phase="resolution",
             block_id=rule + ":operation:" + str(len(ops)))
-        if cards and observed["owner"] == "self":
-            values.update(selector_query={"predicate": {"field": "card_ids", "value": cards}}, random=False)
+        if observed.get("native_call", {}).get("method") == "DiscardDeck":
+            values["random"] = True
         if observed.get("negation"):
             values["negation"] = observed["negation"]
         ops.append(values)
@@ -220,65 +226,39 @@ def _native_record(execution, groups, ordinal, cards_sha256):
         costs=[], targets=[], operations=ops, count_limits=[], restrictions=[], card_restrictions=[],
         printed_materials=[], unknown=[], block_view={"status": "native", "blocks": [], "unknown": []},
         rule_registration=registration)
-    return record, [(operation["block_id"], group) for operation, group in zip(ops, groups)]
+    return record
 
 
 def install_execution_contracts(observed, specifications, assets, contracts):
-    """Supply S3 with results owned by native registrations, even without a printed record."""
-    lua = assets.effect_lua_source
-    if lua is None:
-        return
+    """Translate each settled native branch into the physical inventory contract."""
     added = defaultdict(dict)
-    native_sources = getattr(assets, "native_registration_source", None)
-    initialized = {}
     for receipt in observed["receipts"]:
         for execution in receipt.get("native_executions", ()):
             code = execution["card"]
             if (execution["status"] != "observed" or code not in specifications
                     or "operation" not in execution["registration"]["callbacks"]):
                 continue
-            effects, materials = specifications[code]
             groups = operation_groups(execution)
-            records = [effect["record"] for effect in effects]
-            linked = matching_records(execution, records, lua)
-            if not linked:
-                linked = _historic_label(receipt, execution, records)
-            if not linked and len(records) == 1 and native_sources is not None:
-                if code not in initialized:
-                    try:
-                        initialized[code] = [row for row in native_sources.for_cards((code,))[code]["native"]
-                                             if row["type"] & 0x8 and "operation" in row["callbacks"]]
-                    except NativeRegistryError:
-                        initialized[code] = []
-                if initialized[code] == [execution["registration"]]:
-                    linked = records
-            if len(linked) == 1:
-                record, = linked
-                blocks = list(_historical_blocks(record, groups))
-            elif not linked and not any(r["operations"] or r.get("costs") or r.get("restrictions") for r in records):
-                branch_id = digest((execution["rule_id"], [tuple(group[0].get(field) for field in (
-                    "kind", "origin", "destination", "owner", "negation")) for group in groups]))
-                branch = added[code].get(branch_id)
-                if branch is None:
-                    ordinal = min((r["effect_index"] for r in records), default=0) - len(added[code]) - 1
-                    effect, pairs = _native_record(execution, groups, ordinal, assets.receipt["resources"]["cards"])
-                    effect["effect_key"] += ":" + branch_id
-                    effect["relation_ref"] = effect["effect_key"]
-                    branch = added[code][branch_id] = effect, pairs
-                record, previous = branch
-                blocks = [(block, group) for (block, _), group in zip(previous, groups)]
-            else:
-                continue
-            for block, operations in blocks:
-                contracts.setdefault((code, record["effect_key"], block), []).append(dict(
+            branch_id = digest((execution["rule_id"], [tuple(group[0].get(field) for field in (
+                "kind", "origin", "destination", "owner", "negation")) for group in groups]))
+            record = added[code].get(branch_id)
+            if record is None:
+                ordinal = -len(added[code]) - 1
+                record = _native_record(execution, branch_id, groups, ordinal, assets.receipt["resources"]["cards"])
+                added[code][branch_id] = record
+            for operation, processing in zip(record["operations"], groups):
+                contracts.setdefault((code, record["effect_key"], operation["block_id"]), []).append(dict(
                     execution=execution, receipt=receipt["receipt"], deck=receipt["deck_sha256"], query=receipt["query"],
-                    active_deck=receipt.get("active_deck"), resources=receipt["rule_resources"], operations=operations,
+                    active_deck=receipt.get("active_deck"), resources=receipt["rule_resources"], operations=processing,
                     prepared=receipt.get("condition", {}) if (receipt.get("chain") or {}).get("opened") == execution["opened"] else {},
+                    evaluated_conditions=[row for row in receipt.get("native_applicability", ())
+                        if row["entity"] == execution["actor"]["entity"] and row["index"] <= execution["opened"]
+                        and row["declaration"] == execution["registration"]],
                     chain=next(link for link in receipt["chain_links"] if link["opened"] == execution["opened"])))
     for code, branches in added.items():
         effects, materials = specifications[code]
         specifications[code] = [*effects, *(dict(record=record, requirements=[], unknown=[])
-                                 for record, _ in branches.values())], materials
+                                 for record in branches.values())], materials
 
 
 def registration_coverage(declarations, observed, contracts):
@@ -287,11 +267,17 @@ def registration_coverage(declarations, observed, contracts):
     consumed = defaultdict(set)
     planned = defaultdict(set)
     trajectories = defaultdict(set)
+    checks = defaultdict(list)
     for receipt in observed["receipts"]:
         for case in receipt.get("native_executions", ()):
             key = case["card"], digest(case["registration"])
             executions[key].append(dict(status=case["status"], receipt=receipt["receipt"],
                                         result=[operation["kind"] for operation in case["operations"]]))
+        for outcome in receipt.get("native_applicability", ()):
+            checks[outcome["card"], digest(outcome["declaration"])].append(dict(
+                receipt=receipt["receipt"], predicate=outcome["predicate"], role=outcome["role"],
+                index=outcome["index"], entity=outcome["entity"], status=outcome["status"],
+                turn=outcome["turn"], phase=outcome["phase"], zone=outcome["zone"]))
     for (_, effect, block), rows in contracts.items():
         for row in rows:
             case = row["execution"]
@@ -321,11 +307,13 @@ def registration_coverage(declarations, observed, contracts):
                 status = "observed_use"
             elif executions[key]:
                 status = "native_settlement_unconsumed"
+            elif checks[key]:
+                status = "native_precondition_checked"
             elif active:
                 status = "native_window_unreached" if windows else "native_preparation_unavailable"
             else:
                 status = "native_modifier_unverified"
-            rows.append(dict(ordinal=ordinal, rule=rule, status=status, windows=sorted(windows),
+            rows.append(dict(ordinal=ordinal, rule=rule, status=status, windows=sorted(windows), checks=checks[key],
                              executions=executions[key], uses=uses))
         dynamic = {signature: cases for (actor, signature), cases in executions.items()
                    if actor == code and signature not in signatures and cases}

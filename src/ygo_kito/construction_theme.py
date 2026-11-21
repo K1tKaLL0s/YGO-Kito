@@ -60,6 +60,43 @@ def primary_goal(profile, code, record, operation, dependencies):
     return False
 
 
+def observed_primary_goal(profile, code, semantic, proof, rows):
+    """Evaluate the fixed theme policy against a settled use and catalog facts."""
+    if code in profile.get("required_card_ids", ()):
+        return True
+    route = profile.get("route_goal")
+    if route and semantic["kind"] == route["kind"] and route["card_id"] in proof["observed_card_ids"]:
+        return True
+    if tags := profile.get("goal_tags"):
+        from .effect_blocks import LABELS
+        from .construction_effect_blocks import GRAVE_FUSION, MILL
+
+        kind = semantic["kind"]
+        names = {LABELS.get(kind)}
+        if kind == "send_grave" and semantic["from_zones"] == ["deck"]:
+            names.add(MILL.value)
+        if kind == "fusion_summon" and proof["applicability"]["event"] == 1014:  # EVENT_TO_GRAVE
+            names.add(GRAVE_FUSION.value)
+        if all(tag["dimension"] == "effect_type" and tag["value"] == kind
+                or tag["dimension"] == "effect" and tag["value"] in names for tag in tags):
+            return True
+    if profile.get("predicates") and not any(matches(rows[code], {"predicate": predicate})
+                                              for predicate in profile["predicates"]):
+        return False
+    for goal in profile["goals"]:
+        expected = goal["function"]
+        if any(expected.get(key) not in (None, "unknown", "either", semantic[key])
+               for key in ("kind", "to_zone", "owner", "reason")):
+            continue
+        if expected.get("from_zones") and not set(semantic["from_zones"]) <= set(expected["from_zones"]):
+            continue
+        selector = expected.get("selector")
+        if selector and not any(card in rows and matches(rows[card], selector) for card in proof["observed_card_ids"]):
+            continue
+        return True
+    return False
+
+
 def _movement_domain(source, dependencies, available, profile_cards, *, fusion_proof=None):
     from .effect_records import operation_record
 
@@ -208,7 +245,7 @@ def _theme_predicates(task, theme, theme_id):
 
 
 def derive_theme_profile(task, catalog, *, theme=None, theme_id=None, goal_tags=(), budget=None):
-    """Infer fixed primary results and their direct preparations, once per task."""
+    """Fix the task's theme before candidate selection."""
     from .build_semantics import matches as public_matches, validate_predicate
     from .construction_logic import LogicTag
     budget = budget or RelationBudget()
@@ -231,6 +268,18 @@ def derive_theme_profile(task, catalog, *, theme=None, theme_id=None, goal_tags=
         return profile
     if catalog is None:
         profile.update(status='unknown', gaps=['fixed_card_effects_required'])
+        return profile
+    if getattr(catalog.assets, "rule_authority", None) == "locked_period_core":
+        rows = catalog.assets.rows
+        profile["rule_basis"] = "locked_period_core"
+        if ((predicates and not any(any(public_matches(rows[c], p) for p in predicates)
+                                    for c in task.pool if c in rows))
+                or theme_id and not predicates and not explicit):
+            profile["gaps"].append("theme_public_membership_required")
+        if not set(task.pool) <= rows.keys():
+            profile["gaps"].append("fixed_pool_card_facts_required")
+        if profile["gaps"]:
+            profile["status"] = "unknown"
         return profile
     dependencies = InventoryDependencies(catalog, requirement_limit=budget.facts)
     core = {c for c in task.pool if c in dependencies.rows

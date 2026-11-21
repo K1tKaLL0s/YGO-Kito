@@ -12,16 +12,13 @@ from .build_contracts import DeckParts, digest
 from .build_pipeline import EXTRA_TYPES, MissingNativeScript
 from .card_identity import native_card_identity
 from .construction_checkpoint import write_json
-from .construction_inventory import matches
 from .construction_native_evidence import (SUMMON_RESPONSE_EVENTS, admission_effects, chain_links,
-    flip_completion, pending_summons, replay_steps, selected_objects, stock_prefix, window_link, window_priority,
-    witnessed_rule)
-from .construction_native_settlement import settled_executions
-from .construction_native_trajectory import play_trajectory, trajectory_queries
+    flip_completion, pending_summons, replay_steps, selected_objects, stock_prefix, window_link, window_priority)
+from .construction_native_settlement import observed_applicability, settled_executions
+from .construction_native_trajectory import declared_goal_query, play_trajectory, trajectory_queries
 from .contracts import ActionSelection
 from .deck_profile import validate_sideboard_stock
 from .effect_duel import choose_effect_duel_action
-from .effect_records import operation_record
 from .extra_observation import public_monster_disabled
 from .extra_routes import engine_for_goal
 from .native import NativeError
@@ -31,13 +28,12 @@ from .validation import ContractError
 
 
 NATIVE_RULE_VERSION = "construction-native-rules-v5"
-NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v17"
+NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v18"
 _QUERY_WORK_VERSION = "construction-native-query-work-v1"
 _SUBGROUP_REPLAY_VERSION = 1
 _EFFECT_CONFIRMATION_VERSION = 2
 _DECISION_BUDGET = 100
 _DECK_DESTINATIONS = {2: "hand", 16: "grave"}
-_OPERATIONS = frozenset(("search_or_recover", "search", "add_hand", "send_grave"))
 # Declaration fields use the locked core's effect.h. The core sets ACTIONS
 # and FIELD/range where appropriate when applying SetType.
 _ACTIVATE, _FLIP, _IGNITION, _TRIGGERS, _QUICK = 0x10, 0x20, 0x40, 0x280, 0x500
@@ -45,13 +41,6 @@ _FREE_CHAIN, _CHAINING, _NORMAL_SUMMON = 1002, 1027, 1100
 _FLIP_EVENTS = {1001: "flip", 1101: "flip_summon"}
 _RITUAL_MONSTER = 0x81
 _RITUAL_MATERIAL = 0x100008
-
-
-def _deck_operations(record):
-    return [op for op in record["operations"] if op["kind"] in _OPERATIONS
-            and op.get("from_zones") == ["deck"] and op.get("to_zone") in _DECK_DESTINATIONS.values()
-            and op.get("owner") == "self" and op.get("reason") == "effect"
-            and op.get("quantity") == 1 and not op.get("random")]
 
 
 def _registration_choices(script, setup, *, response_event=1027):
@@ -354,85 +343,6 @@ def _response_registrations(script, event, *, zone):
             if tuple(r["span"]) in activations]
 
 
-def _effect_projection(query, records):
-    effects = []
-    for root in records.get(query["card"], ()):
-        selections = root["operations"] if query["setup"] == "response" and root.get("branch_records") else [None]
-        scopes = {}
-        for operation in selections:
-            scopes.setdefault((operation or {}).get("choice"), operation_record(root, operation) if operation else root)
-        for record in scopes.values():
-            projected = _project_operations(query, record)
-            if projected:
-                effects.append(projected)
-    return dict(query, effects=effects, wanted=[e["key"] for e in effects])
-
-
-def _project_operations(query, record):
-    ops = _deck_operations(record)
-    if query["setup"] in ("field_after_summons", "normal_summon"):
-        ops += [op for op in record["operations"] if op["kind"] in ("destroy", "special_summon")]
-    ops += [op for op in record["operations"] if op.get("phase") != "delayed" and (
-        op["kind"] == "special_summon" and op.get("from_zones") == ["extra"]
-        or op["kind"] == "fusion_summon" and op.get("summon_method") == "effect"
-        and op.get("materials_required") is False
-        or op["kind"] == "ritual_summon" and any(r.get("procedure") == "ritual" for r in query["registrations"])
-        or query.get("attached") and op["kind"] == "send_grave" and (
-            not op.get("from_zones") or "field" in op["from_zones"])
-        or query["setup"] == "response" and op["kind"] in ("negate", "negate_summon", "destroy"))]
-    if not ops:
-        return None
-    source = record.get("lua_source", {})
-    matched = source.get("registrations", []) if source.get("alignment") == "matched" else []
-    return dict(key=record["effect_key"], trigger=record["trigger"].get("event"),
-        scopes=record["scope"], zone=record["trigger"].get("zone"),
-        spans=[reg["registration_span"] for reg in matched] or (
-            source.get("candidate_spans", []) if query["setup"] == "response" else []),
-        operations=[dict(block=op["block_id"], kind=op["kind"], origin=op.get("from_zones") or [],
-            destination=op.get("to_zone"), quantity=op.get("quantity"),
-            selector=op.get("selector_query"), negation=op.get("negation"), choice=op.get("choice"),
-            subject=op.get("subject"))
-            for op in ops])
-
-
-def bind_observations(observed, records, rows, *, lua=None):
-    """Project an already executed window to any uniquely corresponding stock uses."""
-    for receipt in observed["receipts"]:
-        query = dict(_effect_projection(receipt["query"], records),
-                     confirmed_attachments=receipt.get("confirmed_attachments", ()))
-        identity = _bind_movement(query, receipt["moves"], rows)
-        if receipt["field_moves"]:
-            identity = _bind_processing(query, receipt["field_moves"], rows)
-        receipt["identity"] = identity
-        receipt["rule_status"] = ("bound" if identity.get("status") == "bound" and receipt.get("stock_prefix")
-            else "unbound_stock_prefix" if identity.get("status") == "bound"
-            else "resolved_use_unbound" if receipt.get("activation_event") and receipt.get("resolved")
-            else receipt["status"])
-        if receipt["rule_status"] == "bound":
-            receipt.update(witnessed_rule(receipt))
-    if lua is not None:
-        responses = []
-        for code, effects in records.items():
-            script_code, _ = native_card_identity(rows, code)
-            for registration in lua.summarize_effects(script_code)["registrations"]:
-                if registration.get("event_code") != 1027:  # EVENT_CHAINING
-                    continue
-                location = registration.get("range")
-                prior = ("prepare_response_entity_in_monster_zone" if location == 4 else
-                         "prepare_response_entity_in_grave" if location == 16 else
-                         "prepare_legal_set_or_faceup_card_activation" if registration.get("type") == 16 else None)
-                candidates = [r for r in effects if registration["registration_span"] in (
-                    r.get("lua_source", {}).get("candidate_spans", []) + [r["registration_span"] for r in
-                    r.get("lua_source", {}).get("registrations", [])])]
-                responses.append(dict(card=code, registration=registration["registration_span"],
-                    effects=[r["effect_key"] for r in candidates],
-                    prerequisites=[p for p in (prior, "eligible_effect_in_open_chain") if p],
-                    observed=[dict(receipt=r["receipt"], status=r["rule_status"]) for r in observed["receipts"]
-                              if r["query"]["card"] == code and r["query"]["setup"] == "response"]))
-        observed["response_windows"] = responses
-    return observed
-
-
 def _visible(request):
     cards = {card.ref: card.card_id for card in request.observation.cards}
     for option in (*request.selection_choices, *request.search_choices):
@@ -580,106 +490,6 @@ def _ritual_moves(activation, resolved, selected, query):
                  reason="effect", activation=activation, materials=materials)]
 
 
-def _bind_movement(query, moves, rows):
-    """Disambiguate the printed use by the source registration and the observed branch."""
-    if len(moves) != 1:
-        return dict(status="movement_unmatched")
-    move, = moves
-    description = move["activation"].get("description")
-    registrations = [r for r in query["registrations"] if r["description"] == description]
-    if len({r["family"] for r in registrations}) != 1:
-        return dict(status="registration_ambiguous", candidates=registrations)
-    if any(r.get("initialized") and r["span"] is None for r in registrations):
-        return dict(status="registration_use_unmapped", candidates=registrations)
-    events = {r["event"] for r in registrations}
-    if "normal_summon" in events:
-        events.add("normal_or_special_summon")
-    if query.get("prepare_flip"):
-        events.update(("flip", "flip_summon"))
-    spans = [r["span"] for r in registrations]
-    candidates = []
-    for effect in query["effects"]:
-        if effect["spans"] and not any(span in spans for span in effect["spans"]):
-            continue
-        if effect["trigger"] not in events | {None, "unknown"}:
-            continue
-        if query["setup"] == "spell":
-            if effect["scopes"] != "spell_trap":
-                continue
-        elif effect["scopes"] != "monster" or effect["zone"] not in (
-                None, "hand" if query["setup"] == "hand" else "field"):
-            continue
-        for operation in effect["operations"]:
-            if "deck" in operation.get("origin", ["deck"]) and operation["destination"] == move["destination"] and (
-                    not operation["selector"] or matches(rows[move["card"]], operation["selector"])):
-                candidates.append((effect["key"], operation["block"]))
-    if len(candidates) != 1 or candidates[0][0] not in query["wanted"]:
-        return dict(status="printed_use_ambiguous", candidates=candidates, source=registrations)
-    effect, block = candidates[0]
-    return dict(status="bound", effect_key=effect, block=block, source=registrations)
-
-
-def _bind_processing(query, moves, rows):
-    description = moves[0]["activation"]["description"]
-    registrations = query.get("confirmed_attachments", ()) or [
-        r for r in query["registrations"] if r["description"] == description]
-    if len({r["family"] for r in registrations}) != 1:
-        return dict(status="registration_ambiguous")
-    ritual = len(moves) == 1 and moves[0]["kind"] == "ritual_summon" and all(
-        r.get("procedure") == "ritual" for r in registrations)
-    if not ritual and any(r.get("initialized") and r["span"] is None for r in registrations):
-        return dict(status="registration_use_unmapped", candidates=registrations)
-    events = {r["event"] for r in registrations} | {None, "unknown"}
-    if query.get("confirmed_attachments"):
-        events.add("conditional_activation")
-    if query["setup"] == "response":
-        events |= {"opponent_monster_effect", "card_activation"}
-        target = moves[0].get("response")
-        if target and target["zone"] in (8, 256) and rows[target["public_card"]]["type"] & (2 | 4):
-            events.add("spell_trap_activation")
-    candidates = []
-    for effect in query["effects"]:
-        if effect["trigger"] not in events or ((query["setup"] == "spell" or query.get("attached"))
-                                                and effect["scopes"] != "spell_trap"):
-            continue
-        zone = {2: "hand", 4: "field", 8: "field", 16: "grave"}.get(moves[0]["activation"]["zone"])
-        if effect["zone"] not in (None, zone):
-            continue
-        if effect["trigger"] == "opponent_monster_effect":
-            response = moves[0].get("response")
-            if not response or response["zone"] in (8, 256) or not rows[response["public_card"]]["type"] & 1:
-                continue
-        if effect["spans"] and not any(r["span"] in effect["spans"] for r in registrations) and not (
-                ritual and all(r["span"] is None for r in registrations)):
-            continue
-        parts = []
-        for move in moves:
-            opposite = bool(move.get("response"))
-            choices = [operation["block"] for operation in effect["operations"]
-                       if (operation["kind"] == move["kind"] or operation["kind"] == "fusion_summon"
-                           and move["kind"] == "special_summon" and move["origin"] == "extra")
-                       and (operation.get("subject") != "this_card"
-                            or not opposite and move["card"] == move["activation"]["public_card"])
-                       and (operation["quantity"] == 1 or (ritual or move.get("response"))
-                            and operation["quantity"] is None)
-                       and (move["origin"] in operation["origin"] or (
-                            ritual or query.get("confirmed_attachments") or move.get("response"))
-                            and not operation["origin"])
-                       and (operation["destination"] in (None, move["destination"])
-                            or move["kind"] == "negate_summon" and operation["destination"] == "field")
-                       and operation["negation"] in (None, move.get("negation"))
-                       and (not operation["selector"] or matches(rows[move["card"]], operation["selector"]))]
-            if len(choices) == 1:
-                parts.extend(choices)
-        branches = {operation["choice"] for operation in effect["operations"] if operation["block"] in parts}
-        if len(parts) == len(set(parts)) == len(moves) and len(branches - {None}) <= 1:
-            candidates.append((effect["key"], parts))
-    if len(candidates) != 1:
-        return dict(status="printed_use_ambiguous", candidates=candidates, source=registrations)
-    effect, blocks = candidates[0]
-    return dict(status="bound", effect_key=effect, blocks=blocks, source=registrations)
-
-
 def _response_moves(link, resolved):
     source = link["activation"]
     target = link["response_to"]
@@ -763,7 +573,7 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
     with (
         engine_for_goal(assets, active_deck, query["seed"], selection_key=selection_key,
                         cb_opening_hand=tuple(query["opening"])) as engine,
-        (observer.observe(engine) if observer else nullcontext()) as read_rule_trace,
+        (observer.observe(engine, seat=seat) if observer else nullcontext()) as read_rule_trace,
     ):
         if counters is not None:
             counters["sessions"] += 1
@@ -1018,7 +828,6 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
                 disabled_target=disabled,
                 selected_deck_cards=sorted(selections), selected_objects=sorted(selected), decisions=len(trace),
                 alternatives=alternatives, path=path, unmet_precondition=missing,
-                identity=_bind_movement(query, moves, assets.rows) if "effects" in query else {},
                 **metadata)
 
 
@@ -1123,8 +932,11 @@ class NativeRuleChecks:
         return not former_scripts.intersection(result.get("scripts", ()))
 
     def _initial_work(self, task, deck, role, previous, queries, *, include_side):
+        goal_query = declared_goal_query(task, deck) if queries is None else None
         if previous is None:
             initial, excluded = planned_queries(deck, self.assets, include_side=include_side) if queries is None else (list(queries), [])
+            if goal_query is not None:
+                initial.insert(0, goal_query)
             return dict(initial=initial, excluded=excluded, queue=list(initial),
                         seen=sorted({digest(q) for q in initial}), receipts=[], history=[])
         binding = self._binding(task, deck)
@@ -1148,9 +960,10 @@ class NativeRuleChecks:
                 # Its submitted answers and settlement still support the old
                 # play. Revisit the window to discover the other answers.
                 queue[identity] = row["query"]
-            if observer is not None and row["resolved"]:
+            if observer is not None and (row["resolved"] or row["native_executions"] or (
+                    row["status"] == "not_offered" and row["query"].get("registrations"))):
                 trace = raw["result"].get("rule_trace", {})
-                if raw["binding"].get("rule_trace") == observer.binding and not trace.get("error"):
+                if raw["binding"].get("rule_trace") == observer.binding and not (trace.get("error") or trace.get("guard_error")):
                     traced.add(identity)
                 else:
                     retrace[identity] = row["query"]
@@ -1186,6 +999,9 @@ class NativeRuleChecks:
                         and not row.get("reason", "").startswith("native_")]
             excluded.extend(row for row in current_excluded if row.get("zone") == "side"
                             or row["reason"].startswith("native_"))
+        if goal_query is not None and (identity := digest(goal_query)) not in seen:
+            queue[identity] = goal_query
+            seen.add(identity)
         initial = [*(r["query"] for r in receipts), *queue.values()]
         return dict(initial=initial, excluded=excluded, queue=list(queue.values()),
                     seen=sorted(seen), receipts=receipts, history=history)
@@ -1297,8 +1113,9 @@ class NativeRuleChecks:
                 key = current
                 path = self.directory / (key + ".json")
                 cached = self._read_receipt(key, binding)
+        trace = cached["result"].get("rule_trace", {}) if cached is not None else {}
         if (cached is not None and cached["result"]["status"] != "engine_error"
-                and not cached["result"].get("rule_trace", {}).get("error")):
+                and not (trace.get("error") or trace.get("guard_error"))):
             result = cached["result"]
             self.counts["cache_hits"] += 1
             self.counts["cache_replayed_decisions"] += result["decisions"]
@@ -1352,10 +1169,13 @@ class NativeRuleChecks:
         result, binding = row["result"], row["binding"]
         query = binding["query"]
         events = result.get("events", ())
+        first_turn_end = next((i for i, event in enumerate(events)
+                               if event["kind"] == 40 and event["turn"] > 1), len(events))
         links = chain_links(events)
         resources = digest((binding.get("resources"), binding.get("period"), binding.get("adapter")))
-        execution = settled_executions(events, links, result.get("rule_trace", {}), seat=query["seat"],
-                                       resources=resources)
+        rule_trace = result.get("rule_trace", {})
+        execution = settled_executions(events, links, rule_trace, seat=query["seat"], resources=resources)
+        applicability = observed_applicability(rule_trace, resources=resources, query=query)
         active_deck = (_side_inventory(DeckParts.from_dict(binding["deck"]), query["side_swaps"]).to_dict()
                        if execution and query.get("side_swaps") else None)
         steps = replay_steps(events, result.get("trace", ()))
@@ -1413,12 +1233,16 @@ class NativeRuleChecks:
                     query=query, decisions=result["decisions"], moves=result.get("moves", []) if resolved else [],
                     field_moves=field_moves, prepared_moves=prepared, stock_prefix=prefix,
                     activation_event=activation, chain_links=links, resolved=resolved, native_executions=execution,
+                    native_applicability=applicability,
+                    first_turn_end=first_turn_end,
+                    goal_timeline=[e for e in events[:first_turn_end]
+                                   if e["kind"] in (40, 41, 50, 60, 61, 62, 63, 70, 71, 72, 73, 74, 75, 76, 90)],
                     **({"active_deck": active_deck} if active_deck is not None else {}),
                     chain=link, path=result.get("path", []), payments=payments,
                     unmet_precondition=result.get("unmet_precondition"), alternatives=result.get("alternatives", []),
-                    identity=result.get("identity", {}), error=result.get("error"),
+                    error=result.get("error"),
                     **({"rule_trace_diagnostic": {key: result["rule_trace"][key]
-                        for key in ("error", "unaligned_phases") if result["rule_trace"].get(key)}}
+                        for key in ("error", "guard_error", "unaligned_phases") if result["rule_trace"].get(key)}}
                         if "rule_trace" in result else {}),
                     **({"confirmed_attachments": attachments} if attachments else {}),
                     **({"missing_scripts": result["missing_scripts"]} if "missing_scripts" in result else {}),

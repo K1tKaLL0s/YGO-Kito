@@ -34,7 +34,7 @@ def flip_completion(events, start, seat, code):
 
 
 def admission_effects(quality):
-    """Index the S3 obligations that can be traced to a printed effect."""
+    """Index unresolved uses and initialized rules for the next native search."""
     facts_by_source = defaultdict(set)
     for fact in quality.get("unknowns", ()):
         for source in quality["fact_details"].get(fact, {}).get("evidence_refs", ()):
@@ -50,8 +50,6 @@ def admission_effects(quality):
                     if row["status"] == "unknown" and row["requirement_id"] in details}
     hard_facts = {fact for requirement in quality.get("hard_requirements", ())
                   for fact in requirement.get("unresolved_facts", ())}
-    responses = {(row["card"], effect) for row in quality.get("native_rule_evidence", {}).get("response_windows", ())
-                 for effect in row["effects"]}
     result = {}
     for coverage in quality.get("coverage_details", {}).values():
         for effect in coverage.get("effects", ()):
@@ -62,12 +60,19 @@ def admission_effects(quality):
             if not (unknowns or partial or hard) or ref in result:
                 continue
             record = effect["record"]
-            lua = record.get("lua_source", {})
-            spans = [reg["registration_span"] for reg in lua.get("registrations", ())]
+            registration = record["rule_registration"]
             result[ref] = dict(card=record["card_id"], effect=record["effect_key"], source=ref,
-                facts=sorted(unknowns), partial=partial, hard=hard, spans=spans or lua.get("candidate_spans", []),
-                response=(record["card_id"], record["effect_key"]) in responses,
+                facts=sorted(unknowns), partial=partial, hard=hard, spans=[],
+                response=registration["event"] == 1027 or registration["event"] in SUMMON_RESPONSE_EVENTS,
                 width=max((width_by_fact[f] for f in unknowns), default=0.))
+    for code, coverage in quality.get("native_rule_evidence", {}).get("registration_coverage", {}).items():
+        for row in coverage["registrations"]:
+            if row["status"] == "observed_use":
+                continue
+            rule = row["rule"]
+            ref = "native-registration:" + digest((int(code), rule))
+            result[ref] = dict(card=int(code), effect=ref, source=ref, facts=[], partial=True, hard=False, spans=[],
+                              response=rule["event"] == 1027 or rule["event"] in SUMMON_RESPONSE_EVENTS, width=0.)
     return list(result.values())
 
 
@@ -87,36 +92,9 @@ def window_priority(query, admission, role):
                   if (row["delta"]["lower"] is None or row["delta"]["lower"] < 0)
                   and (row["delta"]["upper"] is None or row["delta"]["upper"] >= 0)]
     coefficient = max((row["ratio"] if role == "reference" else 1. for row in unresolved), default=0.)
-    return (-sum(effect["hard"] for effect in affected), -int(bool(affected)),
+    return (-int("goal" in query), -sum(effect["hard"] for effect in affected), -int(bool(affected)),
             -int(bool(aligned)), -width * coefficient, -len(facts),
             -sum(effect["partial"] for effect in affected), -width, query.get("priority", 0), query["card"])
-
-
-def witnessed_rule(receipt):
-    """Identify the observed conditional rule separately from its stock allocation."""
-    chain = receipt["chain"]
-    preceding = chain.get("response_to")
-    activation = chain["activation"]
-    identity = receipt["identity"]
-    condition = dict(zone=activation["zone"], phase=chain["phase"], turn_player=chain["turn_player"],
-                     preparation=receipt["query"]["setup"],
-                     response_to={k: preceding[k] for k in ("public_card", "zone", "description")}
-                     if preceding is not None else None,
-                     selection=receipt["path"])
-    if receipt["stock_prefix"].get("set_preparation"):
-        condition["set_preparation"] = receipt["stock_prefix"]["set_preparation"]
-    if receipt["stock_prefix"].get("opposing_normal_summon"):
-        condition["opposing_normal_summon"] = receipt["stock_prefix"]["opposing_normal_summon"]
-    if receipt["stock_prefix"].get("flip_preparation"):
-        condition["flip_preparation"] = receipt["stock_prefix"]["flip_preparation"]
-    if receipt["query"].get("side_swaps"):
-        condition["side_swaps"] = receipt["query"]["side_swaps"]
-    if receipt["field_moves"] and (attempt := receipt["field_moves"][0].get("summon_attempt")):
-        condition["summon_attempt"] = attempt
-    proposition = dict(resources=receipt.get("rule_resources"), card=receipt["query"]["card"], effect=identity["effect_key"],
-        registration=identity["source"], blocks=identity.get("blocks") or [identity["block"]],
-        description=activation["description"])
-    return dict(rule_id="native-rule:" + digest(proposition), condition=condition)
 
 
 def chain_links(events):

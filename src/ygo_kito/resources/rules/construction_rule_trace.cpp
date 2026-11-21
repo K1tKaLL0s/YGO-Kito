@@ -13,16 +13,20 @@
 #include "interpreter.h"
 #include "ocgapi.h"
 #include "construction_rule_effect.h"
+#include "construction_rule_guards.h"
 
 namespace {
 struct Trace {
-    explicit Trace(intptr_t duel_handle) : handle(duel_handle) {
+    Trace(intptr_t duel_handle, uint8_t seat) : handle(duel_handle), seat(seat),
+            guards(*reinterpret_cast<duel*>(handle), seat) {
         for (const auto* entity : reinterpret_cast<const duel*>(handle)->cards) {
             if (entity->owner <= 1 && entity->data.code)
                 stock.emplace(entity->cardid, entity->current.location);
         }
     }
     intptr_t handle;
+    uint8_t seat;
+    construction_rule_guards::Observer guards;
     std::unordered_map<uint64_t, uint16_t> stock;
     std::string rows;
     bool failed = false;
@@ -67,11 +71,12 @@ void capture_moves(Trace& trace, const duel& engine, std::size_t index) {
         }
         const bool public_destination = to[1] == LOCATION_GRAVE ||
             ((to[1] & (LOCATION_ONFIELD | LOCATION_REMOVED | LOCATION_EXTRA)) && (to[3] & POS_FACEUP));
+        const auto operation = trace.guards.operation(chain_id);
         out << "move\t" << index << '\t' << unsigned(from[0]) << '\t' << unsigned(from[1]) << '\t'
             << unsigned(from[2]) << '\t' << unsigned(from[3]) << '\t' << unsigned(to[0]) << '\t'
             << unsigned(to[1]) << '\t' << unsigned(to[2]) << '\t' << unsigned(to[3]) << '\t'
-            << reason << '\t' << (entity->owner == 0 || public_destination ? code : 0) << '\t' << chain_id
-            << '\t' << entity->summon_info;
+            << reason << '\t' << (entity->owner == trace.seat || public_destination ? code : 0) << '\t' << chain_id
+            << '\t' << entity->summon_info << '\t' << operation.id << '\t' << operation.stage;
         write_entity(out, trace, *entity);
         out << '\n';
     }
@@ -125,7 +130,7 @@ void capture(Trace& trace, std::size_t index) {
                 ((state.location & (LOCATION_ONFIELD | LOCATION_REMOVED | LOCATION_EXTRA)) && (state.position & POS_FACEUP));
             out << "target\t" << index << '\t' << unsigned(state.controler) << '\t' << unsigned(state.location)
                 << '\t' << unsigned(state.sequence) << '\t' << unsigned(state.position) << '\t'
-                << (target->owner == 0 || public_target ? target->data.code : 0);
+                << (target->owner == trace.seat || public_target ? target->data.code : 0);
             write_entity(out, trace, *target);
             out << '\n';
         }
@@ -134,19 +139,22 @@ void capture(Trace& trace, std::size_t index) {
 }
 }
 
-extern "C" void* ygo_rule_trace_start(intptr_t handle) {
+extern "C" void* ygo_rule_trace_start(intptr_t handle, uint8_t seat) {
     try {
-        return handle ? new Trace(handle) : nullptr;
+        return handle && seat < 2 ? new Trace(handle, seat) : nullptr;
     } catch (...) {
         return nullptr;
     }
 }
 
 extern "C" uint32_t ygo_rule_trace_process(intptr_t handle, void* opaque, std::size_t index) {
-    const auto result = process(handle);
     auto& trace = *static_cast<Trace*>(opaque);
+    trace.guards.enter(index);
+    const auto result = process(handle);
+    trace.guards.leave();
     if (trace.handle == handle && !trace.failed) {
         try {
+            trace.rows.append(trace.guards.take());
             capture(trace, index);
         } catch (...) {
             trace.failed = true;
@@ -158,6 +166,10 @@ extern "C" uint32_t ygo_rule_trace_process(intptr_t handle, void* opaque, std::s
 extern "C" const char* ygo_rule_trace_read(const void* opaque) {
     const auto& trace = *static_cast<const Trace*>(opaque);
     return trace.failed ? nullptr : trace.rows.c_str();
+}
+
+extern "C" uint8_t ygo_rule_trace_guard_status(const void* opaque) {
+    return static_cast<const Trace*>(opaque)->guards.status();
 }
 
 extern "C" void ygo_rule_trace_end(void* opaque) {

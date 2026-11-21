@@ -55,6 +55,8 @@ class PeriodBuildAssets(BuildAssets):
     rules remain unverified, including after a successful native fixture.
     """
 
+    rule_authority = "locked_period_core"
+
     def __init__(self, root, period_id, environment, workspace, *, adapter_revision=5, evidence_source="user_supplied"):
         member(period_id, "training period", PERIODS)
         integer(adapter_revision, "period adapter revision", 1, 5)

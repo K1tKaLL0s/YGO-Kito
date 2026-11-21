@@ -27,7 +27,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v60"
+NORMALIZATION_VERSION = "construction-function-normalization-v61"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -121,7 +121,7 @@ def _hand_deck_grave_route(code, controller, available, operation_facts, facts, 
 
 
 def _configuration_relations(available, records, dependencies, aliases, operation_facts, facts, pools, context,
-                             *, compact_stock=False, fusion_proofs=None, native_targets=None, native_payments=None):
+                             *, compact_stock=False, fusion_proofs=None):
     """Static applicability and complete stock, without a current duel state.
 
     An activation port describes a printed use, not an event witnessed in a
@@ -253,28 +253,6 @@ def _configuration_relations(available, records, dependencies, aliases, operatio
                             code,'extra' if code in available.extra else 'main',conditions=('static continuous applicability',)))
                     elif resource.kind in ('payment', 'target'):
                         category = 'costs' if resource.kind == 'payment' else 'targets'
-                        if resource.kind == "target" and (proof := (native_targets or {}).get(need.need_id)):
-                            for target in proof["observed_target_ids"]:
-                                actual = key + ":" + str(target)
-                                source = "native-receipt:" + proof["receipt"]
-                                if target in proof.get("observed_external_target_ids", ()):
-                                    added.append(RelationFact(actual, actual, resource, source, code,
-                                        "extra" if code in available.extra else "main",
-                                        conditions=("opponent field target: " + str(target),)))
-                                else:
-                                    section, pool = physical(target)
-                                    added.append(RelationFact(actual, actual, resource, source,
-                                        target, section, output_pool=pool))
-                            continue
-                        if resource.kind == "payment" and (proof := (native_payments or {}).get(need.need_id)):
-                            payment, receipt = proof
-                            if payment["resource"] == "cards":
-                                for card, count in Counter(payment["card_ids"]).items():
-                                    section, pool = physical(card)
-                                    actual = key + ":" + str(card)
-                                    added.append(RelationFact(actual, actual, resource, "native-receipt:" + receipt,
-                                        card, section, quantity=count, output_pool=pool))
-                                continue
                         # The slot index distinguishes costs with identical printed text.
                         slot = need.need_id.rsplit(":", 1)[1]
                         item = scoped[category][int(slot)] if slot.isdecimal() and int(slot) < len(scoped[category]) else None
@@ -344,22 +322,6 @@ def _bind_unparsed_requirements(fact, unbound):
     return replace(fact, inputs=inputs, unknown=(*fact.unknown, *gaps)) if gaps else fact
 
 
-def _native_confirms_resolution(record, operation, native):
-    """Use a settled link and its matched complete operation together."""
-    source = record.get("lua_source", {})
-    registrations = source.get("registrations", ())
-    if (source.get("alignment") != "matched" or len(registrations) != 1 or record.get("branch_records")
-            or record["operations"] != [operation]):
-        return False
-    observed, = native["observed_moves"]
-    if source.get("optional_deck_search"):
-        return observed["origin"] == "deck" and observed["destination"] == "hand" and observed["reason"] == "effect"
-    if not native["chain"].get("response_to"):
-        return False
-    proof = registrations[0].get("direct_chain_negation")
-    return bool(proof and operation["kind"] == observed["kind"] == "negate" and proof["mode"] == observed.get("negation"))
-
-
 def _settled_operation(operation, native):
     moves = native["observed_moves"]
     moved = moves[0]
@@ -371,9 +333,8 @@ def _settled_operation(operation, native):
         phase=operation.get("phase", "resolution"))
     if moved.get("negation"):
         fields["negation"] = moved["negation"]
-    if moved["owner"] == "self" and native["observed_card_ids"]:
-        fields.update(random=False, selector_query={"predicate": {
-            "field": "card_ids", "value": sorted(set(native["observed_card_ids"]))}})
+    if moved.get("native_call", {}).get("method") == "DiscardDeck":
+        fields["random"] = True
     return fields
 
 
@@ -407,7 +368,7 @@ def _settled_operation_fact(fact, operation, native, pools):
         members = tuple(sorted({(row["zone"], row["card"]) for row in native["stock"]
                                 if row["card"] in native["observed_card_ids"]}))
         transfer = ResourceTransfer(source, moves[0]["origin"], moves[0]["destination"], moves[0]["owner"],
-            "self", "targeted" if members else None, members or None, "effect")
+            "self", "random" if projection.get("random") else None, members or None, "effect")
     # This witnessed processing supplies its own activation, targets and costs.
     # Unclassified lasting effects still require their own source evidence.
     unknown = tuple(gap for gap in fact.unknown if gap.endswith((
@@ -417,19 +378,25 @@ def _settled_operation_fact(fact, operation, native, pools):
 
 
 def _functional_relations(deck, available, records, aliases, extra_ids, context, budget, dependencies, config,
-                          *, continuation=None, should_stop=None, previous_projections=None, projection='resident'):
+                          *, continuation=None, should_stop=None, previous_projections=None, projection='resident',
+                          native_authority=False):
     """Evaluate one inventory projection; Side never enters the resident call."""
     from .construction_relations import evaluate_relations
     rel_facts, rel_pools, rel_uses, operation_facts = [], {}, [], {}
-    fusion_proofs, native_targets, native_payments = {}, {}, {}
+    fusion_proofs = {}
     present = set(available.main + available.extra)
     members = tuple(sorted({(zone, code) for zone in ("main", "extra") for code in getattr(available, zone)}))
     for code in sorted(present & records.keys()):
         zone = "extra" if code in extra_ids else "main"
         # These are selected uses of the candidate's own effects. Movement
         # ownership still comes from the operation, independently of its actor.
-        observed = list(_record_facts(code, records[code], zone=zone, same_name=aliases[str(code)],
-            inventory=members, dependencies=dependencies, controller="self",functional=True))
+        if native_authority:
+            observed = [(RelationFact(operation["block_id"], record["effect_key"],
+                Resource(operation["kind"]), operation["source"], code, zone), ())
+                for record in records[code] for _, operation in _record_outputs(record)]
+        else:
+            observed = list(_record_facts(code, records[code], zone=zone, same_name=aliases[str(code)],
+                inventory=members, dependencies=dependencies, controller="self",functional=True))
         positions = [(ri, oi) for ri, r in enumerate(records[code]) for oi, _ in _record_outputs(r)]
         for (ri, oi), (fact, pools) in zip(positions, observed):
             output = Resource("functional_operation", attributes=(fact.fact_id,))
@@ -441,11 +408,13 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
                     and r.get('choice') in (None, (operation or {}).get('choice'))]
             cost_rows = [r for r in rows if r["category"] == "costs"]
             native = dependencies.witnessed_processing(available, scoped_record, operation, inventory=deck, scope=projection)
-            witnessed = native is not None and native["status"] == "inventory_present"
-            authoritative = witnessed and native.get("authority") == "native"
+            authoritative = native is not None
             if authoritative:
                 checks, fusion, processing = [native], None, None
                 fact = _settled_operation_fact(fact, operation, native, rel_pools)
+            elif native_authority:
+                checks, fusion, processing = [], None, None
+                fact = replace(fact, unknown=("native_configuration_or_direction_unwitnessed",))
             else:
                 checks = [dependencies.summon_trigger_check(code, scoped_record),
                           dependencies._check(available, cost_rows, distinct=True),
@@ -466,7 +435,7 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
                 if binding and operation['block_id'] == binding['send'] and fact.transfer:
                     fact = replace(fact, transfer=replace(fact.transfer,
                         inventory=tuple(('main', c) for c in processing['possible_send_card_ids'])))
-            if context is not None and not authoritative:
+            if context is not None and not native_authority and not authoritative:
                 def supplied_external(req):
                     if req.get('owner','self') == 'self' or req['category'] not in ('costs','targets'):
                         return False
@@ -478,57 +447,23 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
                                for f in context.relations.facts)
                 checks[1] = dependencies._check(available,[r for r in cost_rows if not supplied_external(r)],distinct=True)
                 checks[2] = dependencies._check(available,[r for r in rows if r['category']!='costs' and not supplied_external(r)])
-            material = None if authoritative else dependencies.summon_material_check(available, code)
+            material = None if native_authority or authoritative else dependencies.summon_material_check(available, code)
             if material:
                 checks.append(material)
-            if witnessed and not authoritative:
-                checks.append(native)
-                payments = {str(payment["index"]): payment for payment in native["payments"]}
-                for need in _needs(fact.inputs):
-                    if need.resource.kind == "target" and len(scoped_record["targets"]) == need.quantity == 1 and native["observed_target_ids"]:
-                        native_targets[need.need_id] = native
-                    if need.resource.kind == "payment" and (payment := payments.get(need.need_id.rsplit(":", 1)[1])):
-                        native_payments[need.need_id] = (payment, native["receipt"])
-                move, = native["observed_moves"]
-                ritual = move.get("kind") == "ritual_summon" and operation["kind"] == "ritual_summon"
-                prepared_send = (move.get("kind") == "send_grave" and move["origin"] == "field"
-                                 and move["card"] in native["prepared_summons"])
-                if ritual or prepared_send:
-                    transfer = fact.transfer
-                    if transfer and transfer.origin in (None, move["origin"]):
-                        transfer = replace(transfer, origin=move["origin"], selection="targeted",
-                                           inventory=(("main", move["card"]),))
-                    fact = replace(fact, quantity=1, transfer=transfer)
-                elif (fact.transfer and fact.transfer.origin == move["origin"] and fact.transfer.inventory is None
-                        and move["origin"] in ("deck", "extra") and not move.get("response")):
-                    section = "extra" if move["origin"] == "extra" else "main"
-                    fact = replace(fact, transfer=replace(fact.transfer, selection="targeted",
-                        inventory=((section, move["card"]),)))
             inventory_port = Resource("functional_inventory", attributes=(fact.fact_id,))
             inventory_key = fact.fact_id+":inventory"
             if not any(r["status"] == "missing" for r in checks):
                 gaps = tuple("inventory_selector:"+str(i) for i,r in enumerate(checks) if r["status"] == "unknown"
                     and (r.get('unknown_selectors') or r.get('unknown_restrictions') or not r.get('requirements')))
-                verified_block = operation["block_id"] if witnessed and operation is not None else None
                 gaps += tuple("complete_selector:"+r.get("source", "") for r in effect_specs[ri]["unknown"]
                               if not authoritative and r['category'] not in ('costs', 'targets')
                               and ("operation" not in r or r["operation"] == operation)
-                              and not (verified_block is not None and (
-                                  r.get("operation") == operation or r.get("block_id") == verified_block))
                               and r.get('choice') in (None, (operation or {}).get('choice')))
                 rel_facts.append(RelationFact(inventory_key, inventory_key, inventory_port,
                     "complete candidate inventory", code, zone, unknown=gaps))
             inputs = InputGroup("all", tuple(v for v in (fact.inputs,
                 Need(inventory_key, inventory_port, mode="presence")) if v is not None))
             unknown = fact.unknown
-            if witnessed and not authoritative:
-                # The selected and settled registration proves this activation
-                # in its recorded window, including the preceding link for a response.
-                proven = (":activation_condition_unparsed",)
-                if _native_confirms_resolution(scoped_record, operation, native):
-                    proven += (":unparsed_resolution_or_restriction",)
-                unknown = tuple(gap for gap in unknown if not gap.endswith(proven))
-                fact = replace(fact, conditions=(*fact.conditions, "native-receipt:" + native["receipt"]))
             if processing and processing['status'] == 'unknown':
                 unknown += (processing['reason'],)
             rel_facts.append(replace(fact, output=output, quantity=fact.quantity if fact.transfer else 1,
@@ -538,12 +473,12 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
             rel_uses.append(UseRequirement(uid, InputGroup("all", (Need(uid, output, mode="presence"),)),
                 fact.source, required=False))
             operation_facts[code, ri, oi] = uid
-    compact_stock = context is None and len(available.main) <= len(deck.main) and len(available.extra) <= len(deck.extra)
-    configured, unbound = _configuration_relations(available, records, dependencies, aliases,
-        operation_facts, rel_facts, rel_pools, context, compact_stock=compact_stock, fusion_proofs=fusion_proofs,
-        native_targets=native_targets, native_payments=native_payments)
-    rel_facts = [_bind_unparsed_requirements(f, unbound) for f in rel_facts]
-    rel_facts.extend(configured)
+    if not native_authority:
+        compact_stock = context is None and len(available.main) <= len(deck.main) and len(available.extra) <= len(deck.extra)
+        configured, unbound = _configuration_relations(available, records, dependencies, aliases,
+            operation_facts, rel_facts, rel_pools, context, compact_stock=compact_stock, fusion_proofs=fusion_proofs)
+        rel_facts = [_bind_unparsed_requirements(f, unbound) for f in rel_facts]
+        rel_facts.extend(configured)
     if context is not None:
         rel_facts.extend(context.relations.facts)
         for pool in context.relations.pools:
@@ -552,7 +487,7 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
             rel_pools[pool.pool_id] = pool
         rel_uses.extend(context.relations.uses)
     pairs, theme_state = [], {}
-    if config.get('theme_profile', {}).get('goals'):
+    if not native_authority and config.get('theme_profile', {}).get('goals'):
         from .construction_theme import theme_pairs
         pairs, pending = theme_pairs(operation_facts, records,
             dependencies, available, config['theme_profile'], budget, fusion_proofs,
@@ -598,7 +533,7 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
             return dict(calculation_pending=dict(theme=theme_state or None,matching=index.matched_state,updating=updating)),operation_facts
     if previous_projections is not None:
         previous_projections[projection] = evaluation
-    calls = _targeted_calls(deck, available, records, dependencies, operation_facts)
+    calls = [] if native_authority else _targeted_calls(deck, available, records, dependencies, operation_facts)
     return dict(relation, theme_pairs=pairs, targeted_calls=calls), operation_facts
 
 
@@ -667,7 +602,8 @@ def _targeted_calls(deck, available, records, dependencies, operation_facts):
     return calls
 
 
-def _bind_functional_support(facts, projections, available, specs, catalog, context, condition, config, sources):
+def _bind_functional_support(facts, projections, available, specs, catalog, context, condition, config, sources,
+                             *, native_authority=False):
     from .construction_inventory import InventoryDependencies, matches, selector, requirement, query_supported
     dependencies = InventoryDependencies(catalog)
     theme_rules = {r['rule_id']:r['predicate'] for r in config['theme_rules']}
@@ -692,7 +628,7 @@ def _bind_functional_support(facts, projections, available, specs, catalog, cont
             value = None if grave_rule else True
             if detail["trigger"].get("zone") == "grave" or "grave" in semantic["from_zones"]:
                 value = True  # Its own complete grave use is checked separately.
-            if grave_rule and semantic["to_zone"] == "grave" and semantic["owner"] == "self":
+            if not native_authority and grave_rule and semantic["to_zone"] == "grave" and semantic["owner"] == "self":
                 operation = detail["operation"]
                 query = operation.get("selector_query") or (selector(operation["selector"]) if operation.get("selector") else None)
                 parsed = requirement(operation.get("source", ""), "operations")
@@ -748,7 +684,8 @@ def _bind_functional_support(facts, projections, available, specs, catalog, cont
                     group = _side_joint_capacity(group, bound, facts, scope, relation, sources)
                 status = group["status"]
                 joint_conditions.append(_relation_support(group, "joint:"+group_id, scope, condition,
-                    tuple(req.source for req in context.relations.uses if req.use_id in group["use_ids"])))
+                    tuple(req.source for req in context.relations.uses if req.use_id in group["use_ids"]),
+                    native_authority=native_authority))
                 detail.setdefault("joint_groups", []).append(deepcopy(group))
         mode = use.valuation_mode
         if mode == "main_density" and use.self_condition is True and detail["relation"].get("status") == "supported":
@@ -793,12 +730,12 @@ def _bind_functional_support(facts, projections, available, specs, catalog, cont
                 raise ContractError("joint requirement binds absent functional uses")
 
 
-def _bind_automatic_themes(facts, projections, config, condition, sources):
+def _bind_automatic_themes(facts, projections, config, condition, sources, *, native_authority=False):
     from .construction_theme import PRIMARY, SECONDARY
     profile = config.get('theme_profile')
     if profile is None:
         return
-    if profile['gaps']:
+    if profile['gaps'] and (not native_authority or profile.get("rule_basis") == "locked_period_core"):
         facts.setdefault('unknown_scope', []).extend('theme:' + gap for gap in profile['gaps'])
         facts['scope_status']['functions'] = 'deferred'
     goals = {g['goal_id'] for g in profile['goals']}
@@ -844,7 +781,8 @@ def _bind_automatic_themes(facts, projections, config, condition, sources):
             capacity = _side_joint_capacity(detail['relation'], {use.use_id.removesuffix(':' + use.scope_id)},
                 facts, use.scope_id, relation, sources, required_sources=())
             joint_condition = _all_support([joint_condition,
-                _relation_support(capacity, 'automatic-capacity:' + use.use_id, use.scope_id, condition, use.evidence_refs)])
+                _relation_support(capacity, 'automatic-capacity:' + use.use_id, use.scope_id, condition, use.evidence_refs,
+                                  native_authority=native_authority)])
         if use.contributes and (detail['goal_id'] in goals or detail.get('explicit_task_goal')):
             themes.append((PRIMARY, True))
             detail['automatic_goal'] = dict(role='primary', percentage=100, goal_id=detail['goal_id'])
@@ -859,6 +797,40 @@ def _bind_automatic_themes(facts, projections, config, condition, sources):
         revised.append(replace(use, theme_conditions=tuple(themes), theme_eligible=tuple(k for k, _ in themes),
             theme_joint_conditions=tuple(joint), joint_condition=joint_condition))
     facts['uses'] = revised
+
+
+def _native_theme_pairs(facts, projections, profile, rows):
+    """Connect witnessed preparations to the later use of the same entity."""
+    from .construction_inventory import matches
+
+    derive = profile.get("rule_basis") == "locked_period_core" and not profile["explicit_goals"]
+    receivers = defaultdict(list)
+    for use in facts["uses"]:
+        detail = facts["use_details"][use.use_id]
+        member = derive and any(matches(rows[detail["card_id"]], {"predicate": predicate})
+                                for predicate in profile["predicates"])
+        if not member and not detail.get("explicit_task_goal"):
+            continue
+        proof = detail["inventory_checks"].get("native") or {}
+        for path in proof.get("native_paths", ()):
+            receivers[use.scope_id, path["receipt"], path["actor"]].append((detail, path))
+    for use in facts["uses"]:
+        detail = facts["use_details"][use.use_id]
+        proof = detail["inventory_checks"].get("native") or {}
+        seen = set()
+        pairs = projections[use.scope_id][0]["theme_pairs"]
+        for path in proof.get("native_paths", ()):
+            for move in path["moves"]:
+                if move["owner"] != "self" or "entity" not in move or "card" not in move:
+                    continue
+                for receiver, later in receivers[use.scope_id, path["receipt"], move["entity"]]:
+                    key = receiver["operation_key"], move["card"]
+                    if (path["solved"] < later["opened"] and detail["operation_key"] != receiver["operation_key"]
+                            and (not derive or move["destination"] == later["zone"]) and key not in seen):
+                        seen.add(key)
+                        receiver["explicit_task_goal"] = True
+                        pairs.append(dict(source=detail["operation_key"], receiver=receiver["operation_key"],
+                            connection=dict(resources=[move["card"]], gaps=[], receipt=path["receipt"])))
 
 
 def _side_joint_capacity(group, bound, facts, scope, relation, sources, *, required_sources=None):
@@ -1282,6 +1254,13 @@ def _bind_mandatory_impacts(facts, context, condition, *, summon_choice=None):
 
 
 def functional_asset_version(catalog):
+    if getattr(catalog.assets, "rule_authority", None) == "locked_period_core":
+        from .construction_native import NATIVE_EVIDENCE_VERSION, NATIVE_RULE_VERSION
+        assets = catalog.assets
+        trace = assets.construction_rule_trace
+        return digest(dict(resources=assets.receipt, period=assets.period_context,
+                           native_rules=NATIVE_RULE_VERSION, native_evidence=NATIVE_EVIDENCE_VERSION,
+                           trace=trace.binding if trace is not None else None))
     from .effect_mechanisms import SEMANTIC_VERSION
     from .effect_records import EFFECT_RECORD_VERSION, LUA_EFFECT_RECORD_VERSION
     from .effect_blocks import BLOCK_VERSION, BLOCK_REVISION, LUA_BLOCK_REVISION
@@ -1322,7 +1301,7 @@ def _all_support(items):
     return _support_group('all',items)
 
 
-def _relation_support(row, key, scope, condition, evidence):
+def _relation_support(row, key, scope, condition, evidence, *, native_authority=False):
     if row.get("status") == "supported":
         return True
     if row.get("status") == "missing":
@@ -1339,7 +1318,8 @@ def _relation_support(row, key, scope, condition, evidence):
     def convert(expression):
         operator, children = expression
         if operator == "atom":
-            if children.startswith('fact:catalog-text:') and not children.endswith(':turn_event_unobserved'):
+            if (not native_authority and children.startswith('fact:catalog-text:')
+                    and not children.endswith(':turn_event_unobserved')):
                 # The printed clause has one interpretation for this asset
                 # version. Its unresolved application to the current resource
                 # projection cannot be inferred from the other inventory.
@@ -1445,10 +1425,11 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
         functional_quality_config, physical_sources)
     from .effect_mechanisms import EXTRA_TYPES
     config = functional_quality_config(policy.get("quality"))
+    native_authority = getattr(catalog.assets, "rule_authority", None) == "locked_period_core"
     profile = config.get('theme_profile')
     if profile and (profile['task_sha256'] != task.sha256 or profile.get('card_texts') and (
             profile.get('cards_sha256') != catalog.cards_sha256
-            or any(int(c) not in task.pool or int(c) not in catalog.assets.rows
+            or not native_authority and any(int(c) not in task.pool or int(c) not in catalog.assets.rows
                 or catalog.card(int(c)).text_sha256 != text for c, text in profile['card_texts'].items()))):
         raise ContractError('automatic theme profile needs host rederivation for this task/catalog')
     budget = budget or RelationBudget()
@@ -1518,7 +1499,9 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
             return facts
         code=codes[work['read_cursor']]
         cached = shared_specs.get(code) if shared_specs is not None else None
-        if cached is not None and cached[0] == catalog.assets.rows[code]:
+        if native_authority:
+            effect_specs, materials = [], []
+        elif cached is not None and cached[0] == catalog.assets.rows[code]:
             effect_specs, materials = cached[1]
         else:
             effect_specs, materials = dependencies.specs(code)
@@ -1532,32 +1515,25 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
     records={code:tuple(e['record'] for e in value[0]) for code,value in specs.items()}
     dependencies._specifications=specs
     missing_scripts = {}
+    native_coverage = {}
     if native_rules is not None:
-        from .construction_native import bind_observations
         from .construction_native_settlement import install_execution_contracts, registration_coverage
         from .native_registrations import NativeRegistryError
         lua = catalog.assets.effect_lua_source
         if lua is not None:
             missing_scripts = {code: script for code in codes
                                if (script := lua.missing_required_card_script(catalog.assets.rows, code)) is not None}
-        facts["native_rule_evidence"] = bind_observations(work["native_rule_evidence"], records, catalog.assets.rows, lua=lua)
-        for evidence in facts["native_rule_evidence"]["receipts"]:
-            identity = evidence["identity"]
-            if evidence["rule_status"] == "bound":
-                code = evidence["query"]["card"]
-                if dependencies.bind_ritual_material_payment(code, identity["effect_key"], evidence):
-                    records[code] = tuple(spec["record"] for spec in dependencies.specs(code)[0])
-                for block in identity.get("blocks") or (identity["block"],):
-                    key = (code, identity["effect_key"], block)
-                    dependencies.native_witnesses.setdefault(key, []).append(evidence)
+        facts["native_rule_evidence"] = deepcopy(work["native_rule_evidence"])
+        facts["native_rule_evidence"]["authority"] = "locked_period_core"
         install_execution_contracts(facts["native_rule_evidence"], specs, catalog.assets,
                                     dependencies.native_execution_contracts)
         if native_sources := getattr(catalog.assets, "native_registration_source", None):
             active_codes = codes if "side" in config["required_scope"] else sorted(set(deck.main + deck.extra))
             try:
                 initialized = native_sources.for_cards(active_codes)
-                facts["native_rule_evidence"]["registration_coverage"] = registration_coverage(
+                native_coverage = registration_coverage(
                     initialized, facts["native_rule_evidence"], dependencies.native_execution_contracts)
+                facts["native_rule_evidence"]["registration_coverage"] = native_coverage
             except NativeRegistryError as error:
                 facts["native_rule_evidence"]["registration_coverage_error"] = str(error)
         records = {code: tuple(effect["record"] for effect in value[0]) for code, value in specs.items()}
@@ -1601,7 +1577,7 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
         if saved is None:
             identical=next((other for other in projections if available[other].main==view.main
                             and available[other].extra==view.extra),None)
-            if identical is not None:
+            if identical is not None and not native_authority:
                 # Relation calculation has no direction argument. The caller
                 # still binds this read-only result to its own scope below.
                 saved=work['projections'][identical]
@@ -1614,7 +1590,7 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
         relation,operation_facts=_functional_relations(deck,view,records,aliases,extra_ids,context,budget,
             dependencies,config,continuation=active['work'] if active and active['scope']==scope else None,
             should_stop=should_stop, previous_projections=reuse['projections'] if reuse is not None else None,
-            projection=scope)
+            projection=scope, native_authority=native_authority)
         if relation.get('calculation_pending'):
             work['active']=dict(scope=scope,work=relation['calculation_pending'])
             facts['calculation_pending']=work
@@ -1632,11 +1608,12 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
             # unknown without changing that subgroup's standalone assessment.
             if row["status"] == "unknown" and relation["joint_required"]["status"] == "supported":
                 row = relation["joint_required"]
-            expr = _relation_support(row, "required:"+use.use_id, "resident", condition, (use.source,))
+            expr = _relation_support(row, "required:"+use.use_id, "resident", condition, (use.source,),
+                                     native_authority=native_authority)
             facts["hard_requirements"].append(dict(requirement_id=use.use_id, origin=use.source, condition=expr))
     if any(u.required for u in (context.relations.uses if context is not None else ())):
         expr = _relation_support(relation["joint_required"], "required:joint", "resident", condition,
-                                 ("original-task:" + task.sha256,))
+                                 ("original-task:" + task.sha256,), native_authority=native_authority)
         facts["hard_requirements"].append(dict(requirement_id="joint_required", origin="original-task:" + task.sha256, condition=expr))
     if task.goal["kind"] != "deck_constraints" or "route_goal" in task.goal:
         route = task.goal.get("route_goal", task.goal)
@@ -1645,7 +1622,13 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                     *task.goal.get("required_chain_resolutions", ())}
         missing = bool(opening - Counter(deck.main)) or not required <= set(deck.main + deck.extra)
         support = False if missing else None
-        if not missing and route['kind'] in ('link_summon', 'ritual_summon', 'effect_resolution'):
+        if not missing and native_authority:
+            from .construction_native_settlement import observed_goal_receipt
+            receipt = observed_goal_receipt(route, task.goal, facts["native_rule_evidence"])
+            if receipt is not None:
+                facts["native_rule_evidence"]["goal_receipt"] = receipt
+                support = True
+        elif not missing and route['kind'] in ('link_summon', 'ritual_summon', 'effect_resolution'):
             from .basic_cb_inference import static_route_support
             support = static_route_support(route, deck, catalog,
                 required_effects=(*task.goal.get('required_activations', ()), *task.goal.get('required_chain_resolutions', ())))
@@ -1720,9 +1703,9 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                         key = uid if scope == "resident" else uid + ":" + scope
                         native = dependencies.witnessed_processing(view, scoped_record, operation, inventory=deck, scope=scope)
                         authoritative = native is not None and native.get("authority") == "native"
-                        if authoritative:
+                        if authoritative or native_authority:
                             checked = objects = material = fusion = summon_trigger = processing = complete_payment = None
-                            used_operation = _settled_operation(operation, native)
+                            used_operation = _settled_operation(operation, native) if authoritative else operation
                             use_semantics = _function_semantics({"block_view": {}}, used_operation)
                         else:
                             checked = dependencies._check(view, costs, distinct=True) if costs else None
@@ -1741,10 +1724,18 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                                         "complete_inventory_requirement", refs)
                         current_relation, operation_facts = projections[scope]
                         if (scope,code) not in special_entries:
-                            special_entries[scope,code]=_special_summon_supported(code,view,records,
-                                dependencies,current_relation,operation_facts,physical_inventory=deck)
+                            if native_authority:
+                                special_entries[scope,code] = next((True for receipt in facts["native_rule_evidence"]["receipts"]
+                                    if not receipt["query"].get("side_swaps")
+                                    for case in receipt.get("native_executions", ()) for move in case["operations"]
+                                    if move.get("card") == code and move["kind"] in _SPECIAL_SUMMONS
+                                    and move["owner"] == "self"), None)
+                            else:
+                                special_entries[scope,code]=_special_summon_supported(code,view,records,
+                                    dependencies,current_relation,operation_facts,physical_inventory=deck)
                         state = current_relation["uses"].get(operation_facts.get((code, ri, oi)), {})
-                        support = _relation_support(state, key, scope, condition, refs)
+                        support = _relation_support(state, key, scope, condition, refs,
+                                                    native_authority=native_authority)
                         # The relation already binds unresolved inventory selectors to their source.
                         transfer = condition(key+":cost_material_transfer", None if complete_payment and complete_payment["status"] == "unknown" else True,
                                              "cost_material_transfer_order", refs)
@@ -1801,26 +1792,39 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                             facts["use_details"][key]["inventory_checks"]["native"] = deepcopy(native)
                         if authoritative:
                             facts["use_details"][key]["historical_operation"] = deepcopy(operation)
-                        from .construction_theme import function_goal, primary_goal
+                        from .construction_theme import function_goal, observed_primary_goal, primary_goal
                         facts['use_details'][key].update(operation_key=(code, ri, oi),
                             goal_id=digest(function_goal(record, operation)) if operation is not None else None)
                         if used_operation is not None and used_operation['kind'] in _SPECIAL_SUMMONS:
                             facts['use_details'][key]['summoned_card_ids'] = (native['observed_card_ids'] if authoritative else
                                 _summoned_inventory(scoped_record, operation, objects, fusion))
                         if config.get('theme_profile'):
-                            facts['use_details'][key]['explicit_task_goal'] = primary_goal(
-                                config['theme_profile'],code,record,operation,dependencies)
+                            if native_authority:
+                                facts["use_details"][key]["explicit_task_goal"] = bool(authoritative and
+                                    observed_primary_goal(config["theme_profile"], code, use_semantics, native, catalog.assets.rows))
+                            else:
+                                facts['use_details'][key]['explicit_task_goal'] = primary_goal(
+                                    config['theme_profile'],code,record,operation,dependencies)
             coverage[card_key] = "evaluated" if not missing_source and all(
                 e["status"] == "evaluated" for e in effect_details) else "unknown"
             facts["coverage_details"][card_key] = dict(status=coverage[card_key], effects=effect_details)
             if missing_source:
                 facts["coverage_details"][card_key]["rule_source"] = dict(status="missing_rule_source", **missing_source)
+            if native_authority and (zone != "side" or "side" in config["required_scope"]):
+                rule_coverage = native_coverage.get(code)
+                if rule_coverage is None or rule_coverage["diagnostics"] or any(
+                        row["status"] != "observed_use" for row in rule_coverage["registrations"]):
+                    coverage[card_key] = facts["coverage_details"][card_key]["status"] = "unknown"
+                facts["coverage_details"][card_key]["rule_coverage"] = rule_coverage
     if "side" not in config["required_scope"]:
         facts["scope_status"]["side"] = "not_applicable"
     elif deck.side and any(coverage.get(f"side:{code}") != "evaluated" for code in deck.side):
         facts["scope_status"]["side"] = "deferred"
-    _bind_functional_support(facts, projections, available, specs, catalog, context, condition, config, sources)
-    _bind_automatic_themes(facts, projections, config, condition, sources)
+    _bind_functional_support(facts, projections, available, specs, catalog, context, condition, config, sources,
+                             native_authority=native_authority)
+    if native_authority and profile is not None:
+        _native_theme_pairs(facts, projections, profile, catalog.assets.rows)
+    _bind_automatic_themes(facts, projections, config, condition, sources, native_authority=native_authority)
     @lru_cache(maxsize=None)
     def check_summon_choice(operation_key, allowed):
         code, ri, oi = operation_key
@@ -1838,6 +1842,9 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
 
     resident_cards = set(deck.main + deck.extra)
     def summon_choice(scope, source_code, detail, allowed):
+        if native_authority:
+            native = detail["inventory_checks"].get("native")
+            return True if native and set(native["observed_card_ids"]).intersection(allowed) else None
         if scope == 'resident':
             return check_summon_choice(detail['operation_key'], allowed)
         # An assignment in the original deck already fits the Side limits.
@@ -1924,7 +1931,8 @@ class ConstructionLayerAdapter:
         if (value.task.sha256 != task_sha256 or value.logic.sha256 != logic_sha256
                 or task.sha256 != task_sha256 or graph.sha256 != logic_sha256):
             raise ContractError("host layer context changed the original task or logic")
-        return replace(value, relations=replace(value.relations, budget=RelationBudget(**{
+        cards = () if getattr(self.catalog.assets, "rule_authority", None) == "locked_period_core" else value.relations.catalog_cards
+        return replace(value, relations=replace(value.relations, catalog_cards=cards, budget=RelationBudget(**{
             key: min(getattr(self.budget, key), getattr(value.relations.budget, key))
             for key in self.budget.__dataclass_fields__})))
 
@@ -2173,6 +2181,7 @@ class ConstructionLayerAdapter:
                  quality_evidence=None, should_stop=None, evaluated=None, calculations=None, on_progress=None,
                  comparison_progress=None, _comparisons=None, evaluation_cursor=0):
         """Evaluate before ordering; a budget leaves pending candidates intact."""
+        from types import SimpleNamespace
         from .construction_quality import (FUNCTIONAL_QUALITY_VERSION, functional_quality_config,
             functional_pass_policy, EvaluationComparisons, restore_comparison_progress)
         functional = policy is not None and (policy.get("quality") or {}).get("evaluator_version") == FUNCTIONAL_QUALITY_VERSION
@@ -2188,6 +2197,7 @@ class ConstructionLayerAdapter:
         task_sha, logic_sha, policy_sha = task.sha256, graph.sha256, digest(policy)
         asset_version = functional_asset_version(self.catalog)
         native_rules = getattr(self.catalog.assets, "construction_rules", None)
+        native_authority = getattr(self.catalog.assets, "rule_authority", None) == "locked_period_core"
         for i, row in list(evaluations.items()):
             q = row.get("quality_evaluation")
             if (i not in order or q is None or q["deck_sha256"] != digest(rows[i]["deck"].to_dict())
@@ -2199,7 +2209,8 @@ class ConstructionLayerAdapter:
                     or q['normalization_version'] != NORMALIZATION_VERSION
                     or (native_rules is not None and q.get('native_rule_evidence', {}).get('frontier') !=
                         native_rules.frontier_binding(task, rows[i]['deck'], 'candidate', policy))
-                    or any(e['record']['text_sha256'] != self.catalog.card(int(key.split(':')[1])).text_sha256
+                    or not native_authority and any(
+                        e['record']['text_sha256'] != self.catalog.card(int(key.split(':')[1])).text_sha256
                         for key, detail in q.get('coverage_details', {}).items() for e in detail.get('effects', ()))):
                 del evaluations[i]
         stop_reason = None
@@ -2209,7 +2220,7 @@ class ConstructionLayerAdapter:
         next_position = 0
         for position, i in enumerate(schedule):
             next_position = position
-            if i in evaluations or i not in proposals:
+            if i in evaluations or (not native_authority and i not in proposals):
                 continue
             if evaluated_now >= self.limit(task, context):
                 stop_reason = 'candidate_evaluation_budget'
@@ -2219,8 +2230,12 @@ class ConstructionLayerAdapter:
                 break
             # The ordinary layer adapter is reused with exactly one candidate.
             # Neither its read budget nor its inventory depends on batch peers.
-            layer = self._project_layers(task, graph, proposals[i], context)
-            quality, work, stop_reason = self.evaluate_inventory(task, proposals[i].deck, layer, context,
+            deck = rows[i]["deck"]
+            if native_authority:
+                layer = self._project_layers(task, graph, SimpleNamespace(deck=deck), context)
+            else:
+                layer = self._project_layers(task, graph, proposals[i], context)
+            quality, work, stop_reason = self.evaluate_inventory(task, deck, layer, context,
                 policy=policy, quality_evidence=quality_evidence, should_stop=should_stop,
                 calculation=calculations.get(i), reuse=reuse)
             if work is not None:
@@ -2281,11 +2296,17 @@ class ConstructionLayerAdapter:
 
     def _project_layers(self, task, graph, proposal, context=None):
         """Produce one candidate's axis and relation diagnostics, without ranking."""
+        native_authority = getattr(self.catalog.assets, "rule_authority", None) == "locked_period_core"
+        if native_authority and context is None:
+            context = LayerContext(task, graph, (), relations=RelationContext((), budget=self.budget))
+            return evaluate_layers(SkeletonSpec(proposal.deck, ()), context, assets=self.binding.assets)
         automatic = context is None
         context = context or self._automatic_context(task, graph, {0: proposal})
         from .construction_inventory import InventoryDependencies
         inventory = InventoryDependencies(self.catalog, requirement_limit=self.budget.facts) if automatic and self.budget.facts else None
-        index = relation_index(self.catalog, context)
+        if native_authority and context.relations.catalog_cards:
+            context = replace(context, relations=replace(context.relations, catalog_cards=()))
+        index = relation_index(None if native_authority else self.catalog, context)
         # Relation inventory is the selected skeleton, not the full list.
         # Project components actually referenced by a use and its dependencies;
         # unrelated catalog observations remain outside the skeleton.

@@ -12,7 +12,6 @@ from ygo_kito.validation import ContractError
 
 from ygo_kito.construction_native import (
     NativeRuleChecks,
-    _bind_movement,
     _choice_tokens,
     _field_moves,
     _resolved_deck_moves,
@@ -21,7 +20,7 @@ from ygo_kito.construction_native import (
     planned_queries,
 )
 from ygo_kito.construction_native_evidence import chain_links, stock_prefix
-from ygo_kito.construction_native_settlement import install_execution_contracts, settled_executions
+from ygo_kito.construction_native_settlement import install_execution_contracts, operation_groups, settled_executions
 from ygo_kito.effect_lua import LuaEffectSource
 from ygo_kito.native_rule_trace import align_rule_trace
 
@@ -63,6 +62,14 @@ class ConstructionNativeTests(unittest.TestCase):
         self.assertEqual(missing["status"], "partial")
         self.assertFalse(missing["operations"])
 
+    def test_distinct_native_processing_calls_keep_their_own_entities(self):
+        first = dict(kind="send_grave", origin="deck", destination="grave", owner="opponent",
+                     entity=2, native_call={"id": 1, "stage": 0})
+        same_call = dict(first, entity=3)
+        optional = dict(first, entity=4, native_call={"id": 2, "stage": 1})
+        self.assertEqual(operation_groups({"operations": [first, same_call, optional]}),
+                         [[first, same_call], [optional]])
+
     def test_payment_and_resolution_stay_with_their_own_chain_link(self):
         opened = dict(kind=70, player=0, public_card=1, description=16, link=1)
         reply = dict(kind=70, player=1, public_card=2, description=32, link=2)
@@ -93,19 +100,6 @@ class ConstructionNativeTests(unittest.TestCase):
         self.assertFalse(_resolved_deck_moves([activation, begin, hidden_hand, end, dict(kind=76, link=1)],
                                              {2}, {2}, query, 16))
         self.assertFalse(_resolved_deck_moves([activation, begin, hidden_hand, end], {2}, {2}, query, 17))
-
-    def test_actual_registration_is_independent_of_printed_number(self):
-        move = dict(card=2, destination="grave", activation={"description": 16})
-        effect = dict(key="monster:2:1", trigger="unknown", scopes="monster", zone=None, spans=[],
-                      operations=[dict(block="send", destination="grave", selector=None)])
-        query = dict(setup="normal_summon", registrations=[
-            dict(family=1, description=16, span=[3, 8], event="normal_summon")
-        ], effects=[effect], wanted=[effect["key"]])
-        self.assertEqual(_bind_movement(query, [move], {})["effect_key"], effect["key"])
-        query["effects"].append(dict(effect, key="monster:3:2"))
-        self.assertEqual(_bind_movement(query, [move], {})["status"], "printed_use_ambiguous")
-        query["registrations"].append(dict(query["registrations"][0], family=2))
-        self.assertEqual(_bind_movement(query, [move], {})["status"], "registration_ambiguous")
 
     def test_equivalent_physical_copies_share_one_branch(self):
         menu = [dict(action_id=str(i), kind="select", cards=[code], refs=[str(i)])
@@ -286,7 +280,7 @@ class ConstructionNativeTests(unittest.TestCase):
         with TemporaryDirectory() as workspace:
             assets = SimpleNamespace(workspace=Path(workspace), receipt={"core": "pinned"},
                                      period_context={"period_id": "period"}, adapter_revision=5)
-            task = SimpleNamespace(sha256="task")
+            task = SimpleNamespace(sha256="task", goal={"kind": "deck_constraints"})
             deck = SimpleNamespace(to_dict=lambda: dict(main=[1, 2, 3]))
             policy = {"policy": "original"}
             queries = [dict(card=i, setup="hand", seat=0, path=[]) for i in (1, 2, 3)]
@@ -349,7 +343,7 @@ class ConstructionNativeTests(unittest.TestCase):
     def test_same_stock_frontiers_keep_their_actual_admission_policy(self):
         checks = NativeRuleChecks(SimpleNamespace(workspace=Path("."), receipt={"core": "pinned"},
                                    period_context={"period_id": "period"}, adapter_revision=5))
-        task = SimpleNamespace(sha256="task")
+        task = SimpleNamespace(sha256="task", goal={"kind": "deck_constraints"})
         deck = SimpleNamespace(to_dict=lambda: dict(main=[1, 2]))
         formal, frozen = {"theme": "formal"}, {"theme": "frozen"}
         prior = dict(task=task.sha256, deck=digest(deck.to_dict()), role="reference", status="decision_budget",
@@ -474,7 +468,7 @@ class ConstructionNativeTests(unittest.TestCase):
         self.assertFalse(_unrecorded_effect_confirmation(dict(old,
             effect_confirmation_version=_EFFECT_CONFIRMATION_VERSION)))
         deck = DeckParts(main=(1,))
-        task = SimpleNamespace(sha256="task")
+        task = SimpleNamespace(sha256="task", goal={"kind": "deck_constraints"})
         with TemporaryDirectory() as workspace:
             assets = SimpleNamespace(workspace=Path(workspace), receipt={}, period_context={}, adapter_revision=5)
             checks = NativeRuleChecks(assets)
