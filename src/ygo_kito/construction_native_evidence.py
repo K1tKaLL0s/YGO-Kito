@@ -60,7 +60,8 @@ def admission_effects(quality):
 
 def window_priority(query, admission, role):
     """Prefer verified dependencies of the Gate, then its unresolved score line."""
-    spans = [registration["span"] for registration in query.get("registrations", ())]
+    spans = [r["span"] for r in (*query.get("registrations", ()), *query.get("attached", ()))
+             if r["span"] is not None]
     related = [effect for effect in admission.get("effects", ()) if effect["card"] == query["card"]
                and (not effect.get("response") or query["setup"] == "response")
                and (not spans or not effect["spans"] or any(span in effect["spans"] for span in spans))]
@@ -90,6 +91,8 @@ def witnessed_rule(receipt):
                      selection=receipt["path"])
     if receipt["stock_prefix"].get("set_preparation"):
         condition["set_preparation"] = receipt["stock_prefix"]["set_preparation"]
+    if receipt["stock_prefix"].get("opposing_normal_summon"):
+        condition["opposing_normal_summon"] = receipt["stock_prefix"]["opposing_normal_summon"]
     if receipt["query"].get("side_swaps"):
         condition["side_swaps"] = receipt["query"]["side_swaps"]
     if receipt["field_moves"] and (attempt := receipt["field_moves"][0].get("summon_attempt")):
@@ -173,13 +176,17 @@ def window_link(links, steps, query, window):
         if (row["seat"] != query["seat"] or chosen != selection
                 or any(row[k] != window[k] for k in ("turn", "phase", "prompt", "menu"))):
             continue
-        next_action = next((i for i, _, action in steps if i > index and action["kind"] in
-                            ("activate", "yes", "no", "pass", "summon", "special_summon", "set")), float("inf"))
-        return next((link for link in links if index < link["opened"] < next_action
+        next_action = next((i for i, step, action in steps if i > index and action["kind"] in
+                            ("activate", "yes", "no", "pass", "summon", "special_summon", "set")
+                            and not (step["prompt"] == 12 and step["seat"] == query["seat"]
+                                     and action["kind"] in ("yes", "no") and action["refs"] == selection["refs"])),
+                           float("inf"))
+        link = next((link for link in links if index < link["opened"] < next_action
                      and link["activation"]["player"] == query["seat"]
                      and link["activation"]["public_card"] == query["card"]
                      and (row["prompt"] == 12 or selection["description"] is None
                           or link["activation"]["description"] == selection["description"])), None)
+        return dict(link, selected_at=index) if link and query.get("attached") else link
     return None
 
 

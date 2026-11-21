@@ -1151,8 +1151,9 @@ class InventoryDependencies:
             base = dict(receipt=evidence["receipt"], rule_id=evidence.get("rule_id"),
                         applicability=evidence.get("condition"), scope=scope, observed_moves=[move],
                         prepared_summons=evidence["stock_prefix"]["summons"], chain=evidence["chain"],
-                        observed_target_ids=[m["card"] for m in all_moves if m["kind"] == "destroy"
-                                             and not m.get("response")] if "blocks" in identity else [],
+                        observed_target_ids=[m["card"] for m in all_moves if m.get("target") or (
+                            m["kind"] == "destroy" and not m.get("response"))] if "blocks" in identity else [],
+                        observed_external_target_ids=[m["card"] for m in all_moves if m.get("target")],
                         observed_card_ids=[move["card"]])
             payments = self._witnessed_payments(record, evidence)
             if payments is None:

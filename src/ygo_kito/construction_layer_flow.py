@@ -255,10 +255,16 @@ def _configuration_relations(available, records, dependencies, aliases, operatio
                         category = 'costs' if resource.kind == 'payment' else 'targets'
                         if resource.kind == "target" and (proof := (native_targets or {}).get(need.need_id)):
                             for target in proof["observed_target_ids"]:
-                                section, pool = physical(target)
                                 actual = key + ":" + str(target)
-                                added.append(RelationFact(actual, actual, resource, "native-receipt:" + proof["receipt"],
-                                    target, section, output_pool=pool))
+                                source = "native-receipt:" + proof["receipt"]
+                                if target in proof.get("observed_external_target_ids", ()):
+                                    added.append(RelationFact(actual, actual, resource, source, code,
+                                        "extra" if code in available.extra else "main",
+                                        conditions=("opponent field target: " + str(target),)))
+                                else:
+                                    section, pool = physical(target)
+                                    added.append(RelationFact(actual, actual, resource, source,
+                                        target, section, output_pool=pool))
                             continue
                         if resource.kind == "payment" and (proof := (native_payments or {}).get(need.need_id)):
                             payment, receipt = proof
@@ -424,7 +430,9 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
                         native_payments[need.need_id] = (payment, native["receipt"])
                 move, = native["observed_moves"]
                 ritual = move.get("kind") == "ritual_summon" and operation["kind"] == "ritual_summon"
-                if ritual:
+                prepared_send = (move.get("kind") == "send_grave" and move["origin"] == "field"
+                                 and move["card"] in native["prepared_summons"])
+                if ritual or prepared_send:
                     transfer = fact.transfer
                     if transfer and transfer.origin in (None, move["origin"]):
                         transfer = replace(transfer, origin=move["origin"], selection="targeted",

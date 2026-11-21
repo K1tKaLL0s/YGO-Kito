@@ -11,6 +11,27 @@ from .contracts import CardView
 from .native_protocol import NativeError, Reader, visible_ref
 
 
+def public_monster_disabled(engine, card):
+    """Read the client-visible disabled bit of this face-up monster."""
+    if card.zone != "monster" or card.visibility != "public" or card.card_id is None:
+        return None
+    sequence = int(card.ref.rsplit(".", 1)[1])
+    position = engine._query(card.controller, 4, sequence, 2)
+    if position is None or not position[1] & 5:
+        return None
+    flags = 0x80001  # QUERY_CODE | QUERY_STATUS
+    buffer = (ctypes.c_uint8 * 64)()
+    length = engine.lib.query_card(engine.handle, card.controller, 4, sequence, flags, buffer, 0)
+    if length != 16:
+        raise NativeError("invalid public monster status length")
+    reader = Reader(bytes(buffer[:length]))
+    if reader.u32() != length or reader.u32() != flags:
+        raise NativeError("invalid public monster status schema")
+    if reader.u32() != card.card_id:
+        return None
+    return bool(reader.u32() & 1)  # STATUS_DISABLED
+
+
 def extend(engine, observer, cards):
     engine._extra_refs = {}
     engine._material_refs = {}

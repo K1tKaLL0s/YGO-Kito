@@ -18,6 +18,7 @@ from .contracts import ActionSelection
 from .deck_profile import validate_sideboard_stock
 from .effect_duel import choose_effect_duel_action
 from .effect_records import operation_record
+from .extra_observation import public_monster_disabled
 from .extra_routes import engine_for_goal
 from .native import NativeError
 from .native_registrations import NativeRegistryError
@@ -26,14 +27,15 @@ from .validation import ContractError
 
 
 NATIVE_RULE_VERSION = "construction-native-rules-v5"
-NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v13"
+NATIVE_EVIDENCE_VERSION = "construction-native-evidence-v14"
 _QUERY_WORK_VERSION = "construction-native-query-work-v1"
 _SUBGROUP_REPLAY_VERSION = 1
+_EFFECT_CONFIRMATION_VERSION = 2
 _DECISION_BUDGET = 100
 _DECK_DESTINATIONS = {2: "hand", 16: "grave"}
 _OPERATIONS = frozenset(("search_or_recover", "search", "add_hand", "send_grave"))
 # Declaration fields use the locked core's effect.h. The core sets ACTIONS
-# and the activation's FIELD/range automatically when applying SetType.
+# and FIELD/range where appropriate when applying SetType.
 _ACTIVATE, _IGNITION, _TRIGGERS, _QUICK = 0x10, 0x40, 0x280, 0x500
 _FREE_CHAIN, _CHAINING, _NORMAL_SUMMON = 1002, 1027, 1100
 _RITUAL_MONSTER = 0x81
@@ -77,7 +79,7 @@ def _registration_choices(script, setup, *, response_event=1027):
 def _same_declaration(lua, script, static, native):
     kind = static.get("type")
     if kind is not None:
-        normalized = (kind | 2) if kind & _ACTIVATE else kind
+        normalized = _ACTIVATE | 2 if kind & _ACTIVATE else kind | 2 if kind & (_IGNITION | _QUICK) else kind
         if native["type"] & ~8 != normalized:
             return False
     index = static.get("description_index")
@@ -114,6 +116,10 @@ def _initialized_choices(lua, script, initialized, setup, legacy, *, zone=None, 
                     or not reg["callbacks"]):
                 continue
             window = "summon_response" if code in SUMMON_RESPONSE_EVENTS else "chain_response"
+        elif setup == "attached":
+            if not kind & 0x100 or code != _FREE_CHAIN or not area & 8 or "operation" not in reg["callbacks"]:
+                continue
+            window = "card_activation"
         elif setup == "spell" and kind & _ACTIVATE and code == _FREE_CHAIN:
             window = "card_activation"
         elif setup == "normal_summon" and kind & _TRIGGERS and code == _NORMAL_SUMMON and (not area or area & 4):
@@ -207,6 +213,17 @@ def _main_queries(deck, assets, initialized, subject=None):
                 spare = next((card for card in deck.main if card != code or counts[card] >= 2), None)
                 if spare is not None:
                     planned.append(dict(query, opening=[code, spare], priority=2))
+        if row["type"] & 0x20004 == 0x20004:  # Continuous Trap.
+            attached = _initialized_choices(lua, script, declarations, "attached", [])
+            base = _initialized_choices(lua, script, declarations, "spell", []) if attached else []
+            if base:
+                for index, support in enumerate(sorted(c for c in counts if assets.rows[c]["type"] & 1
+                        and 1 <= (assets.rows[c]["level"] & 255) <= 4 and not assets.rows[c]["type"] & 0x80)):
+                    planned.append(dict(card=code, seat=0, setup="response", opening=[code, support],
+                        summons=[support], prepare_set=True, response_to=dict(completed_normal=True),
+                        registrations=base, attached=attached, destinations=["grave", "hand"],
+                        registration_source=source, priority=1 + index, seed=7, path=[]))
+                    has_response = True
         if not setups and not has_response:
             excluded.append(dict(card=code, reason="needs_set_or_other_preparation"))
         windows = {setup: _initialized_choices(lua, script, declarations, setup, _registration_choices(script, setup))
@@ -305,6 +322,8 @@ def _project_operations(query, record):
         or op["kind"] == "fusion_summon" and op.get("summon_method") == "effect"
         and op.get("materials_required") is False
         or op["kind"] == "ritual_summon" and any(r.get("procedure") == "ritual" for r in query["registrations"])
+        or query.get("attached") and op["kind"] == "send_grave" and (
+            not op.get("from_zones") or "field" in op["from_zones"])
         or query["setup"] == "response" and op["kind"] in ("negate", "negate_summon", "destroy"))]
     if not ops:
         return None
@@ -324,7 +343,8 @@ def _project_operations(query, record):
 def bind_observations(observed, records, rows, *, lua=None):
     """Project an already executed window to any uniquely corresponding stock uses."""
     for receipt in observed["receipts"]:
-        query = _effect_projection(receipt["query"], records)
+        query = dict(_effect_projection(receipt["query"], records),
+                     confirmed_attachments=receipt.get("confirmed_attachments", ()))
         identity = _bind_movement(query, receipt["moves"], rows)
         if receipt["field_moves"]:
             identity = _bind_processing(query, receipt["field_moves"], rows)
@@ -388,7 +408,7 @@ def _choice_tokens(menu, message, deck_refs, *, activation=False):
         item = row["action_id"]
         if activation:
             tokens[item] = ["activate", row["description"]]
-        elif message in (13, 14):
+        elif message in (12, 13, 14):
             tokens[item] = [row["kind"], row["value"]]
         elif message == 15 and row["kind"] == "select":
             objects = row["cards"] if row["refs"] and set(row["refs"]) <= deck_refs else row["refs"]
@@ -402,6 +422,20 @@ def _choice_tokens(menu, message, deck_refs, *, activation=False):
 def _unrecorded_subgroup(result):
     return (result.get("subgroup_replay_version") != _SUBGROUP_REPLAY_VERSION
             and any(row.get("prompt") == 26 for row in result.get("trace", ())))
+
+
+def _unrecorded_effect_confirmation(result):
+    if result.get("effect_confirmation_version") == _EFFECT_CONFIRMATION_VERSION:
+        return False
+    window = result.get("window") or {}
+    selection = window.get("selection")
+    if selection is None:
+        return False
+    trace = result.get("trace", ())
+    start = next((i for i, row in enumerate(trace) if row.get("prompt") == window.get("prompt")
+                  and row.get("turn") == window.get("turn") and row.get("menu") == window.get("menu")
+                  and row["selection"] == selection["action_id"]), None)
+    return start is not None and any(row["prompt"] == 12 for row in trace[start + 1:])
 
 
 def _resolved_chain(events, query, offered_description):
@@ -436,7 +470,7 @@ def _resolved_deck_moves(events, selections, own_hand_gains, query, offered_desc
     return moves
 
 
-def _field_moves(activation, resolved, selected, seat):
+def _field_moves(activation, resolved, selected, seat, *, field_send=False):
     if activation is None:
         return []
     result = []
@@ -448,6 +482,9 @@ def _field_moves(activation, resolved, selected, seat):
         route = (event.get("from_zone"), event.get("to_zone"))
         if route == (4, 16) and reason & 0xc1 == 0x41 and ("monster", card) in selected:
             result.append(dict(card=card, kind="destroy", origin="field", destination="grave",
+                               reason="effect", activation=activation))
+        if field_send and route == (4, 16) and reason & 0xc1 == 0x40 and ("monster", card) in selected:
+            result.append(dict(card=card, kind="send_grave", origin="field", destination="grave",
                                reason="effect", activation=activation))
         announcement = next((i for i in range(position + 1, len(resolved)) if resolved[i]["kind"] == 62
                              and resolved[i].get("player") == seat
@@ -527,7 +564,8 @@ def _bind_movement(query, moves, rows):
 
 def _bind_processing(query, moves, rows):
     description = moves[0]["activation"]["description"]
-    registrations = [r for r in query["registrations"] if r["description"] == description]
+    registrations = query.get("confirmed_attachments", ()) or [
+        r for r in query["registrations"] if r["description"] == description]
     if len({r["family"] for r in registrations}) != 1:
         return dict(status="registration_ambiguous")
     ritual = len(moves) == 1 and moves[0]["kind"] == "ritual_summon" and all(
@@ -535,6 +573,8 @@ def _bind_processing(query, moves, rows):
     if not ritual and any(r.get("initialized") and r["span"] is None for r in registrations):
         return dict(status="registration_use_unmapped", candidates=registrations)
     events = {r["event"] for r in registrations} | {None, "unknown"}
+    if query.get("confirmed_attachments"):
+        events.add("conditional_activation")
     if query["setup"] == "response":
         events |= {"opponent_monster_effect", "card_activation"}
         target = moves[0].get("response")
@@ -542,7 +582,8 @@ def _bind_processing(query, moves, rows):
             events.add("spell_trap_activation")
     candidates = []
     for effect in query["effects"]:
-        if effect["trigger"] not in events or (query["setup"] == "spell" and effect["scopes"] != "spell_trap"):
+        if effect["trigger"] not in events or ((query["setup"] == "spell" or query.get("attached"))
+                                                and effect["scopes"] != "spell_trap"):
             continue
         zone = {2: "hand", 4: "field", 8: "field", 16: "grave"}.get(moves[0]["activation"]["zone"])
         if effect["zone"] not in (None, zone):
@@ -564,7 +605,8 @@ def _bind_processing(query, moves, rows):
                             or not opposite and move["card"] == move["activation"]["public_card"])
                        and (operation["quantity"] == 1 or (ritual or move.get("response"))
                             and operation["quantity"] is None)
-                       and (move["origin"] in operation["origin"] or (ritual or move.get("response"))
+                       and (move["origin"] in operation["origin"] or (
+                            ritual or query.get("confirmed_attachments") or move.get("response"))
                             and not operation["origin"])
                        and (operation["destination"] in (None, move["destination"])
                             or move["kind"] == "negate_summon" and operation["destination"] == "field")
@@ -639,6 +681,7 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
     setup = deque(query["summons"])
     trace, selections, path, alternatives = [], set(), [], []
     selected = set()
+    targets = {}
     prepared_moves = []
     preparations = bool(query.get("prelude"))
     preparing = False
@@ -649,7 +692,9 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
     seat, subject = query["seat"], query["card"]
     response_source = query.get("response_to")
     summon_message = (response_source or {}).get("summon_message")
+    completed_normal = (response_source or {}).get("completed_normal")
     response_started = response_seen = False
+    opposing_start = None
     waiting_to_set = query.get("prepare_set", False)
     source_summoned = False
     public = {code: {"type": row["type"], "attack": row.get("atk", 0)} for code, row in assets.rows.items()}
@@ -694,6 +739,10 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
                         attempts = pending_summons(engine.events)
                         reply_open = bool(attempts) and all(e["kind"] == summon_message and e["player"] != seat
                                                             for e in attempts)
+                    elif completed_normal:
+                        events = engine.events[opposing_start:]
+                        announced = next((i for i, e in enumerate(events) if e["kind"] == 60 and e["player"] != seat), None)
+                        reply_open = announced is not None and any(e["kind"] == 61 for e in events[announced + 1:])
                     else:
                         boundary = max((i for i, e in enumerate(engine.events) if e["kind"] == 74), default=-1)
                         chain = [e for e in engine.events[boundary + 1:] if e["kind"] == 70]
@@ -724,10 +773,14 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
                       _choice_tokens(menu, msg, refs) if event_start is not None or preparation_choice else {})
             default = offers[0]["action_id"] if offers else None
             if response_source and not own and not response_started and not waiting_to_set:
-                if response_source.get("any_opponent_activation") or summon_message:
-                    kind = {60: "summon", 62: "special_summon", 64: "position"}.get(summon_message, "activate")
+                if response_source.get("any_opponent_activation") or summon_message or completed_normal:
+                    kind = "summon" if completed_normal else {
+                        60: "summon", 62: "special_summon", 64: "position"}.get(summon_message, "activate")
                     choices = [item for item in menu if msg == 11 and item["kind"] == kind
                                and any(card is not None for card in item["cards"])]
+                    if completed_normal:
+                        choices = [item for item in choices if any(public[c]["type"] & 0x20
+                                   for c in item["cards"] if c in public)]
                     if summon_message == 64:
                         facedown = {c.ref for c in request.observation.cards
                                     if c.zone == "monster" and c.position is not None and c.position & 10}
@@ -740,7 +793,7 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
                     if choices:
                         entry = choices[0]
                         tokens = {a["action_id"]: [
-                            "opponent:" + a["kind"] if summon_message else "opponent_activation",
+                            "opponent:" + a["kind"] if summon_message or completed_normal else "opponent_activation",
                             a["description"], a["cards"]] for a in choices}
                     else:
                         entry = None
@@ -751,7 +804,10 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
                 if entry:
                     default = entry["action_id"]
                     source_summoned = source_summoned or entry["kind"] in ("summon", "set")
-                    response_started = entry["kind"] != "set" and (bool(summon_message) or entry["kind"] != "summon")
+                    response_started = entry["kind"] != "set" and (
+                        bool(summon_message or completed_normal) or entry["kind"] != "summon")
+                    if completed_normal:
+                        opposing_start = len(engine.events)
                 elif not summon_message and source_summoned and msg == 11:
                     status = "response_precondition_unreached"
                     break
@@ -762,6 +818,9 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
                                and preferred in item["cards"]), None)
             if default is None and msg == 26 and tokens:
                 default = next((item["action_id"] for item in menu if item.get("operation") == "finish"), None)
+            if default is None and msg == 12 and tokens and not (query.get("attached") and own and activation
+                    and any(item["refs"] == activation["selection"]["refs"] for item in menu)):
+                default = next((item["action_id"] for item in menu if item["kind"] == "no"), None)
             if tokens:
                 depth = len(path)
                 choice = query["path"][depth] if depth < len(query["path"]) else None
@@ -783,7 +842,7 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
                                     if item["kind"] == "summon" and setup[0] in item["cards"]), None)
                     if default is not None:
                         setup.popleft()
-                if default is None and own and msg == 11 and waiting_to_set:
+                if default is None and own and msg == 11 and waiting_to_set and not setup:
                     setting = next((item for item in menu if item["kind"] == "set"
                                     and subject in item["cards"]), None)
                     if setting is None:
@@ -812,6 +871,11 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
                                   if ref in refs and code is not None)
                 selected.update((own_cards[ref].zone, known[ref]) for ref in chosen["refs"]
                                 if ref in own_cards and known.get(ref) is not None)
+                if query.get("attached") and msg == 15 and not any(
+                        e["kind"] == 71 for e in engine.events[event_start:]):
+                    for card in request.observation.cards:
+                        if card.ref in chosen["refs"] and card.controller != seat and card.zone == "monster":
+                            targets[card.ref] = (card, public_monster_disabled(engine, card), len(engine.events))
             trace.append(dict(request=request_digest(request), seat=request.observation.observer,
                               turn=request.observation.turn, phase=request.observation.phase,
                               prompt=msg, menu=menu, selection=action_id))
@@ -820,8 +884,19 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
                 counters["submitted_decisions"] += 1
             request = engine.next_decision()
         events = list(engine.events)
+        disabled = None
+        if status == "settled" and request is not None and len(targets) == 1:
+            before, already_disabled, start = next(iter(targets.values()))
+            after = next((c for c in request.observation.cards if c.ref == before.ref
+                          and c.controller == before.controller and c.card_id == before.card_id), None)
+            moved = any(e["kind"] == 50 and 4 in (e.get("from_zone"), e.get("to_zone"))
+                        and e.get("public_card") in (None, before.card_id) for e in events[start:])
+            if already_disabled is False and after is not None and not moved and public_monster_disabled(engine, after):
+                disabled = dict(card=after.card_id, ref=after.ref, controller=after.controller,
+                                observed_before=start, observed_after=len(events))
         metadata = dict(period=engine.period_context, scripts=sorted(engine.loaded_scripts),
-                        subgroup_replay_version=_SUBGROUP_REPLAY_VERSION)
+                        subgroup_replay_version=_SUBGROUP_REPLAY_VERSION,
+                        effect_confirmation_version=_EFFECT_CONFIRMATION_VERSION)
         if hasattr(engine, "_catalog_assets"):
             metadata["native_code_projection"] = digest(engine._catalog_assets.native_code_overrides)
     if status == "settled" and len(path) < len(query["path"]):
@@ -834,7 +909,7 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
     ) else None
     moves = _resolved_deck_moves(action_events, selections, own_hand_gains, query, description)
     activation_event, resolved_events = _resolved_chain(action_events, query, description)
-    field_moves = _field_moves(activation_event, resolved_events, selected, seat)
+    field_moves = _field_moves(activation_event, resolved_events, selected, seat, field_send=bool(query.get("attached")))
     field_moves += _ritual_moves(activation_event, resolved_events, selected, query)
     if field_window and activation_event is not None:
         handler_refs = activation["selection"]["refs"]
@@ -849,6 +924,7 @@ def run_window(assets, deck, query, *, selection_key, decision_budget, should_st
     return dict(status=status, offered=event_start is not None, window=activation, trace=trace, events=events,
                 moves=moves, payments=payments, field_moves=field_moves, prepared_moves=prepared_moves,
                 activation_event=activation_event, resolution=resolved_events,
+                disabled_target=disabled,
                 selected_deck_cards=sorted(selections), selected_objects=sorted(selected), decisions=len(trace),
                 alternatives=alternatives, path=path, unmet_precondition=missing,
                 identity=_bind_movement(query, moves, assets.rows) if "effects" in query else {},
@@ -971,9 +1047,14 @@ class NativeRuleChecks:
                 continue
             identity = digest(row["query"])
             seen.add(identity)
-            if not self._current_card_sources(raw["result"]) or _unrecorded_subgroup(raw["result"]):
+            if (not self._current_card_sources(raw["result"]) or _unrecorded_subgroup(raw["result"])
+                    or row["query"].get("attached") and "disabled_target" not in raw["result"]):
                 queue[identity] = row["query"]
                 continue
+            if _unrecorded_effect_confirmation(raw["result"]):
+                # Its submitted answers and settlement still support the old
+                # play. Revisit the window to discover the other answers.
+                queue[identity] = row["query"]
             history.append(key)
             self.counts["frontier_reads"] += 1
             self.counts["frontier_replayed_decisions"] += row["decisions"]
@@ -1105,6 +1186,10 @@ class NativeRuleChecks:
                 binding["runtime_code_projection"] = digest(self.assets.native_code_overrides)
             if _unrecorded_subgroup(cached["result"]):
                 binding["subgroup_replay_version"] = _SUBGROUP_REPLAY_VERSION
+            if _unrecorded_effect_confirmation(cached["result"]):
+                binding["effect_confirmation_version"] = _EFFECT_CONFIRMATION_VERSION
+            if query.get("attached") and "disabled_target" not in cached["result"]:
+                binding["public_target_observation"] = 1
             current = digest(binding)
             if current != key:
                 key = current
@@ -1170,28 +1255,52 @@ class NativeRuleChecks:
         activation = link["activation"] if link else None
         payments = link["payments"] if link else []
         prepared = result.get("prepared_moves", [])
-        field_moves, prefix = [], None
+        field_moves, prefix, attachments = [], None, []
         resolved = bool(link and link["resolved"] and link["opened"] < link.get("chained", -1) < link["solving"])
         if resolved:
             resolution = events[link["solving"] + 1:link["solved"]]
             selected = selected_objects(steps, link)
-            field_moves = _field_moves(activation, resolution, selected, query["seat"])
+            attached = query.get("attached", ())
+            if len(attached) == 1:
+                base = [r for r in query["registrations"] if r["description"] == activation["description"]]
+                if len(base) == 1 and base[0].get("initialized", {}).get("callbacks") == {}:
+                    selection = result["window"]["selection"]
+                    accepted = [choice for i, step, choice in steps
+                        if link["selected_at"] < i < link["chained"] and step["prompt"] == 12
+                        and step["seat"] == query["seat"] and choice["refs"] == selection["refs"]]
+                    if len(accepted) == 1 and accepted[0]["kind"] == "yes":
+                        attachments = list(attached)
+            field_moves = _field_moves(activation, resolution, selected, query["seat"], field_send=bool(attachments))
+            if (attachments and (target := result.get("disabled_target")) and target["controller"] != query["seat"]
+                    and link["opened"] < target["observed_before"] <= link["chained"]
+                    and link["solved"] < target["observed_after"] <= len(events)
+                    and not any(e["kind"] == 70 for e in events[link["solved"] + 1:target["observed_after"]])):
+                field_moves.insert(0, dict(card=target["card"], kind="negate", origin="field", destination=None,
+                    reason="effect", activation=activation, negation="effect", target=target))
             field_moves += _ritual_moves(activation, resolution, selected, query)
             if query.get("setup") == "field_after_summons":
                 expected = f"p{query['seat']}.monster.{activation['slot']}"
                 if expected not in result["window"]["selection"]["refs"]:
                     field_moves = []
             summon_response = query.get("setup") == "response" and query.get("response_to", {}).get("summon_message")
+            completed_normal = query.get("response_to", {}).get("completed_normal")
             if summon_response:
                 field_moves = _summon_response_moves(link, events, query)
-            elif query.get("setup") == "response":
+            elif query.get("setup") == "response" and not completed_normal:
                 field_moves = _response_moves(link, resolution)
             chain_start = max((i for i in range(link["opened"]) if events[i]["kind"] == 74), default=-1)
             # The supported prefix carries either an isolated activation or
             # one explicitly requested answer to an opponent's open link.
             chain_size = sum(e["kind"] == 70 for e in events[chain_start + 1:link["solved"]])
-            if chain_size == (2 if query.get("setup") == "response" and not summon_response else 1):
+            if chain_size == (2 if query.get("setup") == "response" and not (summon_response or completed_normal) else 1):
                 prefix = stock_prefix(events, steps, link, query, prepared, payments)
+                if prefix and completed_normal:
+                    starts = [i for i, e in enumerate(events[:link["opened"]])
+                              if e["kind"] == 60 and e["player"] != query["seat"]]
+                    if not starts or not any(e["kind"] == 61 for e in events[starts[-1] + 1:link["opened"]]):
+                        prefix = None
+                    else:
+                        prefix["opposing_normal_summon"] = events[starts[-1]]
         return dict(receipt=row["id"], status=result["status"], offered=result.get("offered"),
                     query=query, decisions=result["decisions"], moves=result.get("moves", []) if resolved else [],
                     field_moves=field_moves, prepared_moves=prepared, stock_prefix=prefix,
@@ -1199,6 +1308,7 @@ class NativeRuleChecks:
                     chain=link, path=result.get("path", []), payments=payments,
                     unmet_precondition=result.get("unmet_precondition"), alternatives=result.get("alternatives", []),
                     identity=result.get("identity", {}), error=result.get("error"),
+                    **({"confirmed_attachments": attachments} if attachments else {}),
                     **({"missing_scripts": result["missing_scripts"]} if "missing_scripts" in result else {}),
                     rule_resources=digest((binding.get("resources"), binding.get("period"), binding.get("adapter"))),
                     deck_sha256=digest(binding["deck"]))

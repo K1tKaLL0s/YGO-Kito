@@ -412,6 +412,43 @@ class ConstructionNativeTests(unittest.TestCase):
         self.assertEqual(_ritual_moves(activation, events, selected, dict(query, opening=[1, 2, 3])), [])
         self.assertEqual(_ritual_moves(activation, events[:-1], selected, query), [])
 
+    def test_nested_effect_confirmation_preserves_both_legal_choices_and_chain_identity(self):
+        from ygo_kito.construction_native import (_EFFECT_CONFIRMATION_VERSION, _choice_tokens,
+                                                  _unrecorded_effect_confirmation)
+        from ygo_kito.construction_native_evidence import window_link
+
+        ref = "p0.spell_trap.0"
+        activate = dict(kind="activate", description=0, refs=[ref], action_id="activate")
+        yes = dict(kind="yes", refs=[ref], value=94, action_id="yes")
+        no = dict(yes, kind="no", action_id="no")
+        self.assertEqual(_choice_tokens([yes, no], 12, set()), {"yes": ["yes", 94], "no": ["no", 94]})
+        original = dict(seat=0, turn=2, phase="main1", prompt=16, menu=[activate], selection="activate")
+        nested = dict(original, prompt=12, menu=[yes, no], selection="yes")
+        window = dict(original, selection=activate)
+        link = dict(opened=8, activation=dict(player=0, public_card=1, description=0))
+        query = dict(seat=0, card=1, attached=[1])
+        self.assertEqual(window_link([link], [(4, original, activate), (6, nested, yes)], query, window),
+                         dict(link, selected_at=4))
+        self.assertIsNone(window_link([link], [(4, original, activate),
+            (6, nested, dict(yes, refs=["p0.spell_trap.1"]))], query, window))
+        old = dict(window=window, trace=[original, nested])
+        self.assertTrue(_unrecorded_effect_confirmation(old))
+        self.assertFalse(_unrecorded_effect_confirmation(dict(old,
+            effect_confirmation_version=_EFFECT_CONFIRMATION_VERSION)))
+        deck = DeckParts(main=(1,))
+        task = SimpleNamespace(sha256="task")
+        with TemporaryDirectory() as workspace:
+            assets = SimpleNamespace(workspace=Path(workspace), receipt={}, period_context={}, adapter_revision=5)
+            checks = NativeRuleChecks(assets)
+            ordinary = dict(seat=0, card=1, setup="response", registrations=[])
+            evidence = dict(query=ordinary, status="settled", decisions=2)
+            previous = dict(receipts=["previous"], exhausted_receipts=[], pending=[])
+            with patch.object(checks, "_read_receipt", return_value=dict(result=old)), patch.object(
+                    checks, "_evidence", return_value=evidence):
+                work = checks._initial_work(task, deck, "reference", previous, None, include_side=True)
+            self.assertEqual(work["receipts"], [evidence])
+            self.assertEqual(work["queue"], [ordinary])
+
     def test_hand_response_accepts_a_registered_range_that_includes_hand(self):
         source = dict(type=128, event_code=1027, family=0, registration_span=[17, 29],
                       operation={"reference": "source"})
