@@ -4,12 +4,12 @@
 
 ## 先读
 - [统一设计书](docs/current/design.md)与[资料入口](docs/current/README.md)；当前优先级、在办事项与接续任务书见[18 项实施清单](docs/plans/2026-11-12-comprehensive-optimization-plan.md#order-18)。
-- 统一设计书与实施清单维护在统筹树 `N:\YGO-Kito\_publish_20261030`（分支 codex/coordinator）；构筑、决斗树在合入前本地没有这两个文件，到统筹树读取。
+- 统一设计书与实施清单维护在统筹树 `N:\YGO-Kito\_publish_20261030`（分支 codex/coordinator）；本机从构筑或决斗检出接手时，直接打开[统筹树实施清单](N:/YGO-Kito/_publish_20261030/docs/plans/2026-11-12-comprehensive-optimization-plan.md#order-18)与[统筹树统一设计](N:/YGO-Kito/_publish_20261030/docs/current/design.md)。
 - 工程入口：[安全 CPU CI](docs/development/safe-cpu-ci.md)、[训练交接](docs/development/training-handoff.md)、[牌表收件](docs/development/deck-intake.md)、[本地 Agent](docs/development/generic-agent-integration.md)。
 - 优先级：当前明确用户指令 > 设计书 > 历史报告。运行结果以实际记录为准，历史报告不证明当前能力。
 
 ## 如实报告
-- 本地测试、CI、真实引擎、外部模型和训练分别报告。没有 CI 记录不算通过，任何 skip 视为失败。完成后更新 [MASTER-CHECKLIST](docs/plans/MASTER-CHECKLIST.md) 与对应证据。
+- 本地测试、CI、真实引擎、外部模型和训练分别报告。没有 CI 记录不算通过，任何 skip 视为失败。18 项优化使用统筹树实施清单的顺位，按对应行更新状态和验收。其他项目事项更新 [MASTER-CHECKLIST](docs/plans/MASTER-CHECKLIST.md)。
 - 程序枚举的候选、已有模型的评分选择和真实参数更新分开记录，不能写成模型已自主掌握构筑。缺模型的分类器拒判。
 - 未知、未读取、经审阅无独立功能三者不混用；不填零，不伪造完整分或通过。fixture 与本地参考客户端不等于真实外部模型已接通。
 - 平局不算胜，异常和超时保留在分母内。验收口径见设计书[正式能力验收](docs/current/design.md#正式能力验收)。
