@@ -27,7 +27,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v67"
+NORMALIZATION_VERSION = "construction-function-normalization-v68"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -380,32 +380,1027 @@ def _activation_claims(fact, registration, local_id, source, pools, claims):
         claims.append(Claim(key))
 
 
-def _fusion_assignment(fact, check, facts, pools):
-    """Supply native recipe alternatives to the shared configuration allocator."""
-    resource = Resource("fusion_assignment", attributes=(fact.fact_id,))
-    assigned = set()
-    for option in check["options"]:
-        stock = Counter((m["section"], m["card_id"]) for m in option["materials"])
-        stock["extra", option["target"]] += 1
-        key = tuple(sorted(stock.items()))
-        if key in assigned:
+def _aggregate_claims(claims):
+    """Combine claims targeting the same pool into explicit quantities."""
+    grouped = {}
+    for claim in claims:
+        prev = grouped.get(claim.pool_id)
+        if prev is None:
+            grouped[claim.pool_id] = claim
+        elif prev.mode == "consume" and claim.mode == "consume":
+            grouped[claim.pool_id] = Claim(claim.pool_id, prev.quantity + claim.quantity, "consume")
+        elif prev.mode == "consume" or claim.mode == "consume":
+            grouped[claim.pool_id] = Claim(claim.pool_id, max(prev.quantity, claim.quantity), "consume")
+        else:
+            grouped[claim.pool_id] = Claim(claim.pool_id, max(prev.quantity, claim.quantity), "presence")
+    return tuple(grouped.values())
+
+
+def _select_diverse_options(options, key_fn, limit=16):
+    """Deterministically select up to `limit` options maximizing covered material codes."""
+    if len(options) <= limit:
+        return list(options)
+    remaining = [(idx, opt, set(key_fn(opt))) for idx, opt in enumerate(options)]
+    selected, covered = [], set()
+    while remaining and len(selected) < limit:
+        best_pos = max(
+            range(len(remaining)),
+            key=lambda pos: (len(remaining[pos][2] - covered), -len(remaining[pos][2]), -remaining[pos][0]),
+        )
+        _, opt, keys = remaining.pop(best_pos)
+        selected.append(opt)
+        covered |= keys
+        if not any(item[2] - covered for item in remaining):
+            selected.extend(item[1] for item in remaining[:limit - len(selected)])
+            break
+    return selected
+
+
+def _summon_recipe_assignment(fact, check, facts, pools, *, kind="fusion", lp_already_charged=False,
+                              ready_resource=None, dag_available=False, include_alternatives=True, rows=None):
+    """Supply native Fusion or Ritual recipe alternatives to the shared allocator."""
+    resource = Resource(f"{kind}_assignment", attributes=(fact.fact_id,))
+    target_section = "extra" if kind == "fusion" else "main"
+    grouped = defaultdict(list)
+    for opt in check.get("options", ()):
+        target = opt["target"]
+        t_lv = ((rows or {}).get(target, {}).get("level", 0) & 255) if rows else 0
+        if dag_available and rows and any(
+            m.get("section") == "extra" and ((rows.get(m["card_id"], {}).get("level", 0) & 255), m["card_id"]) >= (t_lv, target)
+            for m in opt.get("materials", ())
+        ):
             continue
-        assigned.add(key)
-        claims = []
-        for (zone, code), count in key:
-            pool = "configuration:physical:" + str(code)
-            pools.setdefault(pool, ResourcePool(pool, "candidate physical copies", inventory=((zone, code),)))
-            claims.append(Claim(pool, count))
-        choice = f"fusion:{len(assigned)}"
-        facts.append(RelationFact(fact.fact_id + ":" + choice, fact.effect_ref, resource, fact.source,
-                                  fact.card_id, fact.zone, claims=tuple(claims), choice=choice))
+        grouped[target].append(opt)
+    assigned = set()
+    ordered_targets = sorted(
+        grouped,
+        key=lambda t: (
+            min((sum(1 for m in o.get("materials", ()) if m.get("section") == "extra") for o in grouped[t]), default=0),
+            ((rows or {}).get(t, {}).get("level", 0) & 255) if rows else 0,
+            t,
+        ),
+    )
+    target_res_kinds = {}
+    for t_rank, target in enumerate(ordered_targets):
+        ordered_opts = sorted(
+            grouped[target],
+            key=lambda o: (
+                sum(1 for m in o.get("materials", ()) if m.get("section") == "extra"),
+                len(o.get("materials", ())),
+                tuple(m["card_id"] for m in o.get("materials", ())),
+            ),
+        )
+        capped = _select_diverse_options(ordered_opts, lambda o: {m["card_id"] for m in o.get("materials", ())}, limit=1)
+        for option in capped:
+            lp_cost = int(option.get("lp_cost") or 0) if not lp_already_charged else 0
+            key = (
+                target,
+                lp_cost,
+                tuple(sorted(Counter(
+                    (m["section"], m["card_id"], m.get("location") if (dag_available and m.get("section") == "extra") else None)
+                    for m in option.get("materials", ())
+                ).items())),
+            )
+            if key in assigned:
+                continue
+            assigned.add(key)
+            opt_idx = len(assigned)
+            phys_counts = Counter()
+            phys_counts[target_section, target] += 1
+            claims, opt_needs = [], []
+            fmat_slots = Counter()
+            for m_idx, mat in enumerate(option.get("materials", ())):
+                m_id = mat["card_id"]
+                if dag_available and mat.get("section") == "extra" and mat.get("location") == 0x04:
+                    slot = fmat_slots[m_id]
+                    fmat_slots[m_id] += 1
+                    mpool = f"native-dag:material:{m_id}:{slot}"
+                    pools.setdefault(mpool, ResourcePool(mpool, "native board material slot", capacity=1))
+                    claims.append(Claim(mpool, 1))
+                    opt_needs.append(Need(
+                        f"{fact.fact_id}:{kind}:{opt_idx}:fmat:{m_idx}",
+                        Resource("field_entry", attributes=(f"card:{m_id}", f"slot:{slot}")),
+                        mode="presence",
+                    ))
+                else:
+                    phys_counts[mat["section"], m_id] += 1
+            for (sec, code), count in sorted(phys_counts.items()):
+                pool = "configuration:physical:" + str(code)
+                pools.setdefault(pool, ResourcePool(pool, "candidate physical copies", inventory=((sec, code),)))
+                claims.append(Claim(pool, count))
+            if lp_cost > 0:
+                pools.setdefault(LP_PAYMENT_POOL, ResourcePool(LP_PAYMENT_POOL,
+                    "rule: initial 8000 LP; payment leaves positive LP", capacity=7999))
+                claims.append(Claim(LP_PAYMENT_POOL, lp_cost))
+            if ready_resource is not None:
+                opt_needs.append(Need(f"{fact.fact_id}:{kind}:{opt_idx}:ready", ready_resource, mode="presence"))
+            choice = f"{kind}:{opt_idx}"
+            out_kind = f"{kind}_assignment" if (include_alternatives or t_rank == 0) else f"{kind}_target_assignment"
+            target_res_kinds[target] = out_kind
+            out = Resource(out_kind, attributes=(fact.fact_id, f"target:{target}"))
+            facts.append(RelationFact(
+                fact.fact_id + ":" + choice, fact.effect_ref, out, fact.source, fact.card_id, fact.zone,
+                inputs=InputGroup("all", tuple(opt_needs)) if opt_needs else None,
+                claims=_aggregate_claims(claims), choice=choice,
+            ))
+    if isinstance(check, dict):
+        check["target_resource_kinds"] = target_res_kinds
     if not assigned:
-        return fact.inputs
-    # The native predicate reports a witness per recipient. Additional recipes
-    # for the same recipient may matter to an explicit joint requirement.
-    facts.append(RelationFact(fact.fact_id + ":fusion:alternatives", fact.effect_ref, resource, fact.source,
-        fact.card_id, fact.zone, unknown=("additional_fusion_assignments_unqueried",), choice="fusion:alternatives"))
-    return InputGroup("all", (Need(fact.fact_id + ":recipe", resource, mode="presence"),))
+        if check.get("status") == "unknown" or check.get("actual_duel_state_required"):
+            facts.append(RelationFact(
+                f"{fact.fact_id}:{kind}:unknown", fact.effect_ref, resource, fact.source, fact.card_id, fact.zone,
+                inputs=(InputGroup("all", (Need(f"{fact.fact_id}:{kind}:unk:ready", ready_resource, mode="presence"),))
+                        if ready_resource is not None else None),
+                unknown=(f"{kind}_state_or_target_unresolved",), choice=f"{kind}:unknown",
+            ))
+        elif kind == "fusion":
+            return fact.inputs
+        return InputGroup("all", tuple(v for v in (fact.inputs, Need(fact.fact_id + ":recipe", resource, mode="presence")) if v is not None))
+    if kind == "fusion" and include_alternatives:
+        # The native predicate reports a witness per recipient. Additional recipes
+        # for the same recipient may matter to an explicit joint requirement.
+        facts.append(RelationFact(
+            fact.fact_id + ":fusion:alternatives", fact.effect_ref, resource, fact.source, fact.card_id, fact.zone,
+            inputs=(InputGroup("all", (Need(fact.fact_id + ":alt:ready", ready_resource, mode="presence"),))
+                    if ready_resource is not None else None),
+            unknown=("additional_fusion_assignments_unqueried",), choice="fusion:alternatives",
+        ))
+    return InputGroup("all", tuple(v for v in (fact.inputs, Need(fact.fact_id + ":recipe", resource, mode="presence")) if v is not None))
+
+
+def _wire_native_summon_dag_and_gates(available, records, extra_ids, dependencies, aliases, rel_facts, rel_pools,
+                                      rel_uses, operation_facts, static_facts_meta, effect_ready_facts,
+                                      fusion_proofs, ritual_proofs):
+    """Build Unified Field-Entry & Summon-Procedure DAG and wire downstream payoff gates."""
+    from .construction_inventory import matches, query_supported
+
+    identity = (tuple(available.main), tuple(available.extra))
+    stock = dependencies.native_summon_stock.get(identity)
+    if not stock:
+        return
+    monster_rules = stock.get("monster_rules", {})
+    counts = Counter((z, c) for z in ("main", "extra") for c in getattr(available, z))
+    main_set = set(available.main)
+    extra_set = set(extra_ids) & set(available.extra)
+    present = sorted(main_set | extra_set)
+
+    NS_POOL = "dag:pool:normal_summon:self"
+    PEND_POOL = "dag:pool:pendulum_summon:self"
+    EMZ_POOL = "dag:pool:extra_pend_emz:self"
+    rel_pools.setdefault(NS_POOL, ResourcePool(NS_POOL, "rule: one Normal Summon or Set per turn", capacity=1))
+    rel_pools.setdefault(PEND_POOL, ResourcePool(PEND_POOL, "rule: one Pendulum Summon per turn", capacity=1))
+    rel_pools.setdefault(EMZ_POOL, ResourcePool(EMZ_POOL, "rule: one Extra Monster Zone per turn setup", capacity=1))
+
+    def phys_pool(sec, c):
+        key = f"configuration:physical:{c}"
+        rel_pools.setdefault(key, ResourcePool(key, "candidate physical copies", inventory=((sec, c),)))
+        return key
+
+    def mat_pool(c, slot):
+        key = f"native-dag:material:{c}:{slot}"
+        rel_pools.setdefault(key, ResourcePool(key, "native board material slot", capacity=1))
+        return key
+
+    def link_arrow_pool(c, arrows):
+        key = f"dag:link_arrows:{c}"
+        rel_pools.setdefault(key, ResourcePool(key, f"link downward arrow zones for {c}", capacity=arrows))
+        return key
+
+    def extra_ns_pool(src, ri):
+        key = f"dag:extra_ns:{src}:{ri}"
+        rel_pools.setdefault(key, ResourcePool(key, "effect-granted extra normal summon allowance", capacity=1))
+        return key
+
+    dag_fids = {f.fact_id for f in rel_facts}
+
+    def add_dag(fid, eff_ref, output, source, card_id, zone, *, inputs=None, claims=(), unknown=(),
+                choice="joint", quantity=1):
+        if fid in dag_fids:
+            return
+        dag_fids.add(fid)
+        rel_facts.append(RelationFact(
+            fid, eff_ref, output, source, card_id, zone, quantity=quantity,
+            inputs=inputs, claims=_aggregate_claims(claims), unknown=unknown, choice=choice,
+        ))
+
+    def row_sec(c):
+        return "extra" if (c in extra_set and c not in main_set) else "main"
+
+    # Compute slot capacities per monster from multi-copy recipes
+    slot_need = Counter()
+    for kind_key in ("contact_fusion", "xyz", "synchro", "link"):
+        for opt in stock.get(kind_key, ()):
+            mc = Counter(item["card_id"] for item in opt.get("materials", ()))
+            for c, n in mc.items():
+                if n > slot_need[c]:
+                    slot_need[c] = n
+            if kind_key == "synchro":
+                for c, n in Counter(item["card_id"] for item in opt.get("tuners", ())).items():
+                    if n > slot_need[c]:
+                        slot_need[c] = n
+    for check in (*fusion_proofs.values(), *ritual_proofs.values()):
+        for opt in check.get("options", ()):
+            mc = Counter(m["card_id"] for m in opt.get("materials", ()) if m.get("location") == 0x04)
+            for c, n in mc.items():
+                if n > slot_need[c]:
+                    slot_need[c] = n
+    slot_cap = {
+        c: max(1, min(counts[row_sec(c), c], max(1, slot_need[c])))
+        for c in present if dependencies.rows.get(c, {}).get("type", 0) & 1
+    }
+
+    # Check if any Lv5+ normal summon exists, and build compact Tribute fodder facts
+    tribute_summoners = []
+    fodder_priority = []
+    for m in sorted(main_set):
+        rule = monster_rules.get(m)
+        row = dependencies.rows.get(m, {})
+        if not rule or not (row.get("type", 0) & 1):
+            continue
+        is_rit = bool(row["type"] & 0x80)
+        can_ns = (not rule.get("cannot_normal_summon")) and (not rule.get("nomi_restricted")) and (not is_rit)
+        lv = rule.get("level") or (row.get("level", 0) & 255) or 1
+        has_flip = bool(rule.get("is_flip") or any(rec.get("trigger", {}).get("event") == "flip" for rec in records.get(m, ())))
+        for slot in range(slot_cap[m]):
+            if can_ns and lv <= 4:
+                eff = f"dag:ns:{m}:{slot}"
+                add_dag(eff, eff, Resource("field_entry", attributes=(f"card:{m}", f"slot:{slot}", "summon:normal", "proper:yes", "pre_scale:yes")),
+                        "normal_summon_rule", m, "main", claims=(Claim(phys_pool("main", m), 1), Claim(NS_POOL, 1)))
+                if has_flip:
+                    feff = f"dag:flip:{m}:{slot}"
+                    add_dag(feff, feff, Resource("flip_entry", attributes=(f"card:{m}", f"slot:{slot}")),
+                            "flip_summon_rule", m, "main", claims=(Claim(phys_pool("main", m), 1), Claim(NS_POOL, 1)))
+                    add_dag(f"{feff}:fe", feff, Resource("field_entry", attributes=(f"card:{m}", f"slot:{slot}", "summon:flip", "proper:yes", "pre_scale:yes")),
+                            "flip_summon_rule", m, "main", claims=(Claim(phys_pool("main", m), 1), Claim(NS_POOL, 1)))
+            elif can_ns and lv >= 5:
+                tribute_summoners.append((m, slot, 1 if lv <= 6 else 2, has_flip))
+            for proc in rule.get("inherent_ss_procs", ()):
+                if proc.get("holds_empty_board") or proc.get("holds_with_opponent_monster"):
+                    peff = f"dag:inh_ss:{m}:{proc['proc_index']}:{slot}"
+                    add_dag(peff, peff, Resource("field_entry", attributes=(f"card:{m}", f"slot:{slot}", "summon:special", "proper:yes", "pre_scale:yes")),
+                            "inherent_special_summon_proc", m, "main", claims=(Claim(phys_pool("main", m), 1),))
+        if lv <= 4:
+            if rule.get("inherent_ss_procs") or rule.get("is_pendulum"):
+                fodder_priority.append((0, m))
+            elif any(op.get("kind") == "special_summon" and op.get("subject") == "this_card"
+                     for rec in records.get(m, ()) for op in rec.get("operations", ())):
+                fodder_priority.append((0, m))
+            elif can_ns:
+                fodder_priority.append((1, m))
+
+    if tribute_summoners:
+        fodder_pairs = []
+        for _, f in sorted(fodder_priority)[:3]:
+            fodder_pairs.append((f, 0))
+            if slot_cap.get(f, 1) >= 2 and len(fodder_pairs) < 3:
+                fodder_pairs.append((f, 1))
+        for f, f_slot in fodder_pairs[:3]:
+            tfid = f"dag:tb:{f}:{f_slot}"
+            sec = row_sec(f)
+            add_dag(tfid, tfid, Resource("tribute_body"), "tribute_fodder", f, sec, quantity=1,
+                    inputs=InputGroup("all", (Need(f"{tfid}:fe", Resource("field_entry", attributes=(f"card:{f}", f"slot:{f_slot}")), mode="presence"),)),
+                    claims=(Claim(mat_pool(f, f_slot), 1),))
+        for m, slot, tribs, has_flip in tribute_summoners:
+            eff = f"dag:trib_ns:{m}:{slot}"
+            add_dag(eff, eff,
+                    Resource("field_entry", attributes=(f"card:{m}", f"slot:{slot}", "summon:normal", "summon:tribute", "proper:yes", "pre_scale:yes")),
+                    "tribute_summon_rule", m, "main",
+                    inputs=InputGroup("all", (Need(f"{eff}:t", Resource("tribute_body"), quantity=tribs, mode="consume"),)),
+                    claims=(Claim(phys_pool("main", m), 1), Claim(NS_POOL, 1)))
+            if has_flip:
+                feff = f"dag:flip_t:{m}:{slot}"
+                add_dag(feff, feff, Resource("flip_entry", attributes=(f"card:{m}", f"slot:{slot}")),
+                        "flip_summon_rule", m, "main",
+                        inputs=InputGroup("all", (Need(f"{feff}:t", Resource("tribute_body"), quantity=tribs, mode="consume"),)),
+                        claims=(Claim(phys_pool("main", m), 1), Claim(NS_POOL, 1)))
+
+    def extra_tier(cid, is_alt=False):
+        if cid not in extra_set:
+            return (0, 0, cid)
+        if is_alt:
+            return (5, monster_rules.get(cid, {}).get("rank") or 12, cid)
+        row = dependencies.rows.get(cid, {})
+        ctype = row.get("type", 0)
+        if ctype & 0x4000000:
+            lr = monster_rules.get(cid, {}).get("link_rating") or (row.get("level", 0) & 255) or 1
+            return (4, lr, cid)
+        if ctype & 0x800000:
+            rk = monster_rules.get(cid, {}).get("rank") or (row.get("level", 0) & 255) or 1
+            return (3, rk, cid)
+        if ctype & 0x2000:
+            lv = monster_rules.get(cid, {}).get("level") or (row.get("level", 0) & 255) or 1
+            return (2, lv, cid)
+        lv = monster_rules.get(cid, {}).get("level") or (row.get("level", 0) & 255) or 1
+        return (1, lv, cid)
+
+    scale_placer_cards = {
+        src for src in present for rec in records.get(src, ())
+        if rec.get("block_view", {}).get("status") == "native_static"
+        and any(op.get("kind") == "place_pendulum_scales" for op in rec.get("operations", ()))
+    }
+
+    # Collect downward-arrow Link monsters upfront for EMZ / Linked-MMZ zone placement
+    link_arrows = {}
+    for lopt in stock.get("link", ()):
+        tc = lopt["target"]
+        arrows = max(0, int(lopt.get("downward_arrows") or 0))
+        if arrows > link_arrows.get(tc, 0):
+            link_arrows[tc] = arrows
+
+    def emit_emz_or_linked_zone(base_fid, target, target_sec, slot, attrs, source, hub_res, *,
+                                  allow_free_emz=True, excluded_links=()):
+        if allow_free_emz:
+            efid = f"{base_fid}:emz"
+            add_dag(efid, efid, Resource("field_entry", attributes=(*attrs, "zone:emz")),
+                    source, target, target_sec,
+                    inputs=InputGroup("all", (Need(f"{efid}:hub", hub_res, mode="presence"),)),
+                    claims=(Claim(EMZ_POOL, 1),))
+        target_tier = extra_tier(target) if target_sec == "extra" else (3, 0, target)
+        for p_link, p_arrows in sorted(link_arrows.items()):
+            if p_link == target or p_link in excluded_links or p_arrows <= 0:
+                continue
+            if target_sec == "extra" and not (extra_tier(p_link) < target_tier):
+                continue
+            lfid = f"{base_fid}:lnk:{p_link}"
+            add_dag(lfid, lfid, Resource("field_entry", attributes=(*attrs, "zone:mmz_linked")),
+                    source, target, target_sec,
+                    inputs=InputGroup("all", (
+                        Need(f"{lfid}:hub", hub_res, mode="presence"),
+                        Need(f"{lfid}:par", Resource("active_link_arrows", attributes=(f"card:{p_link}",)), mode="presence"),
+                    )),
+                    claims=(Claim(link_arrow_pool(p_link, p_arrows), 1),))
+
+    # Static effect-driven Extra NS & Special Summon & place_pendulum_scales
+    def backing_fact_id(src_code, r_idx, o_idx):
+        uid = operation_facts.get((src_code, r_idx, o_idx))
+        if uid is not None:
+            return uid.removeprefix("functional:")
+        return next((v.removeprefix("functional:") for (c0, r0, _), v in sorted(operation_facts.items())
+                     if c0 == src_code and r0 == r_idx), None)
+
+    placed_scale_effects = []
+    ess_count = Counter()
+    for src in sorted(set(available.main + available.extra) & records.keys()):
+        for ri, record in enumerate(records[src]):
+            if record.get("block_view", {}).get("status") != "native_static":
+                continue
+            trig = record.get("trigger", {})
+            for oi_all, op_item in enumerate(record.get("operations", ())):
+                all_variants = [(0, op_item), *((1 + ai, alt) for ai, alt in enumerate(op_item.get("alternative_operations", ())))]
+                for v_idx, vop in all_variants:
+                    kind = vop.get("kind")
+                    src_fid = backing_fact_id(src, ri, oi_all)
+                    if src_fid is None:
+                        continue
+                    src_out = Resource("effect_ready", attributes=(src_fid,)) if src_fid in effect_ready_facts else Resource("functional_operation", attributes=(src_fid,))
+                    if kind == "extra_normal_summon_supply" or vop.get("grants_extra_normal_summon"):
+                        q = vop.get("selector_query") or {"type": 1}
+                        if not query_supported(q):
+                            continue
+                        epool = extra_ns_pool(src, ri)
+                        for m in sorted(main_set):
+                            rule = monster_rules.get(m, {})
+                            row = dependencies.rows.get(m, {})
+                            if not (row.get("type", 0) & 1) or (row["type"] & 0x80) or rule.get("cannot_normal_summon") or rule.get("nomi_restricted"):
+                                continue
+                            if m == src and counts["main", m] < 2 and trig.get("event") in ("normal_summon", "normal_or_special_summon", "special_summon", "ignition"):
+                                continue
+                            if not matches(row, q):
+                                continue
+                            lv = rule.get("level") or (row.get("level", 0) & 255) or 1
+                            tribs = 0 if lv <= 4 else (1 if lv <= 6 else 2)
+                            if tribs and not tribute_summoners:
+                                continue
+                            for slot in range(slot_cap[m]):
+                                efid = f"dag:ext_ns:{src}:{ri}:{oi_all}:{v_idx}:{m}:{slot}"
+                                needs = [Need(f"{efid}:src", src_out, mode="presence")]
+                                if tribs:
+                                    needs.append(Need(f"{efid}:tr", Resource("tribute_body"), quantity=tribs, mode="consume"))
+                                add_dag(efid, efid,
+                                        Resource("field_entry", attributes=(f"card:{m}", f"slot:{slot}", "summon:normal", "proper:yes", "pre_scale:yes")),
+                                        "extra_normal_summon", m, "main",
+                                        inputs=InputGroup("all", tuple(needs)),
+                                        claims=(Claim(phys_pool("main", m), 1), Claim(epool, 1)))
+                    elif kind == "special_summon" and vop.get("owner", "self") == "self" and not vop.get("random"):
+                        from_zones = set(vop.get("from_zones", ()))
+                        ignore_cond = bool(vop.get("ignore_summoning_conditions"))
+                        if vop.get("subject") == "this_card":
+                            m = src
+                            sec = row_sec(m)
+                            rule = monster_rules.get(m, {})
+                            needs_prop = (sec == "extra" and from_zones <= {"grave", "banished"}
+                                          and rule.get("revive_limit") and not ignore_cond)
+                            for slot in range(slot_cap.get(m, 1)):
+                                efid = f"dag:ess_self:{src}:{ri}:{oi_all}:{v_idx}:{slot}"
+                                needs = [Need(f"{efid}:src", src_out, mode="presence")]
+                                if needs_prop:
+                                    needs.append(Need(f"{efid}:prop", Resource("proper_summon", attributes=(f"card:{m}",)), mode="presence"))
+                                prop_tag = "proper:no" if sec == "extra" else "proper:yes"
+                                add_dag(efid, efid,
+                                        Resource("field_entry", attributes=(f"card:{m}", f"slot:{slot}", "summon:special", prop_tag, "pre_scale:yes")),
+                                        "effect_special_summon_self", m, sec,
+                                        inputs=InputGroup("all", tuple(needs)),
+                                        claims=(Claim(phys_pool(sec, m), 1),))
+                        elif vop.get("selector_query"):
+                            q = vop["selector_query"]
+                            if not query_supported(q):
+                                continue
+                            can_main = bool(from_zones & {"hand", "deck", "grave", "banished", "pzone"})
+                            can_extra = bool(from_zones & {"extra", "grave", "banished"})
+                            for m in present:
+                                row = dependencies.rows.get(m, {})
+                                if not (row.get("type", 0) & 1):
+                                    continue
+                                sec = row_sec(m)
+                                if (sec == "main" and not can_main) or (sec == "extra" and not can_extra):
+                                    continue
+                                rule = monster_rules.get(m, {})
+                                if rule.get("nomi_restricted") and not ignore_cond:
+                                    continue
+                                if not matches(row, q):
+                                    continue
+                                is_rit = bool(row["type"] & 0x80)
+                                needs_prop = False
+                                if sec == "main" and (rule.get("revive_limit") or is_rit) and not ignore_cond:
+                                    if from_zones & {"grave", "banished"}:
+                                        needs_prop = True
+                                    else:
+                                        continue
+                                if sec == "extra" and from_zones <= {"grave", "banished"} and not ignore_cond:
+                                    needs_prop = True
+                                if src == m and counts[sec, m] < 2 and trig.get("zone") == "field":
+                                    continue
+                                if trig.get("zone") == "field" and (row_sec(src) == "extra" or (row_sec(src) == "main" and sec == "main" and src >= m)):
+                                    continue
+                                if sec == "main" and rule.get("inherent_ss_procs"):
+                                    continue
+                                if ess_count[m] >= 1:
+                                    continue
+                                ess_count[m] += 1
+                                for slot in range(slot_cap.get(m, 1)):
+                                    efid = f"dag:ess:{src}:{ri}:{oi_all}:{v_idx}:{m}:{slot}"
+                                    needs = [Need(f"{efid}:src", src_out, mode="presence")]
+                                    if needs_prop:
+                                        needs.append(Need(f"{efid}:prop", Resource("proper_summon", attributes=(f"card:{m}",)), mode="presence"))
+                                    prop_tag = "proper:no" if (sec == "extra" or is_rit) else "proper:yes"
+                                    attrs = (f"card:{m}", f"slot:{slot}", "summon:special", prop_tag, "pre_scale:yes")
+                                    # MR5: Link/Pendulum Special Summoned from Extra Deck require EMZ or downward Link arrow
+                                    if sec == "extra" and "extra" in from_zones and (row["type"] & (0x4000000 | 0x1000000)):
+                                        hub_res = Resource("extra_cheated_hub", attributes=(efid,))
+                                        add_dag(f"{efid}:hub", f"{efid}:hub", hub_res, "effect_special_summon", m, "extra",
+                                                inputs=InputGroup("all", tuple(needs)), claims=(Claim(phys_pool("extra", m), 1),))
+                                        emit_emz_or_linked_zone(efid, m, "extra", slot, attrs, "effect_special_summon", hub_res)
+                                    else:
+                                        add_dag(efid, efid, Resource("field_entry", attributes=attrs),
+                                                "effect_special_summon", m, sec,
+                                                inputs=InputGroup("all", tuple(needs)),
+                                                claims=(Claim(phys_pool(sec, m), 1),))
+                    elif kind == "place_pendulum_scales" and v_idx == 0:
+                        placed_scale_effects.append((src, ri, record, vop, src_fid))
+
+    # Fusion & Ritual field_entry + proper_summon (cap suppliers per target to avoid branch multiplication)
+    for pkind, proofs, sec in (("fusion", fusion_proofs, "extra"), ("ritual", ritual_proofs, "main")):
+        target_supplier_count = Counter()
+        # Prefer Spell/Trap fusion sources (which do not require monster field/GY gates) first
+        ordered_proofs = sorted(
+            proofs.items(),
+            key=lambda kv: (1 if (dependencies.rows.get(kv[0][0], {}).get("type", 0) & 1) else 0, kv[0]),
+        )
+        for (src, ri, oi), proof in ordered_proofs:
+            src_fid = operation_facts[src, ri, oi].removeprefix("functional:")
+            res_kinds = proof.get("target_resource_kinds", {})
+            for target in sorted(res_kinds if res_kinds else {opt["target"] for opt in proof.get("options", ())}):
+                if target_supplier_count[target] >= 1:
+                    continue
+                target_supplier_count[target] += 1
+                res_kind = res_kinds.get(target, f"{pkind}_assignment")
+                req_res = Resource(res_kind, attributes=(src_fid, f"target:{target}"))
+                add_dag(f"dag:{pkind}_prop:{src}:{ri}:{oi}:{target}", f"dag:{pkind}_prop:{src}:{ri}:{oi}:{target}",
+                        Resource("proper_summon", attributes=(f"card:{target}",)), f"{pkind}_summon_rule", target, sec,
+                        inputs=InputGroup("all", (Need(f"dag:{pkind}_p:{src}:{ri}:{oi}:{target}", req_res, mode="presence"),)))
+                is_pend_extra = (sec == "extra" and (dependencies.rows[target]["type"] & 0x1000000))
+                for slot in range(slot_cap.get(target, 1)):
+                    feid = f"dag:{pkind}_fe:{src}:{ri}:{oi}:{target}:{slot}"
+                    attrs = (f"card:{target}", f"slot:{slot}", f"summon:{pkind}", "summon:special", "proper:yes", "pre_scale:yes")
+                    if is_pend_extra:
+                        emit_emz_or_linked_zone(feid, target, sec, slot, attrs, f"{pkind}_summon_rule", req_res)
+                    else:
+                        add_dag(feid, feid, Resource("field_entry", attributes=attrs), f"{pkind}_summon_rule", target, sec,
+                                inputs=InputGroup("all", (Need(f"{feid}:rec", req_res, mode="presence"),)))
+
+    # Identify monsters with non-Normal-Summon field entry routes so witness selection avoids 2+ NS-only materials
+    ss_capable = set(extra_set) | set(ess_count)
+    for m in main_set:
+        if monster_rules.get(m, {}).get("inherent_ss_procs"):
+            ss_capable.add(m)
+        for srec in records.get(m, ()):
+            for sop in srec.get("operations", ()):
+                if sop.get("kind") == "special_summon" and sop.get("subject") == "this_card":
+                    ss_capable.add(m)
+
+    # Contact Fusion, Synchro, Xyz, Link
+    def wire_extra_proc_group(proc_kind, options, *, summon_tag):
+        grouped = defaultdict(list)
+        for opt in options:
+            target = opt["target"]
+            is_alt = bool(opt.get("is_alternate_overlay")) if proc_kind == "xyz" else False
+            t_tier = extra_tier(target, is_alt)
+            if any(not (extra_tier(m["card_id"], False) < t_tier) for m in opt.get("materials", ())):
+                continue
+            grouped[(target, is_alt)].append(opt)
+        for (target, is_alt), target_opts in sorted(grouped.items()):
+            # Prioritize recipes with at most 1 NS-only Main Deck material, then Main Deck materials before Extra Deck materials
+            ordered_opts = sorted(
+                target_opts,
+                key=lambda o: (
+                    max(0, sum(1 for m in o.get("materials", ()) if m["card_id"] not in ss_capable) - 1),
+                    sum(1 for m in o.get("materials", ()) if m["card_id"] in extra_set),
+                    len(o.get("materials", ())),
+                    tuple(m["card_id"] for m in o.get("materials", ())),
+                ),
+            )
+            capped = _select_diverse_options(ordered_opts, lambda o: {m["card_id"] for m in o.get("materials", ())}, limit=1)
+            target_hub_id = f"dag:{proc_kind}_thub:{target}:{int(is_alt)}"
+            target_hub_res = Resource(f"{proc_kind}_target_hub", attributes=(target_hub_id,))
+            target_climb_id = f"dag:{proc_kind}_tclimb:{target}:{int(is_alt)}"
+            target_climb_res = Resource(f"{proc_kind}_target_climb", attributes=(target_climb_id,))
+            has_any_opt, has_climb_opt = False, False
+            req_pre_scale = ("pre_scale:yes",) if target in scale_placer_cards else ()
+            for idx, opt in enumerate(capped):
+                hub_id = f"dag:{proc_kind}:{target}:{int(is_alt)}:{idx}"
+                hub_res = Resource(f"{proc_kind}_hub", attributes=(hub_id,))
+                needs, claims = [], [Claim(phys_pool("extra", target), 1)]
+                mslots = Counter()
+                uses_link_mat = False
+                for m_i, mat in enumerate(opt.get("materials", ())):
+                    m_id = mat["card_id"]
+                    if dependencies.rows.get(m_id, {}).get("type", 0) & 0x4000000:
+                        uses_link_mat = True
+                    mloc = mat.get("location")
+                    if mloc is None or mloc == 0x04:
+                        ms = mslots[m_id]
+                        mslots[m_id] += 1
+                        needs.append(Need(f"{hub_id}:m:{m_i}",
+                            Resource("field_entry", attributes=(f"card:{m_id}", f"slot:{ms}", *req_pre_scale)), mode="presence"))
+                        claims.append(Claim(mat_pool(m_id, ms), 1))
+                    else:
+                        claims.append(Claim(phys_pool(mat["section"], m_id), 1))
+                add_dag(hub_id, hub_id, hub_res, f"{proc_kind}_summon_procedure", target, "extra",
+                        inputs=InputGroup("all", tuple(needs)) if needs else None,
+                        claims=tuple(claims))
+                has_any_opt = True
+                add_dag(f"{hub_id}:th", f"{hub_id}:th", target_hub_res, f"{proc_kind}_summon_procedure", target, "extra",
+                        inputs=InputGroup("all", (Need(f"{hub_id}:thn", hub_res, mode="presence"),)))
+                if uses_link_mat:
+                    has_climb_opt = True
+                    add_dag(f"{hub_id}:tc", f"{hub_id}:tc", target_climb_res, f"{proc_kind}_summon_procedure", target, "extra",
+                            inputs=InputGroup("all", (Need(f"{hub_id}:tcn", hub_res, mode="presence"),)))
+                if proc_kind == "xyz":
+                    attached = max(1, int(opt.get("attached_count") or len(opt.get("materials", ()))))
+                    if is_alt and len(opt.get("materials", ())) == 1:
+                        base_id = opt["materials"][0]["card_id"]
+                        if (monster_rules.get(base_id, {}).get("rank") or 0) > 0 or (dependencies.rows.get(base_id, {}).get("type", 0) & 0x800000):
+                            attached = max(attached, 2)
+                    mat_ref = f"dag:xyz_mat:{target}"
+                    mat_res = Resource("xyz_materials", attributes=(f"card:{target}",))
+                    add_dag(f"{hub_id}:xm", mat_ref, mat_res, "xyz_attached_materials", target, "extra",
+                            quantity=attached, inputs=InputGroup("all", (Need(f"{hub_id}:xmh", hub_res, mode="presence"),)),
+                            choice=f"direct:{int(is_alt)}:{idx}")
+            if has_any_opt:
+                add_dag(f"{target_hub_id}:prop", f"{target_hub_id}:prop", Resource("proper_summon", attributes=(f"card:{target}",)),
+                        f"{proc_kind}_summon_procedure", target, "extra",
+                        inputs=InputGroup("all", (Need(f"{target_hub_id}:ph", target_hub_res, mode="presence"),)))
+                for slot in range(slot_cap.get(target, 1)):
+                    attrs = (f"card:{target}", f"slot:{slot}", f"summon:{summon_tag}", "summon:special", "proper:yes", "pre_scale:yes")
+                    if proc_kind == "link":
+                        emit_emz_or_linked_zone(f"{target_hub_id}:s{slot}", target, "extra", slot, attrs,
+                            "link_summon_procedure", target_hub_res, allow_free_emz=True)
+                        if has_climb_opt:
+                            inh_id = f"{target_hub_id}:s{slot}:emz_climb"
+                            add_dag(inh_id, inh_id, Resource("field_entry", attributes=(*attrs, "zone:emz")),
+                                    "link_summon_procedure", target, "extra",
+                                    inputs=InputGroup("all", (Need(f"{inh_id}:hub", target_climb_res, mode="presence"),)))
+                    else:
+                        feid = f"{target_hub_id}:s{slot}:fe"
+                        add_dag(feid, feid, Resource("field_entry", attributes=attrs),
+                                f"{proc_kind}_summon_procedure", target, "extra",
+                                inputs=InputGroup("all", (Need(f"{feid}:h", target_hub_res, mode="presence"),)))
+
+    wire_extra_proc_group("contact_fusion", stock.get("contact_fusion", ()), summon_tag="fusion")
+    wire_extra_proc_group("synchro", stock.get("synchro", ()), summon_tag="synchro")
+    wire_extra_proc_group("xyz", stock.get("xyz", ()), summon_tag="xyz")
+    wire_extra_proc_group("link", stock.get("link", ()), summon_tag="link")
+
+    # Link downward arrow providers (`stay_on_field` in EMZ consumes material slot 0 so Link material consumption conflicts)
+    for lc, larrows in sorted(link_arrows.items()):
+        if larrows > 0:
+            link_arrow_pool(lc, larrows)
+            sfid = f"dag:link_arrows:{lc}"
+            add_dag(sfid, sfid, Resource("active_link_arrows", attributes=(f"card:{lc}",)), "link_downward_arrows", lc, "extra",
+                    inputs=InputGroup("all", (Need(f"{sfid}:fe", Resource("field_entry", attributes=(f"card:{lc}", "slot:0", "zone:emz")), mode="presence"),)),
+                    claims=(Claim(mat_pool(lc, 0), 1),))
+
+    # Pendulum windows (Hand-placed scales + Effect-placed scales such as D/D/D Gilgamesh)
+    def card_level(m):
+        return (monster_rules.get(m, {}).get("pendulum_level")
+                or monster_rules.get(m, {}).get("level")
+                or (dependencies.rows.get(m, {}).get("level", 0) & 255)
+                or 1)
+
+    hand_pend_seen = {}
+    for opt in stock.get("pendulum", ()):
+        l, r = opt["left"], opt["right"]
+        pair_key = (min(l, r), max(l, r))
+        if l == r and counts["main", l] < 2:
+            continue
+        if pair_key not in hand_pend_seen:
+            hand_pend_seen[pair_key] = opt
+
+    # Limit per interval if a pure Pendulum deck has dozens of redundant pairs
+    interval_buckets = defaultdict(list)
+    for pair_key, opt in sorted(hand_pend_seen.items()):
+        interval_buckets[(opt["min_scale"], opt["max_scale"])].append((pair_key, opt))
+    selected_pend_windows = [
+        item for bucket in interval_buckets.values() for item in bucket[:8]
+    ]
+    hand_pend_levels, extra_pend_targets, extra_proper_pend_targets = set(), set(), set()
+    for pair_key, opt in selected_pend_windows:
+        l, r = pair_key
+        min_s, max_s = opt["min_scale"], opt["max_scale"]
+        if max_s - min_s < 2:
+            continue
+        hub_id = f"dag:pwin:hand:{l}:{r}"
+        hub_res = Resource("pendulum_window_hub", attributes=(f"pair:{l}:{r}",))
+        p_claims = [Claim(PEND_POOL, 1)]
+        if l == r:
+            p_claims.append(Claim(phys_pool("main", l), 2))
+        else:
+            p_claims.extend((Claim(phys_pool("main", l), 1), Claim(phys_pool("main", r), 1)))
+        add_dag(hub_id, hub_id, hub_res, "pendulum_scale_window", l, "main", claims=tuple(p_claims))
+        win_levels = set()
+        for t in opt.get("hand_targets", ()):
+            t_id = t["card_id"] if isinstance(t, dict) else t
+            lv = card_level(t_id)
+            if min_s < lv < max_s:
+                win_levels.add(lv)
+                hand_pend_levels.add(lv)
+        for t in opt.get("extra_targets", ()):
+            t_id = t["card_id"] if isinstance(t, dict) else t
+            lv = card_level(t_id)
+            if min_s < lv < max_s:
+                win_levels.add(lv)
+                extra_pend_targets.add(t_id)
+        for t in opt.get("extra_proper_targets", ()):
+            t_id = t["card_id"] if isinstance(t, dict) else t
+            lv = card_level(t_id)
+            if min_s < lv < max_s:
+                win_levels.add(lv)
+                extra_proper_pend_targets.add(t_id)
+        for lv in sorted(win_levels):
+            blv = f"{hub_id}:lv:{lv}"
+            add_dag(blv, blv, Resource("pendulum_scale_level", attributes=(f"lv:{lv}",)),
+                    "pendulum_scale_window", l, "main",
+                    inputs=InputGroup("all", (Need(f"{blv}:h", hub_res, mode="presence"),)))
+
+    for lv in sorted(hand_pend_levels):
+        for m in sorted(main_set):
+            row = dependencies.rows.get(m, {})
+            if not (row.get("type", 0) & 1) or (row["type"] & 0x80) or monster_rules.get(m, {}).get("nomi_restricted"):
+                continue
+            if card_level(m) != lv:
+                continue
+            for slot in range(slot_cap.get(m, 1)):
+                pfid = f"dag:pend_h:{m}:{slot}"
+                add_dag(pfid, pfid,
+                        Resource("field_entry", attributes=(f"card:{m}", f"slot:{slot}", "summon:pendulum", "summon:special", "proper:yes", "pre_scale:yes")),
+                        "pendulum_summon_hand", m, "main",
+                        inputs=InputGroup("all", (Need(f"{pfid}:sc", Resource("pendulum_scale_level", attributes=(f"lv:{lv}",)), mode="presence"),)),
+                        claims=(Claim(phys_pool("main", m), 1),))
+
+    # Effect-placed Pendulum scale windows (e.g. Gilgamesh e2 with D/D summon restriction)
+    for src, ri, record, vop, src_fid in placed_scale_effects:
+        sq = vop.get("selector_query") or {"type": 1}
+        if not query_supported(sq):
+            continue
+        pend_cands = [c for c in sorted(main_set) if monster_rules.get(c, {}).get("is_pendulum") and matches(dependencies.rows[c], sq)]
+        distinct_names = bool(vop.get("distinct_names"))
+        allowed_pred = next((r["allowed_summons"] for r in record.get("restrictions", ()) if r.get("allowed_summons")), None)
+        allowed_q = {"predicate": allowed_pred} if allowed_pred and query_supported({"predicate": allowed_pred}) else None
+        pairs = []
+        for i, c1 in enumerate(pend_cands):
+            for c2 in pend_cands[i + 1:]:
+                if distinct_names and rule_name_id(dependencies.rows, c1) == rule_name_id(dependencies.rows, c2):
+                    continue
+                r1, r2 = monster_rules[c1], monster_rules[c2]
+                candidates_lr = ((r1["lscale"], r2["rscale"]), (r2["lscale"], r1["rscale"]))
+                best_span = max(((min(a, b), max(a, b)) for a, b in candidates_lr), key=lambda ab: ab[1] - ab[0])
+                if best_span[1] - best_span[0] >= 2:
+                    pairs.append((c1, c2, best_span[0], best_span[1]))
+        pairs = _select_diverse_options(pairs, lambda p: {p[0], p[1]}, limit=24)
+        ready_res = Resource("effect_ready", attributes=(src_fid,)) if src_fid in effect_ready_facts else Resource("functional_operation", attributes=(src_fid,))
+        eff_pend_levels = set()
+        for c1, c2, min_s, max_s in pairs:
+            sp_fid = f"dag:pscales:{src}:{ri}:{c1}:{c2}"
+            sp_res = Resource("placed_pendulum_scales", attributes=(f"source:{src_fid}", f"pair:{c1}:{c2}"))
+            add_dag(sp_fid, sp_fid, sp_res, "effect_placed_pendulum_scales", src, row_sec(src),
+                    inputs=InputGroup("all", (Need(f"{sp_fid}:r", ready_res, mode="presence"),)),
+                    claims=(Claim(phys_pool("main", c1), 1), Claim(phys_pool("main", c2), 1)))
+            ehub_id = f"dag:pwin:eff:{src}:{ri}:{c1}:{c2}"
+            ehub_res = Resource("pendulum_window_hub_eff", attributes=(ehub_id,))
+            add_dag(ehub_id, ehub_id, ehub_res, "pendulum_scale_window_effect", src, row_sec(src),
+                    inputs=InputGroup("all", (Need(f"{ehub_id}:sp", sp_res, mode="presence"),)),
+                    claims=(Claim(PEND_POOL, 1),))
+            matched_lvs = set()
+            for m in present:
+                row = dependencies.rows.get(m, {})
+                if not (row.get("type", 0) & 1) or (row["type"] & 0x80) or monster_rules.get(m, {}).get("nomi_restricted"):
+                    continue
+                if allowed_q is not None and not matches(row, allowed_q):
+                    continue
+                lv = card_level(m)
+                if min_s < lv < max_s and (m in main_set or (m in extra_set and (row["type"] & 0x1000000))):
+                    matched_lvs.add(lv)
+                    if m in main_set:
+                        eff_pend_levels.add(lv)
+                    elif m in extra_set:
+                        extra_proper_pend_targets.add(m)
+            for lv in sorted(matched_lvs):
+                blv = f"{ehub_id}:lv:{lv}"
+                add_dag(blv, blv, Resource("pendulum_eff_scale_level", attributes=(f"src:{src}:{ri}", f"lv:{lv}")),
+                        "pendulum_scale_window_effect", src, row_sec(src),
+                        inputs=InputGroup("all", (Need(f"{blv}:h", ehub_res, mode="presence"),)))
+        for lv in sorted(eff_pend_levels):
+            for m in sorted(main_set):
+                row = dependencies.rows.get(m, {})
+                if not (row.get("type", 0) & 1) or (row["type"] & 0x80) or monster_rules.get(m, {}).get("nomi_restricted"):
+                    continue
+                if allowed_q is not None and not matches(row, allowed_q):
+                    continue
+                if card_level(m) != lv:
+                    continue
+                for slot in range(slot_cap.get(m, 1)):
+                    pfid = f"dag:pend_eff:{src}:{ri}:{m}:{slot}"
+                    add_dag(pfid, pfid,
+                            Resource("field_entry", attributes=(f"card:{m}", f"slot:{slot}", "summon:pendulum", "summon:special", "proper:yes")),
+                            "pendulum_summon_hand_effect_scales", m, "main",
+                            inputs=InputGroup("all", (Need(f"{pfid}:sc", Resource("pendulum_eff_scale_level", attributes=(f"src:{src}:{ri}", f"lv:{lv}")), mode="presence"),)),
+                            claims=(Claim(phys_pool("main", m), 1),))
+
+    # Face-up Extra Pendulum & Composite Extra/Pendulum entries (EMZ / Link downward arrows + proper_summon if Composite Extra)
+    for m in sorted(extra_pend_targets):
+        lv = card_level(m)
+        hub_id = f"dag:pend_ex_hub:{m}"
+        hub_res = Resource("pendulum_extra_hub", attributes=(hub_id,))
+        add_dag(hub_id, hub_id, hub_res, "pendulum_extra_faceup", m, "main",
+                inputs=InputGroup("all", (Need(f"{hub_id}:sc", Resource("pendulum_scale_level", attributes=(f"lv:{lv}",)), mode="presence"),)),
+                claims=(Claim(phys_pool("main", m), 1),))
+        emit_emz_or_linked_zone(f"dag:pend_ex:{m}", m, "main", 0, (f"card:{m}", "zone:extra_faceup", "summon:pendulum"),
+                                "pendulum_extra_faceup", hub_res)
+        add_dag(f"dag:pend_ex_emz:{m}", f"dag:pend_ex_emz:{m}",
+                Resource("pendulum_extra_entry", attributes=(f"card:{m}",)), "pendulum_extra_faceup", m, "main",
+                inputs=InputGroup("all", (Need(f"dag:pend_ex_emz:{m}:h", hub_res, mode="presence"),)), claims=(Claim(EMZ_POOL, 1),))
+        for p_link, p_arrows in sorted(link_arrows.items()):
+            if p_arrows <= 0:
+                continue
+            plid = f"dag:pend_ex_lnk:{m}:{p_link}"
+            add_dag(plid, plid, Resource("pendulum_extra_entry", attributes=(f"card:{m}",)),
+                    "pendulum_extra_faceup", m, "main",
+                    inputs=InputGroup("all", (
+                        Need(f"{plid}:h", hub_res, mode="presence"),
+                        Need(f"{plid}:p", Resource("active_link_arrows", attributes=(f"card:{p_link}",)), mode="presence"),
+                    )),
+                    claims=(Claim(link_arrow_pool(p_link, p_arrows), 1),))
+    for m in sorted(extra_proper_pend_targets):
+        lv = card_level(m)
+        sec = row_sec(m)
+        hub_id = f"dag:pend_exp_hub:{m}"
+        hub_res = Resource("pendulum_extra_proper_hub", attributes=(hub_id,))
+        add_dag(hub_id, hub_id, hub_res, "pendulum_composite_extra_reentry", m, sec,
+                inputs=InputGroup("all", (
+                    Need(f"{hub_id}:sc", Resource("pendulum_scale_level", attributes=(f"lv:{lv}",)), mode="presence"),
+                    Need(f"{hub_id}:prop", Resource("proper_summon", attributes=(f"card:{m}",)), mode="presence"),
+                )))
+        add_dag(f"dag:pend_exp_emz:{m}", f"dag:pend_exp_emz:{m}",
+                Resource("pendulum_extra_entry", attributes=(f"card:{m}",)), "pendulum_composite_extra_reentry", m, sec,
+                inputs=InputGroup("all", (Need(f"dag:pend_exp_emz:{m}:h", hub_res, mode="presence"),)), claims=(Claim(EMZ_POOL, 1),))
+        for p_link, p_arrows in sorted(link_arrows.items()):
+            if p_arrows <= 0:
+                continue
+            plid = f"dag:pend_exp_lnk:{m}:{p_link}"
+            add_dag(plid, plid, Resource("pendulum_extra_entry", attributes=(f"card:{m}",)),
+                    "pendulum_composite_extra_reentry", m, sec,
+                    inputs=InputGroup("all", (
+                        Need(f"{plid}:h", hub_res, mode="presence"),
+                        Need(f"{plid}:p", Resource("active_link_arrows", attributes=(f"card:{p_link}",)), mode="presence"),
+                    )),
+                    claims=(Claim(link_arrow_pool(p_link, p_arrows), 1),))
+
+    # Identify only cards that actually have downstream GY send gates, and require independent non-sent_to_grave starters
+    needed_eff_gy, needed_hd_gy = set(), set()
+    for code, ri, oi, fact_idx, scoped_record, operation, fusion, ritual in static_facts_meta:
+        trig = scoped_record.get("trigger", {})
+        if (dependencies.rows.get(code, {}).get("type", 0) & 1) and trig.get("zone") == "grave" and trig.get("event") == "sent_to_grave":
+            if trig.get("required_reason") == "effect":
+                needed_eff_gy.add(code)
+            elif trig.get("previous_location") == "hand_or_deck":
+                needed_hd_gy.add(code)
+
+    eff_gy_count, hd_gy_count = Counter(), Counter()
+    # Order GY send suppliers so non-field starters (hand/spell_trap) come before field monsters
+    gy_sources = sorted(
+        ((src, ri, srec) for src in (set(available.main + available.extra) & records.keys())
+         for ri, srec in enumerate(records[src])
+         if srec.get("block_view", {}).get("status") == "native_static"
+         and srec.get("trigger", {}).get("event") != "sent_to_grave"),
+        key=lambda item: (1 if item[2].get("trigger", {}).get("zone") == "field" and (dependencies.rows.get(item[0], {}).get("type", 0) & 1) else 0, item[0], item[1]),
+    )
+    for src, ri, srec in gy_sources:
+        if True:
+            src_fid = backing_fact_id(src, ri, 0)
+            if src_fid is None:
+                continue
+            src_out = Resource("functional_operation", attributes=(src_fid,))
+            s_ops = [*srec.get("operations", ()), *(alt for op in srec.get("operations", ()) for alt in op.get("alternative_operations", ())), *srec.get("extra_operation_requirements", ())]
+            for sop_i, sop in enumerate(s_ops):
+                if sop.get("kind") == "send_grave" and sop.get("owner", "self") == "self":
+                    fz = set(sop.get("from_zones", ()))
+                    is_rand = bool(sop.get("random"))
+                    sq = sop.get("selector_query") or ({"type": 7} if is_rand else None)
+                    if sq and not query_supported(sq):
+                        continue
+                    for m in sorted(needed_eff_gy | needed_hd_gy):
+                        sec = row_sec(m)
+                        # Extra Deck monsters depend on Main Deck starters/fusers to enter field; never back-feed Main Deck GY gates
+                        if row_sec(src) == "extra" and sec == "main":
+                            continue
+                        if (sec == "main" and not (fz & {"hand", "deck", "field", "extra"})) or (sec == "extra" and not (fz & {"extra", "field"})):
+                            continue
+                        if sq and not matches(dependencies.rows[m], sq):
+                            continue
+                        if sec == "main" and fz <= {"hand", "deck"} and m == src and counts[sec, m] < 2:
+                            continue
+                        if m in needed_eff_gy and eff_gy_count[m] < 2:
+                            eff_gy_count[m] += 1
+                            needs = [Need(f"dag:sgy:{src}:{ri}:{sop_i}:{m}:s", src_out, mode="presence")]
+                            if sec == "extra" and "field" in fz and "extra" not in fz:
+                                needs.append(Need(f"dag:sgy:{src}:{ri}:{sop_i}:{m}:fe", Resource("field_entry", attributes=(f"card:{m}",)), mode="presence"))
+                            efid = f"dag:eff_gy:{src}:{ri}:{sop_i}:{m}"
+                            add_dag(efid, efid, Resource("effect_sent_to_grave", attributes=(f"card:{m}",)),
+                                    "effect_send_to_grave", src, row_sec(src), inputs=InputGroup("all", tuple(needs)))
+                        if m in needed_hd_gy and sec == "main" and (fz & {"hand", "deck"}) and hd_gy_count[m] < 2:
+                            hd_gy_count[m] += 1
+                            hdid = f"dag:hd_gy_e:{src}:{ri}:{sop_i}:{m}"
+                            add_dag(hdid, hdid, Resource("hand_deck_sent_to_grave", attributes=(f"card:{m}",)),
+                                    "effect_hand_deck_to_grave", src, row_sec(src),
+                                    inputs=InputGroup("all", (Need(f"{hdid}:s", src_out, mode="presence"),)))
+            for ci, scost in enumerate(srec.get("costs", ())):
+                if scost.get("to_zone") == "grave" and (set(scost.get("from_zones", ())) & {"hand", "deck"}) and scost.get("kind") != "xyz_detach":
+                    sq = scost.get("selector_query")
+                    if sq and not query_supported(sq):
+                        continue
+                    for m in sorted(needed_hd_gy & main_set):
+                        if hd_gy_count[m] >= 2 or (m == src and counts["main", m] < 2):
+                            continue
+                        if sq and not matches(dependencies.rows[m], sq):
+                            continue
+                        hd_gy_count[m] += 1
+                        hdid = f"dag:hd_gy_c:{src}:{ri}:{ci}:{m}"
+                        add_dag(hdid, hdid, Resource("hand_deck_sent_to_grave", attributes=(f"card:{m}",)),
+                                "cost_hand_deck_to_grave", src, row_sec(src),
+                                inputs=InputGroup("all", (Need(f"{hdid}:s", src_out, mode="presence"),)))
+
+    # Wire downstream payoff gates & return_to_deck event suppliers onto static facts
+    for code, ri, oi, fact_idx, scoped_record, operation, fusion, ritual in static_facts_meta:
+        orig_fact = rel_facts[fact_idx]
+        target_idx = effect_ready_facts.get(orig_fact.fact_id, fact_idx)
+        target_fact = rel_facts[target_idx]
+        trig = scoped_record.get("trigger", {})
+        trig_zone, trig_ev = trig.get("zone"), trig.get("event")
+        row = dependencies.rows.get(code, {})
+        is_monster = bool(row.get("type", 0) & 1)
+        sec = row_sec(code)
+        extra_needs, extra_claims = [], []
+        has_xyz_detach = any(c.get("kind") == "xyz_detach" for c in scoped_record.get("costs", ()))
+        if is_monster and trig_zone == "field":
+            if not has_xyz_detach:
+                req_type = trig.get("required_summon_type")
+                if trig_ev == "flip":
+                    extra_needs.append(Need(f"dag:gate:{code}:{ri}:{oi}:flip", Resource("flip_entry", attributes=(f"card:{code}",)), mode="presence"))
+                elif req_type in ("fusion", "synchro", "xyz", "link", "pendulum", "ritual", "normal", "special"):
+                    extra_needs.append(Need(f"dag:gate:{code}:{ri}:{oi}:stype", Resource("field_entry", attributes=(f"card:{code}", f"summon:{req_type}")), mode="presence"))
+                elif trig_ev == "normal_summon":
+                    extra_needs.append(Need(f"dag:gate:{code}:{ri}:{oi}:ns", Resource("field_entry", attributes=(f"card:{code}", "summon:normal")), mode="presence"))
+                elif trig_ev == "special_summon":
+                    extra_needs.append(Need(f"dag:gate:{code}:{ri}:{oi}:ss", Resource("field_entry", attributes=(f"card:{code}", "summon:special")), mode="presence"))
+                else:
+                    extra_needs.append(Need(f"dag:gate:{code}:{ri}:{oi}:fe", Resource("field_entry", attributes=(f"card:{code}",)), mode="presence"))
+            if any(c.get("subject") == "this_card" and c.get("kind") != "xyz_detach" for c in scoped_record.get("costs", ())):
+                extra_claims.append(Claim(mat_pool(code, 0), 1))
+        if is_monster and trig_zone in ("grave", "banished") and (trig.get("previous_location") == "field" or trig_ev in ("destroyed", "battle_destroyed", "leave_field")):
+            req_type = trig.get("required_summon_type")
+            if req_type in ("fusion", "synchro", "xyz", "link", "pendulum", "ritual", "normal", "special"):
+                extra_needs.append(Need(f"dag:gate:{code}:{ri}:{oi}:pft", Resource("field_entry", attributes=(f"card:{code}", f"summon:{req_type}")), mode="presence"))
+            else:
+                extra_needs.append(Need(f"dag:gate:{code}:{ri}:{oi}:pf", Resource("field_entry", attributes=(f"card:{code}",)), mode="presence"))
+        if is_monster and trig_zone == "grave" and trig_ev == "sent_to_grave":
+            if trig.get("required_reason") == "effect":
+                extra_needs.append(Need(f"dag:gate:{code}:{ri}:{oi}:egy", Resource("effect_sent_to_grave", attributes=(f"card:{code}",)), mode="presence"))
+            elif trig.get("previous_location") == "hand_or_deck":
+                extra_needs.append(Need(f"dag:gate:{code}:{ri}:{oi}:hdgy", Resource("hand_deck_sent_to_grave", attributes=(f"card:{code}",)), mode="presence"))
+        if trig_ev == "return_to_deck":
+            rtd_attr = f"target:{orig_fact.fact_id}"
+            extra_needs.append(Need(f"dag:gate:{code}:{ri}:{oi}:rtd", Resource("event:return_to_deck", attributes=(rtd_attr,)), mode="presence"))
+            eg_q = trig.get("event_group_query")
+            eg_ok = eg_q if (eg_q and query_supported(eg_q)) else None
+            rtd_count = 0
+            # Fusion spells/effects that return materials to Deck (e.g. Tearlaments Scheiren/Havnis/Merrli)
+            for (f_src, f_ri, f_oi), f_proof in sorted(fusion_proofs.items()):
+                if rtd_count >= 2:
+                    break
+                if not records[f_src][f_ri].get("fusion_returns_to_deck"):
+                    continue
+                if any((eg_ok is None or matches(dependencies.rows[m["card_id"]], eg_ok))
+                       for opt in f_proof.get("options", ()) for m in opt.get("materials", ())):
+                    rtd_count += 1
+                    f_uid = operation_facts[f_src, f_ri, f_oi].removeprefix("functional:")
+                    add_dag(f"dag:rtd_fus:{code}:{ri}:{oi}:{f_src}:{f_ri}:{f_oi}",
+                            f"dag:rtd_fus:{code}:{ri}:{oi}:{f_src}:{f_ri}:{f_oi}",
+                            Resource("event:return_to_deck", attributes=(rtd_attr,)),
+                            "fusion_returns_material_to_deck", f_src, row_sec(f_src),
+                            inputs=InputGroup("all", (Need(f"dag:rtd_f:{code}:{ri}:{oi}:{f_src}:{f_ri}:{f_oi}", Resource("functional_operation", attributes=(f_uid,)), mode="presence"),)))
+            # Ordinary return_deck operations
+            for s_code, s_ri, s_oi, s_fidx, s_rec, s_op, _, _ in static_facts_meta:
+                if rtd_count >= 2:
+                    break
+                if s_op and s_op.get("kind") == "return_deck" and s_op.get("owner", "self") == "self":
+                    sq = s_op.get("selector_query")
+                    sq_ok = sq if (sq and query_supported(sq)) else None
+                    if any(dependencies.rows.get(m) and (sq_ok is None or matches(dependencies.rows[m], sq_ok))
+                           and (eg_ok is None or matches(dependencies.rows[m], eg_ok)) for m in present):
+                        rtd_count += 1
+                        add_dag(f"dag:rtd_op:{code}:{ri}:{oi}:{s_code}:{s_ri}:{s_oi}",
+                                f"dag:rtd_op:{code}:{ri}:{oi}:{s_code}:{s_ri}:{s_oi}",
+                                Resource("event:return_to_deck", attributes=(rtd_attr,)),
+                                "return_to_deck_operation", s_code, row_sec(s_code),
+                                inputs=InputGroup("all", (Need(f"dag:rtd_o:{code}:{ri}:{oi}:{s_code}:{s_ri}:{s_oi}", Resource("functional_operation", attributes=(rel_facts[s_fidx].fact_id,)), mode="presence"),)))
+        if extra_needs or extra_claims:
+            base_inputs = target_fact.inputs
+            if extra_needs:
+                base_items = base_inputs.items if (base_inputs and base_inputs.operator == "all") else ((base_inputs,) if base_inputs is not None else ())
+                new_inputs = InputGroup("all", (*base_items, *extra_needs))
+            else:
+                new_inputs = base_inputs
+            new_claims = _aggregate_claims((*target_fact.claims, *extra_claims))
+            rel_facts[target_idx] = replace(target_fact, inputs=new_inputs, claims=new_claims)
+
+    # Guarantee strict DAG acyclicity across all relation facts so fixed-point propagation finishes in one pass
+    while True:
+        out_buckets = defaultdict(list)
+        for idx, f in enumerate(rel_facts):
+            out_buckets[f.output.kind].append(idx)
+        adj = defaultdict(set)
+        for idx, f in enumerate(rel_facts):
+            for n in _needs(f.inputs):
+                for s_idx in out_buckets.get(n.resource.kind, ()):
+                    if s_idx != idx and n.resource.accepts(rel_facts[s_idx].output):
+                        adj[idx].add(s_idx)
+        state_color = {}
+        stack = []
+        cyclic_dag_indices = set()
+
+        def dfs_cycle(u):
+            state_color[u] = 1
+            stack.append(u)
+            for v in sorted(adj.get(u, ())):
+                if v in cyclic_dag_indices or u in cyclic_dag_indices:
+                    continue
+                c = state_color.get(v, 0)
+                if c == 1:
+                    cycle_slice = stack[stack.index(v):]
+                    drop = next((w for w in reversed(cycle_slice) if rel_facts[w].fact_id.startswith("dag:")), None)
+                    if drop is not None:
+                        cyclic_dag_indices.add(drop)
+                elif c == 0:
+                    dfs_cycle(v)
+            stack.pop()
+            state_color[u] = 2
+
+        for idx in range(len(rel_facts)):
+            if state_color.get(idx, 0) == 0 and idx not in cyclic_dag_indices:
+                dfs_cycle(idx)
+        if not cyclic_dag_indices:
+            break
+        rel_facts[:] = [f for idx, f in enumerate(rel_facts) if idx not in cyclic_dag_indices]
+
+    # Diagnostic sentinel UseRequirements (never scored; exposes special_entries & face-up extra pendulum status)
+    for m in sorted(slot_cap):
+        suid = f"dag:special_entry:{m}"
+        rel_uses.append(UseRequirement(suid, InputGroup("all", (Need(suid, Resource("field_entry", attributes=(f"card:{m}", "slot:0", "summon:special")), mode="presence"),)),
+                                       suid, required=False))
+    for m in sorted(extra_pend_targets | extra_proper_pend_targets):
+        puid = f"dag:pend_extra:{m}"
+        rel_uses.append(UseRequirement(puid, InputGroup("all", (Need(puid, Resource("pendulum_extra_entry", attributes=(f"card:{m}",)), mode="presence"),)),
+                                       puid, required=False))
 
 
 def _functional_relations(deck, available, records, aliases, extra_ids, context, budget, dependencies, config,
@@ -414,8 +1409,11 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
     """Evaluate one inventory projection; Side never enters the resident call."""
     from .construction_relations import evaluate_relations
     rel_facts, rel_pools, rel_uses, operation_facts = [], {}, [], {}
-    fusion_proofs = {}
+    fusion_proofs, ritual_proofs = {}, {}
+    static_facts_meta, effect_ready_facts = [], {}
+    extra_set = set(extra_ids)
     present = set(available.main + available.extra)
+    dag_available = bool(native_authority and dependencies.native_summon_stock.get((tuple(available.main), tuple(available.extra))))
     members = tuple(sorted({(zone, code) for zone in ("main", "extra") for code in getattr(available, zone)}))
     for code in sorted(present & records.keys()):
         zone = "extra" if code in extra_ids else "main"
@@ -441,32 +1439,124 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
             native = dependencies.witnessed_processing(available, scoped_record, operation, inventory=deck, scope=projection)
             authoritative = native is not None
             static_rule = scoped_record["block_view"]["status"] == "native_static"
+            ritual = None
             if static_rule:
                 fusion = dependencies.fusion_check(available, code, scoped_record)
+                ritual = dependencies.ritual_check(available, code, scoped_record) if fusion is None else None
                 checks, processing = [], None
-                claims = []
+                claims, extra_needs = [], []
                 _activation_claims(fact, scoped_record["rule_registration"], scoped_record["effect_key"],
                                    fact.source, rel_pools, claims)
-                if fusion is not None:
-                    recipe = _fusion_assignment(fact, fusion, rel_facts, rel_pools)
-                    members = tuple(sorted({("extra", row["target"]) for row in fusion["options"]}))
-                    origin = "extra"
+                lp_charged = False
+                self_cost_deferred = False
+                for ci, cost in enumerate(scoped_record.get("costs", ())):
+                    if cost.get("resource") == "lp" and type(cost.get("quantity")) is int and cost["quantity"] > 0:
+                        rel_pools.setdefault(LP_PAYMENT_POOL, ResourcePool(LP_PAYMENT_POOL,
+                            "rule: initial 8000 LP; payment leaves positive LP", capacity=7999))
+                        claims.append(Claim(LP_PAYMENT_POOL, cost["quantity"]))
+                        lp_charged = True
+                    elif cost.get("kind") == "xyz_detach":
+                        extra_needs.append(Need(
+                            f"{fact.fact_id}:xyz_detach:{ci}",
+                            Resource("xyz_materials", attributes=(f"card:{code}",)),
+                            quantity=max(1, int(cost.get("quantity") or 1)),
+                            mode="presence",
+                        ))
+                    elif cost.get("subject") == "this_card":
+                        if dag_available and scoped_record["trigger"].get("zone") == "field" and (dependencies.rows[code]["type"] & 1):
+                            self_cost_deferred = True
+                        else:
+                            key = "configuration:physical:" + str(code)
+                            rel_pools.setdefault(key, ResourcePool(key, "candidate physical copies", inventory=((zone, code),)))
+                            claims.append(Claim(key, 1))
+                if fusion is not None or ritual is not None:
+                    kind_name = "fusion" if fusion is not None else "ritual"
+                    check_obj = fusion if fusion is not None else ritual
+                    ready_res = Resource("effect_ready", attributes=(fact.fact_id,))
+                    effect_ready_facts[fact.fact_id] = len(rel_facts)
+                    rel_facts.append(RelationFact(
+                        fact.fact_id + ":ready", fact.effect_ref + ":ready", ready_res, fact.source,
+                        code, zone, claims=_aggregate_claims(claims),
+                    ))
+                    claims = []
+                    recipe = _summon_recipe_assignment(
+                        fact, check_obj, rel_facts, rel_pools,
+                        kind=kind_name, lp_already_charged=lp_charged,
+                        ready_resource=ready_res, dag_available=dag_available,
+                        include_alternatives=bool(context is not None and context.relations.uses),
+                        rows=dependencies.rows,
+                    )
+                    target_sec = "extra" if fusion is not None else "main"
+                    members = tuple(sorted({(target_sec, row["target"]) for row in check_obj["options"]}))
+                    origin = "extra" if fusion is not None else "hand"
+                    if ritual is not None:
+                        checks.append(ritual)
+                        ritual_proofs[code, ri, oi] = ritual
                 else:
                     complete = dependencies._check(available, rows, distinct=True)
                     checks.append(complete)
-                    for cost in cost_rows:
-                        key = "configuration:physical:" + str(code)
-                        rel_pools.setdefault(key, ResourcePool(key, "candidate physical copies", inventory=((zone, code),)))
-                        claims.append(Claim(key, cost["minimum"]))
-                    members = tuple(("main", c) for c in complete["requirements"][-1]["matching_card_ids"])
-                    if members:
-                        key = "configuration:deck-objects:" + digest(members)
-                        rel_pools.setdefault(key, ResourcePool(key, "eligible candidate deck copies", inventory=members))
-                        claims.append(Claim(key, operation["quantity"]))
-                    recipe, origin = fact.inputs, "deck"
-                transfer = ResourceTransfer(fact.source, origin, operation["to_zone"], "self", "self",
-                    "random" if operation["random"] else "targeted", members, "effect")
-                fact = replace(fact, inputs=recipe, claims=tuple(claims), quantity=operation["quantity"], transfer=transfer)
+                    avail_counts = Counter((z, c) for z in ("main", "extra") for c in getattr(available, z))
+                    for r in complete["requirements"]:
+                        cat = r.get("category")
+                        matched_ids = r.get("matching_card_ids", ())
+                        if not matched_ids:
+                            continue
+                        if cat == "costs":
+                            if self_cost_deferred or (any(c.get("subject") == "this_card" for c in scoped_record.get("costs", ()))
+                                    and r.get("query", {}).get("predicate") == {"field": "card_ids", "value": [code]}):
+                                continue
+                            inv = tuple(sorted({("extra" if c in extra_set else "main", c) for c in matched_ids}))
+                            if inv and sum(avail_counts[p] for p in inv) <= max(4, r["minimum"] + 2):
+                                ckey = "configuration:deck-objects:" + digest(inv)
+                                rel_pools.setdefault(ckey, ResourcePool(ckey, "eligible candidate cost copies", inventory=inv))
+                                claims.append(Claim(ckey, r["minimum"]))
+                        elif cat == "operations" and r.get("operation") is None:
+                            inv = tuple(sorted({("extra" if c in extra_set else "main", c) for c in matched_ids}))
+                            if inv and sum(avail_counts[p] for p in inv) <= max(4, r["minimum"] + 2):
+                                ckey = "configuration:deck-objects:" + digest(inv)
+                                rel_pools.setdefault(ckey, ResourcePool(ckey, "eligible prerequisite operation copies", inventory=inv))
+                                claims.append(Claim(ckey, r["minimum"]))
+                    op_req = next((r for r in complete["requirements"]
+                                   if r.get("category") == "operations" and r.get("operation") == operation), None)
+                    members = tuple(sorted({("extra" if c in extra_set else "main", c)
+                                            for c in (op_req["matching_card_ids"] if op_req is not None else ())}))
+                    if operation and operation.get("kind") == "place_pendulum_scales" and dag_available:
+                        ready_res = Resource("effect_ready", attributes=(fact.fact_id,))
+                        effect_ready_facts[fact.fact_id] = len(rel_facts)
+                        rel_facts.append(RelationFact(
+                            fact.fact_id + ":ready", fact.effect_ref + ":ready", ready_res, fact.source,
+                            code, zone, claims=_aggregate_claims(claims),
+                        ))
+                        claims = []
+                        recipe = InputGroup("all", tuple(v for v in (
+                            fact.inputs,
+                            Need(f"{fact.fact_id}:pscales", Resource("placed_pendulum_scales", attributes=(f"source:{fact.fact_id}",)), mode="presence"),
+                        ) if v is not None))
+                    else:
+                        op_qty = max(1, int(operation.get("quantity") or 1)) if operation else 1
+                        if (members and operation and operation.get("owner", "self") == "self"
+                                and operation.get("from_zones") and not operation.get("random")
+                                and sum(avail_counts[p] for p in members) <= max(4, op_qty + 2)):
+                            key = "configuration:deck-objects:" + digest(members)
+                            rel_pools.setdefault(key, ResourcePool(key, "eligible candidate deck copies", inventory=members))
+                            claims.append(Claim(key, op_qty))
+                        recipe = fact.inputs
+                    origin = operation["from_zones"][0] if (operation and operation.get("from_zones")) else None
+                combined_inputs = recipe
+                if extra_needs:
+                    base_items = combined_inputs.items if (combined_inputs and combined_inputs.operator == "all") else (
+                        (combined_inputs,) if combined_inputs is not None else ())
+                    combined_inputs = InputGroup("all", (*base_items, *extra_needs))
+                transfer = (
+                    ResourceTransfer(
+                        fact.source, origin, operation["to_zone"], "self", "self",
+                        "random" if operation.get("random") else "targeted", members, "effect",
+                    )
+                    if (operation and origin and operation.get("to_zone") and operation.get("owner", "self") == "self" and members)
+                    else None
+                )
+                qty = max(1, int(operation.get("quantity") or 1)) if (operation and operation.get("quantity")) else 1
+                fact = replace(fact, inputs=combined_inputs, claims=_aggregate_claims(claims), quantity=qty, transfer=transfer)
             elif authoritative:
                 checks, fusion, processing = [native], None, None
                 fact = _settled_operation_fact(fact, operation, native, rel_pools)
@@ -524,13 +1614,21 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
             unknown = fact.unknown
             if processing and processing['status'] == 'unknown':
                 unknown += (processing['reason'],)
+            fact_idx = len(rel_facts)
             rel_facts.append(replace(fact, output=output, quantity=fact.quantity if fact.transfer else 1,
                 inputs=inputs, unknown=unknown))
+            if static_rule:
+                static_facts_meta.append((code, ri, oi, fact_idx, scoped_record, operation, fusion, ritual))
             rel_pools.update((p.pool_id, p) for p in pools)
             uid = "functional:" + fact.fact_id
             rel_uses.append(UseRequirement(uid, InputGroup("all", (Need(uid, output, mode="presence"),)),
                 fact.source, required=False))
             operation_facts[code, ri, oi] = uid
+    if native_authority:
+        _wire_native_summon_dag_and_gates(
+            available, records, extra_ids, dependencies, aliases, rel_facts, rel_pools,
+            rel_uses, operation_facts, static_facts_meta, effect_ready_facts, fusion_proofs, ritual_proofs,
+        )
     if not native_authority:
         compact_stock = context is None and len(available.main) <= len(deck.main) and len(available.extra) <= len(deck.extra)
         configured, unbound = _configuration_relations(available, records, dependencies, aliases,
@@ -561,8 +1659,13 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
         {n.need_id for u in rel_uses for n in _needs(u.inputs)})
     allowance_count=len({n.resource.attributes for f in rel_facts for n in _needs(f.inputs)
         if n.resource.kind=='normal_summon_allowance'})
-    structural=replace(budget,facts=max(budget.facts,len(rel_facts)+allowance_count),
-        needs=max(budget.needs,need_count))
+    fact_total = len(rel_facts) + allowance_count
+    scale_full = native_authority and budget.matches >= 64 and budget.updates >= 32 and budget.allocations >= 16
+    structural=replace(budget,facts=max(budget.facts,fact_total),
+        needs=max(budget.needs,need_count),
+        matches=max(budget.matches, need_count * max(1, fact_total)) if scale_full else budget.matches,
+        updates=max(budget.updates, (fact_total + len(rel_uses)) * 8) if scale_full else budget.updates,
+        allocations=max(budget.allocations, 8192) if scale_full else budget.allocations)
     relation_context = RelationContext(tuple(rel_uses), tuple(rel_facts),
         tuple(rel_pools.values()), constraints=context.relations.constraints if context is not None else (), budget=structural)
     copies = tuple(c for c in SkeletonSpec(deck, ()).copies() if c.zone != "side")
@@ -1508,10 +2611,14 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
         work_state.clear();work_state.update(work)
     dependencies = InventoryDependencies(catalog, requirement_limit=budget.facts)
     dependencies._specifications={int(c):tuple(value) for c,value in work['specifications'].items()}
-    if reuse is not None and reuse.get('asset_version') != facts['asset_version']:
+    if reuse is not None and (
+        reuse.get('asset_version') != facts['asset_version']
+        or reuse.get('normalization_version') != NORMALIZATION_VERSION
+    ):
         for cache in ('specifications', 'projections', 'family_prices'):
             reuse[cache].clear()
         reuse['asset_version'] = facts['asset_version']
+        reuse['normalization_version'] = NORMALIZATION_VERSION
     shared_specs = reuse['specifications'] if reuse is not None else None
     active_codes = codes if "side" in config["required_scope"] else sorted(set(deck.main + deck.extra))
     if native_authority and "rule_sources" not in work:
@@ -1628,21 +2735,52 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
         registration = getattr(catalog.assets, "native_registration_source", None)
         fusion_rows = {record["effect_key"]: (code, record["effect_index"], record["fusion_stock_location"])
             for code, values in records.items() for record in values if "fusion_stock_location" in record}
-        alternate = any(row["rule"]["event"] == catalog.assets.effect_lua_source._constants["EFFECT_CHAIN_MATERIAL"]
-                        for source in static_rules.values() for row in source["registrations"]) if fusion_rows else False
+        ritual_rows = {record["effect_key"]: (code, record["effect_index"])
+            for code, values in records.items() for record in values
+            if any(op.get("ritual_stock_query") for op in record.get("operations", ()))}
+        lua_constants = getattr(getattr(catalog.assets, "effect_lua_source", None), "_constants", None) or {}
+        chain_material = lua_constants.get("EFFECT_CHAIN_MATERIAL")
+        alternate = bool(chain_material is not None and fusion_rows and any(
+            row["rule"]["event"] == chain_material
+            for source in static_rules.values() for row in source["registrations"]))
+        has_summon_stock = callable(getattr(registration, "summon_stock", None))
+        has_fusion_stock = callable(getattr(registration, "fusion_stock", None))
         for scope, view in available.items():
             stock = view.main + view.extra
-            requests = {key: row for key, row in fusion_rows.items() if row[0] in stock}
+            f_requests = {key: row for key, row in fusion_rows.items() if row[0] in stock}
+            r_requests = {key: row for key, row in ritual_rows.items() if row[0] in stock}
             identity = (tuple(view.main), tuple(view.extra))
-            if requests and identity not in dependencies.native_fusion_stock:
+            if has_summon_stock and identity not in dependencies.native_summon_stock:
+                if should_stop is not None and should_stop():
+                    facts["calculation_pending"] = work
+                    return facts
+                cache = work.setdefault("summon_stock", {})
+                key = digest((identity, sorted(f_requests.items()), sorted(r_requests.items()), alternate))
+                if key not in cache:
+                    try:
+                        cache[key] = registration.summon_stock(*identity, f_requests, r_requests, alternate=alternate)
+                    except NativeRegistryError as error:
+                        facts["rule_source_error"] = str(error)
+                        work["rule_source_error"] = str(error)
+                        cache[key] = {}
+                raw = cache[key]
+                if isinstance(raw, dict) and raw:
+                    normalized = dict(raw)
+                    if isinstance(normalized.get("monster_rules"), dict):
+                        normalized["monster_rules"] = {int(k): v for k, v in normalized["monster_rules"].items()}
+                else:
+                    normalized = {}
+                dependencies.native_summon_stock[identity] = normalized
+                dependencies.native_fusion_stock[identity] = normalized.get("fusion", {})
+            elif not has_summon_stock and has_fusion_stock and f_requests and identity not in dependencies.native_fusion_stock:
                 if should_stop is not None and should_stop():
                     facts["calculation_pending"] = work
                     return facts
                 cache = work.setdefault("fusion_stock", {})
-                key = digest(identity)
+                key = digest((identity, sorted(f_requests.items()), alternate))
                 if key not in cache:
                     try:
-                        cache[key] = registration.fusion_stock(*identity, requests, alternate=alternate)
+                        cache[key] = registration.fusion_stock(*identity, f_requests, alternate=alternate)
                     except NativeRegistryError as error:
                         facts["rule_source_error"] = str(error)
                         work["rule_source_error"] = str(error)
@@ -1784,9 +2922,12 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                         key = uid if scope == "resident" else uid + ":" + scope
                         native = dependencies.witnessed_processing(view, scoped_record, operation, inventory=deck, scope=scope)
                         authoritative = native is not None and native.get("authority") == "native"
+                        ritual = None
                         if static_rule:
                             fusion = dependencies.fusion_check(view, code, scoped_record)
-                            checked = dependencies._check(view, requirement_rows, distinct=True) if fusion is None else None
+                            ritual = dependencies.ritual_check(view, code, scoped_record) if fusion is None else None
+                            checked = (dependencies._check(view, requirement_rows, distinct=True)
+                                       if fusion is None and ritual is None else None)
                             objects = material = summon_trigger = processing = complete_payment = None
                             used_operation, use_semantics = operation, semantics
                         elif authoritative or native_authority:
@@ -1805,18 +2946,25 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                         if complete_payment and complete_payment["status"] == "missing" and checked["status"] != "missing" and material["status"] != "missing":
                             complete_payment["status"] = "unknown"
                             complete_payment["reason"] = "cost_material_transfer_order"
-                        absent = any(r and r["status"] == "missing" for r in (checked, objects, material, summon_trigger, fusion, processing))
+                        absent = any(r and r["status"] == "missing" for r in (checked, objects, material, summon_trigger, fusion, ritual, processing))
                         own = condition(key + ":inventory", not absent and set(source_ids) <= selected[scope],
                                         "complete_inventory_requirement", refs)
                         current_relation, operation_facts = projections[scope]
                         if (scope,code) not in special_entries:
                             if native_authority:
-                                special_entries[scope,code] = True if code in fusion_recipients[scope] else next((
-                                    True for receipt in facts["native_rule_evidence"]["receipts"] if query_routes
-                                    if not receipt["query"].get("side_swaps")
-                                    for case in receipt.get("native_executions", ()) for move in case["operations"]
-                                    if move.get("card") == code and move["kind"] in _SPECIAL_SUMMONS
-                                    and move["owner"] == "self"), None)
+                                se_state = current_relation["uses"].get(f"dag:special_entry:{code}")
+                                if se_state is not None:
+                                    se_status = se_state.get("status")
+                                    special_entries[scope, code] = (
+                                        True if se_status == "supported" else False if se_status == "missing" else None
+                                    )
+                                else:
+                                    special_entries[scope,code] = True if code in fusion_recipients[scope] else next((
+                                        True for receipt in facts["native_rule_evidence"]["receipts"] if query_routes
+                                        if not receipt["query"].get("side_swaps")
+                                        for case in receipt.get("native_executions", ()) for move in case["operations"]
+                                        if move.get("card") == code and move["kind"] in _SPECIAL_SUMMONS
+                                        and move["owner"] == "self"), None)
                             else:
                                 special_entries[scope,code]=_special_summon_supported(code,view,records,
                                     dependencies,current_relation,operation_facts,physical_inventory=deck)
@@ -1872,7 +3020,7 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                             self_reason_codes=[name for name, value in (("inventory",own),("execution",support)) if value is False],
                             inventory_checks=dict(costs=checked, objects=objects, materials=material,
                                 complete_payment=complete_payment, summon_trigger=summon_trigger, fusion=fusion,
-                                processing=processing), relation=state)
+                                ritual=ritual, processing=processing), relation=state)
                         if prerequisites:
                             facts["use_details"][key]["processing_prerequisites"] = deepcopy(prerequisites)
                         if native is not None:
@@ -1884,10 +3032,24 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                         from .construction_theme import configured_primary_goal, function_goal, primary_goal
                         facts['use_details'][key].update(operation_key=(code, ri, oi),
                             goal_id=digest(function_goal(record, operation)) if operation is not None else None)
+                        op_req = (next((r for r in checked["requirements"]
+                                        if r.get("category") == "operations" and r.get("operation") == operation), None)
+                                  if checked else None)
                         if used_operation is not None and used_operation['kind'] in _SPECIAL_SUMMONS:
                             if fusion is not None:
                                 facts['use_details'][key]['summoned_card_ids'] = _summoned_inventory(
                                     scoped_record, operation, objects, fusion)
+                            elif ritual is not None:
+                                facts['use_details'][key]['summoned_card_ids'] = sorted({
+                                    option['target'] for option in ritual['options']}
+                                    | set(ritual.get('uncovered_targets', ())))
+                            elif static_rule:
+                                if used_operation.get("subject") == "this_card":
+                                    facts['use_details'][key]['summoned_card_ids'] = [code]
+                                else:
+                                    facts['use_details'][key]['summoned_card_ids'] = (
+                                        sorted(op_req["matching_card_ids"]) if op_req is not None else ()
+                                    )
                             elif authoritative:
                                 facts['use_details'][key]['summoned_card_ids'] = native['observed_card_ids']
                             elif not native_authority:
@@ -1895,8 +3057,11 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                                     scoped_record, operation, objects, fusion)
                         if config.get('theme_profile'):
                             if static_rule:
-                                outcomes = (tuple(row["target"] for row in fusion["options"]) if fusion is not None else
-                                            checked["requirements"][-1]["matching_card_ids"] if not operation["random"] else ())
+                                outcomes = (
+                                    tuple(row["target"] for row in fusion["options"]) if fusion is not None else
+                                    tuple(row["target"] for row in ritual["options"]) if ritual is not None else
+                                    op_req["matching_card_ids"] if (op_req is not None and not operation.get("random")) else ()
+                                )
                                 facts['use_details'][key]['explicit_task_goal'] = configured_primary_goal(
                                     config['theme_profile'], code, use_semantics, outcomes,
                                     record["rule_registration"]["event"], catalog.assets.rows)
@@ -1909,9 +3074,14 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                 active = zone != "side" or "side" in config["required_scope"]
                 declaration = static_rules.get(str(code))
                 source_available = missing_source is None and declaration is not None and not declaration["diagnostics"]
-                # Registration diagnostics remain available in static_rules. The
-                # evaluation checks the sourced uses, affected resources and hard requirements.
-                coverage[card_key] = "unknown" if active and not source_available else "evaluated"
+                has_unknown_reg = bool(declaration and any(
+                    r.get("status") == "unknown" and r.get("rule", {}).get("scope") == "card"
+                    for r in declaration.get("registrations", ())
+                ))
+                all_effects_ok = all(e["status"] == "evaluated" for e in effect_details)
+                # Keep non-blocking scope="field" auxiliary registrations from blocking coverage,
+                # while refusing to sign off "evaluated" when any card-scope registration or card effect is unknown.
+                coverage[card_key] = "unknown" if active and (not source_available or has_unknown_reg or not all_effects_ok) else "evaluated"
             else:
                 coverage[card_key] = "evaluated" if not missing_source and all(
                     e["status"] == "evaluated" for e in effect_details) else "unknown"

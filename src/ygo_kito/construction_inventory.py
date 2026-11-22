@@ -410,6 +410,7 @@ class InventoryDependencies:
         self._processing = {}
         self.native_execution_contracts = {}
         self.native_fusion_stock = {}
+        self.native_summon_stock = {}
         self.set_names, self.registry_source = asset_archetype_names(catalog.assets)
         self.strict_names = bool(self.set_names or self.registry_source)
 
@@ -556,11 +557,11 @@ class InventoryDependencies:
         origins = item.get('from_zones', item.get('zones', ()))
         quantity = item.get('quantity')
         if (type(quantity) is not int or quantity < 1 or not origins
-                or any(z not in ('hand','deck','grave','field','extra','banished','xyz_material') for z in origins)):
+                or any(z not in ('hand','deck','grave','field','extra','banished','xyz_material','pzone') for z in origins)):
             return None
         return dict(query=query, minimum=quantity, source=item.get('source',''), origin=origins[0] if len(origins)==1 else 'choice',origins=list(origins),
                     owner=item.get('owner','unknown'), category=category,
-                    **{k:item[k] for k in ('source_card_id','exclude_source_copy','lua_target') if k in item})
+                    **{k:item[k] for k in ('source_card_id','exclude_source_copy','lua_target','distinct_names') if k in item})
 
     @lru_cache(maxsize=256)
     def intrinsic_restrictions(self, code):
@@ -918,6 +919,26 @@ class InventoryDependencies:
         return dict(status='inventory_present' if options else 'unknown' if unresolved else 'missing',
             shortfall=0 if options or unresolved else 1,options=options,uncovered_targets=sorted(set(unresolved)),
             source=selection['source'],actual_duel_state_required=False)
+
+    def ritual_check(self, deck, code, record):
+        """Return native ritual summon stock results for a ritual spell record."""
+        if not any(op.get("ritual_stock_query") for op in record.get("operations", ())):
+            return None
+        results = self.native_summon_stock.get((tuple(deck.main), tuple(deck.extra)), {}).get("ritual", {})
+        hit = results.get(record["effect_key"])
+        if hit is None:
+            return dict(status="unknown", options=[], shortfall=0, uncovered_targets=[], actual_duel_state_required=False)
+        options = hit.get("options", ())
+        status = "inventory_present" if options else hit.get("status", "missing")
+        if status not in ("inventory_present", "unknown", "missing"):
+            status = "inventory_present" if options else "missing"
+        return dict(
+            status=status,
+            shortfall=0 if options else hit.get("shortfall", 1),
+            options=options,
+            uncovered_targets=hit.get("uncovered_targets", []),
+            actual_duel_state_required=bool(hit.get("actual_duel_state_required", False)),
+        )
 
     def simultaneous_processing(self, deck, record, selected=None, *, card_id=None):
         """Check the distinct summon and target of one simultaneous processing."""
@@ -1388,15 +1409,35 @@ class InventoryDependencies:
                 # An unknown external supply is not an own-deck shortage or a
                 # physical card witness. Distinct placeholders only bound it.
                 available = [('external:'+str(len(result)),i) for i in range(req['minimum'])]
-            result.append(dict(req, available=len(available), matching_card_ids=sorted({c for c,_ in available}),
-                confirmed_available=len(confirmed), restriction_checks=[r for c in sorted(statuses) for r in statuses[c][1]],
-                shortfall=max(0,req['minimum']-len(available)), external_supply_unknown=external))
+            if not external and req.get('distinct_names'):
+                seen_names = set()
+                avail_reps = []
+                for pair in available:
+                    nid = rule_name_id(self.rows, pair[0])
+                    if nid not in seen_names:
+                        seen_names.add(nid)
+                        avail_reps.append(pair)
+                seen_conf = set()
+                conf_reps = []
+                for pair in confirmed:
+                    nid = rule_name_id(self.rows, pair[0])
+                    if nid not in seen_conf:
+                        seen_conf.add(nid)
+                        conf_reps.append(pair)
+                slot_avail, slot_conf = avail_reps, conf_reps
+                avail_count, conf_count = len(avail_reps), len(conf_reps)
+            else:
+                slot_avail, slot_conf = available, confirmed
+                avail_count, conf_count = len(available), len(confirmed)
+            result.append(dict(req, available=avail_count, matching_card_ids=sorted({c for c,_ in available}),
+                confirmed_available=conf_count, restriction_checks=[r for c in sorted(statuses) for r in statuses[c][1]],
+                shortfall=max(0,req['minimum']-avail_count), external_supply_unknown=external))
             if external:
                 result[-1]['matching_card_ids'] = []
             if ((joint or distinct) and req['category'] not in shared_categories
                     and not (req['category'] == 'targets' and req['source'] in bound_targets)):
-                slots.extend([available]*req['minimum'])
-                confirmed_slots.extend([confirmed]*req['minimum'])
+                slots.extend([slot_avail]*req['minimum'])
+                confirmed_slots.extend([slot_conf]*req['minimum'])
         def shortage_for(groups):
             owners = {}
             def assign(slot, seen):
