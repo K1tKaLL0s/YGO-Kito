@@ -1,6 +1,6 @@
 # CloudStudio 与云端 Codex 交接
 
-> 2026-10-26 最新方向：用户回 CloudStudio 更新源码，通过编程 Agent 接手 CPU 诊断与训练准备。先读 [CODEBUDDY.md](CODEBUDDY.md)：集中列出代码／解释器、真实资产、三环境规则、600 BO1＋400 BO3完整大场、暂停恢复、空间与停止条件。PR #4／#5／#6 已核实全部合入 main `9c914b3ac37ab8baf8bfb83f953f6697cd1c7ddc`，[main CPU CI 成功](https://github.com/K1tKaLL0s/YGO-Kito/actions/runs/40366489841)；代码审查基准保留 `da7d4d8657b7ec2fba1d0d9cbf9c8458ec45fad0`，接手只核更新后的 HEAD，不重复合并。
+> 2026-10-26 最新方向：用户回 CloudStudio 更新源码，通过编程 Agent 接手 CPU 诊断与训练准备。先读 原 CODEBUDDY.md（已并入 [AGENTS.md](AGENTS.md)，原文 `git show ba65e84:CODEBUDDY.md`）：集中列出代码／解释器、真实资产、三环境规则、600 BO1＋400 BO3完整大场、暂停恢复、空间与停止条件。PR #4／#5／#6 已核实全部合入 main `9c914b3ac37ab8baf8bfb83f953f6697cd1c7ddc`，[main CPU CI 成功](https://github.com/K1tKaLL0s/YGO-Kito/actions/runs/40366489841)；代码审查基准保留 `da7d4d8657b7ec2fba1d0d9cbf9c8458ec45fad0`，接手只核更新后的 HEAD，不重复合并。
 >
 > 三次新增双模型真实核心检查均未终局，未开正式训练。先诊断及取得真实功能证据，不用727项安全CPU检查冒充验收；用户取消重新测时，保留明确慢档。下文为原同步时点记录；旧源码号、路径、迁往Codex建议、`training.control`控制链和预跑建议不覆盖上述当前入口。CloudStudio已有权重、Mono与机器人按本机实际核验，不能套用另一个容器的缺项。
 
@@ -8,7 +8,7 @@ YGO-Kito 用真实游戏王引擎执行合法动作；四模型分别负责构�
 
 ## 原同步状态（2026-10-26 历史记录）
 
-原同步源码基线：PR #4，6cef642cc840120fc6d445cfbf7b8bc082b61f0d。它已包含自主构筑、合法换备 BO3、输者选择先后、完整场计数、逐小局 LoRA、恢复和冻结评估；该旧提交的本地与远端回归为 617／617，零跳过。当前合并版本与727项代码基准证据按顶部及CODEBUDDY.md，不以旧同步基线覆盖。
+原同步源码基线：PR #4，6cef642cc840120fc6d445cfbf7b8bc082b61f0d。它已包含自主构筑、合法换备 BO3、输者选择先后、完整场计数、逐小局 LoRA、恢复和冻结评估；该旧提交的本地与远端回归为 617／617，零跳过。当前合并版本与727项代码基准证据按顶部及原 CODEBUDDY.md（`git show ba65e84:CODEBUDDY.md`），不以旧同步基线覆盖。
 
 原同步时点，CloudStudio 主目录 /workspace 的 main 为7e92994，用户未提交文件保留；独立源码树 /workspace/.cache/codex-gpu-20261026 与 /workspace/.cache/codex-pr4-final 为6cef642。同步树 /workspace/.cache/codex-cloudstudio-sync-20261026、分支codex/cloudstudio-handoff-20261026当时基于PR #4。以上是历史路径记录；远端已完成上述合并，CloudStudio更新后须重新核实本地HEAD和资源，不能假定它已自动同步。
 
