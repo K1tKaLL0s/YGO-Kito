@@ -385,7 +385,7 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
                        layer_adapter=None, search_offset=0, quality_policy=None, quality_evidence=None,
                        should_stop=None, pending_quality=None, recognition_provider=None, recognition_mode="off",
                        query_cursor=0, retrieval_limit=128, on_evaluation_progress=None, _comparisons=None,
-                       incumbent_recognition=None, initial_draft=False):
+                       incumbent_recognition=None, initial_draft=False, optional_graph_binding=False):
     """Reuse existing fill/quantity generation and independent model ranking.
 
     Concrete CatalogBindingAdapter/LogicModelAdapter implementations can supply
@@ -503,7 +503,7 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
         layer_adapter = ConstructionLayerAdapter(binding_provider)
     if layer_adapter is None:
         raise ContractError('functional quality requires the source-bound layer adapter')
-    proposals, binding_errors, layer_evaluations = {}, {}, {}
+    proposals, binding_errors, unbound_graphs, layer_evaluations = {}, {}, {}, {}
     batch_basis = None
     def batch_state(evaluations, calculations, pending_indices, cursor, comparison_progress=None):
         nonlocal batch_basis
@@ -514,7 +514,7 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
                 proposals={str(i): dict(p.__dict__, deck=p.deck.to_dict(), connector_ids=list(p.connector_ids),
                     bindings=[b.to_dict() for b in p.bindings])
                     for i, p in proposals.items()},
-                binding_errors=binding_errors,
+                binding_errors=binding_errors, unbound_graphs=unbound_graphs,
                 generation=generation_trace, order=evaluation_order,
                 scores=scores, ranking=ranking)
         return dict(batch_basis,
@@ -535,12 +535,24 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
         if pending_quality is not None and not native_authority:
             proposals = {int(i): FillProposal.from_dict(row) for i, row in pending_quality['proposals'].items()}
             binding_errors = {int(i): message for i, message in pending_quality['binding_errors'].items()}
+            if optional_graph_binding:
+                unbound_graphs = {int(i): message for i, message in pending_quality.get('unbound_graphs', {}).items()}
         cursor = pending_quality.get('evaluation_cursor', 0) if compatible else 0
         schedule = order[cursor:] + order[:cursor]
         to_bind = [] if native_authority else [i for i in schedule if i not in cached and i not in binding_errors][:limit]
         for index in to_bind:
+            if index in unbound_graphs:
+                continue
             try:
-                proposal = binding_provider(session.logic, task, candidates[index])
+                if optional_graph_binding and isinstance(binding_provider, CatalogBindingAdapter):
+                    assets.validate(task, candidates[index])
+                    binding = binding_provider.bind(session.logic, task, candidates[index])
+                    if binding.status != 'bound':
+                        unbound_graphs[index] = ' '.join(binding.reasons)
+                        continue
+                    proposal = binding.proposal
+                else:
+                    proposal = binding_provider(session.logic, task, candidates[index])
                 if not isinstance(proposal, FillProposal) or proposal.deck != candidates[index]:
                     raise ContractError("binding provider must preserve the generated candidate and quantities")
                 if proposal.task_sha256 != task.sha256 or proposal.logic_sha256 != session.logic.sha256:
@@ -567,7 +579,8 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
             calculations={int(i):value for i,value in pending_quality.get('calculation_progress',{}).items()} if compatible else None,
             comparison_progress=pending_quality.get('comparison_progress') if compatible else None,
             _comparisons=_comparisons, on_progress=evaluation_progress if on_evaluation_progress is not None else None,
-            evaluation_cursor=active.index(scheduled[0]) if scheduled else 0)
+            evaluation_cursor=active.index(scheduled[0]) if scheduled else 0,
+            unbound_indices=set(unbound_graphs) & allowed)
         cursor = layer_trace['evaluation_cursor']
         layer_trace['evaluation_cursor'] = evaluation_order.index(active[cursor]) if cursor < len(active) else len(evaluation_order)
         order += [i for i in evaluation_order if i in binding_errors]
@@ -592,6 +605,7 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
         "quality_summary":_quality_summary(quality_evaluations.get(i)),
         "evaluation_status":candidate_evaluations.get(i, {}).get('evaluation_status', 'deferred'),
         "layer_status":"evaluated" if i in layer_evaluations else "binding_unmatched" if i in binding_errors else layer_trace["status"] if layer_adapter is None else "budget_uncovered",
+        **({"graph_binding_unresolved":unbound_graphs[i]} if i in unbound_graphs else {}),
         "selection_order_position":order.index(i),"status":"not_attempted","retained":False,"selected":False}
         for i,row in enumerate(portfolio_rows)]
     candidate_trace = {"generation":generation_trace,"ranking":ranking,"calibration_status":"uncalibrated" if models is not None else "no_model_score",
@@ -622,6 +636,10 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
         if native_authority:
             result = dict(status='concrete_candidate_cb_pending', best_deck=candidates[index].to_dict(),
                 card_list_legal=True, unmet=[], engine_validation={'status':'not_run'})
+        elif index in unbound_graphs:
+            # The original fixed task can validate this list independently of the draft.
+            result = dict(status='concrete_candidate_cb_pending', best_deck=candidates[index].to_dict(),
+                card_list_legal=True, unmet=[unbound_graphs[index]], engine_validation={'status':'not_run'})
         else:
             try:
                 if index in binding_errors:
@@ -662,7 +680,8 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
                 "quality_evaluation":quality_evaluations.get(index),
                 "evaluation_status":candidate_evaluations.get(index, {}).get('evaluation_status'),
                 "model_score_uncalibrated":item["model_score_uncalibrated"],"strength_status":"unknown",
-                "concrete_proposal":result.get("concrete_proposal")})
+                "concrete_proposal":result.get("concrete_proposal"),
+                **({"graph_binding_unresolved":unbound_graphs[index]} if index in unbound_graphs else {})})
             break
     if selected is not None:
         best=results[selected]
@@ -687,7 +706,7 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
         learning_candidates = [{"deck":candidates[i].to_dict(),"layer_evaluation":layer_evaluations[i],
             **({'quality_evaluation':quality_evaluations[i], 'evaluation_status':candidate_evaluations[i]['evaluation_status']}),
             "quality_comparisons":[v for pair,v in comparisons.items() if i in pair]}
-            for i in (candidate_evaluations if native_authority else proposals) if i in layer_evaluations]
+            for i in candidate_evaluations]
         return {"status":best["status"],"best_deck":best["best_deck"],"attempts":results,
                 "_evaluation_batch":batch,
                 "selected_attempt_index":selected,"portfolio":retained,
@@ -744,7 +763,7 @@ def construct_task(task,assets,models,encoder,*,base=None,lora_versions=None, co
         for item in optimization_feedback:
             record_optimization_feedback(session, item)
     result=construction_cycle(session,assets,adapter.providers(),base=base,models=models,encoder=encoder,
-        scopes=scopes,
+        scopes=scopes, optional_graph_binding=task.goal['kind'] == 'deck_constraints' and 'route_goal' not in task.goal,
         binding_provider=binding,text_reviewer=binding.reviewer,verifier=existing_goal_verifier,
         layer_adapter=ConstructionLayerAdapter(binding), **iteration_options)
     stages = [dict(stage=i, role=phase['role'], deck_sha256=phase['proposal_deck_sha256'],
@@ -879,7 +898,7 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
                        _reference_cache=None,
                        max_candidates=None, pause_requested=None, cb_authorized=False,
                        recognition_provider=None, recognition_mode="off", quality_factory=None, retrieval_limit=128,
-                       _validate_saved=True, _comparisons=None,
+                       _validate_saved=True, _comparisons=None, optional_graph_binding=False,
                        feedback_duel_verifier=None):
     """Draft once, then fill and optimize until the pre-CB gate passes."""
     import time
@@ -1221,7 +1240,7 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
                 query_cursor=state.get('query_cursor',0), retrieval_limit=retrieval_limit,
                 on_evaluation_progress=save_evaluation_progress,
                 incumbent_recognition=state['candidate'].get('recognition'), recognition_provider=recognition_provider, recognition_mode=recognition_mode,
-                _comparisons=_comparisons, initial_draft=initial_draft)
+                _comparisons=_comparisons, initial_draft=initial_draft, optional_graph_binding=optional_graph_binding)
             phase['stage_3'] = result
             generated = len(result.get('candidate_trace', {}).get('candidates', ()))
             if not resuming and not generation_recorded:
@@ -1506,6 +1525,7 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
                     _reference_cache=_reference_cache,
                     recognition_provider=recognition_provider, recognition_mode=recognition_mode,
                     retrieval_limit=retrieval_limit, _validate_saved=False, _comparisons=_comparisons,
+                    optional_graph_binding=optional_graph_binding,
                     feedback_duel_verifier=feedback_duel_verifier)
                 following['phases'] = phases + following['phases']
                 return following

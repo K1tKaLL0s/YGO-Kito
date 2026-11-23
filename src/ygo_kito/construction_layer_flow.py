@@ -3673,7 +3673,7 @@ class ConstructionLayerAdapter:
 
     def evaluate(self, task, graph, rows, proposals, order, context=None, *, policy=None,
                  quality_evidence=None, should_stop=None, evaluated=None, calculations=None, on_progress=None,
-                 comparison_progress=None, _comparisons=None, evaluation_cursor=0):
+                 comparison_progress=None, _comparisons=None, evaluation_cursor=0, unbound_indices=()):
         """Evaluate before ordering; a budget leaves pending candidates intact."""
         from types import SimpleNamespace
         from .construction_quality import (SUPPORTED_FUNCTIONAL_QUALITY_VERSIONS, functional_quality_config,
@@ -3714,7 +3714,7 @@ class ConstructionLayerAdapter:
         next_position = 0
         for position, i in enumerate(schedule):
             next_position = position
-            if i in evaluations or (not native_authority and i not in proposals):
+            if i in evaluations or (not native_authority and i not in proposals and i not in unbound_indices):
                 continue
             if evaluated_now >= self.limit(task, context):
                 stop_reason = 'candidate_evaluation_budget'
@@ -3727,8 +3727,11 @@ class ConstructionLayerAdapter:
             deck = rows[i]["deck"]
             if native_authority:
                 layer = self._project_layers(task, graph, SimpleNamespace(deck=deck), context)
-            else:
+            elif i in proposals:
                 layer = self._project_layers(task, graph, proposals[i], context)
+            else:
+                inventory_context = context or LayerContext(task, graph, (), relations=RelationContext((), budget=self.budget))
+                layer = evaluate_layers(SkeletonSpec(deck, ()), inventory_context, self.catalog)
             quality, work, stop_reason = self.evaluate_inventory(task, deck, layer, context,
                 policy=policy, quality_evidence=quality_evidence, should_stop=should_stop,
                 calculation=calculations.get(i), reuse=reuse)

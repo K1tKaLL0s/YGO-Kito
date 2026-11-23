@@ -133,7 +133,8 @@ def compact_optimizer_phase(phase, *, task=None, _comparisons=None):
     trace = stage.get('candidate_trace')
     if trace is not None:
         keys = ('candidate_index', 'deck_sha256', 'strategy', 'model_score_uncalibrated',
-                'evaluation_status', 'quality_evaluation_id', 'status', 'selected', 'reference_delta')
+                'evaluation_status', 'quality_evaluation_id', 'status', 'selected', 'reference_delta',
+                'graph_binding_unresolved')
         candidates = []
         for row in trace.get('candidates', ()):
             item = {key: row[key] for key in keys if key in row}

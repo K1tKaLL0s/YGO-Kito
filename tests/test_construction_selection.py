@@ -9,24 +9,67 @@ from tests.test_construction_functional_flow import functional_fill
 
 class ConstructionSelectionTests(unittest.TestCase):
     def test_fixed_task_entry_uses_goal_skeleton_and_optimizer_with_resume(self):
-        import torch
-        from ygo_kito.duel_model import parameter_digest
-        from tests.test_autonomous_construction import fixture as model_fixture,deck_for
-        task,assets,builder,_=model_fixture()
-        before={r:parameter_digest(m) for r,m in builder.models.items()}
+        import json
         from unittest.mock import patch
-        with patch.object(torch.optim.AdamW,'step',side_effect=AssertionError('updates forbidden')):
-            result=construct_task(task,assets,builder.models,builder.encoder,base=deck_for(task,assets),max_iterations=1)
-            resumed=construct_task(task,assets,builder.models,builder.encoder,continuation=result['session'],max_iterations=1)
-        self.assertFalse(result['construction_passed']);self.assertFalse(result['task_verified'])
-        self.assertEqual([p['role'] for p in result['phases']],['build_goal','build_optimizer'])
-        self.assertEqual([p['role'] for p in resumed['phases']],['build_optimizer'])
-        self.assertGreater(result['phases'][0]['unfilled']['main'], 0)
-        self.assertEqual(result['best_criterion'],'versioned_pre_cb_construction_gate')
-        self.assertTrue(result['construction_candidate']['layer_evaluation'])
-        self.assertTrue(all(p['graph_model_selection'] for p in result['phases']))
-        self.assertEqual(before,{r:parameter_digest(m) for r,m in builder.models.items()})
-        self.assertEqual(result['basic_cb']['status'],'not_run')
+
+        import torch
+
+        from tests.test_autonomous_construction import fixture as model_fixture, deck_for
+        from ygo_kito.build_contracts import DeckParts, digest
+        from ygo_kito.construction_layer_flow import ConstructionLayerAdapter
+        from ygo_kito.duel_model import parameter_digest
+
+        task, assets, builder, _ = model_fixture()
+        before = {role: parameter_digest(model) for role, model in builder.models.items()}
+        paused = False
+        evaluate_inventory = ConstructionLayerAdapter.evaluate_inventory
+
+        def pause_after_evaluation(adapter, *args, **kwargs):
+            nonlocal paused
+            result = evaluate_inventory(adapter, *args, **kwargs)
+            if result[0] is not None:
+                paused = True
+            return result
+
+        with patch.object(torch.optim.AdamW, 'step', side_effect=AssertionError('updates forbidden')):
+            with patch.object(ConstructionLayerAdapter, 'evaluate_inventory', pause_after_evaluation):
+                result = construct_task(task, assets, builder.models, builder.encoder,
+                    base=deck_for(task, assets), max_iterations=1, pause_requested=lambda: paused)
+            saved = json.loads(json.dumps(result['session']))
+            pending = saved['construction_progress']['pending_quality']
+            completed, = pending['evaluations'].values()
+            completed_id = completed['quality_evaluation']['evaluation_id']
+            with patch('ygo_kito.build_pipeline.goal_candidates', side_effect=AssertionError('saved candidates required')):
+                resumed = construct_task(task, assets, builder.models, builder.encoder,
+                    continuation=saved, max_iterations=1)
+
+        self.assertEqual(result['stop_reason'], 'user_pause')
+        self.assertEqual([p['role'] for p in result['phases']], ['build_goal', 'build_optimizer'])
+        self.assertTrue(result['phases'][0]['graph_model_selection'])
+        self.assertEqual(result['phases'][0]['unfilled'], task.sizes)
+        self.assertEqual(result['phases'][1]['stage_1']['status'], 'effect_draft_received')
+        self.assertEqual([p['role'] for p in resumed['phases']], ['build_optimizer'])
+        self.assertEqual(resumed['latest_logic_sha256'], result['latest_logic_sha256'])
+        self.assertEqual(resumed['continuation']['candidate_cursor'], saved['construction_progress']['candidate_cursor'])
+        self.assertEqual(resumed['continuation']['iteration'], 1)
+        phase = resumed['phases'][0]['stage_3']
+        self.assertIn(completed_id, {row['quality_evaluation_id'] for row in phase['candidate_trace']['candidates']})
+        self.assertEqual(resumed['best_criterion'], 'versioned_pre_cb_construction_gate')
+        candidate = resumed['construction_candidate']
+        assets.validate(task, DeckParts.from_dict(candidate['deck']))
+        self.assertTrue(candidate['graph_binding_unresolved'])
+        self.assertIsNone(candidate['concrete_proposal'])
+        layer = candidate['layer_evaluation']
+        self.assertEqual(layer['validation'], 'list_constraints_verified')
+        self.assertTrue(layer['axis']['logic_gaps'])
+        self.assertEqual(layer['axis']['inventory'], candidate['deck'])
+        quality = candidate['quality_evaluation']
+        self.assertEqual(quality['deck_sha256'], digest(candidate['deck']))
+        self.assertEqual(quality['task_sha256'], task.sha256)
+        self.assertEqual(quality['logic_sha256'], resumed['latest_logic_sha256'])
+        self.assertEqual(before, {role: parameter_digest(model) for role, model in builder.models.items()})
+        self.assertFalse(resumed['graph_execution_verified'])
+        self.assertEqual(resumed['basic_cb']['status'], 'not_run')
 
     def test_quality_preferences_enter_existing_semantic_learning_contract_without_updates(self):
         from ygo_kito.build_contracts import DeckParts,digest
