@@ -200,6 +200,10 @@ def require_training_admission(*,task,deck,basic_cb,assets,purpose,comparison_po
         result['reasons'].append('invalid_comparison_policy_signals');return result
     result['policy_epoch']=verdict['policy_epoch'];result['evidence_refs']=deepcopy(references)
     result['signals']=asdict(signals)
+    if 'admission_mode' in verdict:
+        result['admission_mode']=verdict['admission_mode']
+    if 'static_scoring_calls' in verdict:
+        result['static_scoring_calls']=verdict['static_scoring_calls']
     result['reasons'].extend(policy_reasons)
     if signals.mandatory_rebuild is True:result['reasons'].append('registered_forecast_requires_mandatory_rebuild')
     if verdict['status']=='deferred':

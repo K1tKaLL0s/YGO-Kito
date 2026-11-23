@@ -161,6 +161,49 @@ def compare_candidates(task, assets, candidates, opponent, *, seeds=(7, 24), pur
     return comparison, traces
 
 
+def compare_feedback_revision(task, assets, active_deck, revised_deck, opponent, *, seeds=(7, 24),
+                              purpose="construction_train", seconds=120., hard_check=None):
+    """Compare active vs revised deck after post-admission feedback using a frozen policy and 0 static scoring."""
+    from .construction_progress import FEEDBACK_HARD_CHECK_VERSION, feedback_hard_check
+    if hard_check is None:
+        hard_check = feedback_hard_check(task, revised_deck, assets)
+    elif (not isinstance(hard_check, dict) or hard_check.get("version") != FEEDBACK_HARD_CHECK_VERSION
+          or hard_check.get("task_sha256") != task.sha256
+          or hard_check.get("deck_sha256") != digest(revised_deck.to_dict())):
+        raise ContractError("feedback duel comparison hard check does not bind the revised candidate")
+    if hard_check.get("passed") is not True:
+        raise ContractError("post-admission feedback revision failed hard constraints: " + ";".join(hard_check.get("reasons", ())))
+    assets.validate(task, active_deck)
+    active_sha = digest(active_deck.to_dict())
+    revised_sha = digest(revised_deck.to_dict())
+    if active_deck == revised_deck:
+        return dict(
+            kind="feedback_duel_comparison_v1",
+            adopt=False,
+            status="unchanged_inventory",
+            active_deck_sha256=active_sha,
+            revised_deck_sha256=revised_sha,
+            hard_check=hard_check,
+            comparison=None,
+            traces=[],
+            static_scoring_calls=0,
+        )
+    comparison, traces = compare_candidates(task, assets, [active_deck, revised_deck], opponent,
+                                            seeds=seeds, purpose=purpose, seconds=seconds)
+    adopt = comparison.get("preferred_index") == 1
+    return dict(
+        kind="feedback_duel_comparison_v1",
+        adopt=adopt,
+        status=comparison.get("status"),
+        active_deck_sha256=active_sha,
+        revised_deck_sha256=revised_sha,
+        hard_check=hard_check,
+        comparison=comparison,
+        traces=traces,
+        static_scoring_calls=0,
+    )
+
+
 def real_game_dataset(task, assets, comparison):
     from .build_pipeline import verify_goal
     from .build_training import supervision_projection, validate_supervision

@@ -1467,6 +1467,9 @@ def _transfer_available_zone(fact, counts, deck_events=1):
 
 
 def _usage_needs(index):
+    cached = getattr(index, "_usage_needs_cache", None)
+    if cached is not None:
+        return cached
     pending = [(u.inputs, "use:" + u.use_id) for u in index.context.uses]
     pending.extend((f.inputs, "effect:" + f.effect_ref + ":" + f.choice) for f in index.facts.values() if f.inputs)
     result = {}
@@ -1476,6 +1479,7 @@ def _usage_needs(index):
             pending.extend((v, prefix + ":" + str(i)) for i, v in enumerate(item.items))
         else:
             result[("presence:" if item.mode == "presence" else "consume:") + prefix + ":" + item.need_id] = item
+    index._usage_needs_cache = result
     return result
 
 
@@ -1671,7 +1675,7 @@ def _allocate_inventory_usage(result, index, counts, schedule=None, returns=None
         result["unknown"].append("inventory_allocation_budget")
         return
     return_selectors, selections = {}, {}
-    usage_needs = _usage_needs(index)
+    usage_needs = _usage_needs(index) if returns else None
     for (pid, token), released in sorted((returns or {}).items()):
         for _, _, fid in released:
             transfer = _pool_transfer(index, pid, fid, usage_needs.get(token))

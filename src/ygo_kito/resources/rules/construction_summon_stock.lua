@@ -2,6 +2,7 @@
 -- over distinct physical copies from the active deck view.
 return function(helpers, stock_entries, fusion_reqs, ritual_reqs)
 	local out = {}
+	local own_dummy1 = helpers.new_dummy()
 	local opp_dummy1 = helpers.new_dummy()
 	local opp_dummy2 = helpers.new_dummy()
 	local g0 = Group.CreateGroup()
@@ -16,6 +17,7 @@ return function(helpers, stock_entries, fusion_reqs, ritual_reqs)
 				helpers.remove(e.card)
 			end
 		end
+		if own_dummy1:GetLocation() ~= 0 then helpers.remove(own_dummy1) end
 		if opp_dummy1:GetLocation() ~= 0 then helpers.remove(opp_dummy1) end
 		if opp_dummy2:GetLocation() ~= 0 then helpers.remove(opp_dummy2) end
 		helpers.set_phase(1, 0, PHASE_MAIN1)
@@ -128,6 +130,7 @@ return function(helpers, stock_entries, fusion_reqs, ritual_reqs)
 		for _, it in ipairs(items) do it._used = 0 end
 		rec(1, 0)
 		for _, it in ipairs(items) do it._used = nil end
+		return stopped
 	end
 
 	local function safe_call(fn, ...)
@@ -183,12 +186,36 @@ return function(helpers, stock_entries, fusion_reqs, ritual_reqs)
 						local empty_ok = safe_call(eff.condition, eff.effect, card)
 						helpers.place(opp_dummy1, 1, 1, LOCATION_MZONE, 0, POS_FACEUP_ATTACK, false, true)
 						local opp_ok = safe_call(eff.condition, eff.effect, card)
+						local with_own_ok = false
 						if empty_ok or opp_ok then
-							has_ss_proc[code] = true
+							clear_board()
+							helpers.place(card, 0, 0, loc, 0, POS_FACEUP_ATTACK, false, false)
+							helpers.place(own_dummy1, 0, 0, LOCATION_MZONE, 0, POS_FACEUP_ATTACK, false, true)
+							local own0_ok = safe_call(eff.condition, eff.effect, card)
+							helpers.place(opp_dummy1, 1, 1, LOCATION_MZONE, 0, POS_FACEUP_ATTACK, false, true)
+							local own1_ok = safe_call(eff.condition, eff.effect, card)
+							helpers.place(opp_dummy2, 1, 1, LOCATION_MZONE, 1, POS_FACEUP_ATTACK, false, true)
+							local own2_ok = safe_call(eff.condition, eff.effect, card)
+							with_own_ok = own0_ok or own1_ok or own2_ok
+							if not with_own_ok and #grp.entries >= 2 then
+								clear_board()
+								helpers.place(card, 0, 0, loc, 0, POS_FACEUP_ATTACK, false, false)
+								helpers.place(grp.entries[2].card, 0, 0, LOCATION_MZONE, 0, POS_FACEUP_ATTACK, false, true)
+								local same0_ok = safe_call(eff.condition, eff.effect, card)
+								helpers.place(opp_dummy1, 1, 1, LOCATION_MZONE, 0, POS_FACEUP_ATTACK, false, true)
+								local same1_ok = safe_call(eff.condition, eff.effect, card)
+								helpers.place(opp_dummy2, 1, 1, LOCATION_MZONE, 1, POS_FACEUP_ATTACK, false, true)
+								local same2_ok = safe_call(eff.condition, eff.effect, card)
+								with_own_ok = same0_ok or same1_ok or same2_ok
+							end
+							local rank = with_own_ok and 1 or 2
+							if not has_ss_proc[code] or rank < has_ss_proc[code] then
+								has_ss_proc[code] = rank
+							end
 						end
 						emit(string.format(
-							"inherent_ss\t%d\t%d\t%d\t%d\t%d",
-							e0.copy, eff.ordinal, range, empty_ok and 1 or 0, opp_ok and 1 or 0
+							"inherent_ss\t%d\t%d\t%d\t%d\t%d\t%d",
+							e0.copy, eff.ordinal, range, empty_ok and 1 or 0, opp_ok and 1 or 0, with_own_ok and 1 or 0
 						))
 					end
 				end
@@ -202,8 +229,8 @@ return function(helpers, stock_entries, fusion_reqs, ritual_reqs)
 	for _, c in ipairs(main_monster_codes) do all_monster_codes[#all_monster_codes + 1] = c end
 	table.sort(all_monster_codes, function(a, b)
 		local ea, eb = by_code[a], by_code[b]
-		local ra = (ea.section == "extra" and 0 or (has_ss_proc[a] and 1 or 2))
-		local rb = (eb.section == "extra" and 0 or (has_ss_proc[b] and 1 or 2))
+		local ra = (ea.section == "extra" and 0 or (has_ss_proc[a] or 3))
+		local rb = (eb.section == "extra" and 0 or (has_ss_proc[b] or 3))
 		if ra ~= rb then return ra < rb end
 		return a < b
 	end)
@@ -365,7 +392,18 @@ return function(helpers, stock_entries, fusion_reqs, ritual_reqs)
 								return res0
 							end
 							if try_flags(0, {}) then
-								emit(string.format("xyz\t%d\t%d\t1\tturn_flag_event\t1\t%d", ex_entry.copy, eff.ordinal, base_entry.copy))
+								local ext_flag = "turn_flag_event"
+								for _, reg_eff in ipairs(ex_entry.effects) do
+									if reg_eff.scope == "field" then
+										if reg_eff.code == EVENT_BATTLED then
+											ext_flag = "xyz_monster_battled_this_turn"
+											break
+										elseif reg_eff.code == EVENT_BATTLE_DESTROYED or reg_eff.code == EVENT_BATTLE_DAMAGE or reg_eff.code == EVENT_ATTACK_ANNOUNCE then
+											ext_flag = "battle_event_this_turn"
+										end
+									end
+								end
+								emit(string.format("xyz\t%d\t%d\t1\t%s\t1\t%d", ex_entry.copy, eff.ordinal, ext_flag, base_entry.copy))
 							end
 						end
 					end
@@ -384,11 +422,14 @@ return function(helpers, stock_entries, fusion_reqs, ritual_reqs)
 							end
 						end
 					end
-					-- Prefer level-matching first so Level-4 Rank-4 pairs are checked first
+					-- Prefer level-matching first, then Extra/SS-capable before NS-only
 					table.sort(eligible, function(a, b)
 						local la = (a.card:GetLevel() == target_rank) and 0 or 1
 						local lb = (b.card:GetLevel() == target_rank) and 0 or 1
 						if la ~= lb then return la < lb end
+						local ra = (a.section == "extra" and 0 or (has_ss_proc[a.code] or 3))
+						local rb = (b.section == "extra" and 0 or (has_ss_proc[b.code] or 3))
+						if ra ~= rb then return ra < rb end
 						return a.code < b.code
 					end)
 					local accepted = 0
@@ -605,16 +646,8 @@ return function(helpers, stock_entries, fusion_reqs, ritual_reqs)
 		end
 	end
 
-	-- 5. Ritual Summon checks
+	-- 5. Ritual Summon checks (branch-and-bound supporting >= 4 materials and truncated search status)
 	if #ritual_reqs > 0 and #ritual_monster_codes > 0 then
-		local rit_mats = {}
-		for _, mc in ipairs(all_monster_codes) do
-			local mg = by_code[mc]
-			local lv = mg.card:GetLevel()
-			if lv > 0 then
-				rit_mats[#rit_mats + 1] = { code = mc, section = mg.section, entries = mg.entries, lv = lv }
-			end
-		end
 		for _, req in ipairs(ritual_reqs) do
 			local spell = stock_entries[req.copy]
 			local eff = spell and spell.effects[req.ordinal + 1]
@@ -623,72 +656,175 @@ return function(helpers, stock_entries, fusion_reqs, ritual_reqs)
 					local rgrp = by_code[rcode]
 					local rentry = rgrp.entries[1]
 					local target_lv = rentry.card:GetLevel()
+					local r_items = {}
+					local total_avail = 0
+					clear_board()
+					helpers.place(rentry.card, 0, 0, LOCATION_HAND, 0, POS_FACEDOWN, false, false)
+					for _, mc in ipairs(all_monster_codes) do
+						local mg = by_code[mc]
+						local avail_start = (mc == rcode) and 2 or 1
+						local avail = #mg.entries - avail_start + 1
+						if avail > 0 then
+							local c0 = mg.entries[1].card
+							local base_lv = c0:GetLevel()
+							local rlv = c0:GetRitualLevel(rentry.card)
+							local lv1 = rlv & 0xffff
+							local lv2 = rlv >> 16
+							local lvs = {}
+							if base_lv > 0 then lvs[#lvs + 1] = base_lv end
+							if lv1 > 0 and lv1 ~= base_lv then lvs[#lvs + 1] = lv1 end
+							if lv2 > 0 and lv2 ~= base_lv and lv2 ~= lv1 then lvs[#lvs + 1] = lv2 end
+							if #lvs > 0 then
+								local mn, mx = lvs[1], lvs[1]
+								for i = 2, #lvs do
+									if lvs[i] < mn then mn = lvs[i] end
+									if lvs[i] > mx then mx = lvs[i] end
+								end
+								local prio = (mg.section == "extra" and 0 or (has_ss_proc[mc] and 1 or 2))
+								r_items[#r_items + 1] = {
+									code = mc, section = mg.section, entries = mg.entries,
+									avail_start = avail_start, cap = avail,
+									min_lv = mn, max_lv = mx, prio = prio,
+								}
+								total_avail = total_avail + avail
+							end
+						end
+					end
+					table.sort(r_items, function(a, b)
+						if a.prio ~= b.prio then return a.prio < b.prio end
+						if a.max_lv ~= b.max_lv then return a.max_lv > b.max_lv end
+						return a.code < b.code
+					end)
+					local n_items = #r_items
+					local rem_max_all = {}
+					local max_lv_from = {}
+					local min_lv_from = {}
+					rem_max_all[n_items + 1] = 0
+					max_lv_from[n_items + 1] = 0
+					min_lv_from[n_items + 1] = 0
+					for i = n_items, 1, -1 do
+						rem_max_all[i] = rem_max_all[i + 1] + r_items[i].cap * r_items[i].max_lv
+						max_lv_from[i] = (i == n_items) and r_items[i].max_lv or math.max(r_items[i].max_lv, max_lv_from[i + 1])
+						min_lv_from[i] = (i == n_items) and r_items[i].min_lv or math.min(r_items[i].min_lv, min_lv_from[i + 1])
+					end
 					local accepted = 0
-					-- Test exact-level sums first, then >= target_lv sums up to 3 materials
+					local checks = 0
+					local visits = 0
+					local max_checks = 240
+					local max_visits = 20000
+					local truncated = false
+					local max_mat_ct = math.min(total_avail, math.max(target_lv, 12))
+					-- Test exact-level sums first, then minimal overpayment (>= target_lv)
 					for pass_exact = 1, 2 do
-						for mat_ct = 1, 3 do
-							if accepted >= 24 then break end
-							enum_multisets(rit_mats, mat_ct, mat_ct, 120, function(chosen)
-							if accepted >= 24 then return false end
-							local sum = 0
-							local uses_rentry = false
-							local mat_actual = {}
-							for _, ce in ipairs(chosen) do
-								if ce.code == rcode then uses_rentry = true end
-								sum = sum + ce.card:GetLevel()
-							end
-							if pass_exact == 1 and sum ~= target_lv then return "skip" end
-							if pass_exact == 2 and sum <= target_lv then return "skip" end
-							if uses_rentry then
-								-- Ensure we don't reuse copy 1 of Ritual Monster for its own tribute if only 1 copy is present
-								local needed = 1
-								for _, ce in ipairs(chosen) do
-									if ce.code == rcode then needed = needed + 1 end
-								end
-								if needed > #rgrp.entries then return "skip" end
-							end
-							local r_used = 0
-							for _, ce in ipairs(chosen) do
-								local act = ce
-								if ce.code == rcode then
-									r_used = r_used + 1
-									act = rgrp.entries[r_used + 1]
-								end
-								mat_actual[#mat_actual + 1] = act
-							end
-							local ok = false
-							for _, main_loc in ipairs({LOCATION_HAND, LOCATION_MZONE}) do
-								clear_board()
-								Duel.SetLP(0, 8000)
-								helpers.place(spell.card, 0, 0, LOCATION_SZONE, 0, POS_FACEUP_ATTACK, false, false)
-								helpers.place(rentry.card, 0, 0, LOCATION_HAND, 0, POS_FACEDOWN, false, false)
-								local placed_all = true
-								local mzone_seq = 0
-								for _, act in ipairs(mat_actual) do
-									if act.section == "extra" or main_loc == LOCATION_MZONE then
-										if mzone_seq >= 5 then
-											placed_all = false
+						for mat_ct = 1, max_mat_ct do
+							if accepted >= 24 or checks >= max_checks or visits >= max_visits then break end
+							if target_lv > 0 and mat_ct * max_lv_from[1] < target_lv then
+								-- impossible with mat_ct materials
+							elseif pass_exact == 1 and target_lv > 0 and mat_ct * min_lv_from[1] > target_lv then
+								-- impossible exact sum with mat_ct materials
+							elseif rem_max_all[1] >= target_lv then
+								local chosen_items = {}
+								local chosen_counts = {}
+								local stop_now = false
+								local function test_leaf()
+									local mat_actual = {}
+									for i = 1, n_items do
+										local cnt = chosen_counts[i] or 0
+										if cnt > 0 then
+											local it = r_items[i]
+											for u = 1, cnt do
+												mat_actual[#mat_actual + 1] = it.entries[it.avail_start + u - 1]
+											end
+										end
+									end
+									checks = checks + 1
+									local ok = false
+									for _, main_loc in ipairs({LOCATION_HAND, LOCATION_MZONE}) do
+										clear_board()
+										Duel.SetLP(0, 8000)
+										helpers.place(spell.card, 0, 0, LOCATION_SZONE, 0, POS_FACEUP_ATTACK, false, false)
+										helpers.place(rentry.card, 0, 0, LOCATION_HAND, 0, POS_FACEDOWN, false, false)
+										local placed_all = true
+										local mzone_seq = 0
+										for _, act in ipairs(mat_actual) do
+											if act.section == "extra" or main_loc == LOCATION_MZONE then
+												if mzone_seq >= 5 then
+													placed_all = false
+													break
+												end
+												helpers.place(act.card, 0, 0, LOCATION_MZONE, mzone_seq, POS_FACEUP_ATTACK, false, true)
+												mzone_seq = mzone_seq + 1
+											else
+												helpers.place(act.card, 0, 0, LOCATION_HAND, 0, POS_FACEDOWN, false, false)
+											end
+										end
+										local cond_ok = (not eff.condition) or safe_call(eff.condition, eff.effect, 0, g0, 0, 0, nil, REASON_EFFECT, 0, 0)
+										if placed_all and cond_ok and safe_call(eff.target, eff.effect, 0, g0, 0, 0, nil, REASON_EFFECT, 0, 0) then
+											ok = true
 											break
 										end
-										helpers.place(act.card, 0, 0, LOCATION_MZONE, mzone_seq, POS_FACEUP_ATTACK, false, true)
-										mzone_seq = mzone_seq + 1
-									else
-										helpers.place(act.card, 0, 0, LOCATION_HAND, 0, POS_FACEDOWN, false, false)
+									end
+									if ok then
+										accepted = accepted + 1
+										emit(string.format("ritual\t%d\t%d\t%s", req.qi, rentry.copy, join_copies(mat_actual)))
+									end
+									if accepted >= 24 or checks >= max_checks then
+										if checks >= max_checks and accepted < 24 then truncated = true end
+										stop_now = true
 									end
 								end
-								local cond_ok = (not eff.condition) or safe_call(eff.condition, eff.effect, 0, g0, 0, 0, nil, REASON_EFFECT, 0, 0)
-								if placed_all and cond_ok and safe_call(eff.target, eff.effect, 0, g0, 0, 0, nil, REASON_EFFECT, 0, 0) then
-									ok = true
-									break
+								local function rec(idx, depth, cur_min, cur_max, cur_min_lv)
+									if stop_now then return end
+									visits = visits + 1
+									if visits >= max_visits then
+										truncated = true
+										stop_now = true
+										return
+									end
+									local k_rem = mat_ct - depth
+									if k_rem == 0 then
+										if pass_exact == 1 then
+											if cur_max >= target_lv and cur_min <= target_lv then
+												test_leaf()
+											end
+										else
+											if cur_max >= target_lv and (cur_min - cur_min_lv) < target_lv then
+												test_leaf()
+											end
+										end
+										return
+									end
+									if idx > n_items then return end
+									local upper_add = math.min(rem_max_all[idx], k_rem * max_lv_from[idx])
+									if cur_max + upper_add < target_lv then return end
+									local lower_add = k_rem * min_lv_from[idx]
+									if pass_exact == 1 then
+										if cur_min + lower_add > target_lv then return end
+									else
+										local over_lb = (depth == 0) and ((k_rem - 1) * min_lv_from[idx])
+											or math.min(cur_min + (k_rem - 1) * min_lv_from[idx], (cur_min - cur_min_lv) + k_rem * min_lv_from[idx])
+										if over_lb >= target_lv then return end
+									end
+									for i = idx, n_items do
+										local it = r_items[i]
+										local used = chosen_counts[i] or 0
+										if used < it.cap then
+											chosen_counts[i] = used + 1
+											local next_min_lv = (depth == 0) and it.min_lv or math.min(cur_min_lv, it.min_lv)
+											rec(i, depth + 1, cur_min + it.min_lv, cur_max + it.max_lv, next_min_lv)
+											chosen_counts[i] = used
+											if stop_now then return end
+										end
+									end
+								end
+								if n_items > 0 then
+									rec(1, 0, 0, 0, 0)
 								end
 							end
-							if ok then
-								accepted = accepted + 1
-								emit(string.format("ritual\t%d\t%d\t%s", req.qi, rentry.copy, join_copies(mat_actual)))
-							end
-							return true
-						end)
 						end
+					end
+					if accepted == 0 and truncated then
+						emit(string.format("ritual_incomplete\t%d\t%d\tbudget_exhausted", req.qi, rentry.copy))
 					end
 				end
 			end

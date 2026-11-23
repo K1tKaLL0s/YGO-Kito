@@ -101,6 +101,9 @@ MODULES=(
     "tests.test_construction_condition_selection",
     "tests.test_construction_calculation_resume",
     "tests.test_construction_recognition",
+    "tests.test_construction_summon_scoring",
+    "tests.test_construction_feedback_boundary",
+    "tests.test_construction_interruption_bonus",
 )
 DP_HEAD="a7085e23a74fb04bff571c1c679e0097dd1ae430"
 DP_HASHES={"src/ygo_kito/native.py":"0a2f40c99e3e14bb1eb0446c89c8b80175cd6f1893c8207ee8496deb6725139e",

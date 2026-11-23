@@ -21,17 +21,62 @@ class CourseAdmissionPolicy:
 
     def record_completed_construction(self, *, task, deck, assets, basic_cb, cycle_id,
                                       layer_evaluation=None, construction=None):
-        assets.validate(task,deck)
         if not isinstance(cycle_id,str) or not cycle_id.strip():
             raise ContractError('completed construction requires a cycle identity')
         if layer_evaluation is not None and layer_evaluation['axis']['inventory']!=deck.to_dict():
             raise ContractError('construction feedback refers to another inventory')
-        dependencies=InventoryDependencies(MechanismCatalog(assets,task.pool)).evaluate(deck)
-        from .construction_progress import construction_gate
+        from .construction_progress import FEEDBACK_HARD_CHECK_VERSION, construction_gate, feedback_hard_check
         construction = construction if construction is not None else getattr(self.course, 'construction', None) or {}
-        candidate = construction.get('best') or {}
+        candidate = construction.get('best') or construction.get('construction_candidate') or {}
         if candidate.get('deck') != deck.to_dict():
             candidate = {}
+        continuation = construction.get('continuation') or {}
+        deck_sha = digest(deck.to_dict())
+        initial_admission = (
+            candidate.get('initial_admission')
+            or construction.get('initial_admission')
+            or continuation.get('initial_admission')
+        )
+        is_feedback_revision = bool(
+            (construction.get('admission_mode') == 'feedback_revision'
+             or candidate.get('admission_mode') == 'feedback_revision'
+             or continuation.get('post_admission_feedback'))
+            and isinstance(initial_admission, dict)
+            and initial_admission.get('task_sha256') == task.sha256
+            and (initial_admission.get('gate') or {}).get('status') == 'passed'
+        )
+        if is_feedback_revision:
+            saved_hc = candidate.get('feedback_hard_check') or construction.get('feedback_hard_check')
+            if (isinstance(saved_hc, dict) and saved_hc.get('version') == FEEDBACK_HARD_CHECK_VERSION
+                    and saved_hc.get('task_sha256') == task.sha256 and saved_hc.get('deck_sha256') == deck_sha):
+                hard_check = deepcopy(saved_hc)
+            else:
+                hard_check = feedback_hard_check(task, deck, assets)
+            dependencies = (InventoryDependencies(MechanismCatalog(assets, task.pool)).evaluate(deck)
+                            if hard_check['passed'] else None)
+            result = {
+                **self._identity(task, deck),
+                'policy_epoch': FEEDBACK_HARD_CHECK_VERSION,
+                'cycle_id': cycle_id,
+                'admission_mode': 'feedback_revision',
+                'initial_admission': deepcopy(initial_admission),
+                'feedback_hard_check': hard_check,
+                'inventory_dependencies': dependencies,
+                'layers': deepcopy(layer_evaluation),
+                'quality_evaluation': None,
+                'construction_gate': None,
+                'force_optimization': not hard_check['passed'],
+                'optimization_reason': ';'.join(hard_check['reasons']) or None,
+                'static_scoring_calls': 0,
+                'context_review_required': False,
+                'construction_strength_status': 'unknown',
+            }
+            self.feedback[task.sha256, deck_sha] = result
+            while len(self.feedback) > 16:
+                self.feedback.pop(next(iter(self.feedback)))
+            return deepcopy(result)
+        assets.validate(task,deck)
+        dependencies=InventoryDependencies(MechanismCatalog(assets,task.pool)).evaluate(deck)
         layer_evaluation = layer_evaluation or candidate.get('layer_evaluation')
         saved_gate = candidate.get('construction_gate') or {}
         kernel = getattr(getattr(self.course,'models',None),'kernel',None)
@@ -42,12 +87,13 @@ class CourseAdmissionPolicy:
             quality=candidate.get('quality_evaluation'),
             reference_quality=(construction.get('continuation') or {}).get('reference_evaluation'))
         result={**self._identity(task,deck),'policy_epoch':gate['version'],'cycle_id':cycle_id,
+            'admission_mode':'initial_admission',
             'inventory_dependencies':dependencies,'layers':deepcopy(layer_evaluation),
             'quality_evaluation':deepcopy(candidate.get('quality_evaluation')),
             'construction_gate':gate, 'force_optimization':gate['status'] != 'passed',
             'optimization_reason':';'.join(gate['reasons']) or None,
             'context_review_required':False,'construction_strength_status':'unknown'}
-        self.feedback[task.sha256,digest(deck.to_dict())]=result
+        self.feedback[task.sha256,deck_sha]=result
         while len(self.feedback)>16:self.feedback.pop(next(iter(self.feedback)))
         return deepcopy(result)
 
@@ -93,8 +139,30 @@ class CourseAdmissionPolicy:
     def __call__(self, *, task, deck, basic_cb, assets, purpose, construction=None):
         feedback=self.record_completed_construction(task=task,deck=deck,assets=assets,
             basic_cb=basic_cb,cycle_id='current-candidate',construction=construction)
-        reasons=list(feedback['construction_gate']['reasons'])
         trigger=self._cb_trigger(task,deck)
+        if feedback.get('admission_mode') == 'feedback_revision':
+            hard_check = feedback['feedback_hard_check']
+            reasons = list(hard_check.get('reasons', ()))
+            refs = [dict(
+                kind='post_admission_feedback_hard_check',
+                policy_epoch=hard_check['version'],
+                **self._identity(task, deck),
+                initial_admission_deck_sha256=feedback['initial_admission'].get('deck_sha256'),
+            )]
+            if trigger is not None:
+                refs.append(dict(kind='conditional_cb_optimization_signal', attempt_id=trigger))
+            return {
+                **self._identity(task, deck),
+                'status': 'deferred' if reasons else 'admitted',
+                'policy_epoch': hard_check['version'],
+                'admission_mode': 'feedback_revision',
+                'static_scoring_calls': 0,
+                'reasons': reasons,
+                'evidence_refs': refs,
+                'signals': dict(optimization_requested=bool(reasons) or trigger is not None,
+                                mandatory_rebuild=False, hint_permission=False),
+            }
+        reasons=list(feedback['construction_gate']['reasons'])
         refs=[dict(kind='current_candidate_inventory_evaluation',policy_epoch=POLICY_EPOCH,
             **self._identity(task,deck),evaluation_sha256=digest(feedback['inventory_dependencies']))]
         if trigger is not None:refs.append(dict(kind='conditional_cb_optimization_signal',attempt_id=trigger))

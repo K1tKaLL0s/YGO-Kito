@@ -544,7 +544,7 @@ class AutonomousConstructionKernel:
         from .construction_progress import record_optimization_feedback
         for item in feedback:
             session.record_feedback(item["source"],item["message"][:1024])
-            if session.construction_progress and item['source'] in ('duel','coordinator','external_ai'):
+            if session.construction_progress and item['source'] in ('duel','coordinator','external_ai','basic_cb'):
                 record_optimization_feedback(session,dict(feedback_id='feedback-'+digest([item,session.construction_progress['candidate']['deck_sha256']])[:32],
                     source=item['source'],task_sha256=session.task.sha256,
                     candidate_sha256=session.construction_progress['candidate']['deck_sha256'],issue=item['message']))
@@ -561,12 +561,12 @@ class AutonomousConstructionKernel:
         basic_provider=None
         if basic_cb_enabled and self.source_binding.get('basic_cb_stage')=='after_construction':
             from .basic_cb_inference import infer_basic_cb
-            def basic_provider(task,deck,assets,*,construction_gate):
+            def basic_provider(task,deck,assets,*,construction_gate=None,feedback_hard_check=None):
                 seconds=20. if budget is None else min(20.,budget.check('before_basic_cb_provider'))
                 inference=infer_basic_cb(task,deck,assets,builder=self.builder,seconds=seconds,
                     verifier=basic_cb_verifier,budget=budget,
                     construction_gate=construction_gate, execution_authorized=basic_cb_enabled,
-                    scoring_theme=None)
+                    scoring_theme=None, feedback_hard_check=feedback_hard_check)
                 if budget is not None:budget.check('after_basic_cb_provider')
                 if basic_cb_recorder is not None:basic_cb_recorder(task,deck,inference)
                 from .proof_visibility import without_private_selection_key
@@ -601,7 +601,7 @@ class AutonomousConstructionKernel:
                             'requested':adapter.requirements(),'reviews_define_requirements':False})
         result["basic_cb_inference_performed"]=bool((result.get("basic_cb") or {}).get("inference_completed"))
         from .construction_learning import strict_pair_count
-        pairs = strict_pair_count(session.task, result, _comparisons=comparisons)
+        pairs = 0 if result.get('admission_mode') == 'feedback_revision' else strict_pair_count(session.task, result, _comparisons=comparisons)
         result['optimizer_learning']={'eligible_strict_pairs':pairs,
             'parameter_update_performed':False,'cumulative_updates':self.builder.updates['build_optimizer'],
             'reason':'strict_preferences_recorded_without_candidate_inventories' if pairs else 'no_strict_layer_preferences_in_this_slice'}

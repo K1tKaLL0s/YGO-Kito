@@ -305,15 +305,28 @@ def proposals(task,deck,assets,limit=8):
 
 
 def infer_basic_cb(task,deck,assets,*,builder=None,seconds=20.,limit=8,verifier=None,budget=None,scoring_theme=None,
-                   construction_gate=None, execution_authorized=False):
-    from .construction_progress import GATE_VERSION, FUNCTIONAL_GATE_VERSION
-    if (execution_authorized is not True or not isinstance(construction_gate,dict)
-            or construction_gate.get('version') not in (GATE_VERSION, FUNCTIONAL_GATE_VERSION) or construction_gate.get('status') != 'passed'
-            or construction_gate.get('task_sha256') != task.sha256
-            or type(construction_gate.get('candidate_version')) is not int or construction_gate['candidate_version'] < 1
-            or construction_gate.get('deck_sha256') != digest(deck.to_dict())):
+                   construction_gate=None, execution_authorized=False, feedback_hard_check=None):
+    from .construction_progress import FEEDBACK_HARD_CHECK_VERSION, FUNCTIONAL_GATE_VERSION, GATE_VERSION
+    deck_sha = digest(deck.to_dict())
+    valid_gate = (
+        isinstance(construction_gate, dict)
+        and construction_gate.get('version') in (GATE_VERSION, FUNCTIONAL_GATE_VERSION)
+        and construction_gate.get('status') == 'passed'
+        and construction_gate.get('task_sha256') == task.sha256
+        and type(construction_gate.get('candidate_version')) is int
+        and construction_gate['candidate_version'] >= 1
+        and construction_gate.get('deck_sha256') == deck_sha
+    )
+    valid_feedback = (
+        isinstance(feedback_hard_check, dict)
+        and feedback_hard_check.get('version') == FEEDBACK_HARD_CHECK_VERSION
+        and feedback_hard_check.get('passed') is True
+        and feedback_hard_check.get('task_sha256') == task.sha256
+        and feedback_hard_check.get('deck_sha256') == deck_sha
+    )
+    if execution_authorized is not True or (not valid_gate and not valid_feedback):
         return dict(kind='basic_cb_inference_after_construction', status='not_run', routes=[],
-            task_sha256=task.sha256, subject_deck_sha256=digest(deck.to_dict()), inference_completed=False,
+            task_sha256=task.sha256, subject_deck_sha256=deck_sha, inference_completed=False,
             stop_reason='construction_pass_and_execution_authorization_required')
     from .build_pipeline import verify_goal
     from .build_semantics import accepted_status
@@ -381,9 +394,15 @@ def infer_basic_cb(task,deck,assets,*,builder=None,seconds=20.,limit=8,verifier=
     completed=bool(routes) or (searched and len(attempts)==len(candidates) and
         all(a['proof'].get('native_route',a['proof']).get('normal_completion') is True for a in attempts))
     from .basic_cb_scope import VERSION
+    cand_version = (
+        construction_gate['candidate_version'] if valid_gate
+        else max(1, int(feedback_hard_check.get('candidate_version') or 1))
+    )
     return {'schema_version':2,'scope_version':VERSION,'kind':'basic_cb_inference_after_construction','task_sha256':task.sha256,
-        'construction_gate':deepcopy(construction_gate), 'execution_authorized':True,
-        'candidate_version':construction_gate['candidate_version'],
+        'construction_gate':deepcopy(construction_gate), 'feedback_hard_check':deepcopy(feedback_hard_check),
+        'admission_mode':'feedback_revision' if valid_feedback and not valid_gate else 'initial_admission',
+        'execution_authorized':True,
+        'candidate_version':cand_version,
         'subject_deck_sha256':before[1],'status':('routes_inferred' if routes else
             'no_route_found' if completed else 'bounded_inference_unknown' if searched else 'not_run'),
         'stop_reason':('route_inferred' if routes else 'no_supported_proposals' if not candidates else

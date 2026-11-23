@@ -205,6 +205,8 @@ def _read_summon_stock(handle, main, extra, fusion_requests, ritual_requests):
     fusion = _read_fusion_stock(handle, main, extra, fusion_requests) if fusion_requests else {}
     ritual_keys = list(ritual_requests.keys())
     ritual_options = {key: [] for key in ritual_keys}
+    ritual_incomplete_targets = {key: [] for key in ritual_keys}
+    ritual_incomplete_reasons = {key: {} for key in ritual_keys}
     contact_fusion, xyz, synchro, link, pendulum = [], [], [], [], []
     monster_rules, inherent_ss = {}, {}
 
@@ -237,13 +239,18 @@ def _read_summon_stock(handle, main, extra, fusion_requests, ritual_requests):
                 rscale=int(rscale),
             )
         elif tag == "inherent_ss":
-            copy_s, ordinal_s, rng_s, empty_ok, opp_ok = parts[1:]
+            copy_s, ordinal_s, rng_s, empty_ok, opp_ok, *rest = parts[1:]
             entry = _copy_entry(stock, int(copy_s))
+            with_own_ok = bool(int(rest[0])) if rest else True
+            empty_flag = bool(int(empty_ok))
+            opp_flag = bool(int(opp_ok))
             inherent_ss.setdefault(entry["card_id"], []).append(dict(
                 proc_index=int(ordinal_s),
                 range=int(rng_s),
-                holds_empty_board=bool(int(empty_ok)),
-                holds_with_opponent_monster=bool(int(opp_ok)),
+                holds_empty_board=empty_flag,
+                holds_with_opponent_monster=opp_flag,
+                holds_with_own_monster=with_own_ok,
+                requires_empty_own_mzone=bool((empty_flag or opp_flag) and not with_own_ok),
             ))
         elif tag == "fusion_no_mat":
             qi, target_copy, lp_paid = map(int, parts[1:])
@@ -323,6 +330,13 @@ def _read_summon_stock(handle, main, extra, fusion_requests, ritual_requests):
                 target=target["card_id"], target_copy=target["copy"],
                 materials=mats, release_timing="resolution",
             ))
+        elif tag == "ritual_incomplete":
+            qi_s, target_copy, reason = parts[1:]
+            target = _copy_entry(stock, int(target_copy))
+            key = ritual_keys[int(qi_s)]
+            if target["card_id"] not in ritual_incomplete_targets[key]:
+                ritual_incomplete_targets[key].append(target["card_id"])
+            ritual_incomplete_reasons[key][target["card_id"]] = reason
         else:
             raise ValueError(f"unexpected summon stock row: {line}")
     else:
@@ -334,10 +348,14 @@ def _read_summon_stock(handle, main, extra, fusion_requests, ritual_requests):
             monster_rules[card_id]["inherent_ss_procs"] = procs
     ritual = {
         key: dict(
-            status="inventory_present" if opts else "missing",
+            status=("inventory_present" if opts
+                    else "unknown" if ritual_incomplete_targets[key]
+                    else "missing"),
             options=opts,
+            uncovered_targets=list(ritual_incomplete_targets[key]),
+            incomplete_reasons=dict(ritual_incomplete_reasons[key]),
             source_card_id=ritual_requests[key][0],
-            shortfall=0 if opts else 1,
+            shortfall=0 if (opts or ritual_incomplete_targets[key]) else 1,
         )
         for key, opts in ritual_options.items()
     }

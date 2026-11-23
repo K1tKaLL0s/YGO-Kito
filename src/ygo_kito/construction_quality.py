@@ -8,15 +8,19 @@ alternative evaluator or a legacy scoring record type.
 from collections import Counter
 from copy import deepcopy
 from dataclasses import dataclass
-from math import isfinite
+from math import fsum, isfinite
 
 from .build_contracts import digest
 from .validation import ContractError, integer, member, text
 
 # All active consumers use this contract. Legacy types are archive inputs only.
 FUNCTIONAL_QUALITY_VERSION = "construction-quality-evaluation-v4-functional-log2"
+FUNCTIONAL_QUALITY_VERSION_V5 = "construction-quality-evaluation-v5-interruption-log2"
+SUPPORTED_FUNCTIONAL_QUALITY_VERSIONS = (FUNCTIONAL_QUALITY_VERSION, FUNCTIONAL_QUALITY_VERSION_V5)
 FUNCTION_DICTIONARY_VERSION = "construction-functions-v1"
 FUNCTIONAL_SCOPE = ("functions", "self", "joint", "impacts", "generic", "side")
+INTERRUPTION_HAS_WEIGHT = 0.30
+INTERRUPTION_SUPPORTED_WEIGHT = 0.20
 
 
 def functional_quality_config(value):
@@ -25,10 +29,23 @@ def functional_quality_config(value):
         raise ContractError("explicit functional quality configuration required")
     required = {"evaluator_version", "function_dictionary_version", "theme_rules",
                 "side_directions", "required_scope"}
-    if set(value) - required - {"completion_budget", "theme_profile"} or required - set(value):
+    optional = {"completion_budget", "theme_profile", "interruption_bonus"}
+    if set(value) - required - optional or required - set(value):
         raise ContractError("functional quality configuration fields differ")
-    if value["evaluator_version"] != FUNCTIONAL_QUALITY_VERSION:
+    eval_version = value["evaluator_version"]
+    if eval_version not in SUPPORTED_FUNCTIONAL_QUALITY_VERSIONS:
         raise ContractError("functional evaluator version differs")
+    if eval_version == FUNCTIONAL_QUALITY_VERSION:
+        if "interruption_bonus" in value:
+            raise ContractError("v4 functional quality cannot configure interruption bonus")
+    else:
+        bonus = value.get("interruption_bonus")
+        if (not isinstance(bonus, dict)
+                or set(bonus) != {"has_interruption_weight", "supported_interruption_weight"}
+                or any(type(bonus[k]) not in (int, float) or not isfinite(bonus[k]) for k in bonus)
+                or abs(bonus["has_interruption_weight"] - INTERRUPTION_HAS_WEIGHT) > 1e-12
+                or abs(bonus["supported_interruption_weight"] - INTERRUPTION_SUPPORTED_WEIGHT) > 1e-12):
+            raise ContractError("v5 interruption bonus requires fixed 0.30/0.20 weights")
     if value["function_dictionary_version"] != FUNCTION_DICTIONARY_VERSION:
         raise ContractError("functional dictionary version differs")
     rules = value["theme_rules"]
@@ -252,6 +269,7 @@ class FunctionalUse:
     requirement_origin: str | None = None
     contributes: bool = True
     theme_joint_conditions: tuple = ()
+    is_interruption: bool = False
 
     def __post_init__(self):
         for key in ("use_id", "effect_id", "function_id", "score_family_id", "scope_id"):
@@ -267,6 +285,8 @@ class FunctionalUse:
             text(self.requirement_origin, "requirement origin")
         if type(self.contributes) is not bool:
             raise ContractError("functional contribution flag must be Boolean")
+        if type(self.is_interruption) is not bool:
+            raise ContractError("functional interruption flag must be Boolean")
         if not isinstance(self.theme_conditions, tuple):
             raise ContractError("theme conditions require explicit rule/expression pairs")
         seen = set()
@@ -368,6 +388,18 @@ def physical_sources(inventory, aliases=None, extra_card_ids=()):
                     name_key=aliases.get(str(code), aliases.get(code, code)), zone=zone,
                     destination="extra" if zone == "extra" or code in extra_card_ids else "main")
     return sources
+
+
+def _interruption_B(count, destination, main_size, capacity=None):
+    """Compute h(x)=log2(1+x) on same-name interruption investment matching Main/Extra curves."""
+    from math import fsum, log2
+
+    if count <= 0:
+        return 0.0
+    factor = 40 / main_size if destination == "main" else 1.0
+    increments = [factor] + [factor * (0.8 if destination == "extra" else 0.9)] * (count - 1)
+    limit = capacity.get(destination, len(increments)) if capacity is not None else len(increments)
+    return log2(1.0 + fsum(sorted(increments, reverse=True)[:limit]))
 
 
 def _price_family(bins, capacity, main_size, rules):
@@ -501,9 +533,49 @@ def _functional_inputs(uses, sources, config, completion, stage, scenario, impac
             inputs, values[family] = _remember(family_prices, (pricing, tuple(entries)),
                 lambda: _price_family(entries, capacity, main_size, rules), limit=128)
             channels[family] = dict(inputs)
+    interruption_groups, interruption_details = {}, {}
+    bonus_cfg = config.get("interruption_bonus")
+    if bonus_cfg is not None:
+        w_has = float(bonus_cfg["has_interruption_weight"])
+        w_sup = float(bonus_cfg["supported_interruption_weight"])
+        grouped_int = {}
+        for use in scoped:
+            if not (use.contributes and use.is_interruption):
+                continue
+            for source in allowed[use.use_id]:
+                item = sources[source]
+                gkey = (str(item["name_key"]), item["destination"])
+                entry = grouped_int.setdefault(
+                    gkey,
+                    dict(tier1=set(), tier2=set(), uses_by_source={}, all_uses=set()),
+                )
+                entry["tier1"].add(source)
+                entry["all_uses"].add(use.use_id)
+                entry["uses_by_source"].setdefault(source, []).append(use.use_id)
+                if use.use_id in active.get((use.score_family_id, "base", source), ()):
+                    entry["tier2"].add(source)
+        for (name_key, dest), entry in sorted(grouped_int.items()):
+            gid = f"__interruption__:{name_key}:{dest}"
+            n_cnt = len(entry["tier1"])
+            m_cnt = len(entry["tier2"])
+            t1 = w_has * _interruption_B(n_cnt, dest, main_size, capacity)
+            t2 = w_sup * _interruption_B(m_cnt, dest, main_size, capacity)
+            total_a = t1 + t2
+            interruption_groups[gid] = total_a
+            interruption_details[gid] = dict(
+                name_key=name_key, destination=dest,
+                has_count=n_cnt, supported_count=m_cnt,
+                has_sources=sorted(entry["tier1"]),
+                supported_sources=sorted(entry["tier2"]),
+                uses_by_source={s: sorted(set(uids)) for s, uids in entry["uses_by_source"].items()},
+                tier1_value=t1, tier2_value=t2, total=total_a,
+                use_ids=sorted(entry["all_uses"]),
+            )
     surviving = set().union(*active.values()) if active else set()
     surviving.update(uid for uid, retained in adoptions.items() if retained)
-    return dict(value=fsum(values.values()), functions=values, inputs=channels,
+    return dict(value=fsum(values.values()) + fsum(interruption_groups.values()),
+                functions=values, inputs=channels,
+                interruption_groups=interruption_groups, interruption_details=interruption_details,
                 benefits=[dict(benefit_id=digest((f, s)), family=f, channel=c, source_id=s,
                                use_ids=sorted(proofs)) for (f, c, s), proofs in sorted(active.items()) if proofs],
                 surviving_uses=sorted(surviving), admitted_uses=sorted(admitted))
@@ -542,6 +614,60 @@ def _extend_bound(bounds, value):
     return bounds
 
 
+def _record_loss_use_diagnostics(row, uid, source_id, channel, stage, direction, use, facts, outcome, impacts, before_admitted):
+    row["use_ids"][uid] = None
+    row["evidence_refs"].update(dict.fromkeys(use.evidence_refs))
+    expressions = ([use.self_condition] + ([dict(use.theme_conditions)[channel]] if channel != "base" else [])
+                   if stage == 1 else [use.joint_condition,
+                       dict(use.theme_joint_conditions).get(channel, True)] if stage == 2 else [])
+    details = facts.get("use_details", {}).get(uid, {})
+    specific_repair = False
+    if stage == 1:
+        for check in details.get("inventory_checks", {}).values():
+            if check and check.get("status") == "missing":
+                row["reason_codes"]["complete_inventory_requirement"] = None
+                for requirement in check.get("requirements", ()):
+                    if requirement.get("shortfall") or check.get("shortfall"):
+                        repair = {k: requirement[k] for k in ("query", "minimum", "origin", "category") if k in requirement}
+                        row["repair_conditions"][digest(repair)] = repair
+                        reason = requirement.get("category", "inventory") + ":" + requirement.get("source", "required resource")
+                        row["reason_codes"][reason] = None
+                        specific_repair = True
+        row["reason_codes"].update(dict.fromkeys(details.get("self_reason_codes", ())))
+    if stage == 2:
+        for group in details.get("joint_groups", ()):
+            row["reason_codes"].update(dict.fromkeys(group.get("gaps", ())))
+            row["reason_codes"].update(dict.fromkeys(
+                "resource:" + c["pool"] for c in group.get("conflicts", ()) if "pool" in c))
+    for expression in expressions:
+        # A blocked use may retain diagnostic-only theme
+        # unknowns omitted from this score completion.
+        # Record proved failures without inventing values.
+        if support_state(expression, outcome["completion"]) is not False or expression is False and specific_repair:
+            continue
+        repair_id = digest(expression) if type(expression) is not bool else digest((uid, stage, channel))
+        row["repair_conditions"][repair_id] = dict(use_id=uid, expression=expression)
+        for fact_id in support_facts(expression):
+            detail = facts.get("fact_details", {}).get(fact_id, {})
+            row["reason_codes"][detail.get("reason_code", fact_id)] = None
+            row["evidence_refs"].update(dict.fromkeys(detail.get("evidence_refs", ())))
+    if stage == 3:
+        for impact in impacts:
+            direct = (uid in impact.affected_use_ids and channel in impact.channels
+                and (not impact.affected_source_ids or source_id in impact.affected_source_ids))
+            inherited = (channel == 'task-secondary' and 'base' in impact.channels and any(
+                w['receiver_use_id'] in impact.affected_use_ids and (
+                    not impact.affected_source_ids or set(w['receiver_source_ids']) & set(impact.affected_source_ids))
+                for w in facts.get('theme_witnesses', {}).get(uid, ())))
+            if ((direct or inherited)
+                    and impact.scope_id in ("resident", direction)
+                    and impact.source_use_id in before_admitted
+                    and support_value(impact.condition, outcome["completion"])):
+                row["reason_codes"].update(dict.fromkeys(impact.reason_codes))
+                row["evidence_refs"].update(dict.fromkeys(impact.evidence_refs))
+                row["repair_conditions"][impact.impact_id] = {"not": impact.condition}
+
+
 def _accumulate_functional_losses(outcome, by_id, impacts, facts, directions, weights, records):
     """Explain one consistent completion using the original effective inputs."""
     from math import log2
@@ -570,58 +696,38 @@ def _accumulate_functional_losses(outcome, by_id, impacts, facts, directions, we
                     row["source_ids"][benefit["source_id"]] = None
                     row["benefit_ids"][benefit["benefit_id"]] = None
                     for uid in benefit["use_ids"]:
-                        use = by_id[uid]
-                        row["use_ids"][uid] = None
-                        row["evidence_refs"].update(dict.fromkeys(use.evidence_refs))
-                        expressions = ([use.self_condition] + ([dict(use.theme_conditions)[channel]] if channel != "base" else [])
-                                       if stage == 1 else [use.joint_condition,
-                                           dict(use.theme_joint_conditions).get(channel, True)] if stage == 2 else [])
-                        details = facts.get("use_details", {}).get(uid, {})
-                        specific_repair = False
-                        if stage == 1:
-                            for check in details.get("inventory_checks", {}).values():
-                                if check and check.get("status") == "missing":
-                                    row["reason_codes"]["complete_inventory_requirement"] = None
-                                    for requirement in check.get("requirements", ()):
-                                        if requirement.get("shortfall") or check.get("shortfall"):
-                                            repair = {k: requirement[k] for k in ("query", "minimum", "origin", "category") if k in requirement}
-                                            row["repair_conditions"][digest(repair)] = repair
-                                            reason = requirement.get("category", "inventory") + ":" + requirement.get("source", "required resource")
-                                            row["reason_codes"][reason] = None
-                                            specific_repair = True
-                            row["reason_codes"].update(dict.fromkeys(details.get("self_reason_codes", ())))
-                        if stage == 2:
-                            for group in details.get("joint_groups", ()):
-                                row["reason_codes"].update(dict.fromkeys(group.get("gaps", ())))
-                                row["reason_codes"].update(dict.fromkeys(
-                                    "resource:" + c["pool"] for c in group.get("conflicts", ()) if "pool" in c))
-                        for expression in expressions:
-                            # A blocked use may retain diagnostic-only theme
-                            # unknowns omitted from this score completion.
-                            # Record proved failures without inventing values.
-                            if support_state(expression, outcome["completion"]) is not False or expression is False and specific_repair:
-                                continue
-                            repair_id = digest(expression) if type(expression) is not bool else digest((uid, stage, channel))
-                            row["repair_conditions"][repair_id] = dict(use_id=uid, expression=expression)
-                            for fact_id in support_facts(expression):
-                                detail = facts.get("fact_details", {}).get(fact_id, {})
-                                row["reason_codes"][detail.get("reason_code", fact_id)] = None
-                                row["evidence_refs"].update(dict.fromkeys(detail.get("evidence_refs", ())))
-                        if stage == 3:
-                            for impact in impacts:
-                                direct = (uid in impact.affected_use_ids and channel in impact.channels
-                                    and (not impact.affected_source_ids or benefit['source_id'] in impact.affected_source_ids))
-                                inherited = (channel == 'task-secondary' and 'base' in impact.channels and any(
-                                    w['receiver_use_id'] in impact.affected_use_ids and (
-                                        not impact.affected_source_ids or set(w['receiver_source_ids']) & set(impact.affected_source_ids))
-                                    for w in facts.get('theme_witnesses', {}).get(uid, ())))
-                                if ((direct or inherited)
-                                        and impact.scope_id in ("resident", direction)
-                                        and impact.source_use_id in before["admitted_uses"]
-                                        and support_value(impact.condition, outcome["completion"])):
-                                    row["reason_codes"].update(dict.fromkeys(impact.reason_codes))
-                                    row["evidence_refs"].update(dict.fromkeys(impact.evidence_refs))
-                                    row["repair_conditions"][impact.impact_id] = {"not": impact.condition}
+                        _record_loss_use_diagnostics(
+                            row, uid, benefit["source_id"], channel, stage, direction,
+                            by_id[uid], facts, outcome, impacts, before["admitted_uses"],
+                        )
+            before_int = before.get("interruption_details", {})
+            after_int = after.get("interruption_details", {})
+            for gid, bdet in sorted(before_int.items()):
+                adet = after_int.get(gid)
+                m_before = bdet["supported_count"]
+                m_after = adet["supported_count"] if adet is not None else 0
+                if m_after >= m_before:
+                    continue
+                t2_after = adet["tier2_value"] if adet is not None else 0.0
+                amount = weight * (bdet["tier2_value"] - t2_after)
+                lost_sources = sorted(set(bdet["supported_sources"]) - set(adet["supported_sources"] if adet is not None else ()))
+                key = stage, direction, gid, "interruption_supported"
+                row = records.setdefault(digest(key), dict(key=list(key), stage=name, scope_id=direction,
+                    score_family_id=gid, channel_id="interruption_supported", source_ids={}, benefit_ids={}, use_ids={},
+                    reason_codes={}, evidence_refs={}, repair_conditions={}, amounts=None,
+                    input_before=None, input_after=None, count=0))
+                row["amounts"] = _extend_bound(row["amounts"], amount)
+                row["input_before"] = _extend_bound(row["input_before"], float(m_before))
+                row["input_after"] = _extend_bound(row["input_after"], float(m_after))
+                row["count"] += 1
+                for sid in lost_sources:
+                    row["source_ids"][sid] = None
+                    row["benefit_ids"][digest((gid, sid))] = None
+                    for uid in bdet["uses_by_source"].get(sid, ()):
+                        _record_loss_use_diagnostics(
+                            row, uid, sid, "base", stage, direction,
+                            by_id[uid], facts, outcome, impacts, before["admitted_uses"],
+                        )
 
 
 def _functional_loss_records(records, outcome_count, *, exact):
@@ -816,9 +922,10 @@ def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, 
     exact_search = len(unknown) <= 16 and (full_count <= budget
         or (not upper_unknown and (resumable or continuation is not None)))
     case_count = full_count if exact_search else min(2, budget)
+    eval_version = config["evaluator_version"]
     facts_sha = digest({**facts, "uses": [asdict(u) for u in uses], "impacts": [asdict(i) for i in facts["impacts"]]})
     policy_sha, logic_sha = digest(policy), digest(axis.get("logic"))
-    binding = digest((FUNCTIONAL_QUALITY_VERSION, task_sha, deck_sha, policy_sha, logic_sha, facts_sha))
+    binding = digest((eval_version, task_sha, deck_sha, policy_sha, logic_sha, facts_sha))
     if continuation is not None and (not isinstance(continuation, dict)
             or continuation.get('version') != 'functional-quality-work-v1' or continuation.get('binding') != binding):
         raise ContractError('quality continuation belongs to different inputs')
@@ -984,7 +1091,7 @@ def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, 
         for index, value in work['completion_scores']:
             completion = completion_at(index)
             completion_results.append(dict(facts={key: completion[key] for key in ordered_facts}, value=value))
-    body = dict(version=FUNCTIONAL_QUALITY_VERSION, layer="quality", policy_version=policy["version"],
+    body = dict(version=eval_version, layer="quality", policy_version=policy["version"],
         policy_source=policy["source"], policy_sha256=policy_sha, quality_config_sha256=digest(config),
         task_sha256=task_sha, deck_sha256=deck_sha, logic_sha256=logic_sha, asset_version=facts["asset_version"],
         inventory=deepcopy(inventory),
@@ -1006,6 +1113,23 @@ def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, 
         use_details=deepcopy(facts.get("use_details", {})), fact_details=deepcopy(facts.get("fact_details", {})),
         unpriced_effects=deepcopy(facts.get("unpriced_effects", [])),
         completion_results=completion_results, details=work['details'] if complete else None)
+    if eval_version == FUNCTIONAL_QUALITY_VERSION_V5:
+        final_details = work['details'][-1] if (complete and work.get('details')) else None
+        def _int_scope(ctx_row):
+            if not ctx_row:
+                return None
+            dets = ctx_row.get("interruption_details", {})
+            return dict(
+                tier1_total=fsum(d["tier1_value"] for d in dets.values()),
+                tier2_total=fsum(d["tier2_value"] for d in dets.values()),
+                total=fsum(d["total"] for d in dets.values()),
+                groups=deepcopy(dets),
+            )
+        body["interruption_bonus"] = dict(
+            config=deepcopy(config["interruption_bonus"]),
+            resident=_int_scope(final_details["resident"]) if final_details else None,
+            directions={d: _int_scope(final_details["contexts"][d]) for d in directions} if final_details else None,
+        )
     for field in ("static_rules", "rule_source_error"):
         if field in facts:
             body[field] = deepcopy(facts[field])
@@ -1050,7 +1174,7 @@ class _ComparisonInput:
 
 
 def validate_evaluation(row):
-    if isinstance(row, dict) and row.get("version") == FUNCTIONAL_QUALITY_VERSION:
+    if isinstance(row, dict) and row.get("version") in SUPPORTED_FUNCTIONAL_QUALITY_VERSIONS:
         body = {key: value for key, value in row.items() if key != "evaluation_id"}
         identity = row.get("evaluation_id")
         if digest(body) == identity:

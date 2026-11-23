@@ -35,11 +35,20 @@ def _connected(fact_sets):
         yield sorted(group)
 
 
-def _units(uses, impacts, witnesses, constraints, known, unknown, limit):
+def _units(uses, impacts, witnesses, constraints, known, unknown, limit, *, sources=None, interruption_bonus=None):
     by_family, by_target = defaultdict(list), defaultdict(set)
+    by_int_group = defaultdict(list)
     for use in uses:
         if use.contributes:
             by_family[use.score_family_id].append(use)
+            if interruption_bonus is not None and sources is not None and use.is_interruption:
+                seen_groups = set()
+                for s in use.source_ids:
+                    item = sources[s]
+                    gkey = (str(item["name_key"]), item["destination"])
+                    if gkey not in seen_groups:
+                        seen_groups.add(gkey)
+                        by_int_group[gkey].append(use)
     for index, impact in enumerate(impacts):
         for target in impact.affected_use_ids:
             by_target[target].add(index)
@@ -60,6 +69,14 @@ def _units(uses, impacts, witnesses, constraints, known, unknown, limit):
         expressions.extend(w['joint_condition'] for w in receivers)
         expressions.extend(impacts[i].condition for i in impact_ids)
         terms.append((dependencies(expressions), {family}, use_ids, impact_ids, ()))
+    for (nk, dest), int_uses in sorted(by_int_group.items()):
+        gid = f"__interruption__:{nk}:{dest}"
+        targets = {use.use_id for use in int_uses}
+        impact_ids = set().union(*(by_target[target] for target in targets))
+        use_ids = targets | {impacts[i].source_use_id for i in impact_ids}
+        expressions = [c for uid in use_ids for c in (by_id[uid].self_condition, by_id[uid].joint_condition)]
+        expressions.extend(impacts[i].condition for i in impact_ids)
+        terms.append((dependencies(expressions), {gid}, use_ids, impact_ids, ()))
     for expression in constraints:
         terms.append((dependencies((expression,)), set(), set(), set(), (_condition_program(expression, known),)))
 
@@ -92,7 +109,8 @@ def evaluate_components(uses, impacts, sources, runtime, directions, known, unkn
     scenarios = ('resident', *(direction for direction in directions if direction != 'resident'))
     overrides = {scenario: _side_overrides(uses, scenario) for scenario in scenarios}
     for position, (facts, families, members, impact_ids, programs, independent) in enumerate(
-            _units(uses, impacts, runtime['_theme_witnesses'], constraints, known, set(unknown), limit)):
+            _units(uses, impacts, runtime['_theme_witnesses'], constraints, known, set(unknown), limit,
+                   sources=sources, interruption_bonus=runtime.get('interruption_bonus'))):
         if position < len(components):
             continue
         if should_stop is not None and should_stop():
@@ -108,7 +126,9 @@ def evaluate_components(uses, impacts, sources, runtime, directions, known, unkn
             for scenario in scenarios:
                 result = _functional_inputs(local_uses, sources, runtime, completion, 3, scenario, local_impacts,
                     optimistic=optimistic, overrides=overrides[scenario], family_prices=family_prices)
-                values[scenario] = fsum(result['functions'].get(family, 0.) for family in sorted(families))
+                int_groups = result.get('interruption_groups', {})
+                values[scenario] = fsum(result['functions'].get(family, 0.) + int_groups.get(family, 0.)
+                                        for family in sorted(families))
             return values
 
         for bits in product((False, True), repeat=len(columns)):

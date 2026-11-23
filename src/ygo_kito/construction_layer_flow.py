@@ -27,7 +27,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v68"
+NORMALIZATION_VERSION = "construction-function-normalization-v69"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -450,7 +450,20 @@ def _summon_recipe_assignment(fact, check, facts, pools, *, kind="fusion", lp_al
                 tuple(m["card_id"] for m in o.get("materials", ())),
             ),
         )
-        capped = _select_diverse_options(ordered_opts, lambda o: {m["card_id"] for m in o.get("materials", ())}, limit=1)
+        deduped_opts, seen_opt_keys = [], set()
+        for opt in ordered_opts:
+            opt_sig = (
+                tuple(sorted((m.get("section"), m["card_id"], m.get("location")) for m in opt.get("materials", ()))),
+                int(opt.get("lp_cost") or 0),
+            )
+            if opt_sig not in seen_opt_keys:
+                seen_opt_keys.add(opt_sig)
+                deduped_opts.append(opt)
+        capped = _select_diverse_options(
+            deduped_opts,
+            lambda o: {m["card_id"] for m in o.get("materials", ())},
+            limit=2 if kind == "ritual" else 1,
+        )
         for option in capped:
             lp_cost = int(option.get("lp_cost") or 0) if not lp_already_charged else 0
             key = (
@@ -506,12 +519,17 @@ def _summon_recipe_assignment(fact, check, facts, pools, *, kind="fusion", lp_al
     if isinstance(check, dict):
         check["target_resource_kinds"] = target_res_kinds
     if not assigned:
-        if check.get("status") == "unknown" or check.get("actual_duel_state_required"):
+        if check.get("status") == "unknown" or check.get("actual_duel_state_required") or check.get("uncovered_targets"):
+            unk_reason = (
+                ("ritual_material_search_incomplete",)
+                if kind == "ritual" and check.get("uncovered_targets")
+                else (f"{kind}_state_or_target_unresolved",)
+            )
             facts.append(RelationFact(
                 f"{fact.fact_id}:{kind}:unknown", fact.effect_ref, resource, fact.source, fact.card_id, fact.zone,
                 inputs=(InputGroup("all", (Need(f"{fact.fact_id}:{kind}:unk:ready", ready_resource, mode="presence"),))
                         if ready_resource is not None else None),
-                unknown=(f"{kind}_state_or_target_unresolved",), choice=f"{kind}:unknown",
+                unknown=unk_reason, choice=f"{kind}:unknown",
             ))
         elif kind == "fusion":
             return fact.inputs
@@ -545,9 +563,11 @@ def _wire_native_summon_dag_and_gates(available, records, extra_ids, dependencie
     present = sorted(main_set | extra_set)
 
     NS_POOL = "dag:pool:normal_summon:self"
+    EMPTY_OWN_MZONE_POOL = "dag:pool:empty_own_mzone:self"
     PEND_POOL = "dag:pool:pendulum_summon:self"
     EMZ_POOL = "dag:pool:extra_pend_emz:self"
     rel_pools.setdefault(NS_POOL, ResourcePool(NS_POOL, "rule: one Normal Summon or Set per turn", capacity=1))
+    rel_pools.setdefault(EMPTY_OWN_MZONE_POOL, ResourcePool(EMPTY_OWN_MZONE_POOL, "empty own monster zone entry allowance", capacity=1))
     rel_pools.setdefault(PEND_POOL, ResourcePool(PEND_POOL, "rule: one Pendulum Summon per turn", capacity=1))
     rel_pools.setdefault(EMZ_POOL, ResourcePool(EMZ_POOL, "rule: one Extra Monster Zone per turn setup", capacity=1))
 
@@ -573,14 +593,15 @@ def _wire_native_summon_dag_and_gates(available, records, extra_ids, dependencie
 
     dag_fids = {f.fact_id for f in rel_facts}
 
-    def add_dag(fid, eff_ref, output, source, card_id, zone, *, inputs=None, claims=(), unknown=(),
-                choice="joint", quantity=1):
+    def add_dag(fid, eff_ref, output, source, card_id, zone, *, inputs=None, claims=(), conditions=(),
+                unknown=(), choice="joint", quantity=1):
         if fid in dag_fids:
             return
         dag_fids.add(fid)
         rel_facts.append(RelationFact(
             fid, eff_ref, output, source, card_id, zone, quantity=quantity,
-            inputs=inputs, claims=_aggregate_claims(claims), unknown=unknown, choice=choice,
+            inputs=inputs, claims=_aggregate_claims(claims), conditions=conditions,
+            unknown=unknown, choice=choice,
         ))
 
     def row_sec(c):
@@ -637,8 +658,13 @@ def _wire_native_summon_dag_and_gates(available, records, extra_ids, dependencie
             for proc in rule.get("inherent_ss_procs", ()):
                 if proc.get("holds_empty_board") or proc.get("holds_with_opponent_monster"):
                     peff = f"dag:inh_ss:{m}:{proc['proc_index']}:{slot}"
-                    add_dag(peff, peff, Resource("field_entry", attributes=(f"card:{m}", f"slot:{slot}", "summon:special", "proper:yes", "pre_scale:yes")),
-                            "inherent_special_summon_proc", m, "main", claims=(Claim(phys_pool("main", m), 1),))
+                    attrs = [f"card:{m}", f"slot:{slot}", "summon:special", "proper:yes", "pre_scale:yes"]
+                    claims = [Claim(phys_pool("main", m), 1)]
+                    if proc.get("requires_empty_own_mzone"):
+                        attrs.append("entry:empty_own_mzone")
+                        claims.append(Claim(EMPTY_OWN_MZONE_POOL, 1))
+                    add_dag(peff, peff, Resource("field_entry", attributes=tuple(attrs)),
+                            "inherent_special_summon_proc", m, "main", claims=tuple(claims))
         if lv <= 4:
             if rule.get("inherent_ss_procs") or rule.get("is_pendulum"):
                 fodder_priority.append((0, m))
@@ -870,7 +896,7 @@ def _wire_native_summon_dag_and_gates(available, records, extra_ids, dependencie
             src_fid = operation_facts[src, ri, oi].removeprefix("functional:")
             res_kinds = proof.get("target_resource_kinds", {})
             for target in sorted(res_kinds if res_kinds else {opt["target"] for opt in proof.get("options", ())}):
-                if target_supplier_count[target] >= 1:
+                if target_supplier_count[target] >= (2 if pkind == "ritual" else 1):
                     continue
                 target_supplier_count[target] += 1
                 res_kind = res_kinds.get(target, f"{pkind}_assignment")
@@ -887,18 +913,85 @@ def _wire_native_summon_dag_and_gates(available, records, extra_ids, dependencie
                     else:
                         add_dag(feid, feid, Resource("field_entry", attributes=attrs), f"{pkind}_summon_rule", target, sec,
                                 inputs=InputGroup("all", (Need(f"{feid}:rec", req_res, mode="presence"),)))
+        if pkind == "ritual":
+            for (src, ri, oi), proof in ordered_proofs:
+                src_fid = operation_facts[src, ri, oi].removeprefix("functional:")
+                src_ready = Resource("effect_ready", attributes=(src_fid,)) if src_fid in effect_ready_facts else Resource("functional_operation", attributes=(src_fid,))
+                for target in sorted(proof.get("uncovered_targets", ())):
+                    if target_supplier_count[target] >= 1:
+                        continue
+                    target_supplier_count[target] += 1
+                    add_dag(f"dag:ritual_prop_unk:{src}:{ri}:{oi}:{target}",
+                            f"dag:ritual_prop_unk:{src}:{ri}:{oi}:{target}",
+                            Resource("proper_summon", attributes=(f"card:{target}",)),
+                            "ritual_summon_rule", target, sec,
+                            inputs=InputGroup("all", (Need(f"dag:ritual_pu:{src}:{ri}:{oi}:{target}", src_ready, mode="presence"),)),
+                            unknown=("ritual_material_search_incomplete",))
+                    for slot in range(slot_cap.get(target, 1)):
+                        feid = f"dag:ritual_fe_unk:{src}:{ri}:{oi}:{target}:{slot}"
+                        attrs = (f"card:{target}", f"slot:{slot}", "summon:ritual", "summon:special", "proper:yes", "pre_scale:yes")
+                        add_dag(feid, feid, Resource("field_entry", attributes=attrs),
+                                "ritual_summon_rule", target, sec,
+                                inputs=InputGroup("all", (Need(f"{feid}:src", src_ready, mode="presence"),)),
+                                unknown=("ritual_material_search_incomplete",))
 
-    # Identify monsters with non-Normal-Summon field entry routes so witness selection avoids 2+ NS-only materials
-    ss_capable = set(extra_set) | set(ess_count)
-    for m in main_set:
-        if monster_rules.get(m, {}).get("inherent_ss_procs"):
-            ss_capable.add(m)
-        for srec in records.get(m, ()):
-            for sop in srec.get("operations", ()):
-                if sop.get("kind") == "special_summon" and sop.get("subject") == "this_card":
-                    ss_capable.add(m)
+    # Ground Main-monster enterability from actual DAG facts emitted so far (+ Pendulum windows),
+    # so conditional inherent procs like Gigantes never crowd out feasible Extra/Effect SS routes.
+    pend_open_lvs = set()
+    for popt in stock.get("pendulum", ()):
+        pl, pr = popt["left"], popt["right"]
+        if pl == pr and counts["main", pl] < 2:
+            continue
+        pmin, pmax = popt["min_scale"], popt["max_scale"]
+        if pmax - pmin >= 2:
+            for t in popt.get("hand_targets", ()):
+                t_id = t["card_id"] if isinstance(t, dict) else t
+                tlv = (monster_rules.get(t_id, {}).get("pendulum_level")
+                       or monster_rules.get(t_id, {}).get("level")
+                       or (dependencies.rows.get(t_id, {}).get("level", 0) & 255) or 1)
+                if pmin < tlv < pmax:
+                    pend_open_lvs.add(t_id)
+    main_can_ns = set()
+    pre_scale_uncond_non_ns = set()
+    pre_scale_anytime_non_ns = set()
+    pre_scale_non_ns = set()
+    pre_scale_entry = set()
+    for rf in rel_facts:
+        if rf.card_id in main_set and rf.output.kind == "field_entry":
+            if rf.fact_id.startswith(("dag:ns:", "dag:trib_ns:")):
+                pre_scale_entry.add(rf.card_id)
+                main_can_ns.add(rf.card_id)
+            elif rf.fact_id.startswith(("dag:inh_ss:", "dag:ess_self:", "dag:ritual_fe:")):
+                pre_scale_entry.add(rf.card_id)
+                pre_scale_non_ns.add(rf.card_id)
+                if "entry:empty_own_mzone" not in rf.output.attributes:
+                    pre_scale_uncond_non_ns.add(rf.card_id)
+                    pre_scale_anytime_non_ns.add(rf.card_id)
+            elif rf.fact_id.startswith(("dag:ess:", "dag:ext_ns:")):
+                parts = rf.fact_id.split(":")
+                if len(parts) >= 3 and parts[2].isdigit() and int(parts[2]) in extra_set:
+                    continue  # Extra-deck-sourced SS/extra-NS cannot supply pre-Extra materials without circular dependency
+                pre_scale_entry.add(rf.card_id)
+                pre_scale_non_ns.add(rf.card_id)
+                if "entry:empty_own_mzone" not in rf.output.attributes:
+                    if rf.fact_id.startswith("dag:ext_ns:"):
+                        pre_scale_uncond_non_ns.add(rf.card_id)
+                    pre_scale_anytime_non_ns.add(rf.card_id)
+
+    main_has_uncond_non_ns = pre_scale_uncond_non_ns | pend_open_lvs
+    main_has_anytime_non_ns = pre_scale_anytime_non_ns | pend_open_lvs
+    main_has_non_ns_entry = pre_scale_non_ns | pend_open_lvs
+    main_has_entry = pre_scale_entry | pend_open_lvs
+
+    def _main_pool_conflict(mats, non_ns_set, anytime_set):
+        ns_only = sum(1 for m in mats if m["card_id"] in main_set and m["card_id"] not in non_ns_set)
+        empty_only_no_ns = sum(1 for m in mats if m["card_id"] in main_set and m["card_id"] not in anytime_set and m["card_id"] not in main_can_ns)
+        limited_pool = sum(1 for m in mats if m["card_id"] in main_set and m["card_id"] not in anytime_set)
+        return max(0, ns_only - 1) + max(0, empty_only_no_ns - 1) + max(0, limited_pool - 2)
 
     # Contact Fusion, Synchro, Xyz, Link
+    max_xyz_attached = Counter()
+
     def wire_extra_proc_group(proc_kind, options, *, summon_tag):
         grouped = defaultdict(list)
         for opt in options:
@@ -908,27 +1001,68 @@ def _wire_native_summon_dag_and_gates(available, records, extra_ids, dependencie
             if any(not (extra_tier(m["card_id"], False) < t_tier) for m in opt.get("materials", ())):
                 continue
             grouped[(target, is_alt)].append(opt)
-        for (target, is_alt), target_opts in sorted(grouped.items()):
-            # Prioritize recipes with at most 1 NS-only Main Deck material, then Main Deck materials before Extra Deck materials
+        for (target, is_alt), target_opts in sorted(grouped.items(), key=lambda kv: extra_tier(kv[0][0], kv[0][1])):
+            is_scale_placer = target in scale_placer_cards
+            entry_set = pre_scale_entry if is_scale_placer else main_has_entry
+            non_ns_set = pre_scale_non_ns if is_scale_placer else main_has_non_ns_entry
+            uncond_set = pre_scale_uncond_non_ns if is_scale_placer else main_has_uncond_non_ns
+            anytime_set = pre_scale_anytime_non_ns if is_scale_placer else main_has_anytime_non_ns
+            # Prioritize options whose Main materials are all enterable and avoid NS/empty-board pool conflicts
             ordered_opts = sorted(
                 target_opts,
                 key=lambda o: (
-                    max(0, sum(1 for m in o.get("materials", ()) if m["card_id"] not in ss_capable) - 1),
+                    sum(1 for m in o.get("materials", ()) if m["card_id"] in main_set and m["card_id"] not in entry_set),
+                    -max((max_xyz_attached.get(m["card_id"], 0) for m in o.get("materials", ())), default=0)
+                    if (proc_kind == "xyz" and is_alt) else 0,
+                    _main_pool_conflict(o.get("materials", ()), non_ns_set, anytime_set),
+                    max(0, sum(1 for m in o.get("materials", ()) if m["card_id"] in main_set and m["card_id"] not in non_ns_set) - 1),
+                    max(0, sum(1 for m in o.get("materials", ()) if m["card_id"] in main_set and m["card_id"] not in uncond_set) - 1),
                     sum(1 for m in o.get("materials", ()) if m["card_id"] in extra_set),
                     len(o.get("materials", ())),
                     tuple(m["card_id"] for m in o.get("materials", ())),
                 ),
             )
-            capped = _select_diverse_options(ordered_opts, lambda o: {m["card_id"] for m in o.get("materials", ())}, limit=1)
+            deduped_opts, seen_opt_keys = [], set()
+            for opt in ordered_opts:
+                opt_sig = (
+                    tuple(sorted((m["card_id"], m.get("location")) for m in opt.get("materials", ()))),
+                    tuple(sorted(t["card_id"] for t in opt.get("tuners", ()))),
+                    opt.get("requires_external_state"),
+                )
+                if opt_sig not in seen_opt_keys:
+                    seen_opt_keys.add(opt_sig)
+                    deduped_opts.append(opt)
+            opt_limit = 1
+            if proc_kind == "xyz" and deduped_opts:
+                best = deduped_opts[0]
+                bmats = best.get("materials", ())
+                if is_alt:
+                    b0 = bmats[0]["card_id"] if len(bmats) == 1 else None
+                    opt_limit = 1 if (b0 is not None and max_xyz_attached.get(b0, 0) >= 2) else 2
+                else:
+                    clean_std = (
+                        all(m["card_id"] not in main_set or m["card_id"] in entry_set for m in bmats)
+                        and _main_pool_conflict(bmats, non_ns_set, anytime_set) == 0
+                        and sum(1 for m in bmats if m["card_id"] in main_set and m["card_id"] not in uncond_set) <= 1
+                        and not any(m["card_id"] in extra_set for m in bmats)
+                    )
+                    opt_limit = 1 if clean_std else 2
+            capped = _select_diverse_options(
+                deduped_opts,
+                lambda o: {m["card_id"] for m in o.get("materials", ())},
+                limit=opt_limit,
+            )
             target_hub_id = f"dag:{proc_kind}_thub:{target}:{int(is_alt)}"
             target_hub_res = Resource(f"{proc_kind}_target_hub", attributes=(target_hub_id,))
             target_climb_id = f"dag:{proc_kind}_tclimb:{target}:{int(is_alt)}"
             target_climb_res = Resource(f"{proc_kind}_target_climb", attributes=(target_climb_id,))
             has_any_opt, has_climb_opt = False, False
             req_pre_scale = ("pre_scale:yes",) if target in scale_placer_cards else ()
+            std_attached_groups = defaultdict(list)
             for idx, opt in enumerate(capped):
                 hub_id = f"dag:{proc_kind}:{target}:{int(is_alt)}:{idx}"
                 hub_res = Resource(f"{proc_kind}_hub", attributes=(hub_id,))
+                hub_conds = (opt["requires_external_state"],) if opt.get("requires_external_state") else ()
                 needs, claims = [], [Claim(phys_pool("extra", target), 1)]
                 mslots = Counter()
                 uses_link_mat = False
@@ -947,7 +1081,7 @@ def _wire_native_summon_dag_and_gates(available, records, extra_ids, dependencie
                         claims.append(Claim(phys_pool(mat["section"], m_id), 1))
                 add_dag(hub_id, hub_id, hub_res, f"{proc_kind}_summon_procedure", target, "extra",
                         inputs=InputGroup("all", tuple(needs)) if needs else None,
-                        claims=tuple(claims))
+                        claims=tuple(claims), conditions=hub_conds)
                 has_any_opt = True
                 add_dag(f"{hub_id}:th", f"{hub_id}:th", target_hub_res, f"{proc_kind}_summon_procedure", target, "extra",
                         inputs=InputGroup("all", (Need(f"{hub_id}:thn", hub_res, mode="presence"),)))
@@ -956,16 +1090,44 @@ def _wire_native_summon_dag_and_gates(available, records, extra_ids, dependencie
                     add_dag(f"{hub_id}:tc", f"{hub_id}:tc", target_climb_res, f"{proc_kind}_summon_procedure", target, "extra",
                             inputs=InputGroup("all", (Need(f"{hub_id}:tcn", hub_res, mode="presence"),)))
                 if proc_kind == "xyz":
-                    attached = max(1, int(opt.get("attached_count") or len(opt.get("materials", ()))))
-                    if is_alt and len(opt.get("materials", ())) == 1:
-                        base_id = opt["materials"][0]["card_id"]
-                        if (monster_rules.get(base_id, {}).get("rank") or 0) > 0 or (dependencies.rows.get(base_id, {}).get("type", 0) & 0x800000):
-                            attached = max(attached, 2)
-                    mat_ref = f"dag:xyz_mat:{target}"
                     mat_res = Resource("xyz_materials", attributes=(f"card:{target}",))
-                    add_dag(f"{hub_id}:xm", mat_ref, mat_res, "xyz_attached_materials", target, "extra",
-                            quantity=attached, inputs=InputGroup("all", (Need(f"{hub_id}:xmh", hub_res, mode="presence"),)),
-                            choice=f"direct:{int(is_alt)}:{idx}")
+                    if is_alt and len(opt.get("materials", ())) == 1:
+                        alt_eff_ref = f"dag:xyz_mat:{target}:alt"
+                        add_dag(f"{hub_id}:xm:0", alt_eff_ref, mat_res,
+                                "xyz_attached_materials", target, "extra", quantity=1,
+                                inputs=InputGroup("all", (Need(f"{hub_id}:xmh", hub_res, mode="presence"),)),
+                                conditions=hub_conds, choice=f"alt:{idx}:0")
+                        base_id = opt["materials"][0]["card_id"]
+                        max_inherit = min(3, int(max_xyz_attached.get(base_id, 0)))
+                        max_xyz_attached[target] = max(max_xyz_attached[target], 1 + max_inherit)
+                        if max_inherit > 0:
+                            base_mat_res = Resource("xyz_materials", attributes=(f"card:{base_id}",))
+                            for inh_k in range(1, max_inherit + 1):
+                                add_dag(f"{hub_id}:xm:inh:{inh_k}", alt_eff_ref, mat_res,
+                                        "xyz_attached_materials", target, "extra", quantity=1 + inh_k,
+                                        inputs=InputGroup("all", (
+                                            Need(f"{hub_id}:xmh", hub_res, mode="presence"),
+                                            Need(f"{hub_id}:xmi:{inh_k}", base_mat_res, quantity=inh_k, mode="consume"),
+                                        )),
+                                        conditions=hub_conds, choice=f"alt:{idx}:{inh_k}")
+                    else:
+                        attached = max(1, int(opt.get("attached_count") or len(opt.get("materials", ()))))
+                        max_xyz_attached[target] = max(max_xyz_attached[target], attached)
+                        std_attached_groups[(attached, hub_conds)].append((idx, hub_id, hub_res))
+            if proc_kind == "xyz" and std_attached_groups:
+                mat_res = Resource("xyz_materials", attributes=(f"card:{target}",))
+                for g_i, ((attached, g_conds), group_rows) in enumerate(sorted(std_attached_groups.items())):
+                    att_hub_id = f"dag:xyz_ahub:{target}:{attached}:{g_i}"
+                    att_hub_res = Resource("xyz_attached_hub", attributes=(att_hub_id,))
+                    for _, h_id, h_res in group_rows:
+                        add_dag(f"{h_id}:ag:{g_i}", f"{h_id}:ag:{g_i}", att_hub_res,
+                                "xyz_attached_materials", target, "extra",
+                                inputs=InputGroup("all", (Need(f"{h_id}:agn", h_res, mode="presence"),)),
+                                conditions=g_conds)
+                    add_dag(f"dag:xyz:{target}:0:xm:{attached}:{g_i}", f"dag:xyz_mat:{target}:std", mat_res,
+                            "xyz_attached_materials", target, "extra", quantity=attached,
+                            inputs=InputGroup("all", (Need(f"{att_hub_id}:n", att_hub_res, mode="presence"),)),
+                            conditions=g_conds, choice=f"direct:0:{g_i}")
             if has_any_opt:
                 add_dag(f"{target_hub_id}:prop", f"{target_hub_id}:prop", Resource("proper_summon", attributes=(f"card:{target}",)),
                         f"{proc_kind}_summon_procedure", target, "extra",
@@ -1354,6 +1516,25 @@ def _wire_native_summon_dag_and_gates(available, records, extra_ids, dependencie
             rel_facts[target_idx] = replace(target_fact, inputs=new_inputs, claims=new_claims)
 
     # Guarantee strict DAG acyclicity across all relation facts so fixed-point propagation finishes in one pass
+    _secondary_dag_prefixes = (
+        "dag:ess:", "dag:ess_self:", "dag:ext_ns:",
+        "dag:pend_eff:", "dag:pwin:eff:", "dag:pscales:",
+        "dag:rtd_", "dag:eff_gy:", "dag:hd_gy_", "dag:tb:",
+    )
+    _primary_dag_prefixes = (
+        "dag:ns:", "dag:trib_ns:", "dag:inh_ss:", "dag:flip:",
+        "dag:contact_fusion:", "dag:contact_fusion_", "dag:synchro:", "dag:synchro_",
+        "dag:xyz:", "dag:xyz_", "dag:link:", "dag:link_",
+        "dag:fusion_", "dag:ritual_", "dag:pend_h:", "dag:pwin:hand:",
+    )
+
+    def _dag_drop_rank(fid):
+        if fid.startswith(_secondary_dag_prefixes):
+            return 0
+        if fid.startswith(_primary_dag_prefixes):
+            return 2
+        return 1
+
     while True:
         out_buckets = defaultdict(list)
         for idx, f in enumerate(rel_facts):
@@ -1377,7 +1558,8 @@ def _wire_native_summon_dag_and_gates(available, records, extra_ids, dependencie
                 c = state_color.get(v, 0)
                 if c == 1:
                     cycle_slice = stack[stack.index(v):]
-                    drop = next((w for w in reversed(cycle_slice) if rel_facts[w].fact_id.startswith("dag:")), None)
+                    dag_nodes = [(pos, w) for pos, w in enumerate(cycle_slice) if rel_facts[w].fact_id.startswith("dag:")]
+                    drop = min(dag_nodes, key=lambda pw: (_dag_drop_rank(rel_facts[pw[1]].fact_id), -pw[0]))[1] if dag_nodes else None
                     if drop is not None:
                         cyclic_dag_indices.add(drop)
                 elif c == 0:
@@ -1460,7 +1642,7 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
                             f"{fact.fact_id}:xyz_detach:{ci}",
                             Resource("xyz_materials", attributes=(f"card:{code}",)),
                             quantity=max(1, int(cost.get("quantity") or 1)),
-                            mode="presence",
+                            mode="consume",
                         ))
                     elif cost.get("subject") == "this_card":
                         if dag_available and scoped_record["trigger"].get("zone") == "field" and (dependencies.rows[code]["type"] & 1):
@@ -2119,7 +2301,9 @@ def _restriction_match(rule, detail, card_properties=None, *, summon_choice=None
     entries = [detail["semantics"], *detail.get("costs", ()), *detail.get("processing_prerequisites", ())]
     matches = []
     for operation in entries:
-        action = operation["kind"]
+        action = operation.get("kind")
+        if not action:
+            continue
         unknown = False
         if kind == "cannot_activate":
             if operation is not entries[0] or detail.get("applicability") == "this_card_in_monster_zone":
@@ -2543,6 +2727,39 @@ def _function_semantics(record, operation):
         selection="random" if operation.get("random") is True else "targeted" if operation.get("random") is False else None,
         selector=query, unresolved_selector=operation.get("selector") if query is None else None,
         result={k: deepcopy(v) for k, v in operation.items() if k not in ignored})
+
+
+_ALWAYS_INTERRUPTION_KINDS = frozenset({
+    "negate_activation", "negate_effect", "negate_summon",
+    "prevent_activation", "prevent_summon", "prevent_special_summon",
+    "prevent_effect", "prevent_draw", "prevent_search",
+    "special_summon_limit", "banish_replacement", "effect_change", "change_effect",
+})
+_OPPONENT_DISRUPTION_KINDS = frozenset({
+    "destroy", "banish", "send_grave", "return_hand", "return_deck",
+    "change_position", "control_change", "take_control", "attach_xyz_material",
+    "discard", "hand_rip", "flip_facedown", "shuffle_deck", "release", "tribute",
+})
+
+
+def _is_interruption_use(record, operation, semantics):
+    """Classify interruption uses strictly by mechanism/target/trigger, never by card ID or axis."""
+    if not operation:
+        return False
+    kind = (semantics or {}).get("kind") or operation.get("kind") or ""
+    owner = (semantics or {}).get("owner") or operation.get("owner")
+    if kind in _ALWAYS_INTERRUPTION_KINDS or kind.startswith(("negate_", "prevent_", "disable_")):
+        return owner in (None, "opponent", "both")
+    if kind in _OPPONENT_DISRUPTION_KINDS:
+        return owner in ("opponent", "both")
+    if kind == "draw":
+        ev = operation.get("event_condition")
+        if isinstance(ev, dict) and ev.get("player") == "opponent":
+            return True
+        trig = (record or {}).get("trigger", {})
+        if isinstance(trig, dict) and trig.get("opponent_reactive") is True:
+            return True
+    return False
 
 
 def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context=None,
@@ -3001,7 +3218,9 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                         use = FunctionalUse(key, eid, family, family, source_ids,
                             "called" if code in extra_ids else "main_density", refs, self_condition,
                             scope_id=scope, theme_conditions=tuple(themes), theme_eligible=tuple(k for k, _ in themes),
-                            contributes=operation is not None and (not native_authority or static_rule))
+                            contributes=operation is not None and (not native_authority or static_rule),
+                            is_interruption=(operation is not None and (not native_authority or static_rule)
+                                             and _is_interruption_use(record, used_operation, use_semantics)))
                         prior = next((u for u in facts["uses"] if u.use_id == key), None)
                         if prior is None:
                             facts["uses"].append(use)
@@ -3457,9 +3676,9 @@ class ConstructionLayerAdapter:
                  comparison_progress=None, _comparisons=None, evaluation_cursor=0):
         """Evaluate before ordering; a budget leaves pending candidates intact."""
         from types import SimpleNamespace
-        from .construction_quality import (FUNCTIONAL_QUALITY_VERSION, functional_quality_config,
+        from .construction_quality import (SUPPORTED_FUNCTIONAL_QUALITY_VERSIONS, functional_quality_config,
             functional_pass_policy, EvaluationComparisons, restore_comparison_progress)
-        functional = policy is not None and (policy.get("quality") or {}).get("evaluator_version") == FUNCTIONAL_QUALITY_VERSION
+        functional = policy is not None and (policy.get("quality") or {}).get("evaluator_version") in SUPPORTED_FUNCTIONAL_QUALITY_VERSIONS
         if not functional:
             raise ContractError('candidate selection requires the current functional quality policy')
         functional_quality_config(policy.get("quality"))

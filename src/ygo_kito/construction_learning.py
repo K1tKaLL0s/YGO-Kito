@@ -11,8 +11,8 @@ SOURCE = 'construction_quality_preference_v2'
 
 def _current_quality(quality):
     from .construction_layer_flow import NORMALIZATION_VERSION
-    from .construction_quality import FUNCTION_DICTIONARY_VERSION, FUNCTIONAL_QUALITY_VERSION
-    if (not isinstance(quality,dict) or quality.get('version') != FUNCTIONAL_QUALITY_VERSION
+    from .construction_quality import FUNCTION_DICTIONARY_VERSION, SUPPORTED_FUNCTIONAL_QUALITY_VERSIONS
+    if (not isinstance(quality,dict) or quality.get('version') not in SUPPORTED_FUNCTIONAL_QUALITY_VERSIONS
             or quality.get('score', {}).get('unit') != 'functional_log2'):
         raise ContractError('bound current functional quality evaluation required')
     if quality.get('normalization_version') != NORMALIZATION_VERSION:

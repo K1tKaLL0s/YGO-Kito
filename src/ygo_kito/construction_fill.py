@@ -514,7 +514,8 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
                 proposals={str(i): dict(p.__dict__, deck=p.deck.to_dict(), connector_ids=list(p.connector_ids),
                     bindings=[b.to_dict() for b in p.bindings])
                     for i, p in proposals.items()},
-                binding_errors=binding_errors, generation=generation_trace, order=evaluation_order,
+                binding_errors=binding_errors,
+                generation=generation_trace, order=evaluation_order,
                 scores=scores, ranking=ranking)
         return dict(batch_basis,
             evaluations={str(i):row for i,row in evaluations.items()},
@@ -714,6 +715,7 @@ def construct_task(task,assets,models,encoder,*,base=None,lora_versions=None, co
     tags = logic_vocabulary()
     declared = declared_theme_scopes(task)
     scopes = iteration_options.pop('scopes',declared)
+    optimization_feedback = iteration_options.pop('optimization_feedback', ())
     if (not isinstance(scopes,tuple) or any(not isinstance(s,ThemeScope) for s in scopes) or
             {(s.field,s.value) for s in scopes}!={(s.field,s.value) for s in declared}):
         raise ContractError('fixed-task theme scopes must preserve its declared series/race requirements')
@@ -737,6 +739,10 @@ def construct_task(task,assets,models,encoder,*,base=None,lora_versions=None, co
         session.feedback = deepcopy(continuation['feedback'])
         session.optimization_feedback = deepcopy(continuation.get('optimization_feedback', []))
         restore_progress(session, continuation.get('construction_progress'), assets)
+    if optimization_feedback:
+        from .construction_progress import record_optimization_feedback
+        for item in optimization_feedback:
+            record_optimization_feedback(session, item)
     result=construction_cycle(session,assets,adapter.providers(),base=base,models=models,encoder=encoder,
         scopes=scopes,
         binding_provider=binding,text_reviewer=binding.reviewer,verifier=existing_goal_verifier,
@@ -748,7 +754,7 @@ def construct_task(task,assets,models,encoder,*,base=None,lora_versions=None, co
         best_criterion='versioned_pre_cb_construction_gate',task_sha256=task.sha256, session=session.to_dict())
 
 
-def _candidate_basic_cb(task,deck,assets,provider,gate=None,recognition_record=None):
+def _candidate_basic_cb(task,deck,assets,provider,gate=None,recognition_record=None,feedback_hard_check=None):
     subject=digest(deck.to_dict())
     if provider is None:
         result={"kind":"basic_cb_inference_after_construction","status":"not_run","routes":[],
@@ -757,6 +763,8 @@ def _candidate_basic_cb(task,deck,assets,provider,gate=None,recognition_record=N
         from .construction_recognition import cb_search_hints
         hints = cb_search_hints(recognition_record or {})
         options = {'recognition_hints': deepcopy(hints)} if hints is not None and getattr(provider, 'accepts_recognition_hints', False) is True else {}
+        if feedback_hard_check is not None:
+            options['feedback_hard_check'] = deepcopy(feedback_hard_check)
         result=deepcopy(provider(task,deck,assets,construction_gate=deepcopy(gate),**options))
         if not isinstance(result,dict) or not isinstance(result.get("status"),str):
             raise ContractError("basic CB provider must return a scoped inference result")
@@ -765,6 +773,63 @@ def _candidate_basic_cb(task,deck,assets,provider,gate=None,recognition_record=N
     result.update(subject_deck_sha256=subject,task_sha256=task.sha256,
                   inference_scope="basic_cb_for_constructed_deck_not_whole_graph_acceptance")
     return result
+
+
+def _feedback_candidate_choice(session, assets, current, packages, mechanism_groups, models, encoder,
+                               search_offset, query_cursor, retrieval_limit, layer_adapter):
+    """Generate S2 revision candidates for post-admission feedback with 0 static scoring calls."""
+    from .build_pipeline import edit_candidates
+    from .construction_candidates import attributed_feedback
+    task = session.task
+    query_options = {}
+    if models is not None and encoder is not None and 'build_optimizer' in models and hasattr(encoder, 'batch_inventories'):
+        import torch
+        model = models['build_optimizer']
+
+        def rank_ideas(inventories):
+            was_training = model.training
+            try:
+                model.eval()
+                with torch.no_grad():
+                    return model(encoder.batch_inventories(task, inventories)).tolist()
+            finally:
+                model.train(was_training)
+
+        query_options['rank_ideas'] = rank_ideas
+    if len(task.pool) > 128:
+        from .construction_retrieval import candidate_ids
+        catalog = layer_adapter.catalog if layer_adapter is not None else None
+        ids, _ = candidate_ids(task, assets, session.logic, base=current, cursor=query_cursor,
+                               limit=retrieval_limit, catalog=catalog)
+        query_options['candidate_ids'] = ids
+    rows = edit_candidates(task, assets, current, require_edit=False, feedback=attributed_feedback(session),
+                           return_portfolio=True,
+                           mechanism_groups=tuple(packages) + tuple(mechanism_groups or ()),
+                           graph=session.logic, search_offset=search_offset, **query_options)
+    if not rows:
+        incumbent = dict(deck=current, strategy='incumbent', changes={})
+        return [incumbent], incumbent
+    if packages:
+        for row in rows:
+            cand = row['deck']
+            if any(all(not (Counter(pkg['zones'][z]) - Counter(getattr(cand, z))) for z in pkg['zones'])
+                   for pkg in packages):
+                return rows, row
+    if models is not None and encoder is not None and 'build_optimizer' in models:
+        import torch
+        model = models['build_optimizer']
+        was_training = model.training
+        try:
+            model.eval()
+            with torch.no_grad():
+                scores = model(encoder.batch(task, [r['deck'] for r in rows])).tolist()
+        finally:
+            model.train(was_training)
+        if len(scores) == len(rows) and all(math.isfinite(s) for s in scores):
+            ranked = sorted(range(len(rows)), key=lambda i: (-scores[i], rows[i]['deck'] == current, i))
+            return rows, rows[ranked[0]]
+    non_incumbent = next((r for r in rows if r['deck'] != current), None)
+    return rows, (non_incumbent or rows[0])
 
 
 def _deficiencies(quality, *, limit=4):
@@ -814,14 +879,16 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
                        _reference_cache=None,
                        max_candidates=None, pause_requested=None, cb_authorized=False,
                        recognition_provider=None, recognition_mode="off", quality_factory=None, retrieval_limit=128,
-                       _validate_saved=True, _comparisons=None):
+                       _validate_saved=True, _comparisons=None,
+                       feedback_duel_verifier=None):
     """Draft once, then fill and optimize until the pre-CB gate passes."""
     import time
     from .build_pipeline import candidate_limit
     from .construction_candidates import changes
     from .construction_progress import (compact_completed_progress, compact_optimizer_phase,
-        construction_gate, quality_policy, restore_progress, feedback_for_iteration,
-        finish_feedback, goal_effect_draft, record_reference_attempt, invalidate_reference_evaluation, REFERENCE_STAGE_VERSION)
+        construction_gate, feedback_hard_check, is_initial_admitted, quality_policy, restore_progress,
+        feedback_for_iteration, finish_feedback, goal_effect_draft, record_reference_attempt,
+        invalidate_reference_evaluation, FUNCTIONAL_GATE_VERSION, REFERENCE_STAGE_VERSION)
     from .validation import integer
     integer(max_iterations, 'optimizer iterations per slice', 0, 64)
     if seconds is not None and (type(seconds) not in (int, float) or not math.isfinite(seconds) or seconds < 0):
@@ -907,7 +974,10 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
                     save()
                 else:
                     reason = 'optimizer_seed_unresolved'
-    if state is not None and (derive_policy or quality_factory is not None):
+    has_pending_feedback = any(r['status'] == 'pending' for r in session.optimization_feedback)
+    in_feedback_path = bool(state and (state.get('admission_mode') == 'feedback_revision'
+                                       or (is_initial_admitted(state, session.task.sha256) and has_pending_feedback)))
+    if state is not None and not in_feedback_path and (derive_policy or quality_factory is not None):
         if quality_factory is None:
             from .construction_progress import host_construction_quality
             from .effect_mechanisms import MechanismCatalog
@@ -942,7 +1012,8 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
             policy['pass']['reference'], policy=policy, quality_evidence=quality_evidence,
             completed_binding=completed_binding)
 
-    if (state and state['status'] == 'passed' and policy and policy['pass']['mode'] == 'reference_ratio'
+    if (state and state['status'] == 'passed' and not in_feedback_path
+            and policy and policy['pass']['mode'] == 'reference_ratio'
             and stopped() is None):
         try:
             _, binding, _ = prepare_reference()
@@ -953,19 +1024,150 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
             state.update(status='optimizing', gate=None)
             save()
     for _ in range(max_iterations if state else 0):
-        if policy is None:
+        if policy is None and not in_feedback_path:
             reason = 'quality_policy_unconfigured'
             break
         if state['status'] == 'passed' and not any(r['status'] == 'pending' for r in session.optimization_feedback):
             break
         reference_stage = state.get('pending_reference')
         resuming = bool(state.get('pending_quality') or reference_stage)
+        current = DeckParts.from_dict(state['candidate']['deck'])
+        iteration = state['iteration'] + 1
+        if (not resuming and is_initial_admitted(state, session.task.sha256)
+                and any(r['status'] == 'pending' for r in session.optimization_feedback)):
+            stop_reason = stopped()
+            if stop_reason:
+                reason = stop_reason
+                break
+            if max_candidates == 0:
+                reason = 'candidate_slice_exhausted'
+                break
+            messages, packages, receipts = feedback_for_iteration(session, current, iteration)
+            if not receipts:
+                if state['status'] == 'passed':
+                    break
+                continue
+            for item in messages:
+                session.record_feedback(item['source'], item['message'])
+            trigger_kind = 'coordinator'
+            for r in receipts:
+                inp = r['input']
+                if inp.get('trigger_kind'):
+                    trigger_kind = inp['trigger_kind']
+                    break
+                if inp['source'] == 'duel':
+                    trigger_kind = 'duel'
+                    break
+                if inp['source'] == 'basic_cb' or inp['feedback_id'].startswith('basic-cb-'):
+                    trigger_kind = 'basic_cb'
+                    break
+                trigger_kind = inp['source']
+            phase = dict(phase_number=iteration+1, role='build_optimizer', optimization_iteration=iteration,
+                input_deck=current.to_dict(), input_candidate_version=state['candidate_version'],
+                feedback_before=deepcopy(session.feedback), optimization_feedback=deepcopy(receipts),
+                admission_mode='feedback_revision', static_scoring_calls=0,
+                parameter_update_performed=False, responsibility='post_admission_feedback_revision')
+            phase['stage_1'] = session.propose_logic('build_optimizer', providers.get('build_optimizer'))
+            phase['graph_model_selection'] = graph_selection('build_optimizer')
+            phase['stage_2'] = (select_main_axes(session.task, assets, session.classification, scopes)
+                if phase['stage_1']['status'] == 'logic_revised' else dict(status='not_run', axes=[]))
+            phases.append(phase)
+            if phase['stage_1']['status'] != 'logic_revised':
+                finish_feedback(receipts, None)
+                reason = 'optimizer_logic_unresolved'
+                break
+            explicit_decks = [r['input']['revised_deck'] for r in receipts if r['input'].get('revised_deck') is not None]
+            if explicit_decks:
+                cand_raw = explicit_decks[-1]
+                cand_strategy = 'feedback_revised_deck'
+                spent += 1
+                state['candidate_cursor'] += 1
+            else:
+                if spent + round_limit > max_candidates:
+                    finish_feedback(receipts, None)
+                    reason = 'candidate_slice_exhausted'
+                    break
+                rows, chosen_row = _feedback_candidate_choice(
+                    session, assets, current, packages, mechanism_groups, models, encoder,
+                    state['candidate_cursor'], state.get('query_cursor', 0), retrieval_limit, layer_adapter,
+                )
+                cand_raw = chosen_row['deck']
+                cand_strategy = chosen_row.get('strategy', 'feedback_edit')
+                spent += len(rows)
+                state['candidate_cursor'] += max(1, len(rows))
+            hc = feedback_hard_check(session.task, cand_raw, assets,
+                                     candidate_version=state['candidate_version'] + 1)
+            if not hc['passed']:
+                finish_feedback(receipts, None)
+                state['iteration'] = iteration
+                state['admission_mode'] = 'feedback_revision'
+                state['feedback_hard_check'] = hc
+                state['status'] = 'suspended'
+                reason = 'feedback_hard_check_failed'
+                phase.update(
+                    proposal_deck=cand_raw.to_dict() if isinstance(cand_raw, DeckParts) else deepcopy(cand_raw),
+                    output_candidate_version=state['candidate_version'],
+                    feedback_hard_check=hc,
+                    optimization_feedback=deepcopy(receipts),
+                    acceptance='feedback_hard_check_failed',
+                )
+                phase = compact_optimizer_phase(phase, task=session.task)
+                phases[-1] = phase
+                state['last_optimizer_phase'] = phase
+                save()
+                session.history.append(dict(stage='feedback_revision_rejected', role='build_optimizer',
+                    iteration=iteration, candidate_version=state['candidate_version'],
+                    feedback_hard_check=deepcopy(hc), static_scoring_calls=0))
+                session.record_feedback('coordinator',
+                    ('反馈改牌未通过合法性与原硬约束检查：' + '; '.join(hc['reasons']))[:1024])
+                break
+            cand_deck = cand_raw if isinstance(cand_raw, DeckParts) else DeckParts.from_dict(cand_raw)
+            state['iteration'] = iteration
+            state['candidate_version'] += 1
+            state['stagnation'] = state['stagnation'] + 1 if cand_deck == current else 0
+            finish_feedback(receipts, cand_deck)
+            row = dict(
+                deck=cand_deck.to_dict(), deck_sha256=hc['deck_sha256'], strategy=cand_strategy,
+                admission_mode='feedback_revision', feedback_hard_check=hc,
+                initial_admission=deepcopy(state['initial_admission']),
+                layer_evaluation=None, quality_evaluation=None,
+            )
+            state['admission_mode'] = 'feedback_revision'
+            state['feedback_hard_check'] = hc
+            state['gate'] = None
+            state['post_admission_feedback'] = dict(
+                trigger_kind=trigger_kind,
+                active_deck=current.to_dict(),
+                active_deck_sha256=digest(current.to_dict()),
+                revised_deck_sha256=hc['deck_sha256'],
+                feedback_ids=[r['input']['feedback_id'] for r in receipts],
+            )
+            state.update(candidate=row, retained_candidates=[], status='passed')
+            state['handoffs'] = [*state['handoffs'], dict(role='build_optimizer',
+                candidate_version=state['candidate_version'],
+                input_deck_sha256=digest(current.to_dict()), output_deck_sha256=row['deck_sha256'])]
+            phase.update(
+                proposal_deck=row['deck'], proposal_changes=changes(current, cand_deck),
+                output_candidate_version=state['candidate_version'],
+                feedback_hard_check=hc,
+                optimization_feedback=deepcopy(receipts),
+                acceptance='feedback_hard_check_passed',
+            )
+            phase = compact_optimizer_phase(phase, task=session.task)
+            phases[-1] = phase
+            state['last_optimizer_phase'] = phase
+            compact_completed_progress(state)
+            save()
+            session.history.append(dict(stage='feedback_revision_iteration', role='build_optimizer',
+                iteration=iteration, candidate_version=state['candidate_version'],
+                deck_sha256=row['deck_sha256'], feedback_hard_check=deepcopy(hc),
+                static_scoring_calls=0, parameter_update_performed=False))
+            reason = 'feedback_hard_check_passed'
+            break
         reason = stopped() or ('candidate_slice_exhausted' if not resuming and spent + round_limit > max_candidates else '')
         if reason:
             break
-        current = DeckParts.from_dict(state['candidate']['deck'])
         state['status'] = 'optimizing'
-        iteration = state['iteration'] + 1
         initial_draft = iteration == 1 and state['handoffs'][0]['role'] == 'build_optimizer'
         if resuming:
             phase = dict(state['pending_phase'])
@@ -1139,14 +1341,66 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
     passed = bool(state and state['status'] == 'passed')
     stop = stopped()
     user_stopped = stop == 'user_pause'
+    feedback_mode = bool(state and state.get('admission_mode') == 'feedback_revision')
     reason = 'user_pause' if user_stopped else 'construction_passed' if passed else stop or reason or 'iteration_slice_exhausted'
     if state:
         state.update(status='passed' if passed else 'suspended', stop_reason=reason)
         save()
     candidate = dict(state['candidate']) if state else None
-    cb, cb_optimize = None, False
-    def finalize(row, gate):
+    cb, cb_optimize, duel_comparison = None, False, None
+
+    def _feedback_provider(provider_fn, hc):
+        if provider_fn is None:
+            return None
+        import inspect
+        try:
+            sig_target = provider_fn.side_effect if callable(getattr(provider_fn, 'side_effect', None)) else provider_fn
+            sig = inspect.signature(sig_target)
+            accepts_hc = ('feedback_hard_check' in sig.parameters or any(
+                p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()))
+        except (TypeError, ValueError):
+            accepts_hc = True
+
+        def wrapped(t, d, a, *, construction_gate=None, **kw):
+            if accepts_hc:
+                return provider_fn(t, d, a, construction_gate=construction_gate,
+                                   feedback_hard_check=deepcopy(hc), **kw)
+            return provider_fn(t, d, a, construction_gate=construction_gate, **kw)
+
+        return wrapped
+
+    def finalize(row, gate, *, hc=None):
         deck = DeckParts.from_dict(row['deck'])
+        if hc is not None:
+            allowed = hc.get('passed') is True and cb_authorized and stopped() is None
+            provider_fn = _feedback_provider(basic_cb_provider, hc) if allowed else None
+            inference = _candidate_basic_cb(session.task, deck, assets, provider_fn, None,
+                                            row.get('recognition') if recognition_mode == 'assist' else None)
+            inference.update(construction_gate=None, feedback_hard_check=deepcopy(hc),
+                             admission_mode='feedback_revision',
+                             candidate_version=hc['candidate_version'], execution_authorized=allowed)
+            checked = False
+            validation = {'status': 'construction_pending', 'best_deck': None, 'attempts': []}
+            if hc.get('passed') is True:
+                from .build_semantics import proof
+                static = session.task.goal['kind'] == 'deck_constraints' and 'route_goal' not in session.task.goal
+                if static:
+                    checked = True
+                    validation = dict(status='list_constraints_verified_logic_unproven', best_deck=row['deck'],
+                        attempts=[{'engine_validation': proof(session.task, deck, assets)}])
+                elif allowed and verifier is not None and row.get('concrete_proposal') is not None:
+                    v_proof = evaluate_fill(session, assets, FillProposal.from_dict(row['concrete_proposal']),
+                        scopes=scopes, text_reviewer=text_reviewer, verifier=verifier)
+                    checked = v_proof['status'] == 'task_goal_verified_logic_unproven'
+                    validation = dict(status=v_proof['status'], best_deck=row['deck'] if checked else None, attempts=[v_proof])
+                else:
+                    checked = True
+                    validation = dict(status='feedback_hard_constraints_verified', best_deck=row['deck'],
+                        attempts=[{'engine_validation': proof(session.task, deck, assets)}])
+            return dict(row, construction_gate=None, feedback_hard_check=deepcopy(hc),
+                admission_mode='feedback_revision', candidate_version=hc['candidate_version'],
+                validation=validation, task_verified=checked, basic_cb=inference,
+                cb_verified=inference.get('status') == 'routes_inferred' and bool(inference.get('routes')))
         allowed = gate['status'] == 'passed' and cb_authorized and stopped() is None
         inference = _candidate_basic_cb(session.task, deck, assets, basic_cb_provider if allowed else None, gate,
                                        row.get('recognition') if recognition_mode == 'assist' else None)
@@ -1177,11 +1431,40 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
         return dict(row, construction_gate=deepcopy(gate), candidate_version=gate['candidate_version'],
             validation=validation, task_verified=checked, basic_cb=inference,
             cb_verified=inference.get('status') == 'routes_inferred' and bool(inference.get('routes')))
+    if passed and not user_stopped and feedback_mode:
+        post_fb = state.get('post_admission_feedback') or {}
+        hc = state.get('feedback_hard_check')
+        if post_fb.get('trigger_kind') == 'duel' and feedback_duel_verifier is not None:
+            active_deck = DeckParts.from_dict(post_fb['active_deck'])
+            revised_deck = DeckParts.from_dict(candidate['deck'])
+            duel_comparison = feedback_duel_verifier(session.task, assets, active_deck, revised_deck, hard_check=hc)
+            if duel_comparison.get('adopt') is not True:
+                passed = False
+                reason = 'feedback_duel_not_adopted'
+                state.update(status='suspended', stop_reason=reason)
+                if phases:
+                    phases[-1]['feedback_duel_comparison'] = {
+                        k: duel_comparison[k] for k in ('kind', 'adopt', 'status', 'active_deck_sha256',
+                                                        'revised_deck_sha256', 'static_scoring_calls')
+                        if k in duel_comparison
+                    }
+                    phases[-1]['acceptance'] = 'feedback_duel_not_adopted'
+                # Retain the active deck while preserving the unverified issue for later rounds.
+                state['candidate'] = dict(
+                    deck=deepcopy(post_fb['active_deck']),
+                    deck_sha256=post_fb['active_deck_sha256'],
+                    admission_mode='feedback_revision',
+                    feedback_hard_check=hc,
+                    initial_admission=deepcopy(state['initial_admission']),
+                    layer_evaluation=None, quality_evaluation=None,
+                )
+                candidate = dict(state['candidate'])
+                save()
     if passed and not user_stopped:
         from .construction_progress import record_basic_cb_attempt, record_optimization_feedback
         cb_optimize = False
         for _ in range(2):
-            candidate = finalize(candidate, state['gate'])
+            candidate = finalize(candidate, state.get('gate'), hc=state.get('feedback_hard_check') if feedback_mode else None)
             cb = candidate['basic_cb']
             cb_optimize = record_basic_cb_attempt(state, cb)
             if (cb_optimize or cb.get('failure_count_eligible') is not True
@@ -1191,9 +1474,21 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
             record_optimization_feedback(session,dict(
                 feedback_id='basic-cb-two-failures-'+str(state['candidate_version']),source='coordinator',
                 task_sha256=session.task.sha256,candidate_sha256=state['candidate']['deck_sha256'],
-                issue='基础CB连续两次正常完成仍无有效路线，重新检查启动、配套和路线条件。'))
+                issue='基础CB连续两次正常完成仍无有效路线，重新检查启动、配套和路线条件。',
+                trigger_kind='basic_cb'))
             reason = 'basic_cb_requires_optimization'
             state.update(status='suspended',stop_reason=reason)
+        elif not feedback_mode and state.get('initial_admission') is None and (state.get('gate') or {}).get('status') == 'passed':
+            gate_row = state['gate']
+            state['admission_mode'] = 'initial_admission'
+            state['initial_admission'] = dict(
+                version=FUNCTIONAL_GATE_VERSION,
+                task_sha256=session.task.sha256,
+                deck_sha256=state['candidate']['deck_sha256'],
+                candidate_version=state['candidate_version'],
+                gate=deepcopy(gate_row),
+                quality_evaluation_id=(state['candidate'].get('quality_evaluation') or {}).get('evaluation_id'),
+            )
         save()
         if cb_optimize:
             used_iterations = sum(p['role']=='build_optimizer' for p in phases)
@@ -1210,19 +1505,32 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
                     max_candidates=max_candidates-spent,pause_requested=pause_requested,cb_authorized=cb_authorized,
                     _reference_cache=_reference_cache,
                     recognition_provider=recognition_provider, recognition_mode=recognition_mode,
-                    retrieval_limit=retrieval_limit, _validate_saved=False, _comparisons=_comparisons)
+                    retrieval_limit=retrieval_limit, _validate_saved=False, _comparisons=_comparisons,
+                    feedback_duel_verifier=feedback_duel_verifier)
                 following['phases'] = phases + following['phases']
                 return following
     elif candidate is not None:
         cb = _candidate_basic_cb(session.task, DeckParts.from_dict(candidate['deck']), assets, None)
-        cb.update(execution_authorized=False,candidate_version=state['candidate_version'],construction_gate=deepcopy(state['gate']))
+        cb.update(execution_authorized=False,candidate_version=state['candidate_version'],
+                  construction_gate=deepcopy(state.get('gate')),
+                  **({'feedback_hard_check': deepcopy(state.get('feedback_hard_check')),
+                      'admission_mode': 'feedback_revision'} if feedback_mode else {}))
         candidate.update(basic_cb=cb,cb_verified=False,task_verified=False,
-            construction_gate=deepcopy(state['gate']), validation={'status':'construction_pending','best_deck':None,'attempts':[]})
+            construction_gate=deepcopy(state.get('gate')),
+            **({'feedback_hard_check': deepcopy(state.get('feedback_hard_check')),
+                'admission_mode': 'feedback_revision'} if feedback_mode else {}),
+            validation={'status':'construction_pending','best_deck':None,'attempts':[]})
     admitted = passed and not cb_optimize and not user_stopped
     return dict(status='construction_passed' if admitted else 'construction_suspended', stop_reason=reason,
         phases=phases, best=candidate if admitted else None, verified_best=candidate if admitted and candidate['task_verified'] else None,
         basic_cb_optimization_requested=bool(passed and cb_optimize),
-        construction_candidate=candidate, construction_passed=admitted, static_gate_passed=passed,
+        construction_candidate=candidate, construction_passed=admitted,
+        static_gate_passed=(False if feedback_mode else passed),
+        admission_mode=(state.get('admission_mode') if state else None),
+        initial_admission=(deepcopy(state.get('initial_admission')) if state else None),
+        feedback_hard_check=(deepcopy(state.get('feedback_hard_check')) if state else None),
+        static_scoring_calls=(0 if feedback_mode else None),
+        feedback_duel_comparison=duel_comparison,
         construction_gate=deepcopy(state['gate']) if state else None,
         continuation=state, basic_cb=cb, retained_candidates=[],
         handoffs=deepcopy(state['handoffs']) if state else [], effect_draft=draft,
@@ -1232,7 +1540,8 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
         deployment_incumbent={'deck_sha256':digest(base.to_dict()), 'new_cb_claimed':False} if base else None,
         optimization_feedback=deepcopy(session.optimization_feedback),
         stagnation={'rounds_without_inventory_change':state['stagnation'] if state else 0,
-            'unresolved':state['gate']['reasons'] if state and state['gate'] else [reason],
+            'unresolved':(state['feedback_hard_check']['reasons'] if feedback_mode and state.get('feedback_hard_check')
+                          else state['gate']['reasons'] if state and state.get('gate') else [reason]),
             'next_action':'continue_optimizer_with_advanced_candidate_cursor'},
         optimization_training='no_parameter_update_in_construction_cycle', training_status='no_training_performed_by_this_cycle')
 
@@ -1295,10 +1604,18 @@ def construction_cycle(session, assets, providers, *, recognition_provider=None,
             _validate_saved=slices == 0, _comparisons=comparisons, **work)
         cb_return = result.get('basic_cb_optimization_requested', False)
         if cb_return:
-            result.update(construction_passed=False, static_gate_passed=True, status='construction_suspended',
-                best=None, verified_best=None)
-        outcome = gate_outcome(result.get('construction_gate'))
-        result['completion_status'] = ('return_to_optimizer' if cb_return else outcome)
+            result.update(construction_passed=False,
+                static_gate_passed=(False if result.get('admission_mode') == 'feedback_revision' else True),
+                status='construction_suspended', best=None, verified_best=None)
+        if result.get('admission_mode') == 'feedback_revision':
+            outcome = ('passed' if (result.get('feedback_hard_check') or {}).get('passed')
+                       else 'feedback_hard_check_failed')
+        else:
+            outcome = gate_outcome(result.get('construction_gate'))
+        result['completion_status'] = ('return_to_optimizer' if cb_return
+            else result['stop_reason'] if result.get('stop_reason') in (
+                'feedback_hard_check_failed', 'feedback_duel_not_adopted')
+            else outcome)
         for phase in result.get('phases', ()):
             phase_history[phase['role'], phase.get('optimization_iteration', 0)] = compact_optimizer_phase(phase)
         result['phases'] = list(phase_history.values())

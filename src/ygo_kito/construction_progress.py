@@ -8,6 +8,68 @@ from .validation import ContractError
 FUNCTIONAL_GATE_VERSION = 'construction-before-cb-v3'
 GATE_VERSION = FUNCTIONAL_GATE_VERSION
 REFERENCE_STAGE_VERSION = 'construction-reference-stage-v1'
+FEEDBACK_HARD_CHECK_VERSION = 'construction-feedback-hard-check-v1'
+
+
+def feedback_hard_check(task, deck, assets, *, candidate_version=1):
+    """Post-admission hard check for feedback revisions: legality and task hard constraints only, 0 static scoring."""
+    from collections import Counter
+    reasons = []
+    if not isinstance(deck, DeckParts):
+        try:
+            deck = DeckParts.from_dict(deck)
+        except ContractError as error:
+            reasons.append('invalid_deck_structure:' + str(error))
+            return dict(version=FEEDBACK_HARD_CHECK_VERSION, passed=False, reasons=reasons,
+                task_sha256=task.sha256, deck_sha256=digest(deck),
+                candidate_version=max(1, int(candidate_version or 1)), static_scoring_calls=0)
+    try:
+        assets.validate(task, deck)
+    except ContractError as error:
+        reasons.append('original_constraints:' + str(error))
+    main_counts = Counter(deck.main)
+    present_ids = set(deck.main + deck.extra)
+    route_goal = task.goal.get('route_goal')
+    if isinstance(route_goal, dict):
+        if route_goal.get('card_id') not in present_ids:
+            reasons.append('original_goal:route_goal_card_missing')
+        opening = Counter((route_goal.get('starting_conditions') or {}).get('requires_opening_hand', ()))
+        if opening - main_counts:
+            reasons.append('original_goal:opening_hand_missing')
+    for key in ('required_activations', 'required_chain_resolutions'):
+        missing = sorted(set(task.goal.get(key, ())) - present_ids)
+        if missing:
+            reasons.append(f'original_goal:{key}_missing:' + ','.join(map(str, missing)))
+    return dict(
+        version=FEEDBACK_HARD_CHECK_VERSION,
+        passed=not reasons,
+        reasons=reasons,
+        task_sha256=task.sha256,
+        deck_sha256=digest(deck.to_dict()),
+        candidate_version=max(1, int(candidate_version or 1)),
+        static_scoring_calls=0,
+    )
+
+
+def is_initial_admitted(state, task_sha256):
+    """Return whether this task has already completed initial S3-S5 admission."""
+    if not isinstance(state, dict):
+        return False
+    initial = state.get('initial_admission')
+    if (isinstance(initial, dict)
+            and initial.get('version') == FUNCTIONAL_GATE_VERSION
+            and initial.get('task_sha256') == task_sha256
+            and (initial.get('gate') or {}).get('status') == 'passed'
+            and initial.get('deck_sha256') == (initial.get('gate') or {}).get('deck_sha256')):
+        return True
+    gate = state.get('gate')
+    return (
+        state.get('status') == 'passed'
+        and isinstance(gate, dict)
+        and gate.get('version') == FUNCTIONAL_GATE_VERSION
+        and gate.get('status') == 'passed'
+        and gate.get('task_sha256') == task_sha256
+    )
 
 
 def goal_effect_draft(session, *, record=False):
@@ -41,7 +103,8 @@ def compact_optimizer_phase(phase, *, task=None, _comparisons=None):
     keys = ('phase_number', 'role', 'responsibility', 'optimization_iteration',
             'input_candidate_version', 'output_candidate_version', 'parameter_update_performed',
             'acceptance', 'stage_1', 'effect_draft', 'unfilled', 'input_deck_sha256', 'proposal_deck_sha256',
-            'reference_feedback')
+            'reference_feedback', 'admission_mode', 'static_scoring_calls', 'feedback_hard_check',
+            'feedback_duel_comparison')
     saved = {key: phase[key] for key in keys if key in phase}
     if 'stage_2' in phase:
         saved['stage_2'] = {'status': phase['stage_2'].get('status')}
@@ -169,17 +232,29 @@ def specified_course_reference(period_id, theme_id):
 
 
 def host_construction_quality(task, *, period_id=None, theme_id=None, catalog=None,
-                              theme=None, goal_tags=(), reference_id=None):
+                              theme=None, goal_tags=(), reference_id=None, interruption_bonus=False):
     """Fix automatic goals before candidate generation; references are explicit."""
-    from .construction_quality import FUNCTIONAL_QUALITY_VERSION, FUNCTION_DICTIONARY_VERSION, FUNCTIONAL_SCOPE
+    from .construction_quality import (
+        FUNCTIONAL_QUALITY_VERSION, FUNCTIONAL_QUALITY_VERSION_V5, FUNCTION_DICTIONARY_VERSION, FUNCTIONAL_SCOPE,
+        INTERRUPTION_HAS_WEIGHT, INTERRUPTION_SUPPORTED_WEIGHT,
+    )
     from .construction_theme import derive_theme_profile, automatic_rules
+    if type(interruption_bonus) is not bool:
+        raise ContractError('interruption_bonus requires a bool')
     profile = derive_theme_profile(task, catalog, theme=theme, theme_id=theme_id, goal_tags=goal_tags)
+    quality_spec = dict(
+        evaluator_version=FUNCTIONAL_QUALITY_VERSION_V5 if interruption_bonus else FUNCTIONAL_QUALITY_VERSION,
+        function_dictionary_version=FUNCTION_DICTIONARY_VERSION, theme_rules=automatic_rules(profile),
+        theme_profile=profile,
+        side_directions={'going_first': .5, 'going_second': .5}, required_scope=list(FUNCTIONAL_SCOPE),
+    )
+    if interruption_bonus:
+        quality_spec['interruption_bonus'] = {
+            'has_interruption_weight': INTERRUPTION_HAS_WEIGHT,
+            'supported_interruption_weight': INTERRUPTION_SUPPORTED_WEIGHT,
+        }
     policy = dict(version='construction-host-functional-v2', source='host:2026-11-08-construction-formal-plan',
-        metrics=[],quality=dict(evaluator_version=FUNCTIONAL_QUALITY_VERSION,
-            function_dictionary_version=FUNCTION_DICTIONARY_VERSION,theme_rules=automatic_rules(profile),
-            theme_profile=profile,
-            side_directions={'going_first':.5,'going_second':.5},required_scope=list(FUNCTIONAL_SCOPE)),
-        **{'pass':{'mode':'none'}})
+        metrics=[], quality=quality_spec, **{'pass': {'mode': 'none'}})
     reference = None
     ref_id = reference_id or specified_course_reference(period_id, theme_id)
     if ref_id:
@@ -257,8 +332,12 @@ def _quality_binding(policy, quality, deck, comparisons=None):
         return {'required': False}
     if quality is None:
         return {'required': True, 'present': False}
-    from .construction_quality import FUNCTIONAL_QUALITY_VERSION, EvaluationComparisons
-    if not isinstance(quality, dict) or quality.get('version') != FUNCTIONAL_QUALITY_VERSION:
+    from .construction_quality import (
+        FUNCTIONAL_QUALITY_VERSION, SUPPORTED_FUNCTIONAL_QUALITY_VERSIONS, EvaluationComparisons,
+    )
+    expected_version = (policy.get('quality') or {}).get('evaluator_version') or FUNCTIONAL_QUALITY_VERSION
+    if (not isinstance(quality, dict) or quality.get('version') not in SUPPORTED_FUNCTIONAL_QUALITY_VERSIONS
+            or quality.get('version') != expected_version):
         raise ContractError('legacy quality requires semantic reevaluation')
     if (not isinstance(quality, dict) or quality.get('layer') != 'quality'
             or quality.get('policy_version') != policy['version']
@@ -473,9 +552,31 @@ def restore_progress(session, value, assets, *, policy=None, _comparisons=None):
                     'main_axis' if feedback['consecutive_below_reference'] == 2 else
                     'secondary_axes' if feedback['consecutive_below_reference'] == 3 else 'generic')):
             raise ContractError('saved reference feedback differs from its completed comparisons')
-    from .construction_quality import FUNCTIONAL_QUALITY_VERSION, EvaluationComparisons, restore_comparison_progress
+    from .construction_quality import (
+        SUPPORTED_FUNCTIONAL_QUALITY_VERSIONS, EvaluationComparisons, restore_comparison_progress,
+    )
     comparisons = _comparisons or EvaluationComparisons()
-    functional = ((state.get('quality_policy') or {}).get('quality') or {}).get('evaluator_version') == FUNCTIONAL_QUALITY_VERSION
+    expected_quality_version = ((state.get('quality_policy') or {}).get('quality') or {}).get('evaluator_version')
+    functional = expected_quality_version in SUPPORTED_FUNCTIONAL_QUALITY_VERSIONS
+    initial_admission = state.get('initial_admission')
+    if initial_admission is not None:
+        init_gate = initial_admission.get('gate') if isinstance(initial_admission, dict) else None
+        if (not isinstance(initial_admission, dict)
+                or initial_admission.get('version') != FUNCTIONAL_GATE_VERSION
+                or initial_admission.get('task_sha256') != session.task.sha256
+                or not isinstance(init_gate, dict) or init_gate.get('status') != 'passed'
+                or init_gate.get('task_sha256') != session.task.sha256
+                or init_gate.get('deck_sha256') != initial_admission.get('deck_sha256')):
+            raise ContractError('saved initial admission differs from original task or gate')
+    feedback_mode = state.get('admission_mode') == 'feedback_revision'
+    if feedback_mode:
+        if not is_initial_admitted(state, session.task.sha256):
+            raise ContractError('feedback revision requires a prior initial admission')
+        hc = state.get('feedback_hard_check')
+        if (not isinstance(hc, dict) or hc.get('version') != FEEDBACK_HARD_CHECK_VERSION
+                or hc.get('task_sha256') != session.task.sha256
+                or hc.get('static_scoring_calls') != 0):
+            raise ContractError('saved feedback revision lost its hard check binding')
     deck = DeckParts.from_dict(state['candidate']['deck'])
     (assets.validate_skeleton if state['candidate'].get('layer_evaluation') is None else assets.validate)(session.task, deck)
     if state['candidate'].get('deck_sha256') != digest(deck.to_dict()):
@@ -518,6 +619,7 @@ def restore_progress(session, value, assets, *, policy=None, _comparisons=None):
             row.update(evaluation_status='stale')
             row.pop('construction_gate',None)
             row.pop('quality_comparisons',None)
+        expected_quality_version = ((state.get('quality_policy') or {}).get('quality') or {}).get('evaluator_version')
         functional = state['quality_policy'] is not None
     if functional or state['schema_version'] == 3:
         policy_sha = digest(state.get('quality_policy'))
@@ -585,6 +687,8 @@ def restore_progress(session, value, assets, *, policy=None, _comparisons=None):
         for row, selected in saved:
             quality = row.get('quality_evaluation')
             if quality is None:
+                if feedback_mode and row is state['candidate']:
+                    continue
                 if row.get('layer_evaluation') is not None:
                     row['evaluation_status'] = 'stale'
                     stale = True
@@ -593,9 +697,9 @@ def restore_progress(session, value, assets, *, policy=None, _comparisons=None):
             inventory = row.get('deck') or row['layer_evaluation']['axis']['inventory']
             if quality.get('deck_sha256') != digest(inventory) or quality.get('task_sha256') != session.task.sha256:
                 raise ContractError('saved quality belongs to another task/candidate')
-            if quality.get('version') == FUNCTIONAL_QUALITY_VERSION:
+            if quality.get('version') in SUPPORTED_FUNCTIONAL_QUALITY_VERSIONS:
                 comparisons.bind(quality)
-            outdated = (quality.get('version') != FUNCTIONAL_QUALITY_VERSION
+            outdated = (quality.get('version') != expected_quality_version
                 or quality.get('normalization_version') != NORMALIZATION_VERSION
                 or quality.get('function_dictionary_version') != (state.get('quality_policy') or {}).get('quality',{}).get('function_dictionary_version')
                 or quality.get('asset_version') != asset_version
@@ -634,10 +738,10 @@ def restore_progress(session, value, assets, *, policy=None, _comparisons=None):
             if (reference.get('task_sha256') != session.task.sha256 or descriptor is None
                     or reference.get('deck_sha256') != descriptor['deck_sha256']):
                 raise ContractError('saved reference belongs to another task or specified listing')
-            if reference.get('version') == FUNCTIONAL_QUALITY_VERSION:
+            if reference.get('version') in SUPPORTED_FUNCTIONAL_QUALITY_VERSIONS:
                 comparisons.bind(reference)
             binding = state.get('reference_binding')
-            if (reference.get('version') != FUNCTIONAL_QUALITY_VERSION or reference.get('asset_version') != asset_version
+            if (reference.get('version') != expected_quality_version or reference.get('asset_version') != asset_version
                     or reference.get('normalization_version') != NORMALIZATION_VERSION
                     or reference.get('native_rule_evidence', {}).get('frontier') != frontier(reference['inventory'], 'reference')
                     or reference.get('function_dictionary_version') != state['quality_policy']['quality']['function_dictionary_version']
@@ -654,25 +758,34 @@ def restore_progress(session, value, assets, *, policy=None, _comparisons=None):
             state.update(status='optimizing', gate=None, stop_reason='quality_reevaluation_required')
         state['schema_version'] = 3
     if state['status'] == 'passed':
-        gate=state.get('gate') or {}
-        if (gate.get('version') != (FUNCTIONAL_GATE_VERSION if functional else GATE_VERSION) or gate.get('status') != 'passed'
-                or gate.get('deck_sha256') != digest(deck.to_dict()) or gate.get('task_sha256') != session.task.sha256
-                or gate.get('candidate_version') != state['candidate_version'] or gate.get('policy') != state['quality_policy']):
-            raise ContractError('construction pass does not bind the saved candidate')
-        binding = gate.get('quality_binding') or {}
-        if binding.get('required'):
-            # A saved pass keeps the exact quality record it was earned with.
-            if not binding.get('present'):
-                raise ContractError('saved construction pass lost its quality evaluation')
-            current = _quality_binding(state['quality_policy'], state['candidate'].get('quality_evaluation'), deck, comparisons)
-            if (functional and current != binding or current.get('value') != binding.get('value')
-                    or current.get('complete') != binding.get('complete')):
-                raise ContractError('construction pass quality record changed after it was earned')
-        if functional and state['quality_policy']['pass']['mode'] == 'reference_ratio':
-            reference = state.get('reference_evaluation') or {}
-            line = next((m for m in gate['metrics'] if m.get('kind') == 'reference_ratio_pass_line'), {})
-            if not reference or line.get('reference_evaluation_id') != reference.get('evaluation_id'):
-                raise ContractError('saved construction pass lost its fixed reference evaluation')
+        if state.get('admission_mode') == 'feedback_revision':
+            hc = state.get('feedback_hard_check') or {}
+            if (hc.get('version') != FEEDBACK_HARD_CHECK_VERSION or hc.get('passed') is not True
+                    or hc.get('deck_sha256') != digest(deck.to_dict())
+                    or hc.get('task_sha256') != session.task.sha256
+                    or hc.get('candidate_version') != state['candidate_version']
+                    or hc.get('static_scoring_calls') != 0):
+                raise ContractError('feedback revision pass does not bind the saved hard check')
+        else:
+            gate=state.get('gate') or {}
+            if (gate.get('version') != (FUNCTIONAL_GATE_VERSION if functional else GATE_VERSION) or gate.get('status') != 'passed'
+                    or gate.get('deck_sha256') != digest(deck.to_dict()) or gate.get('task_sha256') != session.task.sha256
+                    or gate.get('candidate_version') != state['candidate_version'] or gate.get('policy') != state['quality_policy']):
+                raise ContractError('construction pass does not bind the saved candidate')
+            binding = gate.get('quality_binding') or {}
+            if binding.get('required'):
+                # A saved pass keeps the exact quality record it was earned with.
+                if not binding.get('present'):
+                    raise ContractError('saved construction pass lost its quality evaluation')
+                current = _quality_binding(state['quality_policy'], state['candidate'].get('quality_evaluation'), deck, comparisons)
+                if (functional and current != binding or current.get('value') != binding.get('value')
+                        or current.get('complete') != binding.get('complete')):
+                    raise ContractError('construction pass quality record changed after it was earned')
+            if functional and state['quality_policy']['pass']['mode'] == 'reference_ratio':
+                reference = state.get('reference_evaluation') or {}
+                line = next((m for m in gate['metrics'] if m.get('kind') == 'reference_ratio_pass_line'), {})
+                if not reference or line.get('reference_evaluation_id') != reference.get('evaluation_id'):
+                    raise ContractError('saved construction pass lost its fixed reference evaluation')
     session.construction_progress = state
 
 
@@ -688,6 +801,10 @@ def revise_quality_policy(session, policy):
     state.setdefault('policy_revisions', []).append(dict(before=digest(old), after=digest(policy)))
     invalidate_reference_evaluation(state)
     _reopen_reference_batch(state)
+    state.pop('initial_admission', None)
+    state.pop('admission_mode', None)
+    state.pop('feedback_hard_check', None)
+    state.pop('post_admission_feedback', None)
     state.update(quality_policy=policy, status='optimizing', gate=None,
                  schema_version=3, stop_reason='quality_policy_revised')
     for row in [state['candidate'], *state.get('retained_candidates', [])]:
@@ -705,13 +822,19 @@ def revise_quality_policy(session, policy):
 
 def record_optimization_feedback(session, value):
     required = {'feedback_id', 'source', 'task_sha256', 'candidate_sha256', 'issue'}
+    optional = {'suggested_package', 'revised_deck', 'trigger_kind'}
     if (not isinstance(value, dict) or required - value.keys()
-            or set(value) - required - {'suggested_package'}
-            or value['source'] not in ('coordinator', 'duel', 'external_ai')
+            or set(value) - required - optional
+            or value['source'] not in ('coordinator', 'duel', 'external_ai', 'basic_cb')
             or value['task_sha256'] != session.task.sha256
             or any(not isinstance(value[k], str) or not value[k].strip() for k in required)
             or len(value['candidate_sha256']) != 64):
         raise ContractError('optimization feedback requires source, task, candidate and issue')
+    trigger_kind = value.get('trigger_kind')
+    if trigger_kind is not None and trigger_kind not in ('basic_cb', 'duel', 'coordinator', 'external_ai'):
+        raise ContractError('unsupported optimization feedback trigger kind')
+    if 'revised_deck' in value and value['revised_deck'] is not None and not isinstance(value['revised_deck'], dict):
+        raise ContractError('revised feedback deck must be a deck mapping')
     package = value.get('suggested_package')
     if package is not None:
         deck = DeckParts.from_dict(package)
@@ -745,8 +868,13 @@ def feedback_for_iteration(session, deck, iteration):
 def finish_feedback(receipts, candidate):
     for row in receipts:
         package = row['input'].get('suggested_package')
+        revised = row['input'].get('revised_deck')
         if candidate is None:
             row.update(status='not_adopted', reason='no valid candidate in this slice')
+        elif revised is not None:
+            adopted = digest(candidate.to_dict()) == digest(DeckParts.from_dict(revised).to_dict())
+            row.update(status='adopted' if adopted else 'not_adopted',
+                reason='revised feedback inventory adopted' if adopted else 'optimizer selected another valid inventory')
         elif package is None:
             row.update(status='reviewed_unverified', reason='issue entered optimizer context; resolution needs evidence')
         else:

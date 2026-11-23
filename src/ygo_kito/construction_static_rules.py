@@ -1611,15 +1611,34 @@ def _extract_general_operations(lua, rule, code, constants, trigger, cost_info):
             selector_query=(ns_sel["query"] if ns_sel else {"type": 1}),
         ))
 
+    ss_calls = {"Duel.SpecialSummon", "Duel.SpecialSummonStep"}
     # 7. Opponent negation (NegateActivation / NegateEffect / ChangeChainOperation / registered NegateEffect helper)
     if call_names & {"Duel.NegateActivation", "Duel.NegateEffect", "Duel.NegateSummon", "Duel.ChangeChainOperation"}:
         kind_neg = "negate_activation" if "Duel.NegateActivation" in call_names else (
             "negate_summon" if "Duel.NegateSummon" in call_names else "negate_effect")
         op = dict(kind=kind_neg, from_zones=[], to_zone=None, owner="opponent", quantity=1, random=False)
+        has_companion_ss = (
+            "Duel.SelectYesNo" not in call_names
+            and any(cn in ss_calls and args and not _is_self_expr(args[0]) for cn, args, _ in calls)
+        )
+        if has_companion_ss:
+            for ss_sel in own_sels:
+                zones = ss_sel.get("from_zones", ())
+                if (zones and set(zones) & {"hand", "deck", "grave"} and "field" not in zones
+                        and ss_sel.get("query") and query_supported(ss_sel["query"])):
+                    extra_reqs.append(dict(
+                        category="operations", kind="special_summon",
+                        query=ss_sel["query"], selector_query=ss_sel["query"],
+                        quantity=ss_sel["quantity"], minimum=ss_sel["quantity"],
+                        from_zones=zones,
+                        origin=zones[0], origins=zones,
+                        owner="self", exclude_source_copy=True,
+                        source_card_id=code, source=ref,
+                    ))
+                    break
         return dict(operations=[op, *extra_ns_ops], extra_reqs=extra_reqs, restrictions=restrictions, fusion=False, ritual=False)
 
     # 8. Mill / Deck-to-Grave (`Duel.DiscardDeck` or `Duel.GetDecktopGroup` + `SendtoGrave`)
-    ss_calls = {"Duel.SpecialSummon", "Duel.SpecialSummonStep"}
     self_ss = any(cn in ss_calls and args and _is_self_expr(args[0]) for cn, args, _ in calls)
     for cn, args, cnode in calls:
         if cn == "Duel.DiscardDeck" and len(args) >= 3:

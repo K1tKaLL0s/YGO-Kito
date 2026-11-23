@@ -522,6 +522,73 @@ class ScenarioCourse:
         self.rules.validate(self.deck)
         self.construction = deepcopy(result)
 
+    def revise_deck_from_feedback(self, feedback, *, opponent_bot_id=None, seeds=(7, 24), seconds=120.,
+                                  basic_cb_enabled=True, basic_cb_verifier=None):
+        """Revise an already-admitted deck via hard check + targeted verification (0 static scoring)."""
+        if self.deck is None or self.selection is None or self.construction is None:
+            raise ContractError("post-admission feedback revision requires an initially admitted deck")
+        from .build_feedback import compare_feedback_revision
+        from .construction_progress import feedback_hard_check
+        kernel = self.models.kernel
+        stage = self.stage()
+        choices = sorted(i for i, b in self.bots.items() if b["stage"] == stage and b["purpose"] == "validation")
+        if not choices:
+            choices = sorted(i for i, b in self.bots.items() if b["purpose"] in ("validation", "train"))
+        bot_id = opponent_bot_id if opponent_bot_id is not None else (choices[0] if choices else None)
+        opponent_deck = self.bots[bot_id]["deck"] if bot_id is not None else None
+        feedback_items = list(feedback) if isinstance(feedback, (list, tuple)) else [feedback]
+        duel_verifier = None
+        if opponent_deck is not None:
+            def duel_verifier(task, assets, active_deck, revised_deck, *, hard_check=None):
+                with self._frozen():
+                    return compare_feedback_revision(
+                        task, assets, active_deck, revised_deck, opponent_deck,
+                        seeds=seeds, purpose="construction_validation", seconds=seconds, hard_check=hard_check,
+                    )
+        result = kernel.run_selected(
+            self.selection, optimization_feedback=feedback_items, base=self.deck,
+            basic_cb_enabled=basic_cb_enabled, basic_cb_verifier=basic_cb_verifier,
+            feedback_duel_verifier=duel_verifier,
+            pause_requested=lambda: (self.root / 'pause.request').exists(),
+        )
+        cb = result.get("basic_cb") or {}
+        cb_ok = (not basic_cb_enabled) or (
+            cb.get("inference_completed") is True and cb.get("status") == "routes_inferred" and bool(cb.get("routes"))
+        )
+        duel_cmp = result.get("feedback_duel_comparison")
+        duel_ok = duel_cmp is None or duel_cmp.get("adopt") is True
+        adopted = bool(result.get("construction_passed") and result.get("best") and duel_ok and cb_ok)
+        if adopted:
+            self.deck = DeckParts.from_dict(result["best"]["deck"])
+            self.rules.validate(self.deck)
+            self.construction = deepcopy(result)
+            self.events.append(dict(
+                kind="post_admission_feedback_adopted",
+                deck_sha256=digest(self.deck.to_dict()),
+                static_scoring_calls=result.get("static_scoring_calls", 0),
+                duel_compared=duel_cmp is not None,
+                cb_verified=bool(result.get("cb_verified")),
+            ))
+            self.save()
+        else:
+            self.construction = deepcopy(result)
+            self.events.append(dict(
+                kind="post_admission_feedback_retained_incumbent",
+                active_deck_sha256=digest(self.deck.to_dict()),
+                stop_reason=result.get("stop_reason"),
+                static_scoring_calls=result.get("static_scoring_calls", 0),
+            ))
+            self.save()
+        return dict(
+            adopted=adopted,
+            active_deck=self.deck.to_dict(),
+            stop_reason=result.get("stop_reason"),
+            static_scoring_calls=result.get("static_scoring_calls", 0),
+            feedback_hard_check=result.get("feedback_hard_check"),
+            feedback_duel_comparison=duel_cmp,
+            result=result,
+        )
+
     def _task(self):
         return self.models.builder.task if self.selection is None else BuildTask.from_dict(self.selection["task"])
 
