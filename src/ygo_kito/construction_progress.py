@@ -582,6 +582,22 @@ def restore_progress(session, value, assets, *, policy=None, _comparisons=None):
     (assets.validate_skeleton if state['candidate'].get('layer_evaluation') is None else assets.validate)(session.task, deck)
     if state['candidate'].get('deck_sha256') != digest(deck.to_dict()):
         raise ContractError('construction continuation candidate binding differs')
+    pending_revision = state.get('pending_duel_revision')
+    if pending_revision is not None:
+        proposal = pending_revision['candidate']
+        handoff = pending_revision['handoff']
+        post = state.get('post_admission_feedback') or {}
+        revised = DeckParts.from_dict(proposal['deck'])
+        expected = feedback_hard_check(session.task, revised, assets, candidate_version=state['candidate_version'] + 1)
+        if (not feedback_mode or state['status'] == 'passed' or not expected['passed']
+                or expected != proposal.get('feedback_hard_check') or expected != state['feedback_hard_check']
+                or post.get('trigger_kind') != 'duel' or post.get('active_deck') != deck.to_dict()
+                or post.get('active_deck_sha256') != state['candidate']['deck_sha256']
+                or post.get('revised_deck_sha256') != expected['deck_sha256']
+                or proposal.get('deck_sha256') != expected['deck_sha256']
+                or handoff != dict(role='build_optimizer', candidate_version=expected['candidate_version'],
+                    input_deck_sha256=state['candidate']['deck_sha256'], output_deck_sha256=expected['deck_sha256'])):
+            raise ContractError('pending duel verification differs from the active deck or proposal')
     handoffs = state.get('handoffs', [])
     first = handoffs[0] if handoffs else {}
     if first.get('role') == 'build_optimizer':
@@ -674,6 +690,9 @@ def restore_progress(session, value, assets, *, policy=None, _comparisons=None):
             for key,work in list(pending.get('calculation_progress',{}).items()):
                 if (work.get('normalization_version')!=NORMALIZATION_VERSION
                         or work.get('asset_version')!=asset_version
+                        or getattr(catalog.assets, 'rule_authority', None) == 'locked_period_core'
+                        and work.get('inventory_binding') != reference_asset_binding(catalog,
+                            DeckParts.from_dict(pending['candidates'][int(key)]['deck']))
                         or work.get('native_frontier') != frontier(pending['candidates'][int(key)]['deck'], 'candidate')):
                     del pending['calculation_progress'][key]
             for key, row in pending['evaluations'].items():
@@ -704,6 +723,8 @@ def restore_progress(session, value, assets, *, policy=None, _comparisons=None):
                 or quality.get('normalization_version') != NORMALIZATION_VERSION
                 or quality.get('function_dictionary_version') != (state.get('quality_policy') or {}).get('quality',{}).get('function_dictionary_version')
                 or quality.get('asset_version') != asset_version
+                or getattr(catalog.assets, 'rule_authority', None) == 'locked_period_core'
+                and quality.get('inventory_binding') != reference_asset_binding(catalog, DeckParts.from_dict(inventory))
                 or quality.get('native_rule_evidence', {}).get('frontier') != frontier(inventory, 'candidate')
                 or quality.get('policy_sha256') != policy_sha)
             if not outdated and getattr(catalog.assets, "rule_authority", None) != "locked_period_core":

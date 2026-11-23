@@ -210,6 +210,22 @@ class NativeSummonScoringDualEntryTests(unittest.TestCase):
             self.assertTrue(any(row[2] is expected_ss for row in ref_ops), (card_id, expected_ss, ref_ops))
         return q_ref, q_cand, ref_ops
 
+    def test_type_matched_send_requires_field_target_and_different_deck_card(self):
+        from ygo_kito.construction_inventory import matches
+        code = 86483512
+        candidates = self._unique(lambda r: matches(r, {"setcode": 0x14e}) and r["id"] != code)
+        spells = [c for c in candidates if self.assets.rows[c]["type"] & 2]
+        monsters = [c for c in candidates if self.assets.rows[c]["type"] & 1
+                    and not self.assets.rows[c]["type"] & 0x4802040]
+        self.assertTrue(spells and len(monsters) >= 2)
+        for stock, status in (([code], 'missing'), ([code, *monsters[:2]], 'missing'),
+                              ([code, spells[0], *monsters[:2]], 'supported')):
+            deck = self._pad_clean(stock)
+            _, quality, _ = self._eval_dual_entry(deck)
+            uses = self._resident_ops(quality, code)
+            self.assertEqual({op[0] for op in uses}, {'send_grave', 'special_summon'})
+            self.assertEqual({op[1] for op in uses}, {status})
+
     def test_dweller_three_controls_gigantes_instant_fusion_and_side_negative(self):
         dweller = 21044178
         thrasher = 65367484

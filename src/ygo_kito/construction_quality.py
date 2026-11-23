@@ -427,6 +427,9 @@ def _functional_inputs(uses, sources, config, completion, stage, scenario, impac
                        optimistic=None, overrides=None):
     """Merge surviving proofs before discounting each physical source once."""
     from math import fsum
+    if scenario in config.get('_kept_scopes', ()):
+        scenario = 'resident'
+        overrides = set()
     active, modes = {}, {}
     rules = {r["rule_id"]: r["increment"] for r in config["theme_rules"]}
     automatic = {r['rule_id'] for r in config['theme_rules'] if 'task_goal' in r['predicate']}
@@ -445,6 +448,8 @@ def _functional_inputs(uses, sources, config, completion, stage, scenario, impac
             and not (use.scope_id == 'resident' and (use.effect_id, use.score_family_id, source) in overrides))
 
     scoped = [use for use in uses if use.scope_id in ('resident', scenario)]
+    if scenario in config.get('_exchanged_scopes', ()):
+        scoped = [use for use in scoped if use.scope_id == scenario]
     allowed = {use.use_id: eligible_sources(use) for use in scoped}
     for use in scoped:
         if not use.contributes:
@@ -779,7 +784,7 @@ def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, 
                 "variables", "constraints", "coverage", "scope_status"}
     optional = {"source_aliases", "extra_card_ids", "unpriced_effects", "unknown_scope",
                 "normalization_version", "coverage_details", "use_details", "fact_details", "hard_requirements", "side_contexts",
-                "theme_witnesses", "native_rule_evidence", "static_rules", "rule_source_error"}
+                "theme_witnesses", "native_rule_evidence", "static_rules", "rule_source_error", "inventory_binding"}
     if required - set(facts) or set(facts) - required - optional or facts["version"] != "construction-quality-facts-v1":
         raise ContractError("functional facts contract differs")
     axis = evaluation["axis"]
@@ -913,6 +918,8 @@ def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, 
     unknown = sorted(k for k in referenced if variables[k] is None)
     known = {k: v for k, v in variables.items() if v is not None}
     runtime = {**config, "_main_size": main_size, '_capacity':axis['task'].get('sizes',{}), '_theme_witnesses':witnesses}
+    runtime['_exchanged_scopes'] = {d for d, view in facts.get('side_contexts', {}).items() if 'swaps' in view}
+    runtime['_kept_scopes'] = {d for d, view in facts.get('side_contexts', {}).items() if view.get('swaps') == []}
     directions = config["side_directions"] if "side" in config["required_scope"] else {"resident": 1.}
     budget = config["completion_budget"]
     full_count = 1 << len(unknown)
@@ -1094,7 +1101,7 @@ def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, 
     body = dict(version=eval_version, layer="quality", policy_version=policy["version"],
         policy_source=policy["source"], policy_sha256=policy_sha, quality_config_sha256=digest(config),
         task_sha256=task_sha, deck_sha256=deck_sha, logic_sha256=logic_sha, asset_version=facts["asset_version"],
-        inventory=deepcopy(inventory),
+        inventory=deepcopy(inventory), **({"inventory_binding": facts["inventory_binding"]} if "inventory_binding" in facts else {}),
         facts_sha256=facts_sha,
         normalization_version=facts.get("normalization_version", "explicit-functional-facts-v1"),
         function_dictionary_version=config["function_dictionary_version"],

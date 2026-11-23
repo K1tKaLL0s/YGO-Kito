@@ -27,7 +27,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v69"
+NORMALIZATION_VERSION = "construction-function-normalization-v70"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -1626,6 +1626,8 @@ def _functional_relations(deck, available, records, aliases, extra_ids, context,
                 fusion = dependencies.fusion_check(available, code, scoped_record)
                 ritual = dependencies.ritual_check(available, code, scoped_record) if fusion is None else None
                 checks, processing = [], None
+                if scoped_record.get("type_matched_deck_send"):
+                    processing = dependencies.processing_check(available, scoped_record, operation, physical_inventory=deck)
                 claims, extra_needs = [], []
                 _activation_claims(fact, scoped_record["rule_registration"], scoped_record["effect_key"],
                                    fact.source, rel_pools, claims)
@@ -2457,6 +2459,44 @@ def _bind_mandatory_impacts(facts, context, condition, *, summon_choice=None):
     for use in facts["uses"]:
         detail = facts["use_details"][use.use_id]
         checks = detail["restriction_checks"] = []
+        operation = detail.get('operation') or {}
+        if operation.get('own_destruction'):
+            from .construction_inventory import matches
+            refs = use.evidence_refs
+            affected = []
+            if use.use_id in relevant:
+                for target in facts['uses']:
+                    if (target.scope_id != use.scope_id or target.use_id not in relevant
+                            or not precedes(use.use_id, target.use_id) or precedes(target.use_id, use.use_id)):
+                        continue
+                    victim = details[target.use_id]
+                    zone = victim.get('trigger', {}).get('zone')
+                    if zone not in ('field', 'spell_trap', 'pzone'):
+                        continue
+                    if operation.get('subject') == 'this_card':
+                        sources_hit = tuple(sorted(set(use.source_ids) & set(target.source_ids)))
+                        if not sources_hit:
+                            continue
+                        certain = True
+                    elif operation.get('whole_group'):
+                        location = operation.get('own_location_mask') or 0
+                        if not location & (4 if zone == 'field' else 8):
+                            continue
+                        query = operation.get('selector_query')
+                        if query and not matches(facts['card_properties'][str(victim['card_id'])], query):
+                            continue
+                        sources_hit = target.source_ids
+                        certain = True if operation.get('unfiltered_group') else None
+                    else:
+                        continue
+                    key = 'impact:' + digest((use.use_id, target.use_id, 'own_destruction'))
+                    applicability = condition(key, certain, 'own_destruction_before_field_use', refs)
+                    facts['impacts'].append(UseImpact(key, use.use_id, (target.use_id,),
+                        ('base', *target.theme_eligible), ('own_destruction',), refs, applicability,
+                        use.scope_id, sources_hit))
+                    affected.append(target.use_id)
+            facts['unpriced_effects'].append(dict(kind='own_destruction', source_id=use.use_id,
+                affected_use_ids=affected, evidence_refs=list(refs)))
         record = records.get(use.effect_id)
         seen = set()
         for contract, restriction in contracts.get(use.use_id, ((None, r) for r in detail["restrictions"])):
@@ -2762,6 +2802,31 @@ def _is_interruption_use(record, operation, semantics):
     return False
 
 
+def _projected_side_swap(task, deck, assets, projection, extra_ids):
+    """Propose a legal exchange from projected support; price the resulting inventory separately."""
+    from .construction_native import _side_inventory
+    relation, operation_ids = projection
+    functions = defaultdict(set)
+    for (code, effect, operation), uid in operation_ids.items():
+        if operation is not None and relation['uses'].get(uid, {}).get('status') == 'supported':
+            functions[code].add((effect, operation))
+    copies = Counter(deck.main + deck.extra)
+    candidates = []
+    for incoming in sorted(set(deck.side)):
+        zone = 'extra' if incoming in extra_ids else 'main'
+        for outgoing in sorted(set(getattr(deck, zone))):
+            if incoming == outgoing:
+                continue
+            priority = len(functions[incoming]) / (copies[incoming] + 1) - len(functions[outgoing]) / copies[outgoing]
+            if priority > 0:
+                candidates.append((-priority, zone, incoming, outgoing))
+    for _, zone, incoming, outgoing in sorted(candidates):
+        moves = [dict(zone=zone, incoming=incoming, outgoing=outgoing)]
+        if assets.accepts(task, _side_inventory(deck, moves)):
+            return moves
+    return []
+
+
 def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context=None,
                             layer_evaluation=None, quality_evidence=None,
                             continuation=None, should_stop=None, work_state=None, reuse=None):
@@ -2803,6 +2868,8 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
         source_aliases=aliases, extra_card_ids=extra_ids, unpriced_effects=[],
         coverage_details={}, use_details={}, fact_details={}, hard_requirements=[])
     facts['inventory']=inventory
+    if native_authority:
+        facts['inventory_binding'] = reference_asset_binding(catalog, deck)
     facts['card_properties']={str(c):{key:catalog.assets.rows[c].get(key,0) for key in
         ('id','name','type','level','race','attribute','atk','def','setcode')} for c in codes}
     relation_binding=asdict(context.relations) if context is not None else None
@@ -2817,13 +2884,14 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
         assets=facts['asset_version'],normalization=NORMALIZATION_VERSION,
         relations=relation_binding,evidence=None if callable(quality_evidence) else quality_evidence,
         logic=layer_evaluation['axis'].get('logic') if layer_evaluation is not None else None,
-        native_frontier=frontier))
+        native_frontier=frontier, inventory_binding=facts.get('inventory_binding')))
     if continuation is not None and (continuation.get('version')!='functional-normalization-work-v1'
             or continuation.get('binding')!=binding):
         raise ContractError('normalization continuation belongs to different inputs')
     work=deepcopy(continuation or dict(version='functional-normalization-work-v1',binding=binding,
         asset_version=facts['asset_version'],normalization_version=NORMALIZATION_VERSION,
-        native_frontier=frontier,read_cursor=0,specifications={},projections={},active=None))
+        native_frontier=frontier,inventory_binding=facts.get('inventory_binding'),
+        read_cursor=0,specifications={},projections={},active=None))
     if work_state is not None:
         work_state.clear();work_state.update(work)
     dependencies = InventoryDependencies(catalog, requirement_limit=budget.facts)
@@ -2929,10 +2997,23 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
     available = {"resident": SimpleNamespace(main=deck.main, extra=deck.extra)}
     selected = {"resident": {s for s, item in sources.items() if item["zone"] != "side"}}
     facts["side_contexts"] = {}
+    side_plans = work.get('side_plans')
     if deck.side and "side" in config["required_scope"]:
         for direction in config["side_directions"]:
             allowed = {s for s, item in sources.items() if item["zone"] != "side"
                        or task.sizes[item["destination"]] > 0}
+            if side_plans is not None:
+                from .construction_native import _side_inventory
+                moves = side_plans[direction]
+                exchanged = _side_inventory(deck, moves)
+                allowed = selected['resident'].copy()
+                for move in moves:
+                    leaving = max(s for s in allowed if sources[s]['zone'] == move['zone']
+                                  and sources[s]['card_id'] == move['outgoing'])
+                    entering = min(s for s in sources if s not in allowed and sources[s]['zone'] == 'side'
+                                  and sources[s]['card_id'] == move['incoming'])
+                    allowed.remove(leaving)
+                    allowed.add(entering)
             inbound = Counter(sources[s]["destination"] for s in allowed if sources[s]["zone"] == "side")
             over = [z for z in ("main", "extra") if inbound[z] > task.sizes[z]]
             names = Counter(str(sources[s]["name_key"]) for s in allowed)
@@ -2946,6 +3027,9 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                 status="evaluated", gaps=[],
                 alternatives_require_subsets=bool(over),
                 excluded_source_ids=sorted(set(sources)-allowed), main_size=len(deck.main))
+            if side_plans is not None:
+                available[direction] = exchanged
+                facts['side_contexts'][direction].update(swaps=moves, deck=exchanged.to_dict())
     if native_authority:
         from .native_registrations import NativeRegistryError
 
@@ -3031,6 +3115,13 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
         work['projections'][scope]=dict(relation=relation,
             operation_facts=[[list(key),value] for key,value in operation_facts.items()])
         work['active']=None
+    if facts['side_contexts'] and side_plans is None:
+        work['side_plans'] = {d: _projected_side_swap(task, deck, catalog.assets, projections[d], extra_ids)
+                              for d in facts['side_contexts']}
+        work['projections'] = {'resident': work['projections']['resident']}
+        return normalize_function_uses(task, deck, catalog, policy=policy, budget=budget, context=context,
+            layer_evaluation=layer_evaluation, quality_evidence=quality_evidence, continuation=work,
+            should_stop=should_stop, work_state=work_state, reuse=reuse)
     relation, operation_facts = projections["resident"]
     for use in context.relations.uses if context is not None else ():
         if use.required:
@@ -3132,9 +3223,10 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                         and op.get("processing_role") == "auxiliary"]
                     costs = [r for r in requirement_rows if r["category"] == "costs"]
                     other = [r for r in requirement_rows if r["category"] != "costs"]
-                    source_ids = tuple(s for s, item in sources.items() if item["zone"] == zone and item["card_id"] == code)
+                    card_sources = tuple(s for s, item in sources.items() if item["zone"] == zone and item["card_id"] == code)
                     for scope, view in available.items():
-                        if scope == "resident" and zone == "side":
+                        source_ids = tuple(s for s in card_sources if s in selected[scope])
+                        if not source_ids:
                             continue
                         key = uid if scope == "resident" else uid + ":" + scope
                         native = dependencies.witnessed_processing(view, scoped_record, operation, inventory=deck, scope=scope)
@@ -3146,6 +3238,8 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                             checked = (dependencies._check(view, requirement_rows, distinct=True)
                                        if fusion is None and ritual is None else None)
                             objects = material = summon_trigger = processing = complete_payment = None
+                            if scoped_record.get("type_matched_deck_send"):
+                                processing = dependencies.processing_check(view, scoped_record, operation, physical_inventory=deck)
                             used_operation, use_semantics = operation, semantics
                         elif authoritative or native_authority:
                             checked = objects = material = fusion = summon_trigger = processing = complete_payment = None
@@ -3218,7 +3312,8 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
                         use = FunctionalUse(key, eid, family, family, source_ids,
                             "called" if code in extra_ids else "main_density", refs, self_condition,
                             scope_id=scope, theme_conditions=tuple(themes), theme_eligible=tuple(k for k, _ in themes),
-                            contributes=operation is not None and (not native_authority or static_rule),
+                            contributes=(operation is not None and (not native_authority or static_rule)
+                                and not (observed.get("own_destruction") and observed.get("owner") == "self")),
                             is_interruption=(operation is not None and (not native_authority or static_rule)
                                              and _is_interruption_use(record, used_operation, use_semantics)))
                         prior = next((u for u in facts["uses"] if u.use_id == key), None)
@@ -3701,6 +3796,7 @@ class ConstructionLayerAdapter:
             evaluation_comparisons.bind(q)
             if (q.get('evaluation_timed_out') or q['asset_version'] != asset_version
                     or q['normalization_version'] != NORMALIZATION_VERSION
+                    or native_authority and q.get('inventory_binding') != reference_asset_binding(self.catalog, rows[i]['deck'])
                     or (native_rules is not None and q.get('native_rule_evidence', {}).get('frontier') !=
                         native_rules.frontier_binding(task, rows[i]['deck'], 'candidate', policy))
                     or not native_authority and any(

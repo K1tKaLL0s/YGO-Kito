@@ -367,7 +367,8 @@ def goal_candidates(task, assets, base=None, *, skeleton=None, feedback=(), retu
 
 
 def edit_candidates(task, assets, base, *, require_edit=False, feedback=(), return_portfolio=False,
-                    mechanism_groups=None, trace=None, graph=None, search_offset=0, candidate_ids=None, rank_ideas=None, recognized_cards=()):
+                    mechanism_groups=None, trace=None, graph=None, search_offset=0, candidate_ids=None, rank_ideas=None, recognized_cards=(),
+                    review_slots=()):
     from .construction_candidates import portfolio
 
     assets.validate(task, base)
@@ -400,6 +401,26 @@ def edit_candidates(task, assets, base, *, require_edit=False, feedback=(), retu
     # Keep a small menu of edits per section, alternating substitutions and
     # exchanges. These records contain only the cards that would change.
     found = []
+    if review_slots:
+        # Recall against the whole period. Prefer candidates retrieved by S2,
+        # and try another eligible card when retrieval missed this section.
+        ranked_pool = tuple(dict.fromkeys((*pool, *task.pool)))
+        for slot in review_slots:
+            zone, outgoing = slot['zone'], slot['card']
+            if not edits.counts[zone].get(outgoing):
+                continue
+            for incoming in ranked_pool:
+                if incoming == outgoing or bool(assets.rows[incoming]['type'] & EXTRA_TYPES) != (zone == 'extra'):
+                    continue
+                change = {z: dict(removed=[], added=[]) for z in ZONES}
+                change[zone] = dict(removed=[outgoing], added=[incoming])
+                if not edits.rejection(change):
+                    found.append(dict(changes=change, strategy='quality_slot', edited_zones=[zone],
+                        proposal_basis=slot['reason'], generation=dict(kind='quality_slot', zone=zone,
+                            removed=outgoing, added=incoming, reason=slot['reason'])))
+                    break
+            if len(found) >= candidate_limit(task) - 1:
+                break
     for position, zone in enumerate(ZONES):
         streams = [("single:" + zone, ideas(zone))]
         streams.extend(("transfer:" + zone + "+" + other, ideas(zone, other)) for other in ZONES[position + 1:])

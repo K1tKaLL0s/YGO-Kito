@@ -589,6 +589,25 @@ class ConstructionFeedbackBoundaryTests(unittest.TestCase):
             self.assertFalse(rejected_res["adopted"])
             self.assertEqual(rejected_res["stop_reason"], "feedback_duel_not_adopted")
             self.assertEqual(course.deck, below_ref_deck)
+            pending = rejected_res["result"]["continuation"]
+            self.assertEqual(pending["handoffs"][-1]["output_deck_sha256"], digest(course.deck.to_dict()))
+            self.assertEqual(pending["pending_duel_revision"]["candidate"]["deck"], strong_deck.to_dict())
+            kernel.load_state_dict(json.loads(json.dumps(kernel.state_dict())))
+            with patch.object(ConstructionLayerAdapter, "evaluate_inventory", side_effect=AssertionError("static scoring")):
+                course.bots = {}
+                deferred = course.revise_deck_from_feedback([], basic_cb_verifier=cb_ok)
+                self.assertFalse(deferred["adopted"])
+                self.assertEqual(deferred["stop_reason"], "feedback_duel_comparison_pending")
+                self.assertEqual(course.deck, below_ref_deck)
+                kernel.load_state_dict(json.loads(json.dumps(kernel.state_dict())))
+                course.bots["val-0"] = dict(stage="bots-bo1", purpose="validation", deck=strong_deck)
+                with patch("ygo_kito.build_feedback.compare_candidates", return_value=(
+                    {"preferred_index": 1, "status": "engineering_preference_observed"}, [])):
+                    resumed = course.revise_deck_from_feedback([], basic_cb_verifier=cb_ok)
+                self.assertTrue(resumed["adopted"])
+                self.assertEqual(resumed["static_scoring_calls"], 0)
+                self.assertEqual(course.deck, strong_deck)
+                self.assertNotIn("pending_duel_revision", resumed["result"]["continuation"])
 
 
 if __name__ == "__main__":

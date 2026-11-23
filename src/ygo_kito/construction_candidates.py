@@ -272,7 +272,7 @@ def portfolio(task, assets, *, base=None, initial=(), singles=(), feedback=(), r
     directions = [name for name in ("dependency:inventory", "axis", *("edit:" + z for z in ZONES))
                   if name in families]
     turn = search_offset // candidate_limit(task) % max(1, len(directions))
-    family_order = [name for name in ("incumbent", "observed-package", "fresh") if name in families]
+    family_order = [name for name in ("incumbent", "quality_slot", "observed-package", "fresh") if name in families]
     family_order.extend(directions[turn:] + directions[:turn])
     if recognized_cards:
         def lost_mechanisms(row):

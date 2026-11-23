@@ -1451,6 +1451,53 @@ def _collect_roots_and_calls(op_node, tgt_node, all_funcs):
     return roots, op_roots, calls
 
 
+def _destroy_recipient(operation, target, functions, constants, code, env):
+    """Follow the destroyed group to its producer before assigning an owner."""
+    locals_ = {}
+    recipients = []
+    for node in _walk(operation):
+        var, value = _local_value(node)
+        if var:
+            locals_[var] = value
+        name, args = _call_parts(node)
+        if name != "Duel.Destroy" or not args:
+            continue
+        obj = locals_.get(_name(args[0]), args[0])
+        producer, inputs = _call_parts(obj)
+        if producer == "Duel.GetFirstTarget" and target is not None:
+            choices = [n for n in _walk(target) if _call_parts(n)[0] == "Duel.SelectTarget"]
+            if len(choices) == 1:
+                obj = choices[0]
+                producer, inputs = _call_parts(obj)
+        if producer and producer.endswith(":GetHandler"):
+            recipients.append(("self", {"subject": "this_card"}))
+            continue
+        if producer not in ("Duel.GetMatchingGroup", "Duel.SelectTarget", "Duel.SelectMatchingCard"):
+            return None
+        query, own, opp, qty = _extract_filter_from_selection(obj, functions, constants, code, env)
+        player = _text(inputs[1 if producer == "Duel.GetMatchingGroup" else 2])
+        if player.replace(" ", "") == "1-tp":
+            own, opp = opp, own
+        elif player != "tp":
+            return None
+        if not own and not opp:
+            return None
+        owner = "both" if own and opp else "self" if own else "opponent"
+        details = dict(from_zones=own or opp, quantity=qty, whole_group=producer == "Duel.GetMatchingGroup")
+        predicate = inputs[0 if producer == "Duel.GetMatchingGroup" else 1]
+        details['unfiltered_group'] = _text(predicate) in ('nil', 'aux.TRUE', 'Auxiliary.TRUE')
+        own_index = 2 if producer == "Duel.GetMatchingGroup" else 3
+        if player != 'tp':
+            own_index += 1
+        details['own_location_mask'] = _eval_int(inputs[own_index], constants, env)
+        if query:
+            details['selector_query'] = query
+        recipients.append((owner, details))
+    if recipients and all(r == recipients[0] for r in recipients):
+        return recipients[0]
+    return None
+
+
 def _extract_general_operations(lua, rule, code, constants, trigger, cost_info):
     """Analyze `operation` + `target` ASTs to emit exact operations, targets, and extra requirements."""
     cbs = rule.get("callbacks", {})
@@ -1784,8 +1831,14 @@ def _extract_general_operations(lua, rule, code, constants, trigger, cost_info):
         return dict(operations=[primary_ns], extra_reqs=extra_reqs, restrictions=restrictions, fusion=False, ritual=False)
 
     if "Duel.Destroy" in call_names:
-        # Check self-destroy with follow-up? Already caught SendtoHand/SpecialSummon if present; remaining is opponent/field destroy
-        op = dict(kind="destroy", from_zones=["field"], to_zone="grave", quantity=1, random=False, owner="opponent")
+        recipient = _destroy_recipient(op_node, tgt_node, all_funcs, constants, code, env)
+        if recipient is None:
+            return None
+        owner, details = recipient
+        op = dict(kind="destroy", from_zones=["field"], to_zone="grave", quantity=1, random=False, owner=owner)
+        op.update(details)
+        if owner == "self" or owner == "both" and details.get("whole_group"):
+            op["own_destruction"] = True
         return dict(operations=[op, *extra_ns_ops], extra_reqs=extra_reqs, restrictions=restrictions, fusion=False, ritual=False)
 
     if "Duel.Remove" in call_names:
@@ -2043,7 +2096,32 @@ def _static_record(lua, rule, code, ordinal, rows, cards_sha256, *, floodgate_op
     if trigger is None:
         return None
     cost_rows, cost_restrictions = _analyze_cost(lua, rule, code, constants, op_funcs)
-    extracted = _extract_general_operations(lua, rule, code, constants, trigger, cost_rows)
+    matched = None
+    if (trigger["zone"] == "hand" and rule["type"] == _const(constants, "EFFECT_TYPE_IGNITION")
+            and rule["category"] & _const(constants, "CATEGORY_TOGRAVE")
+            and rule["category"] & _const(constants, "CATEGORY_SPECIAL_SUMMON")):
+        summary = lua.summarize_effects(code, deck_send_indices=(0, ordinal, None), summon_locks=True)
+        matched = next((r["type_matched_deck_send"] for r in summary["registrations"]
+            if r.get("type_matched_deck_send") and
+            lua.callback_location(r["operation"]["definition"]) == source and
+            lua.callback_location(r["target"]["definition"]) == cbs.get("target")), None)
+    if matched:
+        query = matched["selector_query"]
+        operations = [
+            dict(kind="send_grave", from_zones=["deck"], to_zone="grave", quantity=1,
+                 random=False, selector_query=query, requires_arrival=True),
+            dict(kind="special_summon", from_zones=["hand"], to_zone="field", quantity=1,
+                 random=False, subject="this_card", source_card_id=code,
+                 selector_query={"predicate": {"field": "card_ids", "value": [code]}}),
+        ]
+        if revival := matched.get("revival"):
+            operations.append(dict(kind="special_summon", from_zones=["grave"], to_zone="field",
+                quantity=1, random=False, optional=True, selector_query=revival["selector_query"],
+                position=revival["position"], effects_disabled=revival["effects_disabled"]))
+        extracted = dict(operations=operations, extra_reqs=[], fusion=False, ritual=False,
+            restrictions=_extract_restrictions_in_op(op_node, op_funcs, constants, code, ref))
+    else:
+        extracted = _extract_general_operations(lua, rule, code, constants, trigger, cost_rows)
     if extracted is None or extracted.get("utility_only"):
         return dict(_utility_status=extracted["status"]) if extracted and extracted.get("utility_only") else None
 
@@ -2090,6 +2168,16 @@ def _static_record(lua, rule, code, ordinal, rows, cards_sha256, *, floodgate_op
         unknown=[], block_view={"status": "native_static", "blocks": [], "unknown": []},
         rule_registration=rule,
     )
+    if matched:
+        record["targets"] = [dict(zones=["field"], owner="self", face_up=True, quantity=1,
+            timing="activation", source=ref, selector_query=matched["selector_query"])]
+        send, handler, *revival = ops
+        handler["depends_on"] = [send["block_id"]]
+        binding = dict(send=send["block_id"], handler=handler["block_id"], base_type_mask=matched["base_type_mask"])
+        if revival:
+            revival[0]["depends_on"] = [handler["block_id"]]
+            binding["revival"] = revival[0]["block_id"]
+        record["type_matched_deck_send"] = binding
     if extracted["fusion"]:
         loc_map = {
             "spell_trap": _const(constants, "LOCATION_SZONE"),

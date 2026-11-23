@@ -385,7 +385,7 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
                        layer_adapter=None, search_offset=0, quality_policy=None, quality_evidence=None,
                        should_stop=None, pending_quality=None, recognition_provider=None, recognition_mode="off",
                        query_cursor=0, retrieval_limit=128, on_evaluation_progress=None, _comparisons=None,
-                       incumbent_recognition=None, initial_draft=False, optional_graph_binding=False):
+                       incumbent_recognition=None, initial_draft=False, optional_graph_binding=False, review_slots=()):
     """Reuse existing fill/quantity generation and independent model ranking.
 
     Concrete CatalogBindingAdapter/LogicModelAdapter implementations can supply
@@ -475,7 +475,7 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
         generation_trace['generator'] = 'optimizer_draft_completion' if initial_draft else 'optimizer_completion_of_legacy_skeleton'
     else:
         candidates = (goal_candidates(task, assets, base,feedback=feedback,return_portfolio=True,mechanism_groups=mechanism_groups,trace=generation_trace,graph=session.logic,**query_options) if role == "build_goal"
-                      else edit_candidates(task, assets, base, require_edit=False,feedback=feedback,return_portfolio=True,mechanism_groups=mechanism_groups,trace=generation_trace,graph=session.logic,search_offset=search_offset,**query_options))
+                      else edit_candidates(task, assets, base, require_edit=False,feedback=feedback,return_portfolio=True,mechanism_groups=mechanism_groups,trace=generation_trace,graph=session.logic,search_offset=search_offset,review_slots=review_slots,**query_options))
     portfolio_rows=candidates
     candidates=[row["deck"] for row in portfolio_rows]
     from .construction_recognition import (collect_recognition, recognition_quality_evidence,
@@ -857,6 +857,26 @@ def _deficiencies(quality, *, limit=4):
             for row in quality['losses'] if row['lower'] > 0][:limit]
 
 
+def _review_slots(deck, quality):
+    """Refer evidenced gaps and duplicate investments to S2 for an equal-size comparison."""
+    if not quality.get('static_rules'):
+        return []
+    by_card = {}
+    for uid, detail in quality['use_details'].items():
+        if not any(uid.endswith(':' + d) for d in quality.get('side_contexts', ())):
+            by_card.setdefault(detail['card_id'], []).append(detail)
+    slots = []
+    for zone in ('extra', 'main'):
+        cards = getattr(deck, zone)
+        for code in sorted(set(cards)):
+            rows = by_card.get(code, ())
+            if rows and all(row['relation']['status'] == 'missing' for row in rows):
+                slots.append(dict(zone=zone, card=code, reason='missing_support'))
+            elif cards.count(code) > 1 and rows:
+                slots.append(dict(zone=zone, card=code, reason='duplicate_review'))
+    return sorted(slots, key=lambda slot: slot['reason'] != 'missing_support')
+
+
 def _quality_summary(quality):
     if quality is None:
         return None
@@ -1043,6 +1063,8 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
             state.update(status='optimizing', gate=None)
             save()
     for _ in range(max_iterations if state else 0):
+        if state.get('pending_duel_revision'):
+            break
         if policy is None and not in_feedback_path:
             reason = 'quality_policy_unconfigured'
             break
@@ -1142,9 +1164,7 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
                 break
             cand_deck = cand_raw if isinstance(cand_raw, DeckParts) else DeckParts.from_dict(cand_raw)
             state['iteration'] = iteration
-            state['candidate_version'] += 1
             state['stagnation'] = state['stagnation'] + 1 if cand_deck == current else 0
-            finish_feedback(receipts, cand_deck)
             row = dict(
                 deck=cand_deck.to_dict(), deck_sha256=hc['deck_sha256'], strategy=cand_strategy,
                 admission_mode='feedback_revision', feedback_hard_check=hc,
@@ -1161,13 +1181,17 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
                 revised_deck_sha256=hc['deck_sha256'],
                 feedback_ids=[r['input']['feedback_id'] for r in receipts],
             )
-            state.update(candidate=row, retained_candidates=[], status='passed')
-            state['handoffs'] = [*state['handoffs'], dict(role='build_optimizer',
-                candidate_version=state['candidate_version'],
-                input_deck_sha256=digest(current.to_dict()), output_deck_sha256=row['deck_sha256'])]
+            handoff = dict(role='build_optimizer', candidate_version=hc['candidate_version'],
+                input_deck_sha256=digest(current.to_dict()), output_deck_sha256=row['deck_sha256'])
+            if trigger_kind == 'duel':
+                state.update(status='suspended', pending_duel_revision=dict(candidate=row, handoff=handoff))
+            else:
+                finish_feedback(receipts, cand_deck)
+                state.update(candidate=row, candidate_version=hc['candidate_version'], retained_candidates=[], status='passed')
+                state['handoffs'] = [*state['handoffs'], handoff]
             phase.update(
                 proposal_deck=row['deck'], proposal_changes=changes(current, cand_deck),
-                output_candidate_version=state['candidate_version'],
+                output_candidate_version=hc['candidate_version'],
                 feedback_hard_check=hc,
                 optimization_feedback=deepcopy(receipts),
                 acceptance='feedback_hard_check_passed',
@@ -1240,7 +1264,8 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
                 query_cursor=state.get('query_cursor',0), retrieval_limit=retrieval_limit,
                 on_evaluation_progress=save_evaluation_progress,
                 incumbent_recognition=state['candidate'].get('recognition'), recognition_provider=recognition_provider, recognition_mode=recognition_mode,
-                _comparisons=_comparisons, initial_draft=initial_draft, optional_graph_binding=optional_graph_binding)
+                _comparisons=_comparisons, initial_draft=initial_draft, optional_graph_binding=optional_graph_binding,
+                review_slots=state.get('review_slots', ()))
             phase['stage_3'] = result
             generated = len(result.get('candidate_trace', {}).get('candidates', ()))
             if not resuming and not generation_recorded:
@@ -1340,6 +1365,13 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
         phases[-1] = phase
         state.update(candidate=row, gate=gate, retained_candidates=[],
             status='passed' if gate['status'] == 'passed' else 'optimizing', last_optimizer_phase=phase)
+        reviewed = bool(state.pop('review_slots', ()))
+        if not reviewed and not state.get('slot_review_completed') and round_limit > 1:
+            slots = _review_slots(deck, row['quality_evaluation'])
+            if slots:
+                state.update(review_slots=slots, status='optimizing')
+        elif reviewed:
+            state['slot_review_completed'] = True
         compact_completed_progress(state)
         _comparisons.release_candidates(row['quality_evaluation'], reference)
         state['handoffs'] = [*state['handoffs'], dict(role='build_optimizer', candidate_version=state['candidate_version'],
@@ -1450,35 +1482,31 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
         return dict(row, construction_gate=deepcopy(gate), candidate_version=gate['candidate_version'],
             validation=validation, task_verified=checked, basic_cb=inference,
             cb_verified=inference.get('status') == 'routes_inferred' and bool(inference.get('routes')))
-    if passed and not user_stopped and feedback_mode:
-        post_fb = state.get('post_admission_feedback') or {}
+    pending_revision = state.get('pending_duel_revision') if state else None
+    if pending_revision and not stop and max_iterations:
+        post_fb = state['post_admission_feedback']
         hc = state.get('feedback_hard_check')
-        if post_fb.get('trigger_kind') == 'duel' and feedback_duel_verifier is not None:
-            active_deck = DeckParts.from_dict(post_fb['active_deck'])
-            revised_deck = DeckParts.from_dict(candidate['deck'])
+        active_deck = DeckParts.from_dict(candidate['deck'])
+        revised_deck = DeckParts.from_dict(pending_revision['candidate']['deck'])
+        if feedback_duel_verifier is not None:
             duel_comparison = feedback_duel_verifier(session.task, assets, active_deck, revised_deck, hard_check=hc)
-            if duel_comparison.get('adopt') is not True:
-                passed = False
-                reason = 'feedback_duel_not_adopted'
-                state.update(status='suspended', stop_reason=reason)
-                if phases:
-                    phases[-1]['feedback_duel_comparison'] = {
-                        k: duel_comparison[k] for k in ('kind', 'adopt', 'status', 'active_deck_sha256',
-                                                        'revised_deck_sha256', 'static_scoring_calls')
-                        if k in duel_comparison
-                    }
-                    phases[-1]['acceptance'] = 'feedback_duel_not_adopted'
-                # Retain the active deck while preserving the unverified issue for later rounds.
-                state['candidate'] = dict(
-                    deck=deepcopy(post_fb['active_deck']),
-                    deck_sha256=post_fb['active_deck_sha256'],
-                    admission_mode='feedback_revision',
-                    feedback_hard_check=hc,
-                    initial_admission=deepcopy(state['initial_admission']),
-                    layer_evaluation=None, quality_evaluation=None,
-                )
-                candidate = dict(state['candidate'])
-                save()
+        passed = bool(duel_comparison and duel_comparison.get('adopt') is True)
+        receipts = [r for r in session.optimization_feedback if r['input']['feedback_id'] in post_fb['feedback_ids']]
+        if passed:
+            candidate = dict(pending_revision['candidate'])
+            state.update(candidate=candidate, candidate_version=hc['candidate_version'], retained_candidates=[])
+            state['handoffs'] = [*state['handoffs'], pending_revision['handoff']]
+            del state['pending_duel_revision']
+            finish_feedback(receipts, revised_deck)
+            reason = 'construction_passed'
+        else:
+            reason = 'feedback_duel_not_adopted' if duel_comparison else 'feedback_duel_comparison_pending'
+        state.update(status='passed' if passed else 'suspended', stop_reason=reason)
+        if phases:
+            phases[-1]['acceptance'] = reason
+            phases[-1]['optimization_feedback'] = deepcopy(receipts)
+            state['last_optimizer_phase'] = phases[-1]
+        save()
     if passed and not user_stopped:
         from .construction_progress import record_basic_cb_attempt, record_optimization_feedback
         cb_optimize = False
