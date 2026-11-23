@@ -2806,6 +2806,9 @@ def _projected_side_swap(task, deck, assets, projection, extra_ids, specs, conte
     """Propose a legal exchange from projected support; price the resulting inventory separately."""
     from .construction_native import _side_inventory
     from .construction_inventory import matches, query_supported
+    # A size-preserving swap cannot complete a partial inventory.
+    if any(len(getattr(deck, zone)) != size for zone, size in task.sizes.items()):
+        return []
     relation, operation_ids = projection
     functions = defaultdict(set)
     for (code, effect, operation), uid in operation_ids.items():
