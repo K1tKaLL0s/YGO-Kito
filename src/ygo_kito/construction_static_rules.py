@@ -1472,6 +1472,13 @@ def _destroy_recipient(operation, target, functions, constants, code, env):
         if producer and producer.endswith(":GetHandler"):
             recipients.append(("self", {"subject": "this_card"}))
             continue
+        if producer and producer.endswith(":GetBattleTarget"):
+            receiver = obj.child_by_field_name("name").child_by_field_name("table")
+            handler = locals_.get(_name(receiver), receiver)
+            handler_call, _ = _call_parts(handler)
+            if handler_call and handler_call.endswith(":GetHandler"):
+                recipients.append(("opponent", {"subject": "battle_target"}))
+                continue
         if producer not in ("Duel.GetMatchingGroup", "Duel.SelectTarget", "Duel.SelectMatchingCard"):
             return None
         query, own, opp, qty = _extract_filter_from_selection(obj, functions, constants, code, env)
@@ -2097,10 +2104,12 @@ def _static_record(lua, rule, code, ordinal, rows, cards_sha256, *, floodgate_op
         return None
     cost_rows, cost_restrictions = _analyze_cost(lua, rule, code, constants, op_funcs)
     matched = None
-    if (trigger["zone"] == "hand" and rule["type"] == _const(constants, "EFFECT_TYPE_IGNITION")
+    if (trigger["zone"] == "hand" and rule["type"] & _const(constants, "EFFECT_TYPE_IGNITION")
             and rule["category"] & _const(constants, "CATEGORY_TOGRAVE")
             and rule["category"] & _const(constants, "CATEGORY_SPECIAL_SUMMON")):
-        summary = lua.summarize_effects(code, deck_send_indices=(0, ordinal, None), summon_locks=True)
+        script_id = source["file"].removesuffix(".lua").removeprefix("c")
+        summary = lua.summarize_effects(int(script_id) if script_id.isdecimal() else code,
+            deck_send_indices=(rule.get("description", 0) % 16, None), summon_locks=True)
         matched = next((r["type_matched_deck_send"] for r in summary["registrations"]
             if r.get("type_matched_deck_send") and
             lua.callback_location(r["operation"]["definition"]) == source and
