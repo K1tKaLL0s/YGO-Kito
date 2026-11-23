@@ -570,10 +570,12 @@ class AutomaticThemeTests(unittest.TestCase):
                     extra=(101,) if size == 1 else (101, 104), side=(102, 103))
                 f[1].validate(f[0], deck)
                 _, facts, q = evaluate(f, deck)
-                source = next(u for u in facts['uses'] if u.scope_id == 'going_first'
-                    and facts['use_details'][u.use_id]['card_id'] == 102)
-                joint = support_state(dict(source.theme_joint_conditions)[SECONDARY], facts['variables'])
+                sources = [u for u in facts['uses'] if u.scope_id == 'going_first'
+                    and facts['use_details'][u.use_id]['card_id'] == 102]
+                joint = any(support_state(dict(u.theme_joint_conditions).get(SECONDARY, False),
+                    facts['variables']) is True for u in sources)
                 self.assertIs(joint, size == 2)
+                self.assertEqual(len(facts['side_contexts']['going_first']['swaps']), size)
                 if size == 1:
                     # The two-card cooperation cannot fit. The receiver's
                     # printed standalone capability needs no current board.

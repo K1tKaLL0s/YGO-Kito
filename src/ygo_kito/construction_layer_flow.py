@@ -27,7 +27,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v71"
+NORMALIZATION_VERSION = "construction-function-normalization-v72"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -2813,15 +2813,19 @@ def _projected_side_swap(task, deck, assets, projection, extra_ids, specs, conte
             functions[code].add((effect, operation))
     copies = Counter(deck.main + deck.extra)
     support = defaultdict(set)
-    for consumer in copies:
+    side_partners = defaultdict(set)
+    for consumer in set(copies) | set(deck.side):
         for effect in specs.get(consumer, ((), ()))[0]:
             for need in effect['requirements']:
                 query = need.get('query')
                 if not query or not query_supported(query) or any(matches(assets.rows[c], query) for c in copies):
                     continue
                 for incoming in set(deck.side):
-                    if matches(assets.rows[incoming], query):
-                        support[incoming].add(consumer)
+                    if incoming != consumer and matches(assets.rows[incoming], query):
+                        if consumer in copies:
+                            support[incoming].add(consumer)
+                        else:
+                            side_partners[consumer].add(incoming)
     candidates = []
     for incoming in sorted(set(deck.side)):
         zone = 'extra' if incoming in extra_ids else 'main'
@@ -2830,6 +2834,9 @@ def _projected_side_swap(task, deck, assets, projection, extra_ids, specs, conte
                 continue
             priority = len(functions[incoming]) / (copies[incoming] + 1) - len(functions[outgoing]) / copies[outgoing]
             priority += len(support[incoming] - ({outgoing} if copies[outgoing] == 1 else set()))
+            partners = side_partners[incoming]
+            if partners and len(getattr(deck, zone)) == 1 and all((p in extra_ids) == (incoming in extra_ids) for p in partners):
+                continue
             if priority > 0:
                 candidates.append((-priority, zone, incoming, outgoing))
     moves = []
@@ -2838,13 +2845,14 @@ def _projected_side_swap(task, deck, assets, projection, extra_ids, specs, conte
     for _, zone, incoming, outgoing in sorted(candidates):
         if incoming in moved_in or moved_out[outgoing] == copies[outgoing]:
             continue
+        if moves and not joint and not any(
+                incoming in side_partners[c] or c in side_partners[incoming] for c in moved_in):
+            continue
         proposed = [*moves, dict(zone=zone, incoming=incoming, outgoing=outgoing)]
         if assets.accepts(task, _side_inventory(deck, proposed)):
             moves = proposed
             moved_in.add(incoming)
             moved_out[outgoing] += 1
-            if not joint:
-                break
     return moves
 
 
