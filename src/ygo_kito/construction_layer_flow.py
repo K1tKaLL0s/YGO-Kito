@@ -27,7 +27,7 @@ from .validation import ContractError
 from .effect_records import operation_record
 
 
-NORMALIZATION_VERSION = "construction-function-normalization-v70"
+NORMALIZATION_VERSION = "construction-function-normalization-v71"
 REFERENCE_BINDING_VERSION = "construction-reference-binding-v1"
 
 
@@ -2464,7 +2464,7 @@ def _bind_mandatory_impacts(facts, context, condition, *, summon_choice=None):
             from .construction_inventory import matches
             refs = use.evidence_refs
             affected = []
-            if use.use_id in relevant:
+            if operation.get('mandatory_trigger') or use.use_id in relevant:
                 for target in facts['uses']:
                     if (target.scope_id != use.scope_id or target.use_id not in relevant
                             or not precedes(use.use_id, target.use_id) or precedes(target.use_id, use.use_id)):
@@ -2802,15 +2802,26 @@ def _is_interruption_use(record, operation, semantics):
     return False
 
 
-def _projected_side_swap(task, deck, assets, projection, extra_ids):
+def _projected_side_swap(task, deck, assets, projection, extra_ids, specs, context):
     """Propose a legal exchange from projected support; price the resulting inventory separately."""
     from .construction_native import _side_inventory
+    from .construction_inventory import matches, query_supported
     relation, operation_ids = projection
     functions = defaultdict(set)
     for (code, effect, operation), uid in operation_ids.items():
         if operation is not None and relation['uses'].get(uid, {}).get('status') == 'supported':
             functions[code].add((effect, operation))
     copies = Counter(deck.main + deck.extra)
+    support = defaultdict(set)
+    for consumer in copies:
+        for effect in specs.get(consumer, ((), ()))[0]:
+            for need in effect['requirements']:
+                query = need.get('query')
+                if not query or not query_supported(query) or any(matches(assets.rows[c], query) for c in copies):
+                    continue
+                for incoming in set(deck.side):
+                    if matches(assets.rows[incoming], query):
+                        support[incoming].add(consumer)
     candidates = []
     for incoming in sorted(set(deck.side)):
         zone = 'extra' if incoming in extra_ids else 'main'
@@ -2818,13 +2829,23 @@ def _projected_side_swap(task, deck, assets, projection, extra_ids):
             if incoming == outgoing:
                 continue
             priority = len(functions[incoming]) / (copies[incoming] + 1) - len(functions[outgoing]) / copies[outgoing]
+            priority += len(support[incoming] - ({outgoing} if copies[outgoing] == 1 else set()))
             if priority > 0:
                 candidates.append((-priority, zone, incoming, outgoing))
+    moves = []
+    moved_in, moved_out = set(), Counter()
+    joint = context and any(c.kind == 'all' for c in context.relations.constraints)
     for _, zone, incoming, outgoing in sorted(candidates):
-        moves = [dict(zone=zone, incoming=incoming, outgoing=outgoing)]
-        if assets.accepts(task, _side_inventory(deck, moves)):
-            return moves
-    return []
+        if incoming in moved_in or moved_out[outgoing] == copies[outgoing]:
+            continue
+        proposed = [*moves, dict(zone=zone, incoming=incoming, outgoing=outgoing)]
+        if assets.accepts(task, _side_inventory(deck, proposed)):
+            moves = proposed
+            moved_in.add(incoming)
+            moved_out[outgoing] += 1
+            if not joint:
+                break
+    return moves
 
 
 def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context=None,
@@ -3116,7 +3137,7 @@ def normalize_function_uses(task, deck, catalog, *, policy, budget=None, context
             operation_facts=[[list(key),value] for key,value in operation_facts.items()])
         work['active']=None
     if facts['side_contexts'] and side_plans is None:
-        work['side_plans'] = {d: _projected_side_swap(task, deck, catalog.assets, projections[d], extra_ids)
+        work['side_plans'] = {d: _projected_side_swap(task, deck, catalog.assets, projections[d], extra_ids, specs, context)
                               for d in facts['side_contexts']}
         work['projections'] = {'resident': work['projections']['resident']}
         return normalize_function_uses(task, deck, catalog, policy=policy, budget=budget, context=context,

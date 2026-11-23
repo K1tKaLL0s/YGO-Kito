@@ -1846,6 +1846,8 @@ def _extract_general_operations(lua, rule, code, constants, trigger, cost_info):
         op.update(details)
         if owner == "self" or owner == "both" and details.get("whole_group"):
             op["own_destruction"] = True
+            forced = _const(constants, "EFFECT_TYPE_TRIGGER_F") | _const(constants, "EFFECT_TYPE_QUICK_F")
+            op["mandatory_trigger"] = bool(rule["type"] & forced)
         return dict(operations=[op, *extra_ns_ops], extra_reqs=extra_reqs, restrictions=restrictions, fusion=False, ritual=False)
 
     if "Duel.Remove" in call_names:

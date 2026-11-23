@@ -471,6 +471,9 @@ def _functional_inputs(uses, sources, config, completion, stage, scenario, impac
                 modes[mode_key] = use.valuation_mode
                 active.setdefault(key, set()).add(use.use_id)
     admitted = set().union(*active.values()) if active else set()
+    forced_sources = {i.source_use_id for i in impacts if 'own_destruction' in i.reason_codes}
+    admitted.update(u.use_id for u in scoped if u.use_id in forced_sources and allowed[u.use_id]
+                    and supports(u.self_condition) and supports(u.joint_condition))
     required = [u for u in scoped if u.required and allowed[u.use_id]
         and (stage < 1 or supports(u.self_condition)) and (stage < 2 or supports(u.joint_condition))]
     admitted.update(u.use_id for u in required)
@@ -479,7 +482,7 @@ def _functional_inputs(uses, sources, config, completion, stage, scenario, impac
         # A lower bound withdraws every possibly harmed proof. An upper
         # bound withdraws only proofs whose harm is already certain.
         harm_sources = admitted if optimistic is None else {u.use_id for u in scoped
-            if (u.contributes or u.required) and allowed[u.use_id]
+            if (u.contributes or u.required or u.use_id in forced_sources) and allowed[u.use_id]
             and supports(u.self_condition, not optimistic) and supports(u.joint_condition, not optimistic)}
         applicable_impacts = [i for i in impacts if i.scope_id in ('resident', scenario)
             and i.source_use_id in harm_sources
@@ -881,10 +884,16 @@ def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, 
         if any(by_id[uid].scope_id not in ("resident", impact.scope_id) for uid in impact.affected_use_ids):
             raise ContractError("impact targets escape their direction")
         checked_expressions.append(impact.condition)
-        if impact.source_use_id in relevant and any(uid in relevant | counterpart_ids and (
+        source = by_id[impact.source_use_id]
+        forced = 'own_destruction' in impact.reason_codes and all(
+            support_state(expr, facts['variables']) is not False
+            for expr in (source.self_condition, source.joint_condition))
+        if (forced or impact.source_use_id in relevant) and any(uid in relevant | counterpart_ids and (
                 "base" in impact.channels or set(by_id[uid].theme_eligible) & set(impact.channels))
                 for uid in impact.affected_use_ids):
             expressions.append(impact.condition)
+            if forced:
+                expressions.extend((source.self_condition, source.joint_condition))
             effective_impacts.append(impact)
     referenced = set().union(*(support_facts(e) for e in expressions)) if expressions else set()
     checked = set().union(*(support_facts(e) for e in checked_expressions)) if checked_expressions else set()

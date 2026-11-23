@@ -470,6 +470,12 @@ end
         self.assertTrue(q['complete']);self.assertEqual(q['score']['value'],1.)
         self.assertEqual(q['side_directions']['going_first']['resident'],[0.,0.])
         side={f['use_details'][u.use_id]['card_id']:u for u in f['uses'] if u.scope_id=='going_first'}
+        self.assertEqual(set(side) & {102, 103}, {102})
+        # Each alternative is legal alone. Read its function identity from a plan that actually uses it.
+        alternative = normalize_function_uses(replace(task, sizes={**task.sizes, 'side':1}),
+            replace(deck, side=(103,)), binder.semantic_catalog, policy=p, context=ctx)
+        side.update({alternative['use_details'][u.use_id]['card_id']: u for u in alternative['uses']
+                     if u.scope_id == 'going_first'})
         uses=tuple(UseRequirement('tool:'+str(c),InputGroup('all',(Need('tool:'+str(c),
             Resource('functional_operation',attributes=('catalog:'+str(c)+':1:op:0',)),mode='presence'),)),
             'explicit joint tools',required=False,functional_use_ids=(side[c].use_id.removesuffix(':going_first'),)) for c in (102,103))
@@ -1294,6 +1300,32 @@ end
         side_only = DeckParts(tuple(16 if c == 1 else c for c in decks[1].main), side=(1,))
         isolated = normalize_function_uses(task, side_only, binder.semantic_catalog, policy=p, context=ctx)
         self.assertIs(next(r for r in isolated['hard_requirements'] if r['requirement_id'] == 'reuse')['condition'], False)
+
+    def test_forced_self_destruction_only_withdraws_later_field_use(self):
+        from ygo_kito.construction_layer_flow import _bind_mandatory_impacts
+        from ygo_kito.construction_relations import InputGroup, Need, Resource, UseRequirement, JointConstraint, RelationContext
+        from tests.test_construction_functional_quality import fixture as qfixture, use
+
+        source = use('trigger', family='destroy', contributes=False)
+        target = use('draw', family='draw')
+        layer, facts = qfixture([source, target])
+        operation = dict(own_destruction=True, mandatory_trigger=True, subject='this_card')
+        facts.update(coverage_details={}, unpriced_effects=[], use_details={
+            'trigger': dict(restrictions=[], semantics={'kind': 'destroy'}, operation=operation),
+            'draw': dict(restrictions=[], semantics={'kind': 'draw'}, trigger={'zone': 'field'})})
+        requirements = tuple(UseRequirement(k, InputGroup('all', (Need(k, Resource(k)),)),
+                             'effect order', functional_use_ids=(k,)) for k in ('trigger', 'draw'))
+        order = JointConstraint('sequence', ('trigger', 'draw'), 'before', 'effect order')
+        context = SimpleNamespace(relations=RelationContext(requirements, constraints=(order,)))
+        p = policy()
+        p['pass'] = p.pop('pass_')
+        for forced, ctx, expected in ((True, context, 0.), (False, context, 1.), (True, None, 1.)):
+            operation['mandatory_trigger'] = forced
+            facts['impacts'] = []
+            _bind_mandatory_impacts(facts, ctx, lambda key, value, reason, evidence: value)
+            result = evaluate_functional_quality(layer, policy=p, facts=facts)
+            self.assertEqual(result['score']['value'], expected)
+            self.assertEqual(result['stages']['P']['lower'], 1.)
 
     def test_mandatory_restriction_mapping_obeys_whole_turn_and_known_order(self):
         from ygo_kito.construction_layer_flow import _bind_mandatory_impacts
