@@ -591,6 +591,14 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
             binding_failures=dict(binding_errors),
             upstream_generation_work=deepcopy(generation_trace))
     quality_evaluations = {i: row['quality_evaluation'] for i, row in candidate_evaluations.items()}
+    # Lexicographic candidate order: proven-no-contribution Main copies first,
+    # then the effective score, then the stable existing order. Only complete
+    # evaluations can supply D; the first Gate-valid candidate in this order is
+    # the selection, so an incomplete candidate never jumps ahead of a complete one.
+    if order and all(i in quality_evaluations for i in order):
+        base_position = {i: position for position, i in enumerate(order)}
+        order = sorted(order, key=lambda index: _lexicographic_key(
+            quality_evaluations[index], base_position[index]))
     preference = evidence_order(feedback,task.sha256,"deck")
     trace_rows = [{"candidate_index":i,"strategy":row["strategy"],"changes":deepcopy(row["changes"]),
         "recognition_inventory":row["deck"].to_dict(),
@@ -611,7 +619,7 @@ def _fill_with_existing(session, assets, *, role="build_goal", base=None, models
     candidate_trace = {"generation":generation_trace,"ranking":ranking,"calibration_status":"uncalibrated" if models is not None else "no_model_score",
         "score_interpretation":"whole_candidate_score_not_card_credit_or_win_rate",
         "target_constraints":{"goal":deepcopy(task.goal),"sizes":deepcopy(task.sizes),"requirements":deepcopy(task.requirements),"theme_axes":deepcopy(axes)},
-        "order_rule":"final_effective_score_then_stable_model_order",
+        "order_rule":"proven_no_contribution_then_final_effective_score_then_stable_model_order",
         "layers":layer_trace,
         "selection_rule":"first_task_valid_in_final_score_order","candidate_order":order,"candidates":trace_rows,
         "retained_limit":1,"selected_candidate_index":None,"selected_attempt_index":None,
@@ -858,23 +866,52 @@ def _deficiencies(quality, *, limit=4):
 
 
 def _review_slots(deck, quality):
-    """Refer evidenced gaps and duplicate investments to S2 for an equal-size comparison."""
+    """Refer evidenced gaps, proven dead main copies and duplicate investments to S2.
+
+    Proven-no-contribution slots come first so equal-size replacement spends the
+    round on copy positions the shared Evaluation already proved idle.
+    """
     if not quality.get('static_rules'):
         return []
     by_card = {}
     for uid, detail in quality['use_details'].items():
         if not any(uid.endswith(':' + d) for d in quality.get('side_contexts', ())):
             by_card.setdefault(detail['card_id'], []).append(detail)
-    slots = []
+    slots, listed = [], set()
+    for key, row in sorted((quality.get('slot_ledger') or {}).get('cards', {}).items()):
+        if row['status'] != 'proven_no_contribution':
+            continue
+        slots.append(dict(zone=row['zone'], card=row['card_id'], reason='proven_no_contribution',
+                          copies=row['copies'], evidence=['slot_ledger:' + key]))
+        listed.add((row['zone'], row['card_id']))
     for zone in ('extra', 'main'):
         cards = getattr(deck, zone)
         for code in sorted(set(cards)):
+            if (zone, code) in listed:
+                continue
             rows = by_card.get(code, ())
             if rows and all(row['relation']['status'] == 'missing' for row in rows):
                 slots.append(dict(zone=zone, card=code, reason='missing_support'))
             elif cards.count(code) > 1 and rows:
                 slots.append(dict(zone=zone, card=code, reason='duplicate_review'))
-    return sorted(slots, key=lambda slot: slot['reason'] != 'missing_support')
+    order = {'proven_no_contribution': 0, 'missing_support': 1, 'duplicate_review': 2}
+    return sorted(slots, key=lambda slot: order.get(slot['reason'], 9))
+
+
+def _lexicographic_key(evaluation, position):
+    """Order pass candidates by proven-no-contribution Main copies, then score.
+
+    Incomplete evaluations cannot supply D and stay after every complete one.
+    """
+    evaluation = evaluation or {}
+    total = evaluation.get('total') or {}
+    ledger = evaluation.get('slot_ledger') or {}
+    complete = total.get('complete') is True
+    proven = ledger.get('main_no_contribution')
+    value = (evaluation.get('score') or {}).get('value')
+    ranked = complete and isinstance(proven, int) and type(value) in (int, float)
+    return (0 if ranked else 1, proven if ranked else 0,
+            -value if ranked else 0.0, position)
 
 
 def _quality_summary(quality):
@@ -883,11 +920,15 @@ def _quality_summary(quality):
     from .construction_learning import _current_quality
     _current_quality(quality)
     total = quality['total']
+    ledger = quality.get('slot_ledger') or {}
     return dict(status=total['status'], value=total['value'], min=total['min'], max=total['max'],
         complete=total['complete'], scope_complete=total['scope_complete'],
         policy_version=quality['policy_version'],
         deferred=list(total['deferred']), unknown_items=list(total['unknown_items']),
         partial_items=list(total['partial_items']), unit=total['unit'],
+        main_no_contribution=ledger.get('main_no_contribution'),
+        main_undetermined=ledger.get('main_undetermined'),
+        main_contribution_interval=deepcopy(ledger.get('main_contribution_interval')),
         evaluation_id=quality['evaluation_id'], top_deficiencies=_deficiencies(quality))
 
 
@@ -1491,6 +1532,11 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
         if feedback_duel_verifier is not None:
             duel_comparison = feedback_duel_verifier(session.task, assets, active_deck, revised_deck, hard_check=hc)
         passed = bool(duel_comparison and duel_comparison.get('adopt') is True)
+        # Budget exhaustion leaves the paired comparison incomplete. It is a
+        # pending verification: the incumbent deck stays active, the proposal
+        # and its resume state are preserved, and a later invocation retries.
+        pending_verification = bool(duel_comparison is not None
+            and duel_comparison.get('status') == 'pending_verification')
         receipts = [r for r in session.optimization_feedback if r['input']['feedback_id'] in post_fb['feedback_ids']]
         if passed:
             candidate = dict(pending_revision['candidate'])
@@ -1500,11 +1546,30 @@ def _construction_cycle(session, assets, providers, *, scopes=(), base=None, mod
             finish_feedback(receipts, revised_deck)
             reason = 'construction_passed'
         else:
-            reason = 'feedback_duel_not_adopted' if duel_comparison else 'feedback_duel_comparison_pending'
+            if duel_comparison is None or pending_verification:
+                reason = 'feedback_duel_comparison_pending'
+            else:
+                reason = 'feedback_duel_not_adopted'
+            verification = dict(pending_revision.get('verification') or {})
+            verification.update(
+                status='pending_verification' if (duel_comparison is None or pending_verification) else 'completed_not_adopted',
+                reason=reason,
+                active_deck_sha256=digest(active_deck.to_dict()),
+                revised_deck_sha256=digest(revised_deck.to_dict()),
+                attempts=int(verification.get('attempts', 0)) + 1,
+            )
+            if duel_comparison is not None:
+                verification['comparison'] = {key: deepcopy(duel_comparison.get(key)) for key in
+                    ('kind', 'status', 'adopt', 'reason', 'stage', 'message', 'static_scoring_calls',
+                     'active_deck_sha256', 'revised_deck_sha256') if key in duel_comparison}
+            pending_revision['verification'] = verification
+            state['pending_duel_revision'] = pending_revision
         state.update(status='passed' if passed else 'suspended', stop_reason=reason)
         if phases:
             phases[-1]['acceptance'] = reason
             phases[-1]['optimization_feedback'] = deepcopy(receipts)
+            if duel_comparison is not None:
+                phases[-1]['feedback_duel_comparison'] = deepcopy(duel_comparison)
             state['last_optimizer_phase'] = phases[-1]
         save()
     if passed and not user_stopped:

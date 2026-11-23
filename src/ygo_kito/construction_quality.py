@@ -390,6 +390,104 @@ def physical_sources(inventory, aliases=None, extra_card_ids=()):
     return sources
 
 
+SLOT_LEDGER_VERSION = "construction-slot-ledger-v1"
+_SLOT_STATUSES = ("supported", "missing", "unknown")
+
+
+def _scarce_support_cards(value, out):
+    """Card IDs that a supported use needs because its supply is only just enough.
+
+    A generic material query listing the whole legal pool is not evidence that
+    every listed card contributes. Only a demand whose confirmed supply is at or
+    below its minimum makes the listed copies potentially necessary.
+    """
+    if isinstance(value, dict):
+        ids = value.get("matching_card_ids")
+        minimum = value.get("minimum")
+        available = value.get("confirmed_available", value.get("available"))
+        if (isinstance(ids, (list, tuple)) and isinstance(minimum, int) and isinstance(available, int)
+                and available <= minimum):
+            out.update(code for code in ids if isinstance(code, int))
+        for item in value.values():
+            if isinstance(item, (dict, list, tuple)):
+                _scarce_support_cards(item, out)
+    elif isinstance(value, (list, tuple)):
+        for item in value:
+            _scarce_support_cards(item, out)
+    return out
+
+def slot_ledger(facts, inventory):
+    """Attribute every actual copy from the same normalized use facts that price the deck.
+
+    ``contributed``  — the card has at least one supported use in some legal scope.
+                       Scarce supply alone is never proof of contribution.
+    ``undetermined`` — an unresolved use, unevaluated coverage or unpriced effect could
+                       still change the conclusion.
+    ``proven_no_contribution`` — every related use is missing, coverage is evaluated and
+                       no supported use consumes the card.
+    """
+    details = facts.get("use_details") or {}
+    coverage = facts.get("coverage") or {}
+    aliases = facts.get("source_aliases") or {}
+    unpriced = facts.get("unpriced_effects") or []
+    cards = {}
+    per_card, scarce = {}, set()
+    for uid, detail in details.items():
+        code = detail.get("card_id")
+        if not isinstance(code, int):
+            continue
+        status = (detail.get("relation") or {}).get("status")
+        row = per_card.setdefault(code, {"supported": 0, "missing": 0, "unknown": 0, "refs": set()})
+        if status in _SLOT_STATUSES:
+            row[status] += 1
+        if status == "supported":
+            _scarce_support_cards(detail.get("inventory_checks") or {}, scarce)
+    unpriced_cards = {row.get("source_id") if isinstance(row.get("source_id"), int) else None
+                      for row in unpriced if isinstance(row, dict)}
+    for row in unpriced:
+        if isinstance(row, dict) and isinstance(row.get("card_id"), int):
+            unpriced_cards.add(row["card_id"])
+    for zone in ZONE_ORDER:
+        for code, copies in sorted(Counter(inventory.get(zone) or ()).items()):
+            counts = per_card.get(code, {"supported": 0, "missing": 0, "unknown": 0, "refs": set()})
+            coverage_state = coverage.get(f"{zone}:{code}", "deferred")
+            # Only a scarce support demand makes a listed copy potentially
+            # necessary; abundant supply leaves it a normal dead-slot candidate.
+            referenced = code in scarce
+            if counts["supported"]:
+                status, reasons = "contributed", ["supported_use"]
+            elif counts["unknown"] or coverage_state != "evaluated" or code in unpriced_cards or referenced:
+                status, reasons = "undetermined", []
+                if counts["unknown"]:
+                    reasons.append("unresolved_use")
+                if coverage_state != "evaluated":
+                    reasons.append("coverage_" + str(coverage_state))
+                if code in unpriced_cards:
+                    reasons.append("unpriced_effect")
+                if referenced:
+                    reasons.append("scarce_support_supply")
+            elif counts["missing"]:
+                status, reasons = "proven_no_contribution", ["all_uses_missing"]
+            else:
+                status, reasons = "undetermined", ["no_observed_use"]
+            cards[f"{zone}:{code}"] = dict(zone=zone, card_id=code,
+                name_key=aliases.get(str(code), aliases.get(code, code)), copies=copies,
+                status=status, reasons=reasons,
+                uses={"supported": counts["supported"], "missing": counts["missing"],
+                      "unknown": counts["unknown"]})
+    zones = {}
+    for zone in ZONE_ORDER:
+        zones[zone] = {"copies": sum(row["copies"] for row in cards.values() if row["zone"] == zone),
+                       "contributed": 0, "proven_no_contribution": 0, "undetermined": 0}
+    for row in cards.values():
+        zones[row["zone"]][row["status"]] += row["copies"]
+    return {"version": SLOT_LEDGER_VERSION, "cards": cards, "zones": zones,
+            "main_no_contribution": zones["main"]["proven_no_contribution"],
+            "main_undetermined": zones["main"]["undetermined"],
+            "main_contribution_interval": [zones["main"]["proven_no_contribution"],
+                zones["main"]["proven_no_contribution"] + zones["main"]["undetermined"]]}
+
+
 def _interruption_B(count, destination, main_size, capacity=None):
     """Compute h(x)=log2(1+x) on same-name interruption investment matching Main/Extra curves."""
     from math import fsum, log2
@@ -1129,6 +1227,9 @@ def evaluate_functional_quality(evaluation, *, policy, facts, should_stop=None, 
         use_details=deepcopy(facts.get("use_details", {})), fact_details=deepcopy(facts.get("fact_details", {})),
         unpriced_effects=deepcopy(facts.get("unpriced_effects", [])),
         completion_results=completion_results, details=work['details'] if complete else None)
+    # One attribution shared by scoring, slot review and S2 feedback: the same
+    # normalized use facts decide which actual copies contributed.
+    body["slot_ledger"] = slot_ledger(facts, inventory)
     if eval_version == FUNCTIONAL_QUALITY_VERSION_V5:
         final_details = work['details'][-1] if (complete and work.get('details')) else None
         def _int_scope(ctx_row):

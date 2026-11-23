@@ -522,9 +522,143 @@ class ScenarioCourse:
         self.rules.validate(self.deck)
         self.construction = deepcopy(result)
 
+    def feedback_revision_record(self):
+        """Durable queued/pending actual-duel feedback revision, if any."""
+        path = self.root / "feedback-revision.json"
+        if not path.exists():
+            return None
+        if path.is_symlink():
+            raise ContractError("feedback revision record cannot be a symlink")
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    def _write_feedback_revision(self, record):
+        path = self.root / "feedback-revision.json"
+        temporary = self.root / ("feedback-revision-" + hashlib.sha256(os.urandom(16)).hexdigest()[:16] + ".tmp")
+        with temporary.open("x", encoding="utf-8") as output:
+            output.write(canonical_json(record) + "\n")
+            output.flush(); os.fsync(output.fileno())
+        os.replace(temporary, path)
+
+    def queue_feedback_revision(self, feedback, *, opponent_bot_id=None, seeds=(7, 24), seconds=120.,
+                                basic_cb_enabled=True):
+        """Queue an actual-duel feedback revision for the next clean run boundary."""
+        if getattr(self, "pending", None) is not None:
+            raise ContractError("feedback revision requires a closed match boundary")
+        if getattr(self, "frozen_evaluation", None) is not None:
+            raise ContractError("frozen evaluation retains its deck; post-admission revision is refused")
+        if self.deck is None or self.selection is None or self.construction is None:
+            raise ContractError("feedback revision requires an initially admitted deck")
+        if (self.root / "in-flight.json").exists():
+            raise ContractError("uncertain in-flight game requires inspection before revision")
+        existing = self.feedback_revision_record()
+        if existing is not None and existing.get("status") in ("queued", "pending_verification"):
+            raise ContractError("an unfinished feedback revision already exists for this course")
+        items = list(feedback) if isinstance(feedback, (list, tuple)) else [feedback]
+        if not items or any(not isinstance(item, dict) for item in items):
+            raise ContractError("explicit optimization feedback items required")
+        task, incumbent = self._task(), digest(self.deck.to_dict())
+        bound = []
+        for item in items:
+            row = dict(item)
+            row.setdefault("source", "duel")
+            row.setdefault("trigger_kind", "duel")
+            row.setdefault("task_sha256", task.sha256)
+            row.setdefault("candidate_sha256", incumbent)
+            if row.get("task_sha256") != task.sha256 or row.get("candidate_sha256") != incumbent:
+                raise ContractError("queued feedback must bind the current task and active deck")
+            if not isinstance(row.get("issue"), str) or not row["issue"].strip():
+                raise ContractError("explicit optimization feedback issue required")
+            row.setdefault("feedback_id", "feedback-" + digest([row["issue"], incumbent,
+                row.get("revised_deck")])[:24])
+            bound.append(row)
+        record = {"kind": "course-feedback-revision-v1", "schema_version": 1,
+            "course_binding_sha256": digest(self.binding), "status": "queued",
+            "feedback": deepcopy(bound), "opponent_bot_id": opponent_bot_id,
+            "seeds": list(seeds), "seconds": seconds, "basic_cb_enabled": bool(basic_cb_enabled),
+            "attempts": 0, "queued_revision": self.revision,
+            "incumbent_deck_sha256": incumbent}
+        if existing is not None:
+            record["previous"] = {key: deepcopy(existing.get(key)) for key in
+                ("status", "attempts", "stop_reason", "incumbent_deck_sha256", "active_deck_sha256", "feedback")
+                if key in existing}
+        self._write_feedback_revision(record)
+        return deepcopy(record)
+
+    def _process_feedback_revision(self):
+        """Run or continue the queued revision; pending verification survives restart."""
+        record = self.feedback_revision_record()
+        if record is None or record.get("status") not in ("queued", "pending_verification"):
+            return None
+        if record.get("course_binding_sha256") != digest(self.binding):
+            raise ContractError("queued feedback revision belongs to another course binding")
+        if getattr(self, "pending", None) is not None:
+            raise ContractError("feedback revision requires a closed match boundary")
+        if getattr(self, "frozen_evaluation", None) is not None:
+            raise ContractError("frozen evaluation retains its deck; post-admission revision is refused")
+        current = digest(self.deck.to_dict()) if self.deck is not None else None
+        if record.get("status") == "queued" and record.get("incumbent_deck_sha256") not in (None, current):
+            # The durable checkpoint already moved past the deck this record was
+            # queued against: an interrupted attempt applied its revision.
+            # Verifying the same revision twice would double-count the comparison.
+            record.update(status="adopted", reconciled="checkpoint_advanced_before_record",
+                          active_deck_sha256=current, updated_revision=self.revision)
+            self._write_feedback_revision(record)
+            self.save()
+            return None
+        incumbent = current
+        result = self.revise_deck_from_feedback(record["feedback"],
+            opponent_bot_id=record.get("opponent_bot_id"),
+            seeds=tuple(record.get("seeds") or (7, 24)),
+            seconds=record.get("seconds", 120.),
+            basic_cb_enabled=bool(record.get("basic_cb_enabled", True)))
+        comparison = result.get("feedback_duel_comparison") or {}
+        pending = (result.get("stop_reason") == "feedback_duel_comparison_pending"
+                   or comparison.get("status") == "pending_verification")
+        record.update(
+            status=("adopted" if result.get("adopted") else
+                    "pending_verification" if pending else "retained_incumbent"),
+            attempts=int(record.get("attempts", 0)) + 1,
+            stop_reason=result.get("stop_reason"),
+            static_scoring_calls=result.get("static_scoring_calls", 0),
+            incumbent_deck_sha256=incumbent,
+            active_deck_sha256=digest(self.deck.to_dict()) if self.deck is not None else None,
+            proposal_deck_sha256=(comparison.get("revised_deck_sha256")
+                or ((result.get("result") or {}).get("feedback_hard_check") or {}).get("deck_sha256")),
+            verification=({key: deepcopy(comparison.get(key)) for key in
+                ("kind", "status", "adopt", "reason", "stage", "message", "static_scoring_calls")
+                if key in comparison} if comparison else None),
+            updated_revision=self.revision)
+        self._write_feedback_revision(record)
+        self.events.append(dict(kind="post_admission_feedback_" + record["status"],
+            status=record["status"], stop_reason=record.get("stop_reason"),
+            attempts=record["attempts"], static_scoring_calls=record.get("static_scoring_calls", 0),
+            incumbent_deck_sha256=record.get("incumbent_deck_sha256"),
+            active_deck_sha256=record.get("active_deck_sha256")))
+        # The checkpoint must carry the same decision the record names; a crash
+        # between the two leaves a terminal record whose deck already matches.
+        self.save()
+        return deepcopy(result)
+
+    def run_feedback_revision(self, feedback=None, *, opponent_bot_id=None, seeds=(7, 24), seconds=120.,
+                              basic_cb_enabled=True):
+        """Formal post-admission revision entry; resumes a pending verification without issuing a match."""
+        with (self.root / ".course.lock").open("a") as lock:
+            try: fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as error:
+                raise ContractError("another course worker owns this state root") from error
+            if feedback is not None:
+                self.queue_feedback_revision(feedback, opponent_bot_id=opponent_bot_id, seeds=seeds,
+                                             seconds=seconds, basic_cb_enabled=basic_cb_enabled)
+            result = self._process_feedback_revision()
+        return dict(record=self.feedback_revision_record(), result=result)
+
     def revise_deck_from_feedback(self, feedback, *, opponent_bot_id=None, seeds=(7, 24), seconds=120.,
                                   basic_cb_enabled=True, basic_cb_verifier=None):
         """Revise an already-admitted deck via hard check + targeted verification (0 static scoring)."""
+        if getattr(self, "pending", None) is not None:
+            raise ContractError("post-admission feedback revision requires a closed match boundary")
+        if getattr(self, "frozen_evaluation", None) is not None:
+            raise ContractError("frozen evaluation window must retain its deck; revision is refused")
         if self.deck is None or self.selection is None or self.construction is None:
             raise ContractError("post-admission feedback revision requires an initially admitted deck")
         from .build_feedback import compare_feedback_revision
@@ -571,7 +705,10 @@ class ScenarioCourse:
             ))
             self.save()
         else:
-            self.construction = deepcopy(result)
+            # The incumbent admission stays active: a rejected or still-pending
+            # proposal must not replace the deck the course is playing. The
+            # proposal and its verification state remain in the kernel
+            # continuation and in the durable feedback-revision record.
             self.events.append(dict(
                 kind="post_admission_feedback_retained_incumbent",
                 active_deck_sha256=digest(self.deck.to_dict()),
@@ -680,7 +817,7 @@ class ScenarioCourse:
             combo_plans=plans_from_construction(self._task(),self.construction,deck=self.deck),
             observed_bot_source_review=getattr(self,'observed_bot_source_review',None) or self.models.binding.get('observed_bot_source_review'),
             training_attempt_cursor=self.training_attempt_cursor if purpose == "train" else None,
-            admission_task=self._task(),admission_basic_cb=(self.construction or {}).get('best',{}).get('basic_cb'),
+            admission_task=self._task(),admission_basic_cb=((self.construction or {}).get('best') or {}).get('basic_cb'),
             comparison_policy=self.comparison_policy)
         spec = match.issue_game_spec()
         _exclusive_json(self.root / "in-flight.json", {"course_binding_sha256": digest(self.binding),
@@ -781,6 +918,10 @@ class ScenarioCourse:
         if (self.root / "in-flight.json").exists() or (self.root / "feedback-in-flight.json").exists():
             raise ContractError("uncertain in-flight game exists; inspect, do not replay or reset counters")
         if self.desired == "needs_inspection": raise ContractError("unresolved match requires an explicit host decision")
+        revision = self.feedback_revision_record()
+        revision_pending = bool(revision is not None
+            and revision.get("status") in ("queued", "pending_verification"))
+        revision_done = False
         if purpose != "train" and self.stage() != "complete":
             raise ContractError("frozen stage2 evaluation requires both ordered training minima")
         if self.pending is not None and self.pending["purpose"] != purpose:
@@ -802,6 +943,16 @@ class ScenarioCourse:
                 closed += 1
                 if self.desired == "needs_inspection" or closed >= limit: break
             if (self.root / "pause.request").exists(): self.desired = "paused"; break
+            if revision_pending and not revision_done and self.pending is None:
+                # A closed match boundary is the only legal place to change the
+                # active deck; a pending verification resumes at this boundary.
+                if purpose != "train":
+                    raise ContractError("post-admission feedback revision belongs to the training partition")
+                if self.stage() == "timing_required":
+                    raise ContractError("timing pilot must precede formal feedback revision")
+                revision_done = True
+                self._process_feedback_revision()
+                if self.desired == "needs_inspection": break
             if purpose == "train" and self.stage() == "complete": break
             if purpose == "train" and self.training_attempt_cursor >= len(self.config["training_seeds"]):
                 self.desired = "training_seed_schedule_exhausted"; break

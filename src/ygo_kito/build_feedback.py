@@ -19,6 +19,15 @@ SOURCE = "real_core_paired_frozen_rule_driver_bo1_v1"
 DRIVER = "visible-dto-effect-protocol-baseline-v1"
 
 
+class FeedbackComparisonPending(ContractError):
+    """Paired verification ran out of budget before a complete label existed."""
+
+    def __init__(self, message, *, stage="comparison"):
+        super().__init__(message)
+        self.stage = stage
+        self.message = message
+
+
 def driver_binding():
     return {"version": DRIVER, "implementation_sha256": digest(inspect.getsource(choose_effect_duel_action)),
             "type": "visible_rule_engineering_baseline", "trained_policy": False}
@@ -130,11 +139,13 @@ def compare_candidates(task, assets, candidates, opponent, *, seeds=(7, 24), pur
                 if task.goal['kind']=='deck_constraints':profile['adapter_revision']=5
                 remaining = seconds - (time.monotonic() - started)
                 if remaining <= 0:
-                    raise ContractError("paired comparison budget exhausted; incomplete cases cannot become labels")
+                    raise FeedbackComparisonPending(
+                        "paired comparison budget exhausted; incomplete cases cannot become labels", stage="comparison")
                 summary, trace = run_effect_duel(assets.root, profile, seed=seed, budget_seconds=min(30., remaining))
                 remaining = seconds - (time.monotonic() - started)
                 if remaining <= 0:
-                    raise ContractError("paired replay budget exhausted; no completed comparison claimed")
+                    raise FeedbackComparisonPending(
+                        "paired replay budget exhausted; no completed comparison claimed", stage="replay")
                 verified, replayed = run_effect_duel(assets.root, {}, replay=trace, budget_seconds=min(30., remaining))
                 if replayed != trace or not verified["replay_verified"]:
                     raise ContractError("real comparison replay diverged")
@@ -188,8 +199,28 @@ def compare_feedback_revision(task, assets, active_deck, revised_deck, opponent,
             traces=[],
             static_scoring_calls=0,
         )
-    comparison, traces = compare_candidates(task, assets, [active_deck, revised_deck], opponent,
-                                            seeds=seeds, purpose=purpose, seconds=seconds)
+    try:
+        comparison, traces = compare_candidates(task, assets, [active_deck, revised_deck], opponent,
+                                                seeds=seeds, purpose=purpose, seconds=seconds)
+    except FeedbackComparisonPending as error:
+        # Budget exhaustion is a pending verification, not a rejection and not
+        # an optimization label. The incumbent stays active; the caller keeps
+        # the proposal and resume state for another verification attempt.
+        return dict(
+            kind="feedback_duel_comparison_v1",
+            adopt=False,
+            status="pending_verification",
+            pending_verification=True,
+            reason="comparison_budget_exhausted",
+            stage=error.stage,
+            message=str(error),
+            active_deck_sha256=active_sha,
+            revised_deck_sha256=revised_sha,
+            hard_check=hard_check,
+            comparison=None,
+            traces=[],
+            static_scoring_calls=0,
+        )
     adopt = comparison.get("preferred_index") == 1
     return dict(
         kind="feedback_duel_comparison_v1",

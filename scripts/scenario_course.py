@@ -21,14 +21,16 @@ def main(argv=None):
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--purpose", choices=("train", "validation", "final_eval"), default="train")
     parser.add_argument("--max-matches", type=int)
+    parser.add_argument("--feedback", type=Path,
+        help="explicit post-admission optimization feedback JSON consumed at the next clean boundary")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--run", action="store_true")
     mode.add_argument("--pilot", action="store_true")
     mode.add_argument("--template", action="store_true")
     args = parser.parse_args(argv)
     if not args.template and args.config is None: parser.error("--config is required except for --template")
-    if not args.run and (args.max_matches is not None or args.purpose != "train"):
-        parser.error("--purpose and --max-matches execution options require --run")
+    if not args.run and (args.max_matches is not None or args.purpose != "train" or args.feedback is not None):
+        parser.error("--purpose, --max-matches and --feedback execution options require --run")
     if args.max_matches is not None and args.max_matches < 1:
         parser.error("--max-matches must be positive")
     try:
@@ -56,7 +58,13 @@ def main(argv=None):
             from ygo_kito.scenario_course_host import prepare_course
             host = prepare_course(args.workspace, read_json(args.config))
             if args.run:
-                result = host.run(purpose=args.purpose, max_matches=args.max_matches, progress=persist)
+                feedback = None
+                if args.feedback is not None:
+                    feedback = read_json(args.feedback)
+                    if not isinstance(feedback, (dict, list)):
+                        raise ValueError("feedback JSON must be an object or a list of objects")
+                result = host.run(purpose=args.purpose, max_matches=args.max_matches, progress=persist,
+                                  feedback=feedback)
             elif args.pilot:
                 result = host.timing_pilot(progress=persist)
             else:

@@ -416,7 +416,7 @@ class ScenarioCourseHost:
             report["blockers"].append({"type": type(error).__name__, "message": str(error)})
         return report
 
-    def run(self, *, purpose="train", max_matches=None, progress=None):
+    def run(self, *, purpose="train", max_matches=None, progress=None, feedback=None):
         report = self.preflight()
         if self._prepared is None: return report
         models, assets, config, bots, state, _ = self._prepared
@@ -429,6 +429,10 @@ class ScenarioCourseHost:
             config=config, state_root=state / "course", bots=bots, storage_envelope=self._storage_envelope,
             formal_construction=True)
         if self.spec["resume"]: course.restore_latest()
+        if feedback is not None:
+            # Actual-duel feedback enters the course here; a pending verification
+            # left by an earlier invocation resumes from its own durable record.
+            course.queue_feedback_revision(feedback)
         if progress is not None:
             progress({"kind": "scenario-course-host-run", "status": "running", "native_executed": None,
                 "csharp_executed": None, "formal_training_success_verified": False, "host_config_sha256": self.spec_sha256})
